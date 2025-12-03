@@ -54,4 +54,5 @@ ocelot_conversion_rules = {
     "Marker": Marker,
     "Laser": Drift,
     "Plasma": Drift,
+    "TwissMatch": Monitor,
 }
