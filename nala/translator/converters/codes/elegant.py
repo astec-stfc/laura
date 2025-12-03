@@ -40,10 +40,13 @@ class ElegantLatticeImporter(BaseModel):
                 pass
             else:
                 prevind = list(self.floor_data.keys()).index(k) - 1
+                thisind = list(self.floor_data.keys()).index(k)
                 self.floor_data[k].update(
                     {
                         "start": list(self.floor_data.values())[prevind]["end"],
-                        "start_rotation": list(self.floor_data.values())[prevind]["end_rotation"]
+                        "start_rotation": list(self.floor_data.values())[prevind]["end_rotation"],
+                        "end": list(self.floor_data.values())[thisind]["end"],
+                        "end_rotation": list(self.floor_data.values())[thisind]["end_rotation"],
                     }
                 )
             i += 1
@@ -55,40 +58,13 @@ class ElegantLatticeImporter(BaseModel):
             self.update_floor_coordinates()
         self.elements = {}
 
-        def calculate_middle_from_start(start_pos, length, physical_angle, rotation):
-            """Calculate middle position from start position, accounting for rotation and bending."""
+        def calculate_middle_from_start(start_pos, end_pos):
+            """
+            Calculate middle position as midpoint between start and end positions.
+            """
             start = np.array(start_pos)
-
-            # Calculate local offset from start to middle
-            if abs(physical_angle) > 1e-9:
-                # Bent element - arc geometry
-                mx_local = length * (1 - np.cos(physical_angle)) / (2 * physical_angle)
-                my_local = 0
-                mz_local = length * np.sin(physical_angle) / (2 * physical_angle)
-            else:
-                # Straight element
-                mx_local = 0
-                my_local = 0
-                mz_local = length / 2.0
-
-            # Apply only the yaw rotation (horizontal bending)
-            if len(rotation) >= 3 and abs(rotation[2]) > 1e-12:
-                yaw = rotation[2]
-                # Rotation around Y axis
-                cos_yaw = np.cos(yaw)
-                sin_yaw = np.sin(yaw)
-
-                mx_rotated = mx_local * cos_yaw + mz_local * sin_yaw
-                my_rotated = my_local  # No change in y for yaw rotation
-                mz_rotated = -mx_local * sin_yaw + mz_local * cos_yaw
-
-                local_offset = np.array([mx_rotated, my_rotated, mz_rotated])
-            else:
-                local_offset = np.array([mx_local, my_local, mz_local])
-
-            # Calculate middle position
-            middle = start + local_offset
-            return middle
+            end = np.array(end_pos)
+            return (start + end) / 2
 
         for k, v in self.elegant_data.items():
             if k in self.floor_data:
@@ -103,9 +79,7 @@ class ElegantLatticeImporter(BaseModel):
                         # Calculate middle position properly
                         centre = calculate_middle_from_start(
                             start_pos=self.floor_data[k]["start"],
-                            length=v["l"],
-                            physical_angle=physical_angle,
-                            rotation=self.floor_data[k]["start_rotation"]
+                            end_pos=self.floor_data[k]["end"]
                         )
                     else:
                         # Zero length element - middle is same as start
@@ -115,7 +89,7 @@ class ElegantLatticeImporter(BaseModel):
                     v = self._convert_k_to_kl(v)
                     v = self._convert_ele_phase_to_phase(v)
 
-                    rotation = self.floor_data[k]["start_rotation"]
+                    rotation = self.floor_data[k]["end_rotation"]
                     if "physical" in v:
                         v["physical"].update(
                             {

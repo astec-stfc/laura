@@ -108,6 +108,7 @@ aliases:
       - rfca
     Drift:
       - drif
+      - edrift
     Combined_Corrector:
       - vkick
       - hkick

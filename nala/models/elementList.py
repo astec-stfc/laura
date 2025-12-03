@@ -246,7 +246,7 @@ class SectionLattice(BaseLatticeModel):
                     print("Element with error = ", e[0])
                     print(d)
                     raise exc
-                if round(length, 6) > 0:
+                if round(length, 16) > 0:
                     elementno += 1
                     name = self.name + "_drift_" + str(elementno)
                     x, y, z = [(a + b) / 2.0 for a, b in zip(d[0], d[1])]
@@ -255,7 +255,7 @@ class SectionLattice(BaseLatticeModel):
                         machine_area=newelements[e[0]].machine_area,
                         hardware_class="drift",
                         physical=PhysicalElement(
-                            length=abs(round(np.copysign(length, vector), 6)),
+                            length=abs(round(np.copysign(length, vector), 16)),
                             middle=Position(x=x, y=y, z=z),
                             datum=Position(x=x, y=y, z=z),
                         ),
