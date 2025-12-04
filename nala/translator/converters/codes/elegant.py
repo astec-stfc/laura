@@ -106,6 +106,8 @@ class ElegantLatticeImporter(BaseModel):
                     # Add physical_angle for bent elements
                     if abs(physical_angle) > 1e-9:
                         v["physical"]["physical_angle"] = physical_angle
+                    if "hardware_class" not in v:
+                        v["hardware_class"] = vtype
 
                     self.elements.update({k: getattr(NALA_elements, vtype)(**v)})
 
