@@ -101,7 +101,6 @@ class SectionLatticeTranslator(SectionLattice):
         astrastr = ""
         for h in self.astra_headers.values():
             astrastr += h.write_ASTRA()
-
         for e in elem_dict.values():
             for key, count in counter.items():
                 if "&" + e.hardware_type.upper().replace("RF", "").replace("FIELD", "") == key:
@@ -110,7 +109,7 @@ class SectionLatticeTranslator(SectionLattice):
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     counter[key] += 1
-                    try:
+                    if hasattr(e.simulation, "wakefield_definition") and isinstance(e.simulation.wakefield_definition, (str, field)):
                         w = WakefieldTranslator(
                             name=e.name + "_wake",
                             hardware_class="Wakefield",
@@ -123,12 +122,10 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers["&WAKE"] += f"{section_header_text_ASTRA["&WAKE"]} = True\n"
+                            element_headers["&WAKE"] += f"{section_header_text_ASTRA['&WAKE']} = True\n"
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += e.cavity.n_cells
-                    except Exception as ex:
-                        pass
                 else:
                     cond = "&" + e.hardware_type.upper().replace("RF", "").replace("FIELD", "") in headers
                     if not e.hardware_class == "Diagnostic" and not cond:
