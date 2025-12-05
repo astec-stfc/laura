@@ -789,22 +789,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                     output += param_string
         return output[:-2] + "\n"
 
-    def __getattr__(self, item):
-        found = []
-        for key, value in self.model_dump().items():
-            if isinstance(value, dict):
-                for k1, v1 in value.items():
-                    if k1 == item:
-                        found.append(v1)
-            else:
-                if key == item:
-                    found.append(value)
-        if len(found) == 1:
-            return found[0]
-        elif len(found) > 1:
-            warn(f"Multiple attributes found for {item}, returning first")
-            return found[0]
-
     @computed_field
     @property
     def length(self) -> float:
