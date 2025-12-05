@@ -15,7 +15,7 @@ fel_modulator:
   vertical_quadratic_rolloff: kx
   number_of_periods: nwig
   period_length: lambdau
-  normalized_strength: aw
+  strength: aw
 quadrupole:
   k1l: k1
 kicker:

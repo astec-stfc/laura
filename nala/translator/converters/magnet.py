@@ -1147,7 +1147,7 @@ class WigglerTranslator(BaseElementTranslator):
                 if value is not None:
                     key = self._convertKeyword_Genesis(key)
                     if key == "aw" and not self.magnetic.helical:
-                        value *= np.sqrt(2)
+                        value /= np.sqrt(2)
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
