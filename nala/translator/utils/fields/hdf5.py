@@ -48,8 +48,10 @@ def read_HDF5_field_file(self, filename: str) -> str:
     with h5py.File(filename, "r") as h5file:
         for key, value in h5file.attrs.items():
             if key == "type":
-                setattr(self, "field_type", value)
+                setattr(self, "field_type", str(value))
             else:
+                if isinstance(key, bytes):
+                    key = key.decode("utf-8")
                 setattr(self, key, value)
         if "origin_code" in list(h5file.attrs.keys()):
             self.origin_code = h5file.attrs["origin_code"]

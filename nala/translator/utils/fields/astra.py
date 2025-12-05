@@ -31,6 +31,7 @@ def generate_astra_field_data(self) -> np.ndarray:
     length = str(self.length)
     data = None
     zdata = self.z_values
+    self.field_type = self.field_type.decode("utf-8") if isinstance(self.field_type, bytes) else self.field_type
     if self.field_type == "LongitudinalWake":
         wzdata = self.Wz.value.val
         preamble = np.array(

@@ -54,6 +54,9 @@ class MagnetSimulationElement(SimulationElement):
     n_kicks: int = 4
     """Number of kicks for tracking through the quad"""
 
+    n_slices: int = 4
+    """Number of kicks for tracking through the quad"""
+
     smooth: int | float | None = 2
     """Number of points to smooth the field map [ASTRA only]"""
 

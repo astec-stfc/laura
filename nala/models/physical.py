@@ -333,63 +333,32 @@ class PhysicalElement(IgnoreExtra):
 
     @property
     def start(self) -> Position:
-        """
-        Start position of the element.
-
-        Returns
-        -------
-        :class:`~nala.models.physical.Position
-            Start position of the element.
-        """
         middle = np.array(self.middle.array)
 
-        # Calculate local offset from middle to start
         if abs(self.physical_angle) > 1e-9:
-            # Bent element - correct arc geometry
-            # The start is offset from middle by half the chord deviation
+            # Bent element
             sx = -self.length * (1 - np.cos(self.physical_angle)) / (2 * self.physical_angle)
             sy = 0
             sz = -self.length * np.sin(self.physical_angle) / (2 * self.physical_angle)
         else:
             # Straight element
-            sx = 0
-            sy = 0
-            sz = -self.length / 2.0
+            sx, sy, sz = 0, 0, -self.length / 2.0
 
-        # Local offset vector
         vec = [sx, sy, sz]
-
-        # Rotate to global coordinates and add to middle
         start = middle + self.rotated_position(vec)
         return Position.from_list(start)
 
     @property
     def end(self) -> Position:
-        """
-        End position of the element.
-
-        Returns
-        -------
-        :class:`~nala.models.physical.Position
-            End position of the element.
-        """
         middle = np.array(self.middle.array)
 
-        # Calculate local offset from middle to end
         if abs(self.physical_angle) > 1e-9:
-            # Bent element - arc geometry (symmetric to start)
             ex = self.length * (1 - np.cos(self.physical_angle)) / (2 * self.physical_angle)
             ey = 0
             ez = self.length * np.sin(self.physical_angle) / (2 * self.physical_angle)
         else:
-            # Straight element
-            ex = 0
-            ey = 0
-            ez = self.length / 2.0
+            ex, ey, ez = 0, 0, self.length / 2.0
 
-        # Local offset vector
         vec = [ex, ey, ez]
-
-        # Rotate to global coordinates and add to middle
         end = middle + self.rotated_position(vec)
         return Position.from_list(end)

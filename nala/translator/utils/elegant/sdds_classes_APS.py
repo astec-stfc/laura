@@ -55,8 +55,8 @@ class SDDS_Floor:
         return elem + self.prefix + str(no)
         # return elem
 
-    def import_sdds_floor_file(self, filename: str, page: int = 0) -> list:
-        elegantObject = SDDSFile(index=1)
+    def import_sdds_floor_file(self, filename: str, page: int = 0, index=1) -> list:
+        elegantObject = SDDSFile(index=index)
         elegantObject.read_file(filename, page=page)
         elegantData = elegantObject.data
         for a in self.sdds_position_columns + self.sdds_angle_columns:
@@ -70,13 +70,13 @@ class SDDS_Floor:
         # print(self.ElementName)
         # exit()
         rawpositiondata = {
-            e: list(map(float, chop([x, y, z], 1e-6)))
+            e: list(map(float, chop([x, y, z], 1e-12)))
             for e, x, y, z in list(
                 zip(*[getattr(self, a) for a in self.sdds_position_columns])
             )
         }
         rawangledata = {
-            e: list(map(float, chop([phi, psi, theta], 1e-6)))
+            e: list(map(float, chop([phi, psi, theta], 1e-12)))
             for e, phi, psi, theta in list(
                 zip(*[getattr(self, a) for a in self.sdds_angle_columns])
             )
@@ -100,8 +100,8 @@ class SDDS_Params:
         self.elegantData = None
         self.elegantParams = None
 
-    def import_sdds_params_file(self) -> None:
-        self.elegantObject = SDDSFile(index=1)
+    def import_sdds_params_file(self, index=1) -> None:
+        self.elegantObject = SDDSFile(index=index)
         self.elegantObject.read_file(self.filename, page=self.page)
         self.elegantData = self.elegantObject.data
 
