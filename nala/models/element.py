@@ -591,6 +591,10 @@ class Dipole(Magnet):
 
     magnetic: Dipole_Magnet = Field(default_factory=Dipole_Magnet)
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.physical._parent = self
+
 
 class Quadrupole(Magnet):
     """

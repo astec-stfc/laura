@@ -1,8 +1,6 @@
 import numpy as np
-from pydantic import field_validator, confloat, Field, AliasChoices
-from typing import List, Type, Union, Dict
-
-from ._functions import _rotation_matrix
+from pydantic import field_validator, confloat, Field, AliasChoices, PrivateAttr, computed_field
+from typing import List, Type, Union, Dict, Any
 
 from .baseModels import IgnoreExtra, NumpyVectorModel, T
 
@@ -208,8 +206,9 @@ class PhysicalElement(IgnoreExtra):
     length: float = 0.0
     """Length of the element."""
 
+    _parent: Any = PrivateAttr(default=None)
+
     physical_angle: float = 0.0
-    """Physical angle"""
 
     def __str__(self):
         cls = self.__class__
@@ -226,6 +225,17 @@ class PhysicalElement(IgnoreExtra):
 
     def __repr__(self):
         return self.__class__.__name__ + "(" + self.__str__() + ")"
+
+    @computed_field
+    @property
+    def _physical_angle(self) -> float:
+        if self._parent is not None:
+            magnetic = getattr(self._parent, "magnetic", None)
+            if magnetic is not None and getattr(magnetic, "angle", None) is not None:
+                self.physical_angle = magnetic.angle
+                return magnetic.angle
+        self.physical_angle = 0.0
+        return 0.0
 
     @field_validator("middle", "datum", mode="before")
     @classmethod
@@ -275,43 +285,33 @@ class PhysicalElement(IgnoreExtra):
 
     @property
     def rotation_matrix(self) -> np.ndarray:
-        """
-        Get the 3D rotation matrix of the element based on combined rotations.
-        Convention: [pitch, roll, yaw] = [rotation around X, rotation around Z, rotation around Y]
+        # Combined rotations. We apply (column-vector convention):
+        #   1) yaw (Y)  -> Ry  (rightmost)
+        #   2) pitch (X)-> Rx
+        #   3) roll (Z) -> Rz  (leftmost)
+        yaw = self.rotation.theta + self.global_rotation.theta
+        pitch = self.rotation.phi + self.global_rotation.phi
+        roll = self.rotation.psi + self.global_rotation.psi
 
-        Returns
-        -------
-        np.ndarray
-            3x3 Rotation matrix
-        """
-        # Get the combined rotation angles
-        pitch = self.rotation.phi + self.global_rotation.phi  # X rotation (pitch) - affects Y,Z
-        roll = self.rotation.psi + self.global_rotation.psi  # Z rotation (roll) - affects X,Y
-        yaw = self.rotation.theta + self.global_rotation.theta  # Y rotation (yaw) - affects X,Z
-
-        # Rotation matrix around X axis (pitch)
         Rx = np.array([
             [1, 0, 0],
             [0, np.cos(pitch), -np.sin(pitch)],
             [0, np.sin(pitch), np.cos(pitch)]
         ])
 
-        # Rotation matrix around Z axis (roll)
         Rz = np.array([
             [np.cos(roll), -np.sin(roll), 0],
             [np.sin(roll), np.cos(roll), 0],
             [0, 0, 1]
         ])
 
-        # Rotation matrix around Y axis (yaw) - this is the horizontal bending
         Ry = np.array([
-            [np.cos(yaw), 0, np.sin(yaw)],
+            [np.cos(yaw), 0, -np.sin(yaw)],
             [0, 1, 0],
-            [-np.sin(yaw), 0, np.cos(yaw)]
+            [np.sin(yaw), 0, np.cos(yaw)]
         ])
 
-        # Combined rotation matrix - apply yaw first (most common), then pitch, then roll
-        return Rx @ Rz @ Ry
+        return Rz @ Rx @ Ry
 
     def rotated_position(
             self, vec: List[Union[int, float]] = [0, 0, 0]
@@ -335,11 +335,11 @@ class PhysicalElement(IgnoreExtra):
     def start(self) -> Position:
         middle = np.array(self.middle.array)
 
-        if abs(self.physical_angle) > 1e-9:
+        if abs(self._physical_angle) > 1e-9:
             # Bent element
-            sx = -self.length * (1 - np.cos(self.physical_angle)) / (2 * self.physical_angle)
+            sx = -self.length * (1 - np.cos(self._physical_angle)) / (2 * self._physical_angle)
             sy = 0
-            sz = -self.length * np.sin(self.physical_angle) / (2 * self.physical_angle)
+            sz = -self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
         else:
             # Straight element
             sx, sy, sz = 0, 0, -self.length / 2.0
@@ -352,10 +352,10 @@ class PhysicalElement(IgnoreExtra):
     def end(self) -> Position:
         middle = np.array(self.middle.array)
 
-        if abs(self.physical_angle) > 1e-9:
-            ex = self.length * (1 - np.cos(self.physical_angle)) / (2 * self.physical_angle)
+        if abs(self._physical_angle) > 1e-9:
+            ex = self.length * (1 - np.cos(self._physical_angle)) / (2 * self._physical_angle)
             ey = 0
-            ez = self.length * np.sin(self.physical_angle) / (2 * self.physical_angle)
+            ez = self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
         else:
             ex, ey, ez = 0, 0, self.length / 2.0
 
