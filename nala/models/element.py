@@ -456,6 +456,12 @@ class Element(baseElement):
         )
         return catap_dict
 
+    def update_from_controls(self):
+        if self.controls is None:
+            return
+
+        self.controls.apply(self)
+
 class PhysicalBaseElement(Element):
     """
     Element with a physical attribute; see :class:`~nala.models.physical.PhysicalElement`.

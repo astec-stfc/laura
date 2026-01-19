@@ -7,11 +7,76 @@ from pydantic import (
     ConfigDict,
 )
 from typing import Dict, Type
+import operator
+
+OPS = {
+    "add": operator.add,
+    "sub": operator.sub,
+    "mul": operator.mul,
+    "truediv": operator.truediv,
+    "pow": operator.pow,
+}
+
+def resolve_path(context, path: str):
+    head, *rest = path.split(".")
+    if head not in context:
+        raise KeyError(f"Unknown symbol '{head}' in expression")
+
+    obj = context[head]
+    for attr in rest:
+        obj = getattr(obj, attr)
+    return obj
+
+
+def eval_expr(expr, context):
+    if isinstance(expr, (int, float)):
+        return expr
+
+    if isinstance(expr, str):
+        return resolve_path(context, expr)
+
+    op = OPS[expr["op"]]
+    args = [eval_expr(a, context) for a in expr["args"]]
+    return op(*args)
+
+def set_attr_by_path(obj, path: str, value):
+    *parents, attr = path.split(".")
+    for part in parents:
+        obj = getattr(obj, part)
+    setattr(obj, attr, value)
 
 
 class ControlVariable(BaseModel):
     """
     Model representing a control variable in a system.
+
+    Example on updating element attributes based on control variables:
+    ```python
+    from nala.models.element import Element
+    from nala.models.control import ControlVariable, ControlsInformation
+    # Define control variables
+    cv1 = ControlVariable(
+        identifier="k1l_control",
+        dtype=float,
+        protocol="some_protocol",
+        units="1/m",
+        description="Control for k1l",
+        read_only=False,
+        value=0.1,
+        target="magnetic.k1l",
+        expression={"op": "mul", "args": ["k1l_control", "magnetic.length"]},
+    )
+    controls_info = ControlsInformation(variables={"k1l_control": cv1})
+    # Create an element with magnetic attributes
+    element = Element(
+        name="Quad1",
+        magnetic={"k1l": 0.0, "k2l": 0.0},
+        controls=controls_info,
+    )
+    # Apply control variables to the element
+    controls_info.apply(element)
+    print(element.magnetic.k1l)  # Should reflect the updated value based on the control variable
+    ```
     """
     identifier: str
     """Unique identifier for the control variable."""
@@ -31,10 +96,19 @@ class ControlVariable(BaseModel):
     read_only: bool = True
     """Indicates if the variable is read-only."""
 
+    value: float | int | str | list = None
+    """Current value of the control variable."""
+
+    target: str | None = None  # "magnetic.k1l"
+    """Target attribute path in the system to apply the control variable."""
+
+    expression: dict | None = None  # expression graph
+    """Expression defining how to compute the value to set at the target."""
+
     model_config = ConfigDict(
         arbitrary_types_allowed=False,
         extra="allow",
-        frozen=True,
+        # frozen=True,
     )
 
     def __init__(self, **data):
@@ -60,6 +134,14 @@ class ControlVariable(BaseModel):
         elif isinstance(self.dtype, str):
             data["dtype"] = self.dtype
         return data
+
+    def apply(self, element, context):
+        if self.target is None or self.expression is None:
+            return
+
+        value = eval_expr(self.expression, context)
+        set_attr_by_path(element, self.target, value)
+
 
 
 class ControlsInformation(BaseModel):
@@ -105,3 +187,25 @@ class ControlsInformation(BaseModel):
                     )
             return validated_dict
         raise TypeError(f"variables must be a dict, got {type(v)}")
+
+    @staticmethod
+    def build_context(element):
+        ctx = {k: v.value for k, v in element.controls.variables.items()}
+        for param in ["magnetic", "physical", "cavity", "simulation"]:
+            if hasattr(element, param):
+                ctx.update({param: getattr(element, param)})
+        return ctx
+
+    # @staticmethod
+    # def build_context(element):
+    #     return {
+    #         **{k: v.value for k, v in element.controls.variables.items()},
+    #         "magnetic": element.magnetic,
+    #         "physical": element.physical,
+    #     }
+
+    def apply(self, element):
+        ctx = self.build_context(element)
+
+        for cv in element.controls.variables.values():
+            cv.apply(element, ctx)
