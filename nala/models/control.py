@@ -6,7 +6,7 @@ from pydantic import (
     model_serializer,
     ConfigDict,
 )
-from typing import Dict, Type
+from typing import Dict, Type, Literal
 import operator
 
 OPS = {
@@ -104,6 +104,9 @@ class ControlVariable(BaseModel):
 
     expression: dict | None = None  # expression graph
     """Expression defining how to compute the value to set at the target."""
+
+    type: Literal["scalar", "binary", "state", "string", "waveform", "statistical"] = "statistical"
+    """Type of control variable."""
 
     model_config = ConfigDict(
         arbitrary_types_allowed=False,
