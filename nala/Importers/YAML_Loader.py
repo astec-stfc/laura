@@ -11,7 +11,7 @@ def interpret_YAML_Element(elem):
             elemmodel = felem(**elem)
             return elemmodel
         except Exception as e:
-            print("interpret_YAML_Element - Error", e)
+            print("interpret_YAML_Element - Error", e, "with element:", elem["name"])
 
 
 def read_YAML_Element_File(filename):

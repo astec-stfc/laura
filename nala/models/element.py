@@ -7,7 +7,7 @@ import os
 from typing import Type, List, Union, Dict, Tuple, Any, get_args, get_origin
 from pydantic import field_validator, Field, BaseModel
 import types
-from .control import ControlsInformation
+from .control import ControlsInformation, ScreenControlsInformation
 
 from .baseModels import T, Aliases, IgnoreExtra
 from .manufacturer import ManufacturerElement
@@ -891,6 +891,8 @@ class Screen(Diagnostic):
 
     diagnostic: Screen_Diagnostic = Field(default_factory=Screen_Diagnostic)
     """Diagnostic attributes of the screen."""
+
+    controls: ScreenControlsInformation | None = None
 
     def to_CATAP(self):
         catap_dict = super().to_CATAP()

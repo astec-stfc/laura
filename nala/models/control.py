@@ -81,7 +81,7 @@ class ControlVariable(BaseModel):
     identifier: str
     """Unique identifier for the control variable."""
 
-    dtype: type
+    dtype: type = float
     """Data type of the control variable (e.g., int, float, str)."""
 
     protocol: str
@@ -212,3 +212,20 @@ class ControlsInformation(BaseModel):
 
         for cv in element.controls.variables.values():
             cv.apply(element, ctx)
+
+class ScreenControlsInformation(ControlsInformation):
+    """
+    Model representing a collection of control variables pertaining to screens.
+    """
+
+    movement_type: str
+    """Screen motion type"""
+
+    devices: dict
+    """List of screen device enums"""
+
+    horizontal_devices: dict | None = None
+    """List of horizontal screen device enums"""
+
+    vertical_devices: dict | None = None
+    """List of vertical screen device enums"""

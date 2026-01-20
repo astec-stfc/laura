@@ -132,10 +132,10 @@ class Camera_Sensor(IgnoreExtra):
     middle: List[Union[float, int]] = [0, 0]  # X_CENTER_DEF, Y_CENTER_DEF
     """Center definitions for the camera."""
 
-    pixels_to_mm: List[float] = [
-        0.0134,
-        0.0134,
-    ]  # ARRAY_DATA_X_PIX_2_MM, ARRAY_DATA_Y_PIX_2_MM
+    x_pixels_to_mm: float = 0.0134
+    """Pixel to millimeter conversion factors."""
+
+    y_pixels_to_mm: float = 0.0134
     """Pixel to millimeter conversion factors."""
 
     minimum: List[Union[float, int]] = [150, 150]  # MIN_X_PIXEL_POS, MIN_Y_PIXEL_POS
@@ -200,7 +200,8 @@ def PCO_Camera_Sensor():
         x_scale_factor=2,
         y_scale_factor=2,
         beam_pixel_average=97.2,
-        pixels_to_mm=[0.013, 0.013],
+        x_pixels_to_mm=0.013,
+        y_pixels_to_mm=0.013,
         minimum=[150, 150],
         maximum=[2400, 2000],
         bit_depth=12,
@@ -220,7 +221,8 @@ def Manta_Camera_Sensor():
         x_scale_factor=2,
         y_scale_factor=2,
         beam_pixel_average=97.2,
-        pixels_to_mm=[0.0233, 0.0177],
+        x_pixels_to_mm=0.0233,
+        y_pixels_to_mm=0.0177,
         minimum=[136, 116],
         maximum=[1800, 1100],
         bit_depth=12,
@@ -263,6 +265,15 @@ class Camera_Diagnostic(DiagnosticElement):
 
     flipped_vertically: bool = Field(alias="IMAGE_FLIP_UD", default=False)
     """Flag to indicate if the image is flipped vertically."""
+
+    screen_name: str | None = None
+    """Name of the screen the camera is attached to."""
+
+    ioc: List[str] | None = None
+    """List of cameras on the EPICS IOC associated with this camera."""
+
+    has_led: bool = True
+    """Flag to indicate if the camera has an LED light source."""
 
     @classmethod
     def from_CATAP(cls: Type[T], fields: dict) -> T:
