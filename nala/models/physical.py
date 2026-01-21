@@ -206,6 +206,12 @@ class PhysicalElement(IgnoreExtra):
     length: float = 0.0
     """Length of the element."""
 
+    maximum_position: float | None = None
+    """Maximum position of the element"""
+
+    minimum_position: float | None = None
+    """Minimum position of the element"""
+
     _parent: Any = PrivateAttr(default=None)
 
     physical_angle: float = 0.0

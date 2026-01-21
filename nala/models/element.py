@@ -960,6 +960,22 @@ class Integrated_Current_Transformer(ChargeDiagnostic):
     """ICT hardware type."""
 
 
+class Stage(PhysicalBaseElement):
+    """
+    Moveable stage element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the gauge.
+        hardware_model (str): The hardware model of the gauge.
+    """
+
+    hardware_type: str = Field(default="Stage", frozen=True)
+    """Moveable hardware type."""
+
+    hardware_model: str = Field(default="Stage", frozen=True)
+    """Moveable hardware model."""
+
+
 class VacuumGauge(PhysicalBaseElement):
     """
     Vacuum gauge element.
