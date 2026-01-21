@@ -124,8 +124,8 @@ class LaserEnergyMeterElement(IgnoreExtra):
     calibration_factor: float = Field(default=1.0)
     """Calibration factor for the energy meter, i.e. between measured value and actual laser energy."""
 
-    pv_type: str = Field(alias="laser_pv_type")
-    """Type of the laser PV."""
+    # pv_type: str = Field(alias="laser_pv_type")
+    # """Type of the laser PV."""
 
 
 class LaserMirrorSense(IgnoreExtra):

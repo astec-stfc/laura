@@ -256,7 +256,7 @@ class MirrorControlsInformation(ControlsInformation):
     left_sense: int = 1
     """Left sense for mirror movement"""
 
-    down_sense: 1
+    down_sense: int = 1
     """Down sense for mirror movement"""
 
 

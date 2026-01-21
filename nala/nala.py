@@ -82,11 +82,13 @@ class NALA(MachineModel):
                 files = glob.glob(
                     os.path.abspath(self.element_list + "/**/*.yaml"), recursive=True
                 )
-                data = read_YAML_Element_Files(files)
-                elems = [interpret_YAML_Element(data) for data in data]
+                data, filenames = read_YAML_Element_Files(files)
+                elems = [interpret_YAML_Element(dat, filename=fn) for dat, fn in zip(data, filenames)]
         else:
             elems = self.element_list
-        self.update({y.name: y for y in elems})
+        for y in elems:
+            if isinstance(y, baseElement):
+                self.update({y.name: y})
 
     def createDrifts(
         self, end: str = None, start: str = None, path: str = None
