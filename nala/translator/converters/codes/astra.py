@@ -12,6 +12,7 @@ section_header_text_ASTRA = {
     "&WAKE": "LWAKE",
 }
 
+
 class astra_header(BaseModel):
     """
     Generic class for generating ASTRA namelists
@@ -155,8 +156,11 @@ class astra_newrun(astra_header):
 
     def write_ASTRA(self) -> str:
         if not self.input_particle_definition:
-            raise ValueError("input_particle_definition must be defined for astra_newrun")
+            raise ValueError(
+                "input_particle_definition must be defined for astra_newrun"
+            )
         return super().write_ASTRA()
+
 
 class astra_output(astra_header):
     """
@@ -213,7 +217,9 @@ class astra_output(astra_header):
             "sample_interval": "n_red",
             "toffset": "Toff",
         }
-        self.exclude.extend(["screens", "section", "end_element", "start_element"])#, "starting_offset"])
+        self.exclude.extend(
+            ["screens", "section", "end_element", "start_element"]
+        )  # , "starting_offset"])
         # self.zstart = list(self.section.elements.elements.values())[0].physical.start.z
         # self.zstop = list(self.section.elements.elements.values())[-1].physical.end.z
         # self.zemit = int((self.zstop - self.zstart) / 0.01)
@@ -245,6 +251,7 @@ class astra_output(astra_header):
         output = output[:-2] + "\n"
         output += "/\n"
         return output
+
 
 class astra_charge(astra_header):
     """
@@ -312,7 +319,9 @@ class astra_charge(astra_header):
             "space_charge_2D": "LSPCH",
             "space_charge_3D": "LSPCH3D",
         }
-        self.exclude.extend(["grids", "npart", "sample_interval", "space_charge_mode", "mirror_charge"])
+        self.exclude.extend(
+            ["grids", "npart", "sample_interval", "space_charge_mode", "mirror_charge"]
+        )
 
     def write_ASTRA(self) -> str:
         """
@@ -376,7 +385,6 @@ class astra_charge(astra_header):
         self.space_charge_3D = False
         return False
 
-
     @property
     def grid_size(self) -> int:
         """
@@ -390,6 +398,7 @@ class astra_charge(astra_header):
         """
         # print('asking for grid sizes n = ', self.npart, ' is ', self.grids.getGridSizes(self.npart))
         return self.grids.getGridSizes(self.npart / self.sample_interval)
+
 
 class astra_errors(astra_header):
     """

@@ -59,9 +59,7 @@ class gpt_ccs(BaseModel):
         pitch, yaw, roll = rotation
         length = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2 + (z - self.z) ** 2)
         finalrot = np.array([pitch - self.psi, yaw - self.phi, roll - self.theta])
-        finalpos = np.array(
-            [0, 0, abs(self.intersect) + length]
-        )
+        finalpos = np.array([0, 0, abs(self.intersect) + length])
         return finalpos, finalrot
 
     @property
@@ -97,7 +95,9 @@ class gpt_ccs(BaseModel):
             value_text = "," + str(0)
         return '"' + ccs_label + '"', value_text.strip(",")
 
-    def gpt_coordinates(self, position: list | np.ndarray, rotation: list | np.ndarray) -> str:
+    def gpt_coordinates(
+        self, position: list | np.ndarray, rotation: list | np.ndarray
+    ) -> str:
         """
         Get the GPT coordinates for a given position and rotation
 
@@ -120,6 +120,7 @@ class gpt_ccs(BaseModel):
             output += str(c) + ", "
         output += "cos(" + str(theta) + "), 0, -sin(" + str(theta) + "), 0, 1 ,0"
         return output
+
 
 class gpt_element(BaseModel):
     """
@@ -204,7 +205,6 @@ class gpt_charge(gpt_element):
     objecttype: str = "gpt_charge"
     """Type of object"""
 
-
     def write_GPT(self, *args, **kwargs) -> str:
         output = str(self.objectname) + "("
         output += str(self.set) + ","
@@ -229,7 +229,6 @@ class gpt_setreduce(gpt_element):
 
     objecttype: str = "gpt_setreduce"
     """Type of object"""
-
 
     def write_GPT(self, *args, **kwargs) -> str:
         output = str(self.objectname) + "("
@@ -333,7 +332,6 @@ class gpt_tout(gpt_element):
     objecttype: str = "gpt_tout"
     """Type of object"""
 
-
     def write_GPT(self, *args, **kwargs) -> str:
         self.starttime = 0 if self.starttime < 0 else self.starttime
         output = str(self.objectname) + "("
@@ -376,7 +374,6 @@ class gpt_writefloorplan(gpt_element):
     objecttype: str = "gpt_writefloorplan"
     """Type of object"""
 
-
     def write_GPT(self, *args, **kwargs) -> str:
         output = str(self.objectname) + "(" + self.filename + ");\n"
         return output
@@ -401,7 +398,6 @@ class gpt_Zminmax(gpt_element):
 
     objecttype: str = "gpt_Zminmax"
     """Type of object"""
-
 
     def write_GPT(self, *args, **kwargs):
         output = (
@@ -439,7 +435,6 @@ class gpt_forwardscatter(gpt_element):
 
     objecttype: str = "gpt_forwardscatter"
     """Type of object"""
-
 
     def write_GPT(self, *args, **kwargs) -> str:
         output = (
@@ -484,7 +479,6 @@ class gpt_scatterplate(gpt_element):
     objecttype: str = "gpt_scatterplate"
     """Type of object"""
 
-
     def write_GPT(self, *args, **kwargs) -> str:
         output = (
             str(self.objectname)
@@ -521,7 +515,6 @@ class gpt_dtmaxt(gpt_element):
     objecttype: str = "gpt_dtmaxt"
     """Type of object"""
 
-
     def write_GPT(self, *args, **kwargs) -> str:
         output = (
             str(self.objectname)
@@ -551,10 +544,5 @@ class gpt_dtmint(gpt_element):
     """Type of object"""
 
     def write_GPT(self, *args, **kwargs):
-        output = (
-            str(self.objectname)
-            + " = "
-            + str(self.dtmin)
-            + ";\n"
-        )
+        output = str(self.objectname) + " = " + str(self.dtmin) + ";\n"
         return output

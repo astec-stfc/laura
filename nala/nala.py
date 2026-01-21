@@ -3,6 +3,7 @@ NALA Main Module
 
 The main class for handling a full particle accelerator lattice.
 """
+
 import os
 import glob
 from math import copysign
@@ -41,7 +42,7 @@ def dot(a, b) -> float:
 def chunks(li, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(li), n):
-        yield li[i: i + n]
+        yield li[i : i + n]
 
 
 class NALA(MachineModel):
@@ -87,7 +88,9 @@ class NALA(MachineModel):
             elems = self.element_list
         self.update({y.name: y for y in elems})
 
-    def createDrifts(self, end: str = None, start: str = None, path: str = None) -> Dict:
+    def createDrifts(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> Dict:
         """
         Insert drifts into a sequence of 'elements'
 
@@ -146,7 +149,9 @@ class NALA(MachineModel):
                     newelements[name] = newdrift
         return newelements
 
-    def get_elements(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get_elements(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> list[str]:
         """
         Get all elements between start and end
 
@@ -162,7 +167,9 @@ class NALA(MachineModel):
     def _drift_length(self, start: list[float], end: list[float]):
         return np.linalg.norm(end - start)
 
-    def get_elements_s_pos(self, end: str = None, start: str = None, path: str = None) -> Dict[str, float]:
+    def get_elements_s_pos(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> Dict[str, float]:
         """
         Get s positions of all elements between start and end
 
@@ -184,7 +191,9 @@ class NALA(MachineModel):
                 elem_s[elem] = round(s_pos, 6)
         return elem_s
 
-    def get_rf_cavities(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get_rf_cavities(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> list[str]:
         """
         Get all RF cavities between start and end
 
@@ -197,7 +206,9 @@ class NALA(MachineModel):
             start=start, end=end, element_class="rf", path=path
         )
 
-    def get_diagnostics(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get_diagnostics(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> list[str]:
         """
         Get all diagnostic devices between start and end
 
@@ -267,7 +278,9 @@ class NALA(MachineModel):
             path=path,
         )
 
-    def get_cameras(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get_cameras(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> list[str]:
         """
         Get all camera devices between start and end
 
@@ -309,7 +322,9 @@ class NALA(MachineModel):
             )
         }
 
-    def get_magnets(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get_magnets(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> list[str]:
         """
         Get all magnets between start and end
 
@@ -340,7 +355,9 @@ class NALA(MachineModel):
             )
         )
 
-    def get_quadrupoles(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get_quadrupoles(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> list[str]:
         """
         Get all quadrupole magnets between start and end
 
@@ -357,7 +374,9 @@ class NALA(MachineModel):
             path=path,
         )
 
-    def get_dipoles(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get_dipoles(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> list[str]:
         """
         Get all dipole magnets between start and end
 
@@ -400,7 +419,9 @@ class NALA(MachineModel):
         else:
             return [elem]
 
-    def get_correctors(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get_correctors(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> list[str]:
         """
         Get all corrector magnets between start and end
 
@@ -524,7 +545,9 @@ class NALA(MachineModel):
             path=path,
         )
 
-    def get_sextupoles(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get_sextupoles(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> list[str]:
         """
         Get all sectupole magnets between start and end
 
@@ -541,7 +564,9 @@ class NALA(MachineModel):
             path=path,
         )
 
-    def get_solenoids(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get_solenoids(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> list[str]:
         """
         Get all solenoid magnets between start and end
 
@@ -573,7 +598,9 @@ class NALA(MachineModel):
             start=start, end=end, element_class="vacuum", path=path
         )
 
-    def get_shutters(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+    def get_shutters(
+        self, end: str = None, start: str = None, path: str = None
+    ) -> list[str]:
         """
         Get all shutter devices between start and end
 
@@ -591,7 +618,9 @@ class NALA(MachineModel):
         )
 
     def __all_elements(
-        self, element_class: str | list | None = None, element_type: str | list | None = None
+        self,
+        element_class: str | list | None = None,
+        element_type: str | list | None = None,
     ) -> set:
         """
         Get a set of all elements of a given class and/or type

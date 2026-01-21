@@ -8,6 +8,7 @@ from nala.models.simulation import PlasmaSimulationElement
 from nala.models.laser import LaserElement
 from .laser import LaserTranslator
 
+
 class PlasmaTranslator(BaseElementTranslator):
     """
     Translator class for converting a :class:`~nala.models.element.Plasma` instance into a string or
@@ -50,19 +51,23 @@ class PlasmaTranslator(BaseElementTranslator):
         if self.simulation.wakefield_model is None:
             warn(
                 "No wakefield model defined; no plasma wakefields will be computed."
-                 f"Supported models are {list(self.simulation.required_attrs.keys())[1:]}."
+                f"Supported models are {list(self.simulation.required_attrs.keys())[1:]}."
             )
-        elif self.simulation.wakefield_model not in self.simulation.required_attrs.keys():
+        elif (
+            self.simulation.wakefield_model not in self.simulation.required_attrs.keys()
+        ):
             raise ValueError(
                 f"Invalid wakefield model {self.wakefield_model}. "
                 f"Supported models are {list(self.simulation.required_attrs.keys())[1:]}."
             )
         commondict = {
-            self._convertKeyword_WakeT(param): getattr(self, param) for param in
-            self.simulation.required_attrs["common"]
+            self._convertKeyword_WakeT(param): getattr(self, param)
+            for param in self.simulation.required_attrs["common"]
         }
-        modeldict = {self._convertKeyword_WakeT(param): getattr(self, param) for param in
-                     self.simulation.required_attrs[self.simulation.wakefield_model]}
+        modeldict = {
+            self._convertKeyword_WakeT(param): getattr(self, param)
+            for param in self.simulation.required_attrs[self.simulation.wakefield_model]
+        }
         if self.plasma.density_profile:
             modeldict["density"] = self._density_profile
         else:
@@ -77,11 +82,13 @@ class PlasmaTranslator(BaseElementTranslator):
         elif len(lasers) == 2:
             elemdict.update({"laser": SummedPulse(lasers[0], lasers[1])})
         elif len(lasers) > 2:
-            warn("More than two laser sub-elements found; only the first two will be used.")
+            warn(
+                "More than two laser sub-elements found; only the first two will be used."
+            )
             elemdict.update({"laser": SummedPulse(lasers[0], lasers[1])})
-        obj = type_conversion_rules_Wake_T[
-            self.hardware_type
-        ](wakefield_model=self.simulation.wakefield_model, **elemdict)
+        obj = type_conversion_rules_Wake_T[self.hardware_type](
+            wakefield_model=self.simulation.wakefield_model, **elemdict
+        )
         return obj
 
     # Density function.
@@ -104,27 +111,53 @@ class PlasmaTranslator(BaseElementTranslator):
         # Allocate relative density array.
         if self.plasma.plateau <= 0:
             raise ValueError("Plateau length must be positive for density profile.")
-        if self.plasma.ramp_up < 0 or self.plasma.ramp_down < 0 or self.plasma.ramp_decay_length <= 0:
+        if (
+            self.plasma.ramp_up < 0
+            or self.plasma.ramp_down < 0
+            or self.plasma.ramp_decay_length <= 0
+        ):
             raise ValueError(
                 "Ramp lengths must be non-negative and ramp decay length must be positive for density profile."
             )
         n = np.ones_like(z)
         # Add upramp.
-        n = np.where(z < self.plasma.ramp_up, 1 / (1 + (self.plasma.ramp_up - z) / self.plasma.ramp_decay_length) ** 2, n)
+        n = np.where(
+            z < self.plasma.ramp_up,
+            1 / (1 + (self.plasma.ramp_up - z) / self.plasma.ramp_decay_length) ** 2,
+            n,
+        )
         # Add downramp.
         try:
             n = np.where(
-                (z > self.plasma.ramp_up + self.plasma.plateau) & (z <= self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down),
-                1 / (1 + (z - self.plasma.ramp_up - self.plasma.plateau) / self.plasma.ramp_decay_length) ** 2,
+                (z > self.plasma.ramp_up + self.plasma.plateau)
+                & (
+                    z
+                    <= self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down
+                ),
+                1
+                / (
+                    1
+                    + (z - self.plasma.ramp_up - self.plasma.plateau)
+                    / self.plasma.ramp_decay_length
+                )
+                ** 2,
                 n,
             )
         except ZeroDivisionError:
             n = np.where(
-                (z > self.plasma.ramp_up + self.plasma.plateau) & (z <= self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down),
+                (z > self.plasma.ramp_up + self.plasma.plateau)
+                & (
+                    z
+                    <= self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down
+                ),
                 1,
                 n,
             )
         # Make zero after downramp.
-        n = np.where(z > self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down, 1e-6, n)
+        n = np.where(
+            z > self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down,
+            1e-6,
+            n,
+        )
         # Return absolute density.
         return n * self.plasma.density

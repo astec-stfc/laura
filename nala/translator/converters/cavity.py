@@ -10,6 +10,7 @@ from ..converters import (
     elements_Opal,
 )
 
+
 class RFCavityTranslator(BaseElementTranslator):
     """
     Translator class for converting a :class:`~nala.models.element.RFCavity` element instance into a string or
@@ -61,7 +62,6 @@ class RFCavityTranslator(BaseElementTranslator):
     def wzcolumn(self) -> str | None:
         return f'"{self.simulation.wz_column}"' if self.simulation.wz_column else None
 
-
     def set_wakefield_column_names(self, wakefield_file_name: str) -> None:
         """
         Set the column names for the wakefield file, based on `wakefield_definition.
@@ -74,10 +74,14 @@ class RFCavityTranslator(BaseElementTranslator):
         if all([x is not None for x in [self.wxcolumn, self.wycolumn, self.wzcolumn]]):
             self.wakefile = '"' + wakefield_file_name + '"'
             return
-        elif self.wzcolumn is not None and all([x is None for x in [self.wxcolumn, self.wycolumn]]):
+        elif self.wzcolumn is not None and all(
+            [x is None for x in [self.wxcolumn, self.wycolumn]]
+        ):
             self.zwakefile = '"' + wakefield_file_name + '"'
             return
-        elif self.wzcolumn is None and all([x is not None for x in [self.wxcolumn, self.wycolumn]]):
+        elif self.wzcolumn is None and all(
+            [x is not None for x in [self.wxcolumn, self.wycolumn]]
+        ):
             self.trwakefile = '"' + wakefield_file_name + '"'
             return
 
@@ -94,16 +98,16 @@ class RFCavityTranslator(BaseElementTranslator):
         wholestring = ""
         etype = self._convertType_Elegant(self.hardware_type)
         if (
-                self.simulation.wakefield_definition is None or
-                self.simulation.wakefield_definition == ""
+            self.simulation.wakefield_definition is None
+            or self.simulation.wakefield_definition == ""
         ):
             etype = "rfca"
             # if self.simulation.field_definition is not None:
-                # etype = "rftmez0"
-                # if ".sdds" not in self.simulation.field_definition:
-                #     field_file_name = self.generate_field_file_name(
-                #     self.simulation.field_definition, code="elegant"
-                # )
+            # etype = "rftmez0"
+            # if ".sdds" not in self.simulation.field_definition:
+            #     field_file_name = self.generate_field_file_name(
+            #     self.simulation.field_definition, code="elegant"
+            # )
         else:
             wakefield_file_name = self.generate_field_file_name(
                 self.simulation.wakefield_definition, code="elegant"
@@ -112,13 +116,16 @@ class RFCavityTranslator(BaseElementTranslator):
         string = self.name + ": " + etype
         for key, value in self.full_dump().items():
             if (
-                    not key == "name"
-                    and not key == "type"
-                    and not key == "commandtype"
-                    and self._convertKeyword_Elegant(key, updated_type=self.hardware_type) in elements_Elegant[etype]
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convertKeyword_Elegant(key, updated_type=self.hardware_type)
+                in elements_Elegant[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Elegant(key, updated_type=self.hardware_type).lower()
+                    key = self._convertKeyword_Elegant(
+                        key, updated_type=self.hardware_type
+                    ).lower()
                     # rftmez0 uses frequency instead of freq
                     if etype == "rftmez0" and key == "freq":
                         key = "frequency"
@@ -162,12 +169,12 @@ class RFCavityTranslator(BaseElementTranslator):
                     value = 0 if value is False else value
                     # print("elegant cavity", key, value)
                     tmpstring = ", " + key + " = " + str(value)
-                # if len(string + tmpstring) > 156:
-                #     wholestring += string + ",&\n"
-                #     print(wholestring)
-                #     string = ""
-                #     string += tmpstring[2::]
-                # else:
+                    # if len(string + tmpstring) > 156:
+                    #     wholestring += string + ",&\n"
+                    #     print(wholestring)
+                    #     string = ""
+                    #     string += tmpstring[2::]
+                    # else:
                     string += tmpstring
         wholestring += string + ";\n"
         return wholestring
@@ -191,10 +198,10 @@ class RFCavityTranslator(BaseElementTranslator):
         obj = type_conversion_rules_Ocelot[self.hardware_type](eid=self.name)
         for key, value in self.full_dump().items():
             if (
-                    not key == "name"
-                    and not key == "type"
-                    and not key == "commandtype"
-                    and self._convertKeyword_Ocelot(key) in obj.__class__().element.__dict__
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convertKeyword_Ocelot(key) in obj.__class__().element.__dict__
             ):
                 if value:
                     key = self._convertKeyword_Ocelot(key).lower()
@@ -202,13 +209,13 @@ class RFCavityTranslator(BaseElementTranslator):
                         if key == "v":
                             if self.structure_type == "TravellingWave":
                                 value = (
-                                        value
-                                        * 1e-9
-                                        * abs(
-                                    (self.get_cells() + 3.8)
-                                    * self.cavity.cell_length
-                                    * (1 / np.sqrt(2))
-                                )
+                                    value
+                                    * 1e-9
+                                    * abs(
+                                        (self.get_cells() + 3.8)
+                                        * self.cavity.cell_length
+                                        * (1 / np.sqrt(2))
+                                    )
                                 )
                             else:
                                 value = value * 1e-9
@@ -232,12 +239,14 @@ class RFCavityTranslator(BaseElementTranslator):
         obj = type_conversion_rules_Cheetah[self.hardware_type](
             name=self.name,
             length=tensor(self.physical.length, dtype=float64),
-            sanitize_name=True
+            sanitize_name=True,
         )
-        buffers = obj.__class__(length=tensor(self.physical.length, dtype=float64))._buffers
+        buffers = obj.__class__(
+            length=tensor(self.physical.length, dtype=float64)
+        )._buffers
         for key, value in self.full_dump().items():
             if (key not in ["name", "type", "commandtype"]) and (
-                    self._convertKeyword_Cheetah(key) in buffers
+                self._convertKeyword_Cheetah(key) in buffers
             ):
                 key = self._convertKeyword_Cheetah(key)
                 value = (
@@ -247,23 +256,25 @@ class RFCavityTranslator(BaseElementTranslator):
                 )
                 if key == "voltage":
                     if self.structure_type == "TravellingWave":
-                        value = (
-                                value
-                                * abs(
+                        value = value * abs(
                             (self.get_cells() + 5.5)
                             * self.cavity.cell_length
                             * (1 / np.sqrt(2))
-                        )
                         )
                     else:
                         value = value
                 if isinstance(value, float):
                     dt = float64
-                    setattr(obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt))
+                    setattr(
+                        obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
+                    )
                 elif isinstance(value, int):
                     from torch import int64
+
                     dt = int64
-                    setattr(obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt))
+                    setattr(
+                        obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
+                    )
         return obj
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
@@ -299,10 +310,19 @@ class RFCavityTranslator(BaseElementTranslator):
                     ["C_pos", {"value": field_ref_pos[2] + self.dz, "default": 0}],
                     efield_def,
                     ["C_numb", {"value": self.get_cells()}],
-                    ["Nue", {"value": float(self.cavity.frequency) / 1e9, "default": 2998.5}],
+                    [
+                        "Nue",
+                        {
+                            "value": float(self.cavity.frequency) / 1e9,
+                            "default": 2998.5,
+                        },
+                    ],
                     [
                         "MaxE",
-                        {"value": float(self.simulation.field_amplitude) / 1e6, "default": 0},
+                        {
+                            "value": float(self.simulation.field_amplitude) / 1e6,
+                            "default": 0,
+                        },
                     ],
                     ["Phi", {"value": crest - self.cavity.phase, "default": 0.0}],
                     ["C_smooth", {"value": self.simulation.smooth, "default": None}],
@@ -373,20 +393,17 @@ class RFCavityTranslator(BaseElementTranslator):
         properties = {}
         for key, value in self.full_dump().items():
             if (key not in ["name", "type", "commandtype"]) and (
-                    self._convertKeyword_Xsuite(key) in key in list(obj.__dict__.keys())
+                self._convertKeyword_Xsuite(key) in key in list(obj.__dict__.keys())
             ):
                 key = self._convertKeyword_Xsuite(key)
                 if key == "phase":
                     value = 90 - value
                 if key == "field_amplitude":
                     if self.structure_type == "TravellingWave":
-                        value = (
-                            value
-                            * abs(
-                                (self.get_cells() + 3.8)
-                                * self.cavity.cell_length
-                                * (1 / np.sqrt(2))
-                            )
+                        value = value * abs(
+                            (self.get_cells() + 3.8)
+                            * self.cavity.cell_length
+                            * (1 / np.sqrt(2))
                         )
                     else:
                         value = value
@@ -415,7 +432,7 @@ class RFCavityTranslator(BaseElementTranslator):
         etype = self._convertType_Opal(self.hardware_type)
         if self.structure_type == "TravellingWave":
             etype = "travelingwave"
-        wholestring = self.name.replace('-', '_') + ": " + etype
+        wholestring = self.name.replace("-", "_") + ": " + etype
         field_file_name = self.generate_field_file_name(
             self.simulation.field_definition, code="opal"
         )
@@ -423,10 +440,10 @@ class RFCavityTranslator(BaseElementTranslator):
             return ""
         for key, value in self.full_dump().items():
             if (
-                    not key == "name"
-                    and not key == "type"
-                    and not key == "commandtype"
-                    and self._convertKeyword_Opal(key) in elements_Opal[etype]
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convertKeyword_Opal(key) in elements_Opal[etype]
             ):
                 if value is not None:
                     key = self._convertKeyword_Opal(key)
@@ -442,12 +459,17 @@ class RFCavityTranslator(BaseElementTranslator):
                         tmpstring = ", " + key + " = " + str(val)
                         wholestring += tmpstring
         if isinstance(self.simulation.field_definition, field):
-            wholestring += ", fmapfn = \"" + self.generate_field_file_name(
-                self.simulation.field_definition, code="opal"
-            ) + "\""
+            wholestring += (
+                ', fmapfn = "'
+                + self.generate_field_file_name(
+                    self.simulation.field_definition, code="opal"
+                )
+                + '"'
+            )
             if self.structure_type == "TravellingWave":
                 mode = float(self.simulation.field_definition.mode_numerator) / float(
-                    self.simulation.field_definition.mode_denominator)
+                    self.simulation.field_definition.mode_denominator
+                )
                 wholestring += f", mode = {mode}"
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
@@ -461,8 +483,13 @@ class RFCavityTranslator(BaseElementTranslator):
         int or None
             The number of cavity cells, or None if not defined.
         """
-        if (self.cavity.n_cells == 0 or self.cavity.n_cells is None) and self.cavity.cell_length > 0:
-            cells = round((self.physical.length - self.cavity.cell_length) / self.cavity.cell_length)
+        if (
+            self.cavity.n_cells == 0 or self.cavity.n_cells is None
+        ) and self.cavity.cell_length > 0:
+            cells = round(
+                (self.physical.length - self.cavity.cell_length)
+                / self.cavity.cell_length
+            )
             cells = int(cells - (cells % 3))
         elif self.cavity.n_cells:
             if self.cavity.cell_length == self.physical.length:
@@ -473,7 +500,7 @@ class RFCavityTranslator(BaseElementTranslator):
             cells = 0
         return cells
 
-    def to_gpt(self, Brho: float=0.0, ccs: str = "wcs", *args, **kwargs) -> str:
+    def to_gpt(self, Brho: float = 0.0, ccs: str = "wcs", *args, **kwargs) -> str:
         """
         Write a string representation of the cavity for GPT
 
@@ -493,8 +520,12 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         field_ref_pos = self.get_field_reference_position()
-        ccs_label, value_text = self.ccs.ccs_text(field_ref_pos, self.physical.rotation.model_dump())
-        relpos, _ = self.ccs.relative_position(field_ref_pos, self.physical.global_rotation.model_dump())
+        ccs_label, value_text = self.ccs.ccs_text(
+            field_ref_pos, self.physical.rotation.model_dump()
+        )
+        relpos, _ = self.ccs.relative_position(
+            field_ref_pos, self.physical.global_rotation.model_dump()
+        )
         field_file_name = self.generate_field_file_name(
             self.simulation.field_definition, code="gpt"
         )
@@ -507,32 +538,38 @@ class RFCavityTranslator(BaseElementTranslator):
         output = ""
         if field_file_name is not None:
             output = (
-                    "f"
-                    + subname
-                    + " = "
-                    + str(self.cavity.frequency)
-                    + ";\n"
-                    + "w"
-                    + subname
-                    + " = 2*pi*f"
-                    + subname
-                    + ";\n"
-                    + "phi"
-                    + subname
-                    + " = "
-                    + str((self.cavity.crest + 90 - self.cavity.phase + 0) % 360.0)
-                    + "/deg;\n"
+                "f"
+                + subname
+                + " = "
+                + str(self.cavity.frequency)
+                + ";\n"
+                + "w"
+                + subname
+                + " = 2*pi*f"
+                + subname
+                + ";\n"
+                + "phi"
+                + subname
+                + " = "
+                + str((self.cavity.crest + 90 - self.cavity.phase + 0) % 360.0)
+                + "/deg;\n"
             )
             if self.structure_type == "TravellingWave":
                 output += (
-                        "ffac"
-                        + subname
-                        + " = 1.007 * "
-                        + str((9.0 / (2.0 * np.pi)) * self.simulation.field_amplitude)
-                        + ";\n"
+                    "ffac"
+                    + subname
+                    + " = 1.007 * "
+                    + str((9.0 / (2.0 * np.pi)) * self.simulation.field_amplitude)
+                    + ";\n"
                 )
             else:
-                output += "ffac" + subname + " = " + str(self.simulation.field_amplitude) + ";\n"
+                output += (
+                    "ffac"
+                    + subname
+                    + " = "
+                    + str(self.simulation.field_amplitude)
+                    + ";\n"
+                )
 
             # if False and self.Structure_Type == 'TravellingWave' and hasattr(self, 'attenuation_constant') and hasattr(self, 'shunt_impedance') and hasattr(self, 'design_power') and hasattr(self, 'design_gamma'):
             #     '''
@@ -545,24 +582,23 @@ class RFCavityTranslator(BaseElementTranslator):
             #             + ', '+str(self.phase)+', w'+subname+', ' + str(self.length) + ');\n'
             # else:
             output += (
-                    "map1D_TM"
-                    + "(\""
-                    + self.ccs.name
-                    + "\", "
-                    + ccs_label
-                    + ", "
-                    + value_text
-                    + ', "'
-                    + str(field_file_name)
-                    + '", "z", "Ez", ffac'
-                    + subname
-                    + ", phi"
-                    + subname
-                    + ", w"
-                    + subname
-                    + ");\n"
+                "map1D_TM"
+                + '("'
+                + self.ccs.name
+                + '", '
+                + ccs_label
+                + ", "
+                + value_text
+                + ', "'
+                + str(field_file_name)
+                + '", "z", "Ez", ffac'
+                + subname
+                + ", phi"
+                + subname
+                + ", w"
+                + subname
+                + ");\n"
             )
         else:
             output = ""
         return output
-

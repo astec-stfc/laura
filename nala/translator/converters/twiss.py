@@ -1,6 +1,7 @@
 from .base import BaseElementTranslator
 from nala.models.simulation import TwissMatchSimulationElement
 
+
 class TwissMatchTranslator(BaseElementTranslator):
     """
     Translator class for converting a :class:`~nala.models.element.TwissMatch` element instance into a string or

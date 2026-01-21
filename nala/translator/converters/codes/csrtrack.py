@@ -62,7 +62,9 @@ class csrtrack_element(BaseModel):
         for key, val in self.model_dump().items():
             if key not in self.exclude and val is not None:
                 if key in self.csrtrackdict:
-                    output += key + "=" + self.CSRTrack_str(self.csrtrackdict[key]) + "\n"
+                    output += (
+                        key + "=" + self.CSRTrack_str(self.csrtrackdict[key]) + "\n"
+                    )
                 else:
                     output += key + "=" + self.CSRTrack_str(getattr(self, key)) + "\n"
         output += "}\n"
@@ -97,7 +99,7 @@ class csrtrack_forces(csrtrack_element):
 
     shape: Literal["ellipsoid"] = "ellipsoid"
 
-    sigma_long: Literal["relative"] =  "relative"
+    sigma_long: Literal["relative"] = "relative"
 
     relative_long: float = 0.1
 
@@ -178,7 +180,6 @@ class csrtrack_monitor(csrtrack_element):
     end_time_marker: str = "screen"
 
     format: Literal["fmt2"] = "fmt2"
-
 
 
 class csrtrack_particles(csrtrack_element):

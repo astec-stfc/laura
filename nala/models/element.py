@@ -3,12 +3,17 @@ NALA Element Module
 
 The main class for representing accelerator elements in NALA.
 """
+
 import os
 from typing import Type, List, Union, Dict, Tuple, Any, get_args, get_origin
 from pydantic import field_validator, Field, BaseModel
 import types
-from .control import ControlsInformation, ScreenControlsInformation
-
+from .control import (
+    ControlsInformation,
+    ScreenControlsInformation,
+    MirrorControlsInformation,
+    ShutterControlsInformation,
+)
 from .baseModels import T, Aliases, IgnoreExtra
 from .manufacturer import ManufacturerElement
 from .electrical import ElectricalElement
@@ -34,7 +39,12 @@ from .diagnostic import (
     Screen_Diagnostic,
     Charge_Diagnostic,
 )
-from .laser import LaserElement, LaserEnergyMeterElement, LaserMirrorElement, LaserHalfWavePlateElement
+from .laser import (
+    LaserElement,
+    LaserEnergyMeterElement,
+    LaserMirrorElement,
+    LaserHalfWavePlateElement,
+)
 from .lighting import LightingElement
 from .RF import (
     PIDElement,
@@ -62,7 +72,7 @@ import yaml
 from collections.abc import MutableMapping
 
 
-def flatten(dictionary: Dict, parent_key: str="", separator: str="_") -> Dict:
+def flatten(dictionary: Dict, parent_key: str = "", separator: str = "_") -> Dict:
     """
     Flatten a nested dictionary -- used for expanding the nested `BaseModel` structure.
 
@@ -198,10 +208,10 @@ class baseElement(IgnoreExtra):
 
     @classmethod
     def _find_field_paths(
-            cls: Type['main'],
-            attr_name: str,
-            current_model: Type[BaseModel],
-            current_path: Tuple[str, ...] = ()
+        cls: Type["main"],
+        attr_name: str,
+        current_model: Type[BaseModel],
+        current_path: Tuple[str, ...] = (),
     ) -> List[Tuple[str, ...]]:
         """
         Recursively searches for an attribute name within the model's structure
@@ -227,14 +237,20 @@ class baseElement(IgnoreExtra):
                     if arg is not type(None):
                         try:
                             if isinstance(arg, type) and issubclass(arg, BaseModel):
-                                paths.extend(cls._find_field_paths(attr_name, arg, new_path))
+                                paths.extend(
+                                    cls._find_field_paths(attr_name, arg, new_path)
+                                )
                         except TypeError:
                             # arg might not be a class, skip it
                             pass
             else:
                 try:
-                    if isinstance(field_annotation, type) and issubclass(field_annotation, BaseModel):
-                        paths.extend(cls._find_field_paths(attr_name, field_annotation, new_path))
+                    if isinstance(field_annotation, type) and issubclass(
+                        field_annotation, BaseModel
+                    ):
+                        paths.extend(
+                            cls._find_field_paths(attr_name, field_annotation, new_path)
+                        )
                 except TypeError:
                     pass
 
@@ -251,7 +267,9 @@ class baseElement(IgnoreExtra):
         value = self
         for step in path:
             if value is None:
-                raise AttributeError(f"Cannot access '{step}' on None value at path '{'.'.join(path)}'")
+                raise AttributeError(
+                    f"Cannot access '{step}' on None value at path '{'.'.join(path)}'"
+                )
             value = getattr(value, step)
         return value
 
@@ -265,7 +283,9 @@ class baseElement(IgnoreExtra):
         for step in path[:-1]:
             target_model = getattr(target_model, step)
             if target_model is None:
-                raise AttributeError(f"Cannot set attribute at path '{'.'.join(path)}': intermediate value is None")
+                raise AttributeError(
+                    f"Cannot set attribute at path '{'.'.join(path)}': intermediate value is None"
+                )
 
         # Set the attribute
         setattr(target_model, path[-1], value)
@@ -275,13 +295,17 @@ class baseElement(IgnoreExtra):
         Custom getter: Looks for the attribute in nested models.
         """
         # Avoid recursion on special attributes
-        if name.startswith('_'):
-            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        if name.startswith("_"):
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
 
         paths = self._resolve_attribute_path(name)
 
         if not paths:
-            raise AttributeError(f"'{self.__class__.__name__}' object and its nested models have no attribute '{name}'")
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object and its nested models have no attribute '{name}'"
+            )
 
         if len(paths) > 1:
             path_strings = [f"'{'.'.join(p)}'" for p in paths]
@@ -299,7 +323,7 @@ class baseElement(IgnoreExtra):
         cls = self.__class__
 
         # Allow Pydantic to handle direct fields and internal attributes
-        if name in cls.model_fields or name.startswith('_'):
+        if name in cls.model_fields or name.startswith("_"):
             super().__setattr__(name, value)
             return
 
@@ -437,7 +461,9 @@ class Element(baseElement):
     electrical: ElectricalElement | None = Field(default_factory=ElectricalElement)
     """Electrical attributes of the element."""
 
-    manufacturer: ManufacturerElement | None = Field(default_factory=ManufacturerElement)
+    manufacturer: ManufacturerElement | None = Field(
+        default_factory=ManufacturerElement
+    )
     """Manufacturer attributes of the element."""
 
     controls: ControlsInformation | None = None
@@ -461,6 +487,7 @@ class Element(baseElement):
             return
 
         self.controls.apply(self)
+
 
 class PhysicalBaseElement(Element):
     """
@@ -509,7 +536,6 @@ class PhysicalBaseElement(Element):
         #TODO this probably doesn't do what it should.
         """
         return self.start_angle
-
 
 
 class Magnet(PhysicalBaseElement):
@@ -616,7 +642,6 @@ class Quadrupole(Magnet):
 
     magnetic: Quadrupole_Magnet = Field(default_factory=Quadrupole_Magnet)
     """Magnetic attributes of the quadrupole."""
-
 
 
 class Sextupole(Magnet):
@@ -763,7 +788,9 @@ class TwissMatch(PhysicalBaseElement):
     hardware_class: str = Field(default="TwissMatch", frozen=True)
     """Twiss match hardware class."""
 
-    simulation: TwissMatchSimulationElement = Field(default_factory=TwissMatchSimulationElement)
+    simulation: TwissMatchSimulationElement = Field(
+        default_factory=TwissMatchSimulationElement
+    )
     """Simulation attributes of the matching element."""
 
 
@@ -784,7 +811,9 @@ class Diagnostic(PhysicalBaseElement):
     hardware_class: str = Field(default="Diagnostic", frozen=True)
     """Diagnostic hardware class."""
 
-    simulation: DiagnosticSimulationElement = Field(default_factory=DiagnosticSimulationElement)
+    simulation: DiagnosticSimulationElement = Field(
+        default_factory=DiagnosticSimulationElement
+    )
     """Simulation attributes of the diagnostic."""
 
 
@@ -799,13 +828,17 @@ class Beam_Position_Monitor(Diagnostic):
         attributes of the BPM.
     """
 
-    hardware_type: str = Field(default="Beam_Position_Monitor", frozen=True, alias="BPM")
+    hardware_type: str = Field(
+        default="Beam_Position_Monitor", frozen=True, alias="BPM"
+    )
     """BPM hardware type."""
 
     hardware_model: str = Field(default="Stripline", frozen=True)
     """BPM hardware model."""
 
-    diagnostic: Beam_Position_Monitor_Diagnostic = Field(default_factory=Beam_Position_Monitor_Diagnostic)
+    diagnostic: Beam_Position_Monitor_Diagnostic = Field(
+        default_factory=Beam_Position_Monitor_Diagnostic
+    )
     """Diagnostic attributes of the BPM."""
 
 
@@ -826,7 +859,9 @@ class Beam_Arrival_Monitor(Diagnostic):
     hardware_model: str = Field(default="DESY", frozen=True)
     """BAM hardware model."""
 
-    diagnostic: Beam_Arrival_Monitor_Diagnostic = Field(default_factory=Beam_Arrival_Monitor_Diagnostic)
+    diagnostic: Beam_Arrival_Monitor_Diagnostic = Field(
+        default_factory=Beam_Arrival_Monitor_Diagnostic
+    )
     """Diagnostic attributes of the BAM."""
 
 
@@ -847,7 +882,9 @@ class Bunch_Length_Monitor(Diagnostic):
     hardware_model: str = Field(default="CDR", frozen=True)
     """BLM hardware model."""
 
-    diagnostic: Bunch_Length_Monitor_Diagnostic = Field(default_factory=Bunch_Length_Monitor_Diagnostic)
+    diagnostic: Bunch_Length_Monitor_Diagnostic = Field(
+        default_factory=Bunch_Length_Monitor_Diagnostic
+    )
     """Diagnostic attributes of the BLM."""
 
 
@@ -956,7 +993,9 @@ class Integrated_Current_Transformer(ChargeDiagnostic):
         hardware_type (str): The hardware type of the diagnostic.
     """
 
-    hardware_type: str = Field(default="Integrated_Current_Transformer", frozen=True, alias="ICT")
+    hardware_type: str = Field(
+        default="Integrated_Current_Transformer", frozen=True, alias="ICT"
+    )
     """ICT hardware type."""
 
 
@@ -1063,7 +1102,7 @@ class LaserMirror(Element):
     Attributes:
         hardware_type (str): The hardware type of the mirror.
         hardware_model (str): The hardware model of the mirror.
-        laser (:class:`~nala.models.laser.LaserMirrorElement`): The laser-related attributes of the
+        controls (:class:`~nala.models.controls.MirrorControlsInformation`): The control-related attributes of the
         mirror.
     """
 
@@ -1073,8 +1112,26 @@ class LaserMirror(Element):
     hardware_model: str = Field(default="Planar", frozen=True)
     """Laser mirror hardware model."""
 
-    laser: LaserMirrorElement = Field(default_factory=LaserMirrorElement)
-    """Laser mirror attributes of the element."""
+    controls: MirrorControlsInformation | None = None
+    """Laser mirror control attributes of the element."""
+
+
+class LaserAttenuator(Element):
+    """
+    Laser attenuator element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the attenuator.
+    """
+
+    hardware_type: str = Field(default="LaserAttenuator", frozen=True)
+    """Laser attenuator hardware type."""
+
+    maximum: float = 0.0
+    """Maximum attenuation of the laser attenuator (in degrees)."""
+
+    minimum: float = 0.0
+    """Minimum attenuation of the laser attenuator (in degrees)."""
 
 
 class Plasma(PhysicalBaseElement):
@@ -1183,7 +1240,9 @@ class RFCavity(PhysicalBaseElement):
     cavity: RFCavityElement = Field(default_factory=RFCavityElement)
     """Cavity attributes of the RF cavity."""
 
-    simulation: RFCavitySimulationElement = Field(default_factory=RFCavitySimulationElement)
+    simulation: RFCavitySimulationElement = Field(
+        default_factory=RFCavitySimulationElement
+    )
     """Simulation attributes of the RF cavity."""
 
 
@@ -1208,7 +1267,9 @@ class Wakefield(PhysicalBaseElement):
     cavity: WakefieldElement = Field(default_factory=WakefieldElement)
     """Wakefield attributes of the element."""
 
-    simulation: WakefieldSimulationElement = Field(default_factory=WakefieldSimulationElement)
+    simulation: WakefieldSimulationElement = Field(
+        default_factory=WakefieldSimulationElement
+    )
     """Simulation attributes of the wakefield element."""
 
 
@@ -1233,7 +1294,9 @@ class RFDeflectingCavity(RFCavity):
     cavity: RFDeflectingCavityElement = Field(default_factory=RFDeflectingCavityElement)
     """Cavity attributes of the RF deflecting cavity."""
 
-    simulation: RFCavitySimulationElement = Field(default_factory=RFCavitySimulationElement)
+    simulation: RFCavitySimulationElement = Field(
+        default_factory=RFCavitySimulationElement
+    )
     """Simulation attributes of the RF deflecting cavity."""
 
 
@@ -1309,6 +1372,9 @@ class Shutter(PhysicalBaseElement):
     shutter: ShutterElement = Field(default_factory=ShutterElement)
     """Shutter attributes of the element."""
 
+    controls: ShutterControlsInformation | None = None
+    """Shutter control attributes of the element."""
+
 
 class Valve(PhysicalBaseElement):
     """
@@ -1343,7 +1409,9 @@ class Marker(PhysicalBaseElement):
     hardware_model: str = Field(default="Simulation", frozen=True)
     """Marker hardware model."""
 
-    simulation: DiagnosticSimulationElement = Field(default_factory=DiagnosticSimulationElement)
+    simulation: DiagnosticSimulationElement = Field(
+        default_factory=DiagnosticSimulationElement
+    )
     """Simulation attributes of the marker."""
 
 

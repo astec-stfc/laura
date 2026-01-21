@@ -58,8 +58,11 @@ class RFCavityElement(IgnoreExtra):
 
     def model_post_init(self, __context):
         if self.structure_Type.lower == "travellingwave" and any(
-                [self.mode_numerator is None and self.mode_denominator is None]):
-            raise ValueError("mode_numerator and mode_denominator must be defined for TravellingWave structure type")
+            [self.mode_numerator is None and self.mode_denominator is None]
+        ):
+            raise ValueError(
+                "mode_numerator and mode_denominator must be defined for TravellingWave structure type"
+            )
 
 
 class WakefieldElement(IgnoreExtra):
@@ -74,13 +77,14 @@ class WakefieldElement(IgnoreExtra):
     n_cells: Union[int, float] = 1
     """Number of cavity cells (if the wakefield is associated with a cavity; if not, just make this 1."""
 
-    coupling_cell_length: float | None  = 0.0
+    coupling_cell_length: float | None = 0.0
 
 
 class RFDeflectingCavityElement(IgnoreExtra):
     """
     RF deflecting cavity model.
     """
+
     coupling_cell_length: float | None = 0.0
     """Length of coupling cell [m]."""
 

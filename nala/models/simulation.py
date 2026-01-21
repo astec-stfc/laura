@@ -15,7 +15,9 @@ class ApertureElement(IgnoreExtra):
     vertical_size: PositiveFloat = 1.0
     """Vertical aperture size [m]"""
 
-    shape: Literal["elliptical", "planar", "circular", "rectangular", "scraper"] | None = None
+    shape: (
+        Literal["elliptical", "planar", "circular", "rectangular", "scraper"] | None
+    ) = None
     """Aperture shape"""
 
     radius: float | None = None
@@ -168,7 +170,7 @@ class PlasmaSimulationElement(SimulationElement):
             "n_longitudinal",
             "n_radial",
             "min_longitudinal_position",
-            "max_longitudinal_position"
+            "max_longitudinal_position",
         ],
     }
 
@@ -364,6 +366,7 @@ class WakefieldSimulationElement(SimulationElement):
 
     subbins: int = 10
     """Sub binning parameter."""
+
 
 class TwissMatchSimulationElement(IgnoreExtra):
     beta_x: float

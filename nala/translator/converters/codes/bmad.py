@@ -12,21 +12,30 @@ from nala.models.element import (
     Horizontal_Corrector,
 )
 import math
+
+
 def norm(v):
-    n = math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
+    n = math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2])
     if n == 0:
         return (0.0, 0.0, 0.0)
-    return (v[0]/n, v[1]/n, v[2]/n)
+    return (v[0] / n, v[1] / n, v[2] / n)
+
 
 def cross(a, b):
-    return (a[1]*b[2] - a[2]*b[1],
-            a[2]*b[0] - a[0]*b[2],
-            a[0]*b[1] - a[1]*b[0])
+    return (
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    )
+
 
 def dot(a, b):
-    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 
-def deg(r): return math.degrees(r)
+
+def deg(r):
+    return math.degrees(r)
+
 
 def rotation_angles(forward):
     f = norm(forward)
@@ -47,6 +56,7 @@ def rotation_angles(forward):
     cr = cross(up, world_up)
     roll = math.atan2(dot(cr, f), dot(up, world_up))
     return pitch, roll, yaw
+
 
 class BmadLatticeImporter(BaseModel):
 
@@ -91,8 +101,10 @@ class BmadLatticeImporter(BaseModel):
                 tao.universe(str(self.n_universes))
                 self.branches.update(
                     {
-                        self.n_universes: [f'{i["branch_name"]}_{self.n_universes}' for i in
-                                           tao.lat_branch_list(ix_uni=self.n_universes)]
+                        self.n_universes: [
+                            f'{i["branch_name"]}_{self.n_universes}'
+                            for i in tao.lat_branch_list(ix_uni=self.n_universes)
+                        ]
                     }
                 )
                 self.names.update({self.n_universes: {}})
@@ -105,15 +117,24 @@ class BmadLatticeImporter(BaseModel):
                 self.params.update({self.n_universes: {}})
                 self.nala_elems.update({self.n_universes: {}})
                 for ind, b in enumerate(self.branches[self.n_universes]):
-                    kwa = {"ix_uni": str(self.n_universes), "ix_branch": b.replace(f"_{self.n_universes}", "")}
+                    kwa = {
+                        "ix_uni": str(self.n_universes),
+                        "ix_branch": b.replace(f"_{self.n_universes}", ""),
+                    }
                     names = [i for i in tao.lat_list("*", "ele.name", **kwa)]
-                    names_numbered = [f"{x}.{(c := Counter(names[:i + 1]))[x]}" for i, x in enumerate(names)]
+                    names_numbered = [
+                        f"{x}.{(c := Counter(names[:i + 1]))[x]}"
+                        for i, x in enumerate(names)
+                    ]
                     types = [i for i in tao.lat_list("*", "ele.key", **kwa)]
                     lengths = [i for i in tao.lat_list("*", "ele.l", **kwa)]
                     xpos = [i for i in tao.lat_list("*", "orbit.floor.x", **kwa)]
                     ypos = [i for i in tao.lat_list("*", "orbit.floor.y", **kwa)]
                     zpos = [i for i in tao.lat_list("*", "orbit.floor.z", **kwa)]
-                    params = [tao.ele_gen_attribs(f"{str(self.n_universes)}@{ind}>>{i}") for i in range(len(names))]
+                    params = [
+                        tao.ele_gen_attribs(f"{str(self.n_universes)}@{ind}>>{i}")
+                        for i in range(len(names))
+                    ]
                     self.names[self.n_universes].update({b: names})
                     self.names_numbered[self.n_universes].update({b: names_numbered})
                     self.types[self.n_universes].update({b: types})
@@ -127,8 +148,8 @@ class BmadLatticeImporter(BaseModel):
             except TaoCommandError:
                 break
         self.branches = {
-            k: [f'{i["branch_name"]}_{k}' for i in tao.lat_branch_list(ix_uni=k)] for k in
-            range(1, self.n_universes)
+            k: [f'{i["branch_name"]}_{k}' for i in tao.lat_branch_list(ix_uni=k)]
+            for k in range(1, self.n_universes)
         }
 
     def create_element_dictionary(self, universe: int) -> None:
@@ -153,7 +174,7 @@ class BmadLatticeImporter(BaseModel):
                 middle = [
                     (start_x + end_x) / 2.0,
                     (start_y + end_y) / 2.0,
-                    (start_z + end_z) / 2.0
+                    (start_z + end_z) / 2.0,
                 ]
 
                 # Calculate the beam direction at the START of this element
@@ -164,14 +185,14 @@ class BmadLatticeImporter(BaseModel):
                     forward = (
                         self.xpos[universe][b][i - 1] - self.xpos[universe][b][i - 2],
                         self.ypos[universe][b][i - 1] - self.ypos[universe][b][i - 2],
-                        self.zpos[universe][b][i - 1] - self.zpos[universe][b][i - 2]
+                        self.zpos[universe][b][i - 1] - self.zpos[universe][b][i - 2],
                     )
                 elif i == 1:
                     # For the second element, use direction from origin to first element's end
                     forward = (
                         self.xpos[universe][b][0],
                         self.ypos[universe][b][0],
-                        self.zpos[universe][b][0]
+                        self.zpos[universe][b][0],
                     )
                 else:
                     # For the first element, assume initial direction along z-axis
@@ -216,7 +237,10 @@ class BmadLatticeImporter(BaseModel):
                         kl = {
                             "multipoles": {
                                 f"K{magnetic_orders[hardware_type]}L": {
-                                    "normal": parameters[f"K{magnetic_orders[hardware_type]}"] * self.lengths[universe][b][i],
+                                    "normal": parameters[
+                                        f"K{magnetic_orders[hardware_type]}"
+                                    ]
+                                    * self.lengths[universe][b][i],
                                     "order": magnetic_orders[hardware_type],
                                 },
                             },
@@ -224,11 +248,11 @@ class BmadLatticeImporter(BaseModel):
                     except KeyError:
                         kl = {
                             "multipoles": {
-                                    f"K{magnetic_orders[hardware_type]}L": {
-                                        "normal": parameters["ANGLE"],
-                                        "order": magnetic_orders[hardware_type],
-                                    },
+                                f"K{magnetic_orders[hardware_type]}L": {
+                                    "normal": parameters["ANGLE"],
+                                    "order": magnetic_orders[hardware_type],
                                 },
+                            },
                             "entrance_edge_angle": parameters["E1"],
                             "exit_edge_angle": parameters["E2"],
                         }
@@ -240,17 +264,21 @@ class BmadLatticeImporter(BaseModel):
                             "order": magnetic_orders[hardware_type],
                             "length": float(self.lengths[universe][b][i]),
                             **kl,
-                        }
+                        },
                     }
                 elif self.types[universe][b][i] == "Marker":
                     hardware_class = "Simulation"
                     hardware_type = "Marker"
                     markelem = {
                         "physical": {
-                                    "position": middle,
-                                    "global_rotation": [pitch, roll, yaw, ],
-                                    "length": float(self.lengths[universe][b][i]),
-                                },
+                            "position": middle,
+                            "global_rotation": [
+                                pitch,
+                                roll,
+                                yaw,
+                            ],
+                            "length": float(self.lengths[universe][b][i]),
+                        },
                         "name": nam,
                         "hardware_class": hardware_class,
                         "hardware_type": hardware_type,
@@ -258,23 +286,29 @@ class BmadLatticeImporter(BaseModel):
                     }
                     self.nala_elems[universe][b].update(
                         {
-                            nam: getattr(NALA_elements, self.types[universe][b][i])(**markelem)
+                            nam: getattr(NALA_elements, self.types[universe][b][i])(
+                                **markelem
+                            )
                         }
                     )
                 if elem_data:
                     elems = {
-                            nam: {
-                                "physical": {
-                                    "position": middle,
-                                    "global_rotation": [pitch, roll, yaw, ],
-                                    "length": float(self.lengths[universe][b][i]),
-                                },
-                                "name": nam,
-                                "hardware_class": hardware_class,
-                                "hardware_type": hardware_type,
-                                "machine_area": "test",
-                            }
+                        nam: {
+                            "physical": {
+                                "position": middle,
+                                "global_rotation": [
+                                    pitch,
+                                    roll,
+                                    yaw,
+                                ],
+                                "length": float(self.lengths[universe][b][i]),
+                            },
+                            "name": nam,
+                            "hardware_class": hardware_class,
+                            "hardware_type": hardware_type,
+                            "machine_area": "test",
                         }
+                    }
                     elems[nam].update(**elem_data)
                     if self.types[universe][b][i] == "Kicker":
                         helem = elems.copy()
@@ -307,10 +341,14 @@ class BmadLatticeImporter(BaseModel):
                         if self.types[universe][b][i] in ["RBend", "SBend"]:
                             self.types[universe][b][i] = "Dipole"
                             elems[nam]["hardware_type"] = "Dipole"
-                            elems[nam]["physical"]["physical_angle"] = -elems[nam]["magnetic"]["multipoles"]["K0L"]["normal"]
+                            elems[nam]["physical"]["physical_angle"] = -elems[nam][
+                                "magnetic"
+                            ]["multipoles"]["K0L"]["normal"]
                         self.nala_elems[universe][b].update(
                             {
-                                nam: getattr(NALA_elements, self.types[universe][b][i])(**elems[nam])
+                                nam: getattr(NALA_elements, self.types[universe][b][i])(
+                                    **elems[nam]
+                                )
                             }
                         )
 
@@ -319,7 +357,9 @@ class BmadLatticeImporter(BaseModel):
             self.create_element_dictionary(universe)
         order = list(self.nala_elems[universe][branch].keys())
         elems = self.nala_elems[universe][branch]
-        seclat = SectionLattice(order=order, elements=ElementList(elements=elems), name=branch)
+        seclat = SectionLattice(
+            order=order, elements=ElementList(elements=elems), name=branch
+        )
         return {branch: seclat}
 
     def create_layout(self, universe: int) -> Dict[str, MachineLayout]:

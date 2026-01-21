@@ -4,8 +4,10 @@ from typing import Union
 from ..models.elementList import MachineModel
 from ..models.element import PhysicalElement
 
+
 def represent_tuple(dumper, data):
-    return dumper.represent_sequence('tag:yaml.org,2002:seq', data)
+    return dumper.represent_sequence("tag:yaml.org,2002:seq", data)
+
 
 yaml.add_representer(tuple, represent_tuple)
 
@@ -37,7 +39,9 @@ def export_machine_combined_file(path: str, machine: MachineModel) -> None:
         yaml.dump(combined_yaml, yaml_file)
 
 
-def export_machine(path: str, machine: MachineModel, overwrite: bool = False, verbose: bool = False) -> None:
+def export_machine(
+    path: str, machine: MachineModel, overwrite: bool = False, verbose: bool = False
+) -> None:
     os.makedirs(path, exist_ok=True)
     for name, elem in machine.elements.items():
         directory = os.path.join(path, elem.subdirectory)

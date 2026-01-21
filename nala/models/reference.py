@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List
 
+
 class ReferenceElement(BaseModel):
     """Reference information model."""
 

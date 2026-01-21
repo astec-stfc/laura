@@ -3,7 +3,7 @@ import sys
 sys.path.append("..")
 from PAdantic.Importers.SimFrame_Loader import read_SimFrame_YAML  # noqa E402
 from PAdantic.models.elementList import MachineModel  # noqa E402
-from PAdantic.models.element import Element # noqa E402
+from PAdantic.models.element import Element  # noqa E402
 from PAdantic.Exporters.YAML import export_machine  # noqa E402
 from PAdantic.models.control import ControlsInformation, ControlVariable  # noqa E402
 

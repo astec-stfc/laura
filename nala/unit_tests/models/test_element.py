@@ -17,6 +17,7 @@ def base_element() -> baseElement:
         subelement=True,
     )
 
+
 @pytest.fixture
 def physical_base_element() -> PhysicalBaseElement:
     return PhysicalBaseElement(
@@ -25,6 +26,7 @@ def physical_base_element() -> PhysicalBaseElement:
         hardware_type="HT",
         machine_area="MA",
     )
+
 
 def test_base_element_initialization(base_element):
     assert base_element.name == "Base1"

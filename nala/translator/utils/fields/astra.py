@@ -31,7 +31,11 @@ def generate_astra_field_data(self) -> np.ndarray:
     length = str(self.length)
     data = None
     zdata = self.z_values
-    self.field_type = self.field_type.decode("utf-8") if isinstance(self.field_type, bytes) else self.field_type
+    self.field_type = (
+        self.field_type.decode("utf-8")
+        if isinstance(self.field_type, bytes)
+        else self.field_type
+    )
     if self.field_type == "LongitudinalWake":
         wzdata = self.Wz.value.val
         preamble = np.array(
@@ -98,18 +102,20 @@ def generate_astra_field_data(self) -> np.ndarray:
         if self.cavity_type == "TravellingWave":
             spdata = ["" for _ in range(self.length)]
             if any(
-                    [
-                        getattr(self, param) is None for param in [
+                [
+                    getattr(self, param) is None
+                    for param in [
                         "start_cell_z",
                         "end_cell_z",
                         "mode_numerator",
-                        "mode_denominator"
+                        "mode_denominator",
                     ]
-                    ]
+                ]
             ):
                 raise ValueError(
-                    "start_cell_z, end_cell_z", "mode_numerator", "mode_denominator"
-                                                                  "must be defined for TravellingWave cavities"
+                    "start_cell_z, end_cell_z",
+                    "mode_numerator",
+                    "mode_denominator" "must be defined for TravellingWave cavities",
                 )
             preamble = np.array(
                 [
@@ -127,7 +133,9 @@ def generate_astra_field_data(self) -> np.ndarray:
         else:
             data = np.transpose([zdata, ezdata])
     elif self.field_type == "2DElectroDynamic":
-        warn(f"Converting 2DElectroDynamic field map for {self.filename} to 1D for ASTRA")
+        warn(
+            f"Converting 2DElectroDynamic field map for {self.filename} to 1D for ASTRA"
+        )
         idx = np.where(self.r.value.val == 0)
         zdata = self.z.value.val[idx]
         ezdata = self.Ez.value.val[idx]

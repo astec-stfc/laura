@@ -80,24 +80,12 @@ class SimFrame_Conversion(BaseModel):
 
 
 SimFrame_Elements = {
-    "quadrupole": SimFrame_Conversion(
-        typeclass=Quadrupole, hardware_class="Magnet"
-    ),
-    "dipole": SimFrame_Conversion(
-        typeclass=Dipole, hardware_class="Magnet"
-    ),
-    "sextupole": SimFrame_Conversion(
-        typeclass=Sextupole, hardware_class="Magnet"
-    ),
-    "solenoid": SimFrame_Conversion(
-        typeclass=Solenoid, hardware_class="Magnet"
-    ),
-    "marker": SimFrame_Conversion(
-        typeclass=Marker, hardware_class="Simulation"
-    ),
-    "aperture": SimFrame_Conversion(
-        typeclass=Aperture, hardware_class="Simulation"
-    ),
+    "quadrupole": SimFrame_Conversion(typeclass=Quadrupole, hardware_class="Magnet"),
+    "dipole": SimFrame_Conversion(typeclass=Dipole, hardware_class="Magnet"),
+    "sextupole": SimFrame_Conversion(typeclass=Sextupole, hardware_class="Magnet"),
+    "solenoid": SimFrame_Conversion(typeclass=Solenoid, hardware_class="Magnet"),
+    "marker": SimFrame_Conversion(typeclass=Marker, hardware_class="Simulation"),
+    "aperture": SimFrame_Conversion(typeclass=Aperture, hardware_class="Simulation"),
     "collimator": SimFrame_Conversion(
         typeclass=Collimator, hardware_class="Simulation"
     ),
@@ -119,9 +107,7 @@ SimFrame_Elements = {
     "integrated_current_transformer": SimFrame_Conversion(
         typeclass=Integrated_Current_Transformer, hardware_class="Diagnostic"
     ),
-    "screen": SimFrame_Conversion(
-        typeclass=Screen, hardware_class="Diagnostic"
-    ),
+    "screen": SimFrame_Conversion(typeclass=Screen, hardware_class="Diagnostic"),
     # 'rf_deflecting_cavity': SimFrame_Conversion(typeclass=Sextupole, PV_class='Magnet'),
     "kicker": SimFrame_Conversion(
         typeclass=Combined_Corrector, hardware_class="Magnet"
@@ -136,15 +122,11 @@ SimFrame_Elements = {
     "longitudinal_wakefield": SimFrame_Conversion(
         typeclass=Wakefield, hardware_class="Simulation"
     ),
-    "cavity": SimFrame_Conversion(
-        typeclass=RFCavity, hardware_class="RF"
-    ),
+    "cavity": SimFrame_Conversion(typeclass=RFCavity, hardware_class="RF"),
     "rf_deflecting_cavity": SimFrame_Conversion(
         typeclass=RFDeflectingCavity, hardware_class="RF"
     ),
-    "shutter": SimFrame_Conversion(
-        typeclass=Shutter, hardware_class="Vacuum"
-    ),
+    "shutter": SimFrame_Conversion(typeclass=Shutter, hardware_class="Vacuum"),
 }
 
 

@@ -34,7 +34,9 @@ class LaserElement(IgnoreExtra):
     polarization: Literal["linear", "circular", "elliptical"] | None = None
     """Laser polarization: 'linear', 'circular', 'elliptical'"""
 
-    profile_type: Literal['gaussian', 'laguerre-gaussian', 'flattened-gaussian', 'file'] = "gaussian"
+    profile_type: Literal[
+        "gaussian", "laguerre-gaussian", "flattened-gaussian", "file"
+    ] = "gaussian"
     """Laser profile type [str]: 'gaussian', 'laguerre-gaussian', 'flattened-gaussian', 'file'"""
 
     laguerre_polynomial_order_p: int = 0
@@ -60,11 +62,23 @@ class LaserElement(IgnoreExtra):
         ValueError
             If any of the requires parameters are not set or non-positive
         """
-        if any([self.wavelength, self.waist, self.pulse_energy, self.pulse_duration_fwhm]) <= 0:
-            warn("Wavelength, waist, pulse enegy and pulse duration must be positive "
-                 "to compute laser amplitude.")
+        if (
+            any(
+                [
+                    self.wavelength,
+                    self.waist,
+                    self.pulse_energy,
+                    self.pulse_duration_fwhm,
+                ]
+            )
+            <= 0
+        ):
+            warn(
+                "Wavelength, waist, pulse enegy and pulse duration must be positive "
+                "to compute laser amplitude."
+            )
             return 0
-        return ((e * self.wavelength) / (pi * m_e * c ** 2 * self.waist)) * np.sqrt(
+        return ((e * self.wavelength) / (pi * m_e * c**2 * self.waist)) * np.sqrt(
             self.pulse_energy / (pi * epsilon_0 * c * self.pulse_duration_fwhm)
         )
 
@@ -84,7 +98,9 @@ class LaserElement(IgnoreExtra):
             If wavelength is not set or non-positive
         """
         if self.wavelength <= 0:
-            raise ValueError("Wavelength must be positive to compute laser angular frequency.")
+            raise ValueError(
+                "Wavelength must be positive to compute laser angular frequency."
+            )
         return 2 * pi * c / self.wavelength
 
 
@@ -99,12 +115,13 @@ class LaserHalfWavePlateElement(IgnoreExtra):
     pv_type: str = Field(alias="laser_pv_type")
     """Type of the laser PV."""
 
+
 class LaserEnergyMeterElement(IgnoreExtra):
     """
     Laser energy meter model.
     """
 
-    calibration_factor: float = Field()
+    calibration_factor: float = Field(default=1.0)
     """Calibration factor for the energy meter, i.e. between measured value and actual laser energy."""
 
     pv_type: str = Field(alias="laser_pv_type")

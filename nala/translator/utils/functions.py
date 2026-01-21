@@ -6,6 +6,7 @@ from pydantic.fields import FieldInfo
 from nala.models.element import Magnet
 from typing import Any, Dict, Type, get_args, get_origin, Union, Literal
 
+
 class Counter(dict):
     def __init__(self, sub={}):
         super().__init__()
@@ -30,6 +31,7 @@ class Counter(dict):
         else:
             self[type] += n
         return self[type]
+
 
 def convert_numpy_types(v):
     if isinstance(v, dict):
@@ -63,6 +65,7 @@ def convert_numpy_types(v):
     else:
         return v
 
+
 def _rotation_matrix(theta):
     return np.array(
         [
@@ -72,12 +75,14 @@ def _rotation_matrix(theta):
         ]
     )
 
+
 def chop(expr, delta=1e-8):
     """Performs a chop on small numbers"""
     if isinstance(expr, (int, float, complex)):
         return 0 if -delta <= expr <= delta else expr
     else:
         return [chop(x, delta) for x in expr]
+
 
 def lattice_to_cartesian(elements):
     """
@@ -127,7 +132,7 @@ def lattice_to_cartesian(elements):
                 x = cx + R * np.sin(theta_h_new)
                 z = cz - R * np.cos(theta_h_new)
                 theta_h = theta_h_new
-            elif np.isclose(tilt, np.pi/2):
+            elif np.isclose(tilt, np.pi / 2):
                 R = L / phi
                 cy = y - R * np.sin(theta_v)
                 cz = z + R * np.cos(theta_v)
@@ -139,6 +144,7 @@ def lattice_to_cartesian(elements):
                 raise ValueError(f"Unrecognised tilt angle {tilt} for {elem.name}")
             positions.append((x, y, z))
     return positions
+
 
 def sanitize_kwargs(model_cls: type[BaseModel], data: dict[str, Any]) -> dict[str, Any]:
     sanitized = {}
@@ -169,6 +175,7 @@ def sanitize_kwargs(model_cls: type[BaseModel], data: dict[str, Any]) -> dict[st
 
     return sanitized
 
+
 def _is_valid_type(value: Any, annotation: Any) -> bool:
     """
     Helper to check if a value matches a type annotation.
@@ -178,6 +185,7 @@ def _is_valid_type(value: Any, annotation: Any) -> bool:
     if origin is Literal:
         return value in get_args(annotation)
     return isinstance(value, annotation)
+
 
 def get_field_default(field: FieldInfo) -> Any:
     """Get the default value or instance from a field definition."""
@@ -189,6 +197,7 @@ def get_field_default(field: FieldInfo) -> Any:
     if field.default is not None:
         return field.default
     return None
+
 
 def introspect_model_defaults(
     model_cls: Type[BaseModel],
@@ -207,7 +216,9 @@ def introspect_model_defaults(
             nested = introspect_model_defaults(
                 default_value.__class__,
                 flatten=flatten,
-                parent_key=f"{parent_key}{separator}{field_name}" if parent_key else field_name,
+                parent_key=(
+                    f"{parent_key}{separator}{field_name}" if parent_key else field_name
+                ),
                 separator=separator,
             )
             if flatten:
@@ -215,10 +226,15 @@ def introspect_model_defaults(
             else:
                 result[field_name] = nested
         else:
-            key = f"{parent_key}{separator}{field_name}" if (flatten and parent_key) else field_name
+            key = (
+                f"{parent_key}{separator}{field_name}"
+                if (flatten and parent_key)
+                else field_name
+            )
             result[key] = default_value
 
     return result
+
 
 def isevaluable(self, s):
     try:
@@ -226,6 +242,7 @@ def isevaluable(self, s):
         return True
     except Exception:
         return False
+
 
 def path_function(a):
     # a_drive, a_tail = os.path.splitdrive(os.path.abspath(a))
@@ -235,13 +252,13 @@ def path_function(a):
     # else:
     if a:
         return os.path.abspath(a)
-    return './'
+    return "./"
 
 
 def expand_substitution(self, param, subs={}, elements={}, absolute=False):
     if isinstance(param, str):
         subs["master_lattice_location"] = (
-            path_function(self.master_lattice_location)+ "/"
+            path_function(self.master_lattice_location) + "/"
         )
         regex = re.compile(r"\$(.*)\$")
         s = re.search(regex, param)
@@ -263,6 +280,7 @@ def expand_substitution(self, param, subs={}, elements={}, absolute=False):
             return param
     else:
         return param
+
 
 def checkValue(self, d, default=None):
     if isinstance(d, dict):
@@ -290,6 +308,7 @@ def checkValue(self, d, default=None):
             else default
         )
 
+
 def tw_cavity_energy_gain(cavity):
     """
     Estimate energy gain in a travelling-wave RF cavity.
@@ -302,7 +321,9 @@ def tw_cavity_energy_gain(cavity):
     """
 
     # Approximate effective accelerating gradient
-    E_acc = cavity.field_amplitude * np.sin(np.pi * cavity.mode_numerator * 2 / cavity.mode_denominator / 2)
+    E_acc = cavity.field_amplitude * np.sin(
+        np.pi * cavity.mode_numerator * 2 / cavity.mode_denominator / 2
+    )
 
     # Total cavity length
     L_total = cavity.n_cells * cavity.cell_length

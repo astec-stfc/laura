@@ -1,5 +1,12 @@
 import numpy as np
-from pydantic import field_validator, confloat, Field, AliasChoices, PrivateAttr, computed_field
+from pydantic import (
+    field_validator,
+    confloat,
+    Field,
+    AliasChoices,
+    PrivateAttr,
+    computed_field,
+)
 from typing import List, Type, Union, Dict, Any
 
 from .baseModels import IgnoreExtra, NumpyVectorModel, T
@@ -124,11 +131,16 @@ class ElementError(IgnoreExtra):
         elif isinstance(v, dict):
             keys = list(v.keys())
             values = list(v.values())
-            if all([x in keys for x in ["x", "y", "z"]]) and all([type(val) == float for val in values]) and len(
-                    keys) == 3:
+            if (
+                all([x in keys for x in ["x", "y", "z"]])
+                and all([type(val) == float for val in values])
+                and len(keys) == 3
+            ):
                 return Position(**v)
             else:
-                raise ValueError("setting middle as dictionary must include x, y, z as floats")
+                raise ValueError(
+                    "setting middle as dictionary must include x, y, z as floats"
+                )
 
         else:
             raise ValueError("position should be a number or a list of floats")
@@ -143,11 +155,16 @@ class ElementError(IgnoreExtra):
         elif isinstance(v, dict):
             keys = list(v.keys())
             values = list(v.values())
-            if all([x in keys for x in ["phi", "psi", "theta"]]) and all(
-                    [type(val) == float for val in values]) and len(keys) == 3:
+            if (
+                all([x in keys for x in ["phi", "psi", "theta"]])
+                and all([type(val) == float for val in values])
+                and len(keys) == 3
+            ):
                 return Rotation(**v)
             else:
-                raise ValueError("setting rotation as dictionary must include x, y, z as floats")
+                raise ValueError(
+                    "setting rotation as dictionary must include x, y, z as floats"
+                )
 
         else:
             raise ValueError("rotation should be a number or a list of floats")
@@ -185,7 +202,9 @@ class PhysicalElement(IgnoreExtra):
     Physical info model.
     """
 
-    middle: Position = Field(default=Position(), alias=AliasChoices("position", "centre"))
+    middle: Position = Field(
+        default=Position(), alias=AliasChoices("position", "centre")
+    )
     """Middle position of the element."""
 
     datum: Position = Field(default=0)
@@ -258,11 +277,16 @@ class PhysicalElement(IgnoreExtra):
         elif isinstance(v, dict):
             keys = list(v.keys())
             values = list(v.values())
-            if all([x in keys for x in ["x", "y", "z"]]) and all([type(val) == float for val in values]) and len(
-                    keys) == 3:
+            if (
+                all([x in keys for x in ["x", "y", "z"]])
+                and all([type(val) == float for val in values])
+                and len(keys) == 3
+            ):
                 return Position(**v)
             else:
-                raise ValueError("setting middle as dictionary must include x, y, z as floats")
+                raise ValueError(
+                    "setting middle as dictionary must include x, y, z as floats"
+                )
 
         else:
             raise ValueError("middle should be a number or a list of floats")
@@ -280,11 +304,16 @@ class PhysicalElement(IgnoreExtra):
         elif isinstance(v, dict):
             keys = list(v.keys())
             values = list(v.values())
-            if all([x in keys for x in ["phi", "psi", "theta"]]) and all(
-                    [type(val) == float for val in values]) and len(keys) == 3:
+            if (
+                all([x in keys for x in ["phi", "psi", "theta"]])
+                and all([type(val) == float for val in values])
+                and len(keys) == 3
+            ):
                 return Rotation(**v)
             else:
-                raise ValueError("setting rotation as dictionary must include x, y, z as floats")
+                raise ValueError(
+                    "setting rotation as dictionary must include x, y, z as floats"
+                )
 
         else:
             raise ValueError("rotation should be a number or a list of floats")
@@ -299,29 +328,29 @@ class PhysicalElement(IgnoreExtra):
         pitch = self.rotation.phi + self.global_rotation.phi
         roll = self.rotation.psi + self.global_rotation.psi
 
-        Rx = np.array([
-            [1, 0, 0],
-            [0, np.cos(pitch), -np.sin(pitch)],
-            [0, np.sin(pitch), np.cos(pitch)]
-        ])
+        Rx = np.array(
+            [
+                [1, 0, 0],
+                [0, np.cos(pitch), -np.sin(pitch)],
+                [0, np.sin(pitch), np.cos(pitch)],
+            ]
+        )
 
-        Rz = np.array([
-            [np.cos(roll), -np.sin(roll), 0],
-            [np.sin(roll), np.cos(roll), 0],
-            [0, 0, 1]
-        ])
+        Rz = np.array(
+            [
+                [np.cos(roll), -np.sin(roll), 0],
+                [np.sin(roll), np.cos(roll), 0],
+                [0, 0, 1],
+            ]
+        )
 
-        Ry = np.array([
-            [np.cos(yaw), 0, -np.sin(yaw)],
-            [0, 1, 0],
-            [np.sin(yaw), 0, np.cos(yaw)]
-        ])
+        Ry = np.array(
+            [[np.cos(yaw), 0, -np.sin(yaw)], [0, 1, 0], [np.sin(yaw), 0, np.cos(yaw)]]
+        )
 
         return Rz @ Rx @ Ry
 
-    def rotated_position(
-            self, vec: List[Union[int, float]] = [0, 0, 0]
-    ) -> np.ndarray:
+    def rotated_position(self, vec: List[Union[int, float]] = [0, 0, 0]) -> np.ndarray:
         """
         Get the rotated position of the element based on matrix multiplication with rotation_matrix.
 
@@ -343,9 +372,15 @@ class PhysicalElement(IgnoreExtra):
 
         if abs(self._physical_angle) > 1e-9:
             # Bent element
-            sx = -self.length * (1 - np.cos(self._physical_angle)) / (2 * self._physical_angle)
+            sx = (
+                -self.length
+                * (1 - np.cos(self._physical_angle))
+                / (2 * self._physical_angle)
+            )
             sy = 0
-            sz = -self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
+            sz = (
+                -self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
+            )
         else:
             # Straight element
             sx, sy, sz = 0, 0, -self.length / 2.0
@@ -359,7 +394,11 @@ class PhysicalElement(IgnoreExtra):
         middle = np.array(self.middle.array)
 
         if abs(self._physical_angle) > 1e-9:
-            ex = self.length * (1 - np.cos(self._physical_angle)) / (2 * self._physical_angle)
+            ex = (
+                self.length
+                * (1 - np.cos(self._physical_angle))
+                / (2 * self._physical_angle)
+            )
             ey = 0
             ez = self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
         else:

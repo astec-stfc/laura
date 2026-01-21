@@ -1,6 +1,7 @@
 from .base import BaseElementTranslator
 from nala.models.simulation import DriftSimulationElement
 
+
 class DriftTranslator(BaseElementTranslator):
     """
     Translator class for converting a :class:`~nala.models.element.Diagnostic` element instance into a string or

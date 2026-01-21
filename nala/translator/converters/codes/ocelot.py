@@ -15,11 +15,12 @@ type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
 
 
 with open(
-    os.path.dirname(os.path.abspath(__file__)) +
-    "/../../conversion_rules/keywords/keyword_conversion_rules_ocelot.yaml",
+    os.path.dirname(os.path.abspath(__file__))
+    + "/../../conversion_rules/keywords/keyword_conversion_rules_ocelot.yaml",
     "r",
 ) as infile:
     keyword_conversion_rules = yaml.safe_load(infile)
+
 
 class OcelotLatticeImporter(BaseModel):
 
@@ -45,28 +46,36 @@ class OcelotLatticeImporter(BaseModel):
     def create_element_dictionary(self):
         elements = self.magnetic_lattice_to_elements()
         self.nala_elements = {}
-        switch_dict = {f"{str(y).lower().split('.')[-1].strip("\'>")}_{x}": x for x, y in
-                       type_conversion_rules_Ocelot.items()}
+        switch_dict = {
+            f"{str(y).lower().split('.')[-1].strip("\'>")}_{x}": x
+            for x, y in type_conversion_rules_Ocelot.items()
+        }
 
         for elem, pos_and_rot in elements.items():
             # if type(elem) not in switch_dict:
             #     warn(f"Ocelot element type {type(elem)} not convertible")
-            typeconv = str(type(elem)).lower().split('.')[-1].strip("\'>")
+            typeconv = str(type(elem)).lower().split(".")[-1].strip("'>")
             key = None
             for k, v in switch_dict.items():
-                if v == k.split('_')[-1] and typeconv in k:
+                if v == k.split("_")[-1] and typeconv in k:
                     key = k
             if not key:
-                warn(f"Could not find element type {type(elem)} for {elem.id}; "
-                     f"setting as drift")
+                warn(
+                    f"Could not find element type {type(elem)} for {elem.id}; "
+                    f"setting as drift"
+                )
                 key = "drift_drift"
             newobj = {
                 "name": elem.id,
                 "hardware_type": switch_dict[key],
                 "hardware_class": switch_dict[key],
-                "machine_area": self.machine_area}
+                "machine_area": self.machine_area,
+            }
             try:
-                merged = keyword_conversion_rules[switch_dict[key].lower()] | keyword_conversion_rules["general"]
+                merged = (
+                    keyword_conversion_rules[switch_dict[key].lower()]
+                    | keyword_conversion_rules["general"]
+                )
             except KeyError:
                 merged = keyword_conversion_rules["general"]
             for sfparam, oceparam in merged.items():
@@ -75,13 +84,19 @@ class OcelotLatticeImporter(BaseModel):
             sftype = switch_dict[key]
             try:
                 if sftype == "Kicker":
-                    model_fields = introspect_model_defaults(getattr(NALA_elements, "Combined_Corrector"))
+                    model_fields = introspect_model_defaults(
+                        getattr(NALA_elements, "Combined_Corrector")
+                    )
                     newobj["hardware_type"] = "Combined_Corrector"
                 elif "Cavity" not in sftype:
-                    model_fields = introspect_model_defaults(getattr(NALA_elements, sftype.capitalize()))
+                    model_fields = introspect_model_defaults(
+                        getattr(NALA_elements, sftype.capitalize())
+                    )
                     newobj["hardware_type"] = sftype.capitalize()
                 else:
-                    model_fields = introspect_model_defaults(getattr(NALA_elements, sftype))
+                    model_fields = introspect_model_defaults(
+                        getattr(NALA_elements, sftype)
+                    )
             except AttributeError:
                 print(f"type {sftype} not recognized")
                 newobj.update(
@@ -90,7 +105,7 @@ class OcelotLatticeImporter(BaseModel):
                             "hardware_type": "Drift",
                             "name": k,
                             "hardware_class": "Drift",
-                            "machine_area": self.machine_area
+                            "machine_area": self.machine_area,
                         }
                     }
                 )
@@ -103,13 +118,20 @@ class OcelotLatticeImporter(BaseModel):
                 kwele = {y: x for x, y in merged.items()}
                 for subk in model_fields:
                     if isinstance(model_fields[subk], dict):
-                        if oceparam in ["k1", "k2", "k3", "angle"] and newobj['hardware_type'] in magnetic_orders:
+                        if (
+                            oceparam in ["k1", "k2", "k3", "angle"]
+                            and newobj["hardware_type"] in magnetic_orders
+                        ):
                             if "magnetic" not in newobj:
                                 newobj.update({"magnetic": {}})
                             try:
-                                newobj["magnetic"]["kl"] = getattr(
-                                    elem.element, f"k{magnetic_orders[newobj['hardware_type']]}"
-                                ) * elem.l
+                                newobj["magnetic"]["kl"] = (
+                                    getattr(
+                                        elem.element,
+                                        f"k{magnetic_orders[newobj['hardware_type']]}",
+                                    )
+                                    * elem.l
+                                )
                             except AttributeError:
                                 newobj["magnetic"]["kl"] = elem.element.angle
                             newobj["magnetic"].update({oceparam: value})
@@ -118,23 +140,49 @@ class OcelotLatticeImporter(BaseModel):
                             newobj[subk].update({oceparam: getattr(elem, oceparam)})
                         elif oceparam in kwele:
                             if kwele[oceparam] in model_fields[subk]:
-                                if not isinstance(model_fields[subk][kwele[oceparam]], str) or model_fields[subk][
-                                    kwele[oceparam]]:
+                                if (
+                                    not isinstance(
+                                        model_fields[subk][kwele[oceparam]], str
+                                    )
+                                    or model_fields[subk][kwele[oceparam]]
+                                ):
                                     try:
-                                        if oceparam == "v" and "Cavity" in newobj["hardware_type"]:
+                                        if (
+                                            oceparam == "v"
+                                            and "Cavity" in newobj["hardware_type"]
+                                        ):
                                             newobj["hardware_class"] = "RF"
-                                            newobj[subk].update({kwele[oceparam]: getattr(elem, oceparam) * 1e9})
+                                            newobj[subk].update(
+                                                {
+                                                    kwele[oceparam]: getattr(
+                                                        elem, oceparam
+                                                    )
+                                                    * 1e9
+                                                }
+                                            )
                                         else:
-                                            newobj[subk].update({kwele[oceparam]: getattr(elem, oceparam)})
+                                            newobj[subk].update(
+                                                {
+                                                    kwele[oceparam]: getattr(
+                                                        elem, oceparam
+                                                    )
+                                                }
+                                            )
                                     except KeyError:
                                         pass
                                     except AttributeError:
                                         pass
             pos = pos_and_rot[0][::-1]
-            rot = [float(pos_and_rot[1][0]), float(pos_and_rot[1][2]), float(pos_and_rot[1][1])]
+            rot = [
+                float(pos_and_rot[1][0]),
+                float(pos_and_rot[1][2]),
+                float(pos_and_rot[1][1]),
+            ]
             newobj["physical"]["position"] = pos
             newobj["physical"]["global_rotation"] = rot
-            self.nala_elements.update({elem.id: getattr(NALA_elements, newobj["hardware_type"])(**newobj)})
+            self.nala_elements.update(
+                {elem.id: getattr(NALA_elements, newobj["hardware_type"])(**newobj)}
+            )
 
     def save_lattice_file(self, filename: str, directory: str):
         if not self.nala_elements:
@@ -155,7 +203,10 @@ class OcelotLatticeImporter(BaseModel):
         cumulative_R = np.eye(3)
 
         for elem in elements:
-            if "bend" not in str(type(elem)).lower() or abs(getattr(elem, "angle", 0.0)) < 1e-9:
+            if (
+                "bend" not in str(type(elem)).lower()
+                or abs(getattr(elem, "angle", 0.0)) < 1e-9
+            ):
                 # --- Drift ---
                 L = elem.l
                 # Direction vector
@@ -169,7 +220,9 @@ class OcelotLatticeImporter(BaseModel):
                 mid_z = z + dz / 2
 
                 # Store midpoint
-                euler_angles = Rotation.from_matrix(cumulative_R).as_euler('zyx', degrees=False)
+                euler_angles = Rotation.from_matrix(cumulative_R).as_euler(
+                    "zyx", degrees=False
+                )
                 elems.append(elem)
                 positions.append(np.array([mid_x, mid_y, mid_z]))
                 rotations.append(euler_angles)
@@ -184,8 +237,8 @@ class OcelotLatticeImporter(BaseModel):
                 L, phi, tilt = elem.l, elem.angle, elem.tilt
 
                 if np.isclose(tilt, 0):  # Horizontal bend (x-z plane)
-                    R_bend = Rotation.from_euler('y', phi).as_matrix()
-                    R_half = Rotation.from_euler('y', phi / 2).as_matrix()
+                    R_bend = Rotation.from_euler("y", phi).as_matrix()
+                    R_half = Rotation.from_euler("y", phi / 2).as_matrix()
 
                     R_geom = L / phi  # bending radius
 
@@ -202,7 +255,9 @@ class OcelotLatticeImporter(BaseModel):
                     # Rotation halfway through bend
                     R_mid = cumulative_R @ R_half
 
-                    euler_angles = Rotation.from_matrix(R_mid).as_euler('zyx', degrees=False)
+                    euler_angles = Rotation.from_matrix(R_mid).as_euler(
+                        "zyx", degrees=False
+                    )
                     elems.append(elem)
                     positions.append(np.array([mid_x, mid_y, mid_z]))
                     rotations.append(euler_angles)
@@ -214,8 +269,8 @@ class OcelotLatticeImporter(BaseModel):
                     cumulative_R = cumulative_R @ R_bend
 
                 elif np.isclose(tilt, np.pi / 2):  # Vertical bend (x-y plane)
-                    R_bend = Rotation.from_euler('x', -phi).as_matrix()
-                    R_half = Rotation.from_euler('x', -phi / 2).as_matrix()
+                    R_bend = Rotation.from_euler("x", -phi).as_matrix()
+                    R_half = Rotation.from_euler("x", -phi / 2).as_matrix()
                     R_geom = L / phi
 
                     cy = y - R_geom * np.cos(theta_v)
@@ -227,7 +282,9 @@ class OcelotLatticeImporter(BaseModel):
                     mid_z = z
                     R_mid = cumulative_R @ R_half
 
-                    euler_angles = Rotation.from_matrix(R_mid).as_euler('zyx', degrees=False)
+                    euler_angles = Rotation.from_matrix(R_mid).as_euler(
+                        "zyx", degrees=False
+                    )
                     elems.append(elem)
                     positions.append(np.array([mid_x, mid_y, mid_z]))
                     rotations.append(euler_angles)
@@ -240,7 +297,9 @@ class OcelotLatticeImporter(BaseModel):
                 else:
                     raise ValueError(f"Unrecognized tilt angle {tilt} for {elem.id}")
 
-        positions_and_rotations = [(p, r) for p, r in zip(np.array(positions), np.array(rotations))]
+        positions_and_rotations = [
+            (p, r) for p, r in zip(np.array(positions), np.array(rotations))
+        ]
         return {e: pr for e, pr in zip(elems, positions_and_rotations)}
 
     @staticmethod

@@ -3,8 +3,9 @@ from nala.models.elementList import MachineLayout
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
 
+
 class MachineLayoutTranslator(MachineLayout):
-    directory: str = '.'
+    directory: str = "."
 
     @classmethod
     def from_layout(cls, layout: MachineLayout) -> "MachineLayoutTranslator":
@@ -21,7 +22,9 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(section).to_astra()
+                    section.name: SectionLatticeTranslator.from_section(
+                        section
+                    ).to_astra()
                 }
             )
         return lattices
@@ -71,7 +74,9 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(section).to_ocelot(save=save)
+                    section.name: SectionLatticeTranslator.from_section(
+                        section
+                    ).to_ocelot(save=save)
                 }
             )
         return lattices
@@ -81,23 +86,23 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(section).to_cheetah(save=save)
+                    section.name: SectionLatticeTranslator.from_section(
+                        section
+                    ).to_cheetah(save=save)
                 }
             )
         return lattices
 
     def to_xsuite(
-            self,
-            beam_length: int,
-            env: Any = None,
-            particle_ref: Any = None,
-            save=False
+        self, beam_length: int, env: Any = None, particle_ref: Any = None, save=False
     ) -> Dict[str, object]:
         lattices = {}
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(section).to_xsuite(
+                    section.name: SectionLatticeTranslator.from_section(
+                        section
+                    ).to_xsuite(
                         beam_length=beam_length,
                         env=env,
                         particle_ref=particle_ref,

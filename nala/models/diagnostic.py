@@ -12,6 +12,7 @@ class DiagnosticElement(IgnoreExtra):
     """
     Base class for diagnostic elements.
     """
+
     pass
 
 
@@ -251,10 +252,16 @@ class Camera_Diagnostic(DiagnosticElement):
     sensor: Camera_Sensor = Camera_Sensor()
     """Camera sensor information."""
 
-    x_pixels: int = Field(validation_alias=AliasChoices("ARRAY_DATA_NUM_PIX_X", "epics_x_pixels"), default=1080)
+    x_pixels: int = Field(
+        validation_alias=AliasChoices("ARRAY_DATA_NUM_PIX_X", "epics_x_pixels"),
+        default=1080,
+    )
     """Number of pixels from the control system in x direction."""
 
-    y_pixels: int = Field(validation_alias=AliasChoices("ARRAY_DATA_NUM_PIX_Y", "epics_y_pixels"), default=1280)
+    y_pixels: int = Field(
+        validation_alias=AliasChoices("ARRAY_DATA_NUM_PIX_Y", "epics_y_pixels"),
+        default=1280,
+    )
     """Number of pixels from the control system in y direction."""
 
     rotation: Union[float, int] = 0

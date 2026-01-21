@@ -20,7 +20,8 @@ def dot(a, b) -> float:
 def chunks(li, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(li), n):
-        yield li[i: i + n]
+        yield li[i : i + n]
+
 
 class BaseLatticeModel(ModelBase):
     """
@@ -78,6 +79,7 @@ class ElementList(ModelBase):
     """
     A container for an unordered dictionary of :class:`~nala.models.element.baseElement`.
     """
+
     elements: Dict[str, Union[baseElement, None]]
 
     def __str__(self):
@@ -148,6 +150,7 @@ class SectionLattice(BaseLatticeModel):
             )
         assert isinstance(elements, ElementList)
         return elements
+
     #
     # @model_serializer(mode="plain")
     # def serialize(self) -> dict:
@@ -195,7 +198,12 @@ class SectionLattice(BaseLatticeModel):
         """
         return [self.elements[e] for e in self.order if e in self.elements.names]
 
-    def createDrifts(self, csr_enable: bool=True, lsc_enable: bool=True, lsc_bins: PositiveInt=20):
+    def createDrifts(
+        self,
+        csr_enable: bool = True,
+        lsc_enable: bool = True,
+        lsc_bins: PositiveInt = 20,
+    ):
         """Insert drifts into a sequence of 'elements'"""
         positions = []
         originalelements = dict()
@@ -263,16 +271,13 @@ class SectionLattice(BaseLatticeModel):
                             csr_enable=csr_enable,
                             lsc_enable=lsc_enable,
                             lsc_bins=lsc_bins,
-                        )
+                        ),
                     )
                     newelements[name] = newdrift
         return newelements
 
     def get_s_values(
-        self,
-        as_dict: bool = False,
-        at_entrance: bool = False,
-        starting_s: float = 0
+        self, as_dict: bool = False, at_entrance: bool = False, starting_s: float = 0
     ) -> list | dict:
         """
         Get the S values for the elements in the lattice.

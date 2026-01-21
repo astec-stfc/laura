@@ -341,10 +341,14 @@ class MagneticElement(IgnoreExtra):
     field_integral_coefficients: FieldIntegral | None = None  # FieldIntegral()
     """Field integral coefficients."""
 
-    linear_saturation_coefficients: LinearSaturationFit | None = None  # LinearSaturationFit()
+    linear_saturation_coefficients: LinearSaturationFit | None = (
+        None  # LinearSaturationFit()
+    )
     """Linear saturation fit coefficients."""
 
-    settle_time: float | None = None  # Field(alias="mag_set_max_wait_time", default=45.0)
+    settle_time: float | None = (
+        None  # Field(alias="mag_set_max_wait_time", default=45.0)
+    )
     """
     Maximum time to wait for the magnet current to settle [s].
     #TODO move to electrical?
@@ -376,7 +380,6 @@ class MagneticElement(IgnoreExtra):
 
     fringe_field_coefficient: float = Field(default=0.0)
     """Fringe field coefficient."""
-
 
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)
@@ -559,6 +562,7 @@ class Sextupole_Magnet(MagneticElement):
     @k2l.setter
     def k2l(self, value: float) -> None:
         self.kl = value
+
 
 class Octupole_Magnet(MagneticElement):
     """

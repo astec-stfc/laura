@@ -39,9 +39,9 @@ from .twiss import TwissMatchTranslator
 
 
 def translate_elements(
-        elements: List[Element],
-        master_lattice_location: str = None,
-        directory: str = '.',
+    elements: List[Element],
+    master_lattice_location: str = None,
+    directory: str = ".",
 ) -> Dict[str, BaseElementTranslator]:
     """
     Function for translating a list of elements into their respective Translator classes.

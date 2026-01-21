@@ -82,7 +82,7 @@ def write_opal_field_file(
         if radius is None:
             warn("Magnet radius not provided; defaulting to 10cm")
             radius = 0.1
-        zvals = [str(zmin), str(zmax), str(length-1)]
+        zvals = [str(zmin), str(zmax), str(length - 1)]
         rvals = [str(0), str(radius * 100), fourier]
         header = [head, zvals, rvals]
     elif self.field_type == "1DElectroDynamic":
@@ -192,7 +192,10 @@ def read_opal_field_file(
             setattr(self, "radius", float(rl[3].split(" ")[1]) * 1e-2)
             setattr(self, "orientation", rl[0].split(" ")[1].strip("\n"))
         fdat = np.loadtxt(filename, skiprows=4)
-        zfull = np.tile(np.linspace(0, self.length, int(rl[1].split(" ")[2]) + 1), int(rl[3].split(" ")[2]) + 1)
+        zfull = np.tile(
+            np.linspace(0, self.length, int(rl[1].split(" ")[2]) + 1),
+            int(rl[3].split(" ")[2]) + 1,
+        )
         values = np.arange(0, self.radius, self.radius / (int(rl[3].split(" ")[2]) + 1))
         rpattern = np.repeat(values, int(rl[1].split(" ")[2]) + 1)
         setattr(

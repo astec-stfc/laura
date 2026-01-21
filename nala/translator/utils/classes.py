@@ -1,6 +1,7 @@
 import numpy as np
 from pydantic import PositiveInt
 
+
 class getGrids(object):
     """
     Class defining the appropriate number of space charge bins given the number of particles,

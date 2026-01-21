@@ -13,9 +13,9 @@ class LaserTranslator(BaseElementTranslator):
     """Laser element class."""
 
     supported_pulses: List = [
-        'gaussian',
-        'laguerre-gaussian',
-        'flattened-gaussian',
+        "gaussian",
+        "laguerre-gaussian",
+        "flattened-gaussian",
         # 'file'
     ]
     """Types of laser pulses that can be supported."""
@@ -49,8 +49,10 @@ class LaserTranslator(BaseElementTranslator):
             # SummedPulse,
             # OpenPMDPulse,
         )
+
         additional_dict = {
-            self._convertKeyword_WakeT(param): getattr(self.laser, param) for param in self.additional_attrs
+            self._convertKeyword_WakeT(param): getattr(self.laser, param)
+            for param in self.additional_attrs
         }
         if self.profile_type == "gaussian":
             obj = GaussianPulse(

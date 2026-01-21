@@ -6,6 +6,7 @@ import nala.models.element as NALA_elements
 from nala.models.elementList import SectionLattice, MachineLayout, ElementList
 from ...utils.elegant.sdds_classes_APS import SDDS_Floor, SDDS_Params
 
+
 class ElegantLatticeImporter(BaseModel):
 
     params_file: str
@@ -44,9 +45,13 @@ class ElegantLatticeImporter(BaseModel):
                 self.floor_data[k].update(
                     {
                         "start": list(self.floor_data.values())[prevind]["end"],
-                        "start_rotation": list(self.floor_data.values())[prevind]["end_rotation"],
+                        "start_rotation": list(self.floor_data.values())[prevind][
+                            "end_rotation"
+                        ],
                         "end": list(self.floor_data.values())[thisind]["end"],
-                        "end_rotation": list(self.floor_data.values())[thisind]["end_rotation"],
+                        "end_rotation": list(self.floor_data.values())[thisind][
+                            "end_rotation"
+                        ],
                     }
                 )
             i += 1
@@ -79,7 +84,7 @@ class ElegantLatticeImporter(BaseModel):
                         # Calculate middle position properly
                         centre = calculate_middle_from_start(
                             start_pos=self.floor_data[k]["start"],
-                            end_pos=self.floor_data[k]["end"]
+                            end_pos=self.floor_data[k]["end"],
                         )
                     else:
                         # Zero length element - middle is same as start
@@ -130,8 +135,12 @@ class ElegantLatticeImporter(BaseModel):
                 order.append(name)
                 elems.update({name: elem})
         if not order:
-            raise KeyError(f"element {secelements[0]} not found in lattice; could not construct section")
-        seclat = SectionLattice(order=order, elements=ElementList(elements=elems), name=secname[0])
+            raise KeyError(
+                f"element {secelements[0]} not found in lattice; could not construct section"
+            )
+        seclat = SectionLattice(
+            order=order, elements=ElementList(elements=elems), name=secname[0]
+        )
         return {secname[0]: seclat}
 
     def create_layout(self, name: str, sections: Dict) -> MachineLayout:
@@ -140,7 +149,12 @@ class ElegantLatticeImporter(BaseModel):
             layout_sections.update(self.create_section({secname: secpos}))
         return MachineLayout(
             name=name,
-            sections={k: v for k, v in zip(list(layout_sections.keys()), list(layout_sections.values()))}
+            sections={
+                k: v
+                for k, v in zip(
+                    list(layout_sections.keys()), list(layout_sections.values())
+                )
+            },
         )
 
     @staticmethod
@@ -150,7 +164,9 @@ class ElegantLatticeImporter(BaseModel):
             v["k0"] = v["angle"] / float(v["magnetic"]["length"])
             v["physical"]["physical_angle"] = -v["angle"]
         for n in range(0, 9):
-            if f"k{n}" in v and ("length" in v["magnetic"] or "length" in v["physical"]):
+            if f"k{n}" in v and (
+                "length" in v["magnetic"] or "length" in v["physical"]
+            ):
                 try:
                     knl = float(v[f"k{n}"]) * float(v["magnetic"]["length"])
                 except KeyError:
@@ -165,7 +181,7 @@ class ElegantLatticeImporter(BaseModel):
     def _convert_ele_phase_to_phase(v) -> dict:
         if "cavity" in v:
             if "phase" in v["cavity"]:
-                v["cavity"]["phase"] = (90 - v["cavity"]["phase"])
+                v["cavity"]["phase"] = 90 - v["cavity"]["phase"]
         return v
 
     @staticmethod

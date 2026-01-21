@@ -21,10 +21,9 @@ import subprocess
 
 # docs/ is at project_root/docs
 # add project root:
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath(".."))
 # also add project_root/nala so Python can find the inner package dir
-sys.path.insert(0, os.path.abspath('../nala'))
-
+sys.path.insert(0, os.path.abspath("../nala"))
 
 
 def get_git_revision_hash(short: bool = True) -> str:
@@ -56,17 +55,20 @@ def skip_member(app, what, name, obj, skip, options):
         return True
     return skip
 
+
 # Prevent sphinx-autodoc-typehints from trying to process pydantic.Field
-def suppress_pydantic_field_signature(app, what, name, obj, options, signature, return_annotation):
+def suppress_pydantic_field_signature(
+    app, what, name, obj, options, signature, return_annotation
+):
     # Returning (signature, return_annotation) unchanged disables modification
     return (None, None)
+
 
 def setup(app):
     # Keep your skip_member hook
     app.connect("autodoc-skip-member", skip_member)
     # Add this to stop autodoc-typehints signature unwrapping
     app.connect("autodoc-process-signature", suppress_pydantic_field_signature)
-
 
 
 # # use custom theme to set html width
@@ -93,9 +95,9 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinxcontrib.bibtex",
     "sphinx_autodoc_typehints",
-    #"sphinxcontrib.autodoc_pydantic",
+    # "sphinxcontrib.autodoc_pydantic",
     "sphinx.ext.mathjax",  # enables math rendering
-    #"myst_nb",
+    # "myst_nb",
 ]
 
 
@@ -145,48 +147,48 @@ autodoc_pydantic_model_show_validator_members = (
     False  # don't include documentation for validator methods
 )
 autodoc_pydantic_field_doc_policy = "both"  # shows docstrings and Field descriptions
-#autodoc_typehints = "none"
+# autodoc_typehints = "none"
 
 autodoc_mock_imports = [
-    #"nala.models.elementList",  # or whichever module fails
-    "pydantic",                 # mock dependencies if needed
+    # "nala.models.elementList",  # or whichever module fails
+    "pydantic",  # mock dependencies if needed
 ]
 
 numfig = True
 
 
 autodoc_default_options = {
-    "exclude-members": ",".join([
-        "model_post_init",
-        "model_fields",
-        "model_config",
-        "model_computed_fields",
-        "model_dump",
-        "model_dump_json",
-        "model_validate",
-        "model_validate_json",
-        "model_copy",
-        "model_json_schema",
-        "construct",
-        "schema",
-        "schema_json",
-        "dict",
-        "json",
-    ]),
+    "exclude-members": ",".join(
+        [
+            "model_post_init",
+            "model_fields",
+            "model_config",
+            "model_computed_fields",
+            "model_dump",
+            "model_dump_json",
+            "model_validate",
+            "model_validate_json",
+            "model_copy",
+            "model_json_schema",
+            "construct",
+            "schema",
+            "schema_json",
+            "dict",
+            "json",
+        ]
+    ),
     "members": True,
     "undoc-members": True,
     "inherited-members": False,
 }
 
 
-autodoc_pydantic_settings_show_config_summary = (
-    False
-)
+autodoc_pydantic_settings_show_config_summary = False
 
 autodoc_pydantic_field_list_validators = False
 autodoc_pydantic_model_show_validator_members = False
 
-#nb_execution_mode = "off"  # options: "off", "auto", "force"
+# nb_execution_mode = "off"  # options: "off", "auto", "force"
 
 
 # mapping to other projects' documentation pages

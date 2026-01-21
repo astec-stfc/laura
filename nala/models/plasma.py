@@ -12,6 +12,7 @@ from pydantic import (
 )
 from .baseModels import IgnoreExtra, T
 
+
 class PlasmaElement(IgnoreExtra):
     """Plasma model."""
 

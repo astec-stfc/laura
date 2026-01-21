@@ -3,8 +3,9 @@ from nala.models.elementList import MachineModel
 from .converter import translate_elements
 from .layout import MachineLayoutTranslator
 
+
 class MachineModelTranslator(MachineModel):
-    directory: str = '.'
+    directory: str = "."
 
     @classmethod
     def from_machine(cls, machine: MachineModel) -> "MachineModelTranslator":
@@ -22,11 +23,7 @@ class MachineModelTranslator(MachineModel):
     def to_astra(self) -> Dict[str, Dict[str, str]]:
         model = {}
         for name, latt in self.lattices.items():
-            model.update(
-                {
-                    name: MachineLayoutTranslator.from_layout(latt).to_astra()
-                }
-            )
+            model.update({name: MachineLayoutTranslator.from_layout(latt).to_astra()})
         return model
 
     def to_elegant(self, string: str = "", charge: float = None) -> str:
@@ -87,9 +84,7 @@ class MachineModelTranslator(MachineModel):
         model = {}
         for name, latt in self.lattices.items():
             model.update(
-                {
-                    name: MachineLayoutTranslator.from_layout(latt).to_ocelot(save=save)
-                }
+                {name: MachineLayoutTranslator.from_layout(latt).to_ocelot(save=save)}
             )
         return model
 
@@ -97,18 +92,12 @@ class MachineModelTranslator(MachineModel):
         model = {}
         for name, latt in self.lattices.items():
             model.update(
-                {
-                    name: MachineLayoutTranslator.from_layout(latt).to_cheetah(save=save)
-                }
+                {name: MachineLayoutTranslator.from_layout(latt).to_cheetah(save=save)}
             )
         return model
 
     def to_xsuite(
-            self,
-            beam_length: int,
-            env: Any = None,
-            particle_ref: Any = None,
-            save=False
+        self, beam_length: int, env: Any = None, particle_ref: Any = None, save=False
     ) -> Dict[str, Dict[str, object]]:
         model = {}
         for name, latt in self.lattices.items():

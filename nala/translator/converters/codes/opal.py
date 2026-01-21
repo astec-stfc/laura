@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, List, Any, Literal
 from ...utils.classes import getGrids
 
+
 class opal_header(BaseModel):
     """
     Generic class for generating OPAL namelists
@@ -39,7 +40,9 @@ class opal_header(BaseModel):
     opaldict: Dict = {}
     """Dictionary containing values to be written to the header"""
 
-    breakstr: str = "//----------------------------------------------------------------------------"
+    breakstr: str = (
+        "//----------------------------------------------------------------------------"
+    )
     """String used for separating headers in the input file"""
 
     def write_Opal(self) -> str:
@@ -61,11 +64,12 @@ class opal_header(BaseModel):
                 if key in self.opaldict:
                     output += f"\t{self.opaldict[key]} = {val},\n"
                 elif key == "METHOD":
-                    output += "METHOD = \"PARALLEL-T\",\n"
+                    output += 'METHOD = "PARALLEL-T",\n'
                 else:
                     output += f"\t{key} = {val},\n"
         output = output[:-2] + ";\n"
         return output
+
 
 class opal_option(opal_header):
     """
@@ -275,6 +279,7 @@ class opal_option(opal_header):
                 output += f"{self.header}, {key} = {val};\n"
         return output
 
+
 class opal_distribution(opal_header):
     """
     Class for generating the OPTION namelist for OPAL. See `OPAL manual`_ for more details.
@@ -300,8 +305,11 @@ class opal_distribution(opal_header):
 
     def write_Opal(self) -> str:
         if not self.input_particle_definition:
-            raise ValueError("input_particle_definition must be defined for opal_distribution")
+            raise ValueError(
+                "input_particle_definition must be defined for opal_distribution"
+            )
         return super().write_Opal()
+
 
 class opal_fieldsolver(opal_header):
     """
@@ -406,10 +414,10 @@ class opal_fieldsolver(opal_header):
             True if enabled
         """
         return not (
-                self.space_charge_mode == "False"
-                or self.space_charge_mode is False
-                or self.space_charge_mode is None
-                or self.space_charge_mode == "None"
+            self.space_charge_mode == "False"
+            or self.space_charge_mode is False
+            or self.space_charge_mode is None
+            or self.space_charge_mode == "None"
         )
 
     @property
@@ -424,6 +432,7 @@ class opal_fieldsolver(opal_header):
         """
         # print('asking for grid sizes n = ', self.npart, ' is ', self.grids.getGridSizes(self.npart))
         return self.grids.getGridSizes(self.npart / self.sample_interval)
+
 
 class opal_beam(opal_header):
     """
@@ -507,6 +516,7 @@ class opal_track(opal_header):
         self.DT = str(self.DT)
         self.ZSTOP = "{" + str(self.ZSTOP + 1e-1) + "}"
         return super().write_Opal()
+
 
 class opal_run(opal_header):
     """

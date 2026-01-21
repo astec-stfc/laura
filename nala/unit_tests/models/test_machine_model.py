@@ -264,7 +264,10 @@ class TestMachineModel(unittest.TestCase):
             }
         }
         mm = MachineModel(
-            elements={name: PhysicalBaseElement(**info) for name, info in self.elements.items()},
+            elements={
+                name: PhysicalBaseElement(**info)
+                for name, info in self.elements.items()
+            },
             section=sections,
             layout=layout,
         )

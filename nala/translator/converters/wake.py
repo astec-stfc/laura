@@ -2,6 +2,7 @@ from .base import BaseElementTranslator
 from nala.models.RF import WakefieldElement
 from ..utils.fields import field
 
+
 class WakefieldTranslator(BaseElementTranslator):
     """
     Translator class for converting a :class:`~nala.models.element.Wakefield` instance into a string or
@@ -79,15 +80,33 @@ class WakefieldTranslator(BaseElementTranslator):
                                 "Wk_z",
                                 {
                                     "value": self.physical.start.z
-                                             + (0.5 + n - 1) * self.cavity.cell_length
+                                    + (0.5 + n - 1) * self.cavity.cell_length
                                 },
                             ],
-                            ["Wk_ex", {"value": self.simulation.scale_field_ex, "default": 0}],
-                            ["Wk_ey", {"value": self.simulation.scale_field_ey, "default": 0}],
-                            ["Wk_ez", {"value": self.simulation.scale_field_ez, "default": 1}],
-                            ["Wk_hx", {"value": self.simulation.scale_field_hx, "default": 1}],
-                            ["Wk_hy", {"value": self.simulation.scale_field_hy, "default": 0}],
-                            ["Wk_hz", {"value": self.simulation.scale_field_hz, "default": 0}],
+                            [
+                                "Wk_ex",
+                                {"value": self.simulation.scale_field_ex, "default": 0},
+                            ],
+                            [
+                                "Wk_ey",
+                                {"value": self.simulation.scale_field_ey, "default": 0},
+                            ],
+                            [
+                                "Wk_ez",
+                                {"value": self.simulation.scale_field_ez, "default": 1},
+                            ],
+                            [
+                                "Wk_hx",
+                                {"value": self.simulation.scale_field_hx, "default": 1},
+                            ],
+                            [
+                                "Wk_hy",
+                                {"value": self.simulation.scale_field_hy, "default": 0},
+                            ],
+                            [
+                                "Wk_hz",
+                                {"value": self.simulation.scale_field_hz, "default": 0},
+                            ],
                             [
                                 "Wk_equi_grid",
                                 {"value": self.simulation.equal_grid, "default": 0.66},
@@ -95,10 +114,19 @@ class WakefieldTranslator(BaseElementTranslator):
                             ["Wk_N_bin", {"value": 10, "default": 100}],
                             [
                                 "Wk_ip_method",
-                                {"value": self.simulation.interpolation_method, "default": 2},
+                                {
+                                    "value": self.simulation.interpolation_method,
+                                    "default": 2,
+                                },
                             ],
-                            ["Wk_smooth", {"value": self.simulation.smooth, "default": 0.25}],
-                            ["Wk_sub", {"value": self.simulation.subbins, "default": 10}],
+                            [
+                                "Wk_smooth",
+                                {"value": self.simulation.smooth, "default": 0.25},
+                            ],
+                            [
+                                "Wk_sub",
+                                {"value": self.simulation.subbins, "default": 10},
+                            ],
                             [
                                 "Wk_scaling",
                                 {"value": 1 * self.simulation.scale_kick, "default": 1},
@@ -111,7 +139,7 @@ class WakefieldTranslator(BaseElementTranslator):
             output += "\n"
         return output
 
-    def to_gpt(self, Brho: float = 0.0, ccs: str="wcs", *args, **kwargs) -> str:
+    def to_gpt(self, Brho: float = 0.0, ccs: str = "wcs", *args, **kwargs) -> str:
         """
         Write a string representation of the wakefield for GPT.
 
@@ -137,8 +165,16 @@ class WakefieldTranslator(BaseElementTranslator):
         if self.simulation.scale_kick > 0:
             zcolumn = "z"
             wzcolumn = "Wz"
-            wxcolumn = "Wx" if self.simulation.wakefield_definition.Wx.value is not None else ""
-            wycolumn = "Wy" if self.simulation.wakefield_definition.Wy.value is not None else ""
+            wxcolumn = (
+                "Wx"
+                if self.simulation.wakefield_definition.Wx.value is not None
+                else ""
+            )
+            wycolumn = (
+                "Wy"
+                if self.simulation.wakefield_definition.Wy.value is not None
+                else ""
+            )
             for n in range(self.cavity.n_cells):
                 ccs_label, value_text = self.ccs.ccs_text(
                     [
@@ -151,27 +187,27 @@ class WakefieldTranslator(BaseElementTranslator):
                     self.physical.rotation.model_dump(),
                 )
                 output += (
-                        "wakefield"
-                        + '("'
-                        + self.ccs.name
-                        + '", '
-                        + ccs_label
-                        + ", "
-                        + value_text
-                        + ", "
-                        + str(self.cavity.cell_length)
-                        + ", "
-                        + str(fringe_field_coefficient)
-                        + ', "'
-                        + str(field_file_name)
-                        + '", "'
-                        + zcolumn
-                        + '", "'
-                        + wxcolumn
-                        + '", "'
-                        + wycolumn
-                        + '", "'
-                        + wzcolumn
-                        + '");\n'
+                    "wakefield"
+                    + '("'
+                    + self.ccs.name
+                    + '", '
+                    + ccs_label
+                    + ", "
+                    + value_text
+                    + ", "
+                    + str(self.cavity.cell_length)
+                    + ", "
+                    + str(fringe_field_coefficient)
+                    + ', "'
+                    + str(field_file_name)
+                    + '", "'
+                    + zcolumn
+                    + '", "'
+                    + wxcolumn
+                    + '", "'
+                    + wycolumn
+                    + '", "'
+                    + wzcolumn
+                    + '");\n'
                 )
         return output

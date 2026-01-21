@@ -16,15 +16,18 @@ from ...utils.functions import introspect_model_defaults
 from ...conversion_rules.codes import xsuite_conversion
 from warnings import warn
 
-type_conversion_rules_xsuite_reversed = xsuite_conversion.xsuite_conversion_rules_reverse
+type_conversion_rules_xsuite_reversed = (
+    xsuite_conversion.xsuite_conversion_rules_reverse
+)
 
 
 with open(
-    os.path.dirname(os.path.abspath(__file__)) +
-    "/../../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml",
+    os.path.dirname(os.path.abspath(__file__))
+    + "/../../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml",
     "r",
 ) as infile:
     keyword_conversion_rules = yaml.safe_load(infile)
+
 
 class XsuiteLatticeConverter(BaseModel):
 
@@ -50,19 +53,19 @@ class XsuiteLatticeConverter(BaseModel):
 
     def rotation_matrix_from_survey(self, row):
         """Builds rotation matrix (local→global) from survey row."""
-        R = np.array([
-            [row["ex"][0], row["ex"][1], row["ex"][2]],
-            [row["ey"][0], row["ey"][1], row["ey"][2]],
-            [row["ez"][0], row["ez"][1], row["ez"][2]],
-        ])
+        R = np.array(
+            [
+                [row["ex"][0], row["ex"][1], row["ex"][2]],
+                [row["ey"][0], row["ey"][1], row["ey"][2]],
+                [row["ez"][0], row["ez"][1], row["ez"][2]],
+            ]
+        )
         return R
 
     def Ry(self, angle):
         """Rotation matrix about local y axis."""
         c, s = np.cos(angle), np.sin(angle)
-        return np.array([[c, 0, s],
-                         [0, 1, 0],
-                         [-s, 0, c]])
+        return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
 
     def compute_element_center(self, P0, R0, L, theta=0.0):
         """
@@ -75,11 +78,9 @@ class XsuiteLatticeConverter(BaseModel):
         else:
             Rbend = L / theta
             phi = theta / 2
-            local_mid = np.array([
-                Rbend * (1 - np.cos(phi)),  # x
-                0.0,  # y
-                Rbend * np.sin(phi)  # s
-            ])
+            local_mid = np.array(
+                [Rbend * (1 - np.cos(phi)), 0.0, Rbend * np.sin(phi)]  # x  # y  # s
+            )
 
         # --- global midpoint ---
         Pcenter = P0 + R0 @ local_mid
@@ -93,8 +94,7 @@ class XsuiteLatticeConverter(BaseModel):
         return Pcenter, Rcenter
 
     # Example for a batch of elements:
-    def midpoints_for_line(self, element_and_survey,
-                           local_axes_map=None):
+    def midpoints_for_line(self, element_and_survey, local_axes_map=None):
         """
         Compute midpoints for many elements.
 
@@ -118,8 +118,8 @@ class XsuiteLatticeConverter(BaseModel):
         for i, survey in enumerate(element_and_survey.values()):
             el = self.line.elements[i]
             # try several common attribute names for angle (xtrack names vary)
-            L = getattr(el, 'length', getattr(el, 'L', 0.0))
-            theta = getattr(el, 'angle', getattr(el, 'bending_angle', 0.0))
+            L = getattr(el, "length", getattr(el, "L", 0.0))
+            theta = getattr(el, "angle", getattr(el, "bending_angle", 0.0))
             P0 = np.array([survey["x"], survey["y"], survey["z"]])
             R0 = self.rotation_matrix_from_survey(survey)
 
@@ -151,10 +151,11 @@ class XsuiteLatticeConverter(BaseModel):
                 "ex": s["ex"][i],
                 "ey": s["ey"][i],
                 "ez": s["ez"][i],
-                "phi": (s["phi"][i] + np.pi) % (2*np.pi) - np.pi,
-                "psi": (s["psi"][i] + np.pi) % (2*np.pi) - np.pi,
-                "theta": (s["theta"][i] + np.pi) % (2*np.pi) - np.pi,
-            } for i in range(len(s["X"][:-1]))
+                "phi": (s["phi"][i] + np.pi) % (2 * np.pi) - np.pi,
+                "psi": (s["psi"][i] + np.pi) % (2 * np.pi) - np.pi,
+                "theta": (s["theta"][i] + np.pi) % (2 * np.pi) - np.pi,
+            }
+            for i in range(len(s["X"][:-1]))
         }
         survey = self.midpoints_for_line(survey)
         for k, v in elems.items():
@@ -163,14 +164,20 @@ class XsuiteLatticeConverter(BaseModel):
             if hasattr(v, "length"):
                 length = v.length
             pos = [float(x) for x in [survey[k]["x"], survey[k]["y"], survey[k]["z"]]]
-            rot = [float(x) for x in [survey[k]["phi"], survey[k]["psi"], survey[k]["theta"]]]
+            rot = [
+                float(x)
+                for x in [survey[k]["phi"], survey[k]["psi"], survey[k]["theta"]]
+            ]
             phys = {"middle": pos, "global_rotation": rot, "length": length}
 
             if type(v) in type_conversion_rules_xsuite_reversed:
                 p_obj = type_conversion_rules_xsuite_reversed[type(v)]
                 model_fields = introspect_model_defaults(p_obj)
                 hardware_class = p_obj.model_fields["hardware_class"].default
-                if not type(p_obj.model_fields["hardware_type"].default) == PydanticUndefinedType:
+                if (
+                    not type(p_obj.model_fields["hardware_type"].default)
+                    == PydanticUndefinedType
+                ):
                     hardware_type = p_obj.model_fields["hardware_type"].default
                 else:
                     hardware_type = hardware_class
@@ -184,7 +191,10 @@ class XsuiteLatticeConverter(BaseModel):
                     "physical": phys,
                 }
                 try:
-                    merged = keyword_conversion_rules[hardware_type.lower()] | keyword_conversion_rules["general"]
+                    merged = (
+                        keyword_conversion_rules[hardware_type.lower()]
+                        | keyword_conversion_rules["general"]
+                    )
                 except KeyError:
                     merged = keyword_conversion_rules["general"]
                 except TypeError:
@@ -197,49 +207,71 @@ class XsuiteLatticeConverter(BaseModel):
                 for name in dir(v):
                     for subk in model_fields:
                         if isinstance(model_fields[subk], dict) and name not in exclude:
-                            if name in ["k1", "k2", "k3", "angle"] and isinstance(v, _HasKnlKsl):
+                            if name in ["k1", "k2", "k3", "angle"] and isinstance(
+                                v, _HasKnlKsl
+                            ):
                                 if "magnetic" not in newobj:
                                     newobj.update({"magnetic": {"length": length}})
                                 try:
-                                    newobj["magnetic"]["kl"] = getattr(
-                                        v, f"k{magnetic_orders[newobj['hardware_type']]}"
-                                    ) * v.length
+                                    newobj["magnetic"]["kl"] = (
+                                        getattr(
+                                            v,
+                                            f"k{magnetic_orders[newobj['hardware_type']]}",
+                                        )
+                                        * v.length
+                                    )
                                 except AttributeError as e:
                                     print(e)
                                     newobj["magnetic"]["kl"] = getattr(v, name)
                                 newobj["magnetic"].update({name: getattr(v, name)})
                                 if name == "angle":
-                                    newobj["magnetic"]["kl"] = newobj["magnetic"]["kl"] * -1
+                                    newobj["magnetic"]["kl"] = (
+                                        newobj["magnetic"]["kl"] * -1
+                                    )
                                 newobj["hardware_class"] = "Magnet"
                             if name in ["ks"]:
-                                newobj.update({"magnetic": {"ks": v.ks, "length": v.length}})
+                                newobj.update(
+                                    {"magnetic": {"ks": v.ks, "length": v.length}}
+                                )
                             if name in model_fields[subk]:
                                 newobj[subk].update({name: getattr(v, name)})
                             elif name in kwele:
                                 if kwele[name] in model_fields[subk]:
-                                    if not isinstance(model_fields[subk][kwele[name]], str) or model_fields[subk][
-                                        kwele[name]]:
+                                    if (
+                                        not isinstance(
+                                            model_fields[subk][kwele[name]], str
+                                        )
+                                        or model_fields[subk][kwele[name]]
+                                    ):
                                         try:
-                                            newobj[subk].update({kwele[name]: getattr(v, name)})
+                                            newobj[subk].update(
+                                                {kwele[name]: getattr(v, name)}
+                                            )
                                         except KeyError as e:
                                             print(e)
                                         except AttributeError as e:
                                             print(e)
                 if "angle" in newobj["physical"]:
-                    newobj["physical"].update({"angle": newobj["physical"]["angle"] * -1})
+                    newobj["physical"].update(
+                        {"angle": newobj["physical"]["angle"] * -1}
+                    )
                 # if not newobj["hardware_class"] == "Drift":
                 self.elements.update({k: p_obj(**newobj)})
             else:
                 warn(f"Type conversion {type(v)} not implemented")
 
-    def create_section(self, start: str, end: str, name: str) -> Dict[str, SectionLattice]:
+    def create_section(
+        self, start: str, end: str, name: str
+    ) -> Dict[str, SectionLattice]:
         if not self.elements:
             self.create_element_dictionary()
         appending = False
         order = []
         elems = {}
         if any([start not in self.elements.keys(), end not in self.elements.keys()]):
-            raise KeyError(f"Could not find {start} or {end} in lattice; please check names")
+            raise KeyError(
+                f"Could not find {start} or {end} in lattice; please check names"
+            )
         for name, elem in self.elements.items():
             if name == start:
                 appending = True
@@ -249,8 +281,12 @@ class XsuiteLatticeConverter(BaseModel):
             if name == end:
                 appending = False
         if not elems:
-            raise ValueError(f"Could not create list of elements; check {start} is before {end}")
-        seclat = SectionLattice(order=order, elements=ElementList(elements=elems), name=name)
+            raise ValueError(
+                f"Could not create list of elements; check {start} is before {end}"
+            )
+        seclat = SectionLattice(
+            order=order, elements=ElementList(elements=elems), name=name
+        )
         self.sections.update({name: seclat})
         return {name: seclat}
 
@@ -269,7 +305,12 @@ class XsuiteLatticeConverter(BaseModel):
             )
         layout = MachineLayout(
             name=name,
-            sections={k: v for k, v in zip(list(layout_sections.keys()), list(layout_sections.values()))}
+            sections={
+                k: v
+                for k, v in zip(
+                    list(layout_sections.keys()), list(layout_sections.values())
+                )
+            },
         )
         self.layouts.update({name: layout})
         return layout

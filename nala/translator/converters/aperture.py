@@ -1,6 +1,7 @@
 from nala.models.simulation import ApertureElement
 from .base import BaseElementTranslator
 
+
 class ApertureTranslator(BaseElementTranslator):
     aperture: ApertureElement
 
@@ -127,12 +128,22 @@ class ApertureTranslator(BaseElementTranslator):
             return self._write_ASTRA_dictionary(dic, n)
         elif self.aperture.shape in ["planar", "rectangular"]:
             text = ""
-            if self.aperture.horizontal_size is not None and self.aperture.horizontal_size > 0:
-                dic = self._write_ASTRA_Planar("Col_X", 1e3 * self.aperture.horizontal_size)
+            if (
+                self.aperture.horizontal_size is not None
+                and self.aperture.horizontal_size > 0
+            ):
+                dic = self._write_ASTRA_Planar(
+                    "Col_X", 1e3 * self.aperture.horizontal_size
+                )
                 text += self._write_ASTRA_dictionary(dic, n)
                 self.aperture.number_of_elements += 1
-            if self.aperture.vertical_size is not None and self.aperture.vertical_size > 0:
-                dic = self._write_ASTRA_Planar("Col_Y", 1e3 * self.aperture.vertical_size)
+            if (
+                self.aperture.vertical_size is not None
+                and self.aperture.vertical_size > 0
+            ):
+                dic = self._write_ASTRA_Planar(
+                    "Col_Y", 1e3 * self.aperture.vertical_size
+                )
                 if self.aperture.number_of_elements > 0:
                     self.aperture.number_of_elements += 1
                     n = n + 1
@@ -141,12 +152,22 @@ class ApertureTranslator(BaseElementTranslator):
             return text
         elif self.aperture.shape == "scraper":
             text = ""
-            if self.aperture.horizontal_size is not None and self.aperture.horizontal_size > 0:
-                dic = self._write_ASTRA_Planar("Scr_X", 1e3 * self.aperture.horizontal_size)
+            if (
+                self.aperture.horizontal_size is not None
+                and self.aperture.horizontal_size > 0
+            ):
+                dic = self._write_ASTRA_Planar(
+                    "Scr_X", 1e3 * self.aperture.horizontal_size
+                )
                 text += self._write_ASTRA_dictionary(dic, n)
                 self.aperture.number_of_elements += 1
-            if self.aperture.vertical_size is not None and self.aperture.vertical_size > 0:
-                dic = self._write_ASTRA_Planar("Scr_Y", 1e3 * self.aperture.vertical_size)
+            if (
+                self.aperture.vertical_size is not None
+                and self.aperture.vertical_size > 0
+            ):
+                dic = self._write_ASTRA_Planar(
+                    "Scr_Y", 1e3 * self.aperture.vertical_size
+                )
                 if self.aperture.number_of_elements > 0:
                     self.aperture.number_of_elements += 1
                     n = n + 1

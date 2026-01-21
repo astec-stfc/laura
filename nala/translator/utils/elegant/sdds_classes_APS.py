@@ -91,6 +91,7 @@ class SDDS_Floor:
             return self.data[key]
         print(f"{key} missing!")
 
+
 class SDDS_Params:
 
     def __init__(self, filename: str, page: int = 0):
@@ -110,17 +111,22 @@ class SDDS_Params:
             self.import_sdds_params_file()
         self.elegantParams = {}
         for i, k in enumerate(self.elegantData["ElementName"]):
-            if f"{k}.{self.elegantData['ElementOccurence'][i]}" not in self.elegantParams:
+            if (
+                f"{k}.{self.elegantData['ElementOccurence'][i]}"
+                not in self.elegantParams
+            ):
                 self.elegantParams.update(
                     {
-                        f"{k}.{self.elegantData['ElementOccurence'][i]}":
-                            {param: [] for param in list(self.elegantData.keys())[1:]}
+                        f"{k}.{self.elegantData['ElementOccurence'][i]}": {
+                            param: [] for param in list(self.elegantData.keys())[1:]
+                        }
                     }
                 )
             for val in list(self.elegantData.keys())[1:]:
                 if self.elegantData["ElementName"][i] == k:
-                    self.elegantParams[f"{k}.{self.elegantData['ElementOccurence'][i]}"][val].append(
-                        self.elegantData[val][i])
+                    self.elegantParams[
+                        f"{k}.{self.elegantData['ElementOccurence'][i]}"
+                    ][val].append(self.elegantData[val][i])
 
     def create_element_dictionary(self) -> tuple:
         if not self.elegantParams:
@@ -132,35 +138,86 @@ class SDDS_Params:
         for k, v in self.elegantParams.items():
             elemtype = v["ElementType"][0].lower()
             if elemtype in element_keywords and "drift" not in elemtype:
-                sfconvert.update({k: {"hardware_type": elemtype, "name": k, "hardware_class": elemtype, "machine_area": "test"}})
+                sfconvert.update(
+                    {
+                        k: {
+                            "hardware_type": elemtype,
+                            "name": k,
+                            "hardware_class": elemtype,
+                            "machine_area": "test",
+                        }
+                    }
+                )
             elif elemtype in list(type_conversion_rules_Elegant.values()):
                 switch_dict = {y: x for x, y in type_conversion_rules_Elegant.items()}
                 sfconvert.update(
-                    {k: {"hardware_type": switch_dict[elemtype], "name": k, "hardware_class": switch_dict[elemtype], "machine_area": "test"}})
+                    {
+                        k: {
+                            "hardware_type": switch_dict[elemtype],
+                            "name": k,
+                            "hardware_class": switch_dict[elemtype],
+                            "machine_area": "test",
+                        }
+                    }
+                )
             else:
                 found = False
                 for sf, aliases in type_conversion_rules_aliases.items():
                     if elemtype in aliases:
                         sfconvert.update(
-                            {k: {"hardware_type": sf, "name": k, "machine_area": "test"}})
+                            {
+                                k: {
+                                    "hardware_type": sf,
+                                    "name": k,
+                                    "machine_area": "test",
+                                }
+                            }
+                        )
                         found = True
                 if not found:
-                    warn(f"Could not parse ELEGANT element type {elemtype} for {k}; setting as drift.")
+                    warn(
+                        f"Could not parse ELEGANT element type {elemtype} for {k}; setting as drift."
+                    )
                     sfconvert.update(
-                        {k: {"hardware_type": "Drift", "name": k, "hardware_class": "Drift", "machine_area": "test"}})
+                        {
+                            k: {
+                                "hardware_type": "Drift",
+                                "name": k,
+                                "hardware_class": "Drift",
+                                "machine_area": "test",
+                            }
+                        }
+                    )
             sftype = sfconvert[k]["hardware_type"]
             try:
                 if sftype == "kicker":
-                    model_fields = introspect_model_defaults(getattr(NALA_elements, "Combined_Corrector"))
+                    model_fields = introspect_model_defaults(
+                        getattr(NALA_elements, "Combined_Corrector")
+                    )
                     sfconvert[k]["hardware_type"] = "Combined_Corrector"
                 elif "Cavity" not in sftype:
-                    model_fields = introspect_model_defaults(getattr(NALA_elements, sftype.capitalize()))
-                    sfconvert[k]["hardware_type"] = sfconvert[k]["hardware_type"].capitalize()
+                    model_fields = introspect_model_defaults(
+                        getattr(NALA_elements, sftype.capitalize())
+                    )
+                    sfconvert[k]["hardware_type"] = sfconvert[k][
+                        "hardware_type"
+                    ].capitalize()
                 else:
-                    model_fields = introspect_model_defaults(getattr(NALA_elements, sftype))
+                    model_fields = introspect_model_defaults(
+                        getattr(NALA_elements, sftype)
+                    )
             except AttributeError:
                 print(f"type {sftype} not recognized")
-                sfconvert.update({k: {"hardware_type": "Drift", "name": k, "hardware_class": "Drift", "machine_area": "test"}})
+                sfconvert.update(
+                    {
+                        k: {
+                            "hardware_type": "Drift",
+                            "name": k,
+                            "hardware_class": "Drift",
+                            "machine_area": "test",
+                        }
+                    }
+                )
                 continue
             for subk in ["magnetic", "cavity", "simulation", "diagnostic", "physical"]:
                 if subk in model_fields:
@@ -171,12 +228,17 @@ class SDDS_Params:
                 param = param.lower()
                 merged = keyword_conversion_rules_elegant["general"]
                 if sftype.lower() in keyword_conversion_rules_elegant:
-                    merged = keyword_conversion_rules_elegant[sftype.lower()] | keyword_conversion_rules_elegant[
-                        "general"]
+                    merged = (
+                        keyword_conversion_rules_elegant[sftype.lower()]
+                        | keyword_conversion_rules_elegant["general"]
+                    )
                 kwele = {y: x for x, y in merged.items()}
                 for subk in model_fields:
-                    val = v["ParameterValueString"][i] if len(v["ParameterValueString"][i]) > 0 else \
-                        v["ParameterValue"][i]
+                    val = (
+                        v["ParameterValueString"][i]
+                        if len(v["ParameterValueString"][i]) > 0
+                        else v["ParameterValue"][i]
+                    )
                     if isinstance(model_fields[subk], dict):
                         if param in ["k1", "k2", "k3", "angle", "l"]:
                             sfconvert[k].update({param: v["ParameterValue"][i]})
@@ -185,12 +247,18 @@ class SDDS_Params:
                                 sfconvert[k][subk].update({param: val})
                         elif param in kwele:
                             if kwele[param] in model_fields[subk]:
-                                if not isinstance(model_fields[subk][kwele[param]], str) or model_fields[subk][
-                                    kwele[param]]:
+                                if (
+                                    not isinstance(
+                                        model_fields[subk][kwele[param]], str
+                                    )
+                                    or model_fields[subk][kwele[param]]
+                                ):
                                     sfconvert[k][subk].update({kwele[param]: val})
-                if "file" in param and v['ParameterValueString'][i]:
-                    filenames.update({k: {param: v['ParameterValueString'][i]}})
-                    warn(f"Apparent filename found for element {k}: "
-                         f"{param} = {v['ParameterValueString'][i]}; "
-                         f"check path, file format and column data")
+                if "file" in param and v["ParameterValueString"][i]:
+                    filenames.update({k: {param: v["ParameterValueString"][i]}})
+                    warn(
+                        f"Apparent filename found for element {k}: "
+                        f"{param} = {v['ParameterValueString'][i]}; "
+                        f"check path, file format and column data"
+                    )
         return sfconvert, filenames

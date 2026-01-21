@@ -17,6 +17,7 @@ OPS = {
     "pow": operator.pow,
 }
 
+
 def resolve_path(context, path: str):
     head, *rest = path.split(".")
     if head not in context:
@@ -38,6 +39,7 @@ def eval_expr(expr, context):
     op = OPS[expr["op"]]
     args = [eval_expr(a, context) for a in expr["args"]]
     return op(*args)
+
 
 def set_attr_by_path(obj, path: str, value):
     *parents, attr = path.split(".")
@@ -78,6 +80,7 @@ class ControlVariable(BaseModel):
     print(element.magnetic.k1l)  # Should reflect the updated value based on the control variable
     ```
     """
+
     identifier: str
     """Unique identifier for the control variable."""
 
@@ -105,7 +108,9 @@ class ControlVariable(BaseModel):
     expression: dict | None = None  # expression graph
     """Expression defining how to compute the value to set at the target."""
 
-    type: Literal["scalar", "binary", "state", "string", "waveform", "statistical"] = "statistical"
+    type: Literal["scalar", "binary", "state", "string", "waveform", "statistical"] = (
+        "statistical"
+    )
     """Type of control variable."""
 
     model_config = ConfigDict(
@@ -144,7 +149,6 @@ class ControlVariable(BaseModel):
 
         value = eval_expr(self.expression, context)
         set_attr_by_path(element, self.target, value)
-
 
 
 class ControlsInformation(BaseModel):
@@ -213,6 +217,7 @@ class ControlsInformation(BaseModel):
         for cv in element.controls.variables.values():
             cv.apply(element, ctx)
 
+
 class ScreenControlsInformation(ControlsInformation):
     """
     Model representing a collection of control variables pertaining to screens.
@@ -229,3 +234,36 @@ class ScreenControlsInformation(ControlsInformation):
 
     vertical_devices: dict | None = None
     """List of vertical screen device enums"""
+
+
+class MirrorControlsInformation(ControlsInformation):
+    """
+    Model representing a collection of control variables pertaining to mirrors.
+    """
+
+    step_max: float = 0.05
+    """Maximum step size for mirror movement"""
+
+    default_step: float = 0.005
+    """Default step size for mirror movement"""
+
+    right_sense: int = -1
+    """Right sense for mirror movement"""
+
+    up_sense: int = -1
+    """Up sense for mirror movement"""
+
+    left_sense: int = 1
+    """Left sense for mirror movement"""
+
+    down_sense: 1
+    """Down sense for mirror movement"""
+
+
+class ShutterControlsInformation(ControlsInformation):
+    """
+    Model representing a collection of control variables pertaining to shutters.
+    """
+
+    shutter_type: str
+    """Type of shutter, i.e. 'LASER', 'BEAM'"""
