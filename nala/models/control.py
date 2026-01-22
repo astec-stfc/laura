@@ -99,7 +99,7 @@ class ControlVariable(BaseModel):
     read_only: bool = True
     """Indicates if the variable is read-only."""
 
-    value: float | int | str | list = None
+    value: float | int | str | list | None = None
     """Current value of the control variable."""
 
     target: str | None = None  # "magnetic.k1l"
