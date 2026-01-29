@@ -396,7 +396,7 @@ class MachineLayout(BaseLatticeModel):
         List[str]
             Names of all elements.
         """
-        return [e.name for e in self._get_all_elements()]
+        return [e.name for e in self._get_all_elements() if isinstance(e, PhysicalBaseElement)]
 
     def get_element(self, name: str) -> baseElement:
         """
