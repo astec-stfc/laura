@@ -1,4 +1,4 @@
-# LAURA: Not Another Lattice Architecture
+# LAURA: Lattice Architecture for a Unified Representation of Accelerators
 
 **LAURA** is a Python package for describing, simulating, and controlling particle accelerator lattices. It provides a standardized, extensible data model for elements, sections, layouts, and full machine models.
 
