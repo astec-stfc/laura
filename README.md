@@ -1,16 +1,16 @@
-# NALA: Not Another Lattice Architecture
+# LAURA: Not Another Lattice Architecture
 
-**NALA** is a Python package for describing, simulating, and controlling particle accelerator lattices. It provides a standardized, extensible data model for elements, sections, layouts, and full machine models.
+**LAURA** is a Python package for describing, simulating, and controlling particle accelerator lattices. It provides a standardized, extensible data model for elements, sections, layouts, and full machine models.
 
 ---
 
 ## Architecture Overview
 
-NALA organizes accelerator elements using a hierarchical structure:
+LAURA organizes accelerator elements using a hierarchical structure:
 
 ### Element Structure
 
-![NALA Element Structure](docs/source/Architecture/assets/nala-element-structure.png)
+![LAURA Element Structure](docs/source/Architecture/assets/element-structure.png)
 
 - **baseElement**: Core identification (name, hardware_class, hardware_type, machine_area)
 - **Element**: Extends with simulation, controls, electrical, manufacturer info
@@ -18,7 +18,7 @@ NALA organizes accelerator elements using a hierarchical structure:
 
 ### Lattice Structure
 
-![NALA Lattice Structure](docs/source/Architecture/assets/nala-lattice-structure.png)
+![LAURA Lattice Structure](docs/source/Architecture/assets/lattice-structure.png)
 
 - **ElementList**: Container for elements
 - **SectionLattice**: Ordered list of elements (a section of the beamline)
@@ -32,7 +32,7 @@ NALA organizes accelerator elements using a hierarchical structure:
 ### Create a Basic Element
 
 ```python
-from nala.models.element import baseElement
+from laura.models.element import baseElement
 
 element = baseElement(
     name="QUAD-01",
@@ -46,8 +46,8 @@ print(element.name)  # "QUAD-01"
 ### Element with Physical Properties
 
 ```python
-from nala.models.element import PhysicalBaseElement
-from nala.models.physical import PhysicalElement, Position
+from laura.models.element import PhysicalBaseElement
+from laura.models.physical import PhysicalElement, Position
 
 cavity = PhysicalBaseElement(
     name="CAV-01",
@@ -65,7 +65,7 @@ print(cavity.physical.length)  # 1.0
 ### Create a Section Lattice
 
 ```python
-from nala.models.elementList import SectionLattice, ElementList
+from laura.models.elementList import SectionLattice, ElementList
 
 section = SectionLattice(
     name="INJECTOR",
@@ -81,7 +81,7 @@ print(section.names)  # ["BPM-01", "QUAD-01"]
 ### Build a Machine Layout
 
 ```python
-from nala.models.elementList import MachineLayout
+from laura.models.elementList import MachineLayout
 
 layout = MachineLayout(
     name="MainBeamline",
@@ -93,7 +93,7 @@ print(layout.names)  # ["INJECTOR"]
 ### Full Machine Model
 
 ```python
-from nala.models.elementList import MachineModel
+from laura.models.elementList import MachineModel
 
 model = MachineModel(
     elements={"QUAD-01": element, "CAV-01": cavity}
@@ -105,7 +105,7 @@ print(list(model.sections.keys()))  # ["LINAC-1"]
 
 ## Translator Module
 
-NALA includes a translator system for exporting accelerator models to various simulation codes, 
+LAURA includes a translator system for exporting accelerator models to various simulation codes, 
 such as ASTRA, GPT, Elegant, CSRTrack, Ocelot, Xsuite, Wake-T, and Genesis.
 
 - Translate individual elements, sections, layouts, or full machine models.
@@ -115,7 +115,7 @@ such as ASTRA, GPT, Elegant, CSRTrack, Ocelot, Xsuite, Wake-T, and Genesis.
 **Example: Export a section to Elegant and Ocelot**
 
 ```python
-from nala.translator.converters.section import SectionLatticeTranslator
+from laura.translator.converters.section import SectionLatticeTranslator
 
 translator = SectionLatticeTranslator.from_section(section)
 translator.directory = "./output"
@@ -142,16 +142,16 @@ See the [Translator documentation](docs/source/Translator.rst) for details and m
 
 ## Installation
 
-Install NALA from PyPI:
+Install LAURA from PyPI:
 
 ```bash
-pip install nala-accelerator
+pip install laura-accelerator
 ```
 
 Or add to your `requirements.txt`:
 
 ```
-nala-accelerator
+laura-accelerator
 ```
 
 ## Documentation
@@ -165,6 +165,6 @@ nala-accelerator
 
 ## Contributing
 
-Issues and pull requests are welcome! See [GitHub Issues](https://github.com/astec-stfc/nala/issues).
+Issues and pull requests are welcome! See [GitHub Issues](https://github.com/astec-stfc/laura/issues).
 
 ---

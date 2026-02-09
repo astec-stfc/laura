@@ -1,12 +1,12 @@
-.. NALA documentation master file, created by
+.. LAURA documentation master file, created by
    sphinx-quickstart on Tue Sep 24 10:00:24 2024.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-NALA: Not Another Lattice Architecture
-======================================
+LAURA: Lattice Architecture for a Unified Representation of Accelerators
+========================================================================
 
-**NALA** (Not Another Lattice Architecture) is a ``python`` package for handling particle accelerator lattice data.
+**LAURA** (Lattice Architecture for a Unified Representation of Accelerators) is a ``python`` package for handling particle accelerator lattice data.
 
 This package provides a standardized interface for interacting with objects representing elements in an accelerator lattice. The intention is to collate as much information as possible about each element, in order to achieve the following goals:
 
@@ -33,9 +33,9 @@ Architecture
 Participation
 -------------
 
-We welcome contributions and suggestions from the community! :mod:`NALA` is currently under active development,
+We welcome contributions and suggestions from the community! :mod:`LAURA` is currently under active development,
 and as such certain features may be missing or not working as expected. If you find any issues, please
-raise it `here <https://github.com/astec-stfc/nala/issues>`_.
+raise it `here <https://github.com/astec-stfc/laura/issues>`_.
 
 We are also happy to help with installation and setting up your accelerator lattice. 
    
@@ -47,7 +47,7 @@ We are also happy to help with installation and setting up your accelerator latt
    :maxdepth: 2
    :caption: API
    
-   nala.models
+   laura.models
 
 Indices and tables
 ==================

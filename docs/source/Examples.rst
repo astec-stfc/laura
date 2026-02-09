@@ -3,7 +3,7 @@
 Examples
 ========
 
-This section provides practical examples for creating and working with NALA elements, lattices, and machine models
+This section provides practical examples for creating and working with LAURA elements, lattices, and machine models
 in pure Python. These examples demonstrate the fundamental workflows for building accelerator lattice descriptions
 programmatically.
 
@@ -15,11 +15,11 @@ Creating Elements
 Basic Element Creation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The simplest NALA element requires only basic identification properties:
+The simplest LAURA element requires only basic identification properties:
 
 .. code-block:: python
 
-    from nala.models.element import baseElement
+    from laura.models.element import baseElement
 
     # Create a basic element
     element = baseElement(
@@ -39,8 +39,8 @@ Elements with physical properties include position and dimensions:
 
 .. code-block:: python
 
-    from nala.models.element import PhysicalBaseElement
-    from nala.models.physical import PhysicalElement, Position
+    from laura.models.element import PhysicalBaseElement
+    from laura.models.physical import PhysicalElement, Position
 
     # Create element with physical properties
     cavity = PhysicalBaseElement(
@@ -66,10 +66,10 @@ Full element definitions include electrical, manufacturer, and simulation proper
 
 .. code-block:: python
 
-    from nala.models.element import Element
-    from nala.models.electrical import ElectricalElement
-    from nala.models.manufacturer import ManufacturerElement
-    from nala.models.simulation import SimulationElement
+    from laura.models.element import Element
+    from laura.models.electrical import ElectricalElement
+    from laura.models.manufacturer import ManufacturerElement
+    from laura.models.simulation import SimulationElement
 
     quad = Element(
         name="QUAD-02",
@@ -170,11 +170,11 @@ Elements can also be created from YAML files:
   subelement: false
   virtual_name: V-INJ-MAG-DIP-01
   
-This can then be loaded in as a :mod:`NALA` object:
+This can then be loaded in as a :mod:`LAURA` object:
 
 .. code-block:: python
 
-  from nala.Importers.YAML_Loader import interpret_YAML_Element, read_YAML_Element_File
+  from laura.Importers.YAML_Loader import interpret_YAML_Element, read_YAML_Element_File
   
   filename = "INJ-MAG-DIP-01.yaml"
   
@@ -191,8 +191,8 @@ Sections group elements into ordered sequences:
 
 .. code-block:: python
 
-    from nala.models.elementList import SectionLattice, ElementList
-    from nala.models.element import PhysicalBaseElement
+    from laura.models.elementList import SectionLattice, ElementList
+    from laura.models.element import PhysicalBaseElement
     from copy import deepcopy
 
     # Create elements for a section
@@ -278,7 +278,7 @@ Layouts combine multiple sections into beam paths:
 
 .. code-block:: python
 
-    from nala.models.elementList import MachineLayout
+    from laura.models.elementList import MachineLayout
 
     # Create another section
     linac_section = SectionLattice(
@@ -339,8 +339,8 @@ The complete machine model manages all elements, sections, and layouts:
 
 .. code-block:: python
 
-    from nala.models.elementList import MachineModel
-    from nala.models.element import Element
+    from laura.models.elementList import MachineModel
+    from laura.models.element import Element
 
     # Define elements dictionary
     elements = {
@@ -367,7 +367,7 @@ The complete machine model manages all elements, sections, and layouts:
 Building from Elements Only
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-NALA can automatically create sections from machine areas:
+LAURA can automatically create sections from machine areas:
 
 .. code-block:: python
 

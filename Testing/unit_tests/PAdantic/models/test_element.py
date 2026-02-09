@@ -1,5 +1,5 @@
 import unittest
-from nala.models.element import Element, ElectricalElement, ManufacturerElement
+from laura.models.element import Element, ElectricalElement, ManufacturerElement
 
 
 class TestElement(unittest.TestCase):

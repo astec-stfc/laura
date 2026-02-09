@@ -22,8 +22,8 @@ import subprocess
 # docs/ is at project_root/docs
 # add project root:
 sys.path.insert(0, os.path.abspath(".."))
-# also add project_root/nala so Python can find the inner package dir
-sys.path.insert(0, os.path.abspath("../nala"))
+# also add project_root/laura so Python can find the inner package dir
+sys.path.insert(0, os.path.abspath("../laura"))
 
 
 def get_git_revision_hash(short: bool = True) -> str:
@@ -82,7 +82,7 @@ sys.path.insert(0, os.path.abspath("../../"))
 # set project name, author and copyright
 author = "James Jones, Alex Brynes, Matthew King, Mark Johnson"
 copyright = "2025, STFC ASTeC"
-project = "NALA"
+project = "LAURA"
 
 # fetch version (commit hash or release tags) from git
 _git_tags = get_git_revision_tags()
@@ -150,7 +150,7 @@ autodoc_pydantic_field_doc_policy = "both"  # shows docstrings and Field descrip
 # autodoc_typehints = "none"
 
 autodoc_mock_imports = [
-    # "nala.models.elementList",  # or whichever module fails
+    # "laura.models.elementList",  # or whichever module fails
     "pydantic",  # mock dependencies if needed
 ]
 

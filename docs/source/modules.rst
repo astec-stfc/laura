@@ -1,7 +1,7 @@
-nala
+laura
 ====
 
 .. toctree::
    :maxdepth: 4
 
-   nala
+   laura

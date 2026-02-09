@@ -3,7 +3,7 @@
 Lattice Definition
 ==================
 
-Lattice structures in :mod:`NALA` provide a hierarchical way to organize accelerator elements into sections and
+Lattice structures in :mod:`LAURA` provide a hierarchical way to organize accelerator elements into sections and
 complete beam paths. The lattice system is built on three main classes that progressively combine elements into
 larger structures: sections, layouts, and the complete machine model.
 
@@ -13,16 +13,16 @@ beam paths through the machine.
 These classes are outlined below; refer to :numref:`fig-lattice-structure` for an inheritance diagram.
 
 .. _fig-lattice-structure:
-.. figure:: assets/nala-lattice-structure.png
+.. figure:: assets/lattice-structure.png
 
-   Class structure of :mod:`NALA` sections, lattices and machines.
+   Class structure of :mod:`LAURA` sections, lattices and machines.
 
 .. _element-list:
 
 Element List
 ------------
 
-The :py:class:`ElementList <nala.models.elementList.ElementList>` class provides a container for an unordered dictionary of element objects. It is used to manage collections of :py:class:`baseElement <nala.models.element.baseElement>` instances, typically within a section lattice.
+The :py:class:`ElementList <laura.models.elementList.ElementList>` class provides a container for an unordered dictionary of element objects. It is used to manage collections of :py:class:`baseElement <laura.models.element.baseElement>` instances, typically within a section lattice.
 
 **Attributes:**
 
@@ -38,8 +38,8 @@ The :py:class:`ElementList <nala.models.elementList.ElementList>` class provides
 
 .. code-block:: python
 
-    from nala.models.elementList import ElementList
-    from nala.models.element import PhysicalBaseElement
+    from laura.models.elementList import ElementList
+    from laura.models.element import PhysicalBaseElement
 
     element_list = ElementList(
         elements={
@@ -86,7 +86,7 @@ The :py:class:`ElementList <nala.models.elementList.ElementList>` class provides
 Section Lattice
 ---------------
 
-The :py:class:`SectionLattice <nala.models.elementList.SectionLattice>` class represents a section of a lattice,
+The :py:class:`SectionLattice <laura.models.elementList.SectionLattice>` class represents a section of a lattice,
 consisting of an ordered list of elements along a beam path. Each section typically corresponds to a specific
 area or functional region of the accelerator.
 
@@ -107,7 +107,7 @@ Example usage:
 
 .. code-block:: python
     
-    from nala.models.elementList import SectionLattice
+    from laura.models.elementList import SectionLattice
     
     section = SectionLattice(
         name="injector",
@@ -121,8 +121,8 @@ Example usage:
 Machine Layout
 --------------
 
-The :py:class:`MachineLayout <nala.models.elementList.MachineLayout>` class represents a complete beam path
-through the accelerator, composed of multiple :py:class:`SectionLattice <nala.models.elementList.SectionLattice>`
+The :py:class:`MachineLayout <laura.models.elementList.MachineLayout>` class represents a complete beam path
+through the accelerator, composed of multiple :py:class:`SectionLattice <laura.models.elementList.SectionLattice>`
 instances arranged in sequence.
 
 A machine layout defines:
@@ -142,7 +142,7 @@ The layout automatically handles element ordering and can filter elements by var
 
 .. code-block:: python
 
-    from nala.models.elementList import MachineLayout
+    from laura.models.elementList import MachineLayout
     
     layout = MachineLayout(
         name="main_beam",
@@ -155,7 +155,7 @@ The layout automatically handles element ordering and can filter elements by var
 Machine Model
 -------------
 
-The :py:class:`MachineModel <nala.models.elementList.MachineModel>` class represents the complete accelerator model,
+The :py:class:`MachineModel <laura.models.elementList.MachineModel>` class represents the complete accelerator model,
 containing all possible beam paths, sections, and elements. This is the top-level class for managing the entire
 lattice structure.
 
@@ -181,7 +181,7 @@ section definition is provided:
 
 .. code-block:: python
 
-    from nala.models.elementList import MachineModel
+    from laura.models.elementList import MachineModel
 
     model = MachineModel(
         layout="layouts.yaml",

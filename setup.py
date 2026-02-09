@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as f:
     readme = f.read()
 
 setup(
-    name="nala-accelerator",  # must match pyproject.toml
+    name="laura-accelerator",  # must match pyproject.toml
     packages=find_packages(),
     include_package_data=True,
     install_requires=[

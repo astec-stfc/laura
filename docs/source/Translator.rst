@@ -3,7 +3,7 @@
 Translator Module
 =================
 
-The :mod:`NALA` translator module provides functionality for converting accelerator elements and lattice structures
+The :mod:`LAURA` translator module provides functionality for converting accelerator elements and lattice structures
 into formats compatible with various particle simulation codes. The translation system supports export to multiple
 simulation codes including:
 
@@ -21,23 +21,23 @@ sections that can be exported as complete input files or objects for each simula
 
 .. warning::
 
-   :mod:`NALA` in its current state does not support export of **all possible** element types and **all possible**
+   :mod:`LAURA` in its current state does not support export of **all possible** element types and **all possible**
    simulation configurations for all codes.
    
-   If an important feature is missing, then please raise an issue `here <https://github.com/astec-stfc/nala/issues>`_.
+   If an important feature is missing, then please raise an issue `here <https://github.com/astec-stfc/laura/issues>`_.
 
 .. _base-element-translator:
 
 Base Element Translator
 -----------------------
 
-The :py:class:`BaseElementTranslator <nala.translator.converters.base.BaseElementTranslator>` class extends
-:py:class:`PhysicalBaseElement <nala.models.element.PhysicalBaseElement>` and provides the core functionality for
+The :py:class:`BaseElementTranslator <laura.translator.converters.base.BaseElementTranslator>` class extends
+:py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>` and provides the core functionality for
 translating individual elements into simulation-specific formats.
 
 Key attributes include:
 
-* ``type_conversion_rules: Dict``: Rules for converting element types between :mod:`NALA` and target codes.
+* ``type_conversion_rules: Dict``: Rules for converting element types between :mod:`LAURA` and target codes.
 * ``conversion_rules: Dict``: Rules for converting element keywords/parameters.
 * ``counter: int``: Counter for numbering elements of the same type.
 * ``master_lattice_location: str``: Directory containing lattice and data files.
@@ -68,7 +68,7 @@ Example usage:
 
 .. code-block:: python
 
-    from nala.translator.converters.base import BaseElementTranslator
+    from laura.translator.converters.base import BaseElementTranslator
 
     translator = BaseElementTranslator.model_validate(element.model_dump())
     translator.directory = "./output"
@@ -81,12 +81,12 @@ Example usage:
 Element Translation
 -------------------
 
-The :py:func:`translate_elements <nala.translator.converters.converter.translate_elements>` function converts
-lists of :py:class:`Element <nala.models.element.Element>` objects into their appropriate translator classes.
+The :py:func:`translate_elements <laura.translator.converters.converter.translate_elements>` function converts
+lists of :py:class:`Element <laura.models.element.Element>` objects into their appropriate translator classes.
 
 Parameters:
 
-* ``elements: List[Element]``: List of NALA elements to translate.
+* ``elements: List[Element]``: List of LAURA elements to translate.
 * ``master_lattice_location: str``: Directory containing reference files.
 * ``directory: str``: Output directory for generated files.
 
@@ -108,7 +108,7 @@ Example:
 
 .. code-block:: python
 
-    from nala.translator.converters.converter import translate_elements
+    from laura.translator.converters.converter import translate_elements
 
     translated = translate_elements(
         elements=element_list,
@@ -121,8 +121,8 @@ Example:
 Section Lattice Translator
 --------------------------
 
-The :py:class:`SectionLatticeTranslator <nala.translator.converters.section.SectionLatticeTranslator>` extends
-:py:class:`SectionLattice <nala.models.elementList.SectionLattice>` to provide complete lattice section translation
+The :py:class:`SectionLatticeTranslator <laura.translator.converters.section.SectionLatticeTranslator>` extends
+:py:class:`SectionLattice <laura.models.elementList.SectionLattice>` to provide complete lattice section translation
 capabilities.
 
 Additional attributes for code-specific configuration:
@@ -160,7 +160,7 @@ Example workflow:
 
 .. code-block:: python
 
-    from nala.translator.converters.section import SectionLatticeTranslator
+    from laura.translator.converters.section import SectionLatticeTranslator
 
     # Create translator from existing section
     translator = SectionLatticeTranslator.from_section(section)
@@ -202,7 +202,7 @@ Example workflow:
    OPAL / GPT translation have not been fully benchmarked and tested. Use with caution.
 
 The translator module ensures consistency across different simulation codes while preserving the physics
-and geometry defined in the NALA lattice model. Field maps, wakefields, and other external data files
+and geometry defined in the LAURA lattice model. Field maps, wakefields, and other external data files
 are automatically referenced and managed during the translation process -- provided they are in the correct
 format.
 
@@ -211,8 +211,8 @@ format.
 Machine Layout Translator
 -------------------------
 
-The :py:class:`MachineLayoutTranslator <nala.translator.converters.layout.MachineLayoutTranslator>` extends
-:py:class:`MachineLayout <nala.models.elementList.MachineLayout>` to translate complete beam paths consisting
+The :py:class:`MachineLayoutTranslator <laura.translator.converters.layout.MachineLayoutTranslator>` extends
+:py:class:`MachineLayout <laura.models.elementList.MachineLayout>` to translate complete beam paths consisting
 of multiple sections.
 
 Attributes:
@@ -243,7 +243,7 @@ Example usage:
 
 .. code-block:: python
 
-    from nala.translator.converters.layout import MachineLayoutTranslator
+    from laura.translator.converters.layout import MachineLayoutTranslator
 
     # Create translator from existing layout
     translator = MachineLayoutTranslator.from_layout(machine_layout)
@@ -266,8 +266,8 @@ Example usage:
 Machine Model Translator
 ------------------------
 
-The :py:class:`MachineModelTranslator <nala.translator.converters.model.MachineModelTranslator>` extends
-:py:class:`MachineModel <nala.models.elementList.MachineModel>` to provide translation capabilities for
+The :py:class:`MachineModelTranslator <laura.translator.converters.model.MachineModelTranslator>` extends
+:py:class:`MachineModel <laura.models.elementList.MachineModel>` to provide translation capabilities for
 the complete accelerator model, including all defined beam paths and sections.
 
 Attributes:
@@ -299,7 +299,7 @@ Example workflow:
 .. code-block:: python
 
 
-    from nala.translator.converters.model import MachineModelTranslator
+    from laura.translator.converters.model import MachineModelTranslator
 
     # Create translator from machine model
     translator = MachineModelTranslator.from_machine(machine_model)
@@ -353,8 +353,8 @@ For string-based formats (Elegant, Genesis), the translator generates:
    * Xsuite (object dictionaries)
 
    For GPT, OPAL, CSRTrack, and Wake-T translations, use the
-   :py:class:`SectionLatticeTranslator <nala.translator.converters.section.SectionLatticeTranslator>` directly.
+   :py:class:`SectionLatticeTranslator <laura.translator.converters.section.SectionLatticeTranslator>` directly.
 
 The hierarchical translation system ensures that complex machine models with multiple beam paths
 can be efficiently exported while maintaining the relationships between elements, sections, and layouts
-defined in the NALA model.
+defined in the LAURA model.

@@ -3,7 +3,7 @@
 Field Utilities
 ===============
 
-The :mod:`NALA` translator utilities include a comprehensive field module for representing and manipulating
+The :mod:`LAURA` translator utilities include a comprehensive field module for representing and manipulating
 electromagnetic fields used in particle accelerator simulations. This module provides functionality for
 reading, writing, and converting field maps between different simulation codes.
 
@@ -18,7 +18,7 @@ reading, writing, and converting field maps between different simulation codes.
 Field Class
 -----------
 
-The :py:class:`field <nala.translator.utils.fields.field>` class provides a generic representation for
+The :py:class:`field <laura.translator.utils.fields.field>` class provides a generic representation for
 electromagnetic fields including RF structures, wakefields, and magnetic fields.
 
 Key attributes include:
@@ -45,7 +45,7 @@ Key attributes include:
 * ``cavity_type: cavitytype``: Standing or travelling wave
 * ``norm: float``: Normalization factor
 
-Each field parameter is represented as a :py:class:`FieldParameter <nala.translator.utils.fields.FieldParameter>`
+Each field parameter is represented as a :py:class:`FieldParameter <laura.translator.utils.fields.FieldParameter>`
 object containing the field values and associated units.
 
 Supported field types:
@@ -68,13 +68,13 @@ The field class supports multiple file formats for import and export:
 * SDDS (``.sdds``)
 * GDF (``.gdf``) for GPT
 * OPAL (``.opal``)
-* HDF5 (``.hdf5``) - NALA native format
+* HDF5 (``.hdf5``) - LAURA native format
 
 Reading field files:
 
 .. code-block:: python
 
-    from nala.translator.utils.fields import field
+    from laura.translator.utils.fields import field
 
     # Read an ASTRA cavity field
     rf_field = field(
@@ -111,7 +111,7 @@ Writing field files for specific codes:
 Field Parameters
 ----------------
 
-The :py:class:`FieldParameter <nala.translator.utils.fields.FieldParameter>` class encapsulates field
+The :py:class:`FieldParameter <laura.translator.utils.fields.FieldParameter>` class encapsulates field
 values with their associated units and metadata:
 
 * ``name: str``: Parameter identifier
@@ -143,7 +143,7 @@ Field utilities are integrated into the element translator system for handling:
 **Wakefields:**
   - Longitudinal and transverse wake functions
 
-The :py:class:`BaseElementTranslator <nala.translator.converters.base.BaseElementTranslator>` uses field
+The :py:class:`BaseElementTranslator <laura.translator.converters.base.BaseElementTranslator>` uses field
 utilities through:
 
 * ``generate_field_file_name(param, code)``: Creates appropriate field filenames
@@ -154,8 +154,8 @@ Example with cavity translator:
 
 .. code-block:: python
 
-    from nala.translator.converters.cavity import RFCavityTranslator
-    from nala.translator.utils.fields import field
+    from laura.translator.converters.cavity import RFCavityTranslator
+    from laura.translator.utils.fields import field
 
     # Cavity with field map
     cavity = RFCavityTranslator(

@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nala-accelerator"
+name = "laura-accelerator"
 description = "A standardized lattice format for particle accelerators"
 readme = "README.md"
 dynamic = ["version"]
@@ -52,6 +52,6 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/astec-stfc/nala"
-Repository = "https://github.com/astec-stfc/nala.git"
-Issues = "https://github.com/astec-stfc/nala/-/issues/"
+Homepage = "https://github.com/astec-stfc/laura"
+Repository = "https://github.com/astec-stfc/laura.git"
+Issues = "https://github.com/astec-stfc/laura/-/issues/"
