@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "laura-accelerator"
+description = "A standardized lattice format for particle accelerators"
+readme = "README.md"
+dynamic = ["version"]
+authors = [
+    {name = "James Jones", email = "james.jones@stfc.ac.uk"},
+]
+maintainers = [
+    {name = "James Jones", email = "james.jones@stfc.ac.uk"},
+    {name = "Alex Brynes", email = "alexander.brynes@stfc.ac.uk"},
+    {name = "Mark Johnson", email = "mark.johnson@stfc.ac.uk"},
+    {name = "Matt King", email = "matthew.king@stfc.ac.uk"},
+]
+
+dependencies = [
+    "pydantic>=2", 
+    "pyyaml>=6", 
+    "numpy>=1.26",
+    "scipy>=1.15",
+    "munch>=4"
+]
+
+requires-python = ">= 3.10"
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"   # valid built-in scheme
+local_scheme = "no-local-version" # removes +untagged suffix
+
+
+[project.optional-dependencies]
+
+test = [
+    "pytest",
+    "pytest-cov",
+]
+
+docs = [
+    "sphinx>=8",
+    "sphinx-rtd-theme",
+    "myst-nb",
+    "sphinx_autodoc_typehints>=3",
+    "sphinxcontrib-bibtex",
+]
+
+[project.urls]
+Homepage = "https://github.com/astec-stfc/laura"
+Repository = "https://github.com/astec-stfc/laura.git"
+Issues = "https://github.com/astec-stfc/laura/-/issues/"

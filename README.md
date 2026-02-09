@@ -1,93 +1,170 @@
-# laura
+# LAURA: Lattice Architecture for a Unified Representation of Accelerators
 
+**LAURA** is a Python package for describing, simulating, and controlling particle accelerator lattices. It provides a standardized, extensible data model for elements, sections, layouts, and full machine models.
 
+---
 
-## Getting started
+## Architecture Overview
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+LAURA organizes accelerator elements using a hierarchical structure:
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+### Element Structure
 
-## Add your files
+![LAURA Element Structure](docs/source/Architecture/assets/element-structure.png)
 
-* [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+- **baseElement**: Core identification (name, hardware_class, hardware_type, machine_area)
+- **Element**: Extends with simulation, controls, electrical, manufacturer info
+- **PhysicalBaseElement**: Adds position, rotation, length, error, survey
 
+### Lattice Structure
+
+![LAURA Lattice Structure](docs/source/Architecture/assets/lattice-structure.png)
+
+- **ElementList**: Container for elements
+- **SectionLattice**: Ordered list of elements (a section of the beamline)
+- **MachineLayout**: Sequence of sections (a full beam path)
+- **MachineModel**: All layouts, sections, and elements (the full accelerator)
+
+---
+
+## Quick Examples
+
+### Create a Basic Element
+
+```python
+from laura.models.element import baseElement
+
+element = baseElement(
+    name="QUAD-01",
+    hardware_class="Magnet",
+    hardware_type="Quadrupole",
+    machine_area="LINAC-1"
+)
+print(element.name)  # "QUAD-01"
 ```
-cd existing_repo
-git remote add origin https://gitlab.stfc.ac.uk/xkc85723/laura.git
-git branch -M main
-git push -uf origin main
+
+### Element with Physical Properties
+
+```python
+from laura.models.element import PhysicalBaseElement
+from laura.models.physical import PhysicalElement, Position
+
+cavity = PhysicalBaseElement(
+    name="CAV-01",
+    hardware_class="RF",
+    hardware_type="Cavity",
+    machine_area="LINAC-1",
+    physical=PhysicalElement(
+        length=1.0,
+        middle=Position(x=0, y=0, z=5.0)
+    )
+)
+print(cavity.physical.length)  # 1.0
 ```
 
-## Integrate with your tools
+### Create a Section Lattice
 
-* [Set up project integrations](https://gitlab.stfc.ac.uk/xkc85723/laura/-/settings/integrations)
+```python
+from laura.models.elementList import SectionLattice, ElementList
 
-## Collaborate with your team
+section = SectionLattice(
+    name="INJECTOR",
+    order=["BPM-01", "QUAD-01"],
+    elements=ElementList(elements={
+        "BPM-01": element,
+        "QUAD-01": cavity
+    })
+)
+print(section.names)  # ["BPM-01", "QUAD-01"]
+```
 
-* [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+### Build a Machine Layout
 
-## Test and Deploy
+```python
+from laura.models.elementList import MachineLayout
 
-Use the built-in continuous integration in GitLab.
+layout = MachineLayout(
+    name="MainBeamline",
+    sections={"INJECTOR": section}
+)
+print(layout.names)  # ["INJECTOR"]
+```
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+### Full Machine Model
 
-***
+```python
+from laura.models.elementList import MachineModel
 
-# Editing this README
+model = MachineModel(
+    elements={"QUAD-01": element, "CAV-01": cavity}
+)
+print(list(model.sections.keys()))  # ["LINAC-1"]
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+---
 
-## Suggestions for a good README
+## Translator Module
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+LAURA includes a translator system for exporting accelerator models to various simulation codes, 
+such as ASTRA, GPT, Elegant, CSRTrack, Ocelot, Xsuite, Wake-T, and Genesis.
 
-## Name
-Choose a self-explaining name for your project.
+- Translate individual elements, sections, layouts, or full machine models.
+- Export to code-specific formats and objects.
+- Automatically manage drift spaces, field maps, and code-specific configuration.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+**Example: Export a section to Elegant and Ocelot**
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```python
+from laura.translator.converters.section import SectionLatticeTranslator
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+translator = SectionLatticeTranslator.from_section(section)
+translator.directory = "./output"
+
+elegant_string = translator.to_elegant(charge=1e-9)
+ocelot_lattice = translator.to_ocelot(save=True)
+```
+
+See the [Translator documentation](docs/source/Translator.rst) for details and more examples.
+
+---
+
+## Features
+
+- **Hierarchical lattice structure**: elements → sections → layouts → machine
+- **Flexible element definition**: physical, simulation, controls, electrical, manufacturer
+- **Extensible API**: add new element types and metadata
+- **Simulation & controls integration**: store simulation parameters and control variables
+- **Export to simulation codes** via the Translator module
+
+---
+
+---
 
 ## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+Install LAURA from PyPI:
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+pip install laura-accelerator
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Or add to your `requirements.txt`:
+
+```
+laura-accelerator
+```
+
+## Documentation
+
+- [Element Definition](docs/source/Architecture/Element.rst)
+- [Lattice Structure](docs/source/Architecture/Lattice.rst)
+- [Translator Module](docs/source/Translator.rst)
+- [Examples](docs/source/Examples.rst)
+
+---
 
 ## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Issues and pull requests are welcome! See [GitHub Issues](https://github.com/astec-stfc/laura/issues).
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+---
