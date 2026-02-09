@@ -17,8 +17,9 @@ from .models.elementList import MachineModel, baseElement
 from .models.element import Drift
 from .Importers.YAML_Loader import (
     read_YAML_Combined_File,
-    read_YAML_Element_Files,
+    read_YAML_Element_File,
     interpret_YAML_Element,
+    load_elements_parallel,
 )
 import numpy as np
 
@@ -56,6 +57,9 @@ class LAURA(MachineModel):
     """List containing all elements in the machine model, either as a path to a YAML file/directory 
     or as a list of element objects."""
 
+    exclude_keys: List[str] | None = None
+    """List of top-level keys to exclude when reading YAML files"""
+
     @field_validator("element_list", mode="before")
     @classmethod
     def validate_element_list(cls, v: str | list) -> str | list:
@@ -82,8 +86,8 @@ class LAURA(MachineModel):
                 files = glob.glob(
                     os.path.abspath(self.element_list + "/**/*.yaml"), recursive=True
                 )
-                data, filenames = read_YAML_Element_Files(files)
-                elems = [interpret_YAML_Element(dat, filename=fn) for dat, fn in zip(data, filenames)]
+                elems = [read_YAML_Element_File(fn, exclude_keys=self.exclude_keys) for fn in files]
+                # elems = load_elements_parallel(files)
         else:
             elems = self.element_list
         for y in elems:

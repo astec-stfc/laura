@@ -458,12 +458,10 @@ class Element(baseElement):
     simulation: SimulationElement = Field(default_factory=SimulationElement)
     """Simulation attributes of the element."""
 
-    electrical: ElectricalElement | None = Field(default_factory=ElectricalElement)
+    electrical: ElectricalElement | None = None
     """Electrical attributes of the element."""
 
-    manufacturer: ManufacturerElement | None = Field(
-        default_factory=ManufacturerElement
-    )
+    manufacturer: ManufacturerElement | None = None
     """Manufacturer attributes of the element."""
 
     controls: ControlsInformation | None = None
@@ -551,7 +549,7 @@ class Magnet(PhysicalBaseElement):
     hardware_class: str = Field(default="Magnet", frozen=True)
     """Magnet hardware class."""
 
-    degauss: DegaussableElement | None = Field(default_factory=DegaussableElement)
+    degauss: DegaussableElement | None = None
     """Degaussing attributes of the magnet."""
 
     simulation: MagnetSimulationElement = Field(default_factory=MagnetSimulationElement)
