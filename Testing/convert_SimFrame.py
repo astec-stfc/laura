@@ -7,14 +7,14 @@ from PAdantic.models.element import Element  # noqa E402
 from PAdantic.Exporters.YAML import export_machine  # noqa E402
 from PAdantic.models.control import ControlsInformation, ControlVariable  # noqa E402
 
-master_lattice_location = "../../masterlattice/MasterLattice/YAML"
+master_lattice = "../../masterlattice/MasterLattice/YAML"
 
 SF_files = [
-    f"{master_lattice_location}/CLA_Gun400.yaml",
-    f"{master_lattice_location}/CLA_SP2.yaml",
-    f"{master_lattice_location}/CLA_SP3.yaml",
-    f"{master_lattice_location}/CLA_FEBE.yaml",
-    f"{master_lattice_location}/CLA_SP1.yaml",
+    f"{master_lattice}/CLA_Gun400.yaml",
+    f"{master_lattice}/CLA_SP2.yaml",
+    f"{master_lattice}/CLA_SP3.yaml",
+    f"{master_lattice}/CLA_FEBE.yaml",
+    f"{master_lattice}/CLA_SP1.yaml",
 ]
 
 

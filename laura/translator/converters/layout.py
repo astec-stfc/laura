@@ -13,7 +13,7 @@ class MachineLayoutTranslator(MachineLayout):
             {
                 "name": layout.model_copy().name,
                 "sections": layout.model_copy().sections,
-                "master_lattice_location": layout.model_copy().master_lattice_location,
+                "master_lattice": layout.model_copy().master_lattice,
             }
         )
 
@@ -34,7 +34,7 @@ class MachineLayoutTranslator(MachineLayout):
             section_with_drifts = section.createDrifts()
             elem_dict = translate_elements(
                 section_with_drifts.values(),
-                master_lattice_location=self.master_lattice_location,
+                master_lattice=self.master_lattice,
                 directory=self.directory,
             )
             if charge:
@@ -56,7 +56,7 @@ class MachineLayoutTranslator(MachineLayout):
             section_with_drifts = section.createDrifts()
             elem_dict = translate_elements(
                 section_with_drifts.values(),
-                master_lattice_location=self.master_lattice_location,
+                master_lattice=self.master_lattice,
                 directory=self.directory,
             )
 

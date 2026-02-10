@@ -36,7 +36,7 @@ class BaseLatticeModel(ModelBase):
 
     _basename: str
 
-    master_lattice_location: str | None = None
+    master_lattice: str | None = None
     """Top-level directory containing lattice files."""
 
     def __add__(self, other: dict) -> dict:
@@ -325,7 +325,7 @@ class MachineLayout(BaseLatticeModel):
     sections: Dict[str, SectionLattice]  # = Field(frozen=True)
     """Dictionary of :class:`~laura.models.elementList.SectionLattice`, keyed by name."""
 
-    master_lattice_location: str | None = None
+    master_lattice: str | None = None
     """Directory containing lattice files. """
 
     _basename: str = "sections"
@@ -571,7 +571,7 @@ class MachineModel(ModelBase):
     #TODO rationalise either this name `lattices` or the class name `MachineLayout`.
     """
 
-    master_lattice_location: str | None = None
+    master_lattice: str | None = None
     """Directory containing lattice YAML files."""
 
     _layouts: List[str] = None
@@ -734,7 +734,7 @@ class MachineModel(ModelBase):
                 order=[
                     e["name"] if isinstance(e, dict) else e.name for e in new_elements
                 ],
-                master_lattice_location=self.master_lattice_location,
+                master_lattice=self.master_lattice,
             )
             if not self._section_definitions or area not in self._section_definitions:
                 self._section_definitions[area] = [
@@ -760,7 +760,7 @@ class MachineModel(ModelBase):
                                 name=_area,
                                 elements=new_elements,
                                 order=self._section_definitions[_area],
-                                master_lattice_location=self.master_lattice_location,
+                                master_lattice=self.master_lattice,
                             )
                         except KeyError:
                             pass
@@ -773,7 +773,7 @@ class MachineModel(ModelBase):
                         for _area in areas
                         if _area in self.sections
                     },
-                    master_lattice_location=self.master_lattice_location,
+                    master_lattice=self.master_lattice,
                 )
             if len(self.lattices) == 1 and self._default_path is None:
                 self._default_path = list(self.lattices.keys())[0]
@@ -789,7 +789,7 @@ class MachineModel(ModelBase):
                     name=_area,
                     elements=new_elements,
                     order=elem_names,
-                    master_lattice_location=self.master_lattice_location,
+                    master_lattice=self.master_lattice,
                 )
             self.lattices = {}
 

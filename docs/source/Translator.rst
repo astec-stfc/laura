@@ -40,7 +40,7 @@ Key attributes include:
 * ``type_conversion_rules: Dict``: Rules for converting element types between :mod:`LAURA` and target codes.
 * ``conversion_rules: Dict``: Rules for converting element keywords/parameters.
 * ``counter: int``: Counter for numbering elements of the same type.
-* ``master_lattice_location: str``: Directory containing lattice and data files.
+* ``master_lattice: str``: Directory containing lattice and data files.
 * ``directory: str``: Output directory for generated files.
 * ``ccs: gpt_ccs``: Coordinate system definition for GPT elements.
 
@@ -87,7 +87,7 @@ lists of :py:class:`Element <laura.models.element.Element>` objects into their a
 Parameters:
 
 * ``elements: List[Element]``: List of LAURA elements to translate.
-* ``master_lattice_location: str``: Directory containing reference files.
+* ``master_lattice: str``: Directory containing reference files.
 * ``directory: str``: Output directory for generated files.
 
 Returns:
@@ -112,7 +112,7 @@ Example:
 
     translated = translate_elements(
         elements=element_list,
-        master_lattice_location="/path/to/data",
+        master_lattice="/path/to/data",
         directory="./output"
     )
 

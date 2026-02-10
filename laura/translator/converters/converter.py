@@ -40,7 +40,7 @@ from .twiss import TwissMatchTranslator
 
 def translate_elements(
     elements: List[Element],
-    master_lattice_location: str = None,
+    master_lattice: str = None,
     directory: str = ".",
 ) -> Dict[str, BaseElementTranslator]:
     """
@@ -50,7 +50,7 @@ def translate_elements(
     ----------
     elements: List[Element]
         List of :class:`~laura.models.element.Element` objects.
-    master_lattice_location: str
+    master_lattice: str
         Directory containing lattice/data files including field/wakefield files.
     directory:
         Directory to which files will be written.
@@ -95,6 +95,6 @@ def translate_elements(
         else:
             translator = BaseElementTranslator
         elem_dict.update({elem.name: translator.model_validate(elem.model_dump())})
-        elem_dict[elem.name].master_lattice_location = master_lattice_location
+        elem_dict[elem.name].master_lattice = master_lattice
         elem_dict[elem.name].directory = directory
     return elem_dict

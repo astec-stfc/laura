@@ -16,7 +16,7 @@ class MachineModelTranslator(MachineModel):
                 "elements": machine.model_copy().elements,
                 "sections": machine.model_copy().sections,
                 "lattices": machine.model_copy().lattices,
-                "master_lattice_location": machine.model_copy().master_lattice_location,
+                "master_lattice": machine.model_copy().master_lattice,
             }
         )
 
@@ -32,7 +32,7 @@ class MachineModelTranslator(MachineModel):
                 section_with_drifts = section.createDrifts()
                 elem_dict = translate_elements(
                     section_with_drifts.values(),
-                    master_lattice_location=self.master_lattice_location,
+                    master_lattice=self.master_lattice,
                     directory=self.directory,
                 )
                 if charge:
@@ -61,7 +61,7 @@ class MachineModelTranslator(MachineModel):
                 section_with_drifts = section.createDrifts()
                 elem_dict = translate_elements(
                     section_with_drifts.values(),
-                    master_lattice_location=self.master_lattice_location,
+                    master_lattice=self.master_lattice,
                     directory=self.directory,
                 )
 

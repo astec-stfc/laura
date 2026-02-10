@@ -46,7 +46,7 @@ class BaseElementTranslator(PhysicalBaseElement):
     #TODO was needed for ASTRA/CSRTrack; may be deprecated.
     """
 
-    master_lattice_location: str = None
+    master_lattice: str = None
     """Location of the directory containing lattice/data/simulation files."""
 
     directory: str = "./"

@@ -95,7 +95,7 @@ A section lattice must define:
 * ``name: str``: The name of the lattice section.
 * ``order: List[str]``: An ordered list of element names defining the sequence along the beam path.
 * ``elements: ElementList``: A container holding the actual element objects.
-* ``master_lattice_location: str | None``: Optional top-level directory containing lattice files.
+* ``master_lattice: str | None``: Optional top-level directory containing lattice files.
 
 Key methods and properties include:
 
@@ -129,7 +129,7 @@ A machine layout defines:
 
 * ``name: str``: The name of the layout/beam path.
 * ``sections: Dict[str, SectionLattice]``: Dictionary of lattice sections, keyed by section name.
-* ``master_lattice_location: str | None``: Directory containing lattice files.
+* ``master_lattice: str | None``: Directory containing lattice files.
 
 Important methods include:
 
@@ -166,7 +166,7 @@ The machine model includes:
 * ``elements: Dict[str, baseElement]``: Complete dictionary of all elements in the machine.
 * ``sections: Dict[str, SectionLattice]``: All section lattices available in the model.
 * ``lattices: Dict[str, MachineLayout]``: All machine layouts (beam paths) defined.
-* ``master_lattice_location: str | None``: Directory containing lattice YAML files.
+* ``master_lattice: str | None``: Directory containing lattice YAML files.
 * ``default_path: str``: The default beam path to use when not explicitly specified.
 
 Key functionality:

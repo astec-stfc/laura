@@ -74,7 +74,7 @@ class SectionLatticeTranslator(SectionLattice):
                 "name": section.model_copy().name,
                 "order": section.model_copy().order,
                 "elements": section.model_copy().elements,
-                "master_lattice_location": section.model_copy().master_lattice_location,
+                "master_lattice": section.model_copy().master_lattice,
             }
         )
 
@@ -103,7 +103,7 @@ class SectionLatticeTranslator(SectionLattice):
         element_headers = {h: "" for h in headers}
         elem_dict = translate_elements(
             list(self.elements.elements.values()),
-            master_lattice_location=self.master_lattice_location,
+            master_lattice=self.master_lattice,
             directory=self.directory,
         )
         astrastr = ""
@@ -194,7 +194,7 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += header.write_GPT()
         elem_dict = translate_elements(
             list(self.elements.elements.values()),
-            master_lattice_location=self.master_lattice_location,
+            master_lattice=self.master_lattice,
             directory=self.directory,
         )
         for i, element in enumerate(list(elem_dict.values())):
@@ -304,7 +304,7 @@ class SectionLatticeTranslator(SectionLattice):
         zstops = []
         elem_dict = translate_elements(
             list(self.elements.elements.values()),
-            master_lattice_location=self.master_lattice_location,
+            master_lattice=self.master_lattice,
             directory=self.directory,
         )
         written = []
@@ -360,7 +360,7 @@ class SectionLatticeTranslator(SectionLattice):
         )
         elem_dict = translate_elements(
             section_with_drifts.values(),
-            master_lattice_location=self.master_lattice_location,
+            master_lattice=self.master_lattice,
             directory=self.directory,
         )
         string = ""
@@ -390,7 +390,7 @@ class SectionLatticeTranslator(SectionLattice):
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
-            master_lattice_location=self.master_lattice_location,
+            master_lattice=self.master_lattice,
             directory=self.directory,
         )
         string = ""
@@ -428,7 +428,7 @@ class SectionLatticeTranslator(SectionLattice):
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
-            master_lattice_location=self.master_lattice_location,
+            master_lattice=self.master_lattice,
             directory=self.directory,
         )
         elements = []
@@ -461,7 +461,7 @@ class SectionLatticeTranslator(SectionLattice):
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
-            master_lattice_location=self.master_lattice_location,
+            master_lattice=self.master_lattice,
             directory=self.directory,
         )
         segment = []
@@ -511,7 +511,7 @@ class SectionLatticeTranslator(SectionLattice):
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
-            master_lattice_location=self.master_lattice_location,
+            master_lattice=self.master_lattice,
             directory=self.directory,
         )
         line = env.new_line()
@@ -539,7 +539,7 @@ class SectionLatticeTranslator(SectionLattice):
         counter = {k: 1 for k in headers}
         elem_dict = translate_elements(
             list(self.elements.elements.values()),
-            master_lattice_location=self.master_lattice_location,
+            master_lattice=self.master_lattice,
             directory=self.directory,
         )
         csrtrackstr = "io_path{logfile = log.txt}\nlattice{\n"
@@ -587,7 +587,7 @@ class SectionLatticeTranslator(SectionLattice):
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
-            master_lattice_location=self.master_lattice_location,
+            master_lattice=self.master_lattice,
             directory=self.directory,
         )
         beamline = []
