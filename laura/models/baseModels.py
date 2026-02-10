@@ -2,6 +2,7 @@ from pydantic import BaseModel, model_serializer, ConfigDict
 from typing import TypeVar, Any, Type, List, Union
 import yaml
 import numpy as np
+from pydantic_core.core_schema import SerializationInfo
 
 # Create a generic variable that can be 'Parent', or any subclass.
 T = TypeVar("T", bound="BaseModel")
@@ -109,12 +110,11 @@ class NumpyModel(ModelBase):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    @model_serializer
-    def ser_model(self) -> np.ndarray:
-        try:
-            return self.array
-        except Exception:
-            return self
+    @model_serializer(mode="wrap")
+    def ser_model(self, handler, info: SerializationInfo):
+        if info.mode == "json":
+            return self.array  # vector for JSON
+        return handler(self)  # default dict for python
 
     @property
     def array(self) -> np.ndarray:
@@ -142,6 +142,7 @@ class NumpyModel(ModelBase):
 
 class NumpyVectorModel(NumpyModel):
     """vector model using numpy arrays."""
+
 
     def __iter__(self) -> iter:
         cls = self.__class__

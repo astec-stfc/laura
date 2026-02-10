@@ -899,16 +899,16 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         if self.simulation.field_reference_position is not None:
             try:
-                return getattr(
+                return np.array(list(getattr(
                     self.physical, self.simulation.field_reference_position.lower()
-                ).model_dump()
+                ).model_dump().values()))
             except AttributeError:
                 warn(
                     "field_reference_position should be (start/middle/end) not"
                     + self.simulation.field_reference_position
                     + "; returning start"
                 )
-        return self.physical.start.model_dump()
+        return np.array(list(self.physical.start.model_dump().values()))
 
     def update_field_definition(self) -> None:
         """
