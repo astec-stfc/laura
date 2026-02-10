@@ -56,6 +56,12 @@ class RFCavityElement(IgnoreExtra):
     #TODO combine with numerator to make it the actual mode?
     """
 
+    power_calibration: List[float] | None = None
+    """Power calibration for the cavity (if provided in config file)"""
+
+    gradient_calibration: List[float] | None = None
+    """Gradient calibration for the cavity (if provided in config file)"""
+
     def model_post_init(self, __context):
         if self.structure_Type.lower == "travellingwave" and any(
             [self.mode_numerator is None and self.mode_denominator is None]

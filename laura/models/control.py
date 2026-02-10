@@ -113,6 +113,9 @@ class ControlVariable(BaseModel):
     )
     """Type of control variable."""
 
+    states: Dict | None = None
+    """Possible state mapping enums."""
+
     model_config = ConfigDict(
         arbitrary_types_allowed=False,
         extra="allow",
