@@ -26,7 +26,8 @@ class DiagnosticTranslator(BaseElementTranslator):
         """
         self.start_write()
         if not self.simulation.output_filename:
-            self.simulation.output_filename = f'"{self.directory}/{self.name}.SDDS"'
+            self.simulation.output_filename = f'"./{self.name}.SDDS"'
+            # self.simulation.output_filename = f'"{self.directory}/{self.name}.SDDS"'
         return super().to_elegant()
 
     def to_csrtrack(self, n: int) -> str:
