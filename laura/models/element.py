@@ -1229,7 +1229,7 @@ class RFCavity(PhysicalBaseElement):
         attributes of the RF cavity.
     """
 
-    hardware_type: str = Field(default="RFCavity", frozen=True)
+    hardware_type: str = Field(default="RFCavity", frozen=True, alias="Cavity")
     """RF cavity hardware type."""
 
     hardware_model: str = Field(default="SBand", frozen=True)
