@@ -219,7 +219,7 @@ class SDDS_Params:
                     }
                 )
                 continue
-            for subk in ["magnetic", "cavity", "simulation", "diagnostic", "physical"]:
+            for subk in ["magnetic", "cavity", "simulation", "diagnostic", "physical", "aperture"]:
                 if subk in model_fields:
                     sfconvert[k].update({subk: {}})
             if sfconvert[k]["hardware_type"] == "Drift":

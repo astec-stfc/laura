@@ -1,5 +1,6 @@
 from laura.models.simulation import ApertureElement
 from .base import BaseElementTranslator
+from ..converters import elements_Elegant
 
 
 class ApertureTranslator(BaseElementTranslator):
@@ -178,3 +179,44 @@ class ApertureTranslator(BaseElementTranslator):
             raise ValueError(
                 "shape must be in ['elliptical', 'planar', 'circular', 'rectangular', 'scraper']"
             )
+
+    def to_elegant(self) -> str:
+        """
+        Generates a string representation of the object's properties in the Elegant format.
+
+        Returns
+        -------
+        str
+            A formatted string representing the object's properties in Elegant format.
+        """
+        self.start_write()
+        wholestring = ""
+        etype = self._convertType_Elegant(self.hardware_type)
+        string = self.name + ": " + etype
+        keys = []
+        for key, value in self.full_dump().items():
+            if (
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convertKeyword_Elegant(key) in elements_Elegant[etype]
+            ):
+                if value is not None:
+                    key = self._convertKeyword_Elegant(key)
+                    # if key == "dx":
+                    #     value = self.physical.middle.x
+                    # elif key == "dy":
+                    #     value = self.physical.middle.y
+                    value = 1 if value is True else value
+                    value = 0 if value is False else value
+                    if key not in keys:
+                        tmpstring = ", " + key + " = " + str(value)
+                        if len(string + tmpstring) > 76:
+                            wholestring += string + ",&\n"
+                            string = ""
+                            string += tmpstring[2::]
+                        else:
+                            string += tmpstring
+                    keys.append(key)
+        wholestring += string + ";\n"
+        return wholestring

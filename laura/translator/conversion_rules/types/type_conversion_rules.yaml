@@ -1,13 +1,12 @@
 elegant:
   Dipole: csrcsbend
-  Quadrupole: kquad
+  Quadrupole: quad
   Sextupole: ksext
   Octupole: koct
   Beam_Position_Monitor: watch
   Beam_Arrival_Monitor: moni
   Bunch_Length_Monitor: moni
   Screen: watch
-  Rcollimator: rcol
   Collimator: ecol
   Solenoid: sole
   Wall_Current_Monitor: moni
@@ -109,15 +108,23 @@ aliases:
     Drift:
       - drif
       - edrift
+      - lscdrift
+      - csrdrift
+    Collimator:
+      - rcol
     Combined_Corrector:
       - vkick
       - hkick
       - kicker
     Quadrupole:
       - quad
+      - kquad
     Screen:
       - mark
       - marker
+    Sextupole:
+      - sext
+      - ksext
     RFDeflectingCavity:
       - rftm110
     Dipole:

@@ -504,7 +504,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             element = elements_Elegant[
                 self._convertType_Elegant(self.hardware_type).lower()
             ]
-        for strip in ["", "simulation_", "cavity_", "magnetic_"]:
+        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
                 return conversion_rules[stripped]
@@ -556,7 +556,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         else:
             conversion_rules = self.conversion_rules["genesis"]
             element = elements_Genesis[self._convertType_Genesis(self.hardware_type)]
-        for strip in ["", "simulation_", "cavity_", "magnetic_"]:
+        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
                 return conversion_rules[stripped]
@@ -604,7 +604,7 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         """
         conversion_rules = self.conversion_rules["ocelot"]
-        for strip in ["", "simulation_", "cavity_", "magnetic_"]:
+        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
                 return conversion_rules[stripped]
@@ -649,7 +649,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             The converted keyword for Cheetah, or the original keyword if no conversion rule exists.
         """
         conversion_rules = self.conversion_rules["cheetah"]
-        for strip in ["", "simulation_", "cavity_", "magnetic_"]:
+        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
                 return conversion_rules[stripped]
@@ -671,7 +671,7 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         """
         conversion_rules = self.conversion_rules["xsuite"]
-        for strip in ["", "simulation_", "cavity_", "magnetic_"]:
+        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
                 return conversion_rules[stripped]
@@ -693,7 +693,7 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         """
         conversion_rules = self.conversion_rules["wake_t"]
-        for strip in ["", "simulation_", "cavity_", "magnetic_", "plasma_", "laser_"]:
+        for strip in ["", "simulation_", "cavity_", "magnetic_", "plasma_", "laser_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
                 return conversion_rules[stripped]
@@ -743,7 +743,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         else:
             conversion_rules = self.conversion_rules["opal"]
             element = elements_Opal[self._convertType_Opal(self.hardware_type)]
-        for strip in ["", "simulation_", "cavity_", "magnetic_"]:
+        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
                 return conversion_rules[stripped]

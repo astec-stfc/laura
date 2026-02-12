@@ -9,10 +9,10 @@ class ApertureElement(IgnoreExtra):
     number_of_elements: int | None = None
     """Number of aperture elements"""
 
-    horizontal_size: PositiveFloat = 1.0
+    horizontal_size: float = 0.0
     """Horizontal aperture size [m]"""
 
-    vertical_size: PositiveFloat = 1.0
+    vertical_size: float = 0.0
     """Vertical aperture size [m]"""
 
     shape: (
