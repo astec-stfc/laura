@@ -127,6 +127,8 @@ aliases:
       - ksext
     RFDeflectingCavity:
       - rftm110
+    Aperture:
+      - aperture
     Dipole:
       - sben
       - rben
