@@ -78,7 +78,7 @@ class Multipoles(MultipolesData):
                 + "L=Multipole("
                 + getattr(self, "K" + str(i) + "L").__str__()
                 + ")"
-                for i in range(0, 13)
+                for i in range(0, 5)
                 if abs(getattr(self, "K" + str(i) + "L").normal) > 0
                 or abs(getattr(self, "K" + str(i) + "L").skew) > 0
             ]
