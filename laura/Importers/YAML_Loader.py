@@ -1,75 +1,57 @@
-from typing import List
+import json
 import yaml
 from yaml import CSafeLoader as Loader
-from concurrent.futures import ProcessPoolExecutor
-from functools import partial
-import os
+from pydantic import TypeAdapter
 
 from ..models.element import *  # noqa
 
+def get_all_subclasses(cls):
+    subclasses = set()
+    for sub in cls.__subclasses__():
+        subclasses.add(sub)
+        subclasses.update(get_all_subclasses(sub))
+    return subclasses
+
+ALL_MODELS = get_all_subclasses(BaseModel)
+
+MODEL_REGISTRY = {
+    cls.__name__: cls
+    for cls in ALL_MODELS
+}
+
+ADAPTERS = {
+    name: TypeAdapter(model)
+    for name, model in MODEL_REGISTRY.items()
+}
 
 def filter_top_level(elem: dict, exclude_keys: List[str] | None = None) -> dict:
     if isinstance(exclude_keys, list):
         return {k: v for k, v in elem.items() if k not in exclude_keys}
     return {k: v for k, v in elem.items()}
 
-def interpret_YAML_Element(
-        elem: dict,
-        filename: str | None = None,
-        exclude_keys: List[str] | None = None,
-):
-    if "hardware_type" not in elem:
-        print("Missing hardware_type:", filename)
+def interpret_YAML_Element(elem: dict, exclude_set=None):
+    hw_type = elem.get("hardware_type")
+    if not hw_type:
         return None
 
-    hw_type = elem["hardware_type"]
-
-    if hw_type not in globals():
-        if filename:
-            print("Unknown hardware_type:", filename)
+    adapter = ADAPTERS.get(hw_type)
+    if adapter is None:
         return None
 
-    felem = globals()[hw_type]
+    if exclude_set:
+        elem = {k: v for k, v in elem.items() if k not in exclude_set}
 
     try:
-        if isinstance(exclude_keys, list):
-            filtered_elem = {k: v for k, v in elem.items() if k not in exclude_keys}
-            return felem(**filtered_elem)
-        return felem(**elem)
-
-    except Exception as e:
-        print("interpret_YAML_Element - Error", e, "with element:", elem.get("name"))
+        return adapter.validate_python(elem)
+    except Exception:
         return None
-
-def load_and_interpret_yaml(filename, exclude_keys: List[str] | None = None):
-    try:
-        with open(filename, "r") as stream:
-            data = yaml.load(stream, Loader=Loader)
-
-        if exclude_keys:
-            data = {k: v for k, v in data.items() if k not in exclude_keys}
-
-        return interpret_YAML_Element(data, filename=filename)
-
-    except Exception as e:
-        print("Failed to load:", filename, e)
-        return None
-
-def load_elements_parallel(files, exclude_keys=None, max_workers=None):
-    if max_workers is None:
-        max_workers = os.cpu_count()
-    worker = partial(load_and_interpret_yaml, exclude_keys=exclude_keys)
-
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        elems = list(executor.map(worker, files))
-
-    return [e for e in elems if e is not None]
 
 
 def read_YAML_Element_File(filename: str, exclude_keys: List[str] | None = None):
+    exclude_set = set(exclude_keys) if exclude_keys else None
     with open(filename, "r") as stream:
         data = yaml.load(stream, Loader=Loader)
-    return interpret_YAML_Element(data, filename=filename, exclude_keys=exclude_keys)
+    return interpret_YAML_Element(data, exclude_set=exclude_set)
 
 
 def read_YAML_Element_Files(filenames: list):
@@ -82,7 +64,17 @@ def read_YAML_Element_Files(filenames: list):
     return gen, filenames
 
 
-def read_YAML_Combined_File(filename: str, exclude_keys: List[str] | None = None):
-    with open(filename, "r") as stream:
-        elements = yaml.load(stream, Loader=Loader)
-    return [interpret_YAML_Element(element, exclude_keys=exclude_keys) for element in elements.values()]
+def read_YAML_Combined_File(filename: str, exclude_keys=None):
+    exclude_set = set(exclude_keys) if exclude_keys else None
+
+    if ".yaml" in filename.lower():
+        with open(filename, "r") as stream:
+            elements = yaml.load(stream, Loader=Loader)
+    elif ".json" in filename.lower():
+        with open(filename, "r") as stream:
+            elements = json.load(stream)
+
+    return [
+        interpret_YAML_Element(element, exclude_set)
+        for element in elements.values()
+    ]

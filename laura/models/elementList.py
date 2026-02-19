@@ -673,8 +673,28 @@ class MachineModel(ModelBase):
     def __str__(self):
         return str(list(self.elements.keys()))
 
+    def _index_elements(self, elements):
+        by_area = {}
+        by_name = {}
+
+        for elem in elements.values():
+            if isinstance(elem, dict):
+                area = elem.get("machine_area")
+                name = elem.get("name")
+            else:
+                area = getattr(elem, "machine_area", None)
+                name = elem.name
+
+            if name:
+                by_name[name] = elem
+
+            if area:
+                by_area.setdefault(area, []).append(elem)
+
+        return by_area, by_name
+
     def append(self, values: dict) -> None:
-        self.elements = merge_two_dicts(values, self.elements)
+        self.elements = values | self.elements
         self._build_sections_from_elements(self.elements)
         self._build_layouts(self.elements)
 
@@ -699,99 +719,62 @@ class MachineModel(ModelBase):
     def default_path(self, path: str):
         self._default_path = path
 
-    def _build_sections_from_elements(self, elements: dict) -> None:
-        """build sections from the elements if no section definition is provided"""
-        # Build a unique list of machine areas from the elements
-        areas = set()
-        for elem in elements.values():
-            area = (
-                elem.get("machine_area")
-                if isinstance(elem, dict)
-                else getattr(
-                    elem,
-                    "machine_area",
-                    None,
-                )
-            )
-            if area is not None:
-                areas.add(area)
-        areas = list(areas)
-        for area in areas:
-            # collect list of elements from this machine area
-            new_elements = [
-                x
-                for x in elements.values()
-                if (
-                    x.get("machine_area")
-                    if isinstance(x, dict)
-                    else getattr(x, "machine_area", None)
-                )
-                == area
+    def _build_sections_from_elements(self, elements):
+        by_area, by_name = self._index_elements(elements)
+
+        for area, new_elements in by_area.items():
+
+            order = [
+                e["name"] if isinstance(e, dict) else e.name
+                for e in new_elements
             ]
+
             self.sections[area] = SectionLattice(
                 name=area,
                 elements=new_elements,
-                order=[
-                    e["name"] if isinstance(e, dict) else e.name for e in new_elements
-                ],
+                order=order,
                 master_lattice=self.master_lattice,
             )
+
             if not self._section_definitions or area not in self._section_definitions:
-                self._section_definitions[area] = [
-                    e["name"] if isinstance(e, dict) else e.name for e in new_elements
-                ]
+                self._section_definitions[area] = order
+
         self.lattices = {}
 
-    def _build_layouts(self, elements: dict) -> None:
-        """build lists defining the lattice elements along each possible beam path"""
-        # build dictionary with a lattice for each beam path
+    def _build_layouts(self, elements):
+        by_area, by_name = self._index_elements(elements)
+
         if self._layouts:
             for path, areas in self._layouts.items():
-                for _area in areas:
-                    if _area in self._section_definitions:
-                        # collect list of elements from this machine area
+                for area in areas:
+                    if area in self._section_definitions:
+                        elem_names = self._section_definitions[area]
+
                         new_elements = [
-                            x
-                            for x in elements.values()
-                            if x.name in self._section_definitions[_area]
+                            by_name[name]
+                            for name in elem_names
+                            if name in by_name
                         ]
-                        try:
-                            self.sections[_area] = SectionLattice(
-                                name=_area,
-                                elements=new_elements,
-                                order=self._section_definitions[_area],
-                                master_lattice=self.master_lattice,
-                            )
-                        except KeyError:
-                            pass
-                    else:
-                        print("MachineModel", "_build_layouts", _area, "missing")
+
+                        self.sections[area] = SectionLattice(
+                            name=area,
+                            elements=new_elements,
+                            order=elem_names,
+                            master_lattice=self.master_lattice,
+                        )
+
                 self.lattices[path] = MachineLayout(
                     name=path,
                     sections={
-                        _area: self.sections[_area]
-                        for _area in areas
-                        if _area in self.sections
+                        area: self.sections[area]
+                        for area in areas
+                        if area in self.sections
                     },
                     master_lattice=self.master_lattice,
                 )
+
             if len(self.lattices) == 1 and self._default_path is None:
-                self._default_path = list(self.lattices.keys())[0]
-        else:
-            for _area, elem_names in self._section_definitions.items():
-                # collect list of elements from this machine area
-                new_elements = [
-                    x
-                    for x in elements.values()
-                    if (x.name in self._section_definitions[_area])
-                ]
-                self.sections[_area] = SectionLattice(
-                    name=_area,
-                    elements=new_elements,
-                    order=elem_names,
-                    master_lattice=self.master_lattice,
-                )
-            self.lattices = {}
+                self._default_path = next(iter(self.lattices))
 
     def get_element(self, name: str) -> baseElement:
         """

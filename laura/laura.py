@@ -18,10 +18,9 @@ from .models.element import Drift
 from .Importers.YAML_Loader import (
     read_YAML_Combined_File,
     read_YAML_Element_File,
-    interpret_YAML_Element,
-    load_elements_parallel,
 )
 import numpy as np
+import time
 
 
 def flatten(xss):
@@ -90,9 +89,8 @@ class LAURA(MachineModel):
                 # elems = load_elements_parallel(files)
         else:
             elems = self.element_list
-        for y in elems:
-            if isinstance(y, baseElement):
-                self.update({y.name: y})
+        values = {y.name: y for y in elems if isinstance(y, baseElement)}
+        self.append(values)
 
     def createDrifts(
         self, end: str = None, start: str = None, path: str = None
