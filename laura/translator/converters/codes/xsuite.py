@@ -21,12 +21,17 @@ type_conversion_rules_xsuite_reversed = (
 )
 
 
+try:
+    _FastLoader = yaml.CSafeLoader
+except AttributeError:
+    _FastLoader = yaml.SafeLoader
+
 with open(
     os.path.dirname(os.path.abspath(__file__))
     + "/../../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml",
     "r",
 ) as infile:
-    keyword_conversion_rules = yaml.safe_load(infile)
+    keyword_conversion_rules = yaml.load(infile, Loader=_FastLoader)
 
 
 class XsuiteLatticeConverter(BaseModel):

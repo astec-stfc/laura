@@ -11,6 +11,11 @@ from ...utils.functions import introspect_model_defaults
 from ...conversion_rules.codes import ocelot_conversion
 from warnings import warn
 
+try:
+    _FastLoader = yaml.CSafeLoader
+except AttributeError:
+    _FastLoader = yaml.SafeLoader
+
 type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
 
 
@@ -19,7 +24,7 @@ with open(
     + "/../../conversion_rules/keywords/keyword_conversion_rules_ocelot.yaml",
     "r",
 ) as infile:
-    keyword_conversion_rules = yaml.safe_load(infile)
+    keyword_conversion_rules = yaml.load(infile, Loader=_FastLoader)
 
 
 class OcelotLatticeImporter(BaseModel):
