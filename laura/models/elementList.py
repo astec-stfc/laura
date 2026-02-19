@@ -459,10 +459,24 @@ class MachineLayout(BaseLatticeModel):
                 ele
                 for ele in result
                 if (
-                    hasattr(ele, attrib) and getattr(ele, attrib).lower() in filter_list
+                    hasattr(ele, attrib)
+                    and self._match_field_or_alias(ele, attrib, filter_list)
                 )
             ]
         return result
+
+    @staticmethod
+    def _match_field_or_alias(ele, attrib, filter_list):
+        """Check if a field's value or its alias matches the filter list."""
+        value = getattr(ele, attrib, None)
+        if value is not None and value.lower() in filter_list:
+            return True
+        # Also check field alias for the attribute
+        field_info = type(ele).model_fields.get(attrib)
+        if field_info is not None and field_info.alias is not None:
+            if field_info.alias.lower() in filter_list:
+                return True
+        return False
 
     def get_all_elements(
         self,
@@ -743,6 +757,22 @@ class MachineModel(ModelBase):
 
     def _build_layouts(self, elements):
         by_area, by_name = self._index_elements(elements)
+
+        if self._section_definitions and not self._layouts:
+            # Sections are defined but no layouts — build sections directly
+            for area, elem_names in self._section_definitions.items():
+                new_elements = [
+                    by_name[name]
+                    for name in elem_names
+                    if name in by_name
+                ]
+                self.sections[area] = SectionLattice(
+                    name=area,
+                    elements=new_elements,
+                    order=elem_names,
+                    master_lattice=self.master_lattice,
+                )
+            return
 
         if self._layouts:
             for path, areas in self._layouts.items():

@@ -458,10 +458,10 @@ class Element(baseElement):
     simulation: SimulationElement = Field(default_factory=SimulationElement)
     """Simulation attributes of the element."""
 
-    electrical: ElectricalElement | None = None
+    electrical: ElectricalElement = Field(default_factory=ElectricalElement)
     """Electrical attributes of the element."""
 
-    manufacturer: ManufacturerElement | None = None
+    manufacturer: ManufacturerElement = Field(default_factory=ManufacturerElement)
     """Manufacturer attributes of the element."""
 
     controls: ControlsInformation | None = None

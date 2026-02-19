@@ -207,7 +207,7 @@ class PhysicalElement(IgnoreExtra):
     )
     """Middle position of the element."""
 
-    datum: Position = Field(default=0)
+    datum: Position = Field(default_factory=Position)
     """Datum."""
 
     rotation: Rotation = Rotation(theta=0, phi=0, psi=0)

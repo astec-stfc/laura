@@ -25,8 +25,8 @@ def test_rotation_operations():
         [
             np.isclose(x, y)
             for x, y in zip(
-                (r1 + r2).model_dump(),
-                Rotation(phi=0.5, psi=0.7, theta=0.9).model_dump(),
+                (r1 + r2).model_dump().values(),
+                Rotation(phi=0.5, psi=0.7, theta=0.9).model_dump().values(),
             )
         ]
     )
@@ -34,8 +34,8 @@ def test_rotation_operations():
         [
             np.isclose(x, y)
             for x, y in zip(
-                (r2 - r1).model_dump(),
-                Rotation(phi=0.3, psi=0.3, theta=0.3).model_dump(),
+                (r2 - r1).model_dump().values(),
+                Rotation(phi=0.3, psi=0.3, theta=0.3).model_dump().values(),
             )
         ]
     )
