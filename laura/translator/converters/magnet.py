@@ -299,7 +299,7 @@ class MagnetTranslator(BaseElementTranslator):
             ]
         )
         dict_ready = False
-        if self.simulation.field_definition and "momentum" in kwargs:
+        if self.simulation.field_definition and self.magnetic.gradient is not None:
             field_file_name = self.generate_field_file_name(
                 self.simulation.field_definition, code="astra"
             )
@@ -313,7 +313,7 @@ class MagnetTranslator(BaseElementTranslator):
                         [
                             "q_grad",
                             {
-                                "value": self.magnetic.gradient(kwargs["momentum"]),
+                                "value": self.magnetic.gradient,
                                 "default": None,
                             },
                         ],
