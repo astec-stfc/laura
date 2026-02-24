@@ -329,13 +329,13 @@ class MagneticElement(IgnoreExtra):
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
     """Magnetic length [m]."""
 
-    multipoles: Multipoles | None = None
+    multipoles: Multipoles | None = Multipoles()
     """Magnetic multipoles."""
 
-    systematic_multipoles: Multipoles | None = None
+    systematic_multipoles: Multipoles | None = Multipoles()
     """Systematic magnetic multipoles."""
 
-    random_multipoles: Multipoles | None = None
+    random_multipoles: Multipoles | None = Multipoles()
     """Random magnetic multipoles."""
 
     field_integral_coefficients: FieldIntegral | None = None  # FieldIntegral()
