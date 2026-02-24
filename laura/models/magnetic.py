@@ -46,7 +46,7 @@ class Multipole(BaseModel):
 
 multipoles = {
     "K" + str(no) + "L": (Multipole, Field(default=Multipole(order=no), repr=False))
-    for no in range(0, 13)
+    for no in range(0, 5)
 }
 MultipolesData = create_model("Multipoles", **multipoles)
 
@@ -63,26 +63,26 @@ class Multipoles(MultipolesData):
                 return Multipole(order=v[0], normal=v[1])
             elif len(v) == 4:
                 return Multipole(order=v[0], normal=v[1], skew=v[2], radius=v[3])
-        elif isinstance(v, (dict)):
+        elif isinstance(v, dict):
             return Multipole(**v)
-        elif isinstance(v, (Multipole)):
+        elif isinstance(v, Multipole):
             return v
         else:
             raise ValueError("Multipole should be a dict or a list of floats")
 
-    # def __str__(self):
-    #     return " ".join(
-    #         [
-    #             "K"
-    #             + str(i)
-    #             + "L=Multipole("
-    #             + getattr(self, "K" + str(i) + "L").__str__()
-    #             + ")"
-    #             for i in range(0, 13)
-    #             if abs(getattr(self, "K" + str(i) + "L").normal) > 0
-    #             or abs(getattr(self, "K" + str(i) + "L").skew) > 0
-    #         ]
-    #     )
+    def __str__(self):
+        return " ".join(
+            [
+                "K"
+                + str(i)
+                + "L=Multipole("
+                + getattr(self, "K" + str(i) + "L").__str__()
+                + ")"
+                for i in range(0, 5)
+                if abs(getattr(self, "K" + str(i) + "L").normal) > 0
+                or abs(getattr(self, "K" + str(i) + "L").skew) > 0
+            ]
+        )
 
     def __repr__(self):
         return "Multipoles(" + self.__str__() + ")"
@@ -93,7 +93,7 @@ class Multipoles(MultipolesData):
         return {
             k: getattr(self, k)
             for k in cls.model_fields.keys()
-            if abs(getattr(self, k).normal) > 0 or abs(getattr(self, k).skew) > 0
+            # if abs(getattr(self, k).normal) > 0 or abs(getattr(self, k).skew) > 0
         }
 
     def normal(self, order: int) -> Union[int, float]:
@@ -329,13 +329,13 @@ class MagneticElement(IgnoreExtra):
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
     """Magnetic length [m]."""
 
-    multipoles: Multipoles = Multipoles()
+    multipoles: Multipoles | None = None
     """Magnetic multipoles."""
 
-    systematic_multipoles: Multipoles = Multipoles()
+    systematic_multipoles: Multipoles | None = None
     """Systematic magnetic multipoles."""
 
-    random_multipoles: Multipoles = Multipoles()
+    random_multipoles: Multipoles | None = None
     """Random magnetic multipoles."""
 
     field_integral_coefficients: FieldIntegral | None = None  # FieldIntegral()
@@ -365,9 +365,6 @@ class MagneticElement(IgnoreExtra):
 
     bore: float = Field(default=0.037)
     """Magnetic bore radius [m]."""
-
-    gradient: float | None = None
-    """Magnetic gradient."""
 
     plane: str = Field(default="horizontal")
     """Magnetic field plane: 'horizontal' or 'vertical'."""
@@ -413,7 +410,7 @@ class MagneticElement(IgnoreExtra):
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
     def validate_field_integral_coefficients(
-        cls, v: Union[str, List, dict | None]
+            cls, v: Union[str, List, dict | None]
     ) -> FieldIntegral | None:
         if isinstance(v, str):
             return FieldIntegral(coefficients=list(map(float, v.split(","))))
@@ -474,18 +471,18 @@ class MagneticElement(IgnoreExtra):
     def half_gap(self) -> float:
         return self.gap / 2
 
-    # def gradient(self, momentum: float) -> float:
-    #     """
-    #     Get the magnetic field gradient for the multipole.
-    #
-    #     Args:
-    #         momentum (float): The momentum of the particle beam (in MeV/c).
-    #
-    #     Returns:
-    #         float: The magnetic field gradient.
-    #     """
-    #     Brho = 3.3356 * momentum / (1e9)
-    #     return self.kl * Brho / self.length
+    def gradient(self, momentum: float) -> float:
+        """
+        Get the magnetic field gradient for the multipole.
+
+        Args:
+            momentum (float): The momentum of the particle beam (in MeV/c).
+
+        Returns:
+            float: The magnetic field gradient.
+        """
+        Brho = 3.3356 * momentum / (1e9)
+        return self.kl * Brho / self.length
 
 
 class Dipole_Magnet(MagneticElement):
@@ -611,7 +608,7 @@ class SolenoidFields(solenoidFieldsData):
         return {
             k: getattr(self, k)
             for k in cls.model_fields.keys()
-            if abs(getattr(self, k)) > 0
+            # if abs(getattr(self, k)) > 0
         }
 
     def normal(self, order: int) -> Union[int, float]:
