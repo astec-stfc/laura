@@ -381,6 +381,9 @@ class MagneticElement(IgnoreExtra):
     fringe_field_coefficient: float = Field(default=0.0)
     """Fringe field coefficient."""
 
+    gradient: float | None = None
+    """Magnetic gradient."""
+
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)
         for k in ["kl", "data"]:
@@ -471,18 +474,18 @@ class MagneticElement(IgnoreExtra):
     def half_gap(self) -> float:
         return self.gap / 2
 
-    def gradient(self, momentum: float) -> float:
-        """
-        Get the magnetic field gradient for the multipole.
-
-        Args:
-            momentum (float): The momentum of the particle beam (in MeV/c).
-
-        Returns:
-            float: The magnetic field gradient.
-        """
-        Brho = 3.3356 * momentum / (1e9)
-        return self.kl * Brho / self.length
+    # def gradient(self, momentum: float) -> float:
+    #     """
+    #     Get the magnetic field gradient for the multipole.
+    #
+    #     Args:
+    #         momentum (float): The momentum of the particle beam (in MeV/c).
+    #
+    #     Returns:
+    #         float: The magnetic field gradient.
+    #     """
+    #     Brho = 3.3356 * momentum / (1e9)
+    #     return self.kl * Brho / self.length
 
 
 class Dipole_Magnet(MagneticElement):
