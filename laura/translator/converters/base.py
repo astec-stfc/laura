@@ -372,7 +372,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         return ""
 
-    def to_gpt(self, Brho: float = 0.0, ccs: str = "wcs", *args, **kwargs) -> str:
+    def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:
         """
         Base function for writing to GPT; this is empty since only certain elements are supported.
 

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict, Any
 from warnings import warn
 import numpy as np
@@ -164,7 +165,12 @@ class SectionLatticeTranslator(SectionLattice):
         return astrastr
 
     def to_gpt(
-        self, startz: float, endz: float, Brho: float = 0.0, dtmin: float | None = None
+            self,
+            startz: float,
+            endz: float,
+            Brho: float = 0.0,
+            dtmin: float | None = None,
+            charge_sign: int = -1,
     ) -> str:
         """
         Create a GPT-compatible input file based on the lattice information and
@@ -183,6 +189,8 @@ class SectionLatticeTranslator(SectionLattice):
             Magnetic rigidity.
         dtmin: float, optional
             Minimum time step size for integration
+        charge_sign: int, optional
+            Particle charge sign
 
         Returns
         -------
@@ -197,14 +205,16 @@ class SectionLatticeTranslator(SectionLattice):
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
                 ccs = gpt_ccs(
                     name="wcs",
-                    position=element.physical.start.model_dump(),
-                    rotation=element.physical.global_rotation.model_dump(),
+                    position=list(element.physical.start.model_dump().values()),
+                    rotation=list(element.physical.global_rotation.model_dump().values()),
                 )
-            fulltext += element.to_gpt(Brho, ccs=ccs.name)
+            element.ccs = ccs
+            fulltext += element.to_gpt(Brho, **kwargs)
             if element.hardware_type.lower() == "rfcavity" and isinstance(
                 element.simulation.wakefield_definition, field
             ):
@@ -223,19 +233,19 @@ class SectionLatticeTranslator(SectionLattice):
                     ),
                     directory=element.directory,
                 )
-                fulltext += w.to_gpt(Brho, ccs=ccs.name)
-            new_ccs = element.ccs
+                fulltext += w.to_gpt(Brho, **kwargs)
+            new_ccs = deepcopy(element.ccs)
             if not new_ccs.name == ccs.name:
                 relpos, relrot = ccs.relative_position(
-                    element.physical.middle.model_dump(),
-                    element.physical.global_rotation.model_dump(),
+                    list(element.physical.middle.model_dump().values()),
+                    list(element.physical.global_rotation.model_dump().values()),
                 )
             else:
-                relpos = element.physical.middle.model_dump()
+                relpos = list(element.physical.middle.model_dump().values())
             screen0pos = 0
-            ccs = new_ccs
-            if element.hardware_class.lower() == "diagnostic":
-                fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2])}, {ccs.name_as_str});\n'
+            ccs = deepcopy(new_ccs)
+            if element.hardware_class.lower() == "diagnostic" or element.hardware_type.lower() == "marker":
+                fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2]+0.001)}, {ccs.name_as_str});\n'
                 # if self.gpt_headers["setfile"].particle_definition == "laser":
         lastelem = list(elem_dict.values())[-1]
         lastscreen = DiagnosticTranslator(
@@ -248,13 +258,13 @@ class SectionLatticeTranslator(SectionLattice):
             ),
             physical=lastelem.physical,
         )
-        fulltext += lastscreen.to_gpt(Brho, ccs=ccs.name, output_ccs="wcs")
+        fulltext += lastscreen.to_gpt(Brho, output_ccs="wcs")
         relpos, relrot = ccs.relative_position(
-            lastelem.physical.end.model_dump(),
-            lastelem.physical.global_rotation.model_dump(),
+            list(lastelem.physical.end.model_dump().values()),
+            list(lastelem.physical.global_rotation.model_dump().values()),
         )
         fulltext += (
-            f'screen({ccs.name_as_str}, "I", {str(relpos[2])}, {ccs.name_as_str});\n'
+            f'screen("wcs", "I", {lastelem.physical.end.z}, "wcs");\n'
         )
         zminmax = gpt_Zminmax(
             ECS='"wcs", "I"',
