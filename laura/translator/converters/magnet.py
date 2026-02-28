@@ -812,7 +812,7 @@ class DipoleTranslator(BaseElementTranslator):
         field = 1.0 * self.magnetic.angle * Brho / self.magnetic.length
         if abs(field) > 0 and abs(self.rho) < 100:
             relpos, relrot = self.ccs.relative_position(
-                list(self.physical.start.model_dump().values()),
+                list(self.physical.middle.model_dump().values()),
                 list(self.physical.global_rotation.model_dump().values()),
             )
             coord = self.ccs.gpt_coordinates(
@@ -848,7 +848,7 @@ class DipoleTranslator(BaseElementTranslator):
                 + '", \"'
                 + new_ccs.name
                 + "\", "
-                + str(abs(self.magnetic.rho))
+                + str(abs(-self.magnetic.rho))
                 + ", "
                 + str(abs(field))
                 + ", "

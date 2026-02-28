@@ -28,6 +28,8 @@ elegant:
   Marker: watch
   Wakefield: wake
   Combined_Corrector: kicker
+  Horizontal_Corrector: hkick
+  Vertical_Corrector: vkick
   Wiggler: wiggler
   Laser: drift
   TwissMatch: twiss
