@@ -321,7 +321,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 properties.update({key: value})
         return self.name, obj, properties
 
-    def to_genesis(self) -> str:
+    def to_genesis(self, index: int) -> str:
         """
         Generates a string representation of the object's properties in the Genesis format.
 

@@ -53,6 +53,8 @@ genesis:
   RFDeflectingCavity: drift
   Wakefield: drift
   Wiggler: undulator
+  Diagnostic: drift
+  R56: chicane
   Scatter: drift
   Aperture: drift
   Shutter: drift

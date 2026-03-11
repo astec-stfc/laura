@@ -388,9 +388,19 @@ class SectionLatticeTranslator(SectionLattice):
         string = f"{string[:-2]})" + "\n"
         return string
 
-    def to_genesis(self) -> str:
+    def to_genesis(self, split_element: str | None = None, chicanes: Dict | None = None) -> str:
         """
         Create a Genesis-compatible input file based on the lattice information.
+
+        Parameters
+        ----------
+        split_element: str, optional
+            Name of the element at which to split the lattice into two sections for Genesis
+            (e.g., for simulating a two-stage FEL). If `None`, no split is performed.
+        chicanes: Dict, optional
+            Dictionary defining chicane parameters to be added to the lattice.
+            Keys are chicane element names, and values contain `start`, `end`, `r56`, `dipole_length`, `drift_length`,
+            with the last of these being the drift length between the first and second dipoles.
 
         Returns
         -------
@@ -404,15 +414,77 @@ class SectionLatticeTranslator(SectionLattice):
             directory=self.directory,
         )
         string = ""
+        if isinstance(chicanes, dict):
+            starts = []
+            ends = []
+            for chic in chicanes.values():
+                self.check_chicane(chic)
+                starts.append(chic["start"])
+                ends.append(chic["end"])
+            elem_dict_upd = deepcopy(elem_dict)
+            chicane = False
+            chicane_index = 1
+            chicane_done = False
+            for k, v in elem_dict.items():
+                if k in starts:
+                    chicane = True
+                    chicane_done = False
+                if not chicane:
+                    elem_dict_upd.update({k: v})
+                else:
+                    if not chicane_done:
+                        cstr = f"{chicane_index}{starts[chicane_index-1]}: CHICANE = " + "{"
+                        chicname = list(chicanes.keys())[chicane_index - 1]
+                        cstr += f"l = {chicanes[chicname]['length']}, "
+                        cstr += f"delay = {2 * chicanes[chicname]['r56']}, "
+                        cstr += f"lb = {chicanes[chicname]['dipole_length']}, "
+                        cstr += f"ld = {chicanes[chicname]['drift_length']}" + "};\n"
+                        elem_dict_upd.update({f"{starts[chicane_index-1]}": cstr})
+                        chicane_index += 1
+                        chicane_done = True
+                if k in ends:
+                    chicane = False
+            elem_dict = elem_dict_upd
 
-        for d in elem_dict.values():
-            string += d.to_genesis()
-
+        for i, d in enumerate(elem_dict.values()):
+            if isinstance(d , str):
+                string += d
+            else:
+                string += d.to_genesis(index=i)
         string += f"{self.name}: LINE = " + "{"
-        for elem in section_with_drifts.keys():
-            string += f"{elem}, "
+        for i, elem in enumerate(elem_dict.keys()):
+            if elem in starts:
+                string += f"{elem_dict[starts[starts.index(elem)]][0]}{starts[starts.index(elem)]}, "
+            else:
+                string += f"{i}{elem}, "
         string = f"{string[:-2]}" + "};\n"
+        if isinstance(split_element, str):
+            if split_element in elem_dict.keys():
+                string += f"{self.name}_SPLIT_1: LINE = " + "{"
+                for i, elem in enumerate(elem_dict.keys()):
+                    if elem == split_element:
+                        break
+                    else:
+                        if elem in starts:
+                            string += f"{elem_dict[starts[starts.index(elem)]][0]}{starts[starts.index(elem)]}, "
+                        else:
+                            string += f"{i}{elem}, "
+                string = f"{string[:-2]}" + "};\n"
+                string += f"{self.name}_SPLIT_2: LINE = " + "{"
+                add = False
+                for i, elem in enumerate(elem_dict.keys()):
+                    if elem == split_element:
+                        add = True
+                    if add:
+                        if elem in starts:
+                            string += f"{elem_dict[starts[starts.index(elem)]][0]}{starts[starts.index(elem)]}, "
+                        else:
+                            string += f"{i}{elem}, "
+                string = f"{string[:-2]}" + "};\n"
+            else:
+                warn(f"Element {split_element} not found in section {self.name} for GENESIS split.")
         return string
+
 
     def to_ocelot(self, save=False) -> "MagneticLattice":
         """

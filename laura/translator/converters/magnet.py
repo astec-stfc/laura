@@ -1211,7 +1211,7 @@ class WigglerTranslator(BaseElementTranslator):
     simulation: MagnetSimulationElement
     """Wiggler simulation element."""
 
-    def to_genesis(self) -> str:
+    def to_genesis(self, index: int) -> str:
         """
         Generates a string representation of the object's properties in the Genesis format.
 
@@ -1224,15 +1224,15 @@ class WigglerTranslator(BaseElementTranslator):
         wholestring = ""
         etype = self._convertType_Genesis(self.hardware_type)
         if "mark" in etype.lower():
-            return f"{self.name}: {etype} = " + "{};\n"
-        string = f"{self.name}: {etype} = " + "{"
+            return f"{index}{self.name}: {etype} = " + "{};\n"
+        string = f"{index}{self.name}: {etype} = " + "{"
         keys = []
         for key, value in self.full_dump().items():
             if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convertKeyword_Genesis(key) in elements_Genesis[etype]
+                    not key == "name"
+                    and not key == "type"
+                    and not key == "commandtype"
+                    and self._convertKeyword_Genesis(key) in elements_Genesis[etype]
             ):
                 if value is not None:
                     key = self._convertKeyword_Genesis(key)
@@ -1241,10 +1241,11 @@ class WigglerTranslator(BaseElementTranslator):
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
-                        string += key + " = " + str(value) + ", "
+                        string += key + " = " + str(value) + ', '
                     keys.append(key)
         wholestring += string[:-2] + "};\n"
         return wholestring
+
 
 
 class NonLinearLensTranslator(BaseElementTranslator):
