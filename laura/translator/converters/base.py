@@ -334,8 +334,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring = ""
         etype = self._convertType_Genesis(self.hardware_type)
         if "mark" in etype.lower():
-            return f"{self.name}: {etype} = " + "{dumpbeam = 1};\n"
-        string = f"{self.name}: {etype} = " + "{"
+            return f"{index}{self.name}: {etype} = " + "{dumpbeam = 1};\n"
+        string = f"{index}{self.name}: {etype} = " + "{"
         keys = []
         for key, value in self.full_dump().items():
             if (
