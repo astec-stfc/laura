@@ -155,7 +155,7 @@ class XsuiteLatticeConverter(BaseModel):
             el = self.line.elements[i]
             # try several common attribute names for angle (xtrack names vary)
             L = getattr(el, "length", getattr(el, "L", 0.0))
-            theta = getattr(el, "angle", getattr(el, "bending_angle", 0.0))
+            theta = -getattr(el, "angle", getattr(el, "bending_angle", 0.0))
             tilt = getattr(el, "tilt", getattr(el, "rot_s_rad", 0.0))
             P0 = np.array([survey["x"], survey["y"], survey["z"]])
             R0 = self.rotation_matrix_from_survey(survey)
@@ -265,7 +265,7 @@ class XsuiteLatticeConverter(BaseModel):
                                 newobj["magnetic"].update({name: getattr(v, name)})
                                 if name == "angle":
                                     newobj["magnetic"]["kl"] = (
-                                        newobj["magnetic"]["kl"] * -1
+                                        newobj["magnetic"]["kl"]# * -1
                                     )
                                 newobj["hardware_class"] = "Magnet"
                             if name in ["ks"]:

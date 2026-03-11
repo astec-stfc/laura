@@ -818,7 +818,8 @@ class DipoleTranslator(BaseElementTranslator):
             coord = self.ccs.gpt_coordinates(
                 relpos,
                 angle=self.magnetic.angle,
-                tilt=self.magnetic.tilt
+                tilt=self.magnetic.tilt,
+                intersect=self.dipole_intersect,
             )
             new_ccs = self.new_ccs(self.ccs)
             b1 = np.round(
@@ -866,6 +867,10 @@ class DipoleTranslator(BaseElementTranslator):
             output = ""
         return output
 
+    @property
+    def dipole_intersect(self):
+        return self.magnetic.length * np.tan(0.5 * self.magnetic.angle) / self.magnetic.angle
+
     def new_ccs(self, ccs: gpt_ccs) -> gpt_ccs:
         """
         Create a new GPT co-ordinate system based on the angle of the magnet.
@@ -883,18 +888,18 @@ class DipoleTranslator(BaseElementTranslator):
             New GPT co-ordinate system.
         """
         if abs(self.magnetic.angle) > 0 and abs(self.magnetic.rho) < 100:
-            # print('Creating new CCS')
+            print('Creating new CCS')
             number = str(int(ccs.name.split("_")[1]) + 1) if ccs.name != "wcs" else "1"
             name = "ccs_" + number if ccs.name != "wcs" else "ccs_1"
-            # print('middle position = ', self.start, self.middle)
+            print('middle position = ', self.start, self.middle, "intersect = ", self.dipole_intersect)
             return gpt_ccs(
                 name=name,
                 position=list(self.physical.middle.model_dump().values()),
                 rotation=list(
                     list(self.physical.global_rotation.model_dump().values())
-                    + np.array([0, 0, -self.magnetic.angle])
+                    + np.array([0, 0, self.magnetic.angle])
                 ),
-                intersect=0 * abs(self.intersect),
+                intersect=abs(self.dipole_intersect),
             )
         else:
             return ccs

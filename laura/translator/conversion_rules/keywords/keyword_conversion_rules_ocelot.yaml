@@ -17,6 +17,7 @@ general:
   current_bins: n_bins
   lsc_enable: lsc
   tilt_angle: tilt
+  tilt: tilt
 dipole:
   isr_enable: isr
   sr_enable: synch_rad

@@ -150,6 +150,7 @@ class gpt_ccs(BaseModel):
         length = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2 + (z - self.z) ** 2)
         finalrot = np.array([pitch - self.psi, yaw - self.phi, roll - self.theta])
         finalpos = np.array([0, 0, abs(self.intersect) + length])
+        print("bef", np.array([0, 0, abs(0) + length]), "aft", finalpos, "intersect", self.intersect)
         return finalpos, finalrot
 
     @property
@@ -171,15 +172,15 @@ class gpt_ccs(BaseModel):
         if abs(z) > 0:
             ccs_label += "z"
             value_text += "," + str(z)
-        if abs(psi) > 0:
-            ccs_label += "X"
-            value_text += "," + str(psi)
-        if abs(phi) > 0:
-            ccs_label += "Y"
-            value_text += "," + str(phi)
-        if abs(theta) > 0:
-            ccs_label += "Z"
-            value_text += "," + str(theta)
+        # if abs(psi) > 0:
+        #     ccs_label += "X"
+        #     value_text += "," + str(psi)
+        # if abs(phi) > 0:
+        #     ccs_label += "Y"
+        #     value_text += "," + str(phi)
+        # if abs(theta) > 0:
+        #     ccs_label += "Z"
+        #     value_text += "," + str(theta)
         if ccs_label == "" and value_text == "":
             ccs_label = "z"
             value_text = "," + str(0)
@@ -190,6 +191,7 @@ class gpt_ccs(BaseModel):
             position: list | np.ndarray,
             angle: float = 0.0,
             tilt: float = 0.0,
+            intersect: float = 0.0
     ) -> str:
         """
         Get the GPT coordinates for a given position and rotation
@@ -206,14 +208,16 @@ class gpt_ccs(BaseModel):
         str
             A GPT-formatted position string.
         """
+        self.intersect = intersect
         x, y, z = chop(position, 1e-6)
         output = ""
+        z += self.intersect
         for c in [-x, y, z]:
             output += str(c) + ", "
         if np.isclose(tilt, np.pi/2):
-            output += f"0, cos({angle}), -sin({angle}), -sin({tilt}), cos({tilt}) ,0"
+            output += f"0, cos({-angle}), -sin({-angle}), -sin({tilt}), cos({tilt}) ,0"
         else:
-            output += f"cos({angle}), 0, -sin({angle}), -sin({tilt}), cos({tilt}) ,0"
+            output += f"cos({-angle}), 0, -sin({-angle}), -sin({tilt}), cos({tilt}) ,0"
         return output
 
 

@@ -855,17 +855,17 @@ class BaseElementTranslator(PhysicalBaseElement):
     @computed_field
     @property
     def x_rot(self) -> float:
-        return self.physical.rotation.theta
+        return self.physical.global_rotation.theta
 
     @computed_field
     @property
     def y_rot(self) -> float:
-        return self.physical.rotation.phi
+        return self.physical.global_rotation.phi
 
     @computed_field
     @property
     def z_rot(self) -> float:
-        return self.physical.rotation.psi
+        return self.physical.global_rotation.psi
 
     @computed_field
     @property
