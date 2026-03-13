@@ -43,6 +43,17 @@ class Bunch_Length_Monitor_Diagnostic(DiagnosticElement):
     """BLM type"""
 
 
+class Photon_Intensity_Monitor_Diagnostic(DiagnosticElement):
+    """
+    Photon Intensity Monitor Diagnostic model.
+    """
+
+    type: str = Field(alias="intensity_monitor_type", default="I0")
+    """Photon Intensity Monitor type"""
+
+    intensity: float = 0.0
+
+
 class Camera_Pixel_Results_Indices(IgnoreExtra):
     """
     Class defining the names of analysis results for the camera pixel data

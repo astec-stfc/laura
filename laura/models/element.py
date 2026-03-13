@@ -38,6 +38,7 @@ from .diagnostic import (
     Camera_Diagnostic,
     Screen_Diagnostic,
     Charge_Diagnostic,
+    Photon_Intensity_Monitor_Diagnostic,
 )
 from .laser import (
     LaserElement,
@@ -884,6 +885,31 @@ class Bunch_Length_Monitor(Diagnostic):
         default_factory=Bunch_Length_Monitor_Diagnostic
     )
     """Diagnostic attributes of the BLM."""
+
+
+class Photon_Monitor(Diagnostic):
+    """
+    Photon monitor element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the diagnostic.
+        hardware_model (str): The specific hardware model of the diagnostic.
+        intensity: (:class:`~laura.models.diagnostic.Photon_Intensity_Monitor_Diagnostic`): The diagnostic
+        attributes of the intensity monitor.
+    """
+
+    hardware_type: str = Field(
+        default="Photon_Monitor", frozen=True,
+    )
+    """Photon monitor hardware type."""
+
+    hardware_model: str = Field(default="Photon_Monitor", frozen=True)
+    """Photon monitor hardware model."""
+
+    intensity: Photon_Intensity_Monitor_Diagnostic = Field(
+        default_factory=Photon_Intensity_Monitor_Diagnostic
+    )
+    """Diagnostic attributes of the intensity monitor."""
 
 
 class Camera(Diagnostic):

@@ -32,6 +32,7 @@ elegant:
   Laser: drift
   TwissMatch: twiss
   Plasma: drift
+  Photon_Monitor: moni
 genesis:
   Dipole: drift
   Quadrupole: quadrupole
@@ -71,6 +72,7 @@ genesis:
   Plasma: drift
   TwissMatch: drift
   Laser: drift
+  Photon_Monitor: marker
 opal:
   Dipole: rbend
   Quadrupole: quadrupole
@@ -97,6 +99,7 @@ opal:
   Laser: drift
   Aperture: monitor
   Marker: monitor
+  Photon_Monitor: monitor
 name:
   dia-bpm: beam_position_monitor
   dia-bam: beam_arrival_monitor
