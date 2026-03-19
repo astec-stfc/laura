@@ -145,6 +145,7 @@ class astra_newrun(astra_header):
         "global_parameters",
         "particle_definition",
         "output_particle_definition",
+        "twiss",
     ]
 
     def model_post_init(self, context: Any, /) -> None:
