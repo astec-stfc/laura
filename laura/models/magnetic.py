@@ -10,7 +10,7 @@ from pydantic import (
     NonNegativeFloat,
     computed_field,
 )
-from typing import Dict, Any, List, Union
+from typing import ClassVar, Dict, Any, List, Union
 from .baseModels import IgnoreExtra, T
 
 
@@ -166,6 +166,11 @@ class LinearSaturationFit(BaseModel):
     Linear + saturation fit coefficients model.
     """
 
+    # Ordered list of calibration coefficient field names — used by
+    # from_string / update_from_string so that the non-calibration `order`
+    # field is never interpreted as a coefficient.
+    _COEFF_KEYS: ClassVar[list] = ["m", "I_max", "f", "a", "I0", "d", "L"]
+
     m: float = 0
     I_max: NonNegativeFloat = 0
     f: float = 0
@@ -173,34 +178,36 @@ class LinearSaturationFit(BaseModel):
     I0: float = 0
     d: float = 0
     L: NonNegativeFloat = 0
+    # Magnet order (0 = dipole/corrector, 1 = quadrupole, …).
+    # Set by MagneticElement after construction; excluded from serialisation.
+    order: int = Field(default=1, exclude=True)
 
     @property
     def coefficients(self) -> List[Union[int, float]]:
-        return [self.m, self.I_max, self.f, self.a, self.I0, self.d, self.L]
+        return [getattr(self, k) for k in self._COEFF_KEYS]
 
     @classmethod
     def from_string(cls, v: Union[str, List]) -> T:
         if isinstance(v, str):
             coeff_list = list(map(float, v.strip().split(",")))
-            assert len(coeff_list) == len(cls.model_fields.keys())
-            return cls(**{k: v for k, v in zip(cls.model_fields.keys(), coeff_list)})
+            assert len(coeff_list) == len(cls._COEFF_KEYS)
+            return cls(**{k: v for k, v in zip(cls._COEFF_KEYS, coeff_list)})
         elif isinstance(v, (list, tuple)):
-            assert len(v) == len(cls.model_fields.keys())
-            return cls(**{k: v for k, v in zip(cls.model_fields.keys(), v)})
+            assert len(v) == len(cls._COEFF_KEYS)
+            return cls(**{k: v for k, v in zip(cls._COEFF_KEYS, v)})
         else:
             raise ValueError(
                 "LinearSaturationFit should be a string or a list of floats"
             )
 
     def update_from_string(self, v: Union[str, List]) -> None:
-        cls = self.__class__
         if isinstance(v, str):
             coeff_list = list(map(float, v.strip().split(",")))
-            assert len(coeff_list) == len(cls.model_fields.keys())
-            [setattr(self, k, v) for k, v in zip(cls.model_fields.keys(), coeff_list)]
+            assert len(coeff_list) == len(self._COEFF_KEYS)
+            [setattr(self, k, v) for k, v in zip(self._COEFF_KEYS, coeff_list)]
         elif isinstance(v, (list, tuple)):
-            assert len(v) == len(cls.model_fields.keys())
-            [setattr(self, k, v) for k, v in zip(cls.model_fields.keys(), v)]
+            assert len(v) == len(self._COEFF_KEYS)
+            [setattr(self, k, v) for k, v in zip(self._COEFF_KEYS, v)]
 
     def currentToK(self, current: float, momentum: float | None = None) -> Dict:
         """
@@ -223,16 +230,20 @@ class LinearSaturationFit(BaseModel):
         """
         abs_I = abs(current)
         m, I_max, f, a, I0, d, L = list(self.coefficients)
+        L = 1e-3 * L
         int_strength = (
             m * current
-            if abs_I < I_max
+            if I_max == 0 or abs_I < I_max
             else np.copysign((f * abs_I**3 + a * (abs_I - I0) ** 2 + d), current)
-        ) / 1000
+        )
         gradient = int_strength / L
         if momentum is not None:
-            KL = 1 * (speed_of_light / 1e6) * int_strength / momentum
+            # order-0 (dipoles/correctors): m in mT·m/A → scale c/1e9
+            # order-1+ (quadrupoles etc.): m in T/A      → scale c/1e6
+            scale = 1e9 if self.order == 0 else 1e6
+            KL = (speed_of_light / scale) * int_strength / momentum
             return {
-                "K": KL * 1000 / L,
+                "K": KL / L,
                 "KL": KL,
                 "gradient": gradient,
                 "int_strength": int_strength,
@@ -289,13 +300,17 @@ class LinearSaturationFit(BaseModel):
                 K = K["KL"] / (L / 1000)
             else:
                 raise ValueError(f"K value not found in the dictionary {K}")
-        int_strength = 1e6 * K * L * momentum / speed_of_light
+        # Inverse of currentToK scale: order-0 uses 1e9, order-1+ uses 1e6
+        scale = 1e9 if self.order == 0 else 1e6
+        int_strength = scale * K * L * momentum / (speed_of_light)
+        int_strength *= 1e-3  # L is in mm, convert K·L_m back to int_strength units
         abs_str = abs(int_strength)
         linear_current = int_strength / m
-        if abs(linear_current) < I_max:
+        if I_max == 0 or abs(linear_current) < I_max:
             return linear_current
         elif f == 0:
-            return I0 - Sqrt((abs_str - d) / a)
+            abs_current = I0 - Sqrt((abs_str - d) / a)
+            return np.sign(K) * abs_current
         else:
             p = (-6 * f * a * I0 - a**2) / (3 * f**2)
             q = (
@@ -311,7 +326,7 @@ class LinearSaturationFit(BaseModel):
 
     def __iter__(self) -> iter:
         return iter(
-            [getattr(self, k) for k in ["m", "I_max", "f", "a", "I0", "d", "L"]]
+            [getattr(self, k) for k in self._COEFF_KEYS]
         )
 
 
@@ -383,9 +398,22 @@ class MagneticElement(IgnoreExtra):
 
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)
-        for k in ["kl", "data"]:
-            if k in data:
-                self.kl = data["kl"]
+        # Propagate the magnet order into the calibration fit so that
+        # currentToK / KToCurrent can apply the correct unit convention.
+        if self.linear_saturation_coefficients is not None:
+            self.linear_saturation_coefficients.order = self.order
+        # Auto-create multipoles if strength data is provided but multipoles is None
+        needs_multipoles = any(
+            k in data for k in ["kl", "angle", "k0l", "k1l", "k2l", "k3l"]
+        )
+        if self.multipoles is None and needs_multipoles:
+            object.__setattr__(self, "multipoles", Multipoles())
+        if "kl" in data:
+            self.kl = data["kl"]
+        if "angle" in data and self.order == 0:
+            self.kl = data["angle"]
+        if self.multipoles is not None:
+            if "kl" in data or "angle" in data:
                 if self.skew:
                     setattr(
                         self.multipoles,
@@ -398,14 +426,13 @@ class MagneticElement(IgnoreExtra):
                         "K" + str(self.order) + "L",
                         Multipole(normal=self.kl, order=self.order),
                     )
-        for i in range(0, 9):
-            if f"k{i}l" in data:
-                # print('k1l', data['k1l'])
-                setattr(
-                    self.multipoles,
-                    f"K{i}L",
-                    Multipole(normal=data[f"k{i}l"], order=i),
-                )
+            for i in range(0, 5):
+                if f"k{i}l" in data:
+                    setattr(
+                        self.multipoles,
+                        f"K{i}L",
+                        Multipole(normal=data[f"k{i}l"], order=i),
+                    )
 
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
@@ -438,6 +465,8 @@ class MagneticElement(IgnoreExtra):
         Returns:
             Union[int, float]: The integrated strength (KnL) of the multipole.
         """
+        if self.multipoles is None:
+            return 0
         f = self.multipoles.skew if self.skew else self.multipoles.normal
         order = self.order if order is None else order
         return f(order) if order >= 0 else 0
@@ -460,7 +489,8 @@ class MagneticElement(IgnoreExtra):
 
     @kl.setter
     def kl(self, kl: float = 0) -> None:
-        # print('kl called!', getattr(self.multipoles, 'K'+str(self.order)+'L'))
+        if self.multipoles is None:
+            object.__setattr__(self, "multipoles", Multipoles())
         setattr(getattr(self.multipoles, "K" + str(self.order) + "L"), "normal", kl)
         setattr(
             getattr(self.multipoles, "K" + str(self.order) + "L"), "order", self.order
@@ -484,6 +514,15 @@ class MagneticElement(IgnoreExtra):
         Brho = 3.3356 * momentum / (1e9)
         return self.kl * Brho / self.length
 
+    def currentToK(self, *args, **kwargs):
+        return self.linear_saturation_coefficients.currentToK(*args, **kwargs)
+
+    def KToCurrent(self, *args, **kwargs):
+        return self.linear_saturation_coefficients.KToCurrent(*args, **kwargs)
+
+    def KLToCurrent(self, *args, **kwargs):
+        return self.linear_saturation_coefficients.KLToCurrent(*args, **kwargs)
+
 
 class Dipole_Magnet(MagneticElement):
     """
@@ -499,7 +538,26 @@ class Dipole_Magnet(MagneticElement):
 
     @angle.setter
     def angle(self, value: float) -> None:
+        if self.multipoles is None:
+            object.__setattr__(self, "multipoles", Multipoles())
         self.multipoles.K0L.normal = value
+
+    def currentToAngle(self, current: float, momentum: float) -> float:
+        """Convert current to bend angle in degrees."""
+        output_dict = self.linear_saturation_coefficients.currentToK(
+            current=current, momentum=momentum
+        )
+        return output_dict["KL"] * 360 / (2.0 * np.pi) / 1000
+
+    def currentToK(self, *args, **kwargs):
+        output_dict = {
+            k: v / 1000
+            for k, v in self.linear_saturation_coefficients.currentToK(
+                *args, **kwargs
+            ).items()
+        }
+        output_dict.update({"degrees": output_dict["KL"] * 360 / (2.0 * np.pi)})
+        return output_dict
 
     @computed_field
     @property

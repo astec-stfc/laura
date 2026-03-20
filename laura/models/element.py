@@ -563,7 +563,9 @@ class Magnet(PhysicalBaseElement):
         """
         Rotation of the magnet based on its bending angle.
         """
-        return Rotation.from_list([0, 0, self.magnetic.angle])
+        if self.magnetic is not None and hasattr(self.magnetic, 'angle'):
+            return Rotation.from_list([0, 0, self.magnetic.angle])
+        return Rotation.from_list([0, 0, 0])
 
     @property
     def end_angle(self) -> float:

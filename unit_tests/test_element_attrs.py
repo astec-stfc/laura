@@ -324,9 +324,8 @@ class TestCascading:
         # bend_angle is a property of Magnet reading magnetic.angle
         assert d.bend_angle.theta == pytest.approx(0.05)
 
-    def test_quadrupole_bend_angle_raises(self):
+    def test_quadrupole_bend_angle_zero(self):
         q = make_quad()
         # Quadrupole_Magnet has no angle property, so bend_angle
-        # (which reads self.magnetic.angle) raises AttributeError
-        with pytest.raises(AttributeError):
-            _ = q.bend_angle
+        # returns zero rotation (no bending).
+        assert q.bend_angle == Rotation.from_list([0, 0, 0])
