@@ -153,6 +153,9 @@ class ControlVariable(BaseModel):
         value = eval_expr(self.expression, context)
         set_attr_by_path(element, self.target, value)
 
+    def __str__(self) -> str:
+        return self.identifier
+
 
 class ControlsInformation(BaseModel):
     """
@@ -167,6 +170,17 @@ class ControlsInformation(BaseModel):
         extra="allow",
         frozen=True,
     )
+
+    def __getattr__(self, name: str) -> ControlVariable:
+        try:
+            variables = self.__dict__["variables"]
+        except KeyError:
+            raise AttributeError(name)
+        if name in variables:
+            return variables[name]
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
 
     @field_validator("variables", mode="before")
     def validate_variables(cls, v) -> Dict[str, ControlVariable]:
