@@ -236,14 +236,14 @@ class LinearSaturationFit(BaseModel):
             if I_max == 0 or abs_I < I_max
             else np.copysign((f * abs_I**3 + a * (abs_I - I0) ** 2 + d), current)
         )
-        gradient = int_strength / L
+        gradient = int_strength / L if L != 0 else 0.0
         if momentum is not None:
             # order-0 (dipoles/correctors): m in mT·m/A → scale c/1e9
             # order-1+ (quadrupoles etc.): m in T/A      → scale c/1e6
             scale = 1e9 if self.order == 0 else 1e6
             KL = (speed_of_light / scale) * int_strength / momentum
             return {
-                "K": KL / L,
+                "K": KL / L if L != 0 else 0.0,
                 "KL": KL,
                 "gradient": gradient,
                 "int_strength": int_strength,
@@ -274,7 +274,8 @@ class LinearSaturationFit(BaseModel):
                 KL = KL["KL"]
             elif "K" in KL:
                 KL = KL["K"] * L / 1000
-        return self.KToCurrent(KL / (L / 1000), momentum)
+        K = KL / (L / 1000) if L != 0 else 0.0
+        return self.KToCurrent(K, momentum)
 
     def KToCurrent(self, K: float | dict, momentum: float) -> float:
         """
@@ -297,7 +298,7 @@ class LinearSaturationFit(BaseModel):
             if "K" in K:
                 K = K["K"]
             elif "KL" in K:
-                K = K["KL"] / (L / 1000)
+                K = K["KL"] / (L / 1000) if L != 0 else 0.0
             else:
                 raise ValueError(f"K value not found in the dictionary {K}")
         # Inverse of currentToK scale: order-0 uses 1e9, order-1+ uses 1e6
