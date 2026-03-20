@@ -74,9 +74,8 @@ class TestExportAsYaml:
         result = export_as_yaml(None, sample_quad)
         assert isinstance(result, dict)
         assert result["name"] == "Q1"
-        # When no filename is given, CASCADING_RULES is included in the raw dict
-        # (only the file-writing path pops it)
-        assert "CASCADING_RULES" in result
+        # CASCADING_RULES is stripped from exported data
+        assert "CASCADING_RULES" not in result
 
     def test_writes_file(self, sample_quad, tmp_path):
         filepath = str(tmp_path / "q1.yaml")

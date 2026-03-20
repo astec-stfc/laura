@@ -58,4 +58,3 @@ def add_magnet_table_parameters(n, e, magnetPV):
         e.electrical.minI = -1.0 * ceil(I_degauss)
     except Exception:
         print("Magnet missing from magnet table!", magnet)
-    return e

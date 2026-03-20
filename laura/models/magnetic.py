@@ -93,7 +93,7 @@ class Multipoles(MultipolesData):
         return {
             k: getattr(self, k)
             for k in cls.model_fields.keys()
-            # if abs(getattr(self, k).normal) > 0 or abs(getattr(self, k).skew) > 0
+            if abs(getattr(self, k).normal) > 0 or abs(getattr(self, k).skew) > 0
         }
 
     def normal(self, order: int) -> Union[int, float]:

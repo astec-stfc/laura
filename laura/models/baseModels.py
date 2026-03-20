@@ -68,8 +68,24 @@ def convert_numpy_types(v: Any) -> Any:
 class ModelBase(BaseModel):
     """Base Model that ignores extra fields."""
 
-    def base_model_dump(self) -> dict:
-        return convert_numpy_types(self.model_dump(exclude_none=True))
+    def __eq__(self, other):
+        """Equality that gracefully handles numpy arrays in private attributes."""
+        try:
+            return super().__eq__(other)
+        except (ValueError, TypeError):
+            # Fallback: compare serialised forms when private-attribute
+            # comparison fails (e.g. numpy arrays).
+            if not isinstance(other, BaseModel):
+                return NotImplemented
+            return self.model_dump() == other.model_dump()
+
+    def __hash__(self):
+        return id(self)
+
+    def base_model_dump(self, exclude_defaults: bool = False) -> dict:
+        return convert_numpy_types(
+            self.model_dump(exclude_none=True, exclude_defaults=exclude_defaults)
+        )
 
 
 class IgnoreExtra(ModelBase):

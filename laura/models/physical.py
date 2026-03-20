@@ -129,17 +129,15 @@ class ElementError(IgnoreExtra):
         elif isinstance(v, Position):
             return v
         elif isinstance(v, dict):
-            keys = list(v.keys())
-            values = list(v.values())
-            if (
-                all([x in keys for x in ["x", "y", "z"]])
-                and all([type(val) == float for val in values])
-                and len(keys) == 3
-            ):
-                return Position(**v)
+            if all(k in ("x", "y", "z") for k in v):
+                return Position(
+                    x=float(v.get("x", 0.0)),
+                    y=float(v.get("y", 0.0)),
+                    z=float(v.get("z", 0.0)),
+                )
             else:
                 raise ValueError(
-                    "setting middle as dictionary must include x, y, z as floats"
+                    "setting position as dictionary must include x, y, z as floats"
                 )
 
         else:
@@ -153,17 +151,15 @@ class ElementError(IgnoreExtra):
         elif isinstance(v, Rotation):
             return v
         elif isinstance(v, dict):
-            keys = list(v.keys())
-            values = list(v.values())
-            if (
-                all([x in keys for x in ["phi", "psi", "theta"]])
-                and all([type(val) == float for val in values])
-                and len(keys) == 3
-            ):
-                return Rotation(**v)
+            if all(k in ("phi", "psi", "theta") for k in v):
+                return Rotation(
+                    phi=float(v.get("phi", 0.0)),
+                    psi=float(v.get("psi", 0.0)),
+                    theta=float(v.get("theta", 0.0)),
+                )
             else:
                 raise ValueError(
-                    "setting rotation as dictionary must include x, y, z as floats"
+                    "setting rotation as dictionary must include phi, psi, theta as floats"
                 )
 
         else:
@@ -275,14 +271,12 @@ class PhysicalElement(IgnoreExtra):
         elif isinstance(v, Position):
             return v
         elif isinstance(v, dict):
-            keys = list(v.keys())
-            values = list(v.values())
-            if (
-                all([x in keys for x in ["x", "y", "z"]])
-                and all([type(val) == float for val in values])
-                and len(keys) == 3
-            ):
-                return Position(**v)
+            if all(k in ("x", "y", "z") for k in v):
+                return Position(
+                    x=float(v.get("x", 0.0)),
+                    y=float(v.get("y", 0.0)),
+                    z=float(v.get("z", 0.0)),
+                )
             else:
                 raise ValueError(
                     "setting middle as dictionary must include x, y, z as floats"
@@ -302,17 +296,15 @@ class PhysicalElement(IgnoreExtra):
         elif isinstance(v, Rotation):
             return v
         elif isinstance(v, dict):
-            keys = list(v.keys())
-            values = list(v.values())
-            if (
-                all([x in keys for x in ["phi", "psi", "theta"]])
-                and all([type(val) == float for val in values])
-                and len(keys) == 3
-            ):
-                return Rotation(**v)
+            if all(k in ("phi", "psi", "theta") for k in v):
+                return Rotation(
+                    phi=float(v.get("phi", 0.0)),
+                    psi=float(v.get("psi", 0.0)),
+                    theta=float(v.get("theta", 0.0)),
+                )
             else:
                 raise ValueError(
-                    "setting rotation as dictionary must include x, y, z as floats"
+                    "setting rotation as dictionary must include phi, psi, theta as floats"
                 )
 
         else:
