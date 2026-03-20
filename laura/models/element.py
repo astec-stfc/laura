@@ -1002,8 +1002,8 @@ class Stage(PhysicalBaseElement):
     Moveable stage element.
 
     Attributes:
-        hardware_type (str): The hardware type of the gauge.
-        hardware_model (str): The hardware model of the gauge.
+        hardware_type (str): The hardware type of the stage.
+        hardware_model (str): The hardware model of the stage.
     """
 
     hardware_type: str = Field(default="Stage", frozen=True)
@@ -1355,7 +1355,7 @@ class RFHeartbeat(Element):
     """RF heartbeat system attributes."""
 
 
-class Shutter(PhysicalBaseElement):
+class Shutter(Element):
     """
     Shutter element.
 

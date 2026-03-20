@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.constants import pi, c, e, m_e, epsilon_0
+from laura.models.constants import pi, c, e, m_e, epsilon_0
 from typing import Any
 from warnings import warn
 from .base import BaseElementTranslator

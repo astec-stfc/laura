@@ -1,7 +1,7 @@
 from pydantic import Field, computed_field
 from typing import Type, Union, Literal
 from warnings import warn
-from scipy.constants import pi, c, e, m_e, epsilon_0
+from .constants import pi, c, e, m_e, epsilon_0
 import numpy as np
 
 from .baseModels import IgnoreExtra, T

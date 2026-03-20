@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.constants import speed_of_light, pi
+from .constants import speed_of_light, pi
 from pydantic import (
     BaseModel,
     model_serializer,

@@ -1,4 +1,5 @@
 from typing import Dict, Any
+from textwrap import wrap
 from laura.models.elementList import MachineLayout
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
@@ -43,13 +44,14 @@ class MachineLayoutTranslator(MachineLayout):
             for d in elem_dict.values():
                 string += d.to_elegant()
 
-            string += f"\n{section.name}: LINE = ("
+            lstring = f"\n{section.name}: LINE = ("
             if charge:
-                string += f"{section.name}_Q, "
+                lstring += f"{section.name}_Q, "
             for elem in section_with_drifts.keys():
-                string += f"{elem}, "
-            string = f"{string[:-2]})" + "\n\n\n"
-        return string
+                lstring += f"{elem}, "
+            lstring = f"{lstring[:-2]})" + "\n\n\n"
+        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
+        return string + lstring
 
     def to_genesis(self, string: str = "") -> str:
         for section in self.sections.values():

@@ -80,17 +80,17 @@ class ElementList(ModelBase):
     A container for an unordered dictionary of :class:`~laura.models.element.baseElement`.
     """
 
-    elements: Dict[str, Union[baseElement, None]]
+    elements: Dict[str, Union[baseElement, dict, None]]
 
     def __str__(self):
-        return str([e.name for e in self.elements.values()])
+        return str([e["name"] if isinstance(e, dict) else e.name for e in self.elements.values()])
 
     def __getitem__(self, item: str) -> int:
         return self.elements[item]
 
     @property
     def names(self) -> list:
-        return [e.name for e in self.elements.values()]
+        return [e["name"] if isinstance(e, dict) else e.name for e in self.elements.values()]
 
     def index(self, element: Union[str, baseElement]):
         if isinstance(element, str):
@@ -138,17 +138,24 @@ class SectionLattice(BaseLatticeModel):
     @field_validator("elements", mode="before")
     @classmethod
     def validate_elements(
-        cls, elements: Union[List[baseElement], ElementList], info: ValidationInfo
+        cls, elements: Union[List[Union[baseElement, dict]], ElementList], info: ValidationInfo
     ) -> ElementList:
         if isinstance(elements, list):
-            elemdict = {e.name: e for e in elements}
+            elemdict = {}
+            for e in elements:
+                if isinstance(e, dict):
+                    nm = e.get("name")
+                else:
+                    nm = e.name
+                if nm:
+                    elemdict[nm] = e
+
             # print([e for e in info.data['order'] if e not in elemdict.keys()])
             return ElementList(
                 elements={
                     e: elemdict[e] for e in info.data["order"] if e in elemdict.keys()
                 }
             )
-        assert isinstance(elements, ElementList)
         return elements
 
     #
@@ -335,8 +342,14 @@ class MachineLayout(BaseLatticeModel):
         all_elems = [item for row in matrix for item in row]
         if len(all_elems) > 0:
             all_elems_reversed = reversed(all_elems)
-            superelem = all_elems[-1].name
-            start_pos = all_elems[-1].physical.start
+            last_elem = all_elems[-1]
+            if isinstance(last_elem, dict):
+                superelem = last_elem.get("name")
+                # Skip geometry correction for stub dicts
+                return
+            
+            superelem = last_elem.name
+            start_pos = last_elem.physical.start
             all_elem_corrected = []
             for elem in all_elems_reversed:
                 if isinstance(elem, PhysicalBaseElement):
@@ -638,12 +651,17 @@ class MachineModel(ModelBase):
 
     def model_post_init(self, __context):
         if isinstance(self.layout, str):
-            config = read_yaml(self.layout)
+            layout_file = self.layout
+            if not os.path.exists(layout_file) and self.master_lattice:
+                candidate = os.path.join(self.master_lattice, layout_file)
+                if os.path.exists(candidate):
+                    layout_file = candidate
+            config = read_yaml(layout_file)
             self._layouts = config.layouts
             try:
                 self._default_path = config.default_layout
             except AttributeError:
-                message = 'Missing "default_layout" in %s ' % self.layout_file
+                message = 'Missing "default_layout" in %s ' % layout_file
                 warn(message)
         elif self.layout is None:
             self._layouts = {}
@@ -657,7 +675,12 @@ class MachineModel(ModelBase):
             if "default_layout" in self.layout:
                 self._default_path = self.layout["default_layout"]
         if isinstance(self.section, str):
-            config = read_yaml(self.section)
+            section_file = self.section
+            if not os.path.exists(section_file) and self.master_lattice:
+                candidate = os.path.join(self.master_lattice, section_file)
+                if os.path.exists(candidate):
+                    section_file = candidate
+            config = read_yaml(section_file)
             self._section_definitions = config.sections
         elif self.section is None:
             self._section_definitions = {}
@@ -691,7 +714,34 @@ class MachineModel(ModelBase):
         by_area = {}
         by_name = {}
 
+        # Optimized metadata lookup if it's a lazy dict
+        if hasattr(elements, "get_metadata"):
+            for name in elements.keys():
+                is_loaded = getattr(elements, "is_loaded", lambda n: True)(name)
+                if is_loaded:
+                    elem = elements[name]
+                    if elem is None:
+                        continue
+                    area = getattr(elem, "machine_area", None)
+                    item_name = elem.name
+                else:
+                    meta = elements.get_metadata(name)
+                    if meta is None:
+                        continue
+                    elem = meta
+                    area = meta.get("machine_area")
+                    item_name = meta.get("name")
+
+                if item_name:
+                    by_name[item_name] = elem
+                if area:
+                    by_area.setdefault(area, []).append(elem)
+            return by_area, by_name
+
+        # Standard indexing for other collections
         for elem in elements.values():
+            if elem is None:
+                continue
             if isinstance(elem, dict):
                 area = elem.get("machine_area")
                 name = elem.get("name")
@@ -737,6 +787,8 @@ class MachineModel(ModelBase):
         by_area, by_name = self._index_elements(elements)
 
         for area, new_elements in by_area.items():
+            if area in self.sections:
+                continue
 
             order = [
                 e["name"] if isinstance(e, dict) else e.name
@@ -761,6 +813,9 @@ class MachineModel(ModelBase):
         if self._section_definitions and not self._layouts:
             # Sections are defined but no layouts — build sections directly
             for area, elem_names in self._section_definitions.items():
+                if area in self.sections:
+                    continue
+
                 new_elements = [
                     by_name[name]
                     for name in elem_names
@@ -793,15 +848,16 @@ class MachineModel(ModelBase):
                             master_lattice=self.master_lattice,
                         )
 
-                self.lattices[path] = MachineLayout(
-                    name=path,
-                    sections={
-                        area: self.sections[area]
-                        for area in areas
-                        if area in self.sections
-                    },
-                    master_lattice=self.master_lattice,
-                )
+                if path not in self.lattices:
+                    self.lattices[path] = MachineLayout(
+                        name=path,
+                        sections={
+                            area: self.sections[area]
+                            for area in areas
+                            if area in self.sections
+                        },
+                        master_lattice=self.master_lattice,
+                    )
 
             if len(self.lattices) == 1 and self._default_path is None:
                 self._default_path = next(iter(self.lattices))

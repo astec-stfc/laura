@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from typing import Dict, Any, List
-from pytao import Tao, TaoCommandError
 from collections import Counter
 from . import magnetic_orders
 import laura.models.element as LAURA_elements
@@ -92,6 +91,8 @@ class BmadLatticeImporter(BaseModel):
     branches: Dict[int, List[str]] = {}
 
     def model_post_init(self, __context: Any) -> None:
+        from pytao import Tao, TaoCommandError
+
         tao = Tao(
             f"-init {self.floorplan_init} -noplot",
             so_lib=self.libtao,

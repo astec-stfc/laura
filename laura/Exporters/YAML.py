@@ -33,6 +33,8 @@ def export_machine_combined_file(path: str, machine: MachineModel) -> None:
     os.makedirs(path, exist_ok=True)
     combined_yaml = {}
     for name, elem in machine.elements.items():
+        if elem is None:
+            continue
         combined_yaml[name] = export_as_yaml(None, elem)
     with open(filename, "w") as yaml_file:
         yaml.default_flow_style = True
@@ -44,6 +46,8 @@ def export_machine(
 ) -> None:
     os.makedirs(path, exist_ok=True)
     for name, elem in machine.elements.items():
+        if elem is None:
+            continue
         directory = os.path.join(path, elem.subdirectory)
         os.makedirs(directory, exist_ok=True)
         filename = os.path.join(directory, elem.name + ".yaml")
@@ -55,6 +59,8 @@ def export_machine(
 
 def export_elements(path: str, elements: list[PhysicalElement]) -> None:
     for elem in elements:
+        if elem is None:
+            continue
         directory = os.path.join(path, elem.subdirectory)
         os.makedirs(directory, exist_ok=True)
         filename = os.path.join(directory, elem.name + ".yaml")

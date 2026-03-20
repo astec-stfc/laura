@@ -18,10 +18,11 @@ from .models.element import Drift
 from .Importers.YAML_Loader import (
     read_YAML_Combined_File,
     read_YAML_Element_File,
+    LazyElementDict,
+    fast_get_element_metadata,
 )
 import numpy as np
 import time
-
 
 def flatten(xss):
     """Flatten a list of lists."""
@@ -77,20 +78,33 @@ class LAURA(MachineModel):
             return v
 
     def model_post_init(self, __context):
-        super().model_post_init(__context)
-        if isinstance(self.element_list, str):
-            if os.path.isfile(self.element_list):
-                elems = read_YAML_Combined_File(self.element_list)
-            elif os.path.isdir(self.element_list):
+        el_list = self.element_list
+        if isinstance(el_list, str) and not os.path.exists(el_list) and self.master_lattice:
+            candidate = os.path.join(self.master_lattice, el_list)
+            if os.path.exists(candidate):
+                el_list = candidate
+        
+        if isinstance(el_list, str):
+            if os.path.isfile(el_list):
+                elems = read_YAML_Combined_File(el_list)
+                values = {y.name: y for y in elems if hasattr(y, 'name')}
+                self.elements.update(values)
+            elif os.path.isdir(el_list):
                 files = glob.glob(
-                    os.path.abspath(self.element_list + "/**/*.yaml"), recursive=True
+                    os.path.abspath(el_list + "/**/*.yaml"), recursive=True
                 )
-                elems = [read_YAML_Element_File(fn, exclude_keys=self.exclude_keys) for fn in files]
-                # elems = load_elements_parallel(files)
-        else:
-            elems = self.element_list
-        values = {y.name: y for y in elems if isinstance(y, baseElement)}
-        self.append(values)
+                filenames = {}
+                for fn in files:
+                    meta = fast_get_element_metadata(fn)
+                    filenames[meta["name"]] = fn
+                # Create lazy dict instead of loading all!
+                self.elements = LazyElementDict(filenames, exclude_keys=self.exclude_keys)
+        elif el_list:
+            values = {y.name: y for y in el_list if hasattr(y, 'name')}
+            self.elements.update(values)
+        
+        # Call super after populating elements so _build_layouts can work
+        super().model_post_init(__context)
 
     def createDrifts(
         self, end: str = None, start: str = None, path: str = None

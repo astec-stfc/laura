@@ -1,4 +1,5 @@
 from typing import Dict, Any
+from textwrap import wrap
 from laura.models.elementList import MachineModel
 from .converter import translate_elements
 from .layout import MachineLayoutTranslator
@@ -26,6 +27,14 @@ class MachineModelTranslator(MachineModel):
             model.update({name: MachineLayoutTranslator.from_layout(latt).to_astra()})
         return model
 
+    def format_string(seld, string: str):
+        fulltext = ""
+        for s in string.split(', '):
+            if len((fulltext + s).splitlines()[-1]) > 60:
+                fulltext += "&\n"
+            fulltext += s + ", "
+        return fulltext
+
     def to_elegant(self, string: str = "", charge: float = None) -> str:
         for latt in self.lattices.values():
             for section in latt.sections.values():
@@ -39,7 +48,7 @@ class MachineModelTranslator(MachineModel):
                     string += f"{section.name}_Q: CHARGE, TOTAL = {charge};\n"
 
                 for d in elem_dict.values():
-                    string += d.to_elegant()
+                    string += self.format_string(d.to_elegant())
 
                 string += f"\n{section.name}: LINE = ("
                 if charge:
@@ -49,11 +58,12 @@ class MachineModelTranslator(MachineModel):
                 string = f"{string[:-2]})" + "\n\n\n"
 
         for name, latt in self.lattices.items():
-            string += f"{name}: LINE = ("
+            lstring = f"{name}: LINE = ("
             for l in list(latt.keys()):
-                string += f"{l}, "
-            string = f"{string[:-2]})" + "\n\n"
-        return string
+                lstring += f"{l}, "
+            lstring = f"{lstring[:-2]})" + "\n\n"
+        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
+        return string + lstring
 
     def to_genesis(self, string: str = "") -> str:
         for latt in self.lattices.values():

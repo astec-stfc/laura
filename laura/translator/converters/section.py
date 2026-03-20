@@ -1,5 +1,6 @@
 from typing import Dict, Any
 from warnings import warn
+from textwrap import wrap
 import numpy as np
 from pydantic import PositiveInt
 
@@ -339,6 +340,14 @@ class SectionLatticeTranslator(SectionLattice):
         fulltext += "ENDTRACK;\n\n Quit;\n"
         return fulltext
 
+    def format_string(seld, string: str):
+        fulltext = ""
+        for s in string.strip().split(', '):
+            if len((fulltext + s).splitlines()[-1]) > 60:
+                fulltext += "&\n"
+            fulltext += s + ", "
+        return fulltext[:-2] + "\n"
+
     def to_elegant(self, charge: float = None) -> str:
         """
         Create an ELEGANT-compatible input file based on the lattice information.
@@ -368,15 +377,16 @@ class SectionLatticeTranslator(SectionLattice):
             string += f"{self.name}_Q: CHARGE, TOTAL = {charge};\n"
 
         for d in elem_dict.values():
-            string += d.to_elegant()
+            string += self.format_string(d.to_elegant())
 
-        string += f"{self.name}: LINE = ("
+        lstring = f"{self.name}: LINE = ("
         if charge:
-            string += f"{self.name}_Q, "
+            lstring += f"{self.name}_Q, "
         for elem in section_with_drifts.keys():
-            string += f"{elem}, "
-        string = f"{string[:-2]})" + "\n"
-        return string
+            lstring += f"{elem}, "
+        lstring = f"{lstring[:-2]})" + "\n"
+        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
+        return string + lstring
 
     def to_genesis(self) -> str:
         """
