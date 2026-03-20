@@ -6,10 +6,11 @@ The main class for handling a full particle accelerator lattice.
 
 import os
 import glob
+import types
 from math import copysign
 from itertools import chain
-from typing import List, Dict
-from pydantic import field_validator
+from typing import List, Dict, Any
+from pydantic import field_validator, model_validator
 from yaml.constructor import Constructor
 
 from .models.physical import PhysicalElement, Position
@@ -58,6 +59,35 @@ class LAURA(MachineModel):
     or as a list of element objects."""
 
     exclude_keys: List[str] | None = None
+    """List of top-level keys to exclude when reading YAML files"""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _resolve_lattice_package(cls, data: Any) -> Any:
+        """Accept a ``lattice`` keyword that is a laura_lattices machine module
+        (or any object with ``layout``, ``section`` and ``element_list``
+        attributes) and expand it into the individual fields."""
+        if not isinstance(data, dict):
+            return data
+        lattice = data.pop("lattice", None)
+        if lattice is None:
+            return data
+        if isinstance(lattice, types.ModuleType) or (
+            hasattr(lattice, "layout")
+            and hasattr(lattice, "section")
+            and hasattr(lattice, "element_list")
+        ):
+            data.setdefault("layout", lattice.layout)
+            data.setdefault("section", lattice.section)
+            data.setdefault("element_list", lattice.element_list)
+            if hasattr(lattice, "data_files") and "master_lattice" not in data:
+                data["master_lattice"] = lattice.data_files
+        else:
+            raise ValueError(
+                "lattice must be a module (e.g. laura_lattices.CLARA) or an object "
+                "with 'layout', 'section', and 'element_list' attributes"
+            )
+        return data
     """List of top-level keys to exclude when reading YAML files"""
 
     @field_validator("element_list", mode="before")
