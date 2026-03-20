@@ -1355,7 +1355,7 @@ class RFHeartbeat(Element):
     """RF heartbeat system attributes."""
 
 
-class Shutter(Element):
+class Shutter(PhysicalBaseElement):
     """
     Shutter element.
 
