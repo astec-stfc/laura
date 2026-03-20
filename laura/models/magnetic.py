@@ -559,6 +559,22 @@ class Dipole_Magnet(MagneticElement):
         output_dict.update({"degrees": output_dict["KL"] * 360 / (2.0 * np.pi)})
         return output_dict
 
+    def KToCurrent(self, K, momentum):
+        """Reverse the /1000 scaling applied by currentToK."""
+        if isinstance(K, dict):
+            K = {k: v * 1000 for k, v in K.items() if isinstance(v, (int, float))}
+        else:
+            K = K * 1000
+        return self.linear_saturation_coefficients.KToCurrent(K, momentum)
+
+    def KLToCurrent(self, KL, momentum):
+        """Reverse the /1000 scaling applied by currentToK."""
+        if isinstance(KL, dict):
+            KL = {k: v * 1000 for k, v in KL.items() if isinstance(v, (int, float))}
+        else:
+            KL = KL * 1000
+        return self.linear_saturation_coefficients.KLToCurrent(KL, momentum)
+
     @computed_field
     @property
     def rho(self) -> float:
