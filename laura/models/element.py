@@ -643,7 +643,7 @@ class Quadrupole(Magnet):
     magnetic: Quadrupole_Magnet = Field(default_factory=Quadrupole_Magnet)
     """Magnetic attributes of the quadrupole."""
 
-attenuator
+
 class Sextupole(Magnet):
     """
     Sextupole element.
