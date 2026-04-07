@@ -48,6 +48,8 @@ def filter_top_level(elem: dict, exclude_keys: List[str] | None = None) -> dict:
 def interpret_YAML_Element(elem: dict, exclude_set=None):
     hw_type = elem.get("hardware_type")
     if not hw_type:
+        import logging
+        logging.warning(f"Element {elem.get('name')} missing 'hardware_type' key - cannot determine adapter")
         return None
 
     adapter = ADAPTERS.get(hw_type)
