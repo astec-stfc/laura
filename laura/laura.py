@@ -82,8 +82,10 @@ class LAURA(MachineModel):
             if os.path.isfile(self.element_list):
                 elems = read_YAML_Combined_File(self.element_list)
             elif os.path.isdir(self.element_list):
-                files = glob.glob(
-                    os.path.abspath(self.element_list + "/**/*.yaml"), recursive=True
+                files = sorted(
+                    glob.glob(
+                        os.path.abspath(self.element_list + "/**/*.yaml"), recursive=True
+                    )
                 )
                 elems = [read_YAML_Element_File(fn, exclude_keys=self.exclude_keys) for fn in files]
                 # elems = load_elements_parallel(files)
