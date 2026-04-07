@@ -950,7 +950,7 @@ class Screen(Diagnostic):
     hardware_model: str = Field(default="YAG", frozen=True)
     """Screen hardware model."""
 
-    diagnostic: Screen_Diagnostic = Field(default_factory=Screen_Diagnostic)
+    diagnostic: Screen_Diagnostic | None = None
     """Diagnostic attributes of the screen."""
 
     controls: ScreenControlsInformation | None = None
