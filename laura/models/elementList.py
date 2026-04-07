@@ -580,6 +580,10 @@ class MachineModel(ModelBase):
 
     _default_path: str = None
 
+    _layouts_built: bool = False
+    """Flag to indicate whether the layouts have been built yet. 
+    If False, they will be built on demand when accessed via `lattices_built` property."""
+
     @field_validator("layout", mode="before")
     @classmethod
     def validate_layout(cls, v: str | dict) -> str | dict:
@@ -672,6 +676,18 @@ class MachineModel(ModelBase):
 
     def __str__(self):
         return str(list(self.elements.keys()))
+
+    @property
+    def lattices_built(self):
+        if not self._layouts_built:
+            self._build_layouts(self.elements)
+            self._layouts_built = True
+        return self.lattices
+
+    def _ensure_layouts_built(self):
+        if not self._layouts_built:
+            self._build_layouts(self.elements)
+            self._layouts_built = True
 
     def _index_elements(self, elements):
         by_area = {}
@@ -783,6 +799,7 @@ class MachineModel(ModelBase):
         :param str name: Name of the element to look up
         :returns: LatticeElement instance for that element
         """
+        self._ensure_layouts_built()
         if name in self.elements:
             return self.elements[name]
         else:
@@ -858,28 +875,29 @@ class MachineModel(ModelBase):
             Filtered names of elements.
         """
         # determine the beam path
+        self._ensure_layouts_built()
         if path is None:
-            if hasattr(self, "_default_path") and self._default_path in self.lattices:
+            if hasattr(self, "_default_path") and self._default_path in self.lattices_built:
                 path = self._default_path
             else:
                 raise Exception(
                     '"default_layout" = %s is not defined, and more than one layout exists.'
                     % self._default_path,
                 )
-        elif path not in self.lattices:
+        elif path not in self.lattices_built:
             raise Exception('"path" = %s is not defined' % path)
 
         if end is None:
-            path_obj = self.lattices[path]
+            path_obj = self.lattices_built[path]
             end = path_obj.elements[-1]
         else:
             end_obj = self.get_element(end)
             beam_path = (
                 end_obj.machine_area
-                if (end_obj.machine_area in self.lattices)
+                if (end_obj.machine_area in self.lattices_built)
                 else path
             )
-            path_obj = self.lattices[beam_path]
+            path_obj = self.lattices_built[beam_path]
 
         # find the start of the search area
         if start is None:

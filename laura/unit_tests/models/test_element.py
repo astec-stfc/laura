@@ -53,6 +53,9 @@ def test_element_initialization():
         hardware_class="HC",
         hardware_type="HT",
         machine_area="MA",
+        electrical=ElectricalElement(),
+        manufacturer=ManufacturerElement(),
+        simulation=SimulationElement(),
     )
     assert isinstance(el.electrical, ElectricalElement)
     assert isinstance(el.manufacturer, ManufacturerElement)
