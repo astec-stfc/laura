@@ -61,6 +61,9 @@ class LAURA(MachineModel):
     exclude_keys: List[str] | None = None
     """List of top-level keys to exclude when reading YAML files"""
 
+    eager_mode: bool = False
+    """Whether to load all elements into memory immediately (True) or use lazy loading (False, default)"""
+
     @model_validator(mode="before")
     @classmethod
     def _resolve_lattice_package(cls, data: Any) -> Any:
@@ -128,7 +131,11 @@ class LAURA(MachineModel):
                     meta = fast_get_element_metadata(fn)
                     filenames[meta["name"]] = fn
                 # Create lazy dict instead of loading all!
-                self.elements = LazyElementDict(filenames, exclude_keys=self.exclude_keys)
+                if not self.eager_mode:
+                    self.elements = LazyElementDict(filenames, exclude_keys=self.exclude_keys)
+                else:
+                    elems = [read_YAML_Element_File(fn, exclude_keys=self.exclude_keys) for fn in files]
+                    self.elements.update({y.name: y for y in elems if isinstance(y, baseElement)})
         elif el_list:
             values = {y.name: y for y in el_list if hasattr(y, 'name')}
             self.elements.update(values)
