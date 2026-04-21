@@ -345,13 +345,13 @@ class MagneticElement(IgnoreExtra):
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
     """Magnetic length [m]."""
 
-    multipoles: Multipoles | None = None
+    multipoles: Multipoles | None = Multipoles()
     """Magnetic multipoles."""
 
-    systematic_multipoles: Multipoles | None = None
+    systematic_multipoles: Multipoles | None = Multipoles()
     """Systematic magnetic multipoles."""
 
-    random_multipoles: Multipoles | None = None
+    random_multipoles: Multipoles | None = Multipoles()
     """Random magnetic multipoles."""
 
     field_integral_coefficients: FieldIntegral | None = None  # FieldIntegral()
@@ -396,6 +396,9 @@ class MagneticElement(IgnoreExtra):
 
     fringe_field_coefficient: float = Field(default=0.0)
     """Fringe field coefficient."""
+
+    gradient: float | None = None
+    """Magnetic gradient."""
 
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)
@@ -502,18 +505,18 @@ class MagneticElement(IgnoreExtra):
     def half_gap(self) -> float:
         return self.gap / 2
 
-    def gradient(self, momentum: float) -> float:
-        """
-        Get the magnetic field gradient for the multipole.
-
-        Args:
-            momentum (float): The momentum of the particle beam (in MeV/c).
-
-        Returns:
-            float: The magnetic field gradient.
-        """
-        Brho = 3.3356 * momentum / (1e9)
-        return self.kl * Brho / self.length
+    # def gradient(self, momentum: float) -> float:
+    #     """
+    #     Get the magnetic field gradient for the multipole.
+    #
+    #     Args:
+    #         momentum (float): The momentum of the particle beam (in MeV/c).
+    #
+    #     Returns:
+    #         float: The magnetic field gradient.
+    #     """
+    #     Brho = 3.3356 * momentum / (1e9)
+    #     return self.kl * Brho / self.length
 
     def currentToK(self, *args, **kwargs):
         return self.linear_saturation_coefficients.currentToK(*args, **kwargs)
