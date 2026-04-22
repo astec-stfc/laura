@@ -1,7 +1,7 @@
 import pytest
 from copy import deepcopy
 
-from laura.unit_tests.models.test_element import physical_base_element
+from unit_tests.models.test_element import physical_base_element
 from laura.models.elementList import (
     SectionLattice,
     ElementList,

@@ -137,13 +137,30 @@ class ControlVariable(BaseModel):
             return v
         raise TypeError(f"dtype must be a type or string, got {type(v)}")
 
+    # Default values that should be omitted from serialised output to keep
+    # YAML exports clean.  Only exact matches are suppressed.
+    _SERIALIZE_DEFAULTS: dict = {
+        "units": "Arb. Units",
+        "read_only": True,
+        "type": "statistical",
+        "description": "Default Description",
+    }
+
     @model_serializer
     def serialize(self):
-        data = self.__dict__.copy()
-        if isinstance(self.dtype, type):
-            data["dtype"] = self.dtype.__name__
-        elif isinstance(self.dtype, str):
-            data["dtype"] = self.dtype
+        # Collect declared fields + extra fields (e.g. auto_buffer, buffer_size)
+        data = {k: getattr(self, k) for k in self.__class__.model_fields}
+        if self.model_extra:
+            data.update(self.model_extra)
+        # Convert dtype to its string name
+        if isinstance(data.get("dtype"), type):
+            data["dtype"] = data["dtype"].__name__
+        # Remove None values
+        data = {k: v for k, v in data.items() if v is not None}
+        # Remove known defaults
+        for key, default_val in self._SERIALIZE_DEFAULTS.items():
+            if data.get(key) == default_val:
+                del data[key]
         return data
 
     def apply(self, element, context):
@@ -152,6 +169,9 @@ class ControlVariable(BaseModel):
 
         value = eval_expr(self.expression, context)
         set_attr_by_path(element, self.target, value)
+
+    def __str__(self) -> str:
+        return self.identifier
 
 
 class ControlsInformation(BaseModel):
@@ -167,6 +187,17 @@ class ControlsInformation(BaseModel):
         extra="allow",
         frozen=True,
     )
+
+    def __getattr__(self, name: str) -> ControlVariable:
+        try:
+            variables = self.__dict__["variables"]
+        except KeyError:
+            raise AttributeError(name)
+        if name in variables:
+            return variables[name]
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
 
     @field_validator("variables", mode="before")
     def validate_variables(cls, v) -> Dict[str, ControlVariable]:

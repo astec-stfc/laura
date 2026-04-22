@@ -6,30 +6,6 @@ from IPython.core.magic import Bunch
 from pydantic import BaseModel, field_validator, ValidationInfo, Field
 
 from .Magnet_Table import add_magnet_table_parameters
-from ..models.PV import (  # noqa
-    MagnetPV,
-    BPMPV,
-    BAMPV,
-    BLMPV,
-    CameraPV,
-    ScreenPV,
-    ChargeDiagnosticPV,
-    VacuumGaugePV,
-    LaserEnergyMeterPV,
-    LaserHWPPV,
-    LaserMirrorPV,
-    LightingPV,
-    PIDPV,
-    LLRFPV,
-    RFModulatorPV,
-    ShutterPV,
-    ValvePV,
-    RFProtectionPV,
-    RFHeartbeatPV,
-    PV,
-    elementTypes,
-    PVTypes,
-)
 from ..models.element import (
     Quadrupole,
     Dipole,
@@ -57,7 +33,7 @@ from ..models.element import (
 from ..models.diagnostic import Camera_Diagnostic_Type
 
 with open(
-    os.path.dirname(os.path.abspath(__file__)) + "/camera_assignments.yaml", "r"
+        os.path.dirname(os.path.abspath(__file__)) + "/camera_assignments.yaml", "r"
 ) as stream:
     camera_assignments = yaml.load(stream, Loader=yaml.Loader)
     camera_types = {}
@@ -68,7 +44,6 @@ with open(
 
 class SimFrame_Conversion(BaseModel):
     typeclass: Any
-    PV_class: str = None
     hardware_class: str
     hardware_type: Union[str, None] = Field(validate_default=True, default=None)
 
@@ -149,7 +124,6 @@ def interpret_SimFrame_Element(name, elem):
         # try:
         # print('type',elem['type'],'found')
         felem = SimFrame_Elements[elem["type"]].typeclass
-        hasPV = SimFrame_Elements[elem["type"]].PV_class in PVTypes
 
         elem.update(dict(SimFrame_Elements[elem["type"]]))
         elem.update(
@@ -161,26 +135,7 @@ def interpret_SimFrame_Element(name, elem):
         )
 
         fields = elem
-        if hasPV:
-            try:
-                fpv = globals()[PVTypes[SimFrame_Elements[elem["type"]].PV_class]]
-                elemPV = fpv.with_defaults(name)
-                fields["controls"] = elemPV
-            except Exception as e:
-                print("interpret_SimFrame_Element", name, elem, fpv)
-                raise e
-        fields.update(
-            **{
-                k: v.annotation.from_CATAP(elem)
-                for k, v in felem.model_fields.items()
-                if hasattr(v.annotation, "from_CATAP")
-            }
-        )
         elemmodel = felem(**fields)
-        if SimFrame_Elements[elem["type"]].hardware_class == "Magnet":
-            elemmodel = add_magnet_table_parameters(
-                name, elemmodel, get_SimFrame_PV(name)
-            )
         return elemmodel
     # except Exception as e:
     #     print('Error', name, e)

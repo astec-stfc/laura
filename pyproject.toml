@@ -55,3 +55,8 @@ docs = [
 Homepage = "https://github.com/astec-stfc/laura"
 Repository = "https://github.com/astec-stfc/laura.git"
 Issues = "https://github.com/astec-stfc/laura/-/issues/"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:Pydantic serializer warnings:UserWarning",
+]

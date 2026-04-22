@@ -47,7 +47,7 @@ def test_magnetic_element_properties():
         order=1, length=2.0, multipoles={"K1L": {"order": 1, "normal": 0.5}}
     )
     assert me.KnL(1) == 0.5
-    assert me.gradient(momentum=100) > 0
+    assert me.get_gradient(momentum=100) > 0
 
 
 def test_dipole_magnet_properties():

@@ -6,10 +6,11 @@ The main class for handling a full particle accelerator lattice.
 
 import os
 import glob
+import types
 from math import copysign
 from itertools import chain
-from typing import List, Dict
-from pydantic import field_validator
+from typing import List, Dict, Any
+from pydantic import field_validator, model_validator
 from yaml.constructor import Constructor
 
 from .models.physical import PhysicalElement, Position
@@ -18,11 +19,11 @@ from .models.element import Drift
 from .Importers.YAML_Loader import (
     read_YAML_Combined_File,
     read_YAML_Element_File,
-    interpret_YAML_Element,
-    load_elements_parallel,
+    LazyElementDict,
+    fast_get_element_metadata,
 )
 import numpy as np
-
+import time
 
 def flatten(xss):
     """Flatten a list of lists."""
@@ -60,6 +61,38 @@ class LAURA(MachineModel):
     exclude_keys: List[str] | None = None
     """List of top-level keys to exclude when reading YAML files"""
 
+    eager_mode: bool = False
+    """Whether to load all elements into memory immediately (True) or use lazy loading (False, default)"""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _resolve_lattice_package(cls, data: Any) -> Any:
+        """Accept a ``lattice`` keyword that is a laura_lattices machine module
+        (or any object with ``layout``, ``section`` and ``element_list``
+        attributes) and expand it into the individual fields."""
+        if not isinstance(data, dict):
+            return data
+        lattice = data.pop("lattice", None)
+        if lattice is None:
+            return data
+        if isinstance(lattice, types.ModuleType) or (
+            hasattr(lattice, "layout")
+            and hasattr(lattice, "section")
+            and hasattr(lattice, "element_list")
+        ):
+            data.setdefault("layout", lattice.layout)
+            data.setdefault("section", lattice.section)
+            data.setdefault("element_list", lattice.element_list)
+            if hasattr(lattice, "data_files") and "master_lattice" not in data:
+                data["master_lattice"] = lattice.data_files
+        else:
+            raise ValueError(
+                "lattice must be a module (e.g. laura_lattices.CLARA) or an object "
+                "with 'layout', 'section', and 'element_list' attributes"
+            )
+        return data
+    """List of top-level keys to exclude when reading YAML files"""
+
     @field_validator("element_list", mode="before")
     @classmethod
     def validate_element_list(cls, v: str | list) -> str | list:
@@ -78,21 +111,37 @@ class LAURA(MachineModel):
             return v
 
     def model_post_init(self, __context):
-        super().model_post_init(__context)
-        if isinstance(self.element_list, str):
-            if os.path.isfile(self.element_list):
-                elems = read_YAML_Combined_File(self.element_list)
-            elif os.path.isdir(self.element_list):
+        el_list = self.element_list
+        if isinstance(el_list, str) and not os.path.exists(el_list) and self.master_lattice:
+            candidate = os.path.join(self.master_lattice, el_list)
+            if os.path.exists(candidate):
+                el_list = candidate
+        
+        if isinstance(el_list, str):
+            if os.path.isfile(el_list):
+                elems = read_YAML_Combined_File(el_list)
+                values = {y.name: y for y in elems if hasattr(y, 'name')}
+                self.elements.update(values)
+            elif os.path.isdir(el_list):
                 files = glob.glob(
-                    os.path.abspath(self.element_list + "/**/*.yaml"), recursive=True
+                    os.path.abspath(el_list + "/**/*.yaml"), recursive=True
                 )
-                elems = [read_YAML_Element_File(fn, exclude_keys=self.exclude_keys) for fn in files]
-                # elems = load_elements_parallel(files)
-        else:
-            elems = self.element_list
-        for y in elems:
-            if isinstance(y, baseElement):
-                self.update({y.name: y})
+                filenames = {}
+                for fn in files:
+                    meta = fast_get_element_metadata(fn)
+                    filenames[meta["name"]] = fn
+                # Create lazy dict instead of loading all!
+                if not self.eager_mode:
+                    self.elements = LazyElementDict(filenames, exclude_keys=self.exclude_keys)
+                else:
+                    elems = [read_YAML_Element_File(fn, exclude_keys=self.exclude_keys) for fn in files]
+                    self.elements.update({y.name: y for y in elems if isinstance(y, baseElement)})
+        elif el_list:
+            values = {y.name: y for y in el_list if hasattr(y, 'name')}
+            self.elements.update(values)
+        
+        # Call super after populating elements so _build_layouts can work
+        super().model_post_init(__context)
 
     def createDrifts(
         self, end: str = None, start: str = None, path: str = None

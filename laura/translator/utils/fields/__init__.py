@@ -17,7 +17,7 @@ import os
 import warnings
 import numpy as np
 from .FieldParameter import FieldParameter
-from scipy.constants import speed_of_light
+from laura.models.constants import speed_of_light
 from pydantic import (
     BaseModel,
     ConfigDict,
