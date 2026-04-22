@@ -505,18 +505,20 @@ class MagneticElement(IgnoreExtra):
     def half_gap(self) -> float:
         return self.gap / 2
 
-    # def gradient(self, momentum: float) -> float:
-    #     """
-    #     Get the magnetic field gradient for the multipole.
-    #
-    #     Args:
-    #         momentum (float): The momentum of the particle beam (in MeV/c).
-    #
-    #     Returns:
-    #         float: The magnetic field gradient.
-    #     """
-    #     Brho = 3.3356 * momentum / (1e9)
-    #     return self.kl * Brho / self.length
+    def get_gradient(self, momentum: float) -> float:
+        """
+        Get the magnetic field gradient for the multipole.
+
+        Args:
+            momentum (float): The momentum of the particle beam (in MeV/c).
+
+        Returns:
+            float: The magnetic field gradient.
+        """
+        if self.gradient is not None:
+            return self.gradient
+        Brho = 3.3356 * momentum / (1e9)
+        return self.kl * Brho / self.length
 
     def currentToK(self, *args, **kwargs):
         return self.linear_saturation_coefficients.currentToK(*args, **kwargs)
