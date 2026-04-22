@@ -472,12 +472,6 @@ class Element(baseElement):
 
     def to_CATAP(self):
         catap_dict = super().to_CATAP()
-        catap_dict.update(
-            {
-                "manufacturer": self.manufacturer.manufacturer,
-                "serial_number": self.manufacturer.serial_number,
-            }
-        )
         return catap_dict
 
     def update_from_controls(self):

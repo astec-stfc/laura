@@ -93,7 +93,7 @@ class Multipoles(MultipolesData):
         return {
             k: getattr(self, k)
             for k in cls.model_fields.keys()
-            if abs(getattr(self, k).normal) > 0 or abs(getattr(self, k).skew) > 0
+            # if abs(getattr(self, k).normal) > 0 or abs(getattr(self, k).skew) > 0
         }
 
     def normal(self, order: int) -> Union[int, float]:
@@ -193,8 +193,8 @@ class LinearSaturationFit(BaseModel):
             assert len(coeff_list) == len(cls._COEFF_KEYS)
             return cls(**{k: v for k, v in zip(cls._COEFF_KEYS, coeff_list)})
         elif isinstance(v, (list, tuple)):
-            assert len(v) == len(cls._COEFF_KEYS)
-            return cls(**{k: v for k, v in zip(cls._COEFF_KEYS, v)})
+            assert len(v) == len(cls.model_fields.keys())
+            return cls(**{k: v for k, v in zip(cls.model_fields.keys(), v)})
         else:
             raise ValueError(
                 "LinearSaturationFit should be a string or a list of floats"

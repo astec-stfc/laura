@@ -1,5 +1,5 @@
 import unittest
-from laura.models.element import Element, ElectricalElement, ManufacturerElement
+from laura.models.element import Element, PhysicalBaseElement
 
 
 class TestElement(unittest.TestCase):
@@ -15,8 +15,6 @@ class TestElement(unittest.TestCase):
         self.assertEqual(elem.hardware_type, "Magnet")
         self.assertEqual(elem.name, "CLA-A1-QUAD-01")
         self.assertIsInstance(elem, Element)
-        self.assertIsInstance(elem.electrical, ElectricalElement)
-        self.assertIsInstance(elem.manufacturer, ManufacturerElement)
         self.assertIsNone(elem.controls, None)
         self.assertIsNone(elem.alias)
 
@@ -43,9 +41,7 @@ class TestElement(unittest.TestCase):
         self.assertEqual(catap_dict["hardware_type"], "Magnet")
         self.assertEqual(catap_dict["name"], "CLA-A1-QUAD-01")
         self.assertEqual(catap_dict["name_alias"], ["CLA-QUAD01", "CLA-QUAD1"])
-        self.assertEqual(catap_dict["manufacturer"], "")
         self.assertNotIn("controls", catap_dict)
-        self.assertNotIn("electrical", catap_dict)
 
     def test_element_creation_with_controls(self):
         controls_info = {
@@ -88,7 +84,7 @@ class TestElement(unittest.TestCase):
                 }
             }
         }
-        elem = Element(
+        elem = PhysicalBaseElement(
             machine_area="AREA-01",
             hardware_type="Magnet",
             hardware_class="Quadrupole",
@@ -100,8 +96,6 @@ class TestElement(unittest.TestCase):
         self.assertIn("hardware_type", serialized)
         self.assertIn("hardware_class", serialized)
         self.assertIn("name", serialized)
-        self.assertIn("manufacturer", serialized)
-        self.assertIn("electrical", serialized)
         self.assertIn("alias", serialized)
         self.assertIn("physical", serialized)
         self.assertIn("controls", serialized)
