@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 from warnings import warn
 from textwrap import wrap
 import numpy as np
@@ -14,6 +14,7 @@ from .wake import WakefieldTranslator
 from .codes.gpt import gpt_ccs, gpt_Zminmax, gpt_dtmint
 from ..utils.functions import tw_cavity_energy_gain
 from ..utils.fields import field
+from . import element_keywords
 
 
 class SectionLatticeTranslator(SectionLattice):
@@ -609,3 +610,46 @@ class SectionLatticeTranslator(SectionLattice):
                 # except Exception as e:
                 #     print('Wake-T writeElements error:', element.name, e)
         return Beamline(beamline)
+
+    def to_fbpic(self) -> List:
+        """
+        Create a list of FBPIC objects based on the lattice information.
+
+        Returns
+        -------
+        Segment
+            A list of FBPIC objects.
+        """
+        fbpic_elems = [
+            "plasma",
+            "laser",
+            "quadrupole",
+            "sextupole",
+            "dipole",
+        ]
+
+        # driftelems = [c for c in element_keywords.keys() if c not in fbpic_elems]
+        # elements = self.createDrifts(drift_elements=tuple(driftelems))
+        # elements = self.createDrifts()
+        section_with_drifts = self.createDrifts()
+        elem_dict = translate_elements(
+            section_with_drifts.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        beamline = []
+        if not any([elem.hardware_type.lower() == "plasma" for elem in elem_dict.values()]):
+            raise ValueError(f"No plasma elements defined for {self.name};"
+                             f"cannot run FBPIC")
+        for element in list(elem_dict.values()):
+            if element.hardware_type.lower() in ["plasma", "laser"]:
+                beamline.append(element)
+            elif "drift" in element.hardware_type.lower():
+                pass
+            else:
+                warn(f"Element type {element.hardware_type} not supported for FBPIC; "
+                     f"skipping {element.name}")
+
+        return beamline
+
+

@@ -22,6 +22,7 @@ from ..converters import (
     keyword_conversion_rules_xsuite,
     keyword_conversion_rules_wake_t,
     keyword_conversion_rules_opal,
+    keyword_conversion_rules_fbpic,
 )
 from ..utils.fields import field
 from ..utils.functions import expand_substitution, checkValue
@@ -64,6 +65,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         self.conversion_rules["wake_t"] = keyword_conversion_rules_wake_t["general"]
         self.conversion_rules["genesis"] = keyword_conversion_rules_genesis["general"]
         self.conversion_rules["opal"] = keyword_conversion_rules_opal["general"]
+        self.conversion_rules["fbpic"] = keyword_conversion_rules_fbpic["general"]
         if self.hardware_type.lower() in keyword_conversion_rules_elegant:
             self.conversion_rules["elegant"] = (
                 keyword_conversion_rules_elegant[self.hardware_type.lower()]
@@ -96,8 +98,13 @@ class BaseElementTranslator(PhysicalBaseElement):
             )
         if self.hardware_type.lower() in keyword_conversion_rules_opal:
             self.conversion_rules["opal"] = (
-                keyword_conversion_rules_opal[self.hardware_type.lower()]
-                | keyword_conversion_rules_opal["general"]
+                    keyword_conversion_rules_opal[self.hardware_type.lower()]
+                    | keyword_conversion_rules_opal["general"]
+            )
+        if self.hardware_type.lower() in keyword_conversion_rules_fbpic:
+            self.conversion_rules["fbpic"] = (
+                keyword_conversion_rules_fbpic[self.hardware_type.lower()]
+                | keyword_conversion_rules_fbpic["general"]
             )
         self.ccs = gpt_ccs(name="wcs", position=[0, 0, 0], rotation=[0, 0, 0])
         super().model_post_init(__context)
@@ -409,6 +416,20 @@ class BaseElementTranslator(PhysicalBaseElement):
                 setattr(obj, self._convertKeyword_WakeT(key), value)
         return obj
 
+    def to_fbpic(self) -> object:
+        """
+        Generates a FBPIC object based on the element's properties and type.
+
+        Note that this is a placeholder function; FBPIC only supports a limited number of element types,
+        and objects such as plasmas form part of the overall simulation object.
+
+        Returns
+        -------
+        object
+            FBPIC object
+        """
+        pass
+
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
         """
         Generates a string representation of the object's properties in the OPAL format.
@@ -671,6 +692,28 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         """
         conversion_rules = self.conversion_rules["xsuite"]
+        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
+            stripped = keyword.replace(strip, "")
+            if stripped in conversion_rules:
+                return conversion_rules[stripped]
+        return keyword
+
+    def _convertKeyword_FBPIC(self, keyword: str) -> str:
+        """
+        Converts a keyword to its corresponding FBPIC keyword using predefined rules.
+
+        Parameters
+        ----------
+        keyword: str:
+            The keyword to be converted.
+
+        Returns
+        -------
+        str
+            The converted keyword for FBPIC, or the original keyword if no conversion rule exists.
+
+        """
+        conversion_rules = self.conversion_rules["fbpic"]
         for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:

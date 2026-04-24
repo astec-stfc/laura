@@ -205,8 +205,14 @@ class PlasmaSimulationElement(SimulationElement):
     n_radial: int = 0
     """Number of grid points in the radial direction"""
 
-    plasma_particles_per_cell: int = 2
-    """Number of plasma particles per cell; 2 by default"""
+    particles_per_radial_cell: int = 2
+    """Number of plasma particles per radial cell; 2 by default"""
+
+    particles_per_longitudinal_cell: int = 2
+    """Number of particles per longitudinal cell; 2 by default"""
+
+    particles_per_angular_cell: int = 4
+    """Number of particles per angular cell; 4 by default"""
 
     r_max: float = 0
     """Radial extent of the simulation box [meters]"""

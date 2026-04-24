@@ -1,6 +1,7 @@
 from typing import Any, List
 from .base import BaseElementTranslator
 from laura.models.laser import LaserElement
+from warnings import warn
 
 
 class LaserTranslator(BaseElementTranslator):
@@ -83,6 +84,85 @@ class LaserTranslator(BaseElementTranslator):
         else:
             raise ValueError(
                 f"Invalid laser profile type {self.laser.profile_type}. "
+                f"Supported models are {self.supported_pulses}."
+            )
+        return obj
+
+    def to_fbpic(self) -> Any:
+        """
+        Create an FBPIC laser element object based on the attributes of this element.
+
+        Returns
+        -------
+        fbpic.lpa_utils.laser.laser_profiles.LaserProfile
+            FBPIC laser element object
+
+        Raises
+        ------
+        ValueError
+            If the laser model is not supported; note that not all models are implemented yet
+        """
+        from fbpic.lpa_utils.laser.laser_profiles import (
+            GaussianLaser,
+            LaguerreGaussLaser,
+            DonutLikeLaguerreGaussLaser,
+            FlattenedGaussianLaser,
+            FewCycleLaser,
+        )
+        additional_dict = {
+            self._convertKeyword_FBPIC(param): getattr(self, param) for param in self.additional_attrs
+        }
+        if self.profile_type.lower() == "gaussian":
+            if self._is_few_cycle:
+                warn(f"The laser defined in element {self.objectname} is a few-cycle pulse. "
+                     "Using the FewCycleLaser model.")
+                obj = FewCycleLaser(
+                    self.initial_position,
+                    self.amplitude(),
+                    self.waist,
+                    self.wavelength,
+                    self.pulse_duration_fwhm,
+                    **additional_dict,
+                )
+            else:
+                obj = GaussianLaser(
+                    self.amplitude(),
+                    self.waist,
+                    self.pulse_duration_fwhm,
+                    self.initial_position,
+                    **additional_dict,
+                )
+        elif self.profile_type.lower() == "laguerre-gaussian":
+            obj = LaguerreGaussLaser(
+                self.laguerre_polynomial_order_p,
+                self.laguerre_polynomial_order_m,
+                self.amplitude(),
+                self.waist,
+                self.pulse_duration_fwhm,
+                self.initial_position,
+                **additional_dict,
+            )
+        elif self.profile_type.lower() == "laguerre-gaussian-donut":
+            obj = DonutLikeLaguerreGaussLaser(
+                self.laguerre_polynomial_order_p,
+                self.laguerre_polynomial_order_m,
+                self.amplitude(),
+                self.waist,
+                self.pulse_duration_fwhm,
+                self.initial_position,
+                **additional_dict,
+            )
+        elif self.profile_type.lower() == "flattened-gaussian":
+            obj = FlattenedGaussianLaser(
+                self.amplitude(),
+                self.waist,
+                self.pulse_duration_fwhm,
+                self.initial_position,
+                **additional_dict,
+            )
+        else:
+            raise ValueError(
+                f"Invalid laser profile type {self.profile_type} for FBPIC. "
                 f"Supported models are {self.supported_pulses}."
             )
         return obj

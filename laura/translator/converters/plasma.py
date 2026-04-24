@@ -92,7 +92,7 @@ class PlasmaTranslator(BaseElementTranslator):
         return obj
 
     # Density function.
-    def _density_profile(self, z: float) -> np.ndarray:
+    def _density_profile(self, z: float, r: float) -> np.ndarray:
         """
         Define plasma density as a function of length.
         This takes the :attr:`~length` of the plasma element and calculates the density profile based
@@ -100,8 +100,10 @@ class PlasmaTranslator(BaseElementTranslator):
 
         Parameters
         ----------
-        n_steps : int, optional
-            Number of steps to use for the density profile, by default 1000
+        z : float
+            Longitudinal position along the plasma element in metres
+        r : float
+            Radial position from the axis in metres; currently ignored as only longitudinal density profiles are supported
 
         Returns
         -------

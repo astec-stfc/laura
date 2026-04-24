@@ -42,9 +42,26 @@ class LaserElement(IgnoreExtra):
     laguerre_polynomial_order_p: int = 0
     """Order of Laguerre-Gaussian polynomial mode, if profile_type is 'laguerre-gaussian'"""
 
+    laguerre_polynomial_order_m: int = 0
+    """Azimuthal order of Laguerre-Gaussian polynomial mode, if profile_type is 'laguerre-gaussian'"""
+
     flatness: int = 6
     """Flatness parameter, if profile_type is 'flattened-gaussian'.
     Default: N=6; somewhat close to an 8th order super-gaussian."""
+
+    propagation_direction: Literal[-1, 1] = 1
+    """Laser propagation direction; +1 means laser and particles co-propagate, -1 means they
+    counter-propagate; default is 1."""
+
+    polarization_angle: float = 0
+    """Laser polarization angle with respect to the x-axis; default is 0."""
+
+    temporal_chirp_2nd_order: float = 0
+    """The amount of temporal chirp, at focus (in the lab frame)."""
+
+    method: Literal["direct", "antenna"] = "antenna"
+    """The laser is either added directly to the interpolation grid initially
+    or it is progressively emitted by an antenna"""
 
     @computed_field
     @property
@@ -102,6 +119,26 @@ class LaserElement(IgnoreExtra):
                 "Wavelength must be positive to compute laser angular frequency."
             )
         return 2 * pi * c / self.wavelength
+
+    @property
+    def _is_few_cycle(self) -> bool:
+        """
+        Check if the laser is a few-cycle pulse, which is the case if :attr:`~pulse_duration_fwhm` *
+        :attr:`~angular_frequency` is not greater than 10.
+
+        Returns
+        -------
+        bool
+            True if laser is a few-cycle pulse, False otherwise
+
+        Raises
+        ------
+        ValueError
+            If wavelength is not set or non-positive
+        """
+        if self.wavelength <= 0:
+            raise ValueError("Wavelength must be positive to compute laser angular frequency.")
+        return self.angular_frequency * self.pulse_duration_fwhm <= 10
 
 
 class LaserHalfWavePlateElement(IgnoreExtra):

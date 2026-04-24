@@ -97,5 +97,6 @@ keyword_conversion_rules_opal = LazyDict(lambda: _load_yaml_file("../conversion_
 keyword_conversion_rules_xsuite = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml"))
 keyword_conversion_rules_wake_t = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_wake_t.yaml"))
 keyword_conversion_rules_genesis = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_genesis.yaml"))
+keyword_conversion_rules_fbpic = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_fbpic.yaml"))
 elements_Genesis = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_genesis.yaml"))
 element_keywords = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/element_keywords.yaml"))
