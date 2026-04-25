@@ -6,6 +6,7 @@ from pydantic import (
 )
 from typing import List, Type, Union
 from .baseModels import IgnoreExtra, T, DeviceList
+import numpy as np
 
 
 class DiagnosticElement(IgnoreExtra):
@@ -23,6 +24,12 @@ class Beam_Position_Monitor_Diagnostic(DiagnosticElement):
 
     type: str = Field(alias="bpm_type", default="Stripline")
     """BPM type"""
+
+    x: float | None = Field(alias="x_pos", default=None)
+    """Beam position in x direction."""
+
+    y: float | None = Field(alias="y_pos", default=None)
+    """Beam position in y direction."""
 
 
 class Beam_Arrival_Monitor_Diagnostic(DiagnosticElement):
@@ -281,6 +288,9 @@ class Camera_Diagnostic(DiagnosticElement):
 
     has_led: bool = True
     """Flag to indicate if the camera has an LED light source."""
+
+    image: np.ndarray | None = None
+    """Camera image data as a numpy array."""
 
     @classmethod
     def from_CATAP(cls: Type[T], fields: dict) -> T:
