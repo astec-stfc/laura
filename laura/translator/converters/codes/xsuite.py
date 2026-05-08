@@ -1,9 +1,11 @@
-from __future__ import annotations
 import os
 import numpy as np
+import yaml
 from pydantic import BaseModel, ConfigDict
 from pydantic_core import PydanticUndefinedType
-from typing import Dict, List, TYPE_CHECKING
+from typing import Dict, List
+import xtrack as xt
+from xtrack.beam_elements.elements import _HasKnlKsl
 from laura.models.elementList import (
     SectionLattice,
     MachineLayout,
@@ -14,12 +16,22 @@ from ...utils.functions import introspect_model_defaults
 from ...conversion_rules.codes import xsuite_conversion
 from warnings import warn
 
-if TYPE_CHECKING:
-    import xtrack as xt
-
 type_conversion_rules_xsuite_reversed = (
     xsuite_conversion.xsuite_conversion_rules_reverse
 )
+
+
+try:
+    _FastLoader = yaml.CSafeLoader
+except AttributeError:
+    _FastLoader = yaml.SafeLoader
+
+with open(
+    os.path.dirname(os.path.abspath(__file__))
+    + "/../../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml",
+    "r",
+) as infile:
+    keyword_conversion_rules = yaml.load(infile, Loader=_FastLoader)
 
 
 class XsuiteLatticeConverter(BaseModel):
@@ -34,7 +46,7 @@ class XsuiteLatticeConverter(BaseModel):
 
     machine_area: str = "Lattice"
 
-    line: "xt.Line"
+    line: xt.Line
     """Xsuite line"""
 
     elements: Dict = {}
@@ -43,21 +55,6 @@ class XsuiteLatticeConverter(BaseModel):
     sections: Dict = {}
 
     layouts: Dict = {}
-
-    def _keyword_conversion_rules(self) -> Dict:
-        import yaml
-
-        try:
-            _FastLoader = yaml.CSafeLoader
-        except AttributeError:
-            _FastLoader = yaml.SafeLoader
-
-        with open(
-            os.path.dirname(os.path.abspath(__file__))
-            + "/../../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml",
-            "r",
-        ) as infile:
-            return yaml.load(infile, Loader=_FastLoader)
 
     def rotation_matrix_from_survey(self, row):
         """Builds rotation matrix (local→global) from survey row."""
@@ -134,9 +131,21 @@ class XsuiteLatticeConverter(BaseModel):
             Pmid, Rmid = self.compute_element_center(P0, R0, L, theta)
             ex, ey, ez = Rmid[:, 0], Rmid[:, 1], Rmid[:, 2]
 
-        import xtrack as xt
-        from xtrack.beam_elements.elements import _HasKnlKsl
+            elem_pos.update(
+                {
+                    list(element_and_survey.keys())[i]: {
+                        "x": Pmid[0],
+                        "y": Pmid[1],
+                        "z": Pmid[2],
+                        "phi": survey["phi"],
+                        "psi": survey["psi"],
+                        "theta": survey["theta"],
+                    }
+                }
+            )
+        return elem_pos
 
+    def create_element_dictionary(self):
         s = self.line.survey()._data
         elems = {k: v for k, v in zip(s["name"], self.line.elements)}
         survey = {
@@ -154,26 +163,8 @@ class XsuiteLatticeConverter(BaseModel):
             for i in range(len(s["X"][:-1]))
         }
         survey = self.midpoints_for_line(survey)
-
-        keyword_conversion_rules = self._keyword_conversion_rules()
- self.line.elements)}
-        survey = {
-            s["name"][i]: {
-                "x": s["X"][i],
-                "y": s["Y"][i],
-                "z": s["Z"][i],
-                "ex": s["ex"][i],
-                "ey": s["ey"][i],
-                "ez": s["ez"][i],
-                "phi": (s["phi"][i] + np.pi) % (2 * np.pi) - np.pi,
-                "psi": (s["psi"][i] + np.pi) % (2 * np.pi) - np.pi,
-                "theta": (s["theta"][i] + np.pi) % (2 * np.pi) - np.pi,
-            }
-            for i in range(len(s["X"][:-1]))
-        }
-        survey = self.midpoints_for_line(survey)
         for k, v in elems.items():
-            machine_area = "IOTA_v8pt4_madx"
+            machine_area = self.machine_area
             length = 0
             if hasattr(v, "length"):
                 length = v.length

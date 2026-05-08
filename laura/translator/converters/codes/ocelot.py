@@ -1,18 +1,30 @@
-from __future__ import annotations
 import os
 import numpy as np
+import yaml
 from pydantic import BaseModel, ConfigDict
-from typing import Dict, TYPE_CHECKING
+from typing import Dict
+from scipy.spatial.transform import Rotation
+from ocelot.cpbd.magnetic_lattice import MagneticLattice
 import laura.models.element as LAURA_elements
 from . import magnetic_orders
 from ...utils.functions import introspect_model_defaults
 from ...conversion_rules.codes import ocelot_conversion
 from warnings import warn
 
-if TYPE_CHECKING:
-    from ocelot.cpbd.magnetic_lattice import MagneticLattice
+try:
+    _FastLoader = yaml.CSafeLoader
+except AttributeError:
+    _FastLoader = yaml.SafeLoader
 
 type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+
+
+with open(
+    os.path.dirname(os.path.abspath(__file__))
+    + "/../../conversion_rules/keywords/keyword_conversion_rules_ocelot.yaml",
+    "r",
+) as infile:
+    keyword_conversion_rules = yaml.load(infile, Loader=_FastLoader)
 
 
 class OcelotLatticeImporter(BaseModel):
@@ -27,28 +39,11 @@ class OcelotLatticeImporter(BaseModel):
 
     machine_area: str = "Lattice"
 
-    magnetic_lattice: "MagneticLattice"
+    magnetic_lattice: MagneticLattice
     """Name of ELEGANT parameters file"""
 
     laura_elements: Dict = {}
     """Dictionary containing converted element objects"""
-
-    def _keyword_conversion_rules(self) -> Dict:
-        import yaml
-
-        try:
-            _FastLoader = yaml.CSafeLoader
-        except AttributeError:
-            _FastLoader = yaml.SafeLoader
-
-        with open(
-            os.path.dirname(os.path.abspath(__file__))
-            + "/../../conversion_rules/keywords/keyword_conversion_rules_ocelot.yaml",
-        keyword_conversion_rules = self._keyword_conversion_rules()
-
-            "r",
-        ) as infile:
-            return yaml.load(infile, Loader=_FastLoader)
 
     def magnetic_lattice_to_elements(self):
         return self.lattice_to_cartesian_with_rotation(self.magnetic_lattice.sequence)
@@ -111,9 +106,9 @@ class OcelotLatticeImporter(BaseModel):
                 print(f"type {sftype} not recognized")
                 newobj.update(
                     {
-                        k: {
+                        elem.id: {
                             "hardware_type": "Drift",
-                            "name": k,
+                            "name": elem.id,
                             "hardware_class": "Drift",
                             "machine_area": self.machine_area,
                         }
@@ -205,7 +200,7 @@ class OcelotLatticeImporter(BaseModel):
         Compute Cartesian coordinates [x, y, z] of accelerator lattice elements
         and the global rotation (Euler angles) at the MIDPOINT of each element.
         """
-        from scipy.spatial.transform import Rotation
+
         x, y, z = 0.0, 0.0, 0.0
         theta_h = 0.0
         theta_v = 0.0
