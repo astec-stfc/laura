@@ -1,0 +1,101 @@
+Drift:
+  l: float
+  vacuumMaterial: str
+Ecol:
+  l: float
+  xsize: float
+  ysize: float
+  xsizeOut: float
+  ysizeOut: float
+  material: str
+  horizontalWidth: float
+  minimumKineticEnergy: float
+Kicker:
+  l: float
+  hkick: float
+  vkick: float
+Laser:
+  l: float
+  wavelength: float
+  x: float
+  y: float
+  z: float
+Octupole:
+  l: float
+  k3: float
+  material: str
+Quadrupole:
+  l: float
+  k1: float
+  material: str
+RBend:
+  l: float
+  angle: float
+  e1: float
+  e2: float
+  k1: float
+  fint: float
+  fintx: float
+  fintK2: float
+  fintxK2: float
+  h1: float
+  h2: float
+  hgap: float
+  tilt: float
+  material: str
+  B: float
+  yokeOnInside: bool
+  hStyle: bool
+RCol:
+  l: float
+  xsize: float
+  ysize: float
+  xsizeOut: float
+  ysizeOut: float
+  material: str
+  horizontalWidth: float
+  minimumKineticEnergy: float
+RFCavity:
+  l: float
+  E: float
+  gradient: float
+  frequency: float
+  phase: float
+  tOffset: float
+  material: str
+  cavityModel: str
+SBend:
+  l: float
+  angle: float
+  e1: float
+  e2: float
+  k1: float
+  fint: float
+  fintx: float
+  fintK2: float
+  fintxK2: float
+  h1: float
+  h2: float
+  hgap: float
+  tilt: float
+  material: str
+  B: float
+  yokeOnInside: bool
+  hStyle: bool
+Sextupole:
+  l: float
+  k2: float
+  material: str
+Solenoid:
+  l: float
+  ks: float
+  B: float
+  material: str
+  horizontalWidth: float
+Undulator:
+  l: float
+  B: float
+  undulatorPeriod: float
+  undulatorGap: float
+  undulatorMagnetHeight: float
+  material: str

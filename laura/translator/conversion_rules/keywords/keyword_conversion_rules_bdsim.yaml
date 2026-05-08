@@ -1,0 +1,17 @@
+general:
+  edge_field_integral: fint
+  half_gap: hgap
+  horizontal_size: xsize
+  vertical_size: ysize
+  hangle: hkick
+  vangle: vkick
+  length: l
+solenoid:
+  field_amplitude: ks
+rfcavity:
+  field_amplitude: voltage
+rfdeflectingcavity:
+  field_amplitude: voltage
+undulator:
+  peak_magnetic_field: B
+  period: undulatorPeriod

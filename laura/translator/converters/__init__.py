@@ -94,6 +94,9 @@ elements_Cheetah = LazyDict(lambda: _load_yaml_file("../conversion_rules/element
 elements_Opal = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_opal.yaml"))
 keyword_conversion_rules_opal = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_opal.yaml"))
 
+keyword_conversion_rules_bdsim = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_bdsim.yaml"))
+elements_BDSIM = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_bdsim.yaml"))
+
 keyword_conversion_rules_xsuite = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml"))
 keyword_conversion_rules_wake_t = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_wake_t.yaml"))
 keyword_conversion_rules_genesis = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_genesis.yaml"))

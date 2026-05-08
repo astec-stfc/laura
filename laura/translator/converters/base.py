@@ -15,6 +15,7 @@ from ..converters import (
     elements_Elegant,
     elements_Genesis,
     elements_Opal,
+    elements_BDSIM,
     keyword_conversion_rules_elegant,
     keyword_conversion_rules_genesis,
     keyword_conversion_rules_ocelot,
@@ -22,6 +23,7 @@ from ..converters import (
     keyword_conversion_rules_xsuite,
     keyword_conversion_rules_wake_t,
     keyword_conversion_rules_opal,
+    keyword_conversion_rules_bdsim,
 )
 from ..utils.fields import field
 from ..utils.functions import expand_substitution, checkValue
@@ -749,6 +751,51 @@ class BaseElementTranslator(PhysicalBaseElement):
                 return conversion_rules[stripped]
             elif stripped in element.keys():
                 return stripped
+        return keyword
+
+    def _convertType_BDSIM(self, etype: str) -> object:
+        """
+        Converts the element type to the corresponding BDSIM type using predefined rules.
+
+        Parameters
+        ----------
+        etype: str
+            The type of the element to be converted.
+
+        Returns
+        -------
+        object
+            The BDSIM element, or the original type if no conversion rule exists.
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+        from pybdsim.Builder import Drift as Drift_BDSIM
+
+        type_conversion_rules_BDSIM = bdsim_conversion.bdsim_conversion_rules
+        return (
+            type_conversion_rules_Cheetah[etype]
+            if etype in type_conversion_rules_Cheetah
+            else Drift_Che
+        )
+
+    def _convertKeyword_Cheetah(self, keyword: str) -> str:
+        """
+        Converts a keyword to its corresponding Cheetah keyword using predefined rules.
+
+        Parameters
+        ----------
+        keyword: str
+            The keyword to be converted.
+
+        Returns
+        -------
+        str
+            The converted keyword for Cheetah, or the original keyword if no conversion rule exists.
+        """
+        conversion_rules = self.conversion_rules["cheetah"]
+        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
+            stripped = keyword.replace(strip, "")
+            if stripped in conversion_rules:
+                return conversion_rules[stripped]
         return keyword
 
     def _write_ASTRA_dictionary(self, d: dict, n: int | None = 1) -> str:
