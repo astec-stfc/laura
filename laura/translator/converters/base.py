@@ -65,7 +65,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         self.conversion_rules["wake_t"] = keyword_conversion_rules_wake_t["general"]
         self.conversion_rules["genesis"] = keyword_conversion_rules_genesis["general"]
         self.conversion_rules["opal"] = keyword_conversion_rules_opal["general"]
-        self.conversion_rules["bdsim"] = keyword_conversion_rules_opal["general"]
+        self.conversion_rules["bdsim"] = keyword_conversion_rules_bdsim["general"]
         if self.hardware_type.lower() in keyword_conversion_rules_elegant:
             self.conversion_rules["elegant"] = (
                 keyword_conversion_rules_elegant[self.hardware_type.lower()]
@@ -499,13 +499,15 @@ class BaseElementTranslator(PhysicalBaseElement):
         elem_dict.update(**aperture_params(section_aperture))
 
         sig = inspect.signature(obj)
-        required = [
-            name for name, param in sig.parameters.items() if name != "kwargs"
-        ]
+        required = [name for name, param in sig.parameters.items() if name != "kwargs"]
         for key, value in self.full_dump().items():
             if key in required or self._convertKeyword_BDSIM(key) in required:
                 key = self._convertKeyword_BDSIM(key)
                 elem_dict.update({self._convertKeyword_BDSIM(key): value})
+        if "corrector" in self.hardware_type.lower():
+            warn(f"WARNING! Corrector {self.name} being converted to BDSIM with zero kick; please check the output.")
+            elem_dict.update({"hkick": 0})
+            elem_dict.update({"vkick": 0})
         return obj(**elem_dict)
 
     def _convertType_Elegant(self, etype: str) -> str:
@@ -743,7 +745,15 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         """
         conversion_rules = self.conversion_rules["wake_t"]
-        for strip in ["", "simulation_", "cavity_", "magnetic_", "plasma_", "laser_", "aperture_"]:
+        for strip in [
+            "",
+            "simulation_",
+            "cavity_",
+            "magnetic_",
+            "plasma_",
+            "laser_",
+            "aperture_",
+        ]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
                 return conversion_rules[stripped]
@@ -994,9 +1004,16 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         if self.simulation.field_reference_position is not None:
             try:
-                return np.array(list(getattr(
-                    self.physical, self.simulation.field_reference_position.lower()
-                ).model_dump().values()))
+                return np.array(
+                    list(
+                        getattr(
+                            self.physical,
+                            self.simulation.field_reference_position.lower(),
+                        )
+                        .model_dump()
+                        .values()
+                    )
+                )
             except AttributeError:
                 warn(
                     "field_reference_position should be (start/middle/end) not"

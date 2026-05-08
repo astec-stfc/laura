@@ -49,7 +49,9 @@ def test_element_error_initialization():
 
 
 def test_physical_element_properties():
-    pe = PhysicalElement(middle=[1, 2, 3], length=10, global_rotation=[-0.1, -0.2, -0.3])
+    pe = PhysicalElement(
+        middle=[1, 2, 3], length=10, global_rotation=[-0.1, -0.2, -0.3]
+    )
     assert pe.start.x < pe.middle.x
     assert pe.end.z > pe.middle.z
     assert pe.rotation_matrix is not None

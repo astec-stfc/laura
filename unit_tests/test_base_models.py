@@ -17,10 +17,10 @@ from laura.models.baseModels import (
     Aliases,
 )
 
-
 # ---------------------------------------------------------------------------
 # convert_numpy_types
 # ---------------------------------------------------------------------------
+
 
 class TestConvertNumpyTypes:
     def test_float64(self):
@@ -64,6 +64,7 @@ class TestConvertNumpyTypes:
 # ModelBase
 # ---------------------------------------------------------------------------
 
+
 class TestModelBase:
     def test_base_model_dump_excludes_none(self):
         class M(ModelBase):
@@ -87,6 +88,7 @@ class TestModelBase:
 # ---------------------------------------------------------------------------
 # IgnoreExtra
 # ---------------------------------------------------------------------------
+
 
 class TestIgnoreExtra:
     def test_extra_fields_ignored(self):
@@ -118,6 +120,7 @@ class TestIgnoreExtra:
 # ---------------------------------------------------------------------------
 # NumpyModel
 # ---------------------------------------------------------------------------
+
 
 class TestNumpyModel:
     def test_array_property(self):
@@ -179,6 +182,7 @@ class TestNumpyModel:
 # NumpyVectorModel
 # ---------------------------------------------------------------------------
 
+
 class TestNumpyVectorModel:
     def test_iter(self):
         class V(NumpyVectorModel):
@@ -224,6 +228,7 @@ class TestNumpyVectorModel:
 # ---------------------------------------------------------------------------
 # objectList / DeviceList / Aliases
 # ---------------------------------------------------------------------------
+
 
 class TestObjectList:
     def test_device_list_iter(self):

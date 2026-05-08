@@ -11,10 +11,10 @@ from laura.models.physical import (
     PhysicalElement,
 )
 
-
 # ---------------------------------------------------------------------------
 # Position
 # ---------------------------------------------------------------------------
+
 
 class TestPositionExtended:
     def test_from_list(self):
@@ -97,6 +97,7 @@ class TestPositionExtended:
 # Rotation
 # ---------------------------------------------------------------------------
 
+
 class TestRotationExtended:
     def test_from_list(self):
         r = Rotation.from_list([0.1, 0.2, 0.3])
@@ -154,6 +155,7 @@ class TestRotationExtended:
 # ElementError
 # ---------------------------------------------------------------------------
 
+
 class TestElementError:
     def test_from_lists(self):
         err = ElementError(position=[1, 2, 3], rotation=[0.1, 0.2, 0.3])
@@ -188,6 +190,7 @@ class TestElementSurvey:
 # ---------------------------------------------------------------------------
 # PhysicalElement
 # ---------------------------------------------------------------------------
+
 
 class TestPhysicalElementExtended:
     def test_validate_middle_from_float(self):

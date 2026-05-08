@@ -255,12 +255,15 @@ class ApertureTranslator(BaseElementTranslator):
             if hasattr(self, "aperture"):
                 if self.aperture.shape in ["elliptical", "circular"]:
                     from pybdsim.Builder import ECol
+
                     obj = ECol
                 elif self.aperture.shape == "rectangular":
                     from pybdsim.Builder import RCol
+
                     obj = RCol
                 elif self.aperture.shape in ["scraper", "planar"]:
                     from pybdsim.Builder import JCol
+
                     obj = JCol
                 else:
                     obj = get_bdsim_drift(self.name)
@@ -271,9 +274,7 @@ class ApertureTranslator(BaseElementTranslator):
         elem_dict = {}
         elem_dict.update(**aperture_params(section_aperture))
         sig = inspect.signature(obj)
-        required = [
-            name for name, param in sig.parameters.items() if name != "kwargs"
-        ]
+        required = [name for name, param in sig.parameters.items() if name != "kwargs"]
         for key, value in self.full_dump().items():
             if key in required or self._convertKeyword_BDSIM(key) in required:
                 elem_dict.update({self._convertKeyword_BDSIM(key): value})

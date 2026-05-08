@@ -347,9 +347,9 @@ class BmadLatticeImporter(BaseModel):
                             ]["multipoles"]["K0L"]["normal"]
                         self.laura_elems[universe][b].update(
                             {
-                                nam: getattr(LAURA_elements, self.types[universe][b][i])(
-                                    **elems[nam]
-                                )
+                                nam: getattr(
+                                    LAURA_elements, self.types[universe][b][i]
+                                )(**elems[nam])
                             }
                         )
 

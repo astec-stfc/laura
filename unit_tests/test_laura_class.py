@@ -26,10 +26,10 @@ from laura.models.physical import Position
 from laura.models.elementList import MachineModel
 from laura.Exporters.YAML import export_machine, export_as_yaml
 
-
 # ---------------------------------------------------------------------------
 # Fixtures: small FODO-like machine
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def fodo_elements():
@@ -78,35 +78,45 @@ def rich_machine():
     """A richer machine with magnets, diagnostics, RF, aperture, etc."""
     elems = [
         Marker(
-            name="START", machine_area="S1", hardware_class="Marker",
+            name="START",
+            machine_area="S1",
+            hardware_class="Marker",
             physical={"middle": {"x": 0.0, "y": 0.0, "z": 0.0}},
         ),
         Quadrupole(
-            name="Q1", machine_area="S1",
+            name="Q1",
+            machine_area="S1",
             magnetic={"length": 0.3, "k1l": -1.0},
             physical={"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 0.5}},
         ),
         Beam_Position_Monitor(
-            name="BPM1", machine_area="S1", hardware_class="Diagnostic",
+            name="BPM1",
+            machine_area="S1",
+            hardware_class="Diagnostic",
             physical={"middle": {"x": 0.0, "y": 0.0, "z": 1.2}},
         ),
         Dipole(
-            name="D1", machine_area="S1",
+            name="D1",
+            machine_area="S1",
             magnetic={"length": 0.5, "angle": 0.0},
             physical={"length": 0.5, "middle": {"x": 0.0, "y": 0.0, "z": 2.0}},
         ),
         Sextupole(
-            name="SX1", machine_area="S1",
+            name="SX1",
+            machine_area="S1",
             magnetic={"length": 0.1, "k2l": 5.0},
             physical={"length": 0.1, "middle": {"x": 0.0, "y": 0.0, "z": 2.6}},
         ),
         Solenoid(
-            name="SOL1", machine_area="S1",
+            name="SOL1",
+            machine_area="S1",
             magnetic={"length": 0.2},
             physical={"length": 0.2, "middle": {"x": 0.0, "y": 0.0, "z": 3.0}},
         ),
         Marker(
-            name="END", machine_area="S1", hardware_class="Marker",
+            name="END",
+            machine_area="S1",
+            hardware_class="Marker",
             physical={"middle": {"x": 0.0, "y": 0.0, "z": 4.0}},
         ),
     ]
@@ -118,6 +128,7 @@ def rich_machine():
 # ---------------------------------------------------------------------------
 # Construction
 # ---------------------------------------------------------------------------
+
 
 class TestLAURAConstruction:
     def test_from_element_list(self, fodo_machine):
@@ -161,6 +172,7 @@ class TestLAURAConstruction:
 # ---------------------------------------------------------------------------
 # get_* methods
 # ---------------------------------------------------------------------------
+
 
 class TestLAURAGetters:
     def test_get_elements_returns_all(self, fodo_machine):
@@ -211,6 +223,7 @@ class TestLAURAGetters:
 # all_* properties
 # ---------------------------------------------------------------------------
 
+
 class TestLAURAAllProperties:
     def test_all_elements(self, rich_machine):
         all_elems = rich_machine.all_elements
@@ -248,6 +261,7 @@ class TestLAURAAllProperties:
 # createDrifts / get_elements_s_pos
 # ---------------------------------------------------------------------------
 
+
 class TestDriftsAndSPos:
     def test_create_drifts_returns_dict(self, fodo_machine):
         drifts = fodo_machine.createDrifts()
@@ -278,6 +292,7 @@ class TestDriftsAndSPos:
 # Export round-trip with YAML
 # ---------------------------------------------------------------------------
 
+
 class TestYAMLRoundTrip:
     def test_export_and_reload(self, fodo_machine):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -298,7 +313,9 @@ class TestYAMLRoundTrip:
 
     def test_export_as_yaml_returns_dict(self):
         m = Marker(
-            name="M1", machine_area="SEC", hardware_class="Marker",
+            name="M1",
+            machine_area="SEC",
+            hardware_class="Marker",
             physical={"middle": {"x": 0.0, "y": 0.0, "z": 0.0}},
         )
         result = export_as_yaml(None, m)
@@ -309,6 +326,7 @@ class TestYAMLRoundTrip:
 # ---------------------------------------------------------------------------
 # MachineModel get_element / LatticeError
 # ---------------------------------------------------------------------------
+
 
 class TestMachineModelAccess:
     def test_get_element_exists(self, fodo_machine):

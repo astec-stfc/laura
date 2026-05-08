@@ -50,7 +50,9 @@ class MachineLayoutTranslator(MachineLayout):
             for elem in section_with_drifts.keys():
                 lstring += f"{elem}, "
             lstring = f"{lstring[:-2]})" + "\n\n\n"
-        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
+        lstring = "&\n".join(
+            wrap(lstring, 80, break_long_words=False, break_on_hyphens=False)
+        )
         return string + lstring
 
     def to_genesis(self, string: str = "") -> str:

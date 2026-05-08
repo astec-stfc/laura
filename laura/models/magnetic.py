@@ -326,9 +326,7 @@ class LinearSaturationFit(BaseModel):
             return t3 - a / (3 * f)
 
     def __iter__(self) -> iter:
-        return iter(
-            [getattr(self, k) for k in self._COEFF_KEYS]
-        )
+        return iter([getattr(self, k) for k in self._COEFF_KEYS])
 
 
 class MagneticElement(IgnoreExtra):
@@ -441,7 +439,7 @@ class MagneticElement(IgnoreExtra):
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
     def validate_field_integral_coefficients(
-            cls, v: Union[str, List, dict | None]
+        cls, v: Union[str, List, dict | None]
     ) -> FieldIntegral | None:
         if isinstance(v, str):
             return FieldIntegral(coefficients=list(map(float, v.split(","))))

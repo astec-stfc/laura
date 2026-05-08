@@ -18,6 +18,7 @@ from ..converters import (
     elements_Genesis,
     elements_Opal,
 )
+from ...models.element import Combined_Corrector, Vertical_Corrector, Horizontal_Corrector
 
 
 def add(x, y):
@@ -973,21 +974,20 @@ class DipoleTranslator(BaseElementTranslator):
         type_conversion_rules_BDSIM = bdsim_conversion.bdsim_conversion_rules
         if np.isclose(self.e1, self.e2) and self.e1 != 0:
             from pybdsim.Builder import RBend
+
             obj = RBend
         else:
             obj = type_conversion_rules_BDSIM[self.hardware_type]
         elem_dict = {}
         elem_dict.update(**aperture_params(section_aperture))
         sig = inspect.signature(obj)
-        required = [
-            name for name, param in sig.parameters.items() if name != "kwargs"
-        ]
+        required = [name for name, param in sig.parameters.items() if name != "kwargs"]
         for key, value in self.full_dump().items():
             if key in required or self._convertKeyword_BDSIM(key) in required:
                 key = self._convertKeyword_BDSIM(key)
                 if key == "ks":
                     value = self.magnetic.field_amplitude  # / self.magnetic.length
-                elem_dict.update({self._convertKeyword_BDSIM(key): value})
+                elem_dict.update({key: value})
         return obj(**elem_dict)
 
     #
@@ -1258,15 +1258,13 @@ class SolenoidTranslator(BaseElementTranslator):
         elem_dict = {}
         elem_dict.update(**aperture_params(section_aperture))
         sig = inspect.signature(obj)
-        required = [
-            name for name, param in sig.parameters.items() if name != "kwargs"
-        ]
+        required = [name for name, param in sig.parameters.items() if name != "kwargs"]
         for key, value in self.full_dump().items():
             if key in required or self._convertKeyword_BDSIM(key) in required:
                 key = self._convertKeyword_BDSIM(key)
                 if key == "ks":
                     value = self.magnetic.field_amplitude  # / self.magnetic.length
-                elem_dict.update({self._convertKeyword_BDSIM(key): value})
+                elem_dict.update({key: value})
         return obj(**elem_dict)
 
 

@@ -20,29 +20,35 @@ from laura.models.elementList import (
 )
 from laura.models.exceptions import LatticeError
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def elements():
     m1 = Marker(
-        name="M1", machine_area="S1", hardware_class="Marker",
+        name="M1",
+        machine_area="S1",
+        hardware_class="Marker",
         physical={"middle": {"x": 0.0, "y": 0.0, "z": 0.0}},
     )
     q1 = Quadrupole(
-        name="Q1", machine_area="S1",
+        name="Q1",
+        machine_area="S1",
         magnetic={"length": 0.3, "k1l": -1.0},
         physical={"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
     )
     q2 = Quadrupole(
-        name="Q2", machine_area="S1",
+        name="Q2",
+        machine_area="S1",
         magnetic={"length": 0.3, "k1l": 1.0},
         physical={"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 3.0}},
     )
     m2 = Marker(
-        name="M2", machine_area="S1", hardware_class="Marker",
+        name="M2",
+        machine_area="S1",
+        hardware_class="Marker",
         physical={"middle": {"x": 0.0, "y": 0.0, "z": 4.0}},
     )
     return [m1, q1, q2, m2]
@@ -73,6 +79,7 @@ def machine_layout(section_lattice):
 # ---------------------------------------------------------------------------
 # ElementList
 # ---------------------------------------------------------------------------
+
 
 class TestElementList:
     def test_names(self, element_list):
@@ -110,6 +117,7 @@ class TestElementList:
 # ---------------------------------------------------------------------------
 # SectionLattice
 # ---------------------------------------------------------------------------
+
 
 class TestSectionLattice:
     def test_names(self, section_lattice):
@@ -153,6 +161,7 @@ class TestSectionLattice:
 # ---------------------------------------------------------------------------
 # MachineLayout
 # ---------------------------------------------------------------------------
+
 
 class TestMachineLayout:
     def test_names(self, machine_layout):
@@ -213,6 +222,7 @@ class TestMachineLayout:
 # MachineModel
 # ---------------------------------------------------------------------------
 
+
 class TestMachineModel:
     def test_empty_model(self):
         mm = MachineModel()
@@ -234,7 +244,8 @@ class TestMachineModel:
         sections = {"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}}
         layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1"]}}
         mm = MachineModel(
-            layout=layouts, section=sections,
+            layout=layouts,
+            section=sections,
             elements={e.name: e for e in elements},
         )
         q1 = mm["Q1"]
@@ -244,11 +255,14 @@ class TestMachineModel:
         sections = {"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}}
         layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1"]}}
         mm = MachineModel(
-            layout=layouts, section=sections,
+            layout=layouts,
+            section=sections,
             elements={e.name: e for e in elements},
         )
         new_marker = Marker(
-            name="M3", machine_area="S1", hardware_class="Marker",
+            name="M3",
+            machine_area="S1",
+            hardware_class="Marker",
             physical={"middle": {"x": 0.0, "y": 0.0, "z": 5.0}},
         )
         mm["M3"] = new_marker
@@ -258,7 +272,8 @@ class TestMachineModel:
         sections = {"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}}
         layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1"]}}
         mm = MachineModel(
-            layout=layouts, section=sections,
+            layout=layouts,
+            section=sections,
             elements={e.name: e for e in elements},
         )
         q1 = mm.get_element("Q1")
@@ -280,7 +295,9 @@ class TestMachineModel:
             elements={e.name: e for e in elements},
         )
         new_elem = Marker(
-            name="M3", machine_area="S1", hardware_class="Marker",
+            name="M3",
+            machine_area="S1",
+            hardware_class="Marker",
             physical={"middle": {"x": 0.0, "y": 0.0, "z": 5.0}},
         )
         result = mm + {"M3": new_elem}

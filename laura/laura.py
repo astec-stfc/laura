@@ -25,6 +25,7 @@ from .Importers.YAML_Loader import (
 import numpy as np
 import time
 
+
 def flatten(xss):
     """Flatten a list of lists."""
     return list(chain.from_iterable(xss))
@@ -91,6 +92,7 @@ class LAURA(MachineModel):
                 "with 'layout', 'section', and 'element_list' attributes"
             )
         return data
+
     """List of top-level keys to exclude when reading YAML files"""
 
     @field_validator("element_list", mode="before")
@@ -112,15 +114,19 @@ class LAURA(MachineModel):
 
     def model_post_init(self, __context):
         el_list = self.element_list
-        if isinstance(el_list, str) and not os.path.exists(el_list) and self.master_lattice:
+        if (
+            isinstance(el_list, str)
+            and not os.path.exists(el_list)
+            and self.master_lattice
+        ):
             candidate = os.path.join(self.master_lattice, el_list)
             if os.path.exists(candidate):
                 el_list = candidate
-        
+
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
                 elems = read_YAML_Combined_File(el_list)
-                values = {y.name: y for y in elems if hasattr(y, 'name')}
+                values = {y.name: y for y in elems if hasattr(y, "name")}
                 self.elements.update(values)
             elif os.path.isdir(el_list):
                 files = glob.glob(
@@ -132,14 +138,21 @@ class LAURA(MachineModel):
                     filenames[meta["name"]] = fn
                 # Create lazy dict instead of loading all!
                 if not self.eager_mode:
-                    self.elements = LazyElementDict(filenames, exclude_keys=self.exclude_keys)
+                    self.elements = LazyElementDict(
+                        filenames, exclude_keys=self.exclude_keys
+                    )
                 else:
-                    elems = [read_YAML_Element_File(fn, exclude_keys=self.exclude_keys) for fn in files]
-                    self.elements.update({y.name: y for y in elems if isinstance(y, baseElement)})
+                    elems = [
+                        read_YAML_Element_File(fn, exclude_keys=self.exclude_keys)
+                        for fn in files
+                    ]
+                    self.elements.update(
+                        {y.name: y for y in elems if isinstance(y, baseElement)}
+                    )
         elif el_list:
-            values = {y.name: y for y in el_list if hasattr(y, 'name')}
+            values = {y.name: y for y in el_list if hasattr(y, "name")}
             self.elements.update(values)
-        
+
         # Call super after populating elements so _build_layouts can work
         super().model_post_init(__context)
 

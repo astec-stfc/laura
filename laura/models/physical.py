@@ -316,7 +316,7 @@ class PhysicalElement(IgnoreExtra):
     def rotation_matrix(self) -> np.ndarray:
         if self._rotation_matrix_cache is not None:
             return self._rotation_matrix_cache
-            
+
         # Combined rotations. We apply (column-vector convention):
         #   1) yaw (Y)  -> Ry  (rightmost)
         #   2) pitch (X)-> Rx

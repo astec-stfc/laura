@@ -8,10 +8,10 @@ import yaml
 
 from laura.models._functions import _rotation_matrix, merge_two_dicts, read_yaml
 
-
 # ---------------------------------------------------------------------------
 # _rotation_matrix
 # ---------------------------------------------------------------------------
+
 
 class TestRotationMatrix:
     def test_identity_at_zero(self):
@@ -46,6 +46,7 @@ class TestRotationMatrix:
 # ---------------------------------------------------------------------------
 # merge_two_dicts
 # ---------------------------------------------------------------------------
+
 
 class TestMergeTwoDicts:
     def test_basic_merge(self):
@@ -86,11 +87,10 @@ class TestMergeTwoDicts:
 # read_yaml
 # ---------------------------------------------------------------------------
 
+
 class TestReadYaml:
     def test_read_simple_yaml(self):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml.dump({"name": "test", "value": 42}, f)
             fname = f.name
         try:
@@ -102,9 +102,7 @@ class TestReadYaml:
 
     def test_read_yaml_types(self):
         data = {"x": 1.5, "y": "hello", "z": True}
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml.dump(data, f)
             fname = f.name
         try:

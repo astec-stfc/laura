@@ -345,7 +345,7 @@ class SectionLatticeTranslator(SectionLattice):
 
     def format_string(seld, string: str):
         fulltext = ""
-        for s in string.strip().split(', '):
+        for s in string.strip().split(", "):
             if len((fulltext + s).splitlines()[-1]) > 60:
                 fulltext += "&\n"
             fulltext += s + ", "
@@ -388,7 +388,9 @@ class SectionLatticeTranslator(SectionLattice):
         for elem in section_with_drifts.keys():
             lstring += f"{elem}, "
         lstring = f"{lstring[:-2]})" + "\n"
-        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
+        lstring = "&\n".join(
+            wrap(lstring, 80, break_long_words=False, break_on_hyphens=False)
+        )
         return string + lstring
 
     def to_genesis(self) -> str:
@@ -636,7 +638,14 @@ class SectionLatticeTranslator(SectionLattice):
             directory=self.directory,
         )
         elements = []
-        if any(q is not None for q in [self.beampipe_aperture_type, self.beampipe_size, self.beampipe_material]):
+        if any(
+            q is not None
+            for q in [
+                self.beampipe_aperture_type,
+                self.beampipe_size,
+                self.beampipe_material,
+            ]
+        ):
             section_aperture = {
                 "type": self.beampipe_aperture_type,
                 "size": self.beampipe_size,

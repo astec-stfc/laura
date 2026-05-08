@@ -18,7 +18,8 @@ from laura.models.element import (
     Horizontal_Corrector,
     Vertical_Corrector,
     NonLinearLens,
-    TwissMatch, Screen,
+    TwissMatch,
+    Screen,
 )
 
 from .base import BaseElementTranslator
@@ -82,7 +83,11 @@ def translate_elements(
             translator = RFCavityTranslator
         elif isinstance(elem, Drift):
             translator = DriftTranslator
-        elif isinstance(elem, Diagnostic) or isinstance(elem, Marker) or isinstance(elem, Screen):
+        elif (
+            isinstance(elem, Diagnostic)
+            or isinstance(elem, Marker)
+            or isinstance(elem, Screen)
+        ):
             translator = DiagnosticTranslator
         elif isinstance(elem, Aperture):
             translator = ApertureTranslator

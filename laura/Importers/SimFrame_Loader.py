@@ -33,7 +33,7 @@ from ..models.element import (
 from ..models.diagnostic import Camera_Diagnostic_Type
 
 with open(
-        os.path.dirname(os.path.abspath(__file__)) + "/camera_assignments.yaml", "r"
+    os.path.dirname(os.path.abspath(__file__)) + "/camera_assignments.yaml", "r"
 ) as stream:
     camera_assignments = yaml.load(stream, Loader=yaml.Loader)
     camera_types = {}

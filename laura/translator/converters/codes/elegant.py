@@ -98,13 +98,18 @@ class ElegantLatticeImporter(BaseModel):
                     if "physical" in v:
                         v["physical"].update(
                             {
-                                "middle": {p: c for p, c in zip(["x", "y", "z"], centre.tolist())},
+                                "middle": {
+                                    p: c
+                                    for p, c in zip(["x", "y", "z"], centre.tolist())
+                                },
                                 "global_rotation": rotation,
                             }
                         )
                     else:
                         v["physical"] = {
-                            "middle": {p: c for p, c in zip(["x", "y", "z"], centre.tolist())},
+                            "middle": {
+                                p: c for p, c in zip(["x", "y", "z"], centre.tolist())
+                            },
                             "global_rotation": rotation,
                         }
 

@@ -38,9 +38,21 @@ def lsc_is_nonzero(lsc):
 def compare_and_report(name, elem, proposed_elem, header_width):
     """Compare original elem vs proposed and print diffs. Returns True if diffs found."""
     orig_coeffs = elem.magnetic.linear_saturation_coefficients
-    orig_degauss = list(elem.degauss.values) if hasattr(elem, "degauss") and elem.degauss is not None else []
-    orig_serial = elem.manufacturer.serial_number if hasattr(elem, "manufacturer") and elem.manufacturer is not None else ""
-    orig_maxI = elem.electrical.maxI if hasattr(elem, "electrical") and elem.electrical is not None else 0.0
+    orig_degauss = (
+        list(elem.degauss.values)
+        if hasattr(elem, "degauss") and elem.degauss is not None
+        else []
+    )
+    orig_serial = (
+        elem.manufacturer.serial_number
+        if hasattr(elem, "manufacturer") and elem.manufacturer is not None
+        else ""
+    )
+    orig_maxI = (
+        elem.electrical.maxI
+        if hasattr(elem, "electrical") and elem.electrical is not None
+        else 0.0
+    )
 
     has_diff = False
 
@@ -54,7 +66,10 @@ def compare_and_report(name, elem, proposed_elem, header_width):
             print(f"{name:<30} | {k:<10} | {v_old:<20g} | {v_new:<20g}")
 
     # 2. Compare serial number
-    if hasattr(proposed_elem, "manufacturer") and proposed_elem.manufacturer is not None:
+    if (
+        hasattr(proposed_elem, "manufacturer")
+        and proposed_elem.manufacturer is not None
+    ):
         if str(orig_serial) != str(proposed_elem.manufacturer.serial_number):
             has_diff = True
             print(
@@ -157,9 +172,7 @@ def main():
         default=None,
         help="Path to YAML directory (default: laura-lattices CLARA/YAML)",
     )
-    parser.add_argument(
-        "--excel", help="Path to alternative Magnet Table Excel file"
-    )
+    parser.add_argument("--excel", help="Path to alternative Magnet Table Excel file")
     args = parser.parse_args()
 
     # If an alternative Excel file is provided, reload the magnet_table
@@ -268,12 +281,20 @@ def main():
                 except Exception:
                     continue
 
-                child_has_diff = compare_and_report(child_name, child_elem, proposed_child, len(header))
+                child_has_diff = compare_and_report(
+                    child_name, child_elem, proposed_child, len(header)
+                )
 
                 # (c) Compare position data — child should match parent HVCOR
-                if (hasattr(elem, "physical") and elem.physical is not None
-                        and hasattr(child_elem, "physical") and child_elem.physical is not None):
-                    pos_diff = compare_positions(child_name, child_elem.physical, elem.physical)
+                if (
+                    hasattr(elem, "physical")
+                    and elem.physical is not None
+                    and hasattr(child_elem, "physical")
+                    and child_elem.physical is not None
+                ):
+                    pos_diff = compare_positions(
+                        child_name, child_elem.physical, elem.physical
+                    )
                     if pos_diff:
                         child_has_diff = True
                         # Copy parent position to proposed child
@@ -289,7 +310,9 @@ def main():
                 diffs_found += 1
                 if args.update:
                     proposed_hvcor = deepcopy(elem)
-                    proposed_hvcor.magnetic.linear_saturation_coefficients.update_from_string(ZERO_LSC)
+                    proposed_hvcor.magnetic.linear_saturation_coefficients.update_from_string(
+                        ZERO_LSC
+                    )
                     update_element(proposed_hvcor, yaml_abs_path, updated_files)
 
             continue

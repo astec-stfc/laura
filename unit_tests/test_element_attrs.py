@@ -19,10 +19,10 @@ from laura.models.element import (
 from laura.models.physical import Position, Rotation, PhysicalElement
 from laura.models.magnetic import Quadrupole_Magnet, Dipole_Magnet
 
-
 # ---------------------------------------------------------------------------
 # Helper: create a positioned quadrupole
 # ---------------------------------------------------------------------------
+
 
 def make_quad(name="Q1", k1l=0.5, z=1.0, length=0.3):
     return Quadrupole(
@@ -36,6 +36,7 @@ def make_quad(name="Q1", k1l=0.5, z=1.0, length=0.3):
 # ---------------------------------------------------------------------------
 # Transparent nested attribute access (__getattr__)
 # ---------------------------------------------------------------------------
+
 
 class TestGetAttr:
     def test_access_nested_magnetic_field(self):
@@ -83,6 +84,7 @@ class TestGetAttr:
 # Transparent nested attribute setting (__setattr__)
 # ---------------------------------------------------------------------------
 
+
 class TestSetAttr:
     def test_set_nested_magnetic_k1l(self):
         q = make_quad(k1l=0.5)
@@ -111,6 +113,7 @@ class TestSetAttr:
 # flatten utility
 # ---------------------------------------------------------------------------
 
+
 class TestFlatten:
     def test_simple(self):
         d = {"a": {"b": 1, "c": 2}, "d": 3}
@@ -136,6 +139,7 @@ class TestFlatten:
 # ---------------------------------------------------------------------------
 # baseElement
 # ---------------------------------------------------------------------------
+
 
 class TestBaseElement:
     def test_default_hardware_model(self):
@@ -243,6 +247,7 @@ class TestBaseElement:
 # Element types – construction with nested dicts
 # ---------------------------------------------------------------------------
 
+
 class TestElementTypes:
     def test_quadrupole_from_dicts(self):
         q = Quadrupole(
@@ -312,6 +317,7 @@ class TestElementTypes:
 # ---------------------------------------------------------------------------
 # Cascading rules on Magnet (physical angle <- magnetic angle)
 # ---------------------------------------------------------------------------
+
 
 class TestCascading:
     def test_dipole_bend_angle(self):

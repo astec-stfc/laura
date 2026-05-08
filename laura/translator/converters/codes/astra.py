@@ -46,7 +46,7 @@ class astra_header(BaseModel):
         "global_parameters",
         "particle_definition",
         "output_particle_definition",
-        "twiss"
+        "twiss",
     ]
 
     astradict: Dict = {}

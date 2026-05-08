@@ -29,10 +29,10 @@ from laura.Importers.YAML_Loader import (
 )
 from laura import LAURA
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def sample_quad():
@@ -69,6 +69,7 @@ def small_machine(sample_quad, sample_marker):
 # export_as_yaml
 # ---------------------------------------------------------------------------
 
+
 class TestExportAsYaml:
     def test_returns_dict_when_no_filename(self, sample_quad):
         result = export_as_yaml(None, sample_quad)
@@ -94,6 +95,7 @@ class TestExportAsYaml:
 # ---------------------------------------------------------------------------
 # export_machine / export_machine_combined_file / export_elements
 # ---------------------------------------------------------------------------
+
 
 class TestExportMachine:
     def test_export_machine_creates_files(self, small_machine, tmp_path):
@@ -142,6 +144,7 @@ class TestExportMachine:
 # ---------------------------------------------------------------------------
 # Importers: interpret_YAML_Element
 # ---------------------------------------------------------------------------
+
 
 class TestInterpretYAMLElement:
     def test_interpret_quadrupole(self):
@@ -196,6 +199,7 @@ class TestInterpretYAMLElement:
 # Importers: read_YAML_Element_File / read_YAML_Combined_File
 # ---------------------------------------------------------------------------
 
+
 class TestReadYAMLFiles:
     def test_read_single_element_file(self, sample_quad, tmp_path):
         filepath = str(tmp_path / "q1.yaml")
@@ -234,6 +238,7 @@ class TestReadYAMLFiles:
 # ---------------------------------------------------------------------------
 # Utility: get_all_subclasses / filter_top_level
 # ---------------------------------------------------------------------------
+
 
 class TestImporterUtils:
     def test_get_all_subclasses(self):

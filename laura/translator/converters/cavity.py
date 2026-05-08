@@ -436,15 +436,24 @@ class RFCavityTranslator(BaseElementTranslator):
         elem_dict = {}
         elem_dict.update(**aperture_params(section_aperture))
         sig = inspect.signature(obj)
-        required = [
-            name for name, param in sig.parameters.items() if name != "kwargs"
-        ]
+        required = [name for name, param in sig.parameters.items() if name != "kwargs"]
         for key, value in self.full_dump().items():
             if key in required or self._convertKeyword_BDSIM(key) in required:
                 key = self._convertKeyword_BDSIM(key)
                 if key == "phase":
-                    value = self.cavity.phase  * np.pi / 180
-                elem_dict.update({self._convertKeyword_BDSIM(key): value})
+                    value = self.cavity.phase * np.pi / 180
+                if key == "gradient":
+                    if self.structure_type == "TravellingWave":
+                        value = value * abs(
+                            (self.get_cells() + 3.8)
+                            * self.cavity.cell_length
+                            * (1 / np.sqrt(2))
+                            / self.physical.length
+                        )
+                    else:
+                        value = value / self.physical.length
+                elem_dict.update({key: value})
+        print(elem_dict)
         return obj(**elem_dict)
 
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:

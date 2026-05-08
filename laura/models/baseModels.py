@@ -159,7 +159,6 @@ class NumpyModel(ModelBase):
 class NumpyVectorModel(NumpyModel):
     """vector model using numpy arrays."""
 
-
     def __iter__(self) -> iter:
         cls = self.__class__
         return iter([getattr(self, k) for k in cls.model_fields.keys()])

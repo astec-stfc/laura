@@ -37,10 +37,10 @@ from laura.models.laser import LaserElement
 from laura.models.plasma import PlasmaElement
 from laura.models.control import ControlVariable, ControlsInformation
 
-
 # ---------------------------------------------------------------------------
 # RF Models
 # ---------------------------------------------------------------------------
+
 
 class TestRFCavityElement:
     def test_defaults(self):
@@ -86,6 +86,7 @@ class TestRFDeflectingCavityElement:
 # Diagnostic Models
 # ---------------------------------------------------------------------------
 
+
 class TestDiagnosticModels:
     def test_bpm_diagnostic(self):
         bpm = Beam_Position_Monitor_Diagnostic()
@@ -123,6 +124,7 @@ class TestDiagnosticModels:
 # Simulation Models
 # ---------------------------------------------------------------------------
 
+
 class TestSimulationModels:
     def test_simulation_element_defaults(self):
         se = SimulationElement()
@@ -140,7 +142,9 @@ class TestSimulationModels:
         assert ds is not None
 
     def test_aperture_element(self):
-        ae = ApertureElement(horizontal_size=0.03, vertical_size=0.02, shape="elliptical")
+        ae = ApertureElement(
+            horizontal_size=0.03, vertical_size=0.02, shape="elliptical"
+        )
         assert ae.horizontal_size == pytest.approx(0.03)
         assert ae.shape == "elliptical"
 
@@ -148,6 +152,7 @@ class TestSimulationModels:
 # ---------------------------------------------------------------------------
 # Electrical
 # ---------------------------------------------------------------------------
+
 
 class TestElectricalElement:
     def test_defaults(self):
@@ -160,10 +165,13 @@ class TestElectricalElement:
 # Laser
 # ---------------------------------------------------------------------------
 
+
 class TestLaserElement:
     def test_defaults(self):
         # LaserElement requires wavelength, pulse_energy, pulse_duration_fwhm (all gt=0)
-        le = LaserElement(wavelength=800e-9, pulse_energy=1e-3, pulse_duration_fwhm=30e-15)
+        le = LaserElement(
+            wavelength=800e-9, pulse_energy=1e-3, pulse_duration_fwhm=30e-15
+        )
         assert le.wavelength == pytest.approx(800e-9)
         assert le.pulse_energy == pytest.approx(1e-3)
         assert le.pulse_duration_fwhm == pytest.approx(30e-15)
@@ -172,6 +180,7 @@ class TestLaserElement:
 # ---------------------------------------------------------------------------
 # Plasma
 # ---------------------------------------------------------------------------
+
 
 class TestPlasmaElement:
     def test_defaults(self):
@@ -184,6 +193,7 @@ class TestPlasmaElement:
 # ---------------------------------------------------------------------------
 # Control Variables
 # ---------------------------------------------------------------------------
+
 
 class TestControlVariable:
     def test_basic_creation(self):

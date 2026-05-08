@@ -9,9 +9,9 @@ general:
 solenoid:
   field_amplitude: ks
 rfcavity:
-  field_amplitude: voltage
+  field_amplitude: gradient
 rfdeflectingcavity:
-  field_amplitude: voltage
+  field_amplitude: gradient
 undulator:
   peak_magnetic_field: B
   period: undulatorPeriod

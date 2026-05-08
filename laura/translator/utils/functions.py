@@ -257,9 +257,7 @@ def path_function(a):
 
 def expand_substitution(self, param, subs={}, elements={}, absolute=False):
     if isinstance(param, str):
-        subs["master_lattice"] = (
-            path_function(self.master_lattice) + "/"
-        )
+        subs["master_lattice"] = path_function(self.master_lattice) + "/"
         regex = re.compile(r"\$(.*)\$")
         s = re.search(regex, param)
         if s:

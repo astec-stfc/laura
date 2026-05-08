@@ -10,13 +10,16 @@ from ..models.element import *  # noqa
 
 # Fast metadata extraction regex
 _NAME_RE = re.compile(r'^\s*name:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE)
-_AREA_RE = re.compile(r'^\s*machine_area:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE)
+_AREA_RE = re.compile(
+    r'^\s*machine_area:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE
+)
+
 
 def fast_get_element_metadata(filename: str) -> dict:
     """Quickly extract metadata from a YAML file without full parsing."""
     metadata = {"name": None, "machine_area": None}
     try:
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             # Metadata is usually in first 2000 chars
             content = f.read(2000)
             name_match = _NAME_RE.search(content)
@@ -28,13 +31,17 @@ def fast_get_element_metadata(filename: str) -> dict:
     except Exception:
         pass
     if not metadata["name"]:
-        metadata["name"] = os.path.basename(filename).replace('.yaml', '').replace('.yml', '')
+        metadata["name"] = (
+            os.path.basename(filename).replace(".yaml", "").replace(".yml", "")
+        )
     return metadata
+
 
 class LazyElementDict(dict):
     """
     Dictionary that loads elements from YAML files only when accessed.
     """
+
     def __init__(self, filenames, exclude_keys=None):
         # Initialise with keys but None values to satisfy tools that check keys()
         super().__init__({k: None for k in filenames.keys()})
@@ -48,7 +55,10 @@ class LazyElementDict(dict):
             elem = super().__getitem__(name)
             if elem is None:
                 return None
-            return {"name": elem.name, "machine_area": getattr(elem, "machine_area", None)}
+            return {
+                "name": elem.name,
+                "machine_area": getattr(elem, "machine_area", None),
+            }
         if name in self._metadata_cache:
             return self._metadata_cache[name]
         if name in self._filenames:
@@ -72,7 +82,9 @@ class LazyElementDict(dict):
                 return val
         if key in self._filenames:
             # Only load when needed
-            elem = read_YAML_Element_File(self._filenames[key], exclude_keys=self._exclude_keys)
+            elem = read_YAML_Element_File(
+                self._filenames[key], exclude_keys=self._exclude_keys
+            )
             super().__setitem__(key, elem)
             return elem
         raise KeyError(key)
@@ -90,7 +102,7 @@ class LazyElementDict(dict):
         return sorted(set(self._filenames.keys()) | set(super().keys()))
 
     def values(self):
-        # We MUST return the full models if someone calls .values() 
+        # We MUST return the full models if someone calls .values()
         # but we can detect if it's MachineModel building indexes and return stubs instead
         # However, it's safer to just let indexing call its own metadata lookup.
         for k in self.keys():
@@ -110,17 +122,17 @@ def get_all_subclasses(cls):
         subclasses.update(get_all_subclasses(sub))
     return subclasses
 
+
 ALL_MODELS = get_all_subclasses(BaseModel)
 
-MODEL_REGISTRY = {
-    cls.__name__: cls
-    for cls in ALL_MODELS
-}
+MODEL_REGISTRY = {cls.__name__: cls for cls in ALL_MODELS}
+
 
 class LazyAdapterDict(dict):
     """
     Lazy lookup of TypeAdapters to avoid initializing all 100+ adapters on import.
     """
+
     def get(self, key, default=None):
         if key not in self:
             model = MODEL_REGISTRY.get(key)
@@ -129,12 +141,15 @@ class LazyAdapterDict(dict):
             self[key] = TypeAdapter(model)
         return super().get(key)
 
+
 ADAPTERS = LazyAdapterDict()
+
 
 def filter_top_level(elem: dict, exclude_keys: List[str] | None = None) -> dict:
     if isinstance(exclude_keys, list):
         return {k: v for k, v in elem.items() if k not in exclude_keys}
     return {k: v for k, v in elem.items()}
+
 
 def interpret_YAML_Element(elem: dict, exclude_set=None):
     hw_type = elem.get("hardware_type")
@@ -182,6 +197,5 @@ def read_YAML_Combined_File(filename: str, exclude_keys=None):
             elements = json.load(stream)
 
     return [
-        interpret_YAML_Element(element, exclude_set)
-        for element in elements.values()
+        interpret_YAML_Element(element, exclude_set) for element in elements.values()
     ]

@@ -18,10 +18,10 @@ from laura.models.magnetic import (
     LinearSaturationFit,
 )
 
-
 # ---------------------------------------------------------------------------
 # Multipole
 # ---------------------------------------------------------------------------
+
 
 class TestMultipole:
     def test_default_values(self):
@@ -41,6 +41,7 @@ class TestMultipole:
 # FieldIntegral
 # ---------------------------------------------------------------------------
 
+
 class TestFieldIntegral:
     def test_current_to_k_linear(self):
         fi = FieldIntegral(coefficients=[0.0, 0.5])  # K = 0.5 * current
@@ -56,6 +57,7 @@ class TestFieldIntegral:
 # ---------------------------------------------------------------------------
 # LinearSaturationFit
 # ---------------------------------------------------------------------------
+
 
 class TestLinearSaturationFit:
     @pytest.fixture
@@ -92,6 +94,7 @@ class TestLinearSaturationFit:
 # MagneticElement
 # ---------------------------------------------------------------------------
 
+
 class TestMagneticElement:
     def test_default_values(self):
         me = MagneticElement()
@@ -118,6 +121,7 @@ class TestMagneticElement:
 # ---------------------------------------------------------------------------
 # Magnet subtypes
 # ---------------------------------------------------------------------------
+
 
 class TestDipoleMagnet:
     def test_defaults(self):
@@ -169,6 +173,7 @@ class TestOctupleMagnet:
 # Solenoid
 # ---------------------------------------------------------------------------
 
+
 class TestSolenoidMagnet:
     def test_default(self):
         sol = Solenoid_Magnet()
@@ -189,6 +194,7 @@ class TestSolenoidMagnet:
 # NonLinearLens
 # ---------------------------------------------------------------------------
 
+
 class TestNonLinearLensMagnet:
     def test_default(self):
         nll = NonLinearLens_Magnet()
@@ -200,6 +206,7 @@ class TestNonLinearLensMagnet:
 # ---------------------------------------------------------------------------
 # Wiggler
 # ---------------------------------------------------------------------------
+
 
 class TestWigglerMagnet:
     def test_default(self):

@@ -1,7 +1,14 @@
 import os
 import numpy as np
 from typing import List, Dict, Any, Union, Literal
-from pydantic import field_validator, BaseModel, ValidationInfo, Field, PositiveInt, NonNegativeFloat
+from pydantic import (
+    field_validator,
+    BaseModel,
+    ValidationInfo,
+    Field,
+    PositiveInt,
+    NonNegativeFloat,
+)
 from warnings import warn
 
 from ._functions import read_yaml
@@ -84,14 +91,21 @@ class ElementList(ModelBase):
     elements: Dict[str, Union[baseElement, dict, None]]
 
     def __str__(self):
-        return str([e["name"] if isinstance(e, dict) else e.name for e in self.elements.values()])
+        return str(
+            [
+                e["name"] if isinstance(e, dict) else e.name
+                for e in self.elements.values()
+            ]
+        )
 
     def __getitem__(self, item: str) -> int:
         return self.elements[item]
 
     @property
     def names(self) -> list:
-        return [e["name"] if isinstance(e, dict) else e.name for e in self.elements.values()]
+        return [
+            e["name"] if isinstance(e, dict) else e.name for e in self.elements.values()
+        ]
 
     def index(self, element: Union[str, baseElement]):
         if isinstance(element, str):
@@ -134,9 +148,9 @@ class SectionLattice(BaseLatticeModel):
     # other_elements: ElementList = ElementList(elements={})
     # TODO should we put this back in?
 
-    beampipe_aperture_type: (
-            Literal["elliptical", "circular", "rectangular"] | None
-    ) = None
+    beampipe_aperture_type: Literal["elliptical", "circular", "rectangular"] | None = (
+        None
+    )
     """Beam pipe aperture shape [optional]"""
 
     beampipe_size: NonNegativeFloat | List[NonNegativeFloat] | None = None
@@ -152,7 +166,9 @@ class SectionLattice(BaseLatticeModel):
     @field_validator("elements", mode="before")
     @classmethod
     def validate_elements(
-        cls, elements: Union[List[Union[baseElement, dict]], ElementList], info: ValidationInfo
+        cls,
+        elements: Union[List[Union[baseElement, dict]], ElementList],
+        info: ValidationInfo,
     ) -> ElementList:
         if isinstance(elements, list):
             elemdict = {}
@@ -361,14 +377,15 @@ class MachineLayout(BaseLatticeModel):
                 superelem = last_elem.get("name")
                 # Skip geometry correction for stub dicts
                 return
-            
+
             superelem = last_elem.name
             start_pos = last_elem.physical.start
             all_elem_corrected = []
             for elem in all_elems_reversed:
                 if isinstance(elem, PhysicalBaseElement):
                     vector = (
-                        not elem.physical.end.vector_angle(start_pos, [0, 0, -1]) < -5e-6
+                        not elem.physical.end.vector_angle(start_pos, [0, 0, -1])
+                        < -5e-6
                     )
                     if not elem.is_subelement():
                         superelem = elem.name
@@ -423,7 +440,11 @@ class MachineLayout(BaseLatticeModel):
         List[str]
             Names of all elements.
         """
-        return [e.name for e in self._get_all_elements() if isinstance(e, PhysicalBaseElement)]
+        return [
+            e.name
+            for e in self._get_all_elements()
+            if isinstance(e, PhysicalBaseElement)
+        ]
 
     def get_element(self, name: str) -> baseElement:
         """
@@ -615,9 +636,9 @@ class MachineModel(ModelBase):
     master_lattice: str | None = None
     """Directory containing lattice YAML files."""
 
-    beampipe_aperture_type: (
-            Literal["elliptical", "circular", "rectangular"] | None
-    ) = None
+    beampipe_aperture_type: Literal["elliptical", "circular", "rectangular"] | None = (
+        None
+    )
     """Beam pipe aperture shape [optional]"""
 
     beampipe_size: NonNegativeFloat | List[NonNegativeFloat] | None = None
@@ -637,11 +658,13 @@ class MachineModel(ModelBase):
     @field_validator("beampipe_size", mode="after")
     @classmethod
     def validate_beampipe_size(
-            cls,
-            v: NonNegativeFloat | List[NonNegativeFloat] | None,
-            info: ValidationInfo,
+        cls,
+        v: NonNegativeFloat | List[NonNegativeFloat] | None,
+        info: ValidationInfo,
     ) -> NonNegativeFloat | List[NonNegativeFloat] | None:
-        beampipe_aperture_type = info.data.get("beampipe_aperture_type")  # ← fix: read from info.data
+        beampipe_aperture_type = info.data.get(
+            "beampipe_aperture_type"
+        )  # ← fix: read from info.data
         if beampipe_aperture_type is None and v is not None:
             warn("beampipe_aperture_type not defined; cannot set beampipe_size")
             return None
@@ -649,14 +672,18 @@ class MachineModel(ModelBase):
             if isinstance(v, float):
                 return v
             elif isinstance(v, list):
-                warn("Multiple beampipe_size found for circular beampipe_aperture_type; setting first value")
+                warn(
+                    "Multiple beampipe_size found for circular beampipe_aperture_type; setting first value"
+                )
                 return v[0]
             else:
                 warn("beampipe_size not defined")
                 return None
         elif beampipe_aperture_type == "elliptical":
             if isinstance(v, float):
-                warn("Single beampipe_size found for elliptical beampipe_aperture_type; setting circular radius")
+                warn(
+                    "Single beampipe_size found for elliptical beampipe_aperture_type; setting circular radius"
+                )
                 return v
             elif isinstance(v, list):
                 return v
@@ -665,7 +692,9 @@ class MachineModel(ModelBase):
                 return None
         elif beampipe_aperture_type == "rectangular":
             if isinstance(v, float):
-                warn("Single beampipe_size found for rectangular beampipe_aperture_type; setting square aperture")
+                warn(
+                    "Single beampipe_size found for rectangular beampipe_aperture_type; setting square aperture"
+                )
                 return v
             elif isinstance(v, list):
                 return v
@@ -673,7 +702,9 @@ class MachineModel(ModelBase):
                 warn("beampipe_size not defined")
                 return None
         elif isinstance(beampipe_aperture_type, str):
-            warn(f"beampipe_aperture_type {beampipe_aperture_type} not recognised; cannot set beampipe_size")
+            warn(
+                f"beampipe_aperture_type {beampipe_aperture_type} not recognised; cannot set beampipe_size"
+            )
         return None
 
     @field_validator("layout", mode="before")
@@ -859,10 +890,7 @@ class MachineModel(ModelBase):
             if area in self.sections:
                 continue
 
-            order = [
-                e["name"] if isinstance(e, dict) else e.name
-                for e in new_elements
-            ]
+            order = [e["name"] if isinstance(e, dict) else e.name for e in new_elements]
 
             self.sections[area] = SectionLattice(
                 name=area,
@@ -888,11 +916,7 @@ class MachineModel(ModelBase):
                 if area in self.sections:
                     continue
 
-                new_elements = [
-                    by_name[name]
-                    for name in elem_names
-                    if name in by_name
-                ]
+                new_elements = [by_name[name] for name in elem_names if name in by_name]
                 self.sections[area] = SectionLattice(
                     name=area,
                     elements=new_elements,
@@ -911,9 +935,7 @@ class MachineModel(ModelBase):
                         elem_names = self._section_definitions[area]
 
                         new_elements = [
-                            by_name[name]
-                            for name in elem_names
-                            if name in by_name
+                            by_name[name] for name in elem_names if name in by_name
                         ]
 
                         self.sections[area] = SectionLattice(

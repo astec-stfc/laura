@@ -29,7 +29,7 @@ class MachineModelTranslator(MachineModel):
 
     def format_string(seld, string: str):
         fulltext = ""
-        for s in string.split(', '):
+        for s in string.split(", "):
             if len((fulltext + s).splitlines()[-1]) > 60:
                 fulltext += "&\n"
             fulltext += s + ", "
@@ -62,7 +62,9 @@ class MachineModelTranslator(MachineModel):
             for l in list(latt.keys()):
                 lstring += f"{l}, "
             lstring = f"{lstring[:-2]})" + "\n\n"
-        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
+        lstring = "&\n".join(
+            wrap(lstring, 80, break_long_words=False, break_on_hyphens=False)
+        )
         return string + lstring
 
     def to_genesis(self, string: str = "") -> str:
