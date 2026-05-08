@@ -1,6 +1,8 @@
 from laura.models.simulation import ApertureElement
 from .base import BaseElementTranslator
 from ..converters import elements_Elegant
+from warnings import warn
+from typing import Dict
 
 
 class ApertureTranslator(BaseElementTranslator):
@@ -220,3 +222,59 @@ class ApertureTranslator(BaseElementTranslator):
                     keys.append(key)
         wholestring += string + ";\n"
         return wholestring
+
+    def to_bdsim(self, section_aperture: Dict | None = None) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+        from ..utils.bdsim import aperture_params
+        import inspect
+
+        def get_bdsim_drift(name) -> object:
+            warn(
+                f"Aperture type not defined for {name} or not provided for BDSIM; setting as drift"
+            )
+            from pybdsim.Builder import Drift as Drift_BDSIM
+
+            return Drift_BDSIM
+
+        type_conversion_rules_BDSIM = bdsim_conversion.bdsim_conversion_rules
+        if self.hardware_type in type_conversion_rules_BDSIM:
+            if hasattr(self, "aperture"):
+                if self.aperture.shape in ["elliptical", "circular"]:
+                    from pybdsim.Builder import ECol
+                    obj = ECol
+                elif self.aperture.shape == "rectangular":
+                    from pybdsim.Builder import RCol
+                    obj = RCol
+                elif self.aperture.shape in ["scraper", "planar"]:
+                    from pybdsim.Builder import JCol
+                    obj = JCol
+                else:
+                    obj = get_bdsim_drift(self.name)
+            else:
+                obj = get_bdsim_drift(self.name)
+        else:
+            obj = get_bdsim_drift(self.name)
+        elem_dict = {}
+        elem_dict.update(**aperture_params(section_aperture))
+        sig = inspect.signature(obj)
+        required = [
+            name for name, param in sig.parameters.items() if name != "kwargs"
+        ]
+        for key, value in self.full_dump().items():
+            if key in required or self._convertKeyword_BDSIM(key) in required:
+                elem_dict.update({self._convertKeyword_BDSIM(key): value})
+        return obj(**elem_dict)

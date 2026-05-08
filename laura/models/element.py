@@ -492,6 +492,9 @@ class PhysicalBaseElement(Element):
     physical: PhysicalElement = Field(default_factory=PhysicalElement)
     """Physical attributes of the element."""
 
+    aperture: ApertureElement | None = None
+    """Aperture attributes of the element [optional]."""
+
     def to_CATAP(self):
         catap_dict = super().to_CATAP()
         catap_dict.update(

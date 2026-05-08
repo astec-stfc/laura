@@ -4,7 +4,7 @@ from .base import BaseElementTranslator
 from laura.models.RF import RFCavityElement
 from laura.models.simulation import RFCavitySimulationElement
 from laura.translator.utils.fields import field
-
+from typing import Dict
 from ..converters import (
     elements_Elegant,
     elements_Opal,
@@ -411,6 +411,41 @@ class RFCavityTranslator(BaseElementTranslator):
                     value = 3 * self.get_cells()
                 properties.update({key: value})
         return self.name, obj, properties
+
+    def to_bdsim(self, section_aperture: Dict | None = None) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+        from ..utils.bdsim import aperture_params
+        import inspect
+
+        type_conversion_rules_BDSIM = bdsim_conversion.bdsim_conversion_rules
+        obj = type_conversion_rules_BDSIM[self.hardware_type]
+        elem_dict = {}
+        elem_dict.update(**aperture_params(section_aperture))
+        sig = inspect.signature(obj)
+        required = [
+            name for name, param in sig.parameters.items() if name != "kwargs"
+        ]
+        for key, value in self.full_dump().items():
+            if key in required or self._convertKeyword_BDSIM(key) in required:
+                key = self._convertKeyword_BDSIM(key)
+                if key == "phase":
+                    value = self.cavity.phase  * np.pi / 180
+                elem_dict.update({self._convertKeyword_BDSIM(key): value})
+        return obj(**elem_dict)
 
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
         """

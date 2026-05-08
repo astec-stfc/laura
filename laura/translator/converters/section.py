@@ -76,6 +76,9 @@ class SectionLatticeTranslator(SectionLattice):
                 "order": section.model_copy().order,
                 "elements": section.model_copy().elements,
                 "master_lattice": section.model_copy().master_lattice,
+                "beampipe_aperture_type": section.model_copy().beampipe_aperture_type,
+                "beampipe_size": section.model_copy().beampipe_size,
+                "beampipe_material": section.model_copy().beampipe_material,
             }
         )
 
@@ -609,3 +612,46 @@ class SectionLatticeTranslator(SectionLattice):
                 # except Exception as e:
                 #     print('Wake-T writeElements error:', element.name, e)
         return Beamline(beamline)
+
+    def to_bdsim(self, save=False) -> "Machine":
+        """
+        Create a BDSIM-compatible Machine object based on the lattice information.
+
+        Parameters
+        ----------
+        save: bool
+            Flag to indicate whether to save the lattice to a file.
+
+        Returns
+        -------
+        Machine
+            A BDSIM `Machine` object.
+        """
+        from pybdsim.Builder import Machine
+
+        section_with_drifts = self.createDrifts()
+        elem_dict = translate_elements(
+            section_with_drifts.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        elements = []
+        if any(q is not None for q in [self.beampipe_aperture_type, self.beampipe_size, self.beampipe_material]):
+            section_aperture = {
+                "type": self.beampipe_aperture_type,
+                "size": self.beampipe_size,
+                "material": self.beampipe_material,
+            }
+        else:
+            section_aperture = None
+
+        for d in elem_dict.values():
+            elements.append(d.to_bdsim(section_aperture=section_aperture))
+
+        machine = Machine()
+        for be in elements:
+            machine.Append(be)
+        if save:
+            machine.Write(f"{self.directory}/{self.name}.gmad")
+
+        return machine

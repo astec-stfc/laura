@@ -1,5 +1,6 @@
 from pydantic import computed_field
 from warnings import warn
+from typing import Dict
 from .base import BaseElementTranslator
 from laura.models.magnetic import (
     MagneticElement,
@@ -950,6 +951,45 @@ class DipoleTranslator(BaseElementTranslator):
         wholestring += f', FMAPFN = "1DPROFILE1-DEFAULT";\n'
         return wholestring
 
+    def to_bdsim(self, section_aperture: Dict | None = None) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+        from ..utils.bdsim import aperture_params
+        import inspect
+
+        type_conversion_rules_BDSIM = bdsim_conversion.bdsim_conversion_rules
+        if np.isclose(self.e1, self.e2) and self.e1 != 0:
+            from pybdsim.Builder import RBend
+            obj = RBend
+        else:
+            obj = type_conversion_rules_BDSIM[self.hardware_type]
+        elem_dict = {}
+        elem_dict.update(**aperture_params(section_aperture))
+        sig = inspect.signature(obj)
+        required = [
+            name for name, param in sig.parameters.items() if name != "kwargs"
+        ]
+        for key, value in self.full_dump().items():
+            if key in required or self._convertKeyword_BDSIM(key) in required:
+                key = self._convertKeyword_BDSIM(key)
+                if key == "ks":
+                    value = self.magnetic.field_amplitude  # / self.magnetic.length
+                elem_dict.update({self._convertKeyword_BDSIM(key): value})
+        return obj(**elem_dict)
+
     #
     # @computed_field
     # @property
@@ -1193,6 +1233,41 @@ class SolenoidTranslator(BaseElementTranslator):
             )
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
+
+    def to_bdsim(self, section_aperture: Dict | None = None) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+        from ..utils.bdsim import aperture_params
+        import inspect
+
+        type_conversion_rules_BDSIM = bdsim_conversion.bdsim_conversion_rules
+        obj = type_conversion_rules_BDSIM[self.hardware_type]
+        elem_dict = {}
+        elem_dict.update(**aperture_params(section_aperture))
+        sig = inspect.signature(obj)
+        required = [
+            name for name, param in sig.parameters.items() if name != "kwargs"
+        ]
+        for key, value in self.full_dump().items():
+            if key in required or self._convertKeyword_BDSIM(key) in required:
+                key = self._convertKeyword_BDSIM(key)
+                if key == "ks":
+                    value = self.magnetic.field_amplitude  # / self.magnetic.length
+                elem_dict.update({self._convertKeyword_BDSIM(key): value})
+        return obj(**elem_dict)
 
 
 class WigglerTranslator(BaseElementTranslator):

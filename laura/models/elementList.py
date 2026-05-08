@@ -1,9 +1,10 @@
 import os
 import numpy as np
-from typing import List, Dict, Any, Union
-from pydantic import field_validator, BaseModel, ValidationInfo, Field, PositiveInt
+from typing import List, Dict, Any, Union, Literal
+from pydantic import field_validator, BaseModel, ValidationInfo, Field, PositiveInt, NonNegativeFloat
 from warnings import warn
-from ._functions import read_yaml, merge_two_dicts
+
+from ._functions import read_yaml
 from .element import baseElement, Drift, PhysicalBaseElement, Diagnostic
 from .physical import PhysicalElement, Position
 from .baseModels import ModelBase
@@ -132,6 +133,19 @@ class SectionLattice(BaseLatticeModel):
 
     # other_elements: ElementList = ElementList(elements={})
     # TODO should we put this back in?
+
+    beampipe_aperture_type: (
+            Literal["elliptical", "circular", "rectangular"] | None
+    ) = None
+    """Beam pipe aperture shape [optional]"""
+
+    beampipe_size: NonNegativeFloat | List[NonNegativeFloat] | None = None
+    """Size of beam pipe [optional]"""
+
+    beampipe_material: str | None = None
+    """Beam pipe material [optional]; see `BDSIM manual`_ for more details.
+
+    .. _BDSIM manual: https://bdsim-collaboration.github.io/bdsim/sphinx/index.html#"""
 
     _basename: str = "elements"
 
@@ -601,11 +615,66 @@ class MachineModel(ModelBase):
     master_lattice: str | None = None
     """Directory containing lattice YAML files."""
 
+    beampipe_aperture_type: (
+            Literal["elliptical", "circular", "rectangular"] | None
+    ) = None
+    """Beam pipe aperture shape [optional]"""
+
+    beampipe_size: NonNegativeFloat | List[NonNegativeFloat] | None = None
+    """Size of beam pipe [optional]"""
+
+    beampipe_material: str | None = None
+    """Beam pipe material [optional]; see `BDSIM manual`_ for more details.
+    
+    .. _BDSIM manual: https://bdsim-collaboration.github.io/bdsim/sphinx/index.html#"""
+
     _layouts: List[str] = None
 
     _section_definitions: Dict = {}
 
     _default_path: str = None
+
+    @field_validator("beampipe_size", mode="after")
+    @classmethod
+    def validate_beampipe_size(
+            cls,
+            v: NonNegativeFloat | List[NonNegativeFloat] | None,
+            info: ValidationInfo,
+    ) -> NonNegativeFloat | List[NonNegativeFloat] | None:
+        beampipe_aperture_type = info.data.get("beampipe_aperture_type")  # ← fix: read from info.data
+        if beampipe_aperture_type is None and v is not None:
+            warn("beampipe_aperture_type not defined; cannot set beampipe_size")
+            return None
+        if beampipe_aperture_type == "circular":
+            if isinstance(v, float):
+                return v
+            elif isinstance(v, list):
+                warn("Multiple beampipe_size found for circular beampipe_aperture_type; setting first value")
+                return v[0]
+            else:
+                warn("beampipe_size not defined")
+                return None
+        elif beampipe_aperture_type == "elliptical":
+            if isinstance(v, float):
+                warn("Single beampipe_size found for elliptical beampipe_aperture_type; setting circular radius")
+                return v
+            elif isinstance(v, list):
+                return v
+            else:
+                warn("beampipe_size not defined")
+                return None
+        elif beampipe_aperture_type == "rectangular":
+            if isinstance(v, float):
+                warn("Single beampipe_size found for rectangular beampipe_aperture_type; setting square aperture")
+                return v
+            elif isinstance(v, list):
+                return v
+            else:
+                warn("beampipe_size not defined")
+                return None
+        elif isinstance(beampipe_aperture_type, str):
+            warn(f"beampipe_aperture_type {beampipe_aperture_type} not recognised; cannot set beampipe_size")
+        return None
 
     @field_validator("layout", mode="before")
     @classmethod
@@ -800,6 +869,9 @@ class MachineModel(ModelBase):
                 elements=new_elements,
                 order=order,
                 master_lattice=self.master_lattice,
+                beampipe_aperture_type=self.beampipe_aperture_type,
+                beampipe_size=self.beampipe_size,
+                beampipe_material=self.beampipe_material,
             )
 
             if not self._section_definitions or area not in self._section_definitions:
@@ -826,6 +898,9 @@ class MachineModel(ModelBase):
                     elements=new_elements,
                     order=elem_names,
                     master_lattice=self.master_lattice,
+                    beampipe_aperture_type=self.beampipe_aperture_type,
+                    beampipe_size=self.beampipe_size,
+                    beampipe_material=self.beampipe_material,
                 )
             return
 
@@ -846,6 +921,9 @@ class MachineModel(ModelBase):
                             elements=new_elements,
                             order=elem_names,
                             master_lattice=self.master_lattice,
+                            beampipe_aperture_type=self.beampipe_aperture_type,
+                            beampipe_size=self.beampipe_size,
+                            beampipe_material=self.beampipe_material,
                         )
 
                 if path not in self.lattices:

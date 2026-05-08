@@ -95,6 +95,18 @@ class MachineLayoutTranslator(MachineLayout):
             )
         return lattices
 
+    def to_bdsim(self, save=False) -> Dict[str, "Machine"]:
+        lattices = {}
+        for section in self.sections.values():
+            lattices.update(
+                {
+                    section.name: SectionLatticeTranslator.from_section(
+                        section
+                    ).to_bdsim(save=save)
+                }
+            )
+        return lattices
+
     def to_xsuite(
         self, beam_length: int, env: Any = None, particle_ref: Any = None, save=False
     ) -> Dict[str, object]:

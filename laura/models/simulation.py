@@ -9,6 +9,9 @@ class ApertureElement(IgnoreExtra):
     number_of_elements: int | None = None
     """Number of aperture elements"""
 
+    material: str | None = None
+    """Aperture material"""
+
     horizontal_size: float = 0.0
     """Horizontal aperture size [m]"""
 

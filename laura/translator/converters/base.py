@@ -15,7 +15,6 @@ from ..converters import (
     elements_Elegant,
     elements_Genesis,
     elements_Opal,
-    elements_BDSIM,
     keyword_conversion_rules_elegant,
     keyword_conversion_rules_genesis,
     keyword_conversion_rules_ocelot,
@@ -66,6 +65,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         self.conversion_rules["wake_t"] = keyword_conversion_rules_wake_t["general"]
         self.conversion_rules["genesis"] = keyword_conversion_rules_genesis["general"]
         self.conversion_rules["opal"] = keyword_conversion_rules_opal["general"]
+        self.conversion_rules["bdsim"] = keyword_conversion_rules_opal["general"]
         if self.hardware_type.lower() in keyword_conversion_rules_elegant:
             self.conversion_rules["elegant"] = (
                 keyword_conversion_rules_elegant[self.hardware_type.lower()]
@@ -100,6 +100,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             self.conversion_rules["opal"] = (
                 keyword_conversion_rules_opal[self.hardware_type.lower()]
                 | keyword_conversion_rules_opal["general"]
+            )
+        if self.hardware_type.lower() in keyword_conversion_rules_bdsim:
+            self.conversion_rules["bdsim"] = (
+                keyword_conversion_rules_bdsim[self.hardware_type.lower()]
+                | keyword_conversion_rules_bdsim["general"]
             )
         self.ccs = gpt_ccs(name="wcs", position=[0, 0, 0], rotation=[0, 0, 0])
         super().model_post_init(__context)
@@ -460,6 +465,49 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
+    def to_bdsim(self, section_aperture: Dict | None = None) -> object:
+        """
+        Generates a BDSIM object based on the element's properties and type.
+
+        Parameters
+        ----------
+        section_aperture: dict, optional
+                Dictionary containing aperture information for the section,
+                which may be used to set the aperture of the BDSIM element.
+
+        Returns
+        -------
+        object
+            BDSIM object
+        """
+        from ..conversion_rules.codes import bdsim_conversion
+        from ..utils.bdsim import aperture_params
+        import inspect
+
+        type_conversion_rules_BDSIM = bdsim_conversion.bdsim_conversion_rules
+        if self.hardware_type in type_conversion_rules_BDSIM:
+            obj = type_conversion_rules_BDSIM[self.hardware_type]
+        else:
+            if "drift" not in self.hardware_type.lower():
+                warn(
+                    f"Element type {self.hardware_type} not in BDSIM; setting as drift"
+                )
+            from pybdsim.Builder import Drift as Drift_BDSIM
+
+            obj = Drift_BDSIM
+        elem_dict = {}
+        elem_dict.update(**aperture_params(section_aperture))
+
+        sig = inspect.signature(obj)
+        required = [
+            name for name, param in sig.parameters.items() if name != "kwargs"
+        ]
+        for key, value in self.full_dump().items():
+            if key in required or self._convertKeyword_BDSIM(key) in required:
+                key = self._convertKeyword_BDSIM(key)
+                elem_dict.update({self._convertKeyword_BDSIM(key): value})
+        return obj(**elem_dict)
+
     def _convertType_Elegant(self, etype: str) -> str:
         """
         Converts the element type to the corresponding Elegant type using predefined rules.
@@ -772,14 +820,14 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         type_conversion_rules_BDSIM = bdsim_conversion.bdsim_conversion_rules
         return (
-            type_conversion_rules_Cheetah[etype]
-            if etype in type_conversion_rules_Cheetah
-            else Drift_Che
+            type_conversion_rules_BDSIM[etype]
+            if etype in type_conversion_rules_BDSIM
+            else Drift_BDSIM
         )
 
-    def _convertKeyword_Cheetah(self, keyword: str) -> str:
+    def _convertKeyword_BDSIM(self, keyword: str) -> str:
         """
-        Converts a keyword to its corresponding Cheetah keyword using predefined rules.
+        Converts a keyword to its corresponding BDSIM keyword using predefined rules.
 
         Parameters
         ----------
@@ -789,9 +837,9 @@ class BaseElementTranslator(PhysicalBaseElement):
         Returns
         -------
         str
-            The converted keyword for Cheetah, or the original keyword if no conversion rule exists.
+            The converted keyword for BDSIM, or the original keyword if no conversion rule exists.
         """
-        conversion_rules = self.conversion_rules["cheetah"]
+        conversion_rules = self.conversion_rules["bdsim"]
         for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
