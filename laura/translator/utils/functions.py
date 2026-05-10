@@ -256,15 +256,32 @@ def path_function(a):
 
 
 def expand_substitution(self, param, subs=None, elements=None, absolute=False):
+    subs = subs or {}
+    elements = elements or {}
+
     if isinstance(param, str):
-        if subs is None:
-            subs = {}
-        if elements is None:
-            elements = self.model_dump()
-        subs["master_lattice"] = path_function(self.master_lattice) + "/"
+        print(f"DEBUG param:            '{param}'")
+        print(f"DEBUG master_lattice:   '{self.master_lattice}'")
+
+        ml_path = path_function(self.master_lattice) + "/"
+        print(f"DEBUG ml_path:          '{ml_path}'")
+
+        subs["master_lattice"] = ml_path
+        print(f"DEBUG subs:             {subs}")
+
         regex = re.compile(r"\$(.*?)\$")
         s = re.search(regex, param)
+        print(f"DEBUG regex match:      {s.group(0) if s else None}")
+        print(f"DEBUG regex group(1):   {s.group(1) if s else None}")
+
         if s:
+            print(f"DEBUG isevaluable:      {isevaluable(self, s.group(1))}")
+            replaced_str = re.sub(regex, ml_path, param)
+            print(f"DEBUG after re.sub:     '{replaced_str}'")
+            for key in subs:
+                replaced_str = replaced_str.replace(key, subs[key])
+            print(f"DEBUG after key replace:'{replaced_str}'")
+            print(f"DEBUG path exists:      {os.path.exists(replaced_str)}")
             if isevaluable(self, s.group(1)) is True:
                 replaced_str = str(eval(re.sub(regex, str(eval(s.group(1))), param)))
             else:
