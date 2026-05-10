@@ -255,12 +255,14 @@ def path_function(a):
     return "./"
 
 
-def expand_substitution(self, param, subs={}, elements={}, absolute=False):
+def expand_substitution(self, param, subs=None, elements=None, absolute=False):
     if isinstance(param, str):
-        subs["master_lattice"] = (
-            path_function(self.master_lattice) + "/"
-        )
-        regex = re.compile(r"\$(.*)\$")
+        if subs is None:
+            subs = {}
+        if elements is None:
+            elements = self.model_dump()
+        subs["master_lattice"] = path_function(self.master_lattice) + "/"
+        regex = re.compile(r"\$(.*?)\$")
         s = re.search(regex, param)
         if s:
             if isevaluable(self, s.group(1)) is True:
