@@ -80,20 +80,6 @@ enums:
       TwissMatch:
         description: Virtual Twiss-parameter matching point.
 
-  MagnetOrderEnum:
-    description: Principal multipole order of a magnet.
-    permissible_values:
-      "0":
-        description: Dipole (order 0).
-      "1":
-        description: Quadrupole (order 1).
-      "2":
-        description: Sextupole (order 2).
-      "3":
-        description: Octupole (order 3).
-      "4":
-        description: Decapole (order 4).
-
   LaserPolarizationEnum:
     description: Polarization state of a laser beam.
     permissible_values:
@@ -1320,26 +1306,26 @@ classes:
       hardware_type:
         equals_string: Octupole
 
-  Horizontal_Corrector:
+  HorizontalCorrector:
     is_a: Dipole
     description: Horizontal orbit-corrector dipole.
-    class_uri: laura:Horizontal_Corrector
+    class_uri: laura:HorizontalCorrector
     slot_usage:
       hardware_type:
         equals_string: Horizontal_Corrector
 
-  Vertical_Corrector:
+  VerticalCorrector:
     is_a: Dipole
     description: Vertical orbit-corrector dipole.
-    class_uri: laura:Vertical_Corrector
+    class_uri: laura:VerticalCorrector
     slot_usage:
       hardware_type:
         equals_string: Vertical_Corrector
 
-  Combined_Corrector:
+  CombinedCorrector:
     is_a: Dipole
     description: Combined horizontal and vertical orbit-corrector magnet.
-    class_uri: laura:Combined_Corrector
+    class_uri: laura:CombinedCorrector
     slot_usage:
       hardware_type:
         equals_string: Combined_Corrector
@@ -1384,35 +1370,47 @@ classes:
         in_subset:
           - diagnostic_properties
 
-  Beam_Position_Monitor:
+  BeamPositionMonitor:
     is_a: Diagnostic
     description: Beam-position monitor (BPM).
-    class_uri: laura:Beam_Position_Monitor
+    class_uri: laura:BeamPositionMonitor
     slot_usage:
       hardware_type:
         equals_string: Beam_Position_Monitor
+    attributes:
       diagnostic:
         range: BPMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
 
-  Beam_Arrival_Monitor:
+  BeamArrivalMonitor:
     is_a: Diagnostic
     description: Beam-arrival-time monitor (BAM).
-    class_uri: laura:Beam_Arrival_Monitor
+    class_uri: laura:BeamArrivalMonitor
     slot_usage:
       hardware_type:
         equals_string: Beam_Arrival_Monitor
+    attributes:
       diagnostic:
         range: BAMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
 
-  Bunch_Length_Monitor:
+  BunchLengthMonitor:
     is_a: Diagnostic
     description: "Bunch-length monitor (BLM / CDR detector)."
-    class_uri: laura:Bunch_Length_Monitor
+    class_uri: laura:BunchLengthMonitor
     slot_usage:
       hardware_type:
         equals_string: Bunch_Length_Monitor
+    attributes:
       diagnostic:
         range: BLMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
 
   Camera:
     is_a: Diagnostic
@@ -1421,8 +1419,12 @@ classes:
     slot_usage:
       hardware_type:
         equals_string: Camera
+    attributes:
       diagnostic:
         range: CameraDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
 
   Screen:
     is_a: Diagnostic
@@ -1431,8 +1433,12 @@ classes:
     slot_usage:
       hardware_type:
         equals_string: Screen
+    attributes:
       diagnostic:
         range: ScreenDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
 
   ChargeDiagnostic:
     is_a: Diagnostic
@@ -1441,31 +1447,35 @@ classes:
     slot_usage:
       hardware_type:
         equals_string: ChargeDiagnostic
+    attributes:
       diagnostic:
         range: ChargeDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
 
-  Wall_Current_Monitor:
+  WallCurrentMonitor:
     is_a: ChargeDiagnostic
     description: Wall-current monitor (WCM) for non-destructive charge measurement.
-    class_uri: laura:Wall_Current_Monitor
+    class_uri: laura:WallCurrentMonitor
     slot_usage:
       hardware_type:
         equals_string: Wall_Current_Monitor
 
-  Faraday_Cup_Monitor:
+  FaradayCupMonitor:
     is_a: ChargeDiagnostic
     description: Faraday cup for destructive charge measurement.
-    class_uri: laura:Faraday_Cup_Monitor
+    class_uri: laura:FaradayCupMonitor
     slot_usage:
       hardware_type:
         equals_string: Faraday_Cup_Monitor
 
-  Integrated_Current_Transformer:
+  IntegratedCurrentTransformer:
     is_a: ChargeDiagnostic
     description: >-
       Integrated current transformer (ICT) for non-destructive single-shot
       charge measurement.
-    class_uri: laura:Integrated_Current_Transformer
+    class_uri: laura:IntegratedCurrentTransformer
     slot_usage:
       hardware_type:
         equals_string: Integrated_Current_Transformer
@@ -1495,8 +1505,12 @@ classes:
     slot_usage:
       hardware_type:
         equals_string: RFDeflectingCavity
+    attributes:
       cavity:
         range: RFDeflectingCavityElement
+        description: RF structure parameters.
+        in_subset:
+          - rf_properties
 
   Wakefield:
     is_a: PhysicalAcceleratorElement
@@ -1512,10 +1526,10 @@ classes:
         range: WakefieldElement
         description: Wakefield structure parameters.
 
-  Low_Level_RF:
+  LowLevelRF:
     is_a: StandardElement
     description: Low-level RF (LLRF) controller.
-    class_uri: laura:Low_Level_RF
+    class_uri: laura:LowLevelRF
     slot_usage:
       hardware_type:
         equals_string: Low_Level_RF

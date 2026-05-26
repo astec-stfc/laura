@@ -1,0 +1,82 @@
+---
+search:
+  boost: 5.0
+---
+
+# Slot: cell_length 
+
+<div data-search-exclude markdown="1">
+
+
+
+URI: [laura:cell_length](https://w3id.org/laura/cell_length)
+<!-- no inheritance hierarchy -->
+
+
+
+
+
+## Applicable Classes
+
+| Name | Description | Modifies Slot |
+| --- | --- | --- |
+| [RFCavityElement](RFCavityElement.md) | RF cavity accelerating-structure parameters |  no  |
+| [WakefieldElement](WakefieldElement.md) | Passive wakefield structure parameters |  no  |
+
+
+
+
+
+
+## Properties
+
+### Type and Range
+
+| Property | Value |
+| --- | --- |
+| Range | [String](String.md) |
+| Domain Of | [RFCavityElement](RFCavityElement.md), [WakefieldElement](WakefieldElement.md) |
+
+### Cardinality and Requirements
+
+| Property | Value |
+| --- | --- |
+
+
+
+
+
+
+
+
+
+
+## Identifier and Mapping Information
+
+
+
+
+
+
+## Mappings
+
+| Mapping Type | Mapped Value |
+| ---  | ---  |
+| self | laura:cell_length |
+| native | laura:cell_length |
+
+
+
+
+## LinkML Source
+
+<details>
+```yaml
+name: cell_length
+domain_of:
+- RFCavityElement
+- WakefieldElement
+range: string
+
+```
+</details></div>

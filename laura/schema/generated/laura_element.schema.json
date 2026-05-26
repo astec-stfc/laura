@@ -378,7 +378,7 @@
           "const": "Beam_Arrival_Monitor",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "enum": [
-            "Beam_Arrival_Monitor"
+            "BeamArrivalMonitor"
           ],
           "type": [
             "string",
@@ -520,7 +520,7 @@
           "const": "Beam_Position_Monitor",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "enum": [
-            "Beam_Position_Monitor"
+            "BeamPositionMonitor"
           ],
           "type": [
             "string",
@@ -662,7 +662,7 @@
           "const": "Bunch_Length_Monitor",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "enum": [
-            "Bunch_Length_Monitor"
+            "BunchLengthMonitor"
           ],
           "type": [
             "string",
@@ -1309,7 +1309,7 @@
           "const": "Combined_Corrector",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "enum": [
-            "Combined_Corrector"
+            "CombinedCorrector"
           ],
           "type": [
             "string",
@@ -2176,7 +2176,7 @@
           "const": "Faraday_Cup_Monitor",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "enum": [
-            "Faraday_Cup_Monitor"
+            "FaradayCupMonitor"
           ],
           "type": [
             "string",
@@ -2357,7 +2357,7 @@
           "const": "Horizontal_Corrector",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "enum": [
-            "Horizontal_Corrector"
+            "HorizontalCorrector"
           ],
           "type": [
             "string",
@@ -2510,7 +2510,7 @@
           "const": "Integrated_Current_Transformer",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "enum": [
-            "Integrated_Current_Transformer"
+            "IntegratedCurrentTransformer"
           ],
           "type": [
             "string",
@@ -3611,7 +3611,7 @@
           "const": "Low_Level_RF",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "enum": [
-            "Low_Level_RF"
+            "LowLevelRF"
           ],
           "type": [
             "string",
@@ -3921,18 +3921,6 @@
       ],
       "title": "MagnetBaseElement",
       "type": "object"
-    },
-    "MagnetOrderEnum": {
-      "description": "Principal multipole order of a magnet.",
-      "enum": [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4"
-      ],
-      "title": "MagnetOrderEnum",
-      "type": "string"
     },
     "MagnetSimulationElement": {
       "additionalProperties": false,
@@ -8080,7 +8068,7 @@
           "const": "Vertical_Corrector",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "enum": [
-            "Vertical_Corrector"
+            "VerticalCorrector"
           ],
           "type": [
             "string",
@@ -8442,7 +8430,7 @@
           "const": "Wall_Current_Monitor",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "enum": [
-            "Wall_Current_Monitor"
+            "WallCurrentMonitor"
           ],
           "type": [
             "string",

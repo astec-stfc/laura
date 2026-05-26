@@ -1,0 +1,153 @@
+---
+search:
+  boost: 5.0
+---
+
+# Slot: hardware_type 
+
+
+_Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML._
+
+
+
+<div data-search-exclude markdown="1">
+
+
+
+URI: [laura:hardware_type](https://w3id.org/laura/hardware_type)
+<!-- no inheritance hierarchy -->
+
+
+
+
+
+## Applicable Classes
+
+| Name | Description | Modifies Slot |
+| --- | --- | --- |
+| [AcceleratorElement](AcceleratorElement.md) | Root base class for all LAURA accelerator elements |  no  |
+| [StandardElement](StandardElement.md) | Accelerator element with control-system, electrical, manufacturer, simulation... |  no  |
+| [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | Accelerator element with a well-defined physical position and orientation in ... |  no  |
+| [MagnetBaseElement](MagnetBaseElement.md) | Base class for all magnetic focusing and bending elements |  no  |
+| [Dipole](Dipole.md) | Dipole bending magnet |  yes  |
+| [Quadrupole](Quadrupole.md) | Quadrupole focusing magnet |  yes  |
+| [Sextupole](Sextupole.md) | Sextupole chromaticity-correction magnet |  yes  |
+| [Octupole](Octupole.md) | Octupole magnet |  yes  |
+| [HorizontalCorrector](HorizontalCorrector.md) | Horizontal orbit-corrector dipole |  yes  |
+| [VerticalCorrector](VerticalCorrector.md) | Vertical orbit-corrector dipole |  yes  |
+| [CombinedCorrector](CombinedCorrector.md) | Combined horizontal and vertical orbit-corrector magnet |  yes  |
+| [Solenoid](Solenoid.md) | Solenoid focussing magnet |  yes  |
+| [NonLinearLens](NonLinearLens.md) | Non-linear focusing lens (IOTA-style) |  yes  |
+| [Wiggler](Wiggler.md) | Wiggler / undulator permanent-magnet array |  yes  |
+| [Diagnostic](Diagnostic.md) | Base class for all beam-diagnostic instruments |  no  |
+| [BeamPositionMonitor](BeamPositionMonitor.md) | Beam-position monitor (BPM) |  yes  |
+| [BeamArrivalMonitor](BeamArrivalMonitor.md) | Beam-arrival-time monitor (BAM) |  yes  |
+| [BunchLengthMonitor](BunchLengthMonitor.md) | Bunch-length monitor (BLM / CDR detector) |  yes  |
+| [Camera](Camera.md) | Camera-based beam-profile monitor |  yes  |
+| [Screen](Screen.md) | Scintillator or OTR screen with an associated camera |  yes  |
+| [ChargeDiagnostic](ChargeDiagnostic.md) | Base class for charge-measurement diagnostics |  yes  |
+| [WallCurrentMonitor](WallCurrentMonitor.md) | Wall-current monitor (WCM) for non-destructive charge measurement |  yes  |
+| [FaradayCupMonitor](FaradayCupMonitor.md) | Faraday cup for destructive charge measurement |  yes  |
+| [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | Integrated current transformer (ICT) for non-destructive single-shot charge m... |  yes  |
+| [RFCavity](RFCavity.md) | Accelerating RF cavity |  yes  |
+| [RFDeflectingCavity](RFDeflectingCavity.md) | Transverse-deflecting (streak) RF cavity |  yes  |
+| [Wakefield](Wakefield.md) | Passive wakefield structure (dielectric, corrugated, etc |  yes  |
+| [LowLevelRF](LowLevelRF.md) | Low-level RF (LLRF) controller |  yes  |
+| [RFModulator](RFModulator.md) | RF modulator (klystron driver) element |  yes  |
+| [RFProtection](RFProtection.md) | RF protection system element |  yes  |
+| [RFHeartbeat](RFHeartbeat.md) | RF timing heartbeat / signal-monitor element |  yes  |
+| [PID](PID.md) | Proportional-integral-derivative (PID) feedback controller |  yes  |
+| [TwissMatch](TwissMatch.md) | Virtual Twiss-parameter matching point -- a zero-length marker that defines t... |  yes  |
+| [Stage](Stage.md) | Motorised positioning stage |  yes  |
+| [VacuumGauge](VacuumGauge.md) | Vacuum-pressure gauge |  yes  |
+| [Laser](Laser.md) | Laser system element (full laser setup including beam parameters) |  yes  |
+| [Shutter](Shutter.md) | Beam or laser shutter with interlock logic |  yes  |
+| [Valve](Valve.md) | Vacuum gate valve |  yes  |
+| [Marker](Marker.md) | Virtual survey marker -- a zero-length reference point used for alignment |  yes  |
+| [Aperture](Aperture.md) | Mechanical aperture restriction in the beam pipe |  yes  |
+| [Collimator](Collimator.md) | Movable collimator jaw (extends Aperture) |  yes  |
+| [Drift](Drift.md) | Field-free drift space between elements |  yes  |
+| [Plasma](Plasma.md) | Laser-driven plasma-accelerator stage |  yes  |
+| [LaserEnergyMeter](LaserEnergyMeter.md) | Laser pulse-energy diagnostic (photodiode / pyroelectric) |  yes  |
+| [LaserHalfWavePlate](LaserHalfWavePlate.md) | Half-wave plate for laser polarisation rotation |  yes  |
+| [LaserMirror](LaserMirror.md) | Laser steering or focusing mirror |  yes  |
+| [LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |  yes  |
+| [Lighting](Lighting.md) | Experimental-hall lighting element |  yes  |
+
+
+
+
+
+
+## Properties
+
+### Type and Range
+
+| Property | Value |
+| --- | --- |
+| Range | [String](String.md) |
+| Domain Of | [AcceleratorElement](AcceleratorElement.md) |
+
+### Cardinality and Requirements
+
+| Property | Value |
+| --- | --- |
+### Slot Characteristics
+
+| Property | Value |
+| --- | --- |
+| Designates Type | Yes |
+| Owner | [AcceleratorElement](AcceleratorElement.md) |
+
+
+
+
+
+
+
+
+
+
+
+
+## Identifier and Mapping Information
+
+
+
+
+
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
+
+
+
+
+## Mappings
+
+| Mapping Type | Mapped Value |
+| ---  | ---  |
+| self | laura:hardware_type |
+| native | laura:hardware_type |
+
+
+
+
+## LinkML Source
+
+<details>
+```yaml
+name: hardware_type
+description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete
+  subclass to instantiate when loading from YAML.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
+designates_type: true
+owner: AcceleratorElement
+domain_of:
+- AcceleratorElement
+range: string
+
+```
+</details></div>

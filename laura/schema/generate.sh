@@ -21,7 +21,11 @@ echo "Generating JSON Schema..."
 gen-json-schema "$SCHEMA" --indent 2 > "$OUT_DIR/laura_element.schema.json"
 
 echo "Generating OWL ontology..."
-gen-owl "$SCHEMA" > "$OUT_DIR/laura_ontology.owl"
+gen-owl "$SCHEMA" \
+    --skip-vacuous-min-zero-cardinality-axioms \
+    --skip-vacuous-local-range-axioms \
+    --consolidate-cardinality-axioms \
+  > "$OUT_DIR/laura_ontology.owl"
 
 echo "Generating JSON-LD context..."
 gen-jsonld-context "$SCHEMA" > "$OUT_DIR/laura_context.jsonld"

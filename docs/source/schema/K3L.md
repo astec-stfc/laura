@@ -1,0 +1,103 @@
+---
+search:
+  boost: 5.0
+---
+
+# Slot: K3L 
+
+
+_Integrated octupole strength._
+
+
+
+<div data-search-exclude markdown="1">
+
+
+
+URI: [laura:K3L](https://w3id.org/laura/K3L)
+<!-- no inheritance hierarchy -->
+
+
+
+
+
+## Applicable Classes
+
+| Name | Description | Modifies Slot |
+| --- | --- | --- |
+| [Multipoles](Multipoles.md) | Complete set of integrated multipole strengths up to decapole order, as named... |  no  |
+
+
+
+
+
+
+## Properties
+
+### Type and Range
+
+| Property | Value |
+| --- | --- |
+| Range | [Multipole](Multipole.md) |
+| Domain Of | [Multipoles](Multipoles.md) |
+
+### Cardinality and Requirements
+
+| Property | Value |
+| --- | --- |
+### Slot Characteristics
+
+| Property | Value |
+| --- | --- |
+| Owner | [Multipoles](Multipoles.md) |
+
+
+
+
+
+
+
+
+
+
+
+
+## Identifier and Mapping Information
+
+
+
+
+
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
+
+
+
+
+## Mappings
+
+| Mapping Type | Mapped Value |
+| ---  | ---  |
+| self | laura:K3L |
+| native | laura:K3L |
+
+
+
+
+## LinkML Source
+
+<details>
+```yaml
+name: K3L
+description: Integrated octupole strength.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
+owner: Multipoles
+domain_of:
+- Multipoles
+range: Multipole
+
+```
+</details></div>

@@ -1,0 +1,3666 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix laura: <https://w3id.org/laura/> .
+@prefix linkml: <https://w3id.org/linkml/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix pav: <http://purl.org/pav/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+laura:schema.owl.ttl a owl:Ontology ;
+    rdfs:label "laura_schema" ;
+    dcterms:license "Apache Software License 2.0" ;
+    dcterms:title "LAURA Accelerator Element Schema" ;
+    pav:version "0.1.0" ;
+    skos:definition "Linked Data schema for the LAURA (Lattice And Unified Representation of Accelerators) accelerator element model.  Covers all element types, their physical, magnetic, diagnostic, RF, and control-system properties." .
+
+laura:MachineModel a owl:Class ;
+    rdfs:label "MachineModel" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:MachineLayout ;
+            owl:onProperty laura:layouts ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:AcceleratorElement ;
+            owl:onProperty laura:elements ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:SectionLattice ;
+            owl:onProperty laura:sections ] ;
+    skos:definition "Top-level container for a complete accelerator lattice: elements, sections, layouts, and named lattice configurations." ;
+    skos:exactMatch laura:MachineModel ;
+    skos:inScheme laura:schema .
+
+laura:coefficients a owl:DatatypeProperty ;
+    rdfs:label "coefficients" ;
+    skos:definition "Polynomial coefficients ordered from lowest to highest degree: ``FieldIntegral = sum c_n . I^n``." ;
+    skos:inScheme laura:schema .
+
+laura:design_files a owl:DatatypeProperty ;
+    rdfs:label "design_files" ;
+    skos:definition "Design-file paths or URIs." ;
+    skos:inScheme laura:schema .
+
+laura:drawings a owl:DatatypeProperty ;
+    rdfs:label "drawings" ;
+    skos:definition "Engineering-drawing identifiers or URIs." ;
+    skos:inScheme laura:schema .
+
+laura:interlocks a owl:DatatypeProperty ;
+    rdfs:label "interlocks" ;
+    skos:altLabel "shutter_interlock_names" ;
+    skos:definition "Names of the interlocks guarding this shutter." ;
+    skos:inScheme laura:schema .
+
+laura:layouts a owl:ObjectProperty ;
+    rdfs:label "layouts" ;
+    skos:definition "All named beamline layouts." ;
+    skos:inScheme laura:schema .
+
+laura:values a owl:DatatypeProperty ;
+    rdfs:label "values" ;
+    skos:altLabel "degauss_values" ;
+    skos:definition "Sequence of peak currents applied during the degauss cycle [A]." ;
+    skos:inScheme laura:schema .
+
+laura:variables a owl:ObjectProperty ;
+    rdfs:label "variables" ;
+    skos:definition "Named control variables keyed by logical name." ;
+    skos:inScheme laura:schema .
+
+laura:ApertureElement a owl:Class ;
+    rdfs:label "ApertureElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:number_of_elements ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:horizontal_size ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:radius ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:shape ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:vertical_size ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:negative_extent ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:horizontal_size ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:radius ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:integer [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive 1 ] ) ] ) ] ;
+            owl:onProperty laura:number_of_elements ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:positive_extent ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:vertical_size ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:ApertureShapeEnum ;
+            owl:onProperty laura:shape ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:positive_extent ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:negative_extent ] ;
+    skos:definition "Transverse aperture geometry for drift-space checks and collimators." ;
+    skos:exactMatch laura:ApertureElement ;
+    skos:inScheme laura:schema .
+
+<https://w3id.org/laura/ApertureShapeEnum#circular> a owl:Class ;
+    rdfs:label "circular" ;
+    rdfs:subClassOf laura:ApertureShapeEnum .
+
+<https://w3id.org/laura/ApertureShapeEnum#elliptical> a owl:Class ;
+    rdfs:label "elliptical" ;
+    rdfs:subClassOf laura:ApertureShapeEnum .
+
+<https://w3id.org/laura/ApertureShapeEnum#rectangular> a owl:Class ;
+    rdfs:label "rectangular" ;
+    rdfs:subClassOf laura:ApertureShapeEnum .
+
+laura:BAMDiagnosticElement a owl:Class ;
+    rdfs:label "BAMDiagnosticElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:type ],
+        laura:DiagnosticElement ;
+    skos:definition "Beam-arrival monitor (BAM) diagnostic data." ;
+    skos:exactMatch laura:BAMDiagnosticElement ;
+    skos:inScheme laura:schema .
+
+laura:BLMDiagnosticElement a owl:Class ;
+    rdfs:label "BLMDiagnosticElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:type ],
+        laura:DiagnosticElement ;
+    skos:definition "Bunch-length monitor (BLM) diagnostic data." ;
+    skos:exactMatch laura:BLMDiagnosticElement ;
+    skos:inScheme laura:schema .
+
+laura:BPMDiagnosticElement a owl:Class ;
+    rdfs:label "BPMDiagnosticElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:type ],
+        laura:DiagnosticElement ;
+    skos:definition "Beam-position monitor (BPM) diagnostic data." ;
+    skos:exactMatch laura:BPMDiagnosticElement ;
+    skos:inScheme laura:schema .
+
+laura:CameraDiagnosticElement a owl:Class ;
+    rdfs:label "CameraDiagnosticElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:flipped_horizontally ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:x_pixels ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:rotation ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:has_led ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:has_led ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:flipped_vertically ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:rotation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:screen_name ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:screen_name ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:integer ;
+            owl:onProperty laura:x_pixels ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:integer ;
+            owl:onProperty laura:y_pixels ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:flipped_horizontally ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:y_pixels ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:flipped_vertically ],
+        laura:DiagnosticElement ;
+    skos:definition "Camera diagnostic data, including sensor parameters, analysis mask, and pixel-to-mm scale factors." ;
+    skos:exactMatch laura:CameraDiagnosticElement ;
+    skos:inScheme laura:schema .
+
+laura:ChargeDiagnosticElement a owl:Class ;
+    rdfs:label "ChargeDiagnosticElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:type ],
+        laura:DiagnosticElement ;
+    skos:definition "Charge-measurement diagnostic data (base for ICT, FCM, WCM)." ;
+    skos:exactMatch laura:ChargeDiagnosticElement ;
+    skos:inScheme laura:schema .
+
+laura:ControlVariable a owl:Class ;
+    rdfs:label "ControlVariable" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:identifier ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:target ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:expression ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:read_only ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:target ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:expression ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:protocol ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:protocol ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:units ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:identifier ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:dtype ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:value ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:read_only ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:units ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:value ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:dtype ] ;
+    skos:definition "A single process-variable entry mapping a logical name to a control-system PV identifier." ;
+    skos:exactMatch laura:ControlVariable ;
+    skos:inScheme laura:schema .
+
+laura:ControlsInformation a owl:Class ;
+    rdfs:label "ControlsInformation" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:ControlVariable ;
+            owl:onProperty laura:variables ] ;
+    skos:definition "Collection of process-variable definitions for an element's control interface." ;
+    skos:exactMatch laura:ControlsInformation ;
+    skos:inScheme laura:schema .
+
+laura:DegaussableElement a owl:Class ;
+    rdfs:label "DegaussableElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:tolerance ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:tolerance ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:integer [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive 1 ] ) ] ) ] ;
+            owl:onProperty laura:steps ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:values ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:steps ] ;
+    skos:definition "Degaussing (demagnetisation cycle) parameters for magnets that require a field-reset procedure." ;
+    skos:exactMatch laura:DegaussableElement ;
+    skos:inScheme laura:schema .
+
+laura:DiagnosticSimulationElement a owl:Class ;
+    rdfs:label "DiagnosticSimulationElement" ;
+    rdfs:subClassOf laura:SimulationElement ;
+    skos:definition "Simulation attributes for beam-diagnostic elements." ;
+    skos:exactMatch laura:DiagnosticSimulationElement ;
+    skos:inScheme laura:schema .
+
+laura:DriftSimulationElement a owl:Class ;
+    rdfs:label "DriftSimulationElement" ;
+    rdfs:subClassOf laura:SimulationElement ;
+    skos:definition "Simulation attributes for field-free drift sections." ;
+    skos:exactMatch laura:DriftSimulationElement ;
+    skos:inScheme laura:schema .
+
+laura:ElectricalElement a owl:Class ;
+    rdfs:label "ElectricalElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:min_i ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:max_i ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:min_i ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:ri_tolerance ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:ri_tolerance ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:max_i ] ;
+    skos:definition "Power-supply electrical limits for a beamline element." ;
+    skos:exactMatch laura:ElectricalElement ;
+    skos:inScheme laura:schema .
+
+laura:ElementPositionError a owl:Class ;
+    rdfs:label "ElementPositionError" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:position ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:rotation ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Rotation ;
+            owl:onProperty laura:rotation ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Position ;
+            owl:onProperty laura:position ] ;
+    skos:definition "Alignment position and rotation errors for a physically-located element." ;
+    skos:exactMatch laura:ElementPositionError ;
+    skos:inScheme laura:schema .
+
+laura:ElementSurvey a owl:Class ;
+    rdfs:label "ElementSurvey" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:Position ;
+            owl:onProperty laura:position ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Rotation ;
+            owl:onProperty laura:rotation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:rotation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:position ] ;
+    skos:definition "Survey-measured position and rotation of an element. Structure is identical to ElementPositionError." ;
+    skos:exactMatch laura:ElementSurvey ;
+    skos:inScheme laura:schema .
+
+laura:FieldIntegral a owl:Class ;
+    rdfs:label "FieldIntegral" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:coefficients ] ;
+    skos:definition "Polynomial fit of integrated field strength as a function of magnet current." ;
+    skos:exactMatch laura:FieldIntegral ;
+    skos:inScheme laura:schema .
+
+<https://w3id.org/laura/HardwareClassEnum#Aperture> a owl:Class ;
+    rdfs:label "Aperture" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Mechanical aperture or collimator." .
+
+<https://w3id.org/laura/HardwareClassEnum#Diagnostic> a owl:Class ;
+    rdfs:label "Diagnostic" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Beam-diagnostic instrument." .
+
+<https://w3id.org/laura/HardwareClassEnum#Feedback> a owl:Class ;
+    rdfs:label "Feedback" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Control-system feedback element." .
+
+<https://w3id.org/laura/HardwareClassEnum#Laser> a owl:Class ;
+    rdfs:label "Laser" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Laser optical element or complete laser system." .
+
+<https://w3id.org/laura/HardwareClassEnum#Lighting> a owl:Class ;
+    rdfs:label "Lighting" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Experimental-hall lighting element." .
+
+<https://w3id.org/laura/HardwareClassEnum#Magnet> a owl:Class ;
+    rdfs:label "Magnet" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Magnetic focusing or bending element." .
+
+<https://w3id.org/laura/HardwareClassEnum#Marker> a owl:Class ;
+    rdfs:label "Marker" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Virtual survey marker with no physical aperture." .
+
+<https://w3id.org/laura/HardwareClassEnum#Plasma> a owl:Class ;
+    rdfs:label "Plasma" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Plasma-based accelerating stage." .
+
+<https://w3id.org/laura/HardwareClassEnum#RF> a owl:Class ;
+    rdfs:label "RF" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Radio-frequency accelerating or deflecting structure." .
+
+<https://w3id.org/laura/HardwareClassEnum#Shutter> a owl:Class ;
+    rdfs:label "Shutter" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Beam or laser shutter." .
+
+<https://w3id.org/laura/HardwareClassEnum#Stage> a owl:Class ;
+    rdfs:label "Stage" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Motorised positioning stage." .
+
+<https://w3id.org/laura/HardwareClassEnum#TwissMatch> a owl:Class ;
+    rdfs:label "TwissMatch" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Virtual Twiss-parameter matching point." .
+
+<https://w3id.org/laura/HardwareClassEnum#Vacuum> a owl:Class ;
+    rdfs:label "Vacuum" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Vacuum instrumentation (gauges, valves)." .
+
+<https://w3id.org/laura/HardwareClassEnum#Wakefield> a owl:Class ;
+    rdfs:label "Wakefield" ;
+    rdfs:subClassOf laura:HardwareClassEnum ;
+    skos:definition "Passive wakefield structure." .
+
+laura:I0 a owl:DatatypeProperty ;
+    rdfs:label "I0" ;
+    skos:definition "Current offset [A]." ;
+    skos:inScheme laura:schema .
+
+laura:I_max a owl:DatatypeProperty ;
+    rdfs:label "I_max" ;
+    skos:definition "Current at which saturation begins [A]." ;
+    skos:inScheme laura:schema .
+
+laura:K0L a owl:ObjectProperty ;
+    rdfs:label "K0L" ;
+    skos:definition "Integrated dipole field." ;
+    skos:inScheme laura:schema .
+
+laura:K1L a owl:ObjectProperty ;
+    rdfs:label "K1L" ;
+    skos:definition "Integrated quadrupole gradient." ;
+    skos:inScheme laura:schema .
+
+laura:K2L a owl:ObjectProperty ;
+    rdfs:label "K2L" ;
+    skos:definition "Integrated sextupole strength." ;
+    skos:inScheme laura:schema .
+
+laura:K3L a owl:ObjectProperty ;
+    rdfs:label "K3L" ;
+    skos:definition "Integrated octupole strength." ;
+    skos:inScheme laura:schema .
+
+laura:K4L a owl:ObjectProperty ;
+    rdfs:label "K4L" ;
+    skos:definition "Integrated decapole strength." ;
+    skos:inScheme laura:schema .
+
+laura:Kd a owl:DatatypeProperty ;
+    rdfs:label "Kd" ;
+    skos:definition "Derivative gain." ;
+    skos:inScheme laura:schema .
+
+laura:Ki a owl:DatatypeProperty ;
+    rdfs:label "Ki" ;
+    skos:definition "Integral gain." ;
+    skos:inScheme laura:schema .
+
+laura:Kp a owl:DatatypeProperty ;
+    rdfs:label "Kp" ;
+    skos:definition "Proportional gain." ;
+    skos:inScheme laura:schema .
+
+laura:L a owl:DatatypeProperty ;
+    rdfs:label "L" ;
+    skos:definition "Effective magnetic length [m]." ;
+    skos:inScheme laura:schema .
+
+laura:LaserEnergyMeterElement a owl:Class ;
+    rdfs:label "LaserEnergyMeterElement" ;
+    skos:definition "Laser energy-meter sub-model (no additional fields)." ;
+    skos:exactMatch laura:LaserEnergyMeterElement ;
+    skos:inScheme laura:schema .
+
+laura:LaserHalfWavePlateElement a owl:Class ;
+    rdfs:label "LaserHalfWavePlateElement" ;
+    skos:definition "Half-wave plate sub-model (no additional fields)." ;
+    skos:exactMatch laura:LaserHalfWavePlateElement ;
+    skos:inScheme laura:schema .
+
+<https://w3id.org/laura/LaserPolarizationEnum#circular> a owl:Class ;
+    rdfs:label "circular" ;
+    rdfs:subClassOf laura:LaserPolarizationEnum .
+
+<https://w3id.org/laura/LaserPolarizationEnum#elliptical> a owl:Class ;
+    rdfs:label "elliptical" ;
+    rdfs:subClassOf laura:LaserPolarizationEnum .
+
+<https://w3id.org/laura/LaserPolarizationEnum#linear> a owl:Class ;
+    rdfs:label "linear" ;
+    rdfs:subClassOf laura:LaserPolarizationEnum .
+
+<https://w3id.org/laura/LaserProfileTypeEnum#file> a owl:Class ;
+    rdfs:label "file" ;
+    rdfs:subClassOf laura:LaserProfileTypeEnum .
+
+<https://w3id.org/laura/LaserProfileTypeEnum#flattened-gaussian> a owl:Class ;
+    rdfs:label "flattened-gaussian" ;
+    rdfs:subClassOf laura:LaserProfileTypeEnum .
+
+<https://w3id.org/laura/LaserProfileTypeEnum#gaussian> a owl:Class ;
+    rdfs:label "gaussian" ;
+    rdfs:subClassOf laura:LaserProfileTypeEnum .
+
+<https://w3id.org/laura/LaserProfileTypeEnum#laguerre-gaussian> a owl:Class ;
+    rdfs:label "laguerre-gaussian" ;
+    rdfs:subClassOf laura:LaserProfileTypeEnum .
+
+laura:LightingElement a owl:Class ;
+    rdfs:label "LightingElement" ;
+    skos:definition "Lighting element (no additional fields currently defined)." ;
+    skos:exactMatch laura:LightingElement ;
+    skos:inScheme laura:schema .
+
+laura:LinearSaturationFit a owl:Class ;
+    rdfs:label "LinearSaturationFit" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:I_max ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:L ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:f ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:I0 ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:m ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:I0 ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:f ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:L ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:d ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:d ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:a ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:I_max ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:a ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:m ] ;
+    skos:definition "Bi-linear saturation model mapping magnet current to integrated field strength (K-value conversion)." ;
+    skos:exactMatch laura:LinearSaturationFit ;
+    skos:inScheme laura:schema .
+
+laura:LowLevelRFElement a owl:Class ;
+    rdfs:label "LowLevelRFElement" ;
+    skos:definition "Low-level RF (LLRF) system parameters." ;
+    skos:exactMatch laura:LowLevelRFElement ;
+    skos:inScheme laura:schema .
+
+laura:MachineLayout a owl:Class ;
+    rdfs:label "MachineLayout" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:sections ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:name ],
+        [ a owl:Restriction ;
+            owl:cardinality 1 ;
+            owl:onProperty laura:name ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:master_lattice ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:master_lattice ] ;
+    skos:definition "An ordered list of section names defining a beamline layout (a contiguous sequence of sections)." ;
+    skos:exactMatch laura:MachineLayout ;
+    skos:inScheme laura:schema .
+
+laura:MagnetSimulationElement a owl:Class ;
+    rdfs:label "MagnetSimulationElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:integer ;
+            owl:onProperty laura:csr_bins ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:isr_enable ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:csr_bins ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:integer ;
+            owl:onProperty laura:smoothing_half_width ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:integer [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive 1 ] ) ] ) ] ;
+            owl:onProperty laura:n_slices ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:smooth ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:integration_order ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:edge_order ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:edge_field_integral ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:nonlinear ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:edge_field_integral ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:edge1_effects ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:csr_enable ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:deltaL ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:isr_enable ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:n_slices ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:n_kicks ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:edge1_effects ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:edge2_effects ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:sr_enable ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:integer ;
+            owl:onProperty laura:edge_order ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:integer ;
+            owl:onProperty laura:integration_order ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:nonlinear ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:csr_enable ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:edge2_effects ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:smoothing_half_width ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:sr_enable ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:deltaL ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:smooth ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:integer [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive 1 ] ) ] ) ] ;
+            owl:onProperty laura:n_kicks ],
+        laura:SimulationElement ;
+    skos:definition "Simulation attributes specific to magnets: integrator settings, fringe-field model, and radiation flags." ;
+    skos:exactMatch laura:MagnetSimulationElement ;
+    skos:inScheme laura:schema .
+
+laura:MagneticElement a owl:Class ;
+    rdfs:label "MagneticElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:plane ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:tilt ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:gradient ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:edge_field_integral ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:magnetic_length ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:LinearSaturationFit ;
+            owl:onProperty laura:linear_saturation_coefficients ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:fringe_field_coefficient ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Multipoles ;
+            owl:onProperty laura:systematic_multipoles ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:gradient ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:skew ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:fringe_field_coefficient ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:exit_edge_angle ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:magnetic_length ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:skew ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:integer [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0 ] ) ] ) ] ;
+            owl:onProperty laura:order ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:order ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:entrance_edge_angle ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:bore ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:systematic_multipoles ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:width ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:settle_time ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Multipoles ;
+            owl:onProperty laura:random_multipoles ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:random_multipoles ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:gap ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:gap ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:edge_field_integral ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Multipoles ;
+            owl:onProperty laura:multipoles ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:plane ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:entrance_edge_angle ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:settle_time ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:exit_edge_angle ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:tilt ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:width ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:bore ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:multipoles ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:FieldIntegral ;
+            owl:onProperty laura:field_integral_coefficients ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:field_integral_coefficients ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:linear_saturation_coefficients ] ;
+    skos:definition "Magnetic field parameters for a beamline magnet, including multipole components, field integrals, and geometric edge parameters." ;
+    skos:exactMatch laura:MagneticElement ;
+    skos:inScheme laura:schema .
+
+laura:ManufacturerElement a owl:Class ;
+    rdfs:label "ManufacturerElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:manufacturer ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:serial_number ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:serial_number ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:manufacturer ] ;
+    skos:definition "Manufacturer and serial-number metadata." ;
+    skos:exactMatch laura:ManufacturerElement ;
+    skos:inScheme laura:schema .
+
+laura:PIDElement a owl:Class ;
+    rdfs:label "PIDElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:Kp ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:Ki ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:Kp ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:Kd ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:Kd ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:Ki ] ;
+    skos:definition "PID feedback-controller parameters." ;
+    skos:exactMatch laura:PIDElement ;
+    skos:inScheme laura:schema .
+
+laura:PhysicalElement a owl:Class ;
+    rdfs:label "PhysicalElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:error ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:rotation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:physical_angle ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:minimum_position ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:length ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:minimum_position ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:survey ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:physical_angle ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:middle ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:ElementPositionError ;
+            owl:onProperty laura:error ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Rotation ;
+            owl:onProperty laura:global_rotation ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:ElementSurvey ;
+            owl:onProperty laura:survey ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:maximum_position ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Position ;
+            owl:onProperty laura:datum ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:length ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Position ;
+            owl:onProperty laura:middle ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Rotation ;
+            owl:onProperty laura:rotation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:global_rotation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:datum ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:maximum_position ] ;
+    skos:definition "Physical placement data: position, rotation, length, and associated survey / alignment-error information." ;
+    skos:exactMatch laura:PhysicalElement ;
+    skos:inScheme laura:schema .
+
+laura:PlasmaElement a owl:Class ;
+    rdfs:label "PlasmaElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:density ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:parabolic_coefficient ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:ramp_down ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:density ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:species ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:density_profile ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:ramp_decay_length ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:ramp_up ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:ramp_up ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:ramp_decay_length ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:plateau ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:parabolic_coefficient ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:ramp_down ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:species ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:density_profile ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:plateau ] ;
+    skos:definition "Plasma channel parameters for a laser-driven plasma-accelerator stage." ;
+    skos:exactMatch laura:PlasmaElement ;
+    skos:inScheme laura:schema .
+
+laura:PlasmaSimulationElement a owl:Class ;
+    rdfs:label "PlasmaSimulationElement" ;
+    rdfs:subClassOf laura:SimulationElement ;
+    skos:definition "Simulation attributes for plasma-accelerator stages." ;
+    skos:exactMatch laura:PlasmaSimulationElement ;
+    skos:inScheme laura:schema .
+
+laura:RFCavityElement a owl:Class ;
+    rdfs:label "RFCavityElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:design_power ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:n_cells ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:design_power ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:phase ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:power_calibration ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:frequency ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:mode_numerator ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:attenuation_constant ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:shunt_impedance ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:power_calibration ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 1e+00 ] ) ] ) ] ;
+            owl:onProperty laura:design_gamma ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:cell_length ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:attenuation_constant ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:frequency ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:crest ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:integer ;
+            owl:onProperty laura:mode_numerator ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:integer [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive 1 ] ) ] ) ] ;
+            owl:onProperty laura:n_cells ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:crest ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:cell_length ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:structure_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:gradient_calibration ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:coupling_cell_length ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:integer ;
+            owl:onProperty laura:mode_denominator ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:mode_denominator ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:structure_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:coupling_cell_length ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:phase ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:design_gamma ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:gradient_calibration ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:shunt_impedance ] ;
+    skos:definition "RF cavity accelerating-structure parameters." ;
+    skos:exactMatch laura:RFCavityElement ;
+    skos:inScheme laura:schema .
+
+laura:RFCavitySimulationElement a owl:Class ;
+    rdfs:label "RFCavitySimulationElement" ;
+    rdfs:subClassOf laura:SimulationElement ;
+    skos:definition "Simulation attributes for RF cavity elements." ;
+    skos:exactMatch laura:RFCavitySimulationElement ;
+    skos:inScheme laura:schema .
+
+laura:RFDeflectingCavityElement a owl:Class ;
+    rdfs:label "RFDeflectingCavityElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:phase ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:phase ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:integer [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive 1 ] ) ] ) ] ;
+            owl:onProperty laura:n_cells ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:frequency ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:shunt_impedance ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:integer ;
+            owl:onProperty laura:mode_denominator ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:coupling_cell_length ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:frequency ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:mode_numerator ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:design_power ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:design_gamma ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:integer ;
+            owl:onProperty laura:mode_numerator ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 1e+00 ] ) ] ) ] ;
+            owl:onProperty laura:design_gamma ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:shunt_impedance ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:coupling_cell_length ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:n_cells ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:design_power ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:mode_denominator ] ;
+    skos:definition "Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for streak-mode operation." ;
+    skos:exactMatch laura:RFDeflectingCavityElement ;
+    skos:inScheme laura:schema .
+
+laura:RFHeartbeatElement a owl:Class ;
+    rdfs:label "RFHeartbeatElement" ;
+    skos:definition "RF heartbeat / timing-monitor element parameters." ;
+    skos:exactMatch laura:RFHeartbeatElement ;
+    skos:inScheme laura:schema .
+
+laura:RFModulatorElement a owl:Class ;
+    rdfs:label "RFModulatorElement" ;
+    skos:definition "RF modulator (klystron driver) parameters." ;
+    skos:exactMatch laura:RFModulatorElement ;
+    skos:inScheme laura:schema .
+
+laura:RFProtectionElement a owl:Class ;
+    rdfs:label "RFProtectionElement" ;
+    skos:definition "RF protection system parameters." ;
+    skos:exactMatch laura:RFProtectionElement ;
+    skos:inScheme laura:schema .
+
+laura:ReferenceElement a owl:Class ;
+    rdfs:label "ReferenceElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:drawings ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:design_files ] ;
+    skos:definition "Links to engineering drawings and design files." ;
+    skos:exactMatch laura:ReferenceElement ;
+    skos:inScheme laura:schema .
+
+laura:ScreenDiagnosticElement a owl:Class ;
+    rdfs:label "ScreenDiagnosticElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:camera_name ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:camera_name ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:has_camera ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:boolean ;
+            owl:onProperty laura:has_camera ],
+        laura:DiagnosticElement ;
+    skos:definition "Scintillator or OTR screen diagnostic data." ;
+    skos:exactMatch laura:ScreenDiagnosticElement ;
+    skos:inScheme laura:schema .
+
+laura:SectionLattice a owl:Class ;
+    rdfs:label "SectionLattice" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:master_lattice ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:elements ],
+        [ a owl:Restriction ;
+            owl:cardinality 1 ;
+            owl:onProperty laura:name ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:name ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:master_lattice ] ;
+    skos:definition "An ordered list of element names defining a contiguous beamline section." ;
+    skos:exactMatch laura:SectionLattice ;
+    skos:inScheme laura:schema .
+
+laura:ShutterElement a owl:Class ;
+    rdfs:label "ShutterElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:interlocks ] ;
+    skos:definition "Shutter interlock configuration." ;
+    skos:exactMatch laura:ShutterElement ;
+    skos:inScheme laura:schema .
+
+laura:TwissMatchSimulationElement a owl:Class ;
+    rdfs:label "TwissMatchSimulationElement" ;
+    rdfs:subClassOf laura:SimulationElement ;
+    skos:definition "Simulation attributes for Twiss-matching points." ;
+    skos:exactMatch laura:TwissMatchSimulationElement ;
+    skos:inScheme laura:schema .
+
+laura:ValveElement a owl:Class ;
+    rdfs:label "ValveElement" ;
+    skos:definition "Vacuum valve configuration (no additional fields)." ;
+    skos:exactMatch laura:ValveElement ;
+    skos:inScheme laura:schema .
+
+laura:WakefieldElement a owl:Class ;
+    rdfs:label "WakefieldElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:n_cells ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:integer [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive 1 ] ) ] ) ] ;
+            owl:onProperty laura:n_cells ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:coupling_cell_length ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:coupling_cell_length ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:cell_length ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:cell_length ] ;
+    skos:definition "Passive wakefield structure parameters." ;
+    skos:exactMatch laura:WakefieldElement ;
+    skos:inScheme laura:schema .
+
+laura:WakefieldSimulationElement a owl:Class ;
+    rdfs:label "WakefieldSimulationElement" ;
+    rdfs:subClassOf laura:SimulationElement ;
+    skos:definition "Simulation attributes for passive wakefield structures." ;
+    skos:exactMatch laura:WakefieldSimulationElement ;
+    skos:inScheme laura:schema .
+
+laura:a a owl:DatatypeProperty ;
+    rdfs:label "a" ;
+    skos:definition "Quadratic saturation coefficient." ;
+    skos:inScheme laura:schema .
+
+laura:alias a owl:DatatypeProperty ;
+    rdfs:label "alias" ;
+    skos:altLabel "name_alias" ;
+    skos:definition "Short human-readable alias. Populated from ``name_alias`` in YAML." ;
+    skos:inScheme laura:schema .
+
+laura:aperture a owl:ObjectProperty ;
+    rdfs:label "aperture" ;
+    skos:definition "Aperture geometry parameters." ;
+    skos:inScheme laura:schema .
+
+laura:attenuation_constant a owl:DatatypeProperty ;
+    rdfs:label "attenuation_constant" ;
+    skos:definition "Attenuation constant ? of a travelling-wave structure [Np/m]." ;
+    skos:inScheme laura:schema .
+
+laura:bore a owl:DatatypeProperty ;
+    rdfs:label "bore" ;
+    skos:definition "Magnet bore radius [m]." ;
+    skos:inScheme laura:schema .
+
+laura:camera_name a owl:DatatypeProperty ;
+    rdfs:label "camera_name" ;
+    skos:definition "Name of the associated camera element." ;
+    skos:inScheme laura:schema .
+
+laura:cep_phase a owl:DatatypeProperty ;
+    rdfs:label "cep_phase" ;
+    skos:definition "Carrier-envelope phase [rad]." ;
+    skos:inScheme laura:schema .
+
+laura:controls a owl:ObjectProperty ;
+    rdfs:label "controls" ;
+    skos:definition "Control-system process-variable definitions." ;
+    skos:inScheme laura:schema .
+
+laura:crest a owl:DatatypeProperty ;
+    rdfs:label "crest" ;
+    skos:definition "On-crest phase offset providing maximum energy gain [deg]." ;
+    skos:inScheme laura:schema .
+
+laura:csr_bins a owl:DatatypeProperty ;
+    rdfs:label "csr_bins" ;
+    skos:definition "Number of longitudinal bins for the CSR mesh." ;
+    skos:inScheme laura:schema .
+
+laura:csr_enable a owl:DatatypeProperty ;
+    rdfs:label "csr_enable" ;
+    skos:definition "Enable coherent synchrotron radiation." ;
+    skos:inScheme laura:schema .
+
+laura:d a owl:DatatypeProperty ;
+    rdfs:label "d" ;
+    skos:definition "Constant offset term." ;
+    skos:inScheme laura:schema .
+
+laura:datum a owl:ObjectProperty ;
+    rdfs:label "datum" ;
+    skos:definition "Datum reference position." ;
+    skos:inScheme laura:schema .
+
+laura:degauss a owl:ObjectProperty ;
+    rdfs:label "degauss" ;
+    skos:definition "Degaussing-cycle parameters." ;
+    skos:inScheme laura:schema .
+
+laura:deltaL a owl:DatatypeProperty ;
+    rdfs:label "deltaL" ;
+    skos:definition "Longitudinal step-size override for thick-lens integration [m]." ;
+    skos:inScheme laura:schema .
+
+laura:density a owl:DatatypeProperty ;
+    rdfs:label "density" ;
+    skos:definition "Plasma (electron) number density [m^-^3]." ;
+    skos:inScheme laura:schema .
+
+laura:density_profile a owl:DatatypeProperty ;
+    rdfs:label "density_profile" ;
+    skos:definition "If True, use a user-defined profile; if False, use a flat-top model." ;
+    skos:inScheme laura:schema .
+
+laura:description a owl:DatatypeProperty ;
+    rdfs:label "description" ;
+    skos:definition "Human-readable description." ;
+    skos:inScheme laura:schema .
+
+laura:dtype a owl:DatatypeProperty ;
+    rdfs:label "dtype" ;
+    skos:definition "Data type (e.g., ``float``, ``int``)." ;
+    skos:inScheme laura:schema .
+
+laura:edge1_effects a owl:DatatypeProperty ;
+    rdfs:label "edge1_effects" ;
+    skos:definition "Enable entrance-edge focussing effects." ;
+    skos:inScheme laura:schema .
+
+laura:edge2_effects a owl:DatatypeProperty ;
+    rdfs:label "edge2_effects" ;
+    skos:definition "Enable exit-edge focussing effects." ;
+    skos:inScheme laura:schema .
+
+laura:edge_order a owl:DatatypeProperty ;
+    rdfs:label "edge_order" ;
+    skos:definition "Polynomial order of the edge-field expansion." ;
+    skos:inScheme laura:schema .
+
+laura:electrical a owl:ObjectProperty ;
+    rdfs:label "electrical" ;
+    skos:definition "Power-supply electrical limits." ;
+    skos:inScheme laura:schema .
+
+laura:elements a owl:DatatypeProperty,
+        owl:ObjectProperty .
+
+laura:entrance_edge_angle a owl:DatatypeProperty ;
+    rdfs:label "entrance_edge_angle" ;
+    skos:definition "Fringe-field entrance edge angle [rad]." ;
+    skos:inScheme laura:schema .
+
+laura:error a owl:ObjectProperty ;
+    rdfs:label "error" ;
+    skos:definition "Alignment errors." ;
+    skos:inScheme laura:schema .
+
+laura:exit_edge_angle a owl:DatatypeProperty ;
+    rdfs:label "exit_edge_angle" ;
+    skos:definition "Fringe-field exit edge angle [rad]." ;
+    skos:inScheme laura:schema .
+
+laura:expression a owl:DatatypeProperty ;
+    rdfs:label "expression" ;
+    skos:definition "Optional expression string for derived values." ;
+    skos:inScheme laura:schema .
+
+laura:f a owl:DatatypeProperty ;
+    rdfs:label "f" ;
+    skos:definition "Saturation fraction (slope ratio below/above I_max)." ;
+    skos:inScheme laura:schema .
+
+laura:field_definition a owl:DatatypeProperty ;
+    rdfs:label "field_definition" ;
+    skos:definition "Path to the 3-D field-map file." ;
+    skos:inScheme laura:schema .
+
+laura:field_integral_coefficients a owl:ObjectProperty ;
+    rdfs:label "field_integral_coefficients" ;
+    skos:definition "Polynomial calibration of integrated field vs. current." ;
+    skos:inScheme laura:schema .
+
+laura:field_reference_position a owl:DatatypeProperty ;
+    rdfs:label "field_reference_position" ;
+    skos:definition "Longitudinal origin of the field map [m]." ;
+    skos:inScheme laura:schema .
+
+laura:flatness a owl:DatatypeProperty ;
+    rdfs:label "flatness" ;
+    skos:definition "Flatness order N of a flattened-Gaussian profile (for ``profile_type = flattened-gaussian``)." ;
+    skos:inScheme laura:schema .
+
+laura:flipped_horizontally a owl:DatatypeProperty ;
+    rdfs:label "flipped_horizontally" ;
+    skos:definition "True if the image is mirrored left-right." ;
+    skos:inScheme laura:schema .
+
+laura:flipped_vertically a owl:DatatypeProperty ;
+    rdfs:label "flipped_vertically" ;
+    skos:definition "True if the image is mirrored top-bottom." ;
+    skos:inScheme laura:schema .
+
+laura:focal_position a owl:DatatypeProperty ;
+    rdfs:label "focal_position" ;
+    skos:definition "Focal (waist) position along the propagation axis [m]." ;
+    skos:inScheme laura:schema .
+
+laura:fringe_field_coefficient a owl:DatatypeProperty ;
+    rdfs:label "fringe_field_coefficient" ;
+    skos:definition "Coefficient controlling the fringe-field roll-off rate." ;
+    skos:inScheme laura:schema .
+
+laura:gap a owl:DatatypeProperty ;
+    rdfs:label "gap" ;
+    skos:definition "Full gap between pole faces [m]." ;
+    skos:inScheme laura:schema .
+
+laura:global_rotation a owl:ObjectProperty ;
+    rdfs:label "global_rotation" ;
+    skos:definition "Accumulated global rotation including parent-frame contributions." ;
+    skos:inScheme laura:schema .
+
+laura:gradient a owl:DatatypeProperty ;
+    rdfs:label "gradient" ;
+    skos:definition "Peak field gradient [T/m] (quads) or peak field [T] (dipoles)." ;
+    skos:inScheme laura:schema .
+
+laura:gradient_calibration a owl:DatatypeProperty ;
+    rdfs:label "gradient_calibration" ;
+    skos:definition "Calibration relating measured signal to gradient [MV/m per a.u.]." ;
+    skos:inScheme laura:schema .
+
+laura:hardware_class a owl:ObjectProperty ;
+    rdfs:label "hardware_class" ;
+    skos:definition "Functional category (e.g., ``Magnet``, ``Diagnostic``)." ;
+    skos:inScheme laura:schema .
+
+laura:hardware_model a owl:DatatypeProperty ;
+    rdfs:label "hardware_model" ;
+    skos:definition "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``)." ;
+    skos:inScheme laura:schema .
+
+laura:has_camera a owl:DatatypeProperty ;
+    rdfs:label "has_camera" ;
+    skos:definition "Whether the screen has an associated camera." ;
+    skos:inScheme laura:schema .
+
+laura:has_led a owl:DatatypeProperty ;
+    rdfs:label "has_led" ;
+    skos:definition "True if the camera mount includes an LED backlight." ;
+    skos:inScheme laura:schema .
+
+laura:heartbeat a owl:ObjectProperty ;
+    rdfs:label "heartbeat" ;
+    skos:definition "RF heartbeat parameters." ;
+    skos:inScheme laura:schema .
+
+laura:horizontal_size a owl:DatatypeProperty ;
+    rdfs:label "horizontal_size" ;
+    skos:definition "Full horizontal aperture [m]." ;
+    skos:inScheme laura:schema .
+
+laura:identifier a owl:DatatypeProperty ;
+    rdfs:label "identifier" ;
+    skos:definition "Protocol-specific PV name (e.g., EPICS PV address)." ;
+    skos:inScheme laura:schema .
+
+laura:initial_position a owl:DatatypeProperty ;
+    rdfs:label "initial_position" ;
+    skos:definition "Initial longitudinal position of the laser pulse [m]." ;
+    skos:inScheme laura:schema .
+
+laura:integration_order a owl:DatatypeProperty ;
+    rdfs:label "integration_order" ;
+    skos:definition "Order of the symplectic integrator." ;
+    skos:inScheme laura:schema .
+
+laura:isr_enable a owl:DatatypeProperty ;
+    rdfs:label "isr_enable" ;
+    skos:definition "Enable incoherent synchrotron-radiation emittance growth." ;
+    skos:inScheme laura:schema .
+
+laura:laguerre_polynomial_order_p a owl:DatatypeProperty ;
+    rdfs:label "laguerre_polynomial_order_p" ;
+    skos:definition "Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``)." ;
+    skos:inScheme laura:schema .
+
+laura:length a owl:DatatypeProperty ;
+    rdfs:label "length" ;
+    skos:definition "Effective length along the beam axis [m]." ;
+    skos:inScheme laura:schema .
+
+laura:lights a owl:ObjectProperty ;
+    rdfs:label "lights" ;
+    skos:definition "Lighting configuration." ;
+    skos:inScheme laura:schema .
+
+laura:linear_saturation_coefficients a owl:ObjectProperty ;
+    rdfs:label "linear_saturation_coefficients" ;
+    skos:definition "Bi-linear saturation calibration." ;
+    skos:inScheme laura:schema .
+
+laura:llrf a owl:ObjectProperty ;
+    rdfs:label "llrf" ;
+    skos:definition "LLRF parameters." ;
+    skos:inScheme laura:schema .
+
+laura:m a owl:DatatypeProperty ;
+    rdfs:label "m" ;
+    skos:definition "Linear slope of the unsaturated region." ;
+    skos:inScheme laura:schema .
+
+laura:machine_area a owl:DatatypeProperty ;
+    rdfs:label "machine_area" ;
+    skos:definition "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``)." ;
+    skos:inScheme laura:schema .
+
+laura:magnetic a owl:ObjectProperty ;
+    rdfs:label "magnetic" ;
+    skos:definition "Magnetic field parameters." ;
+    skos:inScheme laura:schema .
+
+laura:magnetic_length a owl:DatatypeProperty ;
+    rdfs:label "magnetic_length" ;
+    skos:definition "Magnetic (effective) length [m]." ;
+    skos:inScheme laura:schema .
+
+laura:max_i a owl:DatatypeProperty ;
+    rdfs:label "max_i" ;
+    skos:altLabel "maxI" ;
+    skos:definition "Maximum current [A]." ;
+    skos:inScheme laura:schema .
+
+laura:maximum a owl:DatatypeProperty ;
+    rdfs:label "maximum" ;
+    skos:definition "Maximum attenuation angle [deg]." ;
+    skos:inScheme laura:schema .
+
+laura:maximum_position a owl:DatatypeProperty ;
+    rdfs:label "maximum_position" ;
+    skos:definition "Maximum downstream s-coordinate [m]." ;
+    skos:inScheme laura:schema .
+
+laura:middle a owl:ObjectProperty ;
+    rdfs:label "middle" ;
+    skos:altLabel "centre",
+        "position" ;
+    skos:definition "Longitudinal midpoint (centre) of the element. Also accepted as ``position`` or ``centre`` in YAML." ;
+    skos:inScheme laura:schema .
+
+laura:min_i a owl:DatatypeProperty ;
+    rdfs:label "min_i" ;
+    skos:altLabel "minI" ;
+    skos:definition "Minimum current [A]." ;
+    skos:inScheme laura:schema .
+
+laura:minimum a owl:DatatypeProperty ;
+    rdfs:label "minimum" ;
+    skos:definition "Minimum attenuation angle [deg]." ;
+    skos:inScheme laura:schema .
+
+laura:minimum_position a owl:DatatypeProperty ;
+    rdfs:label "minimum_position" ;
+    skos:definition "Minimum upstream s-coordinate [m]." ;
+    skos:inScheme laura:schema .
+
+laura:modulator a owl:ObjectProperty ;
+    rdfs:label "modulator" ;
+    skos:definition "Modulator parameters." ;
+    skos:inScheme laura:schema .
+
+laura:multipoles a owl:ObjectProperty ;
+    rdfs:label "multipoles" ;
+    skos:definition "Integrated multipole field components." ;
+    skos:inScheme laura:schema .
+
+laura:n_kicks a owl:DatatypeProperty ;
+    rdfs:label "n_kicks" ;
+    skos:definition "Number of integration kicks." ;
+    skos:inScheme laura:schema .
+
+laura:n_slices a owl:DatatypeProperty ;
+    rdfs:label "n_slices" ;
+    skos:definition "Number of longitudinal slices for thick-lens tracking." ;
+    skos:inScheme laura:schema .
+
+laura:negative_extent a owl:DatatypeProperty ;
+    rdfs:label "negative_extent" ;
+    skos:definition "Upstream / inner extent [m]." ;
+    skos:inScheme laura:schema .
+
+laura:nonlinear a owl:DatatypeProperty ;
+    rdfs:label "nonlinear" ;
+    skos:definition "Include higher-order (sextupole+) field components." ;
+    skos:inScheme laura:schema .
+
+laura:normal a owl:DatatypeProperty ;
+    rdfs:label "normal" ;
+    skos:definition "Integrated normal (upright) multipole strength [T.m^{1-n}]." ;
+    skos:inScheme laura:schema .
+
+laura:number_of_elements a owl:DatatypeProperty ;
+    rdfs:label "number_of_elements" ;
+    skos:definition "Number of aperture sub-elements (e.g., for multi-leaf collimators)." ;
+    skos:inScheme laura:schema .
+
+laura:parabolic_coefficient a owl:DatatypeProperty ;
+    rdfs:label "parabolic_coefficient" ;
+    skos:definition "Parabolic coefficient for a transverse density profile." ;
+    skos:inScheme laura:schema .
+
+laura:phi a owl:DatatypeProperty ;
+    rdfs:label "phi" ;
+    skos:definition "Rotation about the horizontal (x) axis [rad]." ;
+    skos:inScheme laura:schema .
+
+laura:physical a owl:ObjectProperty ;
+    rdfs:label "physical" ;
+    skos:definition "Position, rotation, and length data." ;
+    skos:inScheme laura:schema .
+
+laura:physical_angle a owl:DatatypeProperty ;
+    rdfs:label "physical_angle" ;
+    skos:definition "Bending angle in the horizontal plane [rad]. Derived from ``magnetic.angle`` when available." ;
+    skos:inScheme laura:schema .
+
+laura:pid a owl:ObjectProperty ;
+    rdfs:label "pid" ;
+    skos:definition "PID gain parameters." ;
+    skos:inScheme laura:schema .
+
+laura:plane a owl:DatatypeProperty ;
+    rdfs:label "plane" ;
+    skos:definition "Principal bending / focusing plane (``H``, ``V``, or ``HV``)." ;
+    skos:inScheme laura:schema .
+
+laura:plasma a owl:ObjectProperty ;
+    rdfs:label "plasma" ;
+    skos:definition "Plasma channel parameters." ;
+    skos:inScheme laura:schema .
+
+laura:plateau a owl:DatatypeProperty ;
+    rdfs:label "plateau" ;
+    skos:definition "Flat-top plateau length [m]." ;
+    skos:inScheme laura:schema .
+
+laura:polarization a owl:ObjectProperty ;
+    rdfs:label "polarization" ;
+    skos:definition "Laser polarization state." ;
+    skos:inScheme laura:schema .
+
+laura:positive_extent a owl:DatatypeProperty ;
+    rdfs:label "positive_extent" ;
+    skos:definition "Downstream / outer extent [m]." ;
+    skos:inScheme laura:schema .
+
+laura:power_calibration a owl:DatatypeProperty ;
+    rdfs:label "power_calibration" ;
+    skos:definition "Calibration constant relating measured power to cavity gradient." ;
+    skos:inScheme laura:schema .
+
+laura:profile_type a owl:ObjectProperty ;
+    rdfs:label "profile_type" ;
+    skos:definition "Transverse intensity profile model." ;
+    skos:inScheme laura:schema .
+
+laura:protection a owl:ObjectProperty ;
+    rdfs:label "protection" ;
+    skos:definition "RF protection parameters." ;
+    skos:inScheme laura:schema .
+
+laura:protocol a owl:DatatypeProperty ;
+    rdfs:label "protocol" ;
+    skos:definition "Control-system protocol (e.g., ``EPICS``, ``Tango``)." ;
+    skos:inScheme laura:schema .
+
+laura:psi a owl:DatatypeProperty ;
+    rdfs:label "psi" ;
+    skos:definition "Rotation about the vertical (y) axis [rad]." ;
+    skos:inScheme laura:schema .
+
+laura:pulse_duration_fwhm a owl:DatatypeProperty ;
+    rdfs:label "pulse_duration_fwhm" ;
+    skos:definition "Pulse duration at FWHM [s]." ;
+    skos:inScheme laura:schema .
+
+laura:pulse_energy a owl:DatatypeProperty ;
+    rdfs:label "pulse_energy" ;
+    skos:definition "Laser pulse energy [J]." ;
+    skos:inScheme laura:schema .
+
+laura:ramp_decay_length a owl:DatatypeProperty ;
+    rdfs:label "ramp_decay_length" ;
+    skos:definition "Exponential decay length of the density ramp [m]." ;
+    skos:inScheme laura:schema .
+
+laura:ramp_down a owl:DatatypeProperty ;
+    rdfs:label "ramp_down" ;
+    skos:definition "Exit density-ramp length [m]." ;
+    skos:inScheme laura:schema .
+
+laura:ramp_up a owl:DatatypeProperty ;
+    rdfs:label "ramp_up" ;
+    skos:definition "Entrance density-ramp length [m]." ;
+    skos:inScheme laura:schema .
+
+laura:random_multipoles a owl:ObjectProperty ;
+    rdfs:label "random_multipoles" ;
+    skos:definition "Random multipole errors at the reference radius." ;
+    skos:inScheme laura:schema .
+
+laura:read_only a owl:DatatypeProperty ;
+    rdfs:label "read_only" ;
+    skos:definition "Whether the variable is read-only." ;
+    skos:inScheme laura:schema .
+
+laura:reference a owl:ObjectProperty ;
+    rdfs:label "reference" ;
+    skos:definition "Links to design drawings and files." ;
+    skos:inScheme laura:schema .
+
+laura:ri_tolerance a owl:DatatypeProperty ;
+    rdfs:label "ri_tolerance" ;
+    skos:altLabel "read_tolerance" ;
+    skos:definition "Read-back vs. set-point tolerance fraction (default 0.1 = 10 %)." ;
+    skos:inScheme laura:schema .
+
+laura:scale_field a owl:DatatypeProperty ;
+    rdfs:label "scale_field" ;
+    skos:definition "Multiplicative scale factor applied to the field map." ;
+    skos:inScheme laura:schema .
+
+laura:screen_name a owl:DatatypeProperty ;
+    rdfs:label "screen_name" ;
+    skos:definition "Name of the screen element to which this camera is attached." ;
+    skos:inScheme laura:schema .
+
+laura:sections a owl:DatatypeProperty,
+        owl:ObjectProperty .
+
+laura:serial_number a owl:DatatypeProperty ;
+    rdfs:label "serial_number" ;
+    skos:definition "Manufacturer serial number." ;
+    skos:inScheme laura:schema .
+
+laura:settle_time a owl:DatatypeProperty ;
+    rdfs:label "settle_time" ;
+    skos:definition "Power-supply settle time after a change [s]." ;
+    skos:inScheme laura:schema .
+
+laura:shape a owl:ObjectProperty ;
+    rdfs:label "shape" ;
+    skos:definition "Cross-sectional aperture shape." ;
+    skos:inScheme laura:schema .
+
+laura:shutter a owl:ObjectProperty ;
+    rdfs:label "shutter" ;
+    skos:definition "Shutter interlock configuration." ;
+    skos:inScheme laura:schema .
+
+laura:smooth a owl:DatatypeProperty ;
+    rdfs:label "smooth" ;
+    skos:definition "Use a smoothed field profile." ;
+    skos:inScheme laura:schema .
+
+laura:smoothing_half_width a owl:DatatypeProperty ;
+    rdfs:label "smoothing_half_width" ;
+    skos:definition "Half-width of the current-profile smoothing kernel." ;
+    skos:inScheme laura:schema .
+
+laura:species a owl:DatatypeProperty ;
+    rdfs:label "species" ;
+    skos:definition "Plasma species name (e.g., ``electron``)." ;
+    skos:inScheme laura:schema .
+
+laura:sr_enable a owl:DatatypeProperty ;
+    rdfs:label "sr_enable" ;
+    skos:definition "Enable synchrotron-radiation energy loss." ;
+    skos:inScheme laura:schema .
+
+laura:steps a owl:DatatypeProperty ;
+    rdfs:label "steps" ;
+    skos:altLabel "num_degauss_steps" ;
+    skos:definition "Number of degauss steps per half-cycle." ;
+    skos:inScheme laura:schema .
+
+laura:structure_type a owl:DatatypeProperty ;
+    rdfs:label "structure_type" ;
+    skos:altLabel "structure_Type" ;
+    skos:definition "RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave)." ;
+    skos:inScheme laura:schema .
+
+laura:subelement a owl:DatatypeProperty ;
+    rdfs:label "subelement" ;
+    skos:definition "If set, this element is a logical sub-component of the named parent element." ;
+    skos:inScheme laura:schema .
+
+laura:survey a owl:ObjectProperty ;
+    rdfs:label "survey" ;
+    skos:definition "Survey-measured position and rotation." ;
+    skos:inScheme laura:schema .
+
+laura:systematic_multipoles a owl:ObjectProperty ;
+    rdfs:label "systematic_multipoles" ;
+    skos:definition "Systematic (design) multipole errors at the reference radius." ;
+    skos:inScheme laura:schema .
+
+laura:target a owl:DatatypeProperty ;
+    rdfs:label "target" ;
+    skos:definition "Set-point target value." ;
+    skos:inScheme laura:schema .
+
+laura:theta a owl:DatatypeProperty ;
+    rdfs:label "theta" ;
+    skos:definition "Rotation about the longitudinal (z) axis [rad]." ;
+    skos:inScheme laura:schema .
+
+laura:tilt a owl:DatatypeProperty ;
+    rdfs:label "tilt" ;
+    skos:definition "Global tilt about the beam axis [rad]." ;
+    skos:inScheme laura:schema .
+
+laura:tolerance a owl:DatatypeProperty ;
+    rdfs:label "tolerance" ;
+    skos:altLabel "degauss_tolerance" ;
+    skos:definition "Current tolerance band during the degauss cycle [A]." ;
+    skos:inScheme laura:schema .
+
+laura:units a owl:DatatypeProperty ;
+    rdfs:label "units" ;
+    skos:definition "Physical units string (e.g., ``A``, ``T/m``)." ;
+    skos:inScheme laura:schema .
+
+laura:value a owl:DatatypeProperty ;
+    rdfs:label "value" ;
+    skos:definition "Last-read value." ;
+    skos:inScheme laura:schema .
+
+laura:valve a owl:ObjectProperty ;
+    rdfs:label "valve" ;
+    skos:definition "Valve configuration." ;
+    skos:inScheme laura:schema .
+
+laura:vertical_size a owl:DatatypeProperty ;
+    rdfs:label "vertical_size" ;
+    skos:definition "Full vertical aperture [m]." ;
+    skos:inScheme laura:schema .
+
+laura:virtual_name a owl:DatatypeProperty ;
+    rdfs:label "virtual_name" ;
+    skos:definition "Alternative internal name used by the control system when the physical name is inaccessible." ;
+    skos:inScheme laura:schema .
+
+laura:waist a owl:DatatypeProperty ;
+    rdfs:label "waist" ;
+    skos:definition "Laser beam waist (1/e^2 radius) [m]." ;
+    skos:inScheme laura:schema .
+
+laura:wakefield_definition a owl:DatatypeProperty ;
+    rdfs:label "wakefield_definition" ;
+    skos:definition "Path to the wakefield impedance file." ;
+    skos:inScheme laura:schema .
+
+laura:wavelength a owl:DatatypeProperty ;
+    rdfs:label "wavelength" ;
+    skos:definition "Laser wavelength [m]." ;
+    skos:inScheme laura:schema .
+
+laura:width a owl:DatatypeProperty ;
+    rdfs:label "width" ;
+    skos:definition "Physical width of the magnet in the bending plane [m]." ;
+    skos:inScheme laura:schema .
+
+laura:x a owl:DatatypeProperty ;
+    rdfs:label "x" ;
+    skos:definition "Horizontal component [m]." ;
+    skos:inScheme laura:schema .
+
+laura:x_pixels a owl:DatatypeProperty ;
+    rdfs:label "x_pixels" ;
+    skos:definition "Image width reported by the control system [pix]." ;
+    skos:inScheme laura:schema .
+
+laura:y a owl:DatatypeProperty ;
+    rdfs:label "y" ;
+    skos:definition "Vertical component [m]." ;
+    skos:inScheme laura:schema .
+
+laura:y_pixels a owl:DatatypeProperty ;
+    rdfs:label "y_pixels" ;
+    skos:definition "Image height reported by the control system [pix]." ;
+    skos:inScheme laura:schema .
+
+laura:z a owl:DatatypeProperty ;
+    rdfs:label "z" ;
+    skos:definition "Longitudinal (beam-direction) component [m]." ;
+    skos:inScheme laura:schema .
+
+laura:BeamArrivalMonitor a owl:Class ;
+    rdfs:label "BeamArrivalMonitor" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:BAMDiagnosticElement ;
+            owl:onProperty laura:diagnostic ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:diagnostic ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Beam_Arrival_Monitor" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:Diagnostic ;
+    skos:definition "Beam-arrival-time monitor (BAM)." ;
+    skos:exactMatch laura:BeamArrivalMonitor ;
+    skos:inScheme laura:schema .
+
+laura:BeamPositionMonitor a owl:Class ;
+    rdfs:label "BeamPositionMonitor" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Beam_Position_Monitor" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:BPMDiagnosticElement ;
+            owl:onProperty laura:diagnostic ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:diagnostic ],
+        laura:Diagnostic ;
+    skos:definition "Beam-position monitor (BPM)." ;
+    skos:exactMatch laura:BeamPositionMonitor ;
+    skos:inScheme laura:schema .
+
+laura:BunchLengthMonitor a owl:Class ;
+    rdfs:label "BunchLengthMonitor" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Bunch_Length_Monitor" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:diagnostic ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:BLMDiagnosticElement ;
+            owl:onProperty laura:diagnostic ],
+        laura:Diagnostic ;
+    skos:definition "Bunch-length monitor (BLM / CDR detector)." ;
+    skos:exactMatch laura:BunchLengthMonitor ;
+    skos:inScheme laura:schema .
+
+laura:Camera a owl:Class ;
+    rdfs:label "Camera" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Camera" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:CameraDiagnosticElement ;
+            owl:onProperty laura:diagnostic ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:diagnostic ],
+        laura:Diagnostic ;
+    skos:definition "Camera-based beam-profile monitor." ;
+    skos:exactMatch laura:Camera ;
+    skos:inScheme laura:schema .
+
+laura:Collimator a owl:Class ;
+    rdfs:label "Collimator" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Collimator" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:Aperture ;
+    skos:definition "Movable collimator jaw (extends Aperture)." ;
+    skos:exactMatch laura:Collimator ;
+    skos:inScheme laura:schema .
+
+laura:CombinedCorrector a owl:Class ;
+    rdfs:label "CombinedCorrector" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Combined_Corrector" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:Dipole ;
+    skos:definition "Combined horizontal and vertical orbit-corrector magnet." ;
+    skos:exactMatch laura:CombinedCorrector ;
+    skos:inScheme laura:schema .
+
+laura:Drift a owl:Class ;
+    rdfs:label "Drift" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:DriftSimulationElement ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Drift" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:simulation ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Field-free drift space between elements." ;
+    skos:exactMatch laura:Drift ;
+    skos:inScheme laura:schema .
+
+laura:FaradayCupMonitor a owl:Class ;
+    rdfs:label "FaradayCupMonitor" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Faraday_Cup_Monitor" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:ChargeDiagnostic ;
+    skos:definition "Faraday cup for destructive charge measurement." ;
+    skos:exactMatch laura:FaradayCupMonitor ;
+    skos:inScheme laura:schema .
+
+laura:HorizontalCorrector a owl:Class ;
+    rdfs:label "HorizontalCorrector" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Horizontal_Corrector" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:Dipole ;
+    skos:definition "Horizontal orbit-corrector dipole." ;
+    skos:exactMatch laura:HorizontalCorrector ;
+    skos:inScheme laura:schema .
+
+laura:IntegratedCurrentTransformer a owl:Class ;
+    rdfs:label "IntegratedCurrentTransformer" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Integrated_Current_Transformer" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:ChargeDiagnostic ;
+    skos:definition "Integrated current transformer (ICT) for non-destructive single-shot charge measurement." ;
+    skos:exactMatch laura:IntegratedCurrentTransformer ;
+    skos:inScheme laura:schema .
+
+laura:Laser a owl:Class ;
+    rdfs:label "Laser" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Laser" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:LaserElement ;
+            owl:onProperty laura:laser ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:laser ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Laser system element (full laser setup including beam parameters)." ;
+    skos:exactMatch laura:Laser ;
+    skos:inScheme laura:schema .
+
+laura:LaserAttenuator a owl:Class ;
+    rdfs:label "LaserAttenuator" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "LaserAttenuator" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:maximum ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:minimum ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:minimum ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:maximum ],
+        laura:StandardElement ;
+    skos:definition "Laser power attenuator (waveplate + polariser combination)." ;
+    skos:exactMatch laura:LaserAttenuator ;
+    skos:inScheme laura:schema .
+
+laura:LaserElement a owl:Class ;
+    rdfs:label "LaserElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:focal_position ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:LaserPolarizationEnum ;
+            owl:onProperty laura:polarization ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:wavelength ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:cep_phase ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:flatness ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:cep_phase ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:pulse_duration_fwhm ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:pulse_energy ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:waist ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:polarization ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:integer [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive 1 ] ) ] ) ] ;
+            owl:onProperty laura:flatness ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:initial_position ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:focal_position ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:wavelength ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:profile_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:LaserProfileTypeEnum ;
+            owl:onProperty laura:profile_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:pulse_energy ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:laguerre_polynomial_order_p ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:initial_position ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:integer [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0 ] ) ] ) ] ;
+            owl:onProperty laura:laguerre_polynomial_order_p ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:waist ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0e+00 ] ) ] ) ] ;
+            owl:onProperty laura:pulse_duration_fwhm ] ;
+    skos:definition "Laser-beam parameters (wavelength, pulse energy, profile, etc.) for a laser element or laser-driven plasma stage." ;
+    skos:exactMatch laura:LaserElement ;
+    skos:inScheme laura:schema .
+
+laura:LaserEnergyMeter a owl:Class ;
+    rdfs:label "LaserEnergyMeter" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "LaserEnergyMeter" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:laser ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:LaserEnergyMeterElement ;
+            owl:onProperty laura:laser ],
+        laura:StandardElement ;
+    skos:definition "Laser pulse-energy diagnostic (photodiode / pyroelectric)." ;
+    skos:exactMatch laura:LaserEnergyMeter ;
+    skos:inScheme laura:schema .
+
+laura:LaserHalfWavePlate a owl:Class ;
+    rdfs:label "LaserHalfWavePlate" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:LaserHalfWavePlateElement ;
+            owl:onProperty laura:laser ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "LaserHalfWavePlate" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:laser ],
+        laura:StandardElement ;
+    skos:definition "Half-wave plate for laser polarisation rotation." ;
+    skos:exactMatch laura:LaserHalfWavePlate ;
+    skos:inScheme laura:schema .
+
+laura:LaserMirror a owl:Class ;
+    rdfs:label "LaserMirror" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "LaserMirror" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:StandardElement ;
+    skos:definition "Laser steering or focusing mirror." ;
+    skos:exactMatch laura:LaserMirror ;
+    skos:inScheme laura:schema .
+
+laura:Lighting a owl:Class ;
+    rdfs:label "Lighting" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:lights ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:LightingElement ;
+            owl:onProperty laura:lights ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Lighting" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:StandardElement ;
+    skos:definition "Experimental-hall lighting element." ;
+    skos:exactMatch laura:Lighting ;
+    skos:inScheme laura:schema .
+
+laura:LowLevelRF a owl:Class ;
+    rdfs:label "LowLevelRF" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:llrf ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:LowLevelRFElement ;
+            owl:onProperty laura:llrf ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Low_Level_RF" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:StandardElement ;
+    skos:definition "Low-level RF (LLRF) controller." ;
+    skos:exactMatch laura:LowLevelRF ;
+    skos:inScheme laura:schema .
+
+laura:Marker a owl:Class ;
+    rdfs:label "Marker" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Marker" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Virtual survey marker -- a zero-length reference point used for alignment." ;
+    skos:exactMatch laura:Marker ;
+    skos:inScheme laura:schema .
+
+laura:NonLinearLens a owl:Class ;
+    rdfs:label "NonLinearLens" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "NonLinearLens" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:MagnetBaseElement ;
+    skos:definition "Non-linear focusing lens (IOTA-style)." ;
+    skos:exactMatch laura:NonLinearLens ;
+    skos:inScheme laura:schema .
+
+laura:Octupole a owl:Class ;
+    rdfs:label "Octupole" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Octupole" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:MagnetBaseElement ;
+    skos:definition "Octupole magnet." ;
+    skos:exactMatch laura:Octupole ;
+    skos:inScheme laura:schema .
+
+laura:PID a owl:Class ;
+    rdfs:label "PID" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:pid ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "PID" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:PIDElement ;
+            owl:onProperty laura:pid ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:StandardElement ;
+    skos:definition "Proportional-integral-derivative (PID) feedback controller." ;
+    skos:exactMatch laura:PID ;
+    skos:inScheme laura:schema .
+
+laura:Plasma a owl:Class ;
+    rdfs:label "Plasma" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:plasma ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:LaserElement ;
+            owl:onProperty laura:laser ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:PlasmaSimulationElement ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Plasma" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:PlasmaElement ;
+            owl:onProperty laura:plasma ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:laser ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Laser-driven plasma-accelerator stage." ;
+    skos:exactMatch laura:Plasma ;
+    skos:inScheme laura:schema .
+
+laura:Quadrupole a owl:Class ;
+    rdfs:label "Quadrupole" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Quadrupole" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:MagnetBaseElement ;
+    skos:definition "Quadrupole focusing magnet." ;
+    skos:exactMatch laura:Quadrupole ;
+    skos:inScheme laura:schema .
+
+laura:RFDeflectingCavity a owl:Class ;
+    rdfs:label "RFDeflectingCavity" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:RFDeflectingCavityElement ;
+            owl:onProperty laura:cavity ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "RFDeflectingCavity" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:cavity ],
+        laura:RFCavity ;
+    skos:definition "Transverse-deflecting (streak) RF cavity." ;
+    skos:exactMatch laura:RFDeflectingCavity ;
+    skos:inScheme laura:schema .
+
+laura:RFHeartbeat a owl:Class ;
+    rdfs:label "RFHeartbeat" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:RFHeartbeatElement ;
+            owl:onProperty laura:heartbeat ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:heartbeat ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "RFHeartbeat" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:StandardElement ;
+    skos:definition "RF timing heartbeat / signal-monitor element." ;
+    skos:exactMatch laura:RFHeartbeat ;
+    skos:inScheme laura:schema .
+
+laura:RFModulator a owl:Class ;
+    rdfs:label "RFModulator" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:RFModulatorElement ;
+            owl:onProperty laura:modulator ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "RFModulator" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:modulator ],
+        laura:StandardElement ;
+    skos:definition "RF modulator (klystron driver) element." ;
+    skos:exactMatch laura:RFModulator ;
+    skos:inScheme laura:schema .
+
+laura:RFProtection a owl:Class ;
+    rdfs:label "RFProtection" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:RFProtectionElement ;
+            owl:onProperty laura:protection ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "RFProtection" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:protection ],
+        laura:StandardElement ;
+    skos:definition "RF protection system element." ;
+    skos:exactMatch laura:RFProtection ;
+    skos:inScheme laura:schema .
+
+laura:Screen a owl:Class ;
+    rdfs:label "Screen" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Screen" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:ScreenDiagnosticElement ;
+            owl:onProperty laura:diagnostic ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:diagnostic ],
+        laura:Diagnostic ;
+    skos:definition "Scintillator or OTR screen with an associated camera." ;
+    skos:exactMatch laura:Screen ;
+    skos:inScheme laura:schema .
+
+laura:Sextupole a owl:Class ;
+    rdfs:label "Sextupole" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Sextupole" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:MagnetBaseElement ;
+    skos:definition "Sextupole chromaticity-correction magnet." ;
+    skos:exactMatch laura:Sextupole ;
+    skos:inScheme laura:schema .
+
+laura:Shutter a owl:Class ;
+    rdfs:label "Shutter" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Shutter" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:shutter ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:ShutterElement ;
+            owl:onProperty laura:shutter ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Beam or laser shutter with interlock logic." ;
+    skos:exactMatch laura:Shutter ;
+    skos:inScheme laura:schema .
+
+laura:Solenoid a owl:Class ;
+    rdfs:label "Solenoid" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Solenoid" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:MagnetBaseElement ;
+    skos:definition "Solenoid focussing magnet." ;
+    skos:exactMatch laura:Solenoid ;
+    skos:inScheme laura:schema .
+
+laura:Stage a owl:Class ;
+    rdfs:label "Stage" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Stage" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Motorised positioning stage." ;
+    skos:exactMatch laura:Stage ;
+    skos:inScheme laura:schema .
+
+laura:TwissMatch a owl:Class ;
+    rdfs:label "TwissMatch" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:TwissMatchSimulationElement ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "TwissMatch" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Virtual Twiss-parameter matching point -- a zero-length marker that defines the desired optical functions at a location in the lattice." ;
+    skos:exactMatch laura:TwissMatch ;
+    skos:inScheme laura:schema .
+
+laura:VacuumGauge a owl:Class ;
+    rdfs:label "VacuumGauge" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "VacuumGauge" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Vacuum-pressure gauge." ;
+    skos:exactMatch laura:VacuumGauge ;
+    skos:inScheme laura:schema .
+
+laura:Valve a owl:Class ;
+    rdfs:label "Valve" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:valve ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:ValveElement ;
+            owl:onProperty laura:valve ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Valve" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Vacuum gate valve." ;
+    skos:exactMatch laura:Valve ;
+    skos:inScheme laura:schema .
+
+laura:VerticalCorrector a owl:Class ;
+    rdfs:label "VerticalCorrector" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Vertical_Corrector" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:Dipole ;
+    skos:definition "Vertical orbit-corrector dipole." ;
+    skos:exactMatch laura:VerticalCorrector ;
+    skos:inScheme laura:schema .
+
+laura:Wakefield a owl:Class ;
+    rdfs:label "Wakefield" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:WakefieldElement ;
+            owl:onProperty laura:cavity ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:WakefieldSimulationElement ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Wakefield" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:cavity ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Passive wakefield structure (dielectric, corrugated, etc.)." ;
+    skos:exactMatch laura:Wakefield ;
+    skos:inScheme laura:schema .
+
+laura:WallCurrentMonitor a owl:Class ;
+    rdfs:label "WallCurrentMonitor" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Wall_Current_Monitor" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:ChargeDiagnostic ;
+    skos:definition "Wall-current monitor (WCM) for non-destructive charge measurement." ;
+    skos:exactMatch laura:WallCurrentMonitor ;
+    skos:inScheme laura:schema .
+
+laura:Wiggler a owl:Class ;
+    rdfs:label "Wiggler" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Wiggler" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:MagnetBaseElement ;
+    skos:definition "Wiggler / undulator permanent-magnet array." ;
+    skos:exactMatch laura:Wiggler ;
+    skos:inScheme laura:schema .
+
+laura:Aperture a owl:Class ;
+    rdfs:label "Aperture" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Aperture" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:aperture ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:ApertureElement ;
+            owl:onProperty laura:aperture ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Mechanical aperture restriction in the beam pipe." ;
+    skos:exactMatch laura:Aperture ;
+    skos:inScheme laura:schema .
+
+laura:ApertureShapeEnum a owl:Class ;
+    rdfs:label "ApertureShapeEnum" ;
+    owl:unionOf ( <https://w3id.org/laura/ApertureShapeEnum#circular> <https://w3id.org/laura/ApertureShapeEnum#rectangular> <https://w3id.org/laura/ApertureShapeEnum#elliptical> ) ;
+    skos:definition "Cross-sectional shape of a beam-pipe aperture." ;
+    skos:inScheme laura:schema ;
+    linkml:permissible_values <https://w3id.org/laura/ApertureShapeEnum#circular>,
+        <https://w3id.org/laura/ApertureShapeEnum#elliptical>,
+        <https://w3id.org/laura/ApertureShapeEnum#rectangular> .
+
+laura:LaserPolarizationEnum a owl:Class ;
+    rdfs:label "LaserPolarizationEnum" ;
+    owl:unionOf ( <https://w3id.org/laura/LaserPolarizationEnum#linear> <https://w3id.org/laura/LaserPolarizationEnum#circular> <https://w3id.org/laura/LaserPolarizationEnum#elliptical> ) ;
+    skos:definition "Polarization state of a laser beam." ;
+    skos:inScheme laura:schema ;
+    linkml:permissible_values <https://w3id.org/laura/LaserPolarizationEnum#circular>,
+        <https://w3id.org/laura/LaserPolarizationEnum#elliptical>,
+        <https://w3id.org/laura/LaserPolarizationEnum#linear> .
+
+laura:Multipoles a owl:Class ;
+    rdfs:label "Multipoles" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:Multipole ;
+            owl:onProperty laura:K2L ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:K1L ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Multipole ;
+            owl:onProperty laura:K3L ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:K2L ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:K3L ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Multipole ;
+            owl:onProperty laura:K1L ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:K0L ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Multipole ;
+            owl:onProperty laura:K4L ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:K4L ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:Multipole ;
+            owl:onProperty laura:K0L ] ;
+    skos:definition "Complete set of integrated multipole strengths up to decapole order, as named slots for efficient element look-up." ;
+    skos:exactMatch laura:Multipoles ;
+    skos:inScheme laura:schema .
+
+laura:RFCavity a owl:Class ;
+    rdfs:label "RFCavity" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:RFCavityElement ;
+            owl:onProperty laura:cavity ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:RFCavitySimulationElement ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:cavity ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "RFCavity" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Accelerating RF cavity." ;
+    skos:exactMatch laura:RFCavity ;
+    skos:inScheme laura:schema .
+
+laura:cell_length a owl:DatatypeProperty .
+
+laura:design_gamma a owl:DatatypeProperty .
+
+laura:design_power a owl:DatatypeProperty .
+
+laura:edge_field_integral a owl:DatatypeProperty .
+
+laura:frequency a owl:DatatypeProperty .
+
+laura:manufacturer a owl:DatatypeProperty,
+        owl:ObjectProperty ;
+    rdfs:label "manufacturer" ;
+    skos:definition "Manufacturer and serial-number data.",
+        "Name of the manufacturer." ;
+    skos:inScheme laura:schema .
+
+laura:master_lattice a owl:DatatypeProperty .
+
+laura:mode_denominator a owl:DatatypeProperty .
+
+laura:mode_numerator a owl:DatatypeProperty .
+
+laura:order a owl:DatatypeProperty .
+
+laura:phase a owl:DatatypeProperty .
+
+laura:position a owl:ObjectProperty .
+
+laura:radius a owl:DatatypeProperty .
+
+laura:shunt_impedance a owl:DatatypeProperty .
+
+laura:skew a owl:DatatypeProperty .
+
+laura:AcceleratorElement a owl:Class ;
+    rdfs:label "AcceleratorElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_class ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:alias ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:name ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:virtual_name ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:HardwareClassEnum ;
+            owl:onProperty laura:hardware_class ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:machine_area ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:subelement ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:alias ],
+        [ a owl:Restriction ;
+            owl:cardinality 1 ;
+            owl:onProperty laura:name ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:subelement ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:hardware_model ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_model ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:machine_area ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:virtual_name ] ;
+    skos:definition "Root base class for all LAURA accelerator elements.  Every lattice element is an instance of a concrete subclass identified by ``hardware_type``." ;
+    skos:exactMatch laura:AcceleratorElement ;
+    skos:inScheme laura:schema .
+
+laura:LaserProfileTypeEnum a owl:Class ;
+    rdfs:label "LaserProfileTypeEnum" ;
+    owl:unionOf ( <https://w3id.org/laura/LaserProfileTypeEnum#gaussian> <https://w3id.org/laura/LaserProfileTypeEnum#laguerre-gaussian> <https://w3id.org/laura/LaserProfileTypeEnum#flattened-gaussian> <https://w3id.org/laura/LaserProfileTypeEnum#file> ) ;
+    skos:definition "Transverse intensity profile model for a laser beam." ;
+    skos:inScheme laura:schema ;
+    linkml:permissible_values <https://w3id.org/laura/LaserProfileTypeEnum#file>,
+        <https://w3id.org/laura/LaserProfileTypeEnum#flattened-gaussian>,
+        <https://w3id.org/laura/LaserProfileTypeEnum#gaussian>,
+        <https://w3id.org/laura/LaserProfileTypeEnum#laguerre-gaussian> .
+
+laura:Position a owl:Class ;
+    rdfs:label "Position" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:y ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:z ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:x ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:y ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:z ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:x ] ;
+    skos:definition "Cartesian position in the global accelerator coordinate system. All components are in metres." ;
+    skos:exactMatch laura:Position ;
+    skos:inScheme laura:schema .
+
+laura:Rotation a owl:Class ;
+    rdfs:label "Rotation" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive -3.141593e+00 ] ) ] [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:maxInclusive 3.141593e+00 ] ) ] ) ] ;
+            owl:onProperty laura:psi ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive -3.141593e+00 ] ) ] [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:maxInclusive 3.141593e+00 ] ) ] ) ] ;
+            owl:onProperty laura:phi ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:psi ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:theta ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:float [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:minInclusive -3.141593e+00 ] ) ] [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:float ;
+                                owl:withRestrictions ( [ xsd:maxInclusive 3.141593e+00 ] ) ] ) ] ;
+            owl:onProperty laura:theta ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:phi ] ;
+    skos:definition "Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi]." ;
+    skos:exactMatch laura:Rotation ;
+    skos:inScheme laura:schema .
+
+laura:ChargeDiagnostic a owl:Class ;
+    rdfs:label "ChargeDiagnostic" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:ChargeDiagnosticElement ;
+            owl:onProperty laura:diagnostic ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "ChargeDiagnostic" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:diagnostic ],
+        laura:Diagnostic ;
+    skos:definition "Base class for charge-measurement diagnostics." ;
+    skos:exactMatch laura:ChargeDiagnostic ;
+    skos:inScheme laura:schema .
+
+laura:Dipole a owl:Class ;
+    rdfs:label "Dipole" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:onDatatype xsd:string ;
+                    owl:withRestrictions ( [ xsd:pattern "Dipole" ] ) ] ;
+            owl:onProperty laura:hardware_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:hardware_type ],
+        laura:MagnetBaseElement ;
+    skos:definition "Dipole bending magnet." ;
+    skos:exactMatch laura:Dipole ;
+    skos:inScheme laura:schema .
+
+laura:Multipole a owl:Class ;
+    rdfs:label "Multipole" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:radius ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:order ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:normal ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:skew ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:radius ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom [ a rdfs:Datatype ;
+                    owl:intersectionOf ( xsd:integer [ a rdfs:Datatype ;
+                                owl:onDatatype xsd:integer ;
+                                owl:withRestrictions ( [ xsd:minInclusive 0 ] ) ] ) ] ;
+            owl:onProperty laura:order ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:skew ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:normal ] ;
+    skos:definition "Individual multipole field component, characterised by order and integrated normal / skew strengths at a reference radius." ;
+    skos:exactMatch laura:Multipole ;
+    skos:inScheme laura:schema .
+
+laura:cavity a owl:ObjectProperty .
+
+laura:coupling_cell_length a owl:DatatypeProperty .
+
+laura:n_cells a owl:DatatypeProperty .
+
+laura:name a owl:DatatypeProperty .
+
+laura:DiagnosticElement a owl:Class ;
+    rdfs:label "DiagnosticElement" ;
+    skos:definition "Base class for diagnostic instrument sub-models.  Concrete sub-models extend this with instrument-specific fields." ;
+    skos:exactMatch laura:DiagnosticElement ;
+    skos:inScheme laura:schema .
+
+laura:laser a owl:ObjectProperty .
+
+laura:rotation a owl:DatatypeProperty,
+        owl:ObjectProperty .
+
+laura:Diagnostic a owl:Class ;
+    rdfs:label "Diagnostic" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:DiagnosticElement ;
+            owl:onProperty laura:diagnostic ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:DiagnosticSimulationElement ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:diagnostic ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:simulation ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Base class for all beam-diagnostic instruments." ;
+    skos:exactMatch laura:Diagnostic ;
+    skos:inScheme laura:schema .
+
+laura:SimulationElement a owl:Class ;
+    rdfs:label "SimulationElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:field_reference_position ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:float ;
+            owl:onProperty laura:scale_field ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:wakefield_definition ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:field_definition ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:field_reference_position ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:wakefield_definition ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty laura:field_definition ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:scale_field ] ;
+    skos:definition "Base simulation attributes: field-map files and reference positions for tracking codes." ;
+    skos:exactMatch laura:SimulationElement ;
+    skos:inScheme laura:schema .
+
+laura:MagnetBaseElement a owl:Class ;
+    rdfs:label "MagnetBaseElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:DegaussableElement ;
+            owl:onProperty laura:degauss ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:degauss ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:magnetic ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:MagneticElement ;
+            owl:onProperty laura:magnetic ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:MagnetSimulationElement ;
+            owl:onProperty laura:simulation ],
+        laura:PhysicalAcceleratorElement ;
+    skos:definition "Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement`` in the schema to avoid collision with the ``magnetic`` composition-model class; maps to ``Magnet`` in Python.)" ;
+    skos:exactMatch laura:MagnetBaseElement ;
+    skos:inScheme laura:schema .
+
+laura:type a owl:DatatypeProperty .
+
+laura:StandardElement a owl:Class ;
+    rdfs:label "StandardElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:ManufacturerElement ;
+            owl:onProperty laura:manufacturer ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:reference ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:electrical ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:ReferenceElement ;
+            owl:onProperty laura:reference ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:SimulationElement ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:manufacturer ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:ElectricalElement ;
+            owl:onProperty laura:electrical ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:simulation ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom laura:ControlsInformation ;
+            owl:onProperty laura:controls ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:controls ],
+        laura:AcceleratorElement ;
+    skos:definition "Accelerator element with control-system, electrical, manufacturer, simulation, and reference sub-models." ;
+    skos:exactMatch laura:StandardElement ;
+    skos:inScheme laura:schema .
+
+laura:diagnostic a owl:ObjectProperty .
+
+laura:HardwareClassEnum a owl:Class ;
+    rdfs:label "HardwareClassEnum" ;
+    owl:unionOf ( <https://w3id.org/laura/HardwareClassEnum#Magnet> <https://w3id.org/laura/HardwareClassEnum#Diagnostic> <https://w3id.org/laura/HardwareClassEnum#RF> <https://w3id.org/laura/HardwareClassEnum#Vacuum> <https://w3id.org/laura/HardwareClassEnum#Laser> <https://w3id.org/laura/HardwareClassEnum#Plasma> <https://w3id.org/laura/HardwareClassEnum#Feedback> <https://w3id.org/laura/HardwareClassEnum#Marker> <https://w3id.org/laura/HardwareClassEnum#Aperture> <https://w3id.org/laura/HardwareClassEnum#Stage> <https://w3id.org/laura/HardwareClassEnum#Lighting> <https://w3id.org/laura/HardwareClassEnum#Shutter> <https://w3id.org/laura/HardwareClassEnum#Wakefield> <https://w3id.org/laura/HardwareClassEnum#TwissMatch> ) ;
+    skos:definition "High-level category organising elements by function within the accelerator.  Corresponds to the YAML ``hardware_class`` field." ;
+    skos:inScheme laura:schema ;
+    linkml:permissible_values <https://w3id.org/laura/HardwareClassEnum#Aperture>,
+        <https://w3id.org/laura/HardwareClassEnum#Diagnostic>,
+        <https://w3id.org/laura/HardwareClassEnum#Feedback>,
+        <https://w3id.org/laura/HardwareClassEnum#Laser>,
+        <https://w3id.org/laura/HardwareClassEnum#Lighting>,
+        <https://w3id.org/laura/HardwareClassEnum#Magnet>,
+        <https://w3id.org/laura/HardwareClassEnum#Marker>,
+        <https://w3id.org/laura/HardwareClassEnum#Plasma>,
+        <https://w3id.org/laura/HardwareClassEnum#RF>,
+        <https://w3id.org/laura/HardwareClassEnum#Shutter>,
+        <https://w3id.org/laura/HardwareClassEnum#Stage>,
+        <https://w3id.org/laura/HardwareClassEnum#TwissMatch>,
+        <https://w3id.org/laura/HardwareClassEnum#Vacuum>,
+        <https://w3id.org/laura/HardwareClassEnum#Wakefield> .
+
+laura:simulation a owl:ObjectProperty ;
+    rdfs:label "simulation" ;
+    skos:definition "Simulation / tracking attributes." ;
+    skos:inScheme laura:schema .
+
+laura:PhysicalAcceleratorElement a owl:Class ;
+    rdfs:label "PhysicalAcceleratorElement" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom laura:PhysicalElement ;
+            owl:onProperty laura:physical ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty laura:physical ],
+        laura:StandardElement ;
+    skos:definition "Accelerator element with a well-defined physical position and orientation in the beamline." ;
+    skos:exactMatch laura:PhysicalAcceleratorElement ;
+    skos:inScheme laura:schema .
+
+laura:hardware_type a owl:DatatypeProperty ;
+    rdfs:label "hardware_type" ;
+    skos:definition "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML." ;
+    skos:inScheme laura:schema .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Lighting ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Lighting .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:VacuumGauge ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:VacuumGauge .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:IntegratedCurrentTransformer ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:IntegratedCurrentTransformer .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Dipole ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Dipole .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:TwissMatch ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:TwissMatch .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:BunchLengthMonitor ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:BunchLengthMonitor .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:LaserEnergyMeter ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:LaserEnergyMeter .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Valve ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Valve .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Wakefield ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Wakefield .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:WallCurrentMonitor ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:WallCurrentMonitor .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Drift ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Drift .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Diagnostic ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Diagnostic .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:BeamArrivalMonitor ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:BeamArrivalMonitor .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:LaserHalfWavePlate ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:LaserHalfWavePlate .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:RFCavity ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:RFCavity .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Shutter ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Shutter .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Marker ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Marker .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Quadrupole ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Quadrupole .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:RFHeartbeat ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:RFHeartbeat .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:LowLevelRF ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:LowLevelRF .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:BeamPositionMonitor ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:BeamPositionMonitor .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:FaradayCupMonitor ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:FaradayCupMonitor .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:RFProtection ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:RFProtection .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Sextupole ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Sextupole .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:StandardElement ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:StandardElement .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Octupole ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Octupole .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Plasma ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Plasma .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Solenoid ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Solenoid .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Collimator ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Collimator .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Aperture ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Aperture .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Camera ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Camera .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Stage ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Stage .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Screen ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Screen .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:PhysicalAcceleratorElement ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:PhysicalAcceleratorElement .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:RFModulator ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:RFModulator .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:AcceleratorElement ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:AcceleratorElement .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:LaserAttenuator ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:LaserAttenuator .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Laser ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Laser .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:LaserMirror ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:LaserMirror .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:CombinedCorrector ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:CombinedCorrector .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:NonLinearLens ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:NonLinearLens .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:VerticalCorrector ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:VerticalCorrector .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:ChargeDiagnostic ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:ChargeDiagnostic .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:MagnetBaseElement ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:MagnetBaseElement .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:PID ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:PID .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:HorizontalCorrector ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:HorizontalCorrector .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:Wiggler ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:Wiggler .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf laura:RFDeflectingCavity ;
+    owl:onProperty laura:hardware_type ;
+    owl:someValuesFrom laura:RFDeflectingCavity .
+
+

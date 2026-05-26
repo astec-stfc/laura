@@ -27,7 +27,11 @@ Write-Host "Generating JSON Schema..." -ForegroundColor Cyan
 gen-json-schema $SCHEMA --indent 2 | Set-Content "$OUT_DIR/laura_element.schema.json" -Encoding ascii
 
 Write-Host "Generating OWL ontology..." -ForegroundColor Cyan
-gen-owl $SCHEMA | Set-Content "$OUT_DIR/laura_ontology.owl"
+gen-owl $SCHEMA `
+    --skip-vacuous-min-zero-cardinality-axioms `
+    --skip-vacuous-local-range-axioms `
+    --consolidate-cardinality-axioms `
+  | Set-Content "$OUT_DIR/laura_ontology.owl"
 
 Write-Host "Generating JSON-LD context..." -ForegroundColor Cyan
 gen-jsonld-context $SCHEMA | Set-Content "$OUT_DIR/laura_context.jsonld"
