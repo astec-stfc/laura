@@ -1200,8 +1200,10 @@ classes:
           physical name is inaccessible.
       alias:
         range: string
+        multivalued: true
         description: >-
-          Short human-readable alias. Populated from ``name_alias`` in YAML.
+          Human-readable aliases for the element. Populated from ``name_alias``
+          in YAML. Accepts a single string or a list of strings.
         aliases:
           - name_alias
       subelement:

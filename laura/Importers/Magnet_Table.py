@@ -54,7 +54,7 @@ def add_magnet_table_parameters(n, e, magnetPV):
         e.degauss.values = create_degauss_values(float(I_degauss))
         e.manufacturer.manufacturer = manufacturer
         e.manufacturer.serial_number = serial_number
-        e.electrical.maxI = ceil(I_degauss)
-        e.electrical.minI = -1.0 * ceil(I_degauss)
+        e.electrical.max_i = ceil(I_degauss)
+        e.electrical.min_i = -1.0 * ceil(I_degauss)
     except Exception:
         print("Magnet missing from magnet table!", magnet)

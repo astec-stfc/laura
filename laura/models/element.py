@@ -6,7 +6,7 @@ The main class for representing accelerator elements in LAURA.
 
 import os
 from typing import Type, List, Union, Dict, Tuple, Any, get_args, get_origin
-from pydantic import field_validator, Field, BaseModel
+from pydantic import field_validator, Field, BaseModel, AliasChoices
 import types
 from .control import (
     ControlsInformation,
@@ -15,6 +15,7 @@ from .control import (
     ShutterControlsInformation,
 )
 from .baseModels import T, Aliases, IgnoreExtra
+from ._generated import _AcceleratorElementBase
 from .manufacturer import ManufacturerElement
 from .electrical import ElectricalElement
 from .degauss import DegaussableElement
@@ -115,7 +116,7 @@ yaml.add_representer(string_with_quotes, quoted_presenter)
 yaml.add_representer(flow_list, flow_list_rep)
 
 
-class baseElement(IgnoreExtra):
+class baseElement(_AcceleratorElementBase, IgnoreExtra):
     """
     Base-level element class. All LAURA elements derive from this.
 
@@ -148,10 +149,13 @@ class baseElement(IgnoreExtra):
     virtual_name: str = ""
     """Name of the element in the virtual control system."""
 
-    alias: Union[str, list, Aliases, None] = Field(alias="name_alias", default=None)
+    alias: list[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("name_alias", "alias"),
+    )
     """The alias(es) of the element"""
 
-    subelement: bool | str = False
+    subelement: str | None = None
     """Flag to indicate whether the element is a subelement of another 
     (i.e. whether they overlap in physical space)."""
 
@@ -170,18 +174,26 @@ class baseElement(IgnoreExtra):
 
     @field_validator("alias", mode="before")
     @classmethod
-    def validate_alias(cls, v: Union[str, List, None]) -> Aliases:
-        # print(list(map(str.strip, v.split(','))))
+    def validate_alias(cls, v: Union[str, List, None]) -> list:
         if isinstance(v, str):
-            return Aliases(aliases=list(map(str.strip, v.split(","))))
+            return list(map(str.strip, v.split(",")))
         elif isinstance(v, (list, tuple)):
-            return Aliases(aliases=list(v))
-        elif isinstance(v, (dict)):
-            return Aliases(aliases=v["aliases"])
+            return list(v)
+        elif isinstance(v, dict):
+            return v.get("aliases", [])
         elif v is None:
-            return Aliases(aliases=[])
+            return []
         else:
             raise ValueError("alias should be a string or a list of strings")
+
+    @field_validator("subelement", mode="before")
+    @classmethod
+    def validate_subelement(cls, v) -> str | None:
+        if v is True:
+            return ""
+        if v is False or v is None:
+            return None
+        return str(v)
 
     def escape_string_list(self, escapes) -> str:
         if len(list(escapes)) > 0:
@@ -366,9 +378,7 @@ class baseElement(IgnoreExtra):
             "hardware_type": self.hardware_type,
             "name": self.name,
             # 'virtual_name': self.virtual_name,
-            "name_alias": (
-                self.alias.aliases if isinstance(self.alias, Aliases) else self.alias
-            ),
+            "name_alias": self.alias,
         }
 
     @property
@@ -433,14 +443,7 @@ class baseElement(IgnoreExtra):
         -------
             bool: True if the element is a subelement.
         """
-        if str(self.subelement).lower() == "false":
-            return False
-        elif str(self.subelement).lower() == "true":
-            return True
-        if isinstance(self.subelement, bool):
-            return self.subelement
-        else:
-            return isinstance(self.subelement, str)
+        return self.subelement is not None
 
 
 class Element(baseElement):
@@ -592,8 +595,8 @@ class Magnet(PhysicalBaseElement):
                 "mag_set_max_wait_time": self.magnetic.settle_time,
                 "magnetic_length": 1000 * self.magnetic.length,
                 "ri_tolerance": self.electrical.read_tolerance,
-                "min_i": self.electrical.minI,
-                "max_i": self.electrical.maxI,
+                "min_i": self.electrical.min_i,
+                "max_i": self.electrical.max_i,
             }
         )
         return catap_dict

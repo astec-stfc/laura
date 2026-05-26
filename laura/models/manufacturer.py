@@ -1,10 +1,13 @@
 from pydantic import field_validator
-from .baseModels import IgnoreExtra
+
+from ._generated import _ManufacturerElementBase
 
 
-class ManufacturerElement(IgnoreExtra):
+class ManufacturerElement(_ManufacturerElementBase):
     """Manufacturer info model."""
 
+    # Override Optional[str] fields from generated base with str defaults so
+    # callers always get a string (never None).
     manufacturer: str = ""
     """Name of manufacturer."""
 

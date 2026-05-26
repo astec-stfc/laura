@@ -78,7 +78,7 @@ class TestMachineModel(unittest.TestCase):
                 )
                 self.assertEqual(
                     mm.elements[name].alias,
-                    Aliases(aliases=info["alias"]),
+                    info["alias"],
                 )
         for name, section in mm.sections.items():
             with self.subTest(name=name):
@@ -126,7 +126,7 @@ class TestMachineModel(unittest.TestCase):
                 )
                 self.assertEqual(
                     mm.elements[name].alias,
-                    Aliases(aliases=info["alias"]),
+                    info["alias"],
                 )
         for name, section in mm.sections.items():
             with self.subTest(name=name):
@@ -176,7 +176,7 @@ class TestMachineModel(unittest.TestCase):
                 )
                 self.assertEqual(
                     mm.elements[name].alias,
-                    Aliases(aliases=info["alias"]),
+                    info["alias"],
                 )
         for name, section in mm.sections.items():
             with self.subTest(name=name):
@@ -233,7 +233,7 @@ class TestMachineModel(unittest.TestCase):
                 )
                 self.assertEqual(
                     mm.elements[name].alias,
-                    Aliases(aliases=info["alias"]),
+                    info["alias"],
                 )
         for name, section in mm.sections.items():
             with self.subTest(name=name):
@@ -297,7 +297,7 @@ class TestMachineModel(unittest.TestCase):
                 )
                 self.assertEqual(
                     mm.elements[name].alias,
-                    Aliases(aliases=info["alias"]),
+                    info["alias"],
                 )
         for name, section in mm.sections.items():
             with self.subTest(name=name):

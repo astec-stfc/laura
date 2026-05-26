@@ -1,7 +1,7 @@
 # Plan: Integrate LinkML with LAURA
 
 > Created: 2026-05-26  
-> Last updated: 2026-05-26
+> Last updated: 2026-05-27
 
 ## Progress summary
 
@@ -9,7 +9,7 @@
 |---|---|---|
 | **Phase 1** — Schema, docs, validation | ✅ **Complete** | 337 tests pass; `linkml-lint` 0 errors / 35 intentional warnings |
 | **Phase 2** — RDF/OWL semantic integration | ✅ **Complete** | All artefacts generated; RDF exporter and SPARQL interface implemented |
-| **Phase 3** — Pydantic model migration | 🔲 Not started | |
+| **Phase 3** — Pydantic model migration | ✅ **Substantially complete** | All core models migrated to generated bases; 337 tests pass |
 | **Phase 4** — Cross-language / cross-framework outputs | 🔲 Not started | TypeScript, SQL, GraphQL |
 
 ---
@@ -386,18 +386,15 @@ All RDF/SPARQL functionality requires `pip install "laura-accelerator[rdf]"`; rd
 > can then replace the manual triple construction in `laura/Exporters/RDF.py` for cleaner code.
 > The `RDFLibDumper` round-trip verification from Phase 2 can be completed at that point.
 
-### Step 12 — Establish the generated + mixin pattern
+### Step 12 — Establish the generated + mixin pattern ✅ Complete
 
-```bash
-gen-pydantic laura/schema/laura_schema.yaml \
-    --pydantic-version 2 \
-    --template-dir laura/schema/templates/ \
-    --output laura/models/_generated.py
-```
+**Actual implementation** (diverges from original plan):
 
-Write `laura/schema/templates/class.py.jinja2` to inject:
-- `model_config = ConfigDict(extra='ignore')` matching the `IgnoreExtra` pattern
-- Any standard imports (`from __future__ import annotations` etc.)
+- `laura/schema/generate_pydantic.py` — Python script that runs `gen-pydantic --extra-fields ignore` and post-processes the output to rename all schema model classes to `_XxxBase` pattern, avoiding name collisions with LAURA's wrapper classes. Enum classes (`HardwareClassEnum`, etc.) keep their original names.
+- `laura/models/_generated.py` — auto-generated, ~2500 lines. **Never edited by hand.** Contains `ConfiguredBaseModel` (extra=ignore), `LinkMLMeta`, 4 enum classes, ~85 `_XxxBase` model classes, and `model_rebuild()` calls.
+- `laura/schema/generate.ps1` and `generate.sh` — updated to call `python laura/schema/generate_pydantic.py` as final step.
+
+> **Note on `--pydantic-version 2` flag:** This flag does not exist in linkml 1.11.1. Use `--extra-fields ignore` instead. No custom Jinja2 template is needed — `ConfiguredBaseModel` already has `extra="ignore"`.
 
 Rule: `laura/models/_generated.py` is **never edited by hand**. It is regenerated whenever `laura_schema.yaml` changes (add to CI).
 
@@ -413,12 +410,29 @@ class Quadrupole(_QuadrupoleBase):
 
 `MODEL_REGISTRY` and `TypeAdapter` dispatch remain in `YAML_Loader.py` — these are loading mechanisms, not data shapes, and are unaffected by the migration.
 
-### Step 13 — Migrate simple element classes first
+### Step 13 — Migrate simple element classes first ✅ Complete
 
-Start with elements that have no custom validators (e.g., `Drift`, `Aperture`, simple diagnostic types). For each:
-1. Remove the hand-written field declarations from the class
-2. Inherit from the corresponding generated base
-3. Run `python -m pytest unit_tests/` — must pass before proceeding
+**Phase A — Schema corrections (prerequisite):**
+- `alias` slot in `AcceleratorElement` changed to `multivalued: true` in schema
+- `_generated.py` regenerated (alias field becomes `Optional[list[str]]`)
+
+**Phase B — Code alignment (prerequisite for migration):**
+- `ElectricalElement` fields renamed: `minI → min_i`, `maxI → max_i`; kept `AliasChoices` for backward compat
+- `baseElement.alias` changed from `Union[str, list, Aliases, None]` to `list[str]` with `AliasChoices("name_alias", "alias")`
+- `baseElement.subelement` changed from `bool | str = False` to `str | None = None`; `is_subelement()` simplified
+- `Position`/`Rotation`: replaced `NumpyVectorModel` parent with `_PositionBase`/`_RotationBase`; kept all numpy interface methods via explicit overrides and `@model_serializer`
+
+**Phase C — Migrations completed (337 tests pass throughout):**
+- `ManufacturerElement` → `_ManufacturerElementBase`
+- `ReferenceElement` → `_ReferenceElementBase`
+- `ElectricalElement` → `_ElectricalElementBase`
+- `Position` → `_PositionBase`, `Rotation` → `_RotationBase`
+- `ElementError`/`ElementSurvey` → `_ElementPositionErrorBase` / `_ElementSurveyBase`
+- `PhysicalElement` → `_PhysicalElementBase`
+- `baseElement` → `(_AcceleratorElementBase, IgnoreExtra)` — multiple inheritance keeps `base_model_dump`, `from_CATAP` etc. from `IgnoreExtra`/`ModelBase`
+
+**Remaining (deferred to Phase D):**
+- `Magnet`, `Dipole`, `Quadrupole`, etc. — concrete classes still inherit through `Element → PhysicalBaseElement → Magnet`. They already receive `ConfiguredBaseModel`'s config via `baseElement`. Direct `_MagnetBaseElementBase` / `_DipoleBase` inheritance deferred; low priority since no duplicate fields exist at this level yet.
 
 ### Step 14 — Migrate complex elements with custom logic
 
@@ -432,7 +446,15 @@ Once all elements are migrated and all tests pass, delete duplicate field declar
 
 ### Phase 3 verification checklist
 
-- [ ] After each batch migration: `python -m pytest unit_tests/` — all pass
+- [x] `_generated.py` generated and importable
+- [x] `generate.ps1` / `generate.sh` updated
+- [x] `ManufacturerElement` migrated — 337 tests pass
+- [x] `ReferenceElement` migrated — 337 tests pass
+- [x] `Position`/`Rotation` incompatibility resolved (replaced `NumpyVectorModel`, kept numpy interface)
+- [x] `ElectricalElement` field names aligned to snake_case with backward-compat aliases
+- [x] `baseElement` migrated to `(_AcceleratorElementBase, IgnoreExtra)`
+- [x] `ElementError`, `ElementSurvey`, `PhysicalElement` migrated
+- [x] `python -m pytest unit_tests/` — **337 passed** after all migrations
 - [ ] `python check_laura_load.py` — full machine loads correctly
 - [ ] No regressions in `elements_between()`, `createDrifts()`, physical position calculations
 - [ ] `linkml lint` still passes after each schema change

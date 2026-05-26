@@ -48,6 +48,9 @@ gen-doc -d $DOCS_DIR $SCHEMA
 Write-Host "Generating ER diagram..." -ForegroundColor Cyan
 gen-erdiagram $SCHEMA | Set-Content $ER_FILE
 
+Write-Host "Generating Pydantic base classes (_generated.py)..." -ForegroundColor Cyan
+python "laura/schema/generate_pydantic.py"
+
 Write-Host ""
 Write-Host "All artefacts generated successfully." -ForegroundColor Green
 Write-Host "  JSON Schema : $OUT_DIR/laura_element.schema.json"
@@ -57,3 +60,4 @@ Write-Host "  SHACL       : $OUT_DIR/laura_shacl.ttl"
 Write-Host "  GraphQL     : $OUT_DIR/laura_schema.graphql"
 Write-Host "  HTML docs   : $DOCS_DIR/"
 Write-Host "  ER diagram  : $ER_FILE"
+Write-Host "  Pydantic    : laura/models/_generated.py"

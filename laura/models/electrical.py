@@ -1,18 +1,24 @@
-from pydantic import Field
+from pydantic import Field, AliasChoices
 
-from .baseModels import IgnoreExtra
+from ._generated import _ElectricalElementBase
 
 
-class ElectricalElement(IgnoreExtra):
+class ElectricalElement(_ElectricalElementBase):
     """
     Electrical info model.
     """
 
-    minI: float = Field(alias="min_i", default=0)
+    min_i: float = Field(
+        default=0, validation_alias=AliasChoices("min_i", "minI")
+    )
     """Minimum current that can be set [A]."""
 
-    maxI: float = Field(alias="max_i", default=0)
+    max_i: float = Field(
+        default=0, validation_alias=AliasChoices("max_i", "maxI")
+    )
     """Maximum current that can be set [A]."""
 
-    read_tolerance: float = Field(alias="ri_tolerance", default=0.1)
+    read_tolerance: float = Field(
+        default=0.1, validation_alias=AliasChoices("read_tolerance", "ri_tolerance")
+    )
     """Tolerance on read current [A]."""

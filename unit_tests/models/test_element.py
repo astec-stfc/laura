@@ -33,7 +33,7 @@ def test_base_element_initialization(base_element):
     assert base_element.hardware_class == "HC"
     assert base_element.hardware_type == "HT"
     assert base_element.machine_area == "MA"
-    assert base_element.subelement is True
+    assert base_element.is_subelement() is True
 
 
 def test_base_element_flatten(base_element):

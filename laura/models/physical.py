@@ -6,13 +6,15 @@ from pydantic import (
     AliasChoices,
     PrivateAttr,
     computed_field,
+    model_serializer,
 )
-from typing import List, Type, Union, Dict, Any
+from typing import List, Union, Dict, Any
 
-from .baseModels import IgnoreExtra, NumpyVectorModel, T
+from .baseModels import IgnoreExtra
+from ._generated import _PositionBase, _RotationBase, _ElementPositionErrorBase, _ElementSurveyBase, _PhysicalElementBase
 
 
-class Position(NumpyVectorModel):
+class Position(_PositionBase):
     """
     Position model. Cartesian co-ordinates are used.
     """
@@ -26,30 +28,61 @@ class Position(NumpyVectorModel):
     z: float = 0.0
     """Longitudinal position [m]."""
 
-    def __add__(self, other: Type[T]) -> T:
+    @model_serializer(mode="wrap")
+    def ser_model(self, handler, info) -> list | dict:
+        if info.mode == "json":
+            return [self.x, self.y, self.z]
+        return handler(self)
+
+    @property
+    def array(self) -> np.ndarray:
+        return np.array([self.x, self.y, self.z])
+
+    @classmethod
+    def from_list(cls, vec: List[Union[float, int]]) -> "Position":
+        assert len(vec) == 3
+        return cls(x=vec[0], y=vec[1], z=vec[2])
+
+    @classmethod
+    def from_values(cls, *values: Union[float, int]) -> "Position":
+        assert len(values) == 3
+        return cls(x=values[0], y=values[1], z=values[2])
+
+    def __iter__(self) -> iter:
+        return iter([self.x, self.y, self.z])
+
+    def __eq__(self, other) -> bool:
+        if other == 0 or other == 0.0 or other is None:
+            return all([self.x == 0, self.y == 0, self.z == 0])
+        return list(self) == list(other)
+
+    def __neq__(self, other) -> bool:
+        return not self.__eq__(other)
+
+    def __add__(self, other: "Position") -> "Position":
         return Position(
             x=(self.x + other.x), y=(self.y + other.y), z=(self.z + other.z)
         )
 
-    def __radd__(self, other: Type[T]) -> T:
+    def __radd__(self, other: "Position") -> "Position":
         return self.__add__(other)
 
-    def __sub__(self, other: Type[T]) -> T:
+    def __sub__(self, other: "Position") -> "Position":
         return Position(
             x=(self.x - other.x), y=(self.y - other.y), z=(self.z - other.z)
         )
 
-    def __rsub__(self, other: Type[T]) -> T:
+    def __rsub__(self, other: "Position") -> "Position":
         return Position(
             x=(other.x - self.x), y=(other.y - self.y), z=(other.z - self.z)
         )
 
-    def dot(self, other: Union[List, Type[T]]) -> float:
+    def dot(self, other: Union[List, "Position"]) -> float:
         if isinstance(other, (set, tuple, list)):
             other = Position.from_list(other)
         return self.x * other.x + self.y * other.y + self.z * other.z
 
-    def vector_angle(self, other: Union[List, Type[T]], direction: List) -> float:
+    def vector_angle(self, other: Union[List, "Position"], direction: List) -> float:
         if isinstance(other, (set, tuple, list)):
             other = Position.from_list(other)
         return (self - other).dot(direction)
@@ -58,7 +91,7 @@ class Position(NumpyVectorModel):
         return np.sqrt([self.x * self.x + self.y * self.y + self.z * self.z])
 
 
-class Rotation(NumpyVectorModel):
+class Rotation(_RotationBase):
     """
     Rotation model.
     """
@@ -72,24 +105,55 @@ class Rotation(NumpyVectorModel):
     theta: confloat(ge=-np.pi, le=np.pi) = 0.0  # type: ignore
     """Rotation about the longitudinal axis [rad]."""
 
-    def __add__(self, other: Type[T]) -> T:
+    @model_serializer(mode="wrap")
+    def ser_model(self, handler, info) -> list | dict:
+        if info.mode == "json":
+            return [self.phi, self.psi, self.theta]
+        return handler(self)
+
+    @property
+    def array(self) -> np.ndarray:
+        return np.array([self.phi, self.psi, self.theta])
+
+    @classmethod
+    def from_list(cls, vec: List[Union[float, int]]) -> "Rotation":
+        assert len(vec) == 3
+        return cls(phi=vec[0], psi=vec[1], theta=vec[2])
+
+    @classmethod
+    def from_values(cls, *values: Union[float, int]) -> "Rotation":
+        assert len(values) == 3
+        return cls(phi=values[0], psi=values[1], theta=values[2])
+
+    def __iter__(self) -> iter:
+        return iter([self.phi, self.psi, self.theta])
+
+    def __eq__(self, other) -> bool:
+        if other == 0 or other == 0.0 or other is None:
+            return all([self.phi == 0, self.psi == 0, self.theta == 0])
+        return list(self) == list(other)
+
+    def __neq__(self, other) -> bool:
+        return not self.__eq__(other)
+
+    def __add__(self, other: "Rotation") -> "Rotation":
         return Rotation(
             phi=(self.phi + other.phi),
             psi=(self.psi + other.psi),
             theta=(self.theta + other.theta),
         )
 
-    def __radd__(self, other: Type[T]) -> T:
+    def __radd__(self, other: "Rotation") -> "Rotation":
         return self.__add__(other)
 
-    def __sub__(self, other: Type[T]) -> T:
+    def __sub__(self, other: "Rotation") -> "Rotation":
         return Rotation(
             phi=(self.phi - other.phi),
             psi=(self.psi - other.psi),
             theta=(self.theta - other.theta),
         )
 
-    def __rsub__(self, other: Type[T]) -> T:
+    def __rsub__(self, other: "Rotation") -> "Rotation":
         return Rotation(
             phi=(other.phi - self.phi),
             psi=(other.psi - self.psi),
@@ -99,10 +163,10 @@ class Rotation(NumpyVectorModel):
     def __abs__(self):
         return Rotation(phi=abs(self.phi), psi=abs(self.psi), theta=abs(self.theta))
 
-    def __gt__(self, value: Union[int, float, List, Type[T]]):
+    def __gt__(self, value: Union[int, float, List, "Rotation"]):
         if isinstance(value, (int, float)):
             return any([self.phi > value, self.psi > value, self.theta > value])
-        elif isinstance(value, (Union[list, set, tuple])):
+        elif isinstance(value, (list, set, tuple)):
             return [self.phi, self.psi, self.theta] > value
         elif isinstance(value, Rotation):
             return any(
@@ -110,7 +174,7 @@ class Rotation(NumpyVectorModel):
             )
 
 
-class ElementError(IgnoreExtra):
+class ElementError(_ElementPositionErrorBase):
     """
     Position/Rotation error model.
     """
@@ -193,7 +257,7 @@ class ElementSurvey(ElementError):
     pass
 
 
-class PhysicalElement(IgnoreExtra):
+class PhysicalElement(_PhysicalElementBase):
     """
     Physical info model.
     """
