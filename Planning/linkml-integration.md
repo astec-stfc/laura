@@ -1,6 +1,44 @@
 # Plan: Integrate LinkML with LAURA
 
-> Created: 2026-05-26
+> Created: 2026-05-26  
+> Last updated: 2026-05-26
+
+## Progress summary
+
+| Phase | Status | Notes |
+|---|---|---|
+| **Phase 1** — Schema, docs, validation | ✅ **Complete** | 337 tests pass; `linkml-lint` 0 errors / 35 intentional warnings |
+| **Phase 2** — RDF/OWL semantic integration | ✅ **Complete** | All artefacts generated; RDF exporter and SPARQL interface implemented |
+| **Phase 3** — Pydantic model migration | 🔲 Not started | |
+| **Phase 4** — Cross-language / cross-framework outputs | 🔲 Not started | TypeScript, SQL, GraphQL |
+
+---
+
+## Issues found and addressed
+
+### Schema warnings (reduced from 50 → 35 intentional)
+
+| Issue | Root cause | Resolution |
+|---|---|---|
+| `slot_usage for undefined slot: diagnostic / cavity` (7 errors) | LinkML generators (JSON-LD, GraphQL) resolve `slot_usage` only for top-level `slots:` entries, not class-local `attributes:` | Replaced `slot_usage:` overrides with `attributes:` shadowing in `BeamPositionMonitor`, `BeamArrivalMonitor`, `BunchLengthMonitor`, `Camera`, `Screen`, `ChargeDiagnostic`, `RFDeflectingCavity` |
+| OWL `DeprecationWarning` (3) | `gen-owl` defaults changed in LinkML 1.11 | Added `--skip-vacuous-min-zero-cardinality-axioms --skip-vacuous-local-range-axioms --consolidate-cardinality-axioms` to `gen-owl` in both `generate.ps1` and `generate.sh` |
+| Class naming warnings — underscore names (10) | LinkML recommends `CamelCase` for class names | Renamed `Horizontal_Corrector` → `HorizontalCorrector` etc. in schema; `equals_string:` constraints kept as original Python class names to preserve YAML data compat |
+| `MagnetOrderEnum` unused (5 warnings) | Enum defined but not referenced as `range:` on any slot | Removed |
+| OWL "Ambiguous attribute" warnings | Same attribute name in unrelated classes (e.g. `position` in `ElementPositionError` and `ElementSurvey`) | Not fixed — requires adding `slot_uri:` to all duplicated attributes; deferred to a future schema maintenance pass |
+
+### Remaining intentional warnings (35)
+
+- **19 short/physics-notation slot names** (`x`, `y`, `z`, `deltaL`, `K0L`–`K4L`, `m`, `I_max`, `f`, `a`, `I0`, `d`, `L`, `Kp`, `Ki`, `Kd`) — LinkML recommends verbose names; physics convention takes priority; suppression via `linkml-lint` config is an option if desired
+- **14 `HardwareClassEnum` values** with uppercase/hyphen characters that must match YAML data values exactly
+- **2 `LaserProfileTypeEnum` values** with hyphens that must match YAML data
+
+### Phase 2 — `RDFLibDumper` not usable yet
+
+The plan specified using `linkml-runtime`'s `RDFLibDumper` to serialise Pydantic models to RDF. This was not possible: `RDFLibDumper` requires objects that inherit from `linkml_runtime.utils.yamlutils.YAMLRoot`; LAURA's elements inherit from Pydantic `BaseModel`. **`RDFLibDumper` will only become usable after Phase 3** generates Pydantic base classes from the schema.
+
+Resolution: `laura/Exporters/RDF.py` builds triples directly with rdflib using element attributes, producing equivalent RDF output. Once Phase 3 is complete, `RDF.py` can optionally be updated to delegate to `RDFLibDumper` for cleaner code.
+
+---
 
 ## Background
 
@@ -78,11 +116,11 @@ The migration strategy is: generated Pydantic base classes in `laura/models/_gen
 
 ---
 
-## Phase 1 — Schema definition, documentation, validation
+## Phase 1 — Schema definition, documentation, validation ✅ Complete
 
 **Goal:** schema file authored and all static artefacts generated; YAML validation working; existing Pydantic models unchanged.
 
-### Step 1 — Bootstrap with `schema-automator`
+### Step 1 — Bootstrap with `schema-automator` ✅
 
 Run `schema-automator` against a representative sample of element YAML files from `laura-lattices` to get an initial schema. Compare the output against all classes in `laura/models/` (`element.py`, `physical.py`, `magnetic.py`, `diagnostic.py`, `RF.py`, `electrical.py`, `control.py`, `simulation.py`, `laser.py`, `plasma.py`, `lighting.py`, `shutter.py`, `degauss.py`, `manufacturer.py`, `reference.py`). Correct and extend the auto-generated schema to match the full class hierarchy.
 
@@ -92,7 +130,7 @@ schemauto generalize-from-yaml <path-to-sample-elements/*.yaml> \
     --output laura/schema/laura_schema_bootstrap.yaml
 ```
 
-### Step 2 — Write `laura/schema/laura_schema.yaml` (canonical)
+### Step 2 — Write `laura/schema/laura_schema.yaml` (canonical) ✅
 
 Schema header:
 ```yaml
@@ -156,7 +194,7 @@ slots:
       ucum_code: rad/m
 ```
 
-### Step 3 — Define semantic enumerations
+### Step 3 — Define semantic enumerations ✅
 
 ```yaml
 enums:
@@ -180,7 +218,7 @@ enums:
 
 `machine_area` remains a free string for now — it is too machine-specific to enumerate globally in the schema. Validation can use a pattern constraint instead.
 
-### Step 4 — Generate JSON Schema and wire into `YAML_Loader.py`
+### Step 4 — Generate JSON Schema and wire into `YAML_Loader.py` ✅
 
 ```bash
 gen-json-schema laura/schema/laura_schema.yaml \
@@ -189,7 +227,7 @@ gen-json-schema laura/schema/laura_schema.yaml \
 
 Add an optional `validate: bool = False` parameter to `read_YAML_Element_File()` and `read_YAML_Combined_File()` in `laura/Importers/YAML_Loader.py`. When `validate=True`, run `jsonschema.validate(raw_dict, schema_json)` before Pydantic parsing — surfacing schema violations explicitly rather than silently dropping unknown fields.
 
-### Step 5 — Generate documentation and diagrams
+### Step 5 — Generate documentation and diagrams ✅ (partial)
 
 ```bash
 gen-doc -d docs/source/schema/ laura/schema/laura_schema.yaml
@@ -199,9 +237,11 @@ gen-plantuml laura/schema/laura_schema.yaml \
     > docs/source/Architecture/element-uml.puml
 ```
 
-Add a `Schema Reference` section to `docs/source/index.rst` linking to the generated pages.
+Both `gen-doc` and `gen-erdiagram` are included in `generate.ps1` / `generate.sh` and run successfully. `gen-plantuml` is not yet included in the generation script (stretch goal).
 
-### Step 6 — Add optional dependencies to `pyproject.toml`
+Add a `Schema Reference` section to `docs/source/index.rst` linking to the generated pages. *(Not yet done.)*
+
+### Step 6 — Add optional dependencies to `pyproject.toml` ✅
 
 ```toml
 [project.optional-dependencies]
@@ -217,46 +257,50 @@ rdf = [
 ]
 ```
 
+Implemented with minor differences: `schema-automator` was omitted (install manually when running bootstrapping); `pyoxigraph` was omitted (rdflib 7.x serialisation is sufficient). Both can be added back if needed.
+
 ### Phase 1 verification checklist
 
-- [ ] `linkml lint laura/schema/laura_schema.yaml` — zero errors
-- [ ] `linkml validate --schema laura/schema/laura_schema.yaml <sample-element.yaml>` — passes
-- [ ] JSON Schema round-trips a sample element correctly
-- [ ] `gen-doc` site builds and shows all ~25 element class pages with inheritance diagrams
-- [ ] All existing unit tests still pass: `python -m pytest unit_tests/`
+- [x] `linkml lint laura/schema/laura_schema.yaml` — 0 errors, 35 intentional warnings
+- [x] JSON Schema generated and validate hook wired into `YAML_Loader.py`
+- [x] `gen-doc` site builds and shows all element class pages with inheritance diagrams
+- [x] All existing unit tests still pass: 312/312 (now 337/337 including Phase 2 tests)
+- [ ] `linkml validate --schema laura/schema/laura_schema.yaml <sample-element.yaml>` — not yet confirmed against a real `laura-lattices` element file
+- [ ] `docs/source/index.rst` — `Schema Reference` section not yet added
 
 ### Phase 1 file summary
 
 | File | Status | Notes |
 |---|---|---|
-| `laura/schema/laura_schema.yaml` | **new** | Canonical schema — edited by humans |
-| `laura/schema/generated/laura_element.schema.json` | generated | Do not edit |
-| `laura/schema/generated/element-er.md` | generated | Do not edit |
-| `laura/schema/generated/element-uml.puml` | generated | Do not edit |
-| `docs/source/schema/` | generated | Do not edit |
-| `laura/Importers/YAML_Loader.py` | modified | Add `validate=` parameter |
-| `pyproject.toml` | modified | Add `[schema]` and `[rdf]` optional dep groups |
-| `docs/source/index.rst` | modified | Link to schema docs |
+| `laura/schema/laura_schema.yaml` | ✅ created | Canonical schema — edited by humans |
+| `laura/schema/generate.ps1` | ✅ created | Regenerates all artefacts (PowerShell) |
+| `laura/schema/generate.sh` | ✅ created | Regenerates all artefacts (Bash) |
+| `laura/schema/generated/laura_element.schema.json` | ✅ generated | Do not edit |
+| `laura/schema/generated/laura_shacl.ttl` | ✅ generated | Do not edit |
+| `laura/schema/generated/laura_schema.graphql` | ✅ generated | Do not edit |
+| `laura/schema/generated/element-er.md` | ✅ generated | Do not edit |
+| `laura/schema/generated/element-uml.puml` | 🔲 not generated | `gen-plantuml` not yet in script |
+| `docs/source/schema/` | ✅ generated | Do not edit |
+| `laura/Importers/YAML_Loader.py` | ✅ modified | `validate_element_dict()`, `validate=` param on loaders |
+| `pyproject.toml` | ✅ modified | `[schema]` and `[rdf]` optional dep groups added |
+| `docs/source/index.rst` | 🔲 not done | Schema Reference section still to add |
 
 ---
 
-## Phase 2 — RDF/OWL semantic integration
+## Phase 2 — RDF/OWL semantic integration ✅ Complete
 
 **Goal:** LAURA machine data is exportable as RDF; SPARQL queries work against a loaded machine.
 
-### Step 7 — Generate OWL ontology
+### Step 7 — Generate OWL ontology ✅
 
 ```bash
 gen-owl laura/schema/laura_schema.yaml \
     --output laura/schema/generated/laura_ontology.owl
 ```
 
-Hand-extend the generated OWL to add:
-- QUDT unit annotations on physical quantity slots
-- `qudt:QuantityValue` typing for `length`, `k1l`, field integrals
-- Candidate mappings to CERN REDI ontology terms (once confirmed available)
+Generated cleanly. The three deprecation-warning flags are passed explicitly to avoid OWL warnings. Hand-extension with QUDT unit annotations is a stretch goal deferred to Step 11.
 
-### Step 8 — Generate JSON-LD context
+### Step 8 — Generate JSON-LD context ✅
 
 ```bash
 gen-jsonld-context laura/schema/laura_schema.yaml \
@@ -265,65 +309,82 @@ gen-jsonld-context laura/schema/laura_schema.yaml \
 
 The JSON-LD context makes every element YAML file instantly convertible to RDF by adding `@context`.
 
-### Step 9 — Write `laura/Exporters/RDF.py`
+Generated cleanly. The context maps all `laura:` slots to IRIs and is used by rdflib in the RDF exporter.
 
-Use `linkml-runtime`'s `RDFLibDumper` to serialise a `MachineModel` instance to RDF.
+### Step 9 — Write `laura/Exporters/RDF.py` ✅
 
-URI strategy for element instances:
+> **Implementation note:** The plan specified `linkml-runtime`'s `RDFLibDumper`. This could not be used
+> because `RDFLibDumper` requires objects inheriting from `YAMLRoot`, not Pydantic `BaseModel`.
+> `RDFLibDumper` will only be usable after Phase 3 completes the Pydantic model migration.
+> Instead, rdflib is used directly to construct triples from element attributes.
+
+URI strategy for element instances (implemented):
 ```
-https://w3id.org/laura/{accelerator_name}/{machine_area}/{element_name}
+https://w3id.org/laura/{machine_name}/{machine_area}/{element_name}
 # e.g. https://w3id.org/laura/clara/S01/S01-QD01
 ```
 
-Compute the URI from `machine_area` + `name` fields (no new YAML fields required).
+Triples emitted per element: `rdf:type` (from `hardware_type`), `laura:name`, `laura:machine_area`, `laura:hardware_class`, `laura:hardware_model`, `laura:length`, `laura:position_x/y/z`.
 
-Export modes: Turtle (`.ttl`), JSON-LD (`.jsonld`), N-Triples (`.nt`).
+Export formats supported: Turtle (`.ttl`), JSON-LD (`.jsonld`), N-Triples (`.nt`), RDF/XML (`.rdf`/`.owl`).
 
-New method on `LAURA`: `export_rdf(path: str, format: str = 'turtle') -> None`.
+Public API:
+- `build_rdf_graph(machine, machine_name) -> rdflib.Graph`
+- `export_machine_rdf(machine, path, format, machine_name) -> None`
+- `MachineModel.export_rdf(path, format, machine_name)` — convenience wrapper
 
-Model the exporter on the existing `laura/Exporters/YAML.py`.
+### Step 10 — Add SPARQL query interface ✅
 
-### Step 10 — Add SPARQL query interface
+Implemented as `laura/query.py` (not a method directly on `MachineModel`, to keep the models layer clean). `MachineModel` exposes `sparql(query, machine_name)` and `export_rdf(path, format, machine_name)` as thin convenience wrappers that defer to the new modules.
 
-Add `MachineModel.sparql(query: str) -> list[dict]` (or a new `laura/query.py`):
-- Lazily builds an in-memory RDFLib `ConjunctiveGraph` from `self.elements` on first call
-- Caches the graph for reuse across queries
-- Exposes standard PREFIX declarations for `laura:`, `qudt:`, `schema:`
-
-Example built-in helper queries:
+`LAURAQuery` class:
+- `sparql(query: str) -> list[dict]` — standard PREFIXes auto-prepended
 - `get_elements_in_area(area: str) -> list[str]`
-- `get_elements_by_property(slot: str, value, operator: str = '=') -> list[str]`
+- `get_elements_by_hardware_type(hardware_type: str) -> list[str]`
+- `get_elements_by_hardware_class(hardware_class: str) -> list[str]`
+- `invalidate()` — clears cached graph
 
-SPARQL is a power-user feature; document it alongside the existing `elements_between()` API.
+All RDF/SPARQL functionality requires `pip install "laura-accelerator[rdf]"`; rdflib remains optional.
 
 ### Step 11 — Map to existing accelerator ontologies *(stretch goal)*
 
 - Map LAURA element classes to CERN REDI entries (when publicly accessible)
 - Map `k1l`, `k0l`, `k2l` MAD-X field names to any formal MAD-X vocabulary URIs
-- Map physical units to QUDT: `qudt:Metre`, `qudt:RadianPerMetre`, `qudt:Tesla`
+- Map physical units to QUDT: `qudt:Metre`, `qudt:RadianPerMetre`, `qudt:Tesla` (hand-extend the generated OWL with `qudt:QuantityValue` annotations)
 - Map spatial positions to GeoSPARQL `geo:sfWithin` / `geo:Geometry` if needed
 
 ### Phase 2 verification checklist
 
-- [ ] Load a small machine, export to Turtle, validate the triples against the OWL ontology
-- [ ] Round-trip: export to JSON-LD → reload via `linkml-runtime` loader → matches original
-- [ ] SPARQL query returns the same elements as the equivalent `elements_between()` call
-- [ ] OWL consistency check passes (no contradictions)
+- [x] OWL ontology generated without errors or deprecation warnings
+- [x] JSON-LD context generated cleanly
+- [x] RDF exporter implemented; Turtle output round-trips through rdflib correctly
+- [x] SPARQL `LAURAQuery` interface implemented; 25 new unit tests pass (337 total)
+- [x] `MachineModel.export_rdf()` and `MachineModel.sparql()` convenience wrappers added
+- [ ] Validate exported Turtle against OWL ontology using a reasoner
+- [ ] Round-trip via `linkml-runtime` loader (deferred to Phase 3 — requires `YAMLRoot` objects)
+- [ ] OWL consistency check (no contradictions) — stretch goal
+- [ ] Step 11 ontology mappings (stretch goal)
 
 ### Phase 2 file summary
 
 | File | Status | Notes |
 |---|---|---|
-| `laura/schema/generated/laura_ontology.owl` | generated + hand-extended | OWL ontology |
-| `laura/schema/generated/laura_context.jsonld` | generated | JSON-LD context |
-| `laura/Exporters/RDF.py` | **new** | Turtle / JSON-LD export |
-| `laura/models/elementList.py` | modified | Add `sparql()` method (or new `laura/query.py`) |
+| `laura/schema/generated/laura_ontology.owl` | ✅ generated | OWL ontology (no deprecation warnings) |
+| `laura/schema/generated/laura_context.jsonld` | ✅ generated | JSON-LD context |
+| `laura/Exporters/RDF.py` | ✅ created | Turtle / JSON-LD / N-Triples / RDF/XML export |
+| `laura/query.py` | ✅ created | `LAURAQuery` SPARQL interface |
+| `laura/models/elementList.py` | ✅ modified | `export_rdf()` and `sparql()` convenience wrappers on `MachineModel` |
+| `unit_tests/test_rdf_sparql.py` | ✅ created | 25 tests covering graph, export, SPARQL |
 
 ---
 
 ## Phase 3 — Pydantic model migration (incremental, long-term)
 
 **Goal:** gradually replace hand-written Pydantic models with generated ones; the schema becomes the only place model shapes are edited.
+
+> **Prerequisite note:** Completing Phase 3 also unlocks `linkml-runtime`'s `RDFLibDumper`, which
+> can then replace the manual triple construction in `laura/Exporters/RDF.py` for cleaner code.
+> The `RDFLibDumper` round-trip verification from Phase 2 can be completed at that point.
 
 ### Step 12 — Establish the generated + mixin pattern
 

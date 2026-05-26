@@ -980,3 +980,65 @@ class MachineModel(ModelBase):
             element_model=element_model,
         )
         return elements
+
+    def export_rdf(
+        self,
+        path: str,
+        format: str = "turtle",
+        machine_name: str = "machine",
+    ) -> None:
+        """Serialise this machine model to an RDF file.
+
+        Requires the optional ``rdf`` dependency group::
+
+            pip install "laura-accelerator[rdf]"
+
+        Parameters
+        ----------
+        path:
+            Output file path (e.g. ``"machine.ttl"``).
+        format:
+            RDF serialisation format.  One of ``"turtle"`` (default),
+            ``"json-ld"``, ``"n-triples"`` / ``"nt"``, ``"xml"``.
+        machine_name:
+            Logical accelerator name embedded in element IRIs.
+            Default ``"machine"``.
+        """
+        from laura.Exporters.RDF import export_machine_rdf  # deferred import
+
+        export_machine_rdf(self, path=path, format=format, machine_name=machine_name)
+
+    def sparql(
+        self,
+        query: str,
+        machine_name: str = "machine",
+    ) -> list[dict]:
+        """Execute a SPARQL SELECT query over this machine model.
+
+        Builds an in-memory RDF graph from :attr:`elements` (lazily, on first
+        call) and runs the given SPARQL SELECT query against it using rdflib.
+
+        Standard PREFIX declarations for ``laura:``, ``schema:``, ``qudt:``,
+        ``rdf:``, ``rdfs:``, and ``xsd:`` are automatically prepended.
+
+        Requires the optional ``rdf`` dependency group::
+
+            pip install "laura-accelerator[rdf]"
+
+        Parameters
+        ----------
+        query:
+            SPARQL SELECT query string.
+        machine_name:
+            Logical accelerator name used when building element IRIs.
+            Default ``"machine"``.
+
+        Returns
+        -------
+        list[dict]
+            One dict per result row; keys are variable names, values are
+            Python native types.
+        """
+        from laura.query import LAURAQuery  # deferred import
+
+        return LAURAQuery(self, machine_name=machine_name).sparql(query)
