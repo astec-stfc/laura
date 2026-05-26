@@ -57,6 +57,20 @@ docs = [
     "sphinxcontrib-bibtex",
 ]
 
+# LinkML schema tooling — generates JSON Schema, OWL, SHACL, docs, etc.
+# Install with: pip install "laura-accelerator[schema]"
+schema = [
+    "linkml>=1.8",
+    "linkml-runtime>=1.8",
+    "jsonschema>=4.0",
+]
+
+# RDF / Linked-Data export support
+# Install with: pip install "laura-accelerator[rdf]"
+rdf = [
+    "rdflib>=7.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/astec-stfc/laura"
 Repository = "https://github.com/astec-stfc/laura.git"

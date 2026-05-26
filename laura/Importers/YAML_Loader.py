@@ -2,6 +2,7 @@ import re
 import json
 import yaml
 import os
+import pathlib
 from yaml import CSafeLoader as Loader
 from pydantic import TypeAdapter, BaseModel
 
@@ -131,6 +132,54 @@ class LazyAdapterDict(dict):
 
 ADAPTERS = LazyAdapterDict()
 
+# ── Optional JSON Schema validation ──────────────────────────────────────────
+
+_SCHEMA_CACHE: dict | None = None
+_SCHEMA_PATH = (
+    pathlib.Path(__file__).resolve().parent.parent
+    / "schema"
+    / "generated"
+    / "laura_element.schema.json"
+)
+
+
+def _get_json_schema() -> dict:
+    """Load and cache the generated LAURA JSON Schema."""
+    global _SCHEMA_CACHE
+    if _SCHEMA_CACHE is None:
+        if not _SCHEMA_PATH.exists():
+            raise FileNotFoundError(
+                f"LAURA JSON Schema not found at '{_SCHEMA_PATH}'.  "
+                "Generate it with: gen-json-schema laura/schema/laura_schema.yaml "
+                "--output laura/schema/generated/laura_element.schema.json"
+            )
+        with open(_SCHEMA_PATH, "r") as fh:
+            _SCHEMA_CACHE = json.load(fh)
+    return _SCHEMA_CACHE
+
+
+def validate_element_dict(elem: dict) -> None:
+    """Validate *elem* against the LAURA LinkML-derived JSON Schema.
+
+    Raises
+    ------
+    jsonschema.ValidationError
+        If *elem* does not conform to the schema.
+    ImportError
+        If the *jsonschema* package is not installed.
+    FileNotFoundError
+        If the generated JSON Schema file has not been created yet.
+    """
+    try:
+        import jsonschema  # noqa: PLC0415
+    except ImportError as exc:
+        raise ImportError(
+            "Install 'jsonschema' to enable YAML schema validation: "
+            "pip install 'laura-accelerator[schema]'"
+        ) from exc
+    jsonschema.validate(instance=elem, schema=_get_json_schema())
+
+
 def filter_top_level(elem: dict, exclude_keys: List[str] | None = None) -> dict:
     if isinstance(exclude_keys, list):
         return {k: v for k, v in elem.items() if k not in exclude_keys}
@@ -154,10 +203,29 @@ def interpret_YAML_Element(elem: dict, exclude_set=None):
         return None
 
 
-def read_YAML_Element_File(filename: str, exclude_keys: List[str] | None = None):
+def read_YAML_Element_File(
+    filename: str,
+    exclude_keys: List[str] | None = None,
+    validate: bool = False,
+):
+    """Read a single-element YAML file and return the parsed model.
+
+    Parameters
+    ----------
+    filename:
+        Path to the YAML file.
+    exclude_keys:
+        Top-level keys to strip before parsing (e.g., legacy fields).
+    validate:
+        When ``True``, validate the raw YAML dict against the LinkML-derived
+        JSON Schema *before* Pydantic parsing.  Requires both the
+        *jsonschema* package and a previously generated schema file.
+    """
     exclude_set = set(exclude_keys) if exclude_keys else None
     with open(filename, "r") as stream:
         data = yaml.load(stream, Loader=Loader)
+    if validate:
+        validate_element_dict(data)
     return interpret_YAML_Element(data, exclude_set=exclude_set)
 
 
@@ -171,7 +239,23 @@ def read_YAML_Element_Files(filenames: list):
     return gen, filenames
 
 
-def read_YAML_Combined_File(filename: str, exclude_keys=None):
+def read_YAML_Combined_File(
+    filename: str,
+    exclude_keys=None,
+    validate: bool = False,
+):
+    """Read a combined (multi-element) YAML or JSON file and return parsed models.
+
+    Parameters
+    ----------
+    filename:
+        Path to the YAML or JSON file containing multiple element definitions.
+    exclude_keys:
+        Top-level keys to strip from each element before parsing.
+    validate:
+        When ``True``, validate each element dict against the LinkML-derived
+        JSON Schema *before* Pydantic parsing.
+    """
     exclude_set = set(exclude_keys) if exclude_keys else None
 
     if ".yaml" in filename.lower():
@@ -180,6 +264,10 @@ def read_YAML_Combined_File(filename: str, exclude_keys=None):
     elif ".json" in filename.lower():
         with open(filename, "r") as stream:
             elements = json.load(stream)
+
+    if validate:
+        for element in elements.values():
+            validate_element_dict(element)
 
     return [
         interpret_YAML_Element(element, exclude_set)
