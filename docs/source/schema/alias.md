@@ -6,7 +6,7 @@ search:
 # Slot: alias 
 
 
-_Short human-readable alias. Populated from ``name_alias`` in YAML._
+_Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings._
 
 
 
@@ -92,6 +92,7 @@ URI: [laura:alias](https://w3id.org/laura/alias)
 
 | Property | Value |
 | --- | --- |
+| Multivalued | Yes |
 ### Slot Characteristics
 
 | Property | Value |
@@ -143,7 +144,8 @@ URI: [laura:alias](https://w3id.org/laura/alias)
 <details>
 ```yaml
 name: alias
-description: Short human-readable alias. Populated from ``name_alias`` in YAML.
+description: Human-readable aliases for the element. Populated from ``name_alias``
+  in YAML. Accepts a single string or a list of strings.
 from_schema: https://w3id.org/laura/schema
 aliases:
 - name_alias
@@ -152,6 +154,7 @@ owner: AcceleratorElement
 domain_of:
 - AcceleratorElement
 range: string
+multivalued: true
 
 ```
 </details></div>

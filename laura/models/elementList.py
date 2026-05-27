@@ -271,8 +271,8 @@ class SectionLattice(BaseLatticeModel):
                     x, y, z = [(a + b) / 2.0 for a, b in zip(d[0], d[1])]
                     newdrift = Drift(
                         name=name,
+                        hardware_class="Drift",
                         machine_area=newelements[e[0]].machine_area,
-                        hardware_class="drift",
                         physical=PhysicalElement(
                             length=abs(round(np.copysign(length, vector), 16)),
                             middle=Position(x=x, y=y, z=z),

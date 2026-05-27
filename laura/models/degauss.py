@@ -1,22 +1,13 @@
-from pydantic import Field, field_validator
+from pydantic import field_validator
 from typing import List, Union
 
-from .baseModels import IgnoreExtra
+from ._generated import _DegaussableElementBase
 
 
-class DegaussableElement(IgnoreExtra):
+class DegaussableElement(_DegaussableElementBase):
     """
     Model for elements that can be degaussed.
     """
-
-    tolerance: float = Field(default=0.5, alias="degauss_tolerance")
-    """Current tolerance for degaussing process."""
-
-    values: List[float] = Field(default=[], alias="degauss_values")
-    """List of degaussing current values."""
-
-    steps: int = Field(default=11, alias="num_degauss_steps")
-    """Number of degaussing steps."""
 
     @field_validator("values", mode="before")
     @classmethod

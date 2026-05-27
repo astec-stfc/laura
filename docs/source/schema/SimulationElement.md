@@ -78,7 +78,7 @@ URI: [laura:SimulationElement](https://w3id.org/laura/SimulationElement)
 | ---  | --- | --- | --- |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | direct |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | direct |
-| [field_reference_position](field_reference_position.md) | 0..1 <br/> [Float](Float.md) | Longitudinal origin of the field map [m] | direct |
+| [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | direct |
 | [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | direct |
 
 
@@ -183,14 +183,13 @@ attributes:
     rank: 1000
     domain_of:
     - SimulationElement
-    range: float
-    unit:
-      ucum_code: m
+    range: string
   scale_field:
     name: scale_field
     description: Multiplicative scale factor applied to the field map.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(1)
     domain_of:
     - SimulationElement
     range: float
@@ -234,14 +233,13 @@ attributes:
     owner: SimulationElement
     domain_of:
     - SimulationElement
-    range: float
-    unit:
-      ucum_code: m
+    range: string
   scale_field:
     name: scale_field
     description: Multiplicative scale factor applied to the field map.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(1)
     owner: SimulationElement
     domain_of:
     - SimulationElement

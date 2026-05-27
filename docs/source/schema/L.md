@@ -49,6 +49,7 @@ URI: [laura:L](https://w3id.org/laura/L)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [LinearSaturationFit](LinearSaturationFit.md) |
 
 
@@ -104,6 +105,7 @@ name: L
 description: Effective magnetic length [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: LinearSaturationFit
 domain_of:
 - LinearSaturationFit

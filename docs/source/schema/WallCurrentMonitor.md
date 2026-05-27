@@ -156,7 +156,7 @@ URI: [laura:WallCurrentMonitor](https://w3id.org/laura/WallCurrentMonitor)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [diagnostic](diagnostic.md) | 0..1 <br/> [ChargeDiagnosticElement](ChargeDiagnosticElement.md) | Instrument-specific diagnostic parameters | [Diagnostic](Diagnostic.md), [ChargeDiagnostic](ChargeDiagnostic.md) |
+| [diagnostic](diagnostic.md) | 0..1 <br/> [ChargeDiagnosticElement](ChargeDiagnosticElement.md) | Instrument-specific diagnostic parameters | [ChargeDiagnostic](ChargeDiagnostic.md), [Diagnostic](Diagnostic.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
@@ -169,7 +169,7 @@ URI: [laura:WallCurrentMonitor](https://w3id.org/laura/WallCurrentMonitor)
 | [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | [AcceleratorElement](AcceleratorElement.md) |
 | [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | [AcceleratorElement](AcceleratorElement.md) |
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
-| [alias](alias.md) | 0..1 <br/> [String](String.md) | Short human-readable alias | [AcceleratorElement](AcceleratorElement.md) |
+| [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
 
 
@@ -358,6 +358,7 @@ attributes:
       ``TESLA``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string(Generic)
     owner: WallCurrentMonitor
     domain_of:
     - AcceleratorElement
@@ -377,13 +378,15 @@ attributes:
       name is inaccessible.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string()
     owner: WallCurrentMonitor
     domain_of:
     - AcceleratorElement
     range: string
   alias:
     name: alias
-    description: Short human-readable alias. Populated from ``name_alias`` in YAML.
+    description: Human-readable aliases for the element. Populated from ``name_alias``
+      in YAML. Accepts a single string or a list of strings.
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
@@ -392,6 +395,7 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+    multivalued: true
   subelement:
     name: subelement
     description: If set, this element is a logical sub-component of the named parent

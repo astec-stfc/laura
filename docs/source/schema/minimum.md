@@ -5,11 +5,6 @@ search:
 
 # Slot: minimum 
 
-
-_Minimum attenuation angle [deg]._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -25,6 +20,7 @@ URI: [laura:minimum](https://w3id.org/laura/minimum)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
+| [CameraSensor](CameraSensor.md) | Camera sensor hardware configuration |  no  |
 | [LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |  no  |
 
 
@@ -38,30 +34,13 @@ URI: [laura:minimum](https://w3id.org/laura/minimum)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
-| Domain Of | [LaserAttenuator](LaserAttenuator.md) |
+| Range | [String](String.md) |
+| Domain Of | [CameraSensor](CameraSensor.md), [LaserAttenuator](LaserAttenuator.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| Owner | [LaserAttenuator](LaserAttenuator.md) |
-
-
-<details>
-<summary>Additional Constraints</summary>
-**Unit:**
-
-| Property | Value |
-| --- | --- |
-| ucum_code | deg |
-
-</details>
-
 
 
 
@@ -75,13 +54,6 @@ URI: [laura:minimum](https://w3id.org/laura/minimum)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -101,15 +73,10 @@ URI: [laura:minimum](https://w3id.org/laura/minimum)
 <details>
 ```yaml
 name: minimum
-description: Minimum attenuation angle [deg].
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: LaserAttenuator
 domain_of:
+- CameraSensor
 - LaserAttenuator
-range: float
-unit:
-  ucum_code: deg
+range: string
 
 ```
 </details></div>

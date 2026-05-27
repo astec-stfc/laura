@@ -96,6 +96,7 @@ URI: [laura:hardware_model](https://w3id.org/laura/hardware_model)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string(Generic)` |
 | Owner | [AcceleratorElement](AcceleratorElement.md) |
 
 
@@ -141,6 +142,7 @@ name: hardware_model
 description: Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: string(Generic)
 owner: AcceleratorElement
 domain_of:
 - AcceleratorElement

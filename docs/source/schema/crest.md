@@ -5,11 +5,6 @@ search:
 
 # Slot: crest 
 
-
-_On-crest phase offset providing maximum energy gain [deg]._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -26,6 +21,7 @@ URI: [laura:crest](https://w3id.org/laura/crest)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [RFCavityElement](RFCavityElement.md) | RF cavity accelerating-structure parameters |  no  |
+| [RFDeflectingCavityElement](RFDeflectingCavityElement.md) | Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for... |  no  |
 
 
 
@@ -38,30 +34,13 @@ URI: [laura:crest](https://w3id.org/laura/crest)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
-| Domain Of | [RFCavityElement](RFCavityElement.md) |
+| Range | [String](String.md) |
+| Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| Owner | [RFCavityElement](RFCavityElement.md) |
-
-
-<details>
-<summary>Additional Constraints</summary>
-**Unit:**
-
-| Property | Value |
-| --- | --- |
-| ucum_code | deg |
-
-</details>
-
 
 
 
@@ -75,13 +54,6 @@ URI: [laura:crest](https://w3id.org/laura/crest)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -101,15 +73,10 @@ URI: [laura:crest](https://w3id.org/laura/crest)
 <details>
 ```yaml
 name: crest
-description: On-crest phase offset providing maximum energy gain [deg].
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: RFCavityElement
 domain_of:
 - RFCavityElement
-range: float
-unit:
-  ucum_code: deg
+- RFDeflectingCavityElement
+range: string
 
 ```
 </details></div>

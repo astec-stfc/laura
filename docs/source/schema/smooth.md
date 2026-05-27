@@ -5,11 +5,6 @@ search:
 
 # Slot: smooth 
 
-
-_Use a smoothed field profile._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -26,6 +21,8 @@ URI: [laura:smooth](https://w3id.org/laura/smooth)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  no  |
+| [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  no  |
+| [WakefieldSimulationElement](WakefieldSimulationElement.md) | Simulation attributes for passive wakefield structures |  no  |
 
 
 
@@ -38,20 +35,13 @@ URI: [laura:smooth](https://w3id.org/laura/smooth)
 
 | Property | Value |
 | --- | --- |
-| Range | [Boolean](Boolean.md) |
-| Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| Range | [String](String.md) |
+| Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md), [RFCavitySimulationElement](RFCavitySimulationElement.md), [WakefieldSimulationElement](WakefieldSimulationElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| Owner | [MagnetSimulationElement](MagnetSimulationElement.md) |
-
-
 
 
 
@@ -65,13 +55,6 @@ URI: [laura:smooth](https://w3id.org/laura/smooth)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -91,13 +74,11 @@ URI: [laura:smooth](https://w3id.org/laura/smooth)
 <details>
 ```yaml
 name: smooth
-description: Use a smoothed field profile.
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement
-range: boolean
+- RFCavitySimulationElement
+- WakefieldSimulationElement
+range: string
 
 ```
 </details></div>

@@ -5,11 +5,6 @@ search:
 
 # Slot: y 
 
-
-_Vertical component [m]._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -26,6 +21,8 @@ URI: [laura:y](https://w3id.org/laura/y)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [Position](Position.md) | Cartesian position in the global accelerator coordinate system |  no  |
+| [CameraPixelResultsIndices](CameraPixelResultsIndices.md) | Indices into camera pixel-analysis result arrays |  no  |
+| [CameraPixelResultsNames](CameraPixelResultsNames.md) | Names of camera pixel-analysis result arrays |  no  |
 
 
 
@@ -38,30 +35,13 @@ URI: [laura:y](https://w3id.org/laura/y)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
-| Domain Of | [Position](Position.md) |
+| Range | [String](String.md) |
+| Domain Of | [Position](Position.md), [CameraPixelResultsIndices](CameraPixelResultsIndices.md), [CameraPixelResultsNames](CameraPixelResultsNames.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| Owner | [Position](Position.md) |
-
-
-<details>
-<summary>Additional Constraints</summary>
-**Unit:**
-
-| Property | Value |
-| --- | --- |
-| ucum_code | m |
-
-</details>
-
 
 
 
@@ -75,13 +55,6 @@ URI: [laura:y](https://w3id.org/laura/y)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -101,15 +74,11 @@ URI: [laura:y](https://w3id.org/laura/y)
 <details>
 ```yaml
 name: y
-description: Vertical component [m].
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: Position
 domain_of:
 - Position
-range: float
-unit:
-  ucum_code: m
+- CameraPixelResultsIndices
+- CameraPixelResultsNames
+range: string
 
 ```
 </details></div>

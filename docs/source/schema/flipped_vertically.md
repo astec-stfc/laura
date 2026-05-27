@@ -49,6 +49,7 @@ URI: [laura:flipped_vertically](https://w3id.org/laura/flipped_vertically)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `False` |
 | Owner | [CameraDiagnosticElement](CameraDiagnosticElement.md) |
 
 
@@ -58,6 +59,11 @@ URI: [laura:flipped_vertically](https://w3id.org/laura/flipped_vertically)
 
 
 
+
+## Aliases
+
+
+* IMAGE_FLIP_UD
 
 
 
@@ -93,7 +99,10 @@ URI: [laura:flipped_vertically](https://w3id.org/laura/flipped_vertically)
 name: flipped_vertically
 description: True if the image is mirrored top-bottom.
 from_schema: https://w3id.org/laura/schema
+aliases:
+- IMAGE_FLIP_UD
 rank: 1000
+ifabsent: 'False'
 owner: CameraDiagnosticElement
 domain_of:
 - CameraDiagnosticElement

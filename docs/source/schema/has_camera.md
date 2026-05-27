@@ -49,6 +49,7 @@ URI: [laura:has_camera](https://w3id.org/laura/has_camera)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `True` |
 | Owner | [ScreenDiagnosticElement](ScreenDiagnosticElement.md) |
 
 
@@ -94,6 +95,7 @@ name: has_camera
 description: Whether the screen has an associated camera.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: 'True'
 owner: ScreenDiagnosticElement
 domain_of:
 - ScreenDiagnosticElement

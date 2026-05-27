@@ -49,6 +49,7 @@ URI: [laura:flatness](https://w3id.org/laura/flatness)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `int(6)` |
 | Owner | [LaserElement](LaserElement.md) |
 
 
@@ -102,6 +103,7 @@ description: Flatness order N of a flattened-Gaussian profile (for ``profile_typ
   = flattened-gaussian``).
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: int(6)
 owner: LaserElement
 domain_of:
 - LaserElement

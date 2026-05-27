@@ -49,6 +49,7 @@ URI: [laura:profile_type](https://w3id.org/laura/profile_type)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string(gaussian)` |
 | Owner | [LaserElement](LaserElement.md) |
 
 
@@ -94,6 +95,7 @@ name: profile_type
 description: Transverse intensity profile model.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: string(gaussian)
 owner: LaserElement
 domain_of:
 - LaserElement

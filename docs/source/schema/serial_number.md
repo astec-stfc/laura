@@ -50,6 +50,7 @@ URI: [schema:serialNumber](http://schema.org/serialNumber)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string()` |
 | Owner | [ManufacturerElement](ManufacturerElement.md) |
 
 
@@ -96,6 +97,7 @@ description: Manufacturer serial number.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 slot_uri: schema:serialNumber
+ifabsent: string()
 owner: ManufacturerElement
 domain_of:
 - ManufacturerElement

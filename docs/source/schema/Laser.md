@@ -24,6 +24,7 @@ URI: [laura:laser](https://w3id.org/laura/laser)
 | [Plasma](Plasma.md) | Laser-driven plasma-accelerator stage |  no  |
 | [LaserEnergyMeter](LaserEnergyMeter.md) | Laser pulse-energy diagnostic (photodiode / pyroelectric) |  no  |
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | Half-wave plate for laser polarisation rotation |  no  |
+| [LaserMirror](LaserMirror.md) | Laser steering or focusing mirror |  no  |
 
 
 
@@ -37,7 +38,7 @@ URI: [laura:laser](https://w3id.org/laura/laser)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [Laser](Laser.md), [Plasma](Plasma.md), [LaserEnergyMeter](LaserEnergyMeter.md), [LaserHalfWavePlate](LaserHalfWavePlate.md) |
+| Domain Of | [Laser](Laser.md), [Plasma](Plasma.md), [LaserEnergyMeter](LaserEnergyMeter.md), [LaserHalfWavePlate](LaserHalfWavePlate.md), [LaserMirror](LaserMirror.md) |
 
 ### Cardinality and Requirements
 
@@ -80,6 +81,7 @@ domain_of:
 - Plasma
 - LaserEnergyMeter
 - LaserHalfWavePlate
+- LaserMirror
 range: string
 
 ```

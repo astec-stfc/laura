@@ -49,6 +49,7 @@ URI: [laura:length](https://w3id.org/laura/length)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [PhysicalElement](PhysicalElement.md) |
 
 
@@ -111,6 +112,7 @@ name: length
 description: Effective length along the beam axis [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: PhysicalElement
 domain_of:
 - PhysicalElement

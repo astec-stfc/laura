@@ -49,6 +49,7 @@ URI: [laura:camera_name](https://w3id.org/laura/camera_name)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string()` |
 | Owner | [ScreenDiagnosticElement](ScreenDiagnosticElement.md) |
 
 
@@ -94,6 +95,7 @@ name: camera_name
 description: Name of the associated camera element.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: string()
 owner: ScreenDiagnosticElement
 domain_of:
 - ScreenDiagnosticElement

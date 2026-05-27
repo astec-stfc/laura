@@ -161,6 +161,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     slot_uri: schema:manufacturer
+    ifabsent: string()
     domain_of:
     - ManufacturerElement
     - StandardElement
@@ -171,6 +172,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     slot_uri: schema:serialNumber
+    ifabsent: string()
     domain_of:
     - ManufacturerElement
     range: string
@@ -193,6 +195,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     slot_uri: schema:manufacturer
+    ifabsent: string()
     owner: ManufacturerElement
     domain_of:
     - ManufacturerElement
@@ -204,6 +207,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     slot_uri: schema:serialNumber
+    ifabsent: string()
     owner: ManufacturerElement
     domain_of:
     - ManufacturerElement

@@ -49,6 +49,7 @@ URI: [laura:attenuation_constant](https://w3id.org/laura/attenuation_constant)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [RFCavityElement](RFCavityElement.md) |
 
 
@@ -94,6 +95,7 @@ name: attenuation_constant
 description: Attenuation constant ? of a travelling-wave structure [Np/m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: RFCavityElement
 domain_of:
 - RFCavityElement

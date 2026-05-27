@@ -242,6 +242,8 @@ attributes:
     rank: 1000
     domain_of:
     - PhysicalElement
+    - CameraMask
+    - CameraSensor
     range: Position
   datum:
     name: datum
@@ -290,6 +292,7 @@ attributes:
     description: Effective length along the beam axis [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - PhysicalElement
     range: float
@@ -322,6 +325,7 @@ attributes:
       when available.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - PhysicalElement
     range: float
@@ -355,6 +359,8 @@ attributes:
     owner: PhysicalElement
     domain_of:
     - PhysicalElement
+    - CameraMask
+    - CameraSensor
     range: Position
   datum:
     name: datum
@@ -408,6 +414,7 @@ attributes:
     description: Effective length along the beam axis [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     owner: PhysicalElement
     domain_of:
     - PhysicalElement
@@ -443,6 +450,7 @@ attributes:
       when available.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     owner: PhysicalElement
     domain_of:
     - PhysicalElement

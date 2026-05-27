@@ -49,6 +49,7 @@ URI: [laura:species](https://w3id.org/laura/species)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string(electron)` |
 | Owner | [PlasmaElement](PlasmaElement.md) |
 
 
@@ -94,6 +95,7 @@ name: species
 description: Plasma species name (e.g., ``electron``).
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: string(electron)
 owner: PlasmaElement
 domain_of:
 - PlasmaElement

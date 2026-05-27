@@ -11,7 +11,7 @@ from laura.models.simulation import SimulationElement
 def base_element() -> baseElement:
     return baseElement(
         name="Base1",
-        hardware_class="HC",
+        hardware_class="Generic",
         hardware_type="HT",
         machine_area="MA",
         subelement=True,
@@ -22,7 +22,7 @@ def base_element() -> baseElement:
 def physical_base_element() -> PhysicalBaseElement:
     return PhysicalBaseElement(
         name="Phys1",
-        hardware_class="HC",
+        hardware_class="Generic",
         hardware_type="HT",
         machine_area="MA",
     )
@@ -30,7 +30,7 @@ def physical_base_element() -> PhysicalBaseElement:
 
 def test_base_element_initialization(base_element):
     assert base_element.name == "Base1"
-    assert base_element.hardware_class == "HC"
+    assert base_element.hardware_class == "Generic"
     assert base_element.hardware_type == "HT"
     assert base_element.machine_area == "MA"
     assert base_element.is_subelement() is True
@@ -50,7 +50,7 @@ def test_physical_base_element_initialization(physical_base_element):
 def test_element_initialization():
     el = Element(
         name="Elem1",
-        hardware_class="HC",
+        hardware_class="Generic",
         hardware_type="HT",
         machine_area="MA",
     )

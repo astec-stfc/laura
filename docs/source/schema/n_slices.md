@@ -49,6 +49,7 @@ URI: [laura:n_slices](https://w3id.org/laura/n_slices)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `int(4)` |
 | Owner | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
@@ -101,6 +102,7 @@ name: n_slices
 description: Number of longitudinal slices for thick-lens tracking.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: int(4)
 owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement

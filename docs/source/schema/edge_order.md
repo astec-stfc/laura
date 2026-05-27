@@ -49,6 +49,7 @@ URI: [laura:edge_order](https://w3id.org/laura/edge_order)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `int(2)` |
 | Owner | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
@@ -94,6 +95,7 @@ name: edge_order
 description: Polynomial order of the edge-field expansion.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: int(2)
 owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement

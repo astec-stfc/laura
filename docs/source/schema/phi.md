@@ -49,6 +49,7 @@ URI: [laura:phi](https://w3id.org/laura/phi)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [Rotation](Rotation.md) |
 
 
@@ -112,6 +113,7 @@ name: phi
 description: Rotation about the horizontal (x) axis [rad].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: Rotation
 domain_of:
 - Rotation

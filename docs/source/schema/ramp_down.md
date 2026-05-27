@@ -49,6 +49,7 @@ URI: [laura:ramp_down](https://w3id.org/laura/ramp_down)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0.001)` |
 | Owner | [PlasmaElement](PlasmaElement.md) |
 
 
@@ -111,6 +112,7 @@ name: ramp_down
 description: Exit density-ramp length [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0.001)
 owner: PlasmaElement
 domain_of:
 - PlasmaElement

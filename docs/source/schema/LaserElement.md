@@ -169,6 +169,7 @@ attributes:
     description: Initial longitudinal position of the laser pulse [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - LaserElement
     range: float
@@ -179,6 +180,7 @@ attributes:
     description: Laser beam waist (1/e^2 radius) [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - LaserElement
     range: float
@@ -223,6 +225,7 @@ attributes:
     description: Focal (waist) position along the propagation axis [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     domain_of:
     - LaserElement
     range: float
@@ -233,6 +236,7 @@ attributes:
     description: Carrier-envelope phase [rad].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - LaserElement
     range: float
@@ -251,6 +255,7 @@ attributes:
     description: Transverse intensity profile model.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string(gaussian)
     domain_of:
     - LaserElement
     range: LaserProfileTypeEnum
@@ -259,6 +264,7 @@ attributes:
     description: Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(0)
     domain_of:
     - LaserElement
     range: integer
@@ -269,6 +275,7 @@ attributes:
       = flattened-gaussian``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(6)
     domain_of:
     - LaserElement
     range: integer
@@ -294,6 +301,7 @@ attributes:
     description: Initial longitudinal position of the laser pulse [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     owner: LaserElement
     domain_of:
     - LaserElement
@@ -305,6 +313,7 @@ attributes:
     description: Laser beam waist (1/e^2 radius) [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     owner: LaserElement
     domain_of:
     - LaserElement
@@ -353,6 +362,7 @@ attributes:
     description: Focal (waist) position along the propagation axis [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     owner: LaserElement
     domain_of:
     - LaserElement
@@ -364,6 +374,7 @@ attributes:
     description: Carrier-envelope phase [rad].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     owner: LaserElement
     domain_of:
     - LaserElement
@@ -384,6 +395,7 @@ attributes:
     description: Transverse intensity profile model.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string(gaussian)
     owner: LaserElement
     domain_of:
     - LaserElement
@@ -393,6 +405,7 @@ attributes:
     description: Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(0)
     owner: LaserElement
     domain_of:
     - LaserElement
@@ -404,6 +417,7 @@ attributes:
       = flattened-gaussian``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(6)
     owner: LaserElement
     domain_of:
     - LaserElement

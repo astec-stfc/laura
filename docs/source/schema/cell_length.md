@@ -22,6 +22,7 @@ URI: [laura:cell_length](https://w3id.org/laura/cell_length)
 | --- | --- | --- |
 | [RFCavityElement](RFCavityElement.md) | RF cavity accelerating-structure parameters |  no  |
 | [WakefieldElement](WakefieldElement.md) | Passive wakefield structure parameters |  no  |
+| [RFDeflectingCavityElement](RFDeflectingCavityElement.md) | Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for... |  no  |
 
 
 
@@ -35,7 +36,7 @@ URI: [laura:cell_length](https://w3id.org/laura/cell_length)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [RFCavityElement](RFCavityElement.md), [WakefieldElement](WakefieldElement.md) |
+| Domain Of | [RFCavityElement](RFCavityElement.md), [WakefieldElement](WakefieldElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
 
@@ -76,6 +77,7 @@ name: cell_length
 domain_of:
 - RFCavityElement
 - WakefieldElement
+- RFDeflectingCavityElement
 range: string
 
 ```

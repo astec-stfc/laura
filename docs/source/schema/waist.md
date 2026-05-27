@@ -49,6 +49,7 @@ URI: [laura:waist](https://w3id.org/laura/waist)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [LaserElement](LaserElement.md) |
 
 
@@ -111,6 +112,7 @@ name: waist
 description: Laser beam waist (1/e^2 radius) [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: LaserElement
 domain_of:
 - LaserElement

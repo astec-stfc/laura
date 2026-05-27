@@ -49,6 +49,7 @@ URI: [laura:tilt](https://w3id.org/laura/tilt)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0.0)` |
 | Owner | [MagneticElement](MagneticElement.md) |
 
 
@@ -104,6 +105,7 @@ name: tilt
 description: Global tilt about the beam axis [rad].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0.0)
 owner: MagneticElement
 domain_of:
 - MagneticElement

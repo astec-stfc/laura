@@ -48,7 +48,7 @@ type AcceleratorElement
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
   }
 
@@ -59,7 +59,7 @@ type Aperture
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -94,7 +94,7 @@ type BeamArrivalMonitor
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -113,7 +113,7 @@ type BeamPositionMonitor
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -142,7 +142,7 @@ type BunchLengthMonitor
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -161,7 +161,7 @@ type Camera
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -183,6 +183,65 @@ type CameraDiagnosticElement
     flippedVertically: Boolean
     screenName: String
     hasLed: Boolean
+    pixelResultsIndices: CameraPixelResultsIndices
+    pixelResultsNames: CameraPixelResultsNames
+    mask: CameraMask
+    sensor: CameraSensor
+  }
+
+type CameraMask
+  {
+    middle: [Float]
+    radius: [Float]
+    maximum: [Float]
+    useMaximumValues: Boolean
+  }
+
+type CameraPixelResultsIndices
+  {
+    x: Int
+    y: Int
+    xSigma: Int
+    ySigma: Int
+    covariance: Int
+  }
+
+type CameraPixelResultsNames
+  {
+    x: String
+    y: String
+    xSigma: String
+    ySigma: String
+    covariance: String
+  }
+
+type CameraSensor
+  {
+    xPixels: Int
+    yPixels: Int
+    xScaleFactor: Int
+    yScaleFactor: Int
+    beamPixelAverage: Float
+    middle: [Float]
+    xPixelsToMm: Float
+    yPixelsToMm: Float
+    minimum: [Float]
+    maximum: [Float]
+    bitDepth: Int
+    operatingMiddle: [Float]
+    mechanicalMiddle: [Float]
+  }
+
+type ChannelNames
+  {
+    ch1: String
+    ch2: String
+    ch3: String
+    ch4: String
+    ch5: String
+    ch6: String
+    ch7: String
+    ch8: String
   }
 
 type ChargeDiagnostic
@@ -192,7 +251,7 @@ type ChargeDiagnostic
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -216,7 +275,7 @@ type Collimator
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -235,7 +294,7 @@ type CombinedCorrector
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -281,7 +340,7 @@ type Diagnostic
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -300,8 +359,9 @@ type DiagnosticSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
-    fieldReferencePosition: Float
+    fieldReferencePosition: String
     scaleField: Float
+    outputFilename: String
   }
 
 type Dipole
@@ -311,7 +371,7 @@ type Dipole
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -331,7 +391,7 @@ type Drift
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -346,15 +406,25 @@ type DriftSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
-    fieldReferencePosition: Float
+    fieldReferencePosition: String
     scaleField: Float
+    lscInterpolate: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    useStupakov: Int
+    csrdz: Float
+    lscBins: Int
+    lscHighFrequencyCutoffStart: Float
+    lscHighFrequencyCutoffEnd: Float
+    lscLowFrequencyCutoffStart: Float
+    lscLowFrequencyCutoffEnd: Float
   }
 
 type ElectricalElement
   {
     minI: Float
     maxI: Float
-    riTolerance: Float
+    readTolerance: Float
   }
 
 type ElementPositionError
@@ -376,7 +446,7 @@ type FaradayCupMonitor
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -400,7 +470,7 @@ type HorizontalCorrector
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -420,7 +490,7 @@ type IntegratedCurrentTransformer
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -439,7 +509,7 @@ type Laser
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -458,7 +528,7 @@ type LaserAttenuator
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -492,7 +562,7 @@ type LaserEnergyMeter
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -514,7 +584,7 @@ type LaserHalfWavePlate
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -536,14 +606,31 @@ type LaserMirror
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
     reference: ReferenceElement
+    laser: LaserMirrorElement
     hardwareType: String
+  }
+
+type LaserMirrorElement
+  {
+    stepMax: Float
+    sense: LaserMirrorSense
+    verticalChannel: Int
+    horizontalChannel: Int
+  }
+
+type LaserMirrorSense
+  {
+    left: Float
+    right: Float
+    up: Float
+    down: Float
   }
 
 type Lighting
@@ -553,7 +640,7 @@ type Lighting
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -579,6 +666,21 @@ type LinearSaturationFit
     l: Float
   }
 
+type LLRFTiming
+  {
+    start: Float
+    end: Float
+  }
+
+type LLRFTimings
+  {
+    klystronForward: LLRFTiming
+    klystronReverse: LLRFTiming
+    cavityForward: LLRFTiming
+    cavityReverse: LLRFTiming
+    cavityProbe: LLRFTiming
+  }
+
 type LowLevelRF
   {
     name: String!
@@ -586,7 +688,7 @@ type LowLevelRF
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -599,6 +701,11 @@ type LowLevelRF
 
 type LowLevelRFElement
   {
+    trace: Trace
+    maxAmplitude: Float
+    channelNames: ChannelNames
+    crestPhase: Float
+    timings: LLRFTimings
   }
 
 type MachineLayout
@@ -623,7 +730,7 @@ type MagnetBaseElement
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -639,7 +746,7 @@ type MagneticElement
   {
     order: Int
     skew: Boolean
-    magneticLength: Float
+    length: Float
     multipoles: Multipoles
     systematicMultipoles: Multipoles
     randomMultipoles: Multipoles
@@ -662,7 +769,7 @@ type MagnetSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
-    fieldReferencePosition: Float
+    fieldReferencePosition: String
     scaleField: Float
     nKicks: Int
     nSlices: Int
@@ -679,6 +786,8 @@ type MagnetSimulationElement
     smoothingHalfWidth: Int
     edgeOrder: Int
     deltaL: Float
+    fieldAmplitude: Float
+    smoothPoints: Float
   }
 
 type ManufacturerElement
@@ -694,7 +803,7 @@ type Marker
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -729,7 +838,7 @@ type NonLinearLens
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -749,7 +858,7 @@ type Octupole
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -770,7 +879,7 @@ type PhysicalAcceleratorElement
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -801,7 +910,7 @@ type PID
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -817,6 +926,24 @@ type PIDElement
     kp: Float
     ki: Float
     kd: Float
+    forwardChannel: Int
+    probeChannel: Int
+    enable: String
+    disable: String
+    phaseRange: PIDPhaseRange
+    phaseWeightRange: PIDWeightRange
+  }
+
+type PIDPhaseRange
+  {
+    min: Float
+    max: Float
+  }
+
+type PIDWeightRange
+  {
+    min: Float
+    max: Float
   }
 
 type Plasma
@@ -826,7 +953,7 @@ type Plasma
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -855,8 +982,21 @@ type PlasmaSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
-    fieldReferencePosition: Float
+    fieldReferencePosition: String
     scaleField: Float
+    wakefieldModel: String
+    bunchPusher: String
+    dtBunch: String
+    nOut: Int
+    minLongitudinalPosition: Float
+    maxLongitudinalPosition: Float
+    nLongitudinal: Int
+    nRadial: Int
+    plasmaParticlesPerCell: Int
+    rMax: Float
+    rMaxPlasma: Float
+    dzFields: Float
+    plasmaPusher: String
   }
 
 type Position
@@ -873,7 +1013,7 @@ type Quadrupole
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -899,7 +1039,7 @@ type RFCavity
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -926,16 +1066,37 @@ type RFCavityElement
     shuntImpedance: Float
     modeNumerator: Int
     modeDenominator: Int
-    powerCalibration: Float
-    gradientCalibration: Float
+    powerCalibration: [Float]
+    gradientCalibration: [Float]
   }
 
 type RFCavitySimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
-    fieldReferencePosition: Float
+    fieldReferencePosition: String
     scaleField: Float
+    fieldAmplitude: Float
+    tColumn: String
+    zColumn: String
+    wxColumn: String
+    wyColumn: String
+    wzColumn: String
+    changeP0: Int
+    nKicks: Int
+    end1Focus: Int
+    end2Focus: Int
+    bodyFocusModel: String
+    lscBins: Int
+    currentBins: Int
+    interpolateCurrentBins: Int
+    smoothCurrentBins: Int
+    smooth: Int
+    ezPeak: Float
+    fieldFileName: String
+    wakefile: String
+    zwakefile: String
+    trwakefile: String
   }
 
 type RFDeflectingCavity
@@ -945,7 +1106,7 @@ type RFDeflectingCavity
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -959,7 +1120,9 @@ type RFDeflectingCavity
 
 type RFDeflectingCavityElement
   {
+    cellLength: Float
     couplingCellLength: Float
+    crest: Float
     designGamma: Float
     designPower: Float
     frequency: Float
@@ -977,7 +1140,7 @@ type RFHeartbeat
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -999,7 +1162,7 @@ type RFModulator
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -1021,7 +1184,7 @@ type RFProtection
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -1034,6 +1197,7 @@ type RFProtection
 
 type RFProtectionElement
   {
+    protType: String
   }
 
 type Rotation
@@ -1050,7 +1214,7 @@ type Screen
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1083,7 +1247,7 @@ type Sextupole
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1103,7 +1267,7 @@ type Shutter
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -1124,7 +1288,7 @@ type SimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
-    fieldReferencePosition: Float
+    fieldReferencePosition: String
     scaleField: Float
   }
 
@@ -1135,7 +1299,7 @@ type Solenoid
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1155,7 +1319,7 @@ type Stage
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -1174,13 +1338,21 @@ type StandardElement
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
     reference: ReferenceElement
+  }
+
+type Trace
+  {
+    dataSize: Int
+    dataCount: Int
+    dataChunkSize: Int
+    numberOfStartZeros: Int
   }
 
 type TwissMatch
@@ -1190,7 +1362,7 @@ type TwissMatch
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1205,8 +1377,17 @@ type TwissMatchSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
-    fieldReferencePosition: Float
+    fieldReferencePosition: String
     scaleField: Float
+    betaX: Float
+    betaY: Float
+    alphaX: Float
+    alphaY: Float
+    etaX: Float
+    etaY: Float
+    etaXp: Float
+    etaYp: Float
+    fromBeam: Boolean
   }
 
 type VacuumGauge
@@ -1216,7 +1397,7 @@ type VacuumGauge
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -1234,7 +1415,7 @@ type Valve
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     simulation: SimulationElement
     electrical: ElectricalElement
@@ -1257,7 +1438,7 @@ type VerticalCorrector
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1277,7 +1458,7 @@ type Wakefield
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1300,8 +1481,29 @@ type WakefieldSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
-    fieldReferencePosition: Float
+    fieldReferencePosition: String
     scaleField: Float
+    allowLongBeam: Boolean
+    bunchedBeam: Boolean
+    changeMomentum: Boolean
+    factor: Float
+    interpolate: Boolean
+    scaleKick: Float
+    tColumn: String
+    zColumn: String
+    wxColumn: String
+    wyColumn: String
+    wzColumn: String
+    scaleFieldEx: Float
+    scaleFieldEy: Float
+    scaleFieldEz: Float
+    scaleFieldHx: Float
+    scaleFieldHy: Float
+    scaleFieldHz: Float
+    equalGrid: Float
+    interpolationMethod: Int
+    smooth: Float
+    subbins: Int
   }
 
 type WallCurrentMonitor
@@ -1311,7 +1513,7 @@ type WallCurrentMonitor
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1330,7 +1532,7 @@ type Wiggler
     hardwareModel: String
     machineArea: String
     virtualName: String
-    alias: String
+    alias: [String]
     subelement: String
     electrical: ElectricalElement
     manufacturer: ManufacturerElement

@@ -5,11 +5,6 @@ search:
 
 # Slot: middle 
 
-
-_Longitudinal midpoint (centre) of the element. Also accepted as ``position`` or ``centre`` in YAML._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -26,6 +21,8 @@ URI: [laura:middle](https://w3id.org/laura/middle)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [PhysicalElement](PhysicalElement.md) | Physical placement data: position, rotation, length, and associated survey / ... |  no  |
+| [CameraMask](CameraMask.md) | Camera analysis mask parameters |  no  |
+| [CameraSensor](CameraSensor.md) | Camera sensor hardware configuration |  no  |
 
 
 
@@ -38,32 +35,19 @@ URI: [laura:middle](https://w3id.org/laura/middle)
 
 | Property | Value |
 | --- | --- |
-| Range | [Position](Position.md) |
-| Domain Of | [PhysicalElement](PhysicalElement.md) |
+| Range | [String](String.md) |
+| Domain Of | [PhysicalElement](PhysicalElement.md), [CameraMask](CameraMask.md), [CameraSensor](CameraSensor.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| Owner | [PhysicalElement](PhysicalElement.md) |
 
 
 
 
 
 
-
-
-
-## Aliases
-
-
-* position
-* centre
 
 
 
@@ -71,13 +55,6 @@ URI: [laura:middle](https://w3id.org/laura/middle)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -97,17 +74,11 @@ URI: [laura:middle](https://w3id.org/laura/middle)
 <details>
 ```yaml
 name: middle
-description: Longitudinal midpoint (centre) of the element. Also accepted as ``position``
-  or ``centre`` in YAML.
-from_schema: https://w3id.org/laura/schema
-aliases:
-- position
-- centre
-rank: 1000
-owner: PhysicalElement
 domain_of:
 - PhysicalElement
-range: Position
+- CameraMask
+- CameraSensor
+range: string
 
 ```
 </details></div>

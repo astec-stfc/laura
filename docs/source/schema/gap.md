@@ -49,6 +49,7 @@ URI: [laura:gap](https://w3id.org/laura/gap)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0.032)` |
 | Owner | [MagneticElement](MagneticElement.md) |
 
 
@@ -111,6 +112,7 @@ name: gap
 description: Full gap between pole faces [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0.032)
 owner: MagneticElement
 domain_of:
 - MagneticElement

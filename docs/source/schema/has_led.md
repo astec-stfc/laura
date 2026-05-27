@@ -49,6 +49,7 @@ URI: [laura:has_led](https://w3id.org/laura/has_led)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `True` |
 | Owner | [CameraDiagnosticElement](CameraDiagnosticElement.md) |
 
 
@@ -94,6 +95,7 @@ name: has_led
 description: True if the camera mount includes an LED backlight.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: 'True'
 owner: CameraDiagnosticElement
 domain_of:
 - CameraDiagnosticElement

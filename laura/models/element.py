@@ -4,10 +4,9 @@ LAURA Element Module
 The main class for representing accelerator elements in LAURA.
 """
 
+from typing import Type, List, Union, Dict, Any
 import os
-from typing import Type, List, Union, Dict, Tuple, Any, get_args, get_origin
-from pydantic import field_validator, Field, BaseModel, AliasChoices
-import types
+from pydantic import field_validator, Field
 from .control import (
     ControlsInformation,
     ScreenControlsInformation,
@@ -15,7 +14,47 @@ from .control import (
     ShutterControlsInformation,
 )
 from .baseModels import T, Aliases, IgnoreExtra
-from ._generated import _AcceleratorElementBase
+from ._generated import (
+    _AcceleratorElementBase,
+    _ElementBase,
+    _PhysicalAcceleratorElementBase,
+    _MagnetBaseElementBase,
+    _TwissMatchBase,
+    _DiagnosticBase,
+    _BeamPositionMonitorBase,
+    _BeamArrivalMonitorBase,
+    _BunchLengthMonitorBase,
+    _CameraBase,
+    _ScreenBase,
+    _ChargeDiagnosticBase,
+    _WallCurrentMonitorBase,
+    _FaradayCupMonitorBase,
+    _IntegratedCurrentTransformerBase,
+    _StageBase,
+    _VacuumGaugeBase,
+    _LaserBase,
+    _LaserEnergyMeterBase,
+    _LaserHalfWavePlateBase,
+    _LaserMirrorBase,
+    _LaserAttenuatorBase,
+    _PlasmaBase,
+    _LightingBase,
+    _PIDBase,
+    _LowLevelRFBase,
+    _RFCavityBase,
+    _WakefieldBase,
+    _RFDeflectingCavityBase,
+    _RFModulatorBase,
+    _RFProtectionBase,
+    _RFHeartbeatBase,
+    _ShutterBase,
+    _ValveBase,
+    _MarkerBase,
+    _ApertureBase,
+    _CollimatorBase,
+    _DriftBase,
+)
+from ..utils import CascadingAccessMixin, flatten_dict, StringWithQuotes, FlowList
 from .manufacturer import ManufacturerElement
 from .electrical import ElectricalElement
 from .degauss import DegaussableElement
@@ -69,107 +108,31 @@ from .simulation import (
     SimulationElement,
     TwissMatchSimulationElement,
 )
-import yaml
-from collections.abc import MutableMapping
-
-
+# Re-export from utils for backwards compatibility
 def flatten(dictionary: Dict, parent_key: str = "", separator: str = "_") -> Dict:
-    """
-    Flatten a nested dictionary -- used for expanding the nested `BaseModel` structure.
-
-    Args:
-        dictionary (Dict): The dictionary to flatten.
-        parent_key (str, optional): The base key to use for the flattened keys. Defaults to "".
-        separator (str, optional): The separator to use between keys. Defaults to "_".
-
-    Returns:
-        Dict: The flattened dictionary.
-    """
-    items = []
-    for key, value in dictionary.items():
-        if isinstance(key, str):
-            new_key = parent_key + separator + key if parent_key else key
-            if isinstance(value, MutableMapping):
-                items.extend(flatten(value, new_key, separator=separator).items())
-            else:
-                items.append((new_key, value))
-    return dict(items)
+    """Deprecated: Use laura.utils.flatten_dict instead."""
+    return flatten_dict(dictionary, parent_key, separator)
 
 
-class string_with_quotes(str):
-    pass
+# Re-export YAML classes for backwards compatibility
+string_with_quotes = StringWithQuotes
+flow_list = FlowList
 
 
-class flow_list(list):
-    pass
-
-
-def flow_list_rep(dumper, data):
-    return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
-
-
-def quoted_presenter(dumper, data):
-    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
-
-
-yaml.add_representer(string_with_quotes, quoted_presenter)
-yaml.add_representer(flow_list, flow_list_rep)
-
-
-class baseElement(_AcceleratorElementBase, IgnoreExtra):
+class baseElement(CascadingAccessMixin, _AcceleratorElementBase, IgnoreExtra):
     """
     Base-level element class. All LAURA elements derive from this.
 
-    Attributes:
-        name (str): The name of the element.
-        hardware_class (str): The hardware class of the element.
-        hardware_type (str): The hardware type of the element.
-        hardware_model (str): The hardware model of the element.
-        machine_area (str): The machine area of the element.
-        virtual_name (str): The virtual name of the element.
-        alias (Aliases): The alias(es) of the element.
-        subelement (bool | str): Whether the element is a subelement.
+    Combines schema base (_AcceleratorElementBase) with utility mixins:
+    - IgnoreExtra: Ignores unknown fields (extra="ignore")
+    - CascadingAccessMixin: Enables nested attribute access (e.g., quad.k1l)
+
     """
-
-    name: str
-    """Name of the element."""
-
-    hardware_class: str
-    """Hardware class of the element."""
-
-    hardware_type: str
-    """Hardware type of the element."""
-
-    hardware_model: str = Field(default="Generic", frozen=True)
-    """Specific model of the element."""
-
-    machine_area: str
-    """Machine are of the element."""
-
-    virtual_name: str = ""
-    """Name of the element in the virtual control system."""
-
-    alias: list[str] = Field(
-        default_factory=list,
-        validation_alias=AliasChoices("name_alias", "alias"),
-    )
-    """The alias(es) of the element"""
-
-    subelement: str | None = None
-    """Flag to indicate whether the element is a subelement of another 
-    (i.e. whether they overlap in physical space)."""
-
-    # Define cascading rules: (source_path, target_path)
-    CASCADING_RULES: Dict = {}
 
     @field_validator("name", mode="before")
     @classmethod
     def validate_name(cls, v: str) -> str:
         assert isinstance(v, str)
-        # try:
-        #     PV(pv=str(v) + ":")
-        # except Exception:
-        #     raise ValueError("name is not a valid element name")
         return v
 
     @field_validator("alias", mode="before")
@@ -199,203 +162,6 @@ class baseElement(_AcceleratorElementBase, IgnoreExtra):
         if len(list(escapes)) > 0:
             return string_with_quotes(",".join(map(str, list(escapes))))
         return string_with_quotes("")
-
-    @classmethod
-    def from_CATAP(cls: Type[T], fields: dict) -> T:
-        return cls(**fields)
-
-    # def generate_aliases(self) -> list:
-    #     magnetPV = PV.fromString(str(self.name) + ":")  # ('CLA', 'S07', 'QUAD', 1)
-    #     return [
-    #         magnetPV.area + "-" + magnetPV.typename + str(magnetPV.index).zfill(2),
-    #         magnetPV.area + "-" + magnetPV.typename + str(magnetPV._indexString),
-    #         magnetPV.area + "-" + magnetPV.typename + str(magnetPV.index),
-    #     ]
-
-    def _resolve_attribute_path(self, attr_name: str) -> List[Tuple[str, ...]]:
-        """
-        Helper to get the full path(s) for a given attribute name.
-        """
-        return self._find_field_paths(attr_name, self.__class__)
-
-    @classmethod
-    def _find_field_paths(
-        cls: Type["main"],
-        attr_name: str,
-        current_model: Type[BaseModel],
-        current_path: Tuple[str, ...] = (),
-    ) -> List[Tuple[str, ...]]:
-        """
-        Recursively searches for an attribute name within the model's structure
-        and returns a list of its full access paths.
-        """
-        paths = []
-        for field_name, field_info in current_model.model_fields.items():
-            new_path = current_path + (field_name,)
-
-            # 1. Check if the current field is the target attribute
-            if field_name == attr_name:
-                paths.append(new_path)
-
-            # 2. Check if the field is a nested Pydantic model (recursive step)
-            field_annotation = field_info.annotation
-            origin = get_origin(field_annotation)
-
-            # Unwrap Union/Optional types to get the actual class
-            is_union = origin is Union or isinstance(field_annotation, types.UnionType)
-            if is_union:
-                args = get_args(field_annotation)
-                for arg in args:
-                    if arg is not type(None):
-                        try:
-                            if isinstance(arg, type) and issubclass(arg, BaseModel):
-                                paths.extend(
-                                    cls._find_field_paths(attr_name, arg, new_path)
-                                )
-                        except TypeError:
-                            # arg might not be a class, skip it
-                            pass
-            else:
-                try:
-                    if isinstance(field_annotation, type) and issubclass(
-                        field_annotation, BaseModel
-                    ):
-                        paths.extend(
-                            cls._find_field_paths(attr_name, field_annotation, new_path)
-                        )
-                except TypeError:
-                    pass
-
-        for name, attr in vars(current_model).items():
-            if isinstance(attr, property) and name == attr_name:
-                paths.append(current_path + (name,))
-
-        return paths
-
-    def _get_nested_attribute(self, path: Tuple[str, ...]) -> Any:
-        """
-        Accesses a nested attribute using its path.
-        """
-        value = self
-        for step in path:
-            if value is None:
-                raise AttributeError(
-                    f"Cannot access '{step}' on None value at path '{'.'.join(path)}'"
-                )
-            value = getattr(value, step)
-        return value
-
-    def _set_nested_attribute(self, path: Tuple[str, ...], value: Any):
-        """
-        Sets a nested attribute using its path.
-        """
-        target_model = self
-
-        # Traverse to the second to last element
-        for step in path[:-1]:
-            target_model = getattr(target_model, step)
-            if target_model is None:
-                raise AttributeError(
-                    f"Cannot set attribute at path '{'.'.join(path)}': intermediate value is None"
-                )
-
-        # Set the attribute
-        setattr(target_model, path[-1], value)
-
-    def __getattr__(self, name: str) -> Any:
-        """
-        Custom getter: Looks for the attribute in nested models.
-        """
-        # Avoid recursion on special attributes
-        if name.startswith("_"):
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
-            )
-
-        paths = self._resolve_attribute_path(name)
-
-        if not paths:
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object and its nested models have no attribute '{name}'"
-            )
-
-        if len(paths) > 1:
-            path_strings = [f"'{'.'.join(p)}'" for p in paths]
-            raise AttributeError(
-                f"Attribute '{name}' is ambiguous. Found at: {', '.join(path_strings)}. "
-                "Access explicitly (e.g., `element.simulation.field_amplitude`)."
-            )
-
-        return self._get_nested_attribute(paths[0])
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        """
-        Custom setter with cascading updates for related attributes.
-        """
-        cls = self.__class__
-
-        # Allow Pydantic to handle direct fields and internal attributes
-        if name in cls.model_fields or name.startswith("_"):
-            super().__setattr__(name, value)
-            return
-
-        # Try nested lookup
-        try:
-            paths = self._resolve_attribute_path(name)
-        except Exception:
-            super().__setattr__(name, value)
-            return
-
-        if not paths:
-            super().__setattr__(name, value)
-            return
-
-        if len(paths) > 1:
-            path_strings = [f"'{'.'.join(p)}'" for p in paths]
-            raise AttributeError(
-                f"Cannot set ambiguous attribute '{name}'. Found at: {', '.join(path_strings)}. "
-                "Set explicitly."
-            )
-
-        # Set the nested attribute
-        self._set_nested_attribute(paths[0], value)
-
-        # Handle cascading updates
-        self._handle_cascading_updates(paths[0], value)
-
-    def _handle_cascading_updates(self, path: Tuple[str, ...], value: Any) -> None:
-        """
-        Handle cascading attribute updates across nested models.
-        """
-
-        for source_path, target_path in self.CASCADING_RULES.items():
-            if path == source_path:
-                self._set_nested_attribute(target_path, value)
-
-    def to_CATAP(self) -> dict:
-        return {
-            "machine_area": self.machine_area,
-            "hardware_type": self.hardware_type,
-            "name": self.name,
-            # 'virtual_name': self.virtual_name,
-            "name_alias": self.alias,
-        }
-
-    @property
-    def no_controls(self) -> str:
-        cls = self.__class__
-        return (
-            self.__class__.__name__
-            + "("
-            + " ".join(
-                [
-                    k + "=" + getattr(self, k).__repr__()
-                    for k in cls.model_fields.keys()
-                    if k != "controls"
-                ]
-            )
-            + ")"
-        )
 
     @property
     def subdirectory(self) -> str:
@@ -446,9 +212,11 @@ class baseElement(_AcceleratorElementBase, IgnoreExtra):
         return self.subelement is not None
 
 
-class Element(baseElement):
+class Element(baseElement, _ElementBase):
     """
     Standard class for representing elements.
+    Inherits from `baseElement` which wraps schema base `_AcceleratorElementBase`.
+    Adds StandardElement fields: simulation, electrical, manufacturer, controls, reference.
 
     Attributes:
         simulation: :class:`~laura.models.simulation.SimulationElement`: The simulation attributes of the element.
@@ -458,33 +226,18 @@ class Element(baseElement):
         reference: :class:`~laura.models.reference.ReferenceElement` | None: Reference information for the element.
     """
 
-    simulation: SimulationElement = Field(default_factory=SimulationElement)
-    """Simulation attributes of the element."""
-
-    electrical: ElectricalElement = Field(default_factory=ElectricalElement)
-    """Electrical attributes of the element."""
-
-    manufacturer: ManufacturerElement = Field(default_factory=ManufacturerElement)
-    """Manufacturer attributes of the element."""
-
-    controls: ControlsInformation | None = None
-    """Control system attributes of the element."""
-
-    reference: ReferenceElement | None = None
-    """Additional reference information for the element."""
-
-    def to_CATAP(self):
-        catap_dict = super().to_CATAP()
-        return catap_dict
-
-    def update_from_controls(self):
-        if self.controls is None:
-            return
-
-        self.controls.apply(self)
+    def model_post_init(self, __context: Any) -> None:
+        # Preserve prior convenience behavior while keeping declarations schema-first.
+        super().model_post_init(__context)
+        if self.simulation is None:
+            self.simulation = SimulationElement()
+        if self.electrical is None:
+            self.electrical = ElectricalElement()
+        if self.manufacturer is None:
+            self.manufacturer = ManufacturerElement()
 
 
-class PhysicalBaseElement(Element):
+class PhysicalBaseElement(Element, _PhysicalAcceleratorElementBase):
     """
     Element with a physical attribute; see :class:`~laura.models.physical.PhysicalElement`.
 
@@ -492,17 +245,15 @@ class PhysicalBaseElement(Element):
         physical: PhysicalElement: The physical attributes of the element.
     """
 
-    physical: PhysicalElement = Field(default_factory=PhysicalElement)
-    """Physical attributes of the element."""
-
-    def to_CATAP(self):
-        catap_dict = super().to_CATAP()
-        catap_dict.update(
-            {
-                "position": list(self.physical.middle)[2],
-            }
-        )
-        return catap_dict
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.physical is None:
+            self.physical = PhysicalElement()
+        elif not isinstance(self.physical, PhysicalElement):
+            if hasattr(self.physical, "model_dump"):
+                self.physical = PhysicalElement(**self.physical.model_dump())
+            elif isinstance(self.physical, dict):
+                self.physical = PhysicalElement(**self.physical)
 
     @property
     def bend_angle(self) -> Rotation:
@@ -533,27 +284,27 @@ class PhysicalBaseElement(Element):
         return self.start_angle
 
 
-class Magnet(PhysicalBaseElement):
+class Magnet(PhysicalBaseElement, _MagnetBaseElementBase):
     """
     Base class for representing magnets.
+    Inherits from PhysicalBaseElement, which provides proper attribute cascading
+    through __getattr__/__setattr__ and the IgnoreExtra mechanism.
 
     Attributes:
+        hardware_class: Magnet (frozen, overrides schema)
         degauss: :class:`~laura.models.degauss.DegaussableElement`: The degaussing attributes of the magnet.
         simulation: :class:`~laura.models.simulation.MagnetSimulationElement`: The simulation attributes of the magnet.
         magnetic: :class:`~laura.models.magnetic.MagneticElement` | None: The magnetic attributes of the magnet.
+        physical: :class:`~laura.models.physical.PhysicalElement` | None: Physical attributes of the magnet.
     """
 
     hardware_class: str = Field(default="Magnet", frozen=True)
     """Magnet hardware class."""
 
-    degauss: DegaussableElement | None = None
-    """Degaussing attributes of the magnet."""
-
-    simulation: MagnetSimulationElement = Field(default_factory=MagnetSimulationElement)
-    """Simulation attributes of the magnet."""
-
-    magnetic: MagneticElement | None = None
-    """Magnetic attributes of the magnet."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.simulation is None:
+            self.simulation = MagnetSimulationElement()
 
     @property
     def bend_angle(self) -> Rotation:
@@ -568,42 +319,6 @@ class Magnet(PhysicalBaseElement):
     def end_angle(self) -> float:
         """End angle of the magnet"""
         return self.start_angle + self.bend_angle.theta
-
-    # @field_validator('type', mode='before')
-    # @classmethod
-    # def validate_type(cls, v: str) -> str:
-    #     # print(list(map(str.strip, v.split(','))))
-    #     if isinstance(v, str):
-    #         return v.upper()
-    #     else:
-    #         raise ValueError('alias should be a string or a list of strings')
-
-    def to_CATAP(self):
-        catap_dict = super().to_CATAP()
-        catap_dict.update(
-            {
-                "mag_type": self.hardware_type,
-                "degauss_tolerance": self.degauss.tolerance,
-                "degauss_values": self.escape_string_list(self.degauss.values),
-                "num_degauss_steps": self.degauss.steps,
-                "field_integral_coefficients": self.escape_string_list(
-                    self.magnetic.field_integral_coefficients
-                ),
-                "linear_saturation_coefficients": self.escape_string_list(
-                    self.magnetic.linear_saturation_coefficients
-                ),
-                "mag_set_max_wait_time": self.magnetic.settle_time,
-                "magnetic_length": 1000 * self.magnetic.length,
-                "ri_tolerance": self.electrical.read_tolerance,
-                "min_i": self.electrical.min_i,
-                "max_i": self.electrical.max_i,
-            }
-        )
-        return catap_dict
-
-    # @property
-    # def subdirectory(self):
-    #     return os.path.join(self.hardware_type,self.type)
 
 
 class Dipole(Magnet):
@@ -769,7 +484,7 @@ class Wiggler(Magnet):
     """Laser attached to the wiggler."""
 
 
-class TwissMatch(PhysicalBaseElement):
+class TwissMatch(PhysicalBaseElement, _TwissMatchBase):
     """
     Twiss matching element. Used for changing the Twiss parameters of the beam.
 
@@ -785,13 +500,13 @@ class TwissMatch(PhysicalBaseElement):
     hardware_class: str = Field(default="TwissMatch", frozen=True)
     """Twiss match hardware class."""
 
-    simulation: TwissMatchSimulationElement = Field(
-        default_factory=TwissMatchSimulationElement
-    )
-    """Simulation attributes of the matching element."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.simulation is None:
+            self.simulation = TwissMatchSimulationElement()
 
 
-class Diagnostic(PhysicalBaseElement):
+class Diagnostic(PhysicalBaseElement, _DiagnosticBase):
     """
     Base class for representing diagnostics.
 
@@ -808,13 +523,13 @@ class Diagnostic(PhysicalBaseElement):
     hardware_class: str = Field(default="Diagnostic", frozen=True)
     """Diagnostic hardware class."""
 
-    simulation: DiagnosticSimulationElement = Field(
-        default_factory=DiagnosticSimulationElement
-    )
-    """Simulation attributes of the diagnostic."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.simulation is None:
+            self.simulation = DiagnosticSimulationElement()
 
 
-class Beam_Position_Monitor(Diagnostic):
+class Beam_Position_Monitor(Diagnostic, _BeamPositionMonitorBase):
     """
     BPM element.
 
@@ -833,13 +548,13 @@ class Beam_Position_Monitor(Diagnostic):
     hardware_model: str = Field(default="Stripline", frozen=True)
     """BPM hardware model."""
 
-    diagnostic: Beam_Position_Monitor_Diagnostic = Field(
-        default_factory=Beam_Position_Monitor_Diagnostic
-    )
-    """Diagnostic attributes of the BPM."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.diagnostic is None:
+            self.diagnostic = Beam_Position_Monitor_Diagnostic()
 
 
-class Beam_Arrival_Monitor(Diagnostic):
+class Beam_Arrival_Monitor(Diagnostic, _BeamArrivalMonitorBase):
     """
     BAM element.
 
@@ -856,13 +571,13 @@ class Beam_Arrival_Monitor(Diagnostic):
     hardware_model: str = Field(default="DESY", frozen=True)
     """BAM hardware model."""
 
-    diagnostic: Beam_Arrival_Monitor_Diagnostic = Field(
-        default_factory=Beam_Arrival_Monitor_Diagnostic
-    )
-    """Diagnostic attributes of the BAM."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.diagnostic is None:
+            self.diagnostic = Beam_Arrival_Monitor_Diagnostic()
 
 
-class Bunch_Length_Monitor(Diagnostic):
+class Bunch_Length_Monitor(Diagnostic, _BunchLengthMonitorBase):
     """
     BLM element.
 
@@ -879,13 +594,13 @@ class Bunch_Length_Monitor(Diagnostic):
     hardware_model: str = Field(default="CDR", frozen=True)
     """BLM hardware model."""
 
-    diagnostic: Bunch_Length_Monitor_Diagnostic = Field(
-        default_factory=Bunch_Length_Monitor_Diagnostic
-    )
-    """Diagnostic attributes of the BLM."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.diagnostic is None:
+            self.diagnostic = Bunch_Length_Monitor_Diagnostic()
 
 
-class Camera(Diagnostic):
+class Camera(Diagnostic, _CameraBase):
     """
     Camera element.
 
@@ -902,11 +617,13 @@ class Camera(Diagnostic):
     hardware_model: str = Field(default="PCO", frozen=True)
     """Camera hardware model."""
 
-    diagnostic: Camera_Diagnostic = Field(default_factory=Camera_Diagnostic)
-    """Diagnostic attributes of the camera."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.diagnostic is None:
+            self.diagnostic = Camera_Diagnostic()
 
 
-class Screen(Diagnostic):
+class Screen(Diagnostic, _ScreenBase):
     """
     Screen element.
 
@@ -923,25 +640,15 @@ class Screen(Diagnostic):
     hardware_model: str = Field(default="YAG", frozen=True)
     """Screen hardware model."""
 
-    diagnostic: Screen_Diagnostic = Field(default_factory=Screen_Diagnostic)
-    """Diagnostic attributes of the screen."""
-
     controls: ScreenControlsInformation | None = None
 
-    def to_CATAP(self):
-        catap_dict = super().to_CATAP()
-        catap_dict.update(
-            {
-                "screen_type": self.diagnostic.type,
-                "has_camera": self.diagnostic.has_camera,
-                "camera_name": self.diagnostic.camera_name,
-                "devices": self.escape_string_list(self.diagnostic.devices),
-            }
-        )
-        return catap_dict
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.diagnostic is None:
+            self.diagnostic = Screen_Diagnostic()
 
 
-class ChargeDiagnostic(Diagnostic):
+class ChargeDiagnostic(Diagnostic, _ChargeDiagnosticBase):
     """
     Generic charge diagnostic element.
 
@@ -954,11 +661,13 @@ class ChargeDiagnostic(Diagnostic):
     hardware_type: str = Field(default="ChargeDiagnostic", frozen=True)
     """Charge diagnostic hardware type."""
 
-    diagnostic: Charge_Diagnostic = Field(default_factory=Charge_Diagnostic)
-    """Diagnostic attributes of the charge diagnostic."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.diagnostic is None:
+            self.diagnostic = Charge_Diagnostic()
 
 
-class Wall_Current_Monitor(ChargeDiagnostic):
+class Wall_Current_Monitor(ChargeDiagnostic, _WallCurrentMonitorBase):
     """
     WCM charge diagnostic element.
 
@@ -970,7 +679,7 @@ class Wall_Current_Monitor(ChargeDiagnostic):
     """WCM hardware type."""
 
 
-class Faraday_Cup_Monitor(ChargeDiagnostic):
+class Faraday_Cup_Monitor(ChargeDiagnostic, _FaradayCupMonitorBase):
     """
     FCM charge diagnostic element.
 
@@ -982,7 +691,7 @@ class Faraday_Cup_Monitor(ChargeDiagnostic):
     """FCM hardware type."""
 
 
-class Integrated_Current_Transformer(ChargeDiagnostic):
+class Integrated_Current_Transformer(ChargeDiagnostic, _IntegratedCurrentTransformerBase):
     """
     ICT charge diagnostic element.
 
@@ -996,7 +705,7 @@ class Integrated_Current_Transformer(ChargeDiagnostic):
     """ICT hardware type."""
 
 
-class Stage(PhysicalBaseElement):
+class Stage(PhysicalBaseElement, _StageBase):
     """
     Moveable stage element.
 
@@ -1015,7 +724,7 @@ class Stage(PhysicalBaseElement):
     """Moveable stage hardware model."""
 
 
-class VacuumGauge(PhysicalBaseElement):
+class VacuumGauge(PhysicalBaseElement, _VacuumGaugeBase):
     """
     Vacuum gauge element.
 
@@ -1034,7 +743,7 @@ class VacuumGauge(PhysicalBaseElement):
     """Vacuum gauge hardware model."""
 
 
-class Laser(PhysicalBaseElement):
+class Laser(PhysicalBaseElement, _LaserBase):
     """
     Laser element.
 
@@ -1053,11 +762,13 @@ class Laser(PhysicalBaseElement):
     hardware_model: str = Field(default="Laser", frozen=True)
     """Laser hardware model."""
 
-    laser: LaserElement = Field(default_factory=LaserElement)
-    """Laser attributes of the laser."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.laser is None:
+            self.laser = LaserElement()
 
 
-class LaserEnergyMeter(Element):
+class LaserEnergyMeter(Element, _LaserEnergyMeterBase):
     """
     Laser energy meter element.
 
@@ -1078,11 +789,13 @@ class LaserEnergyMeter(Element):
     """Laser energy meter hardware model.
     #TODO should be manufacturer?"""
 
-    laser: LaserEnergyMeterElement = Field(default_factory=LaserEnergyMeterElement)
-    """Laser energy meter attributes of the element."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.laser is None:
+            self.laser = LaserEnergyMeterElement()
 
 
-class LaserHalfWavePlate(Element):
+class LaserHalfWavePlate(Element, _LaserHalfWavePlateBase):
     """
     Laser half-wave plate element.
 
@@ -1103,11 +816,13 @@ class LaserHalfWavePlate(Element):
     """Laser half-wave plate hardware model.
     #TODO should be manufacturer?"""
 
-    laser: LaserHalfWavePlateElement = Field(default_factory=LaserHalfWavePlateElement)
-    """Laser half-wave plate element attributes of the element."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.laser is None:
+            self.laser = LaserHalfWavePlateElement()
 
 
-class LaserMirror(Element):
+class LaserMirror(Element, _LaserMirrorBase):
     """
     Laser mirror element.
 
@@ -1131,7 +846,7 @@ class LaserMirror(Element):
     """Laser mirror control attributes of the element."""
 
 
-class LaserAttenuator(Element):
+class LaserAttenuator(Element, _LaserAttenuatorBase):
     """
     Laser attenuator element.
 
@@ -1145,14 +860,10 @@ class LaserAttenuator(Element):
     hardware_type: str = Field(default="LaserAttenuator", frozen=True)
     """Laser attenuator hardware type."""
 
-    maximum: float = 0.0
-    """Maximum attenuation of the laser attenuator (in degrees)."""
-
-    minimum: float = 0.0
-    """Minimum attenuation of the laser attenuator (in degrees)."""
+    pass
 
 
-class Plasma(PhysicalBaseElement):
+class Plasma(PhysicalBaseElement, _PlasmaBase):
     """
     Plasma element.
 
@@ -1170,17 +881,15 @@ class Plasma(PhysicalBaseElement):
     hardware_type: str = Field(default="Plasma", frozen=True)
     """Plasma hardware type."""
 
-    simulation: PlasmaSimulationElement = Field(default_factory=PlasmaSimulationElement)
-    """Simulation attributes of the plasma."""
-
-    plasma: PlasmaElement = Field(default_factory=PlasmaElement)
-    """Plasma attribute of the plasma."""
-
-    laser: LaserElement | None = None
-    """Laser attached to the plasma element."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.simulation is None:
+            self.simulation = PlasmaSimulationElement()
+        if self.plasma is None:
+            self.plasma = PlasmaElement()
 
 
-class Lighting(Element):
+class Lighting(Element, _LightingBase):
     """
     Lighting element.
 
@@ -1199,11 +908,13 @@ class Lighting(Element):
     hardware_model: str = Field(default="LED", frozen=True)
     """Lighting hardware model."""
 
-    lights: LightingElement = Field(default_factory=LightingElement)
-    """Lighting attributes of the element."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.lights is None:
+            self.lights = LightingElement()
 
 
-class PID(Element):
+class PID(Element, _PIDBase):
     """
     Proportional-integral-derivative feedback element.
 
@@ -1226,7 +937,7 @@ class PID(Element):
     """PID attributes of the element."""
 
 
-class Low_Level_RF(Element):
+class Low_Level_RF(Element, _LowLevelRFBase):
     """
     Low-level RF element.
 
@@ -1249,7 +960,7 @@ class Low_Level_RF(Element):
     """LLRF attributes of the element."""
 
 
-class RFCavity(PhysicalBaseElement):
+class RFCavity(PhysicalBaseElement, _RFCavityBase):
     """
     RFCavity element.
 
@@ -1270,16 +981,15 @@ class RFCavity(PhysicalBaseElement):
     hardware_model: str = Field(default="SBand", frozen=True)
     """RF cavity hardware model."""
 
-    cavity: RFCavityElement = Field(default_factory=RFCavityElement)
-    """Cavity attributes of the RF cavity."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.cavity is None:
+            self.cavity = RFCavityElement()
+        if self.simulation is None:
+            self.simulation = RFCavitySimulationElement()
 
-    simulation: RFCavitySimulationElement = Field(
-        default_factory=RFCavitySimulationElement
-    )
-    """Simulation attributes of the RF cavity."""
 
-
-class Wakefield(PhysicalBaseElement):
+class Wakefield(PhysicalBaseElement, _WakefieldBase):
     """
     Wakefield element.
 
@@ -1300,16 +1010,15 @@ class Wakefield(PhysicalBaseElement):
     hardware_model: str = Field(default="Dielectric", frozen=True)
     """Wakefield hardware model."""
 
-    cavity: WakefieldElement = Field(default_factory=WakefieldElement)
-    """Wakefield attributes of the element."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.cavity is None:
+            self.cavity = WakefieldElement()
+        if self.simulation is None:
+            self.simulation = WakefieldSimulationElement()
 
-    simulation: WakefieldSimulationElement = Field(
-        default_factory=WakefieldSimulationElement
-    )
-    """Simulation attributes of the wakefield element."""
 
-
-class RFDeflectingCavity(RFCavity):
+class RFDeflectingCavity(RFCavity, _RFDeflectingCavityBase):
     """
     RF Deflecting Cavity element.
 
@@ -1327,16 +1036,15 @@ class RFDeflectingCavity(RFCavity):
     hardware_model: str = Field(default="SBand", frozen=True)
     """RF deflecting cavity hardware model."""
 
-    cavity: RFDeflectingCavityElement = Field(default_factory=RFDeflectingCavityElement)
-    """Cavity attributes of the RF deflecting cavity."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.cavity is None:
+            self.cavity = RFDeflectingCavityElement()
+        if self.simulation is None:
+            self.simulation = RFCavitySimulationElement()
 
-    simulation: RFCavitySimulationElement = Field(
-        default_factory=RFCavitySimulationElement
-    )
-    """Simulation attributes of the RF deflecting cavity."""
 
-
-class RFModulator(Element):
+class RFModulator(Element, _RFModulatorBase):
     """
     RF Modulator element.
 
@@ -1356,11 +1064,13 @@ class RFModulator(Element):
     """RF modulator hardware model.
     #TODO move to manufacturer?"""
 
-    modulator: RFModulatorElement = Field(default_factory=RFModulatorElement)
-    """RF modulator attributes of the element."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.modulator is None:
+            self.modulator = RFModulatorElement()
 
 
-class RFProtection(Element):
+class RFProtection(Element, _RFProtectionBase):
     """
     RF Protection element.
 
@@ -1383,7 +1093,7 @@ class RFProtection(Element):
     """RF protection attributes of the element."""
 
 
-class RFHeartbeat(Element):
+class RFHeartbeat(Element, _RFHeartbeatBase):
     """
     RF Heartbeat element.
 
@@ -1398,11 +1108,13 @@ class RFHeartbeat(Element):
     hardware_type: str = Field(default="RFHeartbeat", frozen=True)
     """RF heartbeat hardware type."""
 
-    heartbeat: RFHeartbeatElement = Field(default_factory=RFHeartbeatElement)
-    """RF heartbeat system attributes."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.heartbeat is None:
+            self.heartbeat = RFHeartbeatElement()
 
 
-class Shutter(PhysicalBaseElement):
+class Shutter(PhysicalBaseElement, _ShutterBase):
     """
     Shutter element.
 
@@ -1417,14 +1129,16 @@ class Shutter(PhysicalBaseElement):
     hardware_type: str = Field(default="Shutter", frozen=True)
     """Shutter hardware type"""
 
-    shutter: ShutterElement = Field(default_factory=ShutterElement)
-    """Shutter attributes of the element."""
-
     controls: ShutterControlsInformation | None = None
     """Shutter control attributes of the element."""
 
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.shutter is None:
+            self.shutter = ShutterElement()
 
-class Valve(PhysicalBaseElement):
+
+class Valve(PhysicalBaseElement, _ValveBase):
     """
     Vacuum valve element.
 
@@ -1439,11 +1153,13 @@ class Valve(PhysicalBaseElement):
     hardware_type: str = Field(default="Valve", frozen=True)
     """Valve hardware type."""
 
-    valve: ValveElement = Field(default_factory=ValveElement)
-    """Valve attributes of the element."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.valve is None:
+            self.valve = ValveElement()
 
 
-class Marker(PhysicalBaseElement):
+class Marker(PhysicalBaseElement, _MarkerBase):
     """
     Marker element.
 
@@ -1463,13 +1179,13 @@ class Marker(PhysicalBaseElement):
     hardware_model: str = Field(default="Simulation", frozen=True)
     """Marker hardware model."""
 
-    simulation: DiagnosticSimulationElement = Field(
-        default_factory=DiagnosticSimulationElement
-    )
-    """Simulation attributes of the marker."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.simulation is None:
+            self.simulation = DiagnosticSimulationElement()
 
 
-class Aperture(PhysicalBaseElement):
+class Aperture(PhysicalBaseElement, _ApertureBase):
     """
     Aperture element.
 
@@ -1489,11 +1205,13 @@ class Aperture(PhysicalBaseElement):
     hardware_model: str = Field(default="Simulation", frozen=True)
     """Aperture hardware model."""
 
-    aperture: ApertureElement = Field(default_factory=ApertureElement)
-    """Aperture attributes of the element."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.aperture is None:
+            self.aperture = ApertureElement()
 
 
-class Collimator(Aperture):
+class Collimator(Aperture, _CollimatorBase):
     """
     Collimator element.
 
@@ -1509,7 +1227,7 @@ class Collimator(Aperture):
     """Collimator hardware model."""
 
 
-class Drift(PhysicalBaseElement):
+class Drift(PhysicalBaseElement, _DriftBase):
     """
     Drift element.
 
@@ -1522,5 +1240,7 @@ class Drift(PhysicalBaseElement):
     hardware_type: str = Field(default="Drift", frozen=True)
     """Drift hardware type."""
 
-    simulation: DriftSimulationElement = Field(default_factory=DriftSimulationElement)
-    """Simulation attributes of the drift."""
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.simulation is None:
+            self.simulation = DriftSimulationElement()

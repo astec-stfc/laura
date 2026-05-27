@@ -49,6 +49,7 @@ URI: [laura:physical_angle](https://w3id.org/laura/physical_angle)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [PhysicalElement](PhysicalElement.md) |
 
 
@@ -105,6 +106,7 @@ description: Bending angle in the horizontal plane [rad]. Derived from ``magneti
   when available.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: PhysicalElement
 domain_of:
 - PhysicalElement

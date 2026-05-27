@@ -61,6 +61,11 @@ Name: laura_schema
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFModulator](RFModulator.md) | RF modulator (klystron driver) element |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFProtection](RFProtection.md) | RF protection system element |
 | [ApertureElement](ApertureElement.md) | Transverse aperture geometry for drift-space checks and collimators |
+| [CameraMask](CameraMask.md) | Camera analysis mask parameters |
+| [CameraPixelResultsIndices](CameraPixelResultsIndices.md) | Indices into camera pixel-analysis result arrays |
+| [CameraPixelResultsNames](CameraPixelResultsNames.md) | Names of camera pixel-analysis result arrays |
+| [CameraSensor](CameraSensor.md) | Camera sensor hardware configuration |
+| [ChannelNames](ChannelNames.md) | Names for LLRF channels 1 |
 | [ControlsInformation](ControlsInformation.md) | Collection of process-variable definitions for an element's control interface |
 | [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |
 | [DegaussableElement](DegaussableElement.md) | Degaussing (demagnetisation cycle) parameters for magnets that require a fiel... |
@@ -78,8 +83,12 @@ Name: laura_schema
 | [LaserElement](LaserElement.md) | Laser-beam parameters (wavelength, pulse energy, profile, etc |
 | [LaserEnergyMeterElement](LaserEnergyMeterElement.md) | Laser energy-meter sub-model (no additional fields) |
 | [LaserHalfWavePlateElement](LaserHalfWavePlateElement.md) | Half-wave plate sub-model (no additional fields) |
+| [LaserMirrorElement](LaserMirrorElement.md) | Mirror steering parameters for a laser mirror |
+| [LaserMirrorSense](LaserMirrorSense.md) | Mirror sense switch values |
 | [LightingElement](LightingElement.md) | Lighting element (no additional fields currently defined) |
 | [LinearSaturationFit](LinearSaturationFit.md) | Bi-linear saturation model mapping magnet current to integrated field strengt... |
+| [LLRFTiming](LLRFTiming.md) | Start/end window timing definition |
+| [LLRFTimings](LLRFTimings.md) | Collection of timing windows for key LLRF channels |
 | [LowLevelRFElement](LowLevelRFElement.md) | Low-level RF (LLRF) system parameters |
 | [MachineLayout](MachineLayout.md) | An ordered list of section names defining a beamline layout (a contiguous seq... |
 | [MachineModel](MachineModel.md) | Top-level container for a complete accelerator lattice: elements, sections, l... |
@@ -89,6 +98,8 @@ Name: laura_schema
 | [Multipoles](Multipoles.md) | Complete set of integrated multipole strengths up to decapole order, as named... |
 | [PhysicalElement](PhysicalElement.md) | Physical placement data: position, rotation, length, and associated survey / ... |
 | [PIDElement](PIDElement.md) | PID feedback-controller parameters |
+| [PIDPhaseRange](PIDPhaseRange.md) | Numeric min/max range for PID phase control |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[PIDWeightRange](PIDWeightRange.md) | Numeric min/max range for PID phase weighting |
 | [PlasmaElement](PlasmaElement.md) | Plasma channel parameters for a laser-driven plasma-accelerator stage |
 | [Position](Position.md) | Cartesian position in the global accelerator coordinate system |
 | [ReferenceElement](ReferenceElement.md) | Links to engineering drawings and design files |
@@ -108,6 +119,7 @@ Name: laura_schema
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[TwissMatchSimulationElement](TwissMatchSimulationElement.md) | Simulation attributes for Twiss-matching points |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[WakefieldSimulationElement](WakefieldSimulationElement.md) | Simulation attributes for passive wakefield structures |
+| [Trace](Trace.md) | LLRF trace metadata |
 | [ValveElement](ValveElement.md) | Vacuum valve configuration (no additional fields) |
 | [WakefieldElement](WakefieldElement.md) | Passive wakefield structure parameters |
 
@@ -118,21 +130,52 @@ Name: laura_schema
 | Slot | Description |
 | --- | --- |
 | [a](a.md) | Quadratic saturation coefficient |
-| [alias](alias.md) | Short human-readable alias |
+| [alias](alias.md) | Human-readable aliases for the element |
+| [allow_long_beam](allow_long_beam.md) | Allow beams longer than the wakefield |
+| [alpha_x](alpha_x.md) | Horizontal alpha |
+| [alpha_y](alpha_y.md) | Vertical alpha |
 | [aperture](aperture.md) | Aperture geometry parameters |
 | [attenuation_constant](attenuation_constant.md) | Attenuation constant ? of a travelling-wave structure [Np/m] |
+| [beam_pixel_average](beam_pixel_average.md) | Average pixel value for beam detection |
+| [beta_x](beta_x.md) | Horizontal beta |
+| [beta_y](beta_y.md) | Vertical beta |
+| [bit_depth](bit_depth.md) | Camera bit depth |
+| [body_focus_model](body_focus_model.md) | Cavity body focusing model |
 | [bore](bore.md) | Magnet bore radius [m] |
+| [bunch_pusher](bunch_pusher.md) | Pusher used to evolve bunch particles in time |
+| [bunched_beam](bunched_beam.md) | Use bunched beam mode |
 | [camera_name](camera_name.md) | Name of the associated camera element |
 | [cavity](cavity.md) | RF structure parameters |
+| [cavity_forward](cavity_forward.md) | Timing for cavity forward power |
+| [cavity_probe](cavity_probe.md) | Timing for cavity probe |
+| [cavity_reverse](cavity_reverse.md) | Timing for cavity reverse power |
 | [cell_length](cell_length.md) | Length of a single accelerating cell [m] |
 | [cep_phase](cep_phase.md) | Carrier-envelope phase [rad] |
+| [ch1](ch1.md) |  |
+| [ch2](ch2.md) |  |
+| [ch3](ch3.md) |  |
+| [ch4](ch4.md) |  |
+| [ch5](ch5.md) |  |
+| [ch6](ch6.md) |  |
+| [ch7](ch7.md) |  |
+| [ch8](ch8.md) |  |
+| [change_momentum](change_momentum.md) | Allow wakefield to change bunch momentum |
+| [change_p0](change_p0.md) | Flag indicating whether the cavity changes reference momentum |
+| [channel_names](channel_names.md) | Channel labels |
 | [coefficients](coefficients.md) | Polynomial coefficients ordered from lowest to highest degree: ``FieldIntegra... |
 | [controls](controls.md) | Control-system process-variable definitions |
 | [coupling_cell_length](coupling_cell_length.md) | Length of a coupling cell [m] |
+| [covariance](covariance.md) | Beam covariance index |
 | [crest](crest.md) | On-crest phase offset providing maximum energy gain [deg] |
+| [crest_phase](crest_phase.md) | Cavity crest phase |
 | [csr_bins](csr_bins.md) | Number of longitudinal bins for the CSR mesh |
 | [csr_enable](csr_enable.md) | Enable coherent synchrotron radiation |
+| [csrdz](csrdz.md) | Step size for CSR calculations |
+| [current_bins](current_bins.md) | Number of current bins |
 | [d](d.md) | Constant offset term |
+| [data_chunk_size](data_chunk_size.md) | Chunk size for one-record traces |
+| [data_count](data_count.md) | Number of one-record trace entries |
+| [data_size](data_size.md) | Number of points in a trace |
 | [datum](datum.md) | Datum reference position |
 | [degauss](degauss.md) | Degaussing-cycle parameters |
 | [deltaL](deltaL.md) | Longitudinal step-size override for thick-lens integration [m] |
@@ -143,28 +186,47 @@ Name: laura_schema
 | [design_gamma](design_gamma.md) | Relativistic Lorentz factor ? at design operating point |
 | [design_power](design_power.md) | Design peak RF power [W] |
 | [diagnostic](diagnostic.md) | Instrument-specific diagnostic parameters |
+| [disable](disable.md) | Disable command/value |
+| [down](down.md) | Down sense value |
 | [drawings](drawings.md) | Engineering-drawing identifiers or URIs |
+| [dt_bunch](dt_bunch.md) | Time-step control for bunch evolution (or 'auto') |
 | [dtype](dtype.md) | Data type (e |
+| [dz_fields](dz_fields.md) | Interval for plasma wakefield updates |
 | [edge1_effects](edge1_effects.md) | Enable entrance-edge focussing effects |
 | [edge2_effects](edge2_effects.md) | Enable exit-edge focussing effects |
 | [edge_field_integral](edge_field_integral.md) | Fringe-field integral for edge focussing |
 | [edge_order](edge_order.md) | Polynomial order of the edge-field expansion |
 | [electrical](electrical.md) | Power-supply electrical limits |
 | [elements](elements.md) | Ordered list of element names in this section |
+| [enable](enable.md) | Enable command/value |
+| [end](end.md) | End time |
+| [end1_focus](end1_focus.md) | Apply entrance focusing |
+| [end2_focus](end2_focus.md) | Apply exit focusing |
 | [entrance_edge_angle](entrance_edge_angle.md) | Fringe-field entrance edge angle [rad] |
+| [equal_grid](equal_grid.md) | Interpolation between equidistant and equal-charge grids |
 | [error](error.md) | Alignment errors |
+| [eta_x](eta_x.md) | Horizontal dispersion |
+| [eta_xp](eta_xp.md) | Horizontal dispersion derivative |
+| [eta_y](eta_y.md) | Vertical dispersion |
+| [eta_yp](eta_yp.md) | Vertical dispersion derivative |
 | [exit_edge_angle](exit_edge_angle.md) | Fringe-field exit edge angle [rad] |
 | [expression](expression.md) | Optional expression string for derived values |
+| [ez_peak](ez_peak.md) | Peak longitudinal electric field |
 | [f](f.md) | Saturation fraction (slope ratio below/above I_max) |
+| [factor](factor.md) | Wake scaling factor |
+| [field_amplitude](field_amplitude.md) | Field amplitude scaling for magnet tracking |
 | [field_definition](field_definition.md) | Path to the 3-D field-map file |
+| [field_file_name](field_file_name.md) | Cavity field file name |
 | [field_integral_coefficients](field_integral_coefficients.md) | Polynomial calibration of integrated field vs |
 | [field_reference_position](field_reference_position.md) | Longitudinal origin of the field map [m] |
 | [flatness](flatness.md) | Flatness order N of a flattened-Gaussian profile (for ``profile_type = flatte... |
 | [flipped_horizontally](flipped_horizontally.md) | True if the image is mirrored left-right |
 | [flipped_vertically](flipped_vertically.md) | True if the image is mirrored top-bottom |
 | [focal_position](focal_position.md) | Focal (waist) position along the propagation axis [m] |
+| [forward_channel](forward_channel.md) | Forward channel index |
 | [frequency](frequency.md) | RF operating frequency [Hz] |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | Coefficient controlling the fringe-field roll-off rate |
+| [from_beam](from_beam.md) | Compute transform from tracked beam properties |
 | [gap](gap.md) | Full gap between pole faces [m] |
 | [global_rotation](global_rotation.md) | Accumulated global rotation including parent-frame contributions |
 | [gradient](gradient.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) |
@@ -175,6 +237,7 @@ Name: laura_schema
 | [has_camera](has_camera.md) | Whether the screen has an associated camera |
 | [has_led](has_led.md) | True if the camera mount includes an LED backlight |
 | [heartbeat](heartbeat.md) | RF heartbeat parameters |
+| [horizontal_channel](horizontal_channel.md) | Horizontal control channel index |
 | [horizontal_size](horizontal_size.md) | Full horizontal aperture [m] |
 | [I0](I0.md) | Current offset [A] |
 | [I_max](I_max.md) | Current at which saturation begins [A] |
@@ -182,6 +245,9 @@ Name: laura_schema
 | [initial_position](initial_position.md) | Initial longitudinal position of the laser pulse [m] |
 | [integration_order](integration_order.md) | Order of the symplectic integrator |
 | [interlocks](interlocks.md) | Names of the interlocks guarding this shutter |
+| [interpolate](interpolate.md) | Interpolate points in wake file |
+| [interpolate_current_bins](interpolate_current_bins.md) | Flag indicating current-bin interpolation |
+| [interpolation_method](interpolation_method.md) | Interpolation method for ASTRA |
 | [isr_enable](isr_enable.md) | Enable incoherent synchrotron-radiation emittance growth |
 | [K0L](K0L.md) | Integrated dipole field |
 | [K1L](K1L.md) | Integrated quadrupole gradient |
@@ -190,27 +256,44 @@ Name: laura_schema
 | [K4L](K4L.md) | Integrated decapole strength |
 | [Kd](Kd.md) | Derivative gain |
 | [Ki](Ki.md) | Integral gain |
+| [klystron_forward](klystron_forward.md) | Timing for klystron forward power |
+| [klystron_reverse](klystron_reverse.md) | Timing for klystron reverse power |
 | [Kp](Kp.md) | Proportional gain |
 | [L](L.md) | Effective magnetic length [m] |
 | [laguerre_polynomial_order_p](laguerre_polynomial_order_p.md) | Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian... |
 | [laser](laser.md) | Laser-beam parameters |
 | [layouts](layouts.md) | All named beamline layouts |
+| [left](left.md) | Left sense value |
 | [length](length.md) | Effective length along the beam axis [m] |
 | [lights](lights.md) | Lighting configuration |
 | [linear_saturation_coefficients](linear_saturation_coefficients.md) | Bi-linear saturation calibration |
 | [llrf](llrf.md) | LLRF parameters |
+| [lsc_bins](lsc_bins.md) | Number of longitudinal space-charge bins |
+| [lsc_enable](lsc_enable.md) | Enable LSC drift calculations |
+| [lsc_high_frequency_cutoff_end](lsc_high_frequency_cutoff_end.md) | High-frequency cutoff end for LSC |
+| [lsc_high_frequency_cutoff_start](lsc_high_frequency_cutoff_start.md) | High-frequency cutoff start for LSC |
+| [lsc_interpolate](lsc_interpolate.md) | Flag to allow interpolation of computed LSC wake |
+| [lsc_low_frequency_cutoff_end](lsc_low_frequency_cutoff_end.md) | Low-frequency cutoff end for LSC |
+| [lsc_low_frequency_cutoff_start](lsc_low_frequency_cutoff_start.md) | Low-frequency cutoff start for LSC |
 | [m](m.md) | Linear slope of the unsaturated region |
 | [machine_area](machine_area.md) | Machine area label grouping related elements (e |
 | [magnetic](magnetic.md) | Magnetic field parameters |
 | [magnetic_length](magnetic_length.md) | Magnetic (effective) length [m] |
 | [manufacturer](manufacturer.md) | Name of the manufacturer |
+| [mask](mask.md) | Camera analysis mask configuration |
 | [master_lattice](master_lattice.md) | Name of the master lattice this section belongs to |
+| [max](max.md) | Maximum value |
+| [max_amplitude](max_amplitude.md) | Maximum allowed amplitude |
 | [max_i](max_i.md) | Maximum current [A] |
-| [maximum](maximum.md) | Maximum attenuation angle [deg] |
+| [max_longitudinal_position](max_longitudinal_position.md) | Maximum longitudinal position [m] |
+| [maximum](maximum.md) | Maximum mask radius in pixels [x, y] |
 | [maximum_position](maximum_position.md) | Maximum downstream s-coordinate [m] |
+| [mechanical_middle](mechanical_middle.md) | Mechanical center of the camera in pixels [x, y] |
 | [middle](middle.md) | Longitudinal midpoint (centre) of the element |
+| [min](min.md) | Minimum value |
 | [min_i](min_i.md) | Minimum current [A] |
-| [minimum](minimum.md) | Minimum attenuation angle [deg] |
+| [min_longitudinal_position](min_longitudinal_position.md) | Minimum longitudinal position [m] |
+| [minimum](minimum.md) | Minimum pixel positions [x, y] |
 | [minimum_position](minimum_position.md) | Minimum upstream s-coordinate [m] |
 | [mode_denominator](mode_denominator.md) | Denominator of the operating mode fraction |
 | [mode_numerator](mode_numerator.md) | Numerator of the operating mode fraction (e |
@@ -218,44 +301,70 @@ Name: laura_schema
 | [multipoles](multipoles.md) | Integrated multipole field components |
 | [n_cells](n_cells.md) | Number of accelerating cells |
 | [n_kicks](n_kicks.md) | Number of integration kicks |
+| [n_longitudinal](n_longitudinal.md) | Number of grid points in the longitudinal direction |
+| [n_out](n_out.md) | Number of distribution dumps during the plasma stage |
+| [n_radial](n_radial.md) | Number of grid points in the radial direction |
 | [n_slices](n_slices.md) | Number of longitudinal slices for thick-lens tracking |
 | [name](name.md) | Unique element name within the machine |
 | [negative_extent](negative_extent.md) | Upstream / inner extent [m] |
 | [nonlinear](nonlinear.md) | Include higher-order (sextupole+) field components |
 | [normal](normal.md) | Integrated normal (upright) multipole strength [T |
 | [number_of_elements](number_of_elements.md) | Number of aperture sub-elements (e |
+| [number_of_start_zeros](number_of_start_zeros.md) | Number of leading zeros in a trace |
+| [operating_middle](operating_middle.md) | Operating center positions in pixels [x, y] |
 | [order](order.md) | Multipole order (0 = dipole, 1 = quadrupole, ?) |
+| [output_filename](output_filename.md) | Output filename for diagnostic data |
 | [parabolic_coefficient](parabolic_coefficient.md) | Parabolic coefficient for a transverse density profile |
 | [phase](phase.md) | Operating phase relative to crest [deg] |
+| [phase_range](phase_range.md) | Phase tuning range |
+| [phase_weight_range](phase_weight_range.md) | Phase weighting range |
 | [phi](phi.md) | Rotation about the horizontal (x) axis [rad] |
 | [physical](physical.md) | Position, rotation, and length data |
 | [physical_angle](physical_angle.md) | Bending angle in the horizontal plane [rad] |
 | [pid](pid.md) | PID gain parameters |
+| [pixel_results_indices](pixel_results_indices.md) | Indices of pixel analysis result arrays |
+| [pixel_results_names](pixel_results_names.md) | Names of pixel analysis result arrays |
 | [plane](plane.md) | Principal bending / focusing plane (``H``, ``V``, or ``HV``) |
 | [plasma](plasma.md) | Plasma channel parameters |
+| [plasma_particles_per_cell](plasma_particles_per_cell.md) | Number of plasma particles per cell |
+| [plasma_pusher](plasma_pusher.md) | Pusher used to evolve the plasma in time |
 | [plateau](plateau.md) | Flat-top plateau length [m] |
 | [polarization](polarization.md) | Laser polarization state |
 | [position](position.md) | Positional misalignment error [m] |
 | [positive_extent](positive_extent.md) | Downstream / outer extent [m] |
 | [power_calibration](power_calibration.md) | Calibration constant relating measured power to cavity gradient |
+| [probe_channel](probe_channel.md) | Probe channel index |
 | [profile_type](profile_type.md) | Transverse intensity profile model |
+| [prot_type](prot_type.md) | Protection system type |
 | [protection](protection.md) | RF protection parameters |
 | [protocol](protocol.md) | Control-system protocol (e |
 | [psi](psi.md) | Rotation about the vertical (y) axis [rad] |
 | [pulse_duration_fwhm](pulse_duration_fwhm.md) | Pulse duration at FWHM [s] |
 | [pulse_energy](pulse_energy.md) | Laser pulse energy [J] |
+| [r_max](r_max.md) | Radial extent of the simulation box [m] |
+| [r_max_plasma](r_max_plasma.md) | Maximum radial extension of the plasma column |
 | [radius](radius.md) | Reference radius for multipole normalisation [m] |
 | [ramp_decay_length](ramp_decay_length.md) | Exponential decay length of the density ramp [m] |
 | [ramp_down](ramp_down.md) | Exit density-ramp length [m] |
 | [ramp_up](ramp_up.md) | Entrance density-ramp length [m] |
 | [random_multipoles](random_multipoles.md) | Random multipole errors at the reference radius |
 | [read_only](read_only.md) | Whether the variable is read-only |
+| [read_tolerance](read_tolerance.md) | Read-back vs |
 | [reference](reference.md) | Links to design drawings and files |
-| [ri_tolerance](ri_tolerance.md) | Read-back vs |
+| [right](right.md) | Right sense value |
 | [rotation](rotation.md) | Angular misalignment error [rad] |
 | [scale_field](scale_field.md) | Multiplicative scale factor applied to the field map |
+| [scale_field_ex](scale_field_ex.md) | x-component of the longitudinal direction vector |
+| [scale_field_ey](scale_field_ey.md) | y-component of the longitudinal direction vector |
+| [scale_field_ez](scale_field_ez.md) | z-component of the longitudinal direction vector |
+| [scale_field_hx](scale_field_hx.md) | x-component of the horizontal direction vector |
+| [scale_field_hy](scale_field_hy.md) | y-component of the horizontal direction vector |
+| [scale_field_hz](scale_field_hz.md) | z-component of the horizontal direction vector |
+| [scale_kick](scale_kick.md) | Factor by which to scale wake kicks |
 | [screen_name](screen_name.md) | Name of the screen element to which this camera is attached |
 | [sections](sections.md) | Ordered list of section names |
+| [sense](sense.md) | Mirror sense/interlock configuration |
+| [sensor](sensor.md) | Camera sensor hardware configuration |
 | [serial_number](serial_number.md) | Manufacturer serial number |
 | [settle_time](settle_time.md) | Power-supply settle time after a change [s] |
 | [shape](shape.md) | Cross-sectional aperture shape |
@@ -264,35 +373,61 @@ Name: laura_schema
 | [simulation](simulation.md) | Simulation / tracking attributes |
 | [skew](skew.md) | Integrated skew (rotated) multipole strength [T |
 | [smooth](smooth.md) | Use a smoothed field profile |
+| [smooth_current_bins](smooth_current_bins.md) | Flag indicating current-bin smoothing |
+| [smooth_points](smooth_points.md) | Number of points used to smooth the field map [ASTRA] |
 | [smoothing_half_width](smoothing_half_width.md) | Half-width of the current-profile smoothing kernel |
 | [species](species.md) | Plasma species name (e |
 | [sr_enable](sr_enable.md) | Enable synchrotron-radiation energy loss |
+| [start](start.md) | Start time |
+| [step_max](step_max.md) | Maximum step size for mirror adjustment |
 | [steps](steps.md) | Number of degauss steps per half-cycle |
 | [structure_type](structure_type.md) | RF structure type (e |
+| [subbins](subbins.md) | Sub-binning parameter |
 | [subelement](subelement.md) | If set, this element is a logical sub-component of the named parent element |
 | [survey](survey.md) | Survey-measured position and rotation |
 | [systematic_multipoles](systematic_multipoles.md) | Systematic (design) multipole errors at the reference radius |
+| [t_column](t_column.md) | Time column in the wake file |
 | [target](target.md) | Set-point target value |
 | [theta](theta.md) | Rotation about the longitudinal (z) axis [rad] |
 | [tilt](tilt.md) | Global tilt about the beam axis [rad] |
+| [timings](timings.md) | Timing windows for LLRF channels |
 | [tolerance](tolerance.md) | Current tolerance band during the degauss cycle [A] |
+| [trace](trace.md) | Trace metadata |
+| [trwakefile](trwakefile.md) | Transverse wake file name |
 | [type](type.md) | BPM type (e |
 | [units](units.md) | Physical units string (e |
+| [up](up.md) | Up sense value |
+| [use_maximum_values](use_maximum_values.md) | If True, use maximum mask radius constraints |
+| [use_stupakov](use_stupakov.md) | Use Stupakov formula |
 | [value](value.md) | Last-read value |
 | [values](values.md) | Sequence of peak currents applied during the degauss cycle [A] |
 | [valve](valve.md) | Valve configuration |
 | [variables](variables.md) | Named control variables keyed by logical name |
+| [vertical_channel](vertical_channel.md) | Vertical control channel index |
 | [vertical_size](vertical_size.md) | Full vertical aperture [m] |
 | [virtual_name](virtual_name.md) | Alternative internal name used by the control system when the physical name i... |
 | [waist](waist.md) | Laser beam waist (1/e^2 radius) [m] |
 | [wakefield_definition](wakefield_definition.md) | Path to the wakefield impedance file |
+| [wakefield_model](wakefield_model.md) | Wakefield model identifier |
+| [wakefile](wakefile.md) | Wake file name |
 | [wavelength](wavelength.md) | Laser wavelength [m] |
 | [width](width.md) | Physical width of the magnet in the bending plane [m] |
+| [wx_column](wx_column.md) | Horizontal wake column in the wake file |
+| [wy_column](wy_column.md) | Vertical wake column in the wake file |
+| [wz_column](wz_column.md) | Longitudinal wake column in the wake file |
 | [x](x.md) | Horizontal component [m] |
-| [x_pixels](x_pixels.md) | Image width reported by the control system [pix] |
+| [x_pixels](x_pixels.md) | Raw sensor pixel count in x |
+| [x_pixels_to_mm](x_pixels_to_mm.md) | Pixel-to-mm scale factor in x |
+| [x_scale_factor](x_scale_factor.md) | Pixel binning factor in x |
+| [x_sigma](x_sigma.md) | Beam sigma index in x |
 | [y](y.md) | Vertical component [m] |
-| [y_pixels](y_pixels.md) | Image height reported by the control system [pix] |
+| [y_pixels](y_pixels.md) | Raw sensor pixel count in y |
+| [y_pixels_to_mm](y_pixels_to_mm.md) | Pixel-to-mm scale factor in y |
+| [y_scale_factor](y_scale_factor.md) | Pixel binning factor in y |
+| [y_sigma](y_sigma.md) | Beam sigma index in y |
 | [z](z.md) | Longitudinal (beam-direction) component [m] |
+| [z_column](z_column.md) | Longitudinal position column in the wake file |
+| [zwakefile](zwakefile.md) | Longitudinal wake file name |
 
 
 ## Enumerations

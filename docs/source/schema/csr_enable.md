@@ -5,11 +5,6 @@ search:
 
 # Slot: csr_enable 
 
-
-_Enable coherent synchrotron radiation._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -26,6 +21,7 @@ URI: [laura:csr_enable](https://w3id.org/laura/csr_enable)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  no  |
+| [DriftSimulationElement](DriftSimulationElement.md) | Simulation attributes for field-free drift sections |  no  |
 
 
 
@@ -38,20 +34,13 @@ URI: [laura:csr_enable](https://w3id.org/laura/csr_enable)
 
 | Property | Value |
 | --- | --- |
-| Range | [Boolean](Boolean.md) |
-| Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| Range | [String](String.md) |
+| Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md), [DriftSimulationElement](DriftSimulationElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| Owner | [MagnetSimulationElement](MagnetSimulationElement.md) |
-
-
 
 
 
@@ -65,13 +54,6 @@ URI: [laura:csr_enable](https://w3id.org/laura/csr_enable)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -91,13 +73,10 @@ URI: [laura:csr_enable](https://w3id.org/laura/csr_enable)
 <details>
 ```yaml
 name: csr_enable
-description: Enable coherent synchrotron radiation.
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement
-range: boolean
+- DriftSimulationElement
+range: string
 
 ```
 </details></div>

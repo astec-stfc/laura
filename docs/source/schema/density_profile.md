@@ -49,6 +49,7 @@ URI: [laura:density_profile](https://w3id.org/laura/density_profile)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `False` |
 | Owner | [PlasmaElement](PlasmaElement.md) |
 
 
@@ -94,6 +95,7 @@ name: density_profile
 description: If True, use a user-defined profile; if False, use a flat-top model.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: 'False'
 owner: PlasmaElement
 domain_of:
 - PlasmaElement

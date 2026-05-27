@@ -130,6 +130,7 @@ attributes:
     aliases:
     - bpm_type
     rank: 1000
+    ifabsent: string(Stripline)
     domain_of:
     - BPMDiagnosticElement
     - BAMDiagnosticElement
@@ -162,6 +163,7 @@ attributes:
     aliases:
     - bpm_type
     rank: 1000
+    ifabsent: string(Stripline)
     owner: BPMDiagnosticElement
     domain_of:
     - BPMDiagnosticElement

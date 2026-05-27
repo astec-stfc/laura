@@ -49,6 +49,7 @@ URI: [laura:theta](https://w3id.org/laura/theta)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [Rotation](Rotation.md) |
 
 
@@ -112,6 +113,7 @@ name: theta
 description: Rotation about the longitudinal (z) axis [rad].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: Rotation
 domain_of:
 - Rotation

@@ -1,9 +1,6 @@
 import numpy as np
 from pydantic import (
     field_validator,
-    confloat,
-    Field,
-    AliasChoices,
     PrivateAttr,
     computed_field,
     model_serializer,
@@ -12,21 +9,13 @@ from typing import List, Union, Dict, Any
 
 from .baseModels import IgnoreExtra
 from ._generated import _PositionBase, _RotationBase, _ElementPositionErrorBase, _ElementSurveyBase, _PhysicalElementBase
+from ..utils.rotation_matrix import euler_angles_to_rotation_matrix
 
 
 class Position(_PositionBase):
     """
     Position model. Cartesian co-ordinates are used.
     """
-
-    x: float = 0.0
-    """Horizontal position [m]."""
-
-    y: float = 0.0
-    """Vertical position [m]."""
-
-    z: float = 0.0
-    """Longitudinal position [m]."""
 
     @model_serializer(mode="wrap")
     def ser_model(self, handler, info) -> list | dict:
@@ -95,15 +84,6 @@ class Rotation(_RotationBase):
     """
     Rotation model.
     """
-
-    phi: confloat(ge=-np.pi, le=np.pi) = 0.0  # type: ignore
-    """Rotation about the horizontal axis [rad]."""
-
-    psi: confloat(ge=-np.pi, le=np.pi) = 0.0  # type: ignore
-    """Rotation about the vertical axis [rad]."""
-
-    theta: confloat(ge=-np.pi, le=np.pi) = 0.0  # type: ignore
-    """Rotation about the longitudinal axis [rad]."""
 
     @model_serializer(mode="wrap")
     def ser_model(self, handler, info) -> list | dict:
@@ -179,15 +159,18 @@ class ElementError(_ElementPositionErrorBase):
     Position/Rotation error model.
     """
 
-    position: Union[Position, List[Union[float, int]]] = Position(x=0, y=0, z=0)
-    """Errors in position."""
-
-    rotation: Union[Rotation, List[Union[float, int]]] = Rotation(theta=0, phi=0, psi=0)
-    """Errors in rotation."""
+    def model_post_init(self, __context) -> None:
+        # Preserve historical defaults while keeping schema fields authoritative.
+        if self.position is None:
+            self.position = Position(x=0, y=0, z=0)
+        if self.rotation is None:
+            self.rotation = Rotation(theta=0, phi=0, psi=0)
 
     @field_validator("position", mode="before")
     @classmethod
     def validate_position(cls, v: Union[Position, Dict, List, np.ndarray]) -> Position:
+        if v is None:
+            return Position(x=0, y=0, z=0)
         if isinstance(v, (list, tuple, np.ndarray)) and len(v) == 3:
             return Position(x=v[0], y=v[1], z=v[2])
         elif isinstance(v, Position):
@@ -210,6 +193,8 @@ class ElementError(_ElementPositionErrorBase):
     @field_validator("rotation", mode="before")
     @classmethod
     def validate_rotation(cls, v: Union[Rotation, Dict, List, np.ndarray]) -> Rotation:
+        if v is None:
+            return Rotation(theta=0, phi=0, psi=0)
         if isinstance(v, (list, tuple, np.ndarray)) and len(v) == 3:
             return Rotation(theta=v[0], phi=v[1], psi=v[2])
         elif isinstance(v, Rotation):
@@ -262,38 +247,25 @@ class PhysicalElement(_PhysicalElementBase):
     Physical info model.
     """
 
-    middle: Position = Field(
-        default=Position(), alias=AliasChoices("position", "centre")
-    )
-    """Middle position of the element."""
-
-    datum: Position = Field(default_factory=Position)
-    """Datum."""
-
-    rotation: Rotation = Rotation(theta=0, phi=0, psi=0)
-    """Local rotation of the element."""
-
-    global_rotation: Rotation = Rotation(theta=0, phi=0, psi=0)
-    """Global rotation of the element."""
-
-    error: ElementError = ElementError()
-    """Position errors in the element."""
-
-    survey: ElementSurvey = ElementSurvey()
-    """Survey positions of the element."""
-
-    length: float = 0.0
-    """Length of the element."""
-
-    maximum_position: float | None = None
-    """Maximum position of the element"""
-
-    minimum_position: float | None = None
-    """Minimum position of the element"""
+    def model_post_init(self, __context) -> None:
+        # Preserve legacy defaults expected by existing code/tests.
+        if self.middle is None:
+            self.middle = Position()
+        if self.datum is None:
+            self.datum = Position()
+        if self.rotation is None:
+            self.rotation = Rotation(theta=0, phi=0, psi=0)
+        if self.global_rotation is None:
+            self.global_rotation = Rotation(theta=0, phi=0, psi=0)
+        if self.error is None:
+            self.error = ElementError()
+        if self.survey is None:
+            self.survey = _ElementSurveyBase(
+                position=Position(x=0, y=0, z=0),
+                rotation=Rotation(theta=0, phi=0, psi=0),
+            )
 
     _parent: Any = PrivateAttr(default=None)
-
-    physical_angle: float = 0.0
 
     def __str__(self):
         cls = self.__class__
@@ -325,6 +297,8 @@ class PhysicalElement(_PhysicalElementBase):
     @field_validator("middle", "datum", mode="before")
     @classmethod
     def validate_middle(cls, v: Union[float, int, Dict, List, np.ndarray]) -> Position:
+        if v is None:
+            return Position()
         if isinstance(v, (float, int)):
             return Position(z=v)
         elif isinstance(v, (list, tuple, np.ndarray)):
@@ -352,6 +326,8 @@ class PhysicalElement(_PhysicalElementBase):
     @field_validator("rotation", "global_rotation", mode="before")
     @classmethod
     def validate_rotation(cls, v: Union[float, int, List, np.ndarray]) -> Rotation:
+        if v is None:
+            return Rotation(theta=0, phi=0, psi=0)
         if isinstance(v, (float, int)):
             return Rotation(theta=v)
         elif isinstance(v, (list, tuple, np.ndarray)):
@@ -380,38 +356,15 @@ class PhysicalElement(_PhysicalElementBase):
     def rotation_matrix(self) -> np.ndarray:
         if self._rotation_matrix_cache is not None:
             return self._rotation_matrix_cache
-            
-        # Combined rotations. We apply (column-vector convention):
-        #   1) yaw (Y)  -> Ry  (rightmost)
-        #   2) pitch (X)-> Rx
-        #   3) roll (Z) -> Rz  (leftmost)
+        
+        # Combined rotations using utility function
+        # Apply yaw (Y), pitch (X), roll (Z) in that order
         yaw = self.rotation.theta + self.global_rotation.theta
         pitch = self.rotation.phi + self.global_rotation.phi
         roll = self.rotation.psi + self.global_rotation.psi
 
-        Rx = np.array(
-            [
-                [1, 0, 0],
-                [0, np.cos(pitch), -np.sin(pitch)],
-                [0, np.sin(pitch), np.cos(pitch)],
-            ]
-        )
-
-        Rz = np.array(
-            [
-                [np.cos(roll), -np.sin(roll), 0],
-                [np.sin(roll), np.cos(roll), 0],
-                [0, 0, 1],
-            ]
-        )
-
-        Ry = np.array(
-            [[np.cos(yaw), 0, -np.sin(yaw)], [0, 1, 0], [np.sin(yaw), 0, np.cos(yaw)]]
-        )
-        self._rotation_matrix_cache = np.dot(Rz, np.dot(Rx, Ry))
+        self._rotation_matrix_cache = euler_angles_to_rotation_matrix(yaw, pitch, roll)
         return self._rotation_matrix_cache
-
-        return Rz @ Rx @ Ry
 
     def rotated_position(self, vec: List[Union[int, float]] = [0, 0, 0]) -> np.ndarray:
         """

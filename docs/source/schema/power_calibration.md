@@ -45,6 +45,7 @@ URI: [laura:power_calibration](https://w3id.org/laura/power_calibration)
 
 | Property | Value |
 | --- | --- |
+| Multivalued | Yes |
 ### Slot Characteristics
 
 | Property | Value |
@@ -98,6 +99,7 @@ owner: RFCavityElement
 domain_of:
 - RFCavityElement
 range: float
+multivalued: true
 
 ```
 </details></div>

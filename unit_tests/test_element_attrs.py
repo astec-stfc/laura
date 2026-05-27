@@ -141,7 +141,7 @@ class TestBaseElement:
     def test_default_hardware_model(self):
         be = baseElement(
             name="E1",
-            hardware_class="HC",
+            hardware_class="Generic",
             hardware_type="HT",
             machine_area="MA",
         )
@@ -150,7 +150,7 @@ class TestBaseElement:
     def test_alias_from_string(self):
         be = baseElement(
             name="E1",
-            hardware_class="HC",
+            hardware_class="Generic",
             hardware_type="HT",
             machine_area="MA",
             alias="a1, a2",
@@ -160,7 +160,7 @@ class TestBaseElement:
     def test_alias_from_list(self):
         be = baseElement(
             name="E1",
-            hardware_class="HC",
+            hardware_class="Generic",
             hardware_type="HT",
             machine_area="MA",
             alias=["x", "y"],
@@ -170,7 +170,7 @@ class TestBaseElement:
     def test_alias_none_default(self):
         be = baseElement(
             name="E1",
-            hardware_class="HC",
+            hardware_class="Generic",
             hardware_type="HT",
             machine_area="MA",
         )
@@ -180,16 +180,16 @@ class TestBaseElement:
     def test_hardware_info(self):
         be = baseElement(
             name="E1",
-            hardware_class="HC",
+            hardware_class="Generic",
             hardware_type="HT",
             machine_area="MA",
         )
-        assert be.hardware_info == {"class": "HC", "type": "HT"}
+        assert be.hardware_info == {"class": "Generic", "type": "HT"}
 
     def test_flat(self):
         be = baseElement(
             name="E1",
-            hardware_class="HC",
+            hardware_class="Generic",
             hardware_type="HT",
             machine_area="MA",
         )
@@ -200,7 +200,7 @@ class TestBaseElement:
     def test_is_subelement_false(self):
         be = baseElement(
             name="E1",
-            hardware_class="HC",
+            hardware_class="Generic",
             hardware_type="HT",
             machine_area="MA",
             subelement=False,
@@ -210,7 +210,7 @@ class TestBaseElement:
     def test_is_subelement_true(self):
         be = baseElement(
             name="E1",
-            hardware_class="HC",
+            hardware_class="Generic",
             hardware_type="HT",
             machine_area="MA",
             subelement=True,
@@ -220,7 +220,7 @@ class TestBaseElement:
     def test_is_subelement_string(self):
         be = baseElement(
             name="E1",
-            hardware_class="HC",
+            hardware_class="Generic",
             hardware_type="HT",
             machine_area="MA",
             subelement="PARENT_ELEM",
@@ -230,12 +230,12 @@ class TestBaseElement:
     def test_subdirectory(self):
         be = baseElement(
             name="E1",
-            hardware_class="HC",
+            hardware_class="Generic",
             hardware_type="HT",
             machine_area="MA",
         )
         subdir = be.subdirectory
-        assert "HC" in subdir
+        assert "Generic" in subdir
         assert "HT" in subdir
 
 
@@ -290,7 +290,7 @@ class TestElementTypes:
         d = Drift(
             name="DR1",
             machine_area="SEC",
-            hardware_class="drift",
+            hardware_class="Drift",
             physical={"length": 1.5, "middle": {"x": 0.0, "y": 0.0, "z": 5.0}},
         )
         assert d.hardware_type == "Drift"

@@ -33,9 +33,53 @@ URI: [laura:CameraDiagnosticElement](https://w3id.org/laura/CameraDiagnosticElem
         
       CameraDiagnosticElement : has_led
         
+      CameraDiagnosticElement : mask
+        
+          
+    
+        
+        
+        CameraDiagnosticElement --> "0..1" CameraMask : mask
+        click CameraMask href "../CameraMask/"
+    
+
+        
+      CameraDiagnosticElement : pixel_results_indices
+        
+          
+    
+        
+        
+        CameraDiagnosticElement --> "0..1" CameraPixelResultsIndices : pixel_results_indices
+        click CameraPixelResultsIndices href "../CameraPixelResultsIndices/"
+    
+
+        
+      CameraDiagnosticElement : pixel_results_names
+        
+          
+    
+        
+        
+        CameraDiagnosticElement --> "0..1" CameraPixelResultsNames : pixel_results_names
+        click CameraPixelResultsNames href "../CameraPixelResultsNames/"
+    
+
+        
       CameraDiagnosticElement : rotation
         
       CameraDiagnosticElement : screen_name
+        
+      CameraDiagnosticElement : sensor
+        
+          
+    
+        
+        
+        CameraDiagnosticElement --> "0..1" CameraSensor : sensor
+        click CameraSensor href "../CameraSensor/"
+    
+
         
       CameraDiagnosticElement : type
         
@@ -74,6 +118,10 @@ URI: [laura:CameraDiagnosticElement](https://w3id.org/laura/CameraDiagnosticElem
 | [flipped_vertically](flipped_vertically.md) | 0..1 <br/> [Boolean](Boolean.md) | True if the image is mirrored top-bottom | direct |
 | [screen_name](screen_name.md) | 0..1 <br/> [String](String.md) | Name of the screen element to which this camera is attached | direct |
 | [has_led](has_led.md) | 0..1 <br/> [Boolean](Boolean.md) | True if the camera mount includes an LED backlight | direct |
+| [pixel_results_indices](pixel_results_indices.md) | 0..1 <br/> [CameraPixelResultsIndices](CameraPixelResultsIndices.md) | Indices of pixel analysis result arrays | direct |
+| [pixel_results_names](pixel_results_names.md) | 0..1 <br/> [CameraPixelResultsNames](CameraPixelResultsNames.md) | Names of pixel analysis result arrays | direct |
+| [mask](mask.md) | 0..1 <br/> [CameraMask](CameraMask.md) | Camera analysis mask configuration | direct |
+| [sensor](sensor.md) | 0..1 <br/> [CameraSensor](CameraSensor.md) | Camera sensor hardware configuration | direct |
 
 
 
@@ -163,22 +211,31 @@ attributes:
     name: x_pixels
     description: Image width reported by the control system [pix].
     from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    aliases:
+    - ARRAY_DATA_NUM_PIX_X
+    - epics_x_pixels
+    ifabsent: int(1080)
     domain_of:
+    - CameraSensor
     - CameraDiagnosticElement
     range: integer
   y_pixels:
     name: y_pixels
     description: Image height reported by the control system [pix].
     from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    aliases:
+    - ARRAY_DATA_NUM_PIX_Y
+    - epics_y_pixels
+    ifabsent: int(1280)
     domain_of:
+    - CameraSensor
     - CameraDiagnosticElement
     range: integer
   rotation:
     name: rotation
     description: Camera rotation relative to the screen plane [deg].
     from_schema: https://w3id.org/laura/schema
+    ifabsent: float(0)
     domain_of:
     - ElementPositionError
     - ElementSurvey
@@ -191,7 +248,10 @@ attributes:
     name: flipped_horizontally
     description: True if the image is mirrored left-right.
     from_schema: https://w3id.org/laura/schema
+    aliases:
+    - IMAGE_FLIP_LR
     rank: 1000
+    ifabsent: 'True'
     domain_of:
     - CameraDiagnosticElement
     range: boolean
@@ -199,7 +259,10 @@ attributes:
     name: flipped_vertically
     description: True if the image is mirrored top-bottom.
     from_schema: https://w3id.org/laura/schema
+    aliases:
+    - IMAGE_FLIP_UD
     rank: 1000
+    ifabsent: 'False'
     domain_of:
     - CameraDiagnosticElement
     range: boolean
@@ -216,9 +279,42 @@ attributes:
     description: True if the camera mount includes an LED backlight.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'True'
     domain_of:
     - CameraDiagnosticElement
     range: boolean
+  pixel_results_indices:
+    name: pixel_results_indices
+    description: Indices of pixel analysis result arrays.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - CameraDiagnosticElement
+    range: CameraPixelResultsIndices
+  pixel_results_names:
+    name: pixel_results_names
+    description: Names of pixel analysis result arrays.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - CameraDiagnosticElement
+    range: CameraPixelResultsNames
+  mask:
+    name: mask
+    description: Camera analysis mask configuration.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - CameraDiagnosticElement
+    range: CameraMask
+  sensor:
+    name: sensor
+    description: Camera sensor hardware configuration.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - CameraDiagnosticElement
+    range: CameraSensor
 class_uri: laura:CameraDiagnosticElement
 
 ```
@@ -256,24 +352,33 @@ attributes:
     name: x_pixels
     description: Image width reported by the control system [pix].
     from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    aliases:
+    - ARRAY_DATA_NUM_PIX_X
+    - epics_x_pixels
+    ifabsent: int(1080)
     owner: CameraDiagnosticElement
     domain_of:
+    - CameraSensor
     - CameraDiagnosticElement
     range: integer
   y_pixels:
     name: y_pixels
     description: Image height reported by the control system [pix].
     from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    aliases:
+    - ARRAY_DATA_NUM_PIX_Y
+    - epics_y_pixels
+    ifabsent: int(1280)
     owner: CameraDiagnosticElement
     domain_of:
+    - CameraSensor
     - CameraDiagnosticElement
     range: integer
   rotation:
     name: rotation
     description: Camera rotation relative to the screen plane [deg].
     from_schema: https://w3id.org/laura/schema
+    ifabsent: float(0)
     owner: CameraDiagnosticElement
     domain_of:
     - ElementPositionError
@@ -287,7 +392,10 @@ attributes:
     name: flipped_horizontally
     description: True if the image is mirrored left-right.
     from_schema: https://w3id.org/laura/schema
+    aliases:
+    - IMAGE_FLIP_LR
     rank: 1000
+    ifabsent: 'True'
     owner: CameraDiagnosticElement
     domain_of:
     - CameraDiagnosticElement
@@ -296,7 +404,10 @@ attributes:
     name: flipped_vertically
     description: True if the image is mirrored top-bottom.
     from_schema: https://w3id.org/laura/schema
+    aliases:
+    - IMAGE_FLIP_UD
     rank: 1000
+    ifabsent: 'False'
     owner: CameraDiagnosticElement
     domain_of:
     - CameraDiagnosticElement
@@ -315,10 +426,47 @@ attributes:
     description: True if the camera mount includes an LED backlight.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'True'
     owner: CameraDiagnosticElement
     domain_of:
     - CameraDiagnosticElement
     range: boolean
+  pixel_results_indices:
+    name: pixel_results_indices
+    description: Indices of pixel analysis result arrays.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: CameraDiagnosticElement
+    domain_of:
+    - CameraDiagnosticElement
+    range: CameraPixelResultsIndices
+  pixel_results_names:
+    name: pixel_results_names
+    description: Names of pixel analysis result arrays.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: CameraDiagnosticElement
+    domain_of:
+    - CameraDiagnosticElement
+    range: CameraPixelResultsNames
+  mask:
+    name: mask
+    description: Camera analysis mask configuration.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: CameraDiagnosticElement
+    domain_of:
+    - CameraDiagnosticElement
+    range: CameraMask
+  sensor:
+    name: sensor
+    description: Camera sensor hardware configuration.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: CameraDiagnosticElement
+    domain_of:
+    - CameraDiagnosticElement
+    range: CameraSensor
 class_uri: laura:CameraDiagnosticElement
 
 ```

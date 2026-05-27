@@ -49,6 +49,7 @@ URI: [laura:initial_position](https://w3id.org/laura/initial_position)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [LaserElement](LaserElement.md) |
 
 
@@ -104,6 +105,7 @@ name: initial_position
 description: Initial longitudinal position of the laser pulse [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: LaserElement
 domain_of:
 - LaserElement

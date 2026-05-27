@@ -49,6 +49,7 @@ URI: [laura:fringe_field_coefficient](https://w3id.org/laura/fringe_field_coeffi
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0.0)` |
 | Owner | [MagneticElement](MagneticElement.md) |
 
 
@@ -94,6 +95,7 @@ name: fringe_field_coefficient
 description: Coefficient controlling the fringe-field roll-off rate.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0.0)
 owner: MagneticElement
 domain_of:
 - MagneticElement

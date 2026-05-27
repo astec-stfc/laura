@@ -49,6 +49,7 @@ URI: [laura:sr_enable](https://w3id.org/laura/sr_enable)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `True` |
 | Owner | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
@@ -94,6 +95,7 @@ name: sr_enable
 description: Enable synchrotron-radiation energy loss.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: 'True'
 owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement

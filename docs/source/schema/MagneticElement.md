@@ -228,15 +228,17 @@ attributes:
     name: order
     description: Principal multipole order (0 = dipole, 1 = quad, ?).
     from_schema: https://w3id.org/laura/schema
+    ifabsent: int(-1)
     domain_of:
     - Multipole
     - MagneticElement
     range: integer
-    minimum_value: 0
+    minimum_value: -1
   skew:
     name: skew
     description: Whether the magnet is rotated 45? to produce a skew field component.
     from_schema: https://w3id.org/laura/schema
+    ifabsent: 'False'
     domain_of:
     - Multipole
     - MagneticElement
@@ -246,6 +248,8 @@ attributes:
     description: Magnetic (effective) length [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
+    alias: length
     domain_of:
     - MagneticElement
     range: float
@@ -327,6 +331,7 @@ attributes:
     description: Full gap between pole faces [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.032)
     domain_of:
     - MagneticElement
     range: float
@@ -338,6 +343,7 @@ attributes:
     description: Magnet bore radius [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.037)
     domain_of:
     - MagneticElement
     range: float
@@ -349,6 +355,7 @@ attributes:
     description: Principal bending / focusing plane (``H``, ``V``, or ``HV``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string(horizontal)
     domain_of:
     - MagneticElement
     range: string
@@ -357,6 +364,7 @@ attributes:
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.2)
     domain_of:
     - MagneticElement
     range: float
@@ -367,6 +375,7 @@ attributes:
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     domain_of:
     - MagneticElement
     range: float
@@ -376,6 +385,7 @@ attributes:
     name: edge_field_integral
     description: Enge fringe-field integral parameter (dimensionless).
     from_schema: https://w3id.org/laura/schema
+    ifabsent: float(0.5)
     domain_of:
     - MagnetSimulationElement
     - MagneticElement
@@ -385,6 +395,7 @@ attributes:
     description: Coefficient controlling the fringe-field roll-off rate.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     domain_of:
     - MagneticElement
     range: float
@@ -418,16 +429,18 @@ attributes:
     name: order
     description: Principal multipole order (0 = dipole, 1 = quad, ?).
     from_schema: https://w3id.org/laura/schema
+    ifabsent: int(-1)
     owner: MagneticElement
     domain_of:
     - Multipole
     - MagneticElement
     range: integer
-    minimum_value: 0
+    minimum_value: -1
   skew:
     name: skew
     description: Whether the magnet is rotated 45? to produce a skew field component.
     from_schema: https://w3id.org/laura/schema
+    ifabsent: 'False'
     owner: MagneticElement
     domain_of:
     - Multipole
@@ -438,6 +451,8 @@ attributes:
     description: Magnetic (effective) length [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
+    alias: length
     owner: MagneticElement
     domain_of:
     - MagneticElement
@@ -528,6 +543,7 @@ attributes:
     description: Full gap between pole faces [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.032)
     owner: MagneticElement
     domain_of:
     - MagneticElement
@@ -540,6 +556,7 @@ attributes:
     description: Magnet bore radius [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.037)
     owner: MagneticElement
     domain_of:
     - MagneticElement
@@ -552,6 +569,7 @@ attributes:
     description: Principal bending / focusing plane (``H``, ``V``, or ``HV``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string(horizontal)
     owner: MagneticElement
     domain_of:
     - MagneticElement
@@ -561,6 +579,7 @@ attributes:
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.2)
     owner: MagneticElement
     domain_of:
     - MagneticElement
@@ -572,6 +591,7 @@ attributes:
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     owner: MagneticElement
     domain_of:
     - MagneticElement
@@ -582,6 +602,7 @@ attributes:
     name: edge_field_integral
     description: Enge fringe-field integral parameter (dimensionless).
     from_schema: https://w3id.org/laura/schema
+    ifabsent: float(0.5)
     owner: MagneticElement
     domain_of:
     - MagnetSimulationElement
@@ -592,6 +613,7 @@ attributes:
     description: Coefficient controlling the fringe-field roll-off rate.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     owner: MagneticElement
     domain_of:
     - MagneticElement

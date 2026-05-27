@@ -5,11 +5,6 @@ search:
 
 # Slot: maximum 
 
-
-_Maximum attenuation angle [deg]._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -25,6 +20,8 @@ URI: [laura:maximum](https://w3id.org/laura/maximum)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
+| [CameraMask](CameraMask.md) | Camera analysis mask parameters |  no  |
+| [CameraSensor](CameraSensor.md) | Camera sensor hardware configuration |  no  |
 | [LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |  no  |
 
 
@@ -38,30 +35,13 @@ URI: [laura:maximum](https://w3id.org/laura/maximum)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
-| Domain Of | [LaserAttenuator](LaserAttenuator.md) |
+| Range | [String](String.md) |
+| Domain Of | [CameraMask](CameraMask.md), [CameraSensor](CameraSensor.md), [LaserAttenuator](LaserAttenuator.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| Owner | [LaserAttenuator](LaserAttenuator.md) |
-
-
-<details>
-<summary>Additional Constraints</summary>
-**Unit:**
-
-| Property | Value |
-| --- | --- |
-| ucum_code | deg |
-
-</details>
-
 
 
 
@@ -75,13 +55,6 @@ URI: [laura:maximum](https://w3id.org/laura/maximum)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -101,15 +74,11 @@ URI: [laura:maximum](https://w3id.org/laura/maximum)
 <details>
 ```yaml
 name: maximum
-description: Maximum attenuation angle [deg].
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: LaserAttenuator
 domain_of:
+- CameraMask
+- CameraSensor
 - LaserAttenuator
-range: float
-unit:
-  ucum_code: deg
+range: string
 
 ```
 </details></div>

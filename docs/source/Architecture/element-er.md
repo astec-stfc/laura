@@ -2,7 +2,7 @@
 erDiagram
 AcceleratorElement {
     string name  
-    string alias  
+    stringList alias  
     HardwareClassEnum hardware_class  
     string hardware_model  
     string hardware_type  

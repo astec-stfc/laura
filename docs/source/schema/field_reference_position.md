@@ -45,7 +45,7 @@ URI: [laura:field_reference_position](https://w3id.org/laura/field_reference_pos
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [String](String.md) |
 | Domain Of | [SimulationElement](SimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -58,16 +58,6 @@ URI: [laura:field_reference_position](https://w3id.org/laura/field_reference_pos
 | --- | --- |
 | Owner | [SimulationElement](SimulationElement.md) |
 
-
-<details>
-<summary>Additional Constraints</summary>
-**Unit:**
-
-| Property | Value |
-| --- | --- |
-| ucum_code | m |
-
-</details>
 
 
 
@@ -114,9 +104,7 @@ rank: 1000
 owner: SimulationElement
 domain_of:
 - SimulationElement
-range: float
-unit:
-  ucum_code: m
+range: string
 
 ```
 </details></div>

@@ -5,11 +5,6 @@ search:
 
 # Slot: y_pixels 
 
-
-_Image height reported by the control system [pix]._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -25,6 +20,7 @@ URI: [laura:y_pixels](https://w3id.org/laura/y_pixels)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
+| [CameraSensor](CameraSensor.md) | Camera sensor hardware configuration |  no  |
 | [CameraDiagnosticElement](CameraDiagnosticElement.md) | Camera diagnostic data, including sensor parameters, analysis mask, and pixel... |  no  |
 
 
@@ -38,20 +34,13 @@ URI: [laura:y_pixels](https://w3id.org/laura/y_pixels)
 
 | Property | Value |
 | --- | --- |
-| Range | [Integer](Integer.md) |
-| Domain Of | [CameraDiagnosticElement](CameraDiagnosticElement.md) |
+| Range | [String](String.md) |
+| Domain Of | [CameraSensor](CameraSensor.md), [CameraDiagnosticElement](CameraDiagnosticElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| Owner | [CameraDiagnosticElement](CameraDiagnosticElement.md) |
-
-
 
 
 
@@ -65,13 +54,6 @@ URI: [laura:y_pixels](https://w3id.org/laura/y_pixels)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -91,13 +73,10 @@ URI: [laura:y_pixels](https://w3id.org/laura/y_pixels)
 <details>
 ```yaml
 name: y_pixels
-description: Image height reported by the control system [pix].
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: CameraDiagnosticElement
 domain_of:
+- CameraSensor
 - CameraDiagnosticElement
-range: integer
+range: string
 
 ```
 </details></div>

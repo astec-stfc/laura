@@ -143,6 +143,7 @@ attributes:
     description: Plasma species name (e.g., ``electron``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string(electron)
     domain_of:
     - PlasmaElement
     range: string
@@ -151,6 +152,7 @@ attributes:
     description: Entrance density-ramp length [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.001)
     domain_of:
     - PlasmaElement
     range: float
@@ -162,6 +164,7 @@ attributes:
     description: Flat-top plateau length [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.001)
     domain_of:
     - PlasmaElement
     range: float
@@ -173,6 +176,7 @@ attributes:
     description: Exit density-ramp length [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.001)
     domain_of:
     - PlasmaElement
     range: float
@@ -184,6 +188,7 @@ attributes:
     description: Exponential decay length of the density ramp [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.001)
     domain_of:
     - PlasmaElement
     range: float
@@ -195,6 +200,7 @@ attributes:
     description: If True, use a user-defined profile; if False, use a flat-top model.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'False'
     domain_of:
     - PlasmaElement
     range: boolean
@@ -203,6 +209,7 @@ attributes:
     description: Parabolic coefficient for a transverse density profile.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - PlasmaElement
     range: float
@@ -236,6 +243,7 @@ attributes:
     description: Plasma species name (e.g., ``electron``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string(electron)
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
@@ -245,6 +253,7 @@ attributes:
     description: Entrance density-ramp length [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.001)
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
@@ -257,6 +266,7 @@ attributes:
     description: Flat-top plateau length [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.001)
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
@@ -269,6 +279,7 @@ attributes:
     description: Exit density-ramp length [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.001)
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
@@ -281,6 +292,7 @@ attributes:
     description: Exponential decay length of the density ramp [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.001)
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
@@ -293,6 +305,7 @@ attributes:
     description: If True, use a user-defined profile; if False, use a flat-top model.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'False'
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
@@ -302,6 +315,7 @@ attributes:
     description: Parabolic coefficient for a transverse density profile.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     owner: PlasmaElement
     domain_of:
     - PlasmaElement

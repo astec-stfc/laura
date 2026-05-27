@@ -49,6 +49,7 @@ URI: [laura:csr_bins](https://w3id.org/laura/csr_bins)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `int(100)` |
 | Owner | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
@@ -94,6 +95,7 @@ name: csr_bins
 description: Number of longitudinal bins for the CSR mesh.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: int(100)
 owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement

@@ -79,6 +79,12 @@ enums:
         description: Passive wakefield structure.
       TwissMatch:
         description: Virtual Twiss-parameter matching point.
+      Drift:
+        description: Drift element.
+      Generic:
+        description: Generic element.
+      Monitor:
+        description: Beam monitor element.
 
   LaserPolarizationEnum:
     description: Polarization state of a laser beam.
@@ -102,6 +108,114 @@ enums:
       rectangular: {}
       elliptical:  {}
 
+# --- Reusable Slots ----------------------------------------------------------
+
+slots:
+
+  # RF cavity / wakefield shared geometry
+  cell_length:
+    range: float
+    description: Length of a single cell [m].
+    ifabsent: float(0.03333333333333333)
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
+
+  coupling_cell_length:
+    range: float
+    description: Length of the coupling cell [m].
+    ifabsent: float(0.0)
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
+
+  n_cells:
+    range: integer
+    description: Number of cells.
+    ifabsent: int(1)
+    minimum_value: 1
+
+  design_gamma:
+    range: float
+    description: Design Lorentz factor.
+    minimum_value: 1.0
+
+  design_power:
+    range: float
+    description: Design peak power [W].
+    ifabsent: float(25000000)
+    minimum_value: 0.0
+    unit:
+      ucum_code: W
+
+  frequency:
+    range: float
+    description: Operating frequency [Hz].
+    ifabsent: float(2998500000.0)
+    minimum_value: 0.0
+    unit:
+      ucum_code: Hz
+
+  crest:
+    range: float
+    description: On-crest phase offset providing maximum energy gain [deg].
+    ifabsent: float(0)
+    unit:
+      ucum_code: deg
+
+  phase:
+    range: float
+    description: Operating phase offset [deg].
+    ifabsent: float(0.0)
+    unit:
+      ucum_code: deg
+
+  shunt_impedance:
+    range: float
+    description: Shunt impedance [M?/m].
+
+  mode_numerator:
+    range: integer
+    description: Mode fraction numerator.
+
+  mode_denominator:
+    range: integer
+    description: Mode fraction denominator.
+
+  # Shared wake-file column labels
+  t_column:
+    range: string
+    description: Time column in the wake file.
+
+  z_column:
+    range: string
+    description: Longitudinal position column in the wake file.
+
+  wx_column:
+    range: string
+    description: Horizontal wake column in the wake file.
+
+  wy_column:
+    range: string
+    description: Vertical wake column in the wake file.
+
+  wz_column:
+    range: string
+    description: Longitudinal wake column in the wake file.
+
+  # Shared simulation numeric controls
+  n_kicks:
+    range: integer
+    description: Number of integration kicks.
+
+  lsc_bins:
+    range: integer
+    description: Number of bins used in longitudinal space-charge calculations.
+
+  field_amplitude:
+    range: float
+    description: Field amplitude scaling.
+
 # --- Classes ------------------------------------------------------------------
 
 classes:
@@ -118,16 +232,19 @@ classes:
     attributes:
       x:
         range: float
+        ifabsent: float(0)
         description: Horizontal component [m].
         unit:
           ucum_code: m
       y:
         range: float
+        ifabsent: float(0)
         description: Vertical component [m].
         unit:
           ucum_code: m
       z:
         range: float
+        ifabsent: float(0)
         description: Longitudinal (beam-direction) component [m].
         unit:
           ucum_code: m
@@ -142,6 +259,7 @@ classes:
     attributes:
       phi:
         range: float
+        ifabsent: float(0)
         description: Rotation about the horizontal (x) axis [rad].
         minimum_value: -3.141592653589793
         maximum_value:  3.141592653589793
@@ -149,6 +267,7 @@ classes:
           ucum_code: rad
       psi:
         range: float
+        ifabsent: float(0)
         description: Rotation about the vertical (y) axis [rad].
         minimum_value: -3.141592653589793
         maximum_value:  3.141592653589793
@@ -156,6 +275,7 @@ classes:
           ucum_code: rad
       theta:
         range: float
+        ifabsent: float(0)
         description: Rotation about the longitudinal (z) axis [rad].
         minimum_value: -3.141592653589793
         maximum_value:  3.141592653589793
@@ -221,6 +341,7 @@ classes:
         description: Survey-measured position and rotation.
       length:
         range: float
+        ifabsent: float(0)
         description: Effective length along the beam axis [m].
         minimum_value: 0.0
         unit:
@@ -237,6 +358,7 @@ classes:
           ucum_code: m
       physical_angle:
         range: float
+        ifabsent: float(0)
         description: >-
           Bending angle in the horizontal plane [rad].
           Derived from ``magnetic.angle`` when available.
@@ -251,6 +373,7 @@ classes:
     attributes:
       min_i:
         range: float
+        ifabsent: float(0)
         description: Minimum current [A].
         aliases:
           - minI
@@ -258,17 +381,19 @@ classes:
           ucum_code: A
       max_i:
         range: float
+        ifabsent: float(0)
         description: Maximum current [A].
         aliases:
           - maxI
         unit:
           ucum_code: A
-      ri_tolerance:
+      read_tolerance:
         range: float
+        ifabsent: float(0.1)
         description: >-
           Read-back vs. set-point tolerance fraction (default 0.1 = 10 %).
         aliases:
-          - read_tolerance
+          - ri_tolerance
 
   # -- Manufacturer ----------------------------------------------------------
 
@@ -278,10 +403,12 @@ classes:
     attributes:
       manufacturer:
         range: string
+        ifabsent: string()
         description: Name of the manufacturer.
         slot_uri: schema:manufacturer
       serial_number:
         range: string
+        ifabsent: string()
         description: Manufacturer serial number.
         slot_uri: schema:serialNumber
 
@@ -362,13 +489,12 @@ classes:
         range: string
         description: Path to the wakefield impedance file.
       field_reference_position:
-        range: float
+        range: string
         description: Longitudinal origin of the field map [m].
-        unit:
-          ucum_code: m
       scale_field:
         range: float
         description: Multiplicative scale factor applied to the field map.
+        ifabsent: float(1)
 
   MagnetSimulationElement:
     is_a: SimulationElement
@@ -376,14 +502,22 @@ classes:
       Simulation attributes specific to magnets: integrator settings,
       fringe-field model, and radiation flags.
     class_uri: laura:MagnetSimulationElement
-    attributes:
+    slots:
+      - n_kicks
+      - field_amplitude
+    slot_usage:
       n_kicks:
-        range: integer
         description: Number of integration kicks.
+        ifabsent: int(4)
         minimum_value: 1
+      field_amplitude:
+        description: Field amplitude scaling for magnet tracking.
+        ifabsent: float(0.0)
+    attributes:
       n_slices:
         range: integer
         description: Number of longitudinal slices for thick-lens tracking.
+        ifabsent: int(4)
         minimum_value: 1
       smooth:
         range: boolean
@@ -391,6 +525,7 @@ classes:
       edge_field_integral:
         range: float
         description: Fringe-field integral for edge focussing.
+        ifabsent: float(0.5)
       edge1_effects:
         range: boolean
         description: Enable entrance-edge focussing effects.
@@ -400,62 +535,337 @@ classes:
       sr_enable:
         range: boolean
         description: Enable synchrotron-radiation energy loss.
+        ifabsent: true
       isr_enable:
         range: boolean
         description: Enable incoherent synchrotron-radiation emittance growth.
+        ifabsent: true
       csr_enable:
         range: boolean
         description: Enable coherent synchrotron radiation.
+        ifabsent: true
       csr_bins:
         range: integer
         description: Number of longitudinal bins for the CSR mesh.
+        ifabsent: int(100)
       integration_order:
         range: integer
         description: Order of the symplectic integrator.
+        ifabsent: int(4)
       nonlinear:
         range: boolean
         description: Include higher-order (sextupole+) field components.
       smoothing_half_width:
         range: integer
         description: Half-width of the current-profile smoothing kernel.
+        ifabsent: int(1)
       edge_order:
         range: integer
         description: Polynomial order of the edge-field expansion.
+        ifabsent: int(2)
       deltaL:
         range: float
         description: Longitudinal step-size override for thick-lens integration [m].
+        ifabsent: float(0.0)
         unit:
           ucum_code: m
+      smooth_points:
+        range: float
+        description: Number of points used to smooth the field map [ASTRA].
+        ifabsent: float(2)
 
   RFCavitySimulationElement:
     is_a: SimulationElement
     description: Simulation attributes for RF cavity elements.
     class_uri: laura:RFCavitySimulationElement
+    slots:
+      - t_column
+      - z_column
+      - wx_column
+      - wy_column
+      - wz_column
+      - n_kicks
+      - lsc_bins
+      - field_amplitude
+    slot_usage:
+      n_kicks:
+        description: Number of cavity kicks to apply.
+        ifabsent: int(0)
+      lsc_bins:
+        description: Number of longitudinal space-charge bins.
+        ifabsent: int(100)
+      field_amplitude:
+        description: Cavity field amplitude.
+        ifabsent: float(0)
+    attributes:
+      change_p0:
+        range: integer
+        description: Flag indicating whether the cavity changes reference momentum.
+        ifabsent: int(1)
+      end1_focus:
+        range: integer
+        description: Apply entrance focusing.
+        ifabsent: int(1)
+      end2_focus:
+        range: integer
+        description: Apply exit focusing.
+        ifabsent: int(1)
+      body_focus_model:
+        range: string
+        description: Cavity body focusing model.
+        ifabsent: string(SRS)
+      current_bins:
+        range: integer
+        description: Number of current bins.
+        ifabsent: int(0)
+      interpolate_current_bins:
+        range: integer
+        description: Flag indicating current-bin interpolation.
+        ifabsent: int(1)
+      smooth_current_bins:
+        range: integer
+        description: Flag indicating current-bin smoothing.
+        ifabsent: int(1)
+      smooth:
+        range: integer
+        description: Cavity smoothing parameter.
+      ez_peak:
+        range: float
+        description: Peak longitudinal electric field.
+      field_file_name:
+        range: string
+        description: Cavity field file name.
+      wakefile:
+        range: string
+        description: Wake file name.
+      zwakefile:
+        range: string
+        description: Longitudinal wake file name.
+      trwakefile:
+        range: string
+        description: Transverse wake file name.
 
   WakefieldSimulationElement:
     is_a: SimulationElement
     description: Simulation attributes for passive wakefield structures.
     class_uri: laura:WakefieldSimulationElement
+    slots:
+      - t_column
+      - z_column
+      - wx_column
+      - wy_column
+      - wz_column
+    attributes:
+      allow_long_beam:
+        range: boolean
+        description: Allow beams longer than the wakefield.
+        ifabsent: true
+      bunched_beam:
+        range: boolean
+        description: Use bunched beam mode.
+        ifabsent: false
+      change_momentum:
+        range: boolean
+        description: Allow wakefield to change bunch momentum.
+        ifabsent: true
+      factor:
+        range: float
+        description: Wake scaling factor.
+        ifabsent: float(1)
+      interpolate:
+        range: boolean
+        description: Interpolate points in wake file.
+        ifabsent: true
+      scale_kick:
+        range: float
+        description: Factor by which to scale wake kicks.
+        ifabsent: float(1)
+      scale_field_ex:
+        range: float
+        description: x-component of the longitudinal direction vector.
+        ifabsent: float(0.0)
+      scale_field_ey:
+        range: float
+        description: y-component of the longitudinal direction vector.
+        ifabsent: float(0.0)
+      scale_field_ez:
+        range: float
+        description: z-component of the longitudinal direction vector.
+        ifabsent: float(1.0)
+      scale_field_hx:
+        range: float
+        description: x-component of the horizontal direction vector.
+        ifabsent: float(1.0)
+      scale_field_hy:
+        range: float
+        description: y-component of the horizontal direction vector.
+        ifabsent: float(0.0)
+      scale_field_hz:
+        range: float
+        description: z-component of the horizontal direction vector.
+        ifabsent: float(0.0)
+      equal_grid:
+        range: float
+        description: Interpolation between equidistant and equal-charge grids.
+        ifabsent: float(0.66)
+      interpolation_method:
+        range: integer
+        description: Interpolation method for ASTRA.
+        ifabsent: int(2)
+      smooth:
+        range: float
+        description: Smoothing parameter for Gaussian interpolation.
+        ifabsent: float(0.25)
+      subbins:
+        range: integer
+        description: Sub-binning parameter.
+        ifabsent: int(10)
 
   DriftSimulationElement:
     is_a: SimulationElement
     description: Simulation attributes for field-free drift sections.
     class_uri: laura:DriftSimulationElement
+    slots:
+      - lsc_bins
+    slot_usage:
+      lsc_bins:
+        description: Number of bins for LSC calculations.
+        ifabsent: int(20)
+    attributes:
+      lsc_interpolate:
+        range: integer
+        description: Flag to allow interpolation of computed LSC wake.
+        ifabsent: int(1)
+      csr_enable:
+        range: boolean
+        description: Enable CSR drift calculations.
+        ifabsent: true
+      lsc_enable:
+        range: boolean
+        description: Enable LSC drift calculations.
+        ifabsent: true
+      use_stupakov:
+        range: integer
+        description: Use Stupakov formula.
+        ifabsent: int(1)
+      csrdz:
+        range: float
+        description: Step size for CSR calculations.
+        ifabsent: float(0.01)
+      lsc_high_frequency_cutoff_start:
+        range: float
+        description: High-frequency cutoff start for LSC.
+      lsc_high_frequency_cutoff_end:
+        range: float
+        description: High-frequency cutoff end for LSC.
+      lsc_low_frequency_cutoff_start:
+        range: float
+        description: Low-frequency cutoff start for LSC.
+      lsc_low_frequency_cutoff_end:
+        range: float
+        description: Low-frequency cutoff end for LSC.
 
   DiagnosticSimulationElement:
     is_a: SimulationElement
     description: Simulation attributes for beam-diagnostic elements.
     class_uri: laura:DiagnosticSimulationElement
+    attributes:
+      output_filename:
+        range: string
+        description: Output filename for diagnostic data.
 
   PlasmaSimulationElement:
     is_a: SimulationElement
     description: Simulation attributes for plasma-accelerator stages.
     class_uri: laura:PlasmaSimulationElement
+    attributes:
+      wakefield_model:
+        range: string
+        description: Wakefield model identifier.
+      bunch_pusher:
+        range: string
+        description: Pusher used to evolve bunch particles in time.
+        ifabsent: string(boris)
+      dt_bunch:
+        range: string
+        description: Time-step control for bunch evolution (or 'auto').
+        ifabsent: string(auto)
+      n_out:
+        range: integer
+        description: Number of distribution dumps during the plasma stage.
+        ifabsent: int(1)
+      min_longitudinal_position:
+        range: float
+        description: Minimum longitudinal position [m].
+        ifabsent: float(0)
+      max_longitudinal_position:
+        range: float
+        description: Maximum longitudinal position [m].
+        ifabsent: float(0)
+      n_longitudinal:
+        range: integer
+        description: Number of grid points in the longitudinal direction.
+        ifabsent: int(0)
+      n_radial:
+        range: integer
+        description: Number of grid points in the radial direction.
+        ifabsent: int(0)
+      plasma_particles_per_cell:
+        range: integer
+        description: Number of plasma particles per cell.
+        ifabsent: int(2)
+      r_max:
+        range: float
+        description: Radial extent of the simulation box [m].
+        ifabsent: float(0)
+      r_max_plasma:
+        range: float
+        description: Maximum radial extension of the plasma column.
+      dz_fields:
+        range: float
+        description: Interval for plasma wakefield updates.
+      plasma_pusher:
+        range: string
+        description: Pusher used to evolve the plasma in time.
+        ifabsent: string(boris)
 
   TwissMatchSimulationElement:
     is_a: SimulationElement
     description: Simulation attributes for Twiss-matching points.
     class_uri: laura:TwissMatchSimulationElement
+    attributes:
+      beta_x:
+        range: float
+        description: Horizontal beta.
+      beta_y:
+        range: float
+        description: Vertical beta.
+      alpha_x:
+        range: float
+        description: Horizontal alpha.
+      alpha_y:
+        range: float
+        description: Vertical alpha.
+      eta_x:
+        range: float
+        description: Horizontal dispersion.
+        ifabsent: float(0.0)
+      eta_y:
+        range: float
+        description: Vertical dispersion.
+        ifabsent: float(0.0)
+      eta_xp:
+        range: float
+        description: Horizontal dispersion derivative.
+        ifabsent: float(0.0)
+      eta_yp:
+        range: float
+        description: Vertical dispersion derivative.
+        ifabsent: float(0.0)
+      from_beam:
+        range: boolean
+        description: Compute transform from tracked beam properties.
+        ifabsent: true
 
   # -- Magnetic model ---------------------------------------------------------
 
@@ -468,16 +878,20 @@ classes:
       order:
         range: integer
         description: "Multipole order (0 = dipole, 1 = quadrupole, ?)."
+        ifabsent: int(0)
         minimum_value: 0
       normal:
         range: float
         description: "Integrated normal (upright) multipole strength [T.m^{1-n}]."
+        ifabsent: float(0)
       skew:
         range: float
         description: "Integrated skew (rotated) multipole strength [T.m^{1-n}]."
+        ifabsent: float(0)
       radius:
         range: float
         description: Reference radius for multipole normalisation [m].
+        ifabsent: float(0)
         unit:
           ucum_code: m
 
@@ -485,7 +899,8 @@ classes:
     description: >-
       Complete set of integrated multipole strengths up to decapole order,
       as named slots for efficient element look-up.
-    class_uri: laura:Multipoles
+    class_uri: laura:MultipoleList
+    
     attributes:
       K0L:
         range: Multipole
@@ -512,6 +927,7 @@ classes:
       coefficients:
         multivalued: true
         range: float
+        ifabsent: [0]
         description: >-
           Polynomial coefficients ordered from lowest to highest degree:
           ``FieldIntegral = sum c_n . I^n``.
@@ -525,28 +941,35 @@ classes:
       m:
         range: float
         description: Linear slope of the unsaturated region.
+        ifabsent: float(0)
       I_max:
         range: float
         description: Current at which saturation begins [A].
+        ifabsent: float(0)
         unit:
           ucum_code: A
       f:
         range: float
         description: Saturation fraction (slope ratio below/above I_max).
+        ifabsent: float(0)
       a:
         range: float
         description: Quadratic saturation coefficient.
+        ifabsent: float(0)
       I0:
         range: float
         description: Current offset [A].
+        ifabsent: float(0)
         unit:
           ucum_code: A
       d:
         range: float
         description: Constant offset term.
+        ifabsent: float(0)
       L:
         range: float
         description: Effective magnetic length [m].
+        ifabsent: float(0)
         unit:
           ucum_code: m
 
@@ -560,15 +983,19 @@ classes:
     attributes:
       order:
         range: integer
+        ifabsent: int(-1)
         description: "Principal multipole order (0 = dipole, 1 = quad, ?)."
-        minimum_value: 0
+        minimum_value: -1
       skew:
         range: boolean
+        ifabsent: false
         description: >-
           Whether the magnet is rotated 45? to produce a skew field
           component.
       magnetic_length:
+        alias: length
         range: float
+        ifabsent: float(0)
         description: Magnetic (effective) length [m].
         minimum_value: 0.0
         unit:
@@ -605,33 +1032,40 @@ classes:
           ucum_code: rad
       gap:
         range: float
+        ifabsent: float(0.032)
         description: Full gap between pole faces [m].
         minimum_value: 0.0
         unit:
           ucum_code: m
       bore:
         range: float
+        ifabsent: float(0.037)
         description: Magnet bore radius [m].
         minimum_value: 0.0
         unit:
           ucum_code: m
       plane:
         range: string
+        ifabsent: string(horizontal)
         description: "Principal bending / focusing plane (``H``, ``V``, or ``HV``)."
       width:
         range: float
+        ifabsent: float(0.2)
         description: Physical width of the magnet in the bending plane [m].
         unit:
           ucum_code: m
       tilt:
         range: float
+        ifabsent: float(0.0)
         description: Global tilt about the beam axis [rad].
         unit:
           ucum_code: rad
       edge_field_integral:
         range: float
+        ifabsent: float(0.5)
         description: Enge fringe-field integral parameter (dimensionless).
       fringe_field_coefficient:
+        ifabsent: float(0.0)
         range: float
         description: Coefficient controlling the fringe-field roll-off rate.
       gradient:
@@ -653,12 +1087,14 @@ classes:
       horizontal_size:
         range: float
         description: Full horizontal aperture [m].
+        ifabsent: float(0.0)
         minimum_value: 0.0
         unit:
           ucum_code: m
       vertical_size:
         range: float
         description: Full vertical aperture [m].
+        ifabsent: float(0.0)
         minimum_value: 0.0
         unit:
           ucum_code: m
@@ -689,73 +1125,38 @@ classes:
     class_uri: laura:RFCavityElement
     in_subset:
       - rf_properties
+    slots:
+      - cell_length
+      - coupling_cell_length
+      - design_gamma
+      - design_power
+      - frequency
+      - n_cells
+      - crest
+      - phase
+      - shunt_impedance
+      - mode_numerator
+      - mode_denominator
     attributes:
       structure_type:
         range: string
         description: >-
           RF structure type (e.g., ``SW`` standing-wave, ``TW``
           travelling-wave).
+        ifabsent: string(StandingWave)
         aliases:
           - structure_Type
       attenuation_constant:
         range: float
         description: Attenuation constant ? of a travelling-wave structure [Np/m].
-      cell_length:
-        range: float
-        description: Length of a single accelerating cell [m].
-        minimum_value: 0.0
-        unit:
-          ucum_code: m
-      coupling_cell_length:
-        range: float
-        description: Length of a coupling cell [m].
-        minimum_value: 0.0
-        unit:
-          ucum_code: m
-      design_gamma:
-        range: float
-        description: Relativistic Lorentz factor ? at design operating point.
-        minimum_value: 1.0
-      design_power:
-        range: float
-        description: Design peak RF power [W].
-        minimum_value: 0.0
-        unit:
-          ucum_code: W
-      frequency:
-        range: float
-        description: RF operating frequency [Hz].
-        minimum_value: 0.0
-        unit:
-          ucum_code: Hz
-      n_cells:
-        range: integer
-        description: Number of accelerating cells.
-        minimum_value: 1
-      crest:
-        range: float
-        description: On-crest phase offset providing maximum energy gain [deg].
-        unit:
-          ucum_code: deg
-      phase:
-        range: float
-        description: Operating phase relative to crest [deg].
-        unit:
-          ucum_code: deg
-      shunt_impedance:
-        range: float
-        description: "Shunt impedance [M?/m]."
-      mode_numerator:
-        range: integer
-        description: Numerator of the operating mode fraction (e.g., 2 for 2pi/3).
-      mode_denominator:
-        range: integer
-        description: Denominator of the operating mode fraction.
+        ifabsent: float(0)
       power_calibration:
         range: float
+        multivalued: true
         description: Calibration constant relating measured power to cavity gradient.
       gradient_calibration:
         range: float
+        multivalued: true
         description: "Calibration relating measured signal to gradient [MV/m per a.u.]."
 
   WakefieldElement:
@@ -763,22 +1164,10 @@ classes:
     class_uri: laura:WakefieldElement
     in_subset:
       - rf_properties
-    attributes:
-      cell_length:
-        range: float
-        description: Length of a single cell [m].
-        minimum_value: 0.0
-        unit:
-          ucum_code: m
-      n_cells:
-        range: integer
-        description: Number of cells.
-        minimum_value: 1
-      coupling_cell_length:
-        range: float
-        description: Length of the coupling cell [m].
-        unit:
-          ucum_code: m
+    slots:
+      - cell_length
+      - n_cells
+      - coupling_cell_length
 
   RFDeflectingCavityElement:
     description: >-
@@ -787,44 +1176,18 @@ classes:
     class_uri: laura:RFDeflectingCavityElement
     in_subset:
       - rf_properties
-    attributes:
-      coupling_cell_length:
-        range: float
-        description: Length of the coupling cell [m].
-        unit:
-          ucum_code: m
-      design_gamma:
-        range: float
-        description: Design Lorentz factor ?.
-        minimum_value: 1.0
-      design_power:
-        range: float
-        description: Design peak power [W].
-        unit:
-          ucum_code: W
-      frequency:
-        range: float
-        description: Operating frequency [Hz].
-        unit:
-          ucum_code: Hz
-      n_cells:
-        range: integer
-        description: Number of cells.
-        minimum_value: 1
-      phase:
-        range: float
-        description: Operating phase offset [deg].
-        unit:
-          ucum_code: deg
-      shunt_impedance:
-        range: float
-        description: "Shunt impedance [M?/m]."
-      mode_numerator:
-        range: integer
-        description: Mode fraction numerator.
-      mode_denominator:
-        range: integer
-        description: Mode fraction denominator.
+    slots:
+      - cell_length
+      - coupling_cell_length
+      - crest
+      - design_gamma
+      - design_power
+      - frequency
+      - n_cells
+      - phase
+      - shunt_impedance
+      - mode_numerator
+      - mode_denominator
 
   PIDElement:
     description: PID feedback-controller parameters.
@@ -839,10 +1202,150 @@ classes:
       Kd:
         range: float
         description: Derivative gain.
+      forward_channel:
+        range: integer
+        description: Forward channel index.
+      probe_channel:
+        range: integer
+        description: Probe channel index.
+      enable:
+        range: string
+        description: Enable command/value.
+      disable:
+        range: string
+        description: Disable command/value.
+      phase_range:
+        range: PIDPhaseRange
+        description: Phase tuning range.
+      phase_weight_range:
+        range: PIDWeightRange
+        description: Phase weighting range.
+
+  PIDPhaseRange:
+    description: Numeric min/max range for PID phase control.
+    class_uri: laura:PIDPhaseRange
+    attributes:
+      min:
+        range: float
+        description: Minimum value.
+      max:
+        range: float
+        description: Maximum value.
+
+  PIDWeightRange:
+    is_a: PIDPhaseRange
+    description: Numeric min/max range for PID phase weighting.
+    class_uri: laura:PIDWeightRange
+
+  Trace:
+    description: LLRF trace metadata.
+    class_uri: laura:Trace
+    attributes:
+      data_size:
+        range: integer
+        description: Number of points in a trace.
+        aliases: [trace_data_size]
+      data_count:
+        range: integer
+        description: Number of one-record trace entries.
+        aliases: [one_trace_data_count]
+      data_chunk_size:
+        range: integer
+        description: Chunk size for one-record traces.
+        aliases: [one_trace_data_chunk_size]
+      number_of_start_zeros:
+        range: integer
+        description: Number of leading zeros in a trace.
+        aliases: [trace_num_of_start_zeros]
+
+  ChannelNames:
+    description: Names for LLRF channels 1..8.
+    class_uri: laura:ChannelNames
+    attributes:
+      ch1:
+        range: string
+        ifabsent: string()
+        aliases: [CH1]
+      ch2:
+        range: string
+        ifabsent: string()
+        aliases: [CH2]
+      ch3:
+        range: string
+        ifabsent: string()
+        aliases: [CH3]
+      ch4:
+        range: string
+        ifabsent: string()
+        aliases: [CH4]
+      ch5:
+        range: string
+        ifabsent: string()
+        aliases: [CH5]
+      ch6:
+        range: string
+        ifabsent: string()
+        aliases: [CH6]
+      ch7:
+        range: string
+        ifabsent: string()
+        aliases: [CH7]
+      ch8:
+        range: string
+        ifabsent: string()
+        aliases: [CH8]
+
+  LLRFTiming:
+    description: Start/end window timing definition.
+    class_uri: laura:LLRFTiming
+    attributes:
+      start:
+        range: float
+        description: Start time.
+      end:
+        range: float
+        description: End time.
+
+  LLRFTimings:
+    description: Collection of timing windows for key LLRF channels.
+    class_uri: laura:LLRFTimings
+    attributes:
+      klystron_forward:
+        range: LLRFTiming
+        description: Timing for klystron forward power.
+      klystron_reverse:
+        range: LLRFTiming
+        description: Timing for klystron reverse power.
+      cavity_forward:
+        range: LLRFTiming
+        description: Timing for cavity forward power.
+      cavity_reverse:
+        range: LLRFTiming
+        description: Timing for cavity reverse power.
+      cavity_probe:
+        range: LLRFTiming
+        description: Timing for cavity probe.
 
   LowLevelRFElement:
     description: Low-level RF (LLRF) system parameters.
     class_uri: laura:LowLevelRFElement
+    attributes:
+      trace:
+        range: Trace
+        description: Trace metadata.
+      max_amplitude:
+        range: float
+        description: Maximum allowed amplitude.
+        aliases: [MAX_AMPLITUDE]
+      channel_names:
+        range: ChannelNames
+        description: Channel labels.
+      crest_phase:
+        range: float
+        description: Cavity crest phase.
+      timings:
+        range: LLRFTimings
+        description: Timing windows for LLRF channels.
 
   RFModulatorElement:
     description: RF modulator (klystron driver) parameters.
@@ -851,6 +1354,10 @@ classes:
   RFProtectionElement:
     description: RF protection system parameters.
     class_uri: laura:RFProtectionElement
+    attributes:
+      prot_type:
+        range: string
+        description: Protection system type.
 
   RFHeartbeatElement:
     description: RF heartbeat / timing-monitor element parameters.
@@ -876,6 +1383,7 @@ classes:
         description: >-
           BPM type (e.g., ``Stripline``, ``Cavity``, ``Button``).
           Accepted in YAML as ``bpm_type``.
+        ifabsent: string(Stripline)
         aliases:
           - bpm_type
 
@@ -889,6 +1397,7 @@ classes:
       type:
         range: string
         description: BAM type. Accepted in YAML as ``bam_type``.
+        ifabsent: string(DESY)
         aliases:
           - bam_type
 
@@ -902,6 +1411,7 @@ classes:
       type:
         range: string
         description: "BLM type (e.g., ``CDR``). Accepted in YAML as ``blm_type``."
+        ifabsent: string(CDR)
         aliases:
           - blm_type
 
@@ -915,12 +1425,22 @@ classes:
       type:
         range: string
         description: Screen type (e.g., ``OTR``, ``YAG``).
+        ifabsent: string(CLARA_HV_MOVER)
+        aliases:
+          - screen_type
       has_camera:
         range: boolean
         description: Whether the screen has an associated camera.
+        ifabsent: true
       camera_name:
         range: string
         description: Name of the associated camera element.
+        ifabsent: string()
+      devices:
+        range: string
+        multivalued: true
+        description: List of attached devices.
+        ifabsent: []
 
   ChargeDiagnosticElement:
     is_a: DiagnosticElement
@@ -935,6 +1455,156 @@ classes:
           Charge-diagnostic type. Accepted in YAML as ``charge_type``.
         aliases:
           - charge_type
+
+  # -- Camera sub-models (components of CameraDiagnosticElement) ---------------
+
+  CameraPixelResultsIndices:
+    description: >-
+      Indices into camera pixel-analysis result arrays.
+    class_uri: laura:CameraPixelResultsIndices
+    attributes:
+      x:
+        range: integer
+        description: Beam centroid index in x.
+        ifabsent: int(0)
+        aliases: [X_POS]
+      y:
+        range: integer
+        description: Beam centroid index in y.
+        ifabsent: int(1)
+        aliases: [Y_POS]
+      x_sigma:
+        range: integer
+        description: Beam sigma index in x.
+        ifabsent: int(2)
+        aliases: [X_SIGMA_POS]
+      y_sigma:
+        range: integer
+        description: Beam sigma index in y.
+        ifabsent: int(3)
+        aliases: [Y_SIGMA_POS]
+      covariance:
+        range: integer
+        description: Beam covariance index.
+        ifabsent: int(4)
+        aliases: [COV_POS]
+
+  CameraPixelResultsNames:
+    description: >-
+      Names of camera pixel-analysis result arrays.
+    class_uri: laura:CameraPixelResultsNames
+    attributes:
+      x:
+        range: string
+        description: Beam centroid name in x.
+        ifabsent: string(X)
+        aliases: [X_NAME]
+      y:
+        range: string
+        description: Beam centroid name in y.
+        ifabsent: string(Y)
+        aliases: [Y_NAME]
+      x_sigma:
+        range: string
+        description: Beam sigma name in x.
+        ifabsent: string(X_SIGMA)
+        aliases: [X_SIGMA_NAME]
+      y_sigma:
+        range: string
+        description: Beam sigma name in y.
+        ifabsent: string(Y_SIGMA)
+        aliases: [Y_SIGMA_NAME]
+      covariance:
+        range: string
+        description: Beam covariance name.
+        ifabsent: string(COV)
+        aliases: [COV_NAME]
+
+  CameraMask:
+    description: >-
+      Camera analysis mask parameters.
+    class_uri: laura:CameraMask
+    attributes:
+      middle:
+        range: float
+        multivalued: true
+        description: Center of the mask in pixels [x, y].
+      radius:
+        range: float
+        multivalued: true
+        description: Mask radius in pixels [x, y].
+      maximum:
+        range: float
+        multivalued: true
+        description: Maximum mask radius in pixels [x, y].
+      use_maximum_values:
+        range: boolean
+        description: If True, use maximum mask radius constraints.
+        ifabsent: true
+        aliases: [USE_MASK_RAD_LIMITS]
+
+  CameraSensor:
+    description: >-
+      Camera sensor hardware configuration.
+    class_uri: laura:CameraSensor
+    attributes:
+      x_pixels:
+        range: integer
+        description: Raw sensor pixel count in x.
+        ifabsent: int(2160)
+        aliases: [BINARY_NUM_PIX_X]
+      y_pixels:
+        range: integer
+        description: Raw sensor pixel count in y.
+        ifabsent: int(2560)
+        aliases: [BINARY_NUM_PIX_Y]
+      x_scale_factor:
+        range: integer
+        description: Pixel binning factor in x.
+        ifabsent: int(2)
+        aliases: [X_PIX_SCALE_FACTOR]
+      y_scale_factor:
+        range: integer
+        description: Pixel binning factor in y.
+        ifabsent: int(2)
+        aliases: [Y_PIX_SCALE_FACTOR]
+      beam_pixel_average:
+        range: float
+        description: Average pixel value for beam detection.
+        ifabsent: float(97.2)
+        aliases: [AVG_PIXEL_VALUE_FOR_BEAM]
+      middle:
+        range: float
+        multivalued: true
+        description: Sensor optical center in pixels [x, y].
+      x_pixels_to_mm:
+        range: float
+        description: Pixel-to-mm scale factor in x.
+        ifabsent: float(0.0134)
+      y_pixels_to_mm:
+        range: float
+        description: Pixel-to-mm scale factor in y.
+        ifabsent: float(0.0134)
+      minimum:
+        range: float
+        multivalued: true
+        description: Minimum pixel positions [x, y].
+      maximum:
+        range: float
+        multivalued: true
+        description: Maximum pixel positions [x, y].
+      bit_depth:
+        range: integer
+        description: Camera bit depth.
+        ifabsent: int(16)
+      operating_middle:
+        range: float
+        multivalued: true
+        description: Operating center positions in pixels [x, y].
+      mechanical_middle:
+        range: float
+        multivalued: true
+        description: Mechanical center of the camera in pixels [x, y].
 
   CameraDiagnosticElement:
     is_a: DiagnosticElement
@@ -955,26 +1625,54 @@ classes:
       x_pixels:
         range: integer
         description: Image width reported by the control system [pix].
+        ifabsent: int(1080)
+        aliases:
+          - ARRAY_DATA_NUM_PIX_X
+          - epics_x_pixels
       y_pixels:
         range: integer
         description: Image height reported by the control system [pix].
+        ifabsent: int(1280)
+        aliases:
+          - ARRAY_DATA_NUM_PIX_Y
+          - epics_y_pixels
       rotation:
         range: float
         description: Camera rotation relative to the screen plane [deg].
+        ifabsent: float(0)
         unit:
           ucum_code: deg
       flipped_horizontally:
         range: boolean
         description: True if the image is mirrored left-right.
+        ifabsent: true
+        aliases:
+          - IMAGE_FLIP_LR
       flipped_vertically:
         range: boolean
         description: True if the image is mirrored top-bottom.
+        ifabsent: false
+        aliases:
+          - IMAGE_FLIP_UD
       screen_name:
         range: string
         description: Name of the screen element to which this camera is attached.
       has_led:
         range: boolean
         description: True if the camera mount includes an LED backlight.
+        ifabsent: true
+      pixel_results_indices:
+        range: CameraPixelResultsIndices
+        description: Indices of pixel analysis result arrays.
+      pixel_results_names:
+        range: CameraPixelResultsNames
+        description: Names of pixel analysis result arrays.
+      mask:
+        range: CameraMask
+        description: Camera analysis mask configuration.
+      sensor:
+        range: CameraSensor
+        description: Camera sensor hardware configuration.
 
   # -- Laser sub-models -------------------------------------------------------
 
@@ -989,11 +1687,13 @@ classes:
       initial_position:
         range: float
         description: Initial longitudinal position of the laser pulse [m].
+        ifabsent: float(0)
         unit:
           ucum_code: m
       waist:
         range: float
         description: Laser beam waist (1/e^2 radius) [m].
+        ifabsent: float(0)
         minimum_value: 0.0
         unit:
           ucum_code: m
@@ -1018,11 +1718,13 @@ classes:
       focal_position:
         range: float
         description: Focal (waist) position along the propagation axis [m].
+        ifabsent: float(0.0)
         unit:
           ucum_code: m
       cep_phase:
         range: float
         description: Carrier-envelope phase [rad].
+        ifabsent: float(0)
         unit:
           ucum_code: rad
       polarization:
@@ -1031,17 +1733,20 @@ classes:
       profile_type:
         range: LaserProfileTypeEnum
         description: Transverse intensity profile model.
+        ifabsent: string(gaussian)
       laguerre_polynomial_order_p:
         range: integer
         description: >-
           Radial Laguerre-Gaussian mode index p (for
           ``profile_type = laguerre-gaussian``).
+        ifabsent: int(0)
         minimum_value: 0
       flatness:
         range: integer
         description: >-
           Flatness order N of a flattened-Gaussian profile
           (for ``profile_type = flattened-gaussian``).
+        ifabsent: int(6)
         minimum_value: 1
 
   LaserEnergyMeterElement:
@@ -1067,27 +1772,32 @@ classes:
       species:
         range: string
         description: "Plasma species name (e.g., ``electron``)."
+        ifabsent: string(electron)
       ramp_up:
         range: float
         description: Entrance density-ramp length [m].
+        ifabsent: float(0.001)
         minimum_value: 0.0
         unit:
           ucum_code: m
       plateau:
         range: float
         description: Flat-top plateau length [m].
+        ifabsent: float(0.001)
         minimum_value: 0.0
         unit:
           ucum_code: m
       ramp_down:
         range: float
         description: Exit density-ramp length [m].
+        ifabsent: float(0.001)
         minimum_value: 0.0
         unit:
           ucum_code: m
       ramp_decay_length:
         range: float
         description: Exponential decay length of the density ramp [m].
+        ifabsent: float(0.001)
         minimum_value: 0.0
         unit:
           ucum_code: m
@@ -1096,9 +1806,11 @@ classes:
         description: >-
           If True, use a user-defined profile; if False, use a flat-top
           model.
+        ifabsent: false
       parabolic_coefficient:
         range: float
         description: Parabolic coefficient for a transverse density profile.
+        ifabsent: float(0)
 
   # -- Shutter / Valve sub-models ---------------------------------------------
 
@@ -1136,6 +1848,7 @@ classes:
       tolerance:
         range: float
         description: Current tolerance band during the degauss cycle [A].
+        ifabsent: float(0.5)
         aliases:
           - degauss_tolerance
         unit:
@@ -1151,6 +1864,7 @@ classes:
       steps:
         range: integer
         description: Number of degauss steps per half-cycle.
+        ifabsent: int(11)
         aliases:
           - num_degauss_steps
         minimum_value: 1
@@ -1171,20 +1885,23 @@ classes:
     attributes:
       name:
         identifier: true
+        required: true
         range: string
         description: Unique element name within the machine.
       hardware_class:
         range: HardwareClassEnum
+        required: true
         description: >-
           Functional category (e.g., ``Magnet``, ``Diagnostic``).
       hardware_type:
-        designates_type: true
         range: string
+        ifabsent: string(Generic)
         description: >-
           Python class name used for MODEL_REGISTRY dispatch.  Identifies
           the concrete subclass to instantiate when loading from YAML.
       hardware_model:
         range: string
+        ifabsent: string(Generic)
         description: >-
           Model or variant name within the hardware type
           (e.g., ``Generic``, ``TESLA``).
@@ -1195,6 +1912,7 @@ classes:
           (e.g., ``LINAC``, ``BA1``).
       virtual_name:
         range: string
+        ifabsent: string()
         description: >-
           Alternative internal name used by the control system when the
           physical name is inaccessible.
@@ -1237,10 +1955,17 @@ classes:
         range: ReferenceElement
         description: Links to design drawings and files.
 
+  Element:
+    is_a: StandardElement
+    description: >-
+      Concrete schema counterpart of the Python ``Element`` wrapper class.
+      Inherits standard element composition fields.
+    class_uri: laura:Element
+
   # -- Physical element -------------------------------------------------------
 
   PhysicalAcceleratorElement:
-    is_a: StandardElement
+    is_a: Element
     description: >-
       Accelerator element with a well-defined physical position and
       orientation in the beamline.
@@ -1273,88 +1998,6 @@ classes:
       degauss:
         range: DegaussableElement
         description: Degaussing-cycle parameters.
-
-  # --- Concrete magnets ------------------------------------------------------
-
-  Dipole:
-    is_a: MagnetBaseElement
-    description: Dipole bending magnet.
-    class_uri: laura:Dipole
-    slot_usage:
-      hardware_type:
-        equals_string: Dipole
-
-  Quadrupole:
-    is_a: MagnetBaseElement
-    description: Quadrupole focusing magnet.
-    class_uri: laura:Quadrupole
-    slot_usage:
-      hardware_type:
-        equals_string: Quadrupole
-
-  Sextupole:
-    is_a: MagnetBaseElement
-    description: Sextupole chromaticity-correction magnet.
-    class_uri: laura:Sextupole
-    slot_usage:
-      hardware_type:
-        equals_string: Sextupole
-
-  Octupole:
-    is_a: MagnetBaseElement
-    description: Octupole magnet.
-    class_uri: laura:Octupole
-    slot_usage:
-      hardware_type:
-        equals_string: Octupole
-
-  HorizontalCorrector:
-    is_a: Dipole
-    description: Horizontal orbit-corrector dipole.
-    class_uri: laura:HorizontalCorrector
-    slot_usage:
-      hardware_type:
-        equals_string: Horizontal_Corrector
-
-  VerticalCorrector:
-    is_a: Dipole
-    description: Vertical orbit-corrector dipole.
-    class_uri: laura:VerticalCorrector
-    slot_usage:
-      hardware_type:
-        equals_string: Vertical_Corrector
-
-  CombinedCorrector:
-    is_a: Dipole
-    description: Combined horizontal and vertical orbit-corrector magnet.
-    class_uri: laura:CombinedCorrector
-    slot_usage:
-      hardware_type:
-        equals_string: Combined_Corrector
-
-  Solenoid:
-    is_a: MagnetBaseElement
-    description: Solenoid focussing magnet.
-    class_uri: laura:Solenoid
-    slot_usage:
-      hardware_type:
-        equals_string: Solenoid
-
-  NonLinearLens:
-    is_a: MagnetBaseElement
-    description: Non-linear focusing lens (IOTA-style).
-    class_uri: laura:NonLinearLens
-    slot_usage:
-      hardware_type:
-        equals_string: NonLinearLens
-
-  Wiggler:
-    is_a: MagnetBaseElement
-    description: Wiggler / undulator permanent-magnet array.
-    class_uri: laura:Wiggler
-    slot_usage:
-      hardware_type:
-        equals_string: Wiggler
 
   # -- Diagnostics ------------------------------------------------------------
 
@@ -1752,6 +2395,48 @@ classes:
     slot_usage:
       hardware_type:
         equals_string: LaserMirror
+    attributes:
+      laser:
+        range: LaserMirrorElement
+        description: Mirror steering parameters.
+
+  LaserMirrorElement:
+    description: Mirror steering parameters for a laser mirror.
+    class_uri: laura:LaserMirrorElement
+    attributes:
+      step_max:
+        range: float
+        description: Maximum step size for mirror adjustment.
+      sense:
+        range: LaserMirrorSense
+        description: Mirror sense/interlock configuration.
+      vertical_channel:
+        range: integer
+        description: Vertical control channel index.
+      horizontal_channel:
+        range: integer
+        description: Horizontal control channel index.
+
+  LaserMirrorSense:
+    description: Mirror sense switch values.
+    class_uri: laura:LaserMirrorSense
+    attributes:
+      left:
+        range: float
+        description: Left sense value.
+        aliases: [left_sense]
+      right:
+        range: float
+        description: Right sense value.
+        aliases: [right_sense]
+      up:
+        range: float
+        description: Up sense value.
+        aliases: [up_sense]
+      down:
+        range: float
+        description: Down sense value.
+        aliases: [down_sense]
 
   LaserAttenuator:
     is_a: StandardElement

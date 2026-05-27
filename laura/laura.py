@@ -194,7 +194,7 @@ class LAURA(MachineModel):
                     newdrift = Drift(
                         name=name,
                         machine_area=newelements[e[0]].machine_area,
-                        hardware_class="drift",
+                        hardware_class="Drift",
                         physical=PhysicalElement(
                             length=round(copysign(length, vector), 6),
                             middle=Position(x=x, y=y, z=z),

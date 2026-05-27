@@ -49,6 +49,7 @@ URI: [laura:max_i](https://w3id.org/laura/max_i)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [ElectricalElement](ElectricalElement.md) |
 
 
@@ -111,6 +112,7 @@ from_schema: https://w3id.org/laura/schema
 aliases:
 - maxI
 rank: 1000
+ifabsent: float(0)
 owner: ElectricalElement
 domain_of:
 - ElectricalElement

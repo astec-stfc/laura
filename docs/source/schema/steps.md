@@ -49,6 +49,7 @@ URI: [laura:steps](https://w3id.org/laura/steps)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `int(11)` |
 | Owner | [DegaussableElement](DegaussableElement.md) |
 
 
@@ -108,6 +109,7 @@ from_schema: https://w3id.org/laura/schema
 aliases:
 - num_degauss_steps
 rank: 1000
+ifabsent: int(11)
 owner: DegaussableElement
 domain_of:
 - DegaussableElement

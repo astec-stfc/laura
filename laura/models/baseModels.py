@@ -107,10 +107,6 @@ class IgnoreExtra(ModelBase):
     ) -> None:
         fields[fieldname] = [fields[x] for x in fieldinputs]
 
-    @classmethod
-    def from_CATAP(cls: Type[T], fields: dict) -> T:
-        return cls(**fields)
-
     def update(self, **kwargs):
         cls = self.__class__
         [

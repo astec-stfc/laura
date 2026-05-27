@@ -132,6 +132,9 @@ attributes:
     name: type
     description: Screen type (e.g., ``OTR``, ``YAG``).
     from_schema: https://w3id.org/laura/schema
+    aliases:
+    - screen_type
+    ifabsent: string(CLARA_HV_MOVER)
     domain_of:
     - BPMDiagnosticElement
     - BAMDiagnosticElement
@@ -145,6 +148,7 @@ attributes:
     description: Whether the screen has an associated camera.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'True'
     domain_of:
     - ScreenDiagnosticElement
     range: boolean
@@ -153,6 +157,7 @@ attributes:
     description: Name of the associated camera element.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string()
     domain_of:
     - ScreenDiagnosticElement
     range: string
@@ -176,6 +181,9 @@ attributes:
     name: type
     description: Screen type (e.g., ``OTR``, ``YAG``).
     from_schema: https://w3id.org/laura/schema
+    aliases:
+    - screen_type
+    ifabsent: string(CLARA_HV_MOVER)
     owner: ScreenDiagnosticElement
     domain_of:
     - BPMDiagnosticElement
@@ -190,6 +198,7 @@ attributes:
     description: Whether the screen has an associated camera.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'True'
     owner: ScreenDiagnosticElement
     domain_of:
     - ScreenDiagnosticElement
@@ -199,6 +208,7 @@ attributes:
     description: Name of the associated camera element.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string()
     owner: ScreenDiagnosticElement
     domain_of:
     - ScreenDiagnosticElement

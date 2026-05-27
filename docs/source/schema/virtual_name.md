@@ -96,6 +96,7 @@ URI: [laura:virtual_name](https://w3id.org/laura/virtual_name)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string()` |
 | Owner | [AcceleratorElement](AcceleratorElement.md) |
 
 
@@ -142,6 +143,7 @@ description: Alternative internal name used by the control system when the physi
   name is inaccessible.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: string()
 owner: AcceleratorElement
 domain_of:
 - AcceleratorElement

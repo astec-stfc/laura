@@ -49,6 +49,7 @@ URI: [laura:vertical_size](https://w3id.org/laura/vertical_size)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0.0)` |
 | Owner | [ApertureElement](ApertureElement.md) |
 
 
@@ -111,6 +112,7 @@ name: vertical_size
 description: Full vertical aperture [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0.0)
 owner: ApertureElement
 domain_of:
 - ApertureElement

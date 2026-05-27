@@ -45,7 +45,7 @@ from laura.models.control import ControlVariable, ControlsInformation
 class TestRFCavityElement:
     def test_defaults(self):
         cav = RFCavityElement()
-        assert cav.structure_Type == "StandingWave"
+        assert cav.structure_type == "StandingWave"
         assert cav.frequency == pytest.approx(2998500000.0)
         assert cav.phase == pytest.approx(0.0)
         assert cav.n_cells == 1
@@ -127,7 +127,7 @@ class TestSimulationModels:
     def test_simulation_element_defaults(self):
         se = SimulationElement()
         assert se.field_definition is None
-        assert se.scale_field is False
+        assert se.scale_field == 1.0
 
     def test_magnet_simulation(self):
         ms = MagnetSimulationElement()

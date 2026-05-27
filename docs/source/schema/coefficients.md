@@ -50,6 +50,7 @@ URI: [laura:coefficients](https://w3id.org/laura/coefficients)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `[0]` |
 | Owner | [FieldIntegral](FieldIntegral.md) |
 
 
@@ -96,6 +97,7 @@ description: 'Polynomial coefficients ordered from lowest to highest degree: ``F
   = sum c_n . I^n``.'
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: '[0]'
 owner: FieldIntegral
 domain_of:
 - FieldIntegral

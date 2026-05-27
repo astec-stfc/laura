@@ -49,6 +49,7 @@ URI: [laura:cep_phase](https://w3id.org/laura/cep_phase)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [LaserElement](LaserElement.md) |
 
 
@@ -104,6 +105,7 @@ name: cep_phase
 description: Carrier-envelope phase [rad].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: LaserElement
 domain_of:
 - LaserElement

@@ -49,6 +49,7 @@ URI: [laura:I_max](https://w3id.org/laura/I_max)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [LinearSaturationFit](LinearSaturationFit.md) |
 
 
@@ -104,6 +105,7 @@ name: I_max
 description: Current at which saturation begins [A].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: LinearSaturationFit
 domain_of:
 - LinearSaturationFit

@@ -49,6 +49,7 @@ URI: [laura:smoothing_half_width](https://w3id.org/laura/smoothing_half_width)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `int(1)` |
 | Owner | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
@@ -94,6 +95,7 @@ name: smoothing_half_width
 description: Half-width of the current-profile smoothing kernel.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: int(1)
 owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement

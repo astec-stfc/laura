@@ -1,5 +1,4 @@
 from pydantic import ConfigDict
-from typing import List
 
 from ._generated import _ReferenceElementBase
 
@@ -17,11 +16,3 @@ class ReferenceElement(_ReferenceElementBase):
         populate_by_name=True,
         validate_by_name=True,
     )
-
-    # Override Optional[list[str]] defaults from the generated base so that
-    # callers always get a list rather than None.
-    drawings: List[str] = []
-    """Paths to mechanical drawings of the element."""
-
-    design_files: List[str] = []
-    """Paths to design files for the element."""

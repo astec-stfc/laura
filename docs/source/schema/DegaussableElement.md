@@ -138,6 +138,7 @@ attributes:
     aliases:
     - degauss_tolerance
     rank: 1000
+    ifabsent: float(0.5)
     domain_of:
     - DegaussableElement
     range: float
@@ -163,6 +164,7 @@ attributes:
     aliases:
     - num_degauss_steps
     rank: 1000
+    ifabsent: int(11)
     domain_of:
     - DegaussableElement
     range: integer
@@ -190,6 +192,7 @@ attributes:
     aliases:
     - degauss_tolerance
     rank: 1000
+    ifabsent: float(0.5)
     owner: DegaussableElement
     domain_of:
     - DegaussableElement
@@ -217,6 +220,7 @@ attributes:
     aliases:
     - num_degauss_steps
     rank: 1000
+    ifabsent: int(11)
     owner: DegaussableElement
     domain_of:
     - DegaussableElement

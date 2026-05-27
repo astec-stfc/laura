@@ -125,6 +125,7 @@ attributes:
     description: Multipole order (0 = dipole, 1 = quadrupole, ?).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(0)
     domain_of:
     - Multipole
     - MagneticElement
@@ -135,6 +136,7 @@ attributes:
     description: Integrated normal (upright) multipole strength [T.m^{1-n}].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - Multipole
     range: float
@@ -143,6 +145,7 @@ attributes:
     description: Integrated skew (rotated) multipole strength [T.m^{1-n}].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - Multipole
     - MagneticElement
@@ -152,9 +155,11 @@ attributes:
     description: Reference radius for multipole normalisation [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - Multipole
     - ApertureElement
+    - CameraMask
     range: float
     unit:
       ucum_code: m
@@ -177,6 +182,7 @@ attributes:
     description: Multipole order (0 = dipole, 1 = quadrupole, ?).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(0)
     owner: Multipole
     domain_of:
     - Multipole
@@ -188,6 +194,7 @@ attributes:
     description: Integrated normal (upright) multipole strength [T.m^{1-n}].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     owner: Multipole
     domain_of:
     - Multipole
@@ -197,6 +204,7 @@ attributes:
     description: Integrated skew (rotated) multipole strength [T.m^{1-n}].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     owner: Multipole
     domain_of:
     - Multipole
@@ -207,10 +215,12 @@ attributes:
     description: Reference radius for multipole normalisation [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     owner: Multipole
     domain_of:
     - Multipole
     - ApertureElement
+    - CameraMask
     range: float
     unit:
       ucum_code: m

@@ -49,6 +49,7 @@ URI: [laura:integration_order](https://w3id.org/laura/integration_order)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `int(4)` |
 | Owner | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
@@ -94,6 +95,7 @@ name: integration_order
 description: Order of the symplectic integrator.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: int(4)
 owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement

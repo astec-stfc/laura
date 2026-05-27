@@ -86,8 +86,8 @@ URI: [laura:RFCavityElement](https://w3id.org/laura/RFCavityElement)
 | [shunt_impedance](shunt_impedance.md) | 0..1 <br/> [Float](Float.md) | Shunt impedance [M?/m] | direct |
 | [mode_numerator](mode_numerator.md) | 0..1 <br/> [Integer](Integer.md) | Numerator of the operating mode fraction (e | direct |
 | [mode_denominator](mode_denominator.md) | 0..1 <br/> [Integer](Integer.md) | Denominator of the operating mode fraction | direct |
-| [power_calibration](power_calibration.md) | 0..1 <br/> [Float](Float.md) | Calibration constant relating measured power to cavity gradient | direct |
-| [gradient_calibration](gradient_calibration.md) | 0..1 <br/> [Float](Float.md) | Calibration relating measured signal to gradient [MV/m per a | direct |
+| [power_calibration](power_calibration.md) | * <br/> [Float](Float.md) | Calibration constant relating measured power to cavity gradient | direct |
+| [gradient_calibration](gradient_calibration.md) | * <br/> [Float](Float.md) | Calibration relating measured signal to gradient [MV/m per a | direct |
 
 
 
@@ -163,6 +163,7 @@ attributes:
     aliases:
     - structure_Type
     rank: 1000
+    ifabsent: string(StandingWave)
     domain_of:
     - RFCavityElement
     range: string
@@ -171,6 +172,7 @@ attributes:
     description: Attenuation constant ? of a travelling-wave structure [Np/m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - RFCavityElement
     range: float
@@ -179,9 +181,11 @@ attributes:
     description: Length of a single accelerating cell [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.03333333333333333)
     domain_of:
     - RFCavityElement
     - WakefieldElement
+    - RFDeflectingCavityElement
     range: float
     minimum_value: 0.0
     unit:
@@ -191,6 +195,7 @@ attributes:
     description: Length of a coupling cell [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     domain_of:
     - RFCavityElement
     - WakefieldElement
@@ -214,6 +219,7 @@ attributes:
     description: Design peak RF power [W].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(25000000)
     domain_of:
     - RFCavityElement
     - RFDeflectingCavityElement
@@ -226,6 +232,7 @@ attributes:
     description: RF operating frequency [Hz].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(2998500000.0)
     domain_of:
     - RFCavityElement
     - RFDeflectingCavityElement
@@ -238,6 +245,7 @@ attributes:
     description: Number of accelerating cells.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(1)
     domain_of:
     - RFCavityElement
     - WakefieldElement
@@ -249,8 +257,10 @@ attributes:
     description: On-crest phase offset providing maximum energy gain [deg].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - RFCavityElement
+    - RFDeflectingCavityElement
     range: float
     unit:
       ucum_code: deg
@@ -259,6 +269,7 @@ attributes:
     description: Operating phase relative to crest [deg].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     domain_of:
     - RFCavityElement
     - RFDeflectingCavityElement
@@ -300,6 +311,7 @@ attributes:
     domain_of:
     - RFCavityElement
     range: float
+    multivalued: true
   gradient_calibration:
     name: gradient_calibration
     description: Calibration relating measured signal to gradient [MV/m per a.u.].
@@ -308,6 +320,7 @@ attributes:
     domain_of:
     - RFCavityElement
     range: float
+    multivalued: true
 class_uri: laura:RFCavityElement
 
 ```
@@ -330,6 +343,7 @@ attributes:
     aliases:
     - structure_Type
     rank: 1000
+    ifabsent: string(StandingWave)
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
@@ -339,6 +353,7 @@ attributes:
     description: Attenuation constant ? of a travelling-wave structure [Np/m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
@@ -348,10 +363,12 @@ attributes:
     description: Length of a single accelerating cell [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.03333333333333333)
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
     - WakefieldElement
+    - RFDeflectingCavityElement
     range: float
     minimum_value: 0.0
     unit:
@@ -361,6 +378,7 @@ attributes:
     description: Length of a coupling cell [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
@@ -386,6 +404,7 @@ attributes:
     description: Design peak RF power [W].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(25000000)
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
@@ -399,6 +418,7 @@ attributes:
     description: RF operating frequency [Hz].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(2998500000.0)
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
@@ -412,6 +432,7 @@ attributes:
     description: Number of accelerating cells.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(1)
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
@@ -424,9 +445,11 @@ attributes:
     description: On-crest phase offset providing maximum energy gain [deg].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0)
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
+    - RFDeflectingCavityElement
     range: float
     unit:
       ucum_code: deg
@@ -435,6 +458,7 @@ attributes:
     description: Operating phase relative to crest [deg].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
@@ -481,6 +505,7 @@ attributes:
     domain_of:
     - RFCavityElement
     range: float
+    multivalued: true
   gradient_calibration:
     name: gradient_calibration
     description: Calibration relating measured signal to gradient [MV/m per a.u.].
@@ -490,6 +515,7 @@ attributes:
     domain_of:
     - RFCavityElement
     range: float
+    multivalued: true
 class_uri: laura:RFCavityElement
 
 ```

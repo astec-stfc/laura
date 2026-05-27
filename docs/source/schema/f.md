@@ -49,6 +49,7 @@ URI: [laura:f](https://w3id.org/laura/f)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [LinearSaturationFit](LinearSaturationFit.md) |
 
 
@@ -94,6 +95,7 @@ name: f
 description: Saturation fraction (slope ratio below/above I_max).
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: LinearSaturationFit
 domain_of:
 - LinearSaturationFit

@@ -15,6 +15,8 @@ _Magnetic (effective) length [m]._
 
 
 URI: [laura:magnetic_length](https://w3id.org/laura/magnetic_length)
+Alias: length
+
 <!-- no inheritance hierarchy -->
 
 
@@ -49,6 +51,7 @@ URI: [laura:magnetic_length](https://w3id.org/laura/magnetic_length)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [MagneticElement](MagneticElement.md) |
 
 
@@ -111,6 +114,8 @@ name: magnetic_length
 description: Magnetic (effective) length [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
+alias: length
 owner: MagneticElement
 domain_of:
 - MagneticElement

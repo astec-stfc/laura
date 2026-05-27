@@ -41,6 +41,8 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
         
       MagnetSimulationElement : edge_order
         
+      MagnetSimulationElement : field_amplitude
+        
       MagnetSimulationElement : field_definition
         
       MagnetSimulationElement : field_reference_position
@@ -58,6 +60,8 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
       MagnetSimulationElement : scale_field
         
       MagnetSimulationElement : smooth
+        
+      MagnetSimulationElement : smooth_points
         
       MagnetSimulationElement : smoothing_half_width
         
@@ -103,9 +107,11 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | [smoothing_half_width](smoothing_half_width.md) | 0..1 <br/> [Integer](Integer.md) | Half-width of the current-profile smoothing kernel | direct |
 | [edge_order](edge_order.md) | 0..1 <br/> [Integer](Integer.md) | Polynomial order of the edge-field expansion | direct |
 | [deltaL](deltaL.md) | 0..1 <br/> [Float](Float.md) | Longitudinal step-size override for thick-lens integration [m] | direct |
+| [field_amplitude](field_amplitude.md) | 0..1 <br/> [Float](Float.md) | Field amplitude scaling for magnet tracking | direct |
+| [smooth_points](smooth_points.md) | 0..1 <br/> [Float](Float.md) | Number of points used to smooth the field map [ASTRA] | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
-| [field_reference_position](field_reference_position.md) | 0..1 <br/> [Float](Float.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
+| [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
 | [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
@@ -184,8 +190,10 @@ attributes:
     description: Number of integration kicks.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(4)
     domain_of:
     - MagnetSimulationElement
+    - RFCavitySimulationElement
     range: integer
     minimum_value: 1
   n_slices:
@@ -193,6 +201,7 @@ attributes:
     description: Number of longitudinal slices for thick-lens tracking.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(4)
     domain_of:
     - MagnetSimulationElement
     range: integer
@@ -204,12 +213,15 @@ attributes:
     rank: 1000
     domain_of:
     - MagnetSimulationElement
+    - RFCavitySimulationElement
+    - WakefieldSimulationElement
     range: boolean
   edge_field_integral:
     name: edge_field_integral
     description: Fringe-field integral for edge focussing.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.5)
     domain_of:
     - MagnetSimulationElement
     - MagneticElement
@@ -235,6 +247,7 @@ attributes:
     description: Enable synchrotron-radiation energy loss.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'True'
     domain_of:
     - MagnetSimulationElement
     range: boolean
@@ -243,6 +256,7 @@ attributes:
     description: Enable incoherent synchrotron-radiation emittance growth.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'True'
     domain_of:
     - MagnetSimulationElement
     range: boolean
@@ -251,14 +265,17 @@ attributes:
     description: Enable coherent synchrotron radiation.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'True'
     domain_of:
     - MagnetSimulationElement
+    - DriftSimulationElement
     range: boolean
   csr_bins:
     name: csr_bins
     description: Number of longitudinal bins for the CSR mesh.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(100)
     domain_of:
     - MagnetSimulationElement
     range: integer
@@ -267,6 +284,7 @@ attributes:
     description: Order of the symplectic integrator.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(4)
     domain_of:
     - MagnetSimulationElement
     range: integer
@@ -283,6 +301,7 @@ attributes:
     description: Half-width of the current-profile smoothing kernel.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(1)
     domain_of:
     - MagnetSimulationElement
     range: integer
@@ -291,6 +310,7 @@ attributes:
     description: Polynomial order of the edge-field expansion.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(2)
     domain_of:
     - MagnetSimulationElement
     range: integer
@@ -299,11 +319,31 @@ attributes:
     description: Longitudinal step-size override for thick-lens integration [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     domain_of:
     - MagnetSimulationElement
     range: float
     unit:
       ucum_code: m
+  field_amplitude:
+    name: field_amplitude
+    description: Field amplitude scaling for magnet tracking.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: float(0.0)
+    domain_of:
+    - MagnetSimulationElement
+    - RFCavitySimulationElement
+    range: float
+  smooth_points:
+    name: smooth_points
+    description: Number of points used to smooth the field map [ASTRA].
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: float(2)
+    domain_of:
+    - MagnetSimulationElement
+    range: float
 class_uri: laura:MagnetSimulationElement
 
 ```
@@ -324,9 +364,11 @@ attributes:
     description: Number of integration kicks.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(4)
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
+    - RFCavitySimulationElement
     range: integer
     minimum_value: 1
   n_slices:
@@ -334,6 +376,7 @@ attributes:
     description: Number of longitudinal slices for thick-lens tracking.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(4)
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
@@ -347,12 +390,15 @@ attributes:
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
+    - RFCavitySimulationElement
+    - WakefieldSimulationElement
     range: boolean
   edge_field_integral:
     name: edge_field_integral
     description: Fringe-field integral for edge focussing.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.5)
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
@@ -381,6 +427,7 @@ attributes:
     description: Enable synchrotron-radiation energy loss.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'True'
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
@@ -390,6 +437,7 @@ attributes:
     description: Enable incoherent synchrotron-radiation emittance growth.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'True'
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
@@ -399,15 +447,18 @@ attributes:
     description: Enable coherent synchrotron radiation.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: 'True'
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
+    - DriftSimulationElement
     range: boolean
   csr_bins:
     name: csr_bins
     description: Number of longitudinal bins for the CSR mesh.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(100)
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
@@ -417,6 +468,7 @@ attributes:
     description: Order of the symplectic integrator.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(4)
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
@@ -435,6 +487,7 @@ attributes:
     description: Half-width of the current-profile smoothing kernel.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(1)
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
@@ -444,6 +497,7 @@ attributes:
     description: Polynomial order of the edge-field expansion.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(2)
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
@@ -453,12 +507,34 @@ attributes:
     description: Longitudinal step-size override for thick-lens integration [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
     range: float
     unit:
       ucum_code: m
+  field_amplitude:
+    name: field_amplitude
+    description: Field amplitude scaling for magnet tracking.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: float(0.0)
+    owner: MagnetSimulationElement
+    domain_of:
+    - MagnetSimulationElement
+    - RFCavitySimulationElement
+    range: float
+  smooth_points:
+    name: smooth_points
+    description: Number of points used to smooth the field map [ASTRA].
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: float(2)
+    owner: MagnetSimulationElement
+    domain_of:
+    - MagnetSimulationElement
+    range: float
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.
@@ -485,14 +561,13 @@ attributes:
     owner: MagnetSimulationElement
     domain_of:
     - SimulationElement
-    range: float
-    unit:
-      ucum_code: m
+    range: string
   scale_field:
     name: scale_field
     description: Multiplicative scale factor applied to the field map.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(1)
     owner: MagnetSimulationElement
     domain_of:
     - SimulationElement

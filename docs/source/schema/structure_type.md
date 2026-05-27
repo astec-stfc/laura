@@ -49,6 +49,7 @@ URI: [laura:structure_type](https://w3id.org/laura/structure_type)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string(StandingWave)` |
 | Owner | [RFCavityElement](RFCavityElement.md) |
 
 
@@ -101,6 +102,7 @@ from_schema: https://w3id.org/laura/schema
 aliases:
 - structure_Type
 rank: 1000
+ifabsent: string(StandingWave)
 owner: RFCavityElement
 domain_of:
 - RFCavityElement

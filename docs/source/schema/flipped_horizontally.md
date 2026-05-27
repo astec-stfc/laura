@@ -49,6 +49,7 @@ URI: [laura:flipped_horizontally](https://w3id.org/laura/flipped_horizontally)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `True` |
 | Owner | [CameraDiagnosticElement](CameraDiagnosticElement.md) |
 
 
@@ -58,6 +59,11 @@ URI: [laura:flipped_horizontally](https://w3id.org/laura/flipped_horizontally)
 
 
 
+
+## Aliases
+
+
+* IMAGE_FLIP_LR
 
 
 
@@ -93,7 +99,10 @@ URI: [laura:flipped_horizontally](https://w3id.org/laura/flipped_horizontally)
 name: flipped_horizontally
 description: True if the image is mirrored left-right.
 from_schema: https://w3id.org/laura/schema
+aliases:
+- IMAGE_FLIP_LR
 rank: 1000
+ifabsent: 'True'
 owner: CameraDiagnosticElement
 domain_of:
 - CameraDiagnosticElement

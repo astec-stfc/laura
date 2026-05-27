@@ -49,6 +49,7 @@ URI: [laura:z](https://w3id.org/laura/z)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [Position](Position.md) |
 
 
@@ -104,6 +105,7 @@ name: z
 description: Longitudinal (beam-direction) component [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: Position
 domain_of:
 - Position

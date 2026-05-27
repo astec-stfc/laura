@@ -49,6 +49,7 @@ URI: [laura:m](https://w3id.org/laura/m)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [LinearSaturationFit](LinearSaturationFit.md) |
 
 
@@ -94,6 +95,7 @@ name: m
 description: Linear slope of the unsaturated region.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: LinearSaturationFit
 domain_of:
 - LinearSaturationFit

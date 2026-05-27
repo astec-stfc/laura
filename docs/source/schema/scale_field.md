@@ -56,6 +56,7 @@ URI: [laura:scale_field](https://w3id.org/laura/scale_field)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(1)` |
 | Owner | [SimulationElement](SimulationElement.md) |
 
 
@@ -101,6 +102,7 @@ name: scale_field
 description: Multiplicative scale factor applied to the field map.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(1)
 owner: SimulationElement
 domain_of:
 - SimulationElement

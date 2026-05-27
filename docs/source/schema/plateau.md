@@ -49,6 +49,7 @@ URI: [laura:plateau](https://w3id.org/laura/plateau)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0.001)` |
 | Owner | [PlasmaElement](PlasmaElement.md) |
 
 
@@ -111,6 +112,7 @@ name: plateau
 description: Flat-top plateau length [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0.001)
 owner: PlasmaElement
 domain_of:
 - PlasmaElement

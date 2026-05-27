@@ -112,6 +112,7 @@ attributes:
       = sum c_n . I^n``.'
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: '[0]'
     domain_of:
     - FieldIntegral
     range: float
@@ -135,6 +136,7 @@ attributes:
       = sum c_n . I^n``.'
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: '[0]'
     owner: FieldIntegral
     domain_of:
     - FieldIntegral

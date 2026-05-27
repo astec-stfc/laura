@@ -24,6 +24,8 @@ URI: [laura:RFProtectionElement](https://w3id.org/laura/RFProtectionElement)
  classDiagram
     class RFProtectionElement
     click RFProtectionElement href "../RFProtectionElement/"
+      RFProtectionElement : prot_type
+        
       
 ```
 
@@ -43,6 +45,7 @@ URI: [laura:RFProtectionElement](https://w3id.org/laura/RFProtectionElement)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
+| [prot_type](prot_type.md) | 0..1 <br/> [String](String.md) | Protection system type | direct |
 
 
 
@@ -102,6 +105,15 @@ URI: [laura:RFProtectionElement](https://w3id.org/laura/RFProtectionElement)
 name: RFProtectionElement
 description: RF protection system parameters.
 from_schema: https://w3id.org/laura/schema
+attributes:
+  prot_type:
+    name: prot_type
+    description: Protection system type.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - RFProtectionElement
+    range: string
 class_uri: laura:RFProtectionElement
 
 ```
@@ -114,6 +126,16 @@ class_uri: laura:RFProtectionElement
 name: RFProtectionElement
 description: RF protection system parameters.
 from_schema: https://w3id.org/laura/schema
+attributes:
+  prot_type:
+    name: prot_type
+    description: Protection system type.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFProtectionElement
+    domain_of:
+    - RFProtectionElement
+    range: string
 class_uri: laura:RFProtectionElement
 
 ```

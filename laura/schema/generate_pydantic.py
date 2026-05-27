@@ -22,6 +22,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import yaml
+
 # ── Non-schema class names defined inside the generated file ─────────────────
 # These are infrastructure types produced by gen-pydantic itself, not schema
 # classes, so they must NOT be renamed.
@@ -189,6 +191,249 @@ def _rename_classes(content: str, model_names: set[str]) -> str:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+
+# ── Step 4: apply ifabsent defaults, fix multivalued, inject AliasChoices ────
+
+def _parse_ifabsent(value: str) -> str | None:
+    """Convert a LinkML ifabsent directive to a Python literal string.
+
+    Returns a Python literal string, e.g. ``'0.0'``, ``'""'``, ``'"Generic"'``,
+    or *None* if the value cannot be parsed.
+    """
+    if value.startswith("float(") and value.endswith(")"):
+        inner = value[6:-1].strip()
+        try:
+            return repr(float(inner))
+        except ValueError:
+            return None
+    if value.startswith("string(") and value.endswith(")"):
+        inner = value[7:-1]
+        return repr(inner)
+    if value.startswith("int(") and value.endswith(")"):
+        inner = value[4:-1].strip()
+        try:
+            return repr(int(inner))
+        except ValueError:
+            return None
+    return None
+
+
+def _parse_schema_info(
+    schema_path: str,
+) -> tuple[dict[str, str], set[str], dict[str, list[str]], dict[str, dict[str, list[str]]]]:
+    """Read the schema YAML and extract field-level metadata.
+
+    Returns a four-tuple:
+
+    * ``defaults``       – ``{field_name: python_literal_str}`` for slots with
+                            ``ifabsent``.  First definition wins (class order in
+                            YAML).
+    * ``multivalued``    – set of field names marked ``multivalued: true``.
+    * ``global_aliases`` – ``{field_name: [alias1, …]}`` for slots with
+                            ``aliases:``, using *first-wins* semantics.  Used as
+                            a fallback when the class-specific mapping has no
+                            entry.
+    * ``class_aliases``  – ``{class_name: {slot_name: [alias1, …]}}`` per-class
+                            alias map.  Use this in preference to
+                            ``global_aliases`` so that the same slot name defined
+                            in several classes (e.g. ``type`` in every diagnostic
+                            sub-class) gets the correct alias for each class.
+    """
+    with open(schema_path, encoding="utf-8") as fh:
+        schema = yaml.safe_load(fh)
+
+    defaults: dict[str, str] = {}
+    multivalued: set[str] = set()
+    global_aliases: dict[str, list[str]] = {}
+    class_aliases: dict[str, dict[str, list[str]]] = {}
+
+    for class_name, class_def in (schema.get("classes") or {}).items():
+        for slot_name, slot_def in (class_def.get("attributes") or {}).items():
+            if not slot_def:
+                continue
+            ifabsent = slot_def.get("ifabsent")
+            if ifabsent:
+                parsed = _parse_ifabsent(str(ifabsent))
+                if parsed is not None and slot_name not in defaults:
+                    defaults[slot_name] = parsed
+            if slot_def.get("multivalued"):
+                multivalued.add(slot_name)
+            slot_aliases = slot_def.get("aliases")
+            if slot_aliases:
+                aliases_list = list(slot_aliases)
+                # Per-class map (precise — no collision)
+                class_aliases.setdefault(class_name, {})[slot_name] = aliases_list
+                # Global fallback (first-wins)
+                if slot_name not in global_aliases:
+                    global_aliases[slot_name] = aliases_list
+
+    return defaults, multivalued, global_aliases, class_aliases
+
+
+def _apply_schema_fixes(content: str, schema_path: str) -> str:
+    """Post-process the renamed generated code.
+
+    Three transformations are applied, line by line:
+
+    1. **ifabsent defaults** – ``Optional[T] = Field(default=None, …)``
+       becomes ``T = Field(default=<value>, …)`` for fields listed in the
+       schema with ``ifabsent:``.
+
+    2. **multivalued lists** – ``Optional[list[T]] = Field(default=None, …)``
+       becomes ``list[T] = Field(default_factory=list, …)`` for all
+       ``multivalued: true`` fields.
+
+    3. **AliasChoices** – for fields with LinkML ``aliases:``, a
+       ``validation_alias=AliasChoices(field_name, *aliases)`` keyword
+       argument is injected into the ``Field(…)`` call immediately before
+       the ``json_schema_extra`` argument.  The alias map is resolved
+       *per-class* so that slots with the same name in different schema
+       classes (e.g. ``type`` in every diagnostic sub-class) each get
+       their own correct alias rather than the first-class alias.
+
+    An ``AliasChoices`` import is spliced into the pydantic import block if
+    any field requires it.
+    """
+    defaults, multivalued, global_aliases, class_aliases = _parse_schema_info(schema_path)
+
+    needs_alias_choices = False
+
+    # Track the current schema class being processed so we can look up
+    # per-class aliases (e.g. for the ``type`` slot that appears in every
+    # diagnostic sub-class with a different alias).
+    # The class headers produced by _rename_classes look like:
+    #   class _BPMDiagnosticElementBase(_DiagnosticElementBase):
+    # We strip the leading ``_`` and trailing ``Base`` to recover the
+    # original schema class name used as a key in class_aliases.
+    _class_header_re = re.compile(r"^class _?(\w+?)(?:Base)?\(")
+    current_class_orig: str | None = None
+
+    lines = content.split("\n")
+    result: list[str] = []
+
+    for line in lines:
+        # Update current class context
+        hdr = _class_header_re.match(line)
+        if hdr:
+            current_class_orig = hdr.group(1)
+
+        # Choose the most specific alias map available for this class
+        per_class = class_aliases.get(current_class_orig, {}) if current_class_orig else {}
+        merged_aliases = {**global_aliases, **per_class}
+
+        line = _fix_field_line(line, defaults, multivalued, merged_aliases)
+        if "AliasChoices(" in line:
+            needs_alias_choices = True
+        result.append(line)
+
+    fixed = "\n".join(result)
+
+    if needs_alias_choices:
+        fixed = _inject_alias_choices_import(fixed)
+
+    return fixed
+
+
+
+
+# Python primitive type names for which Optional-stripping is safe.
+# Complex generated-class types (e.g. ``_PositionBase``) are intentionally
+# excluded to avoid applying ifabsent defaults from an identically-named
+# slot in a different schema class.
+_PRIMITIVE_TYPES: frozenset[str] = frozenset({"float", "str", "int", "bool"})
+
+
+def _fix_field_line(
+    line: str,
+    defaults: dict[str, str],
+    multivalued: set[str],
+    aliases: dict[str, list[str]],
+) -> str:
+    """Apply schema-driven fixes to a single field-declaration line."""
+
+    # ── Optional[T] = Field(…) ───────────────────────────────────────────────
+    # gen-pydantic already substitutes the concrete default from ``ifabsent``
+    # (so ``default=None`` → ``default=0``) but keeps ``Optional[T]``.
+    # We strip ``Optional`` only for primitive Python types to avoid
+    # misapplying defaults when the same slot name appears in two schema
+    # classes with different ranges (e.g. ManufacturerElement.manufacturer:str
+    # vs StandardElement.manufacturer:ManufacturerElement).
+    # ── Optional[list[T]] = Field(default=None, …) — multivalued that
+    # gen-pydantic did NOT automatically convert ─────────────────────────────
+    optlist_m = re.match(
+        r"^( {4})(\w+): Optional\[list\[(\w+)\]\] = Field\(default=None, ",
+        line,
+    )
+    if optlist_m:
+        field_name = optlist_m.group(2)
+        if field_name in multivalued:
+            line = re.sub(r"Optional\[list\[(\w+)\]\]", r"list[\1]", line, count=1)
+            line = line.replace("default=None,", "default_factory=list,", 1)
+        line = _inject_alias_choices(line, field_name, aliases)
+        return line
+
+    # ── Optional[T] = Field(…) ───────────────────────────────────────────────
+    opt_m = re.match(
+        r"^( {4})(\w+): Optional\[(\w+)\] = Field\(",
+        line,
+    )
+    if opt_m:
+        field_name = opt_m.group(2)
+        field_type = opt_m.group(3)
+
+        if field_name in defaults and field_type in _PRIMITIVE_TYPES and "default=None" not in line:
+            line = re.sub(r"Optional\[(\w+)\]", r"\1", line, count=1)
+
+        line = _inject_alias_choices(line, field_name, aliases)
+        return line
+
+    # ── list[T] = Field(…) — multivalued (gen-pydantic already converted) ────
+    list_m = re.match(
+        r"^( {4})(\w+): list\[(\w+)\] = Field\(",
+        line,
+    )
+    if list_m:
+        field_name = list_m.group(2)
+        line = _inject_alias_choices(line, field_name, aliases)
+        return line
+
+    return line
+
+
+def _inject_alias_choices(
+    line: str, field_name: str, aliases: dict[str, list[str]]
+) -> str:
+    """Add ``validation_alias=AliasChoices(…)`` to the Field call on *line*."""
+    if field_name not in aliases:
+        return line
+    slot_aliases = aliases[field_name]
+    # Build AliasChoices args: field name first, then schema aliases
+    args = ", ".join(repr(a) for a in [field_name] + slot_aliases)
+    alias_kwarg = f"validation_alias=AliasChoices({args}), "
+    # Inject just before json_schema_extra (or before closing paren if absent)
+    if ", json_schema_extra" in line:
+        line = line.replace(", json_schema_extra", f", {alias_kwarg}json_schema_extra", 1)
+    elif line.rstrip().endswith(")"):
+        line = line.rstrip()[:-1] + f", {alias_kwarg})" 
+    return line
+
+
+def _inject_alias_choices_import(content: str) -> str:
+    """Ensure ``AliasChoices`` is imported from pydantic in *content*."""
+    # Already imported?
+    if "AliasChoices" in content.split("class ConfiguredBaseModel")[0]:
+        return content
+    # Splice into the existing pydantic import block
+    content = content.replace(
+        "from pydantic import (\n    BaseModel,",
+        "from pydantic import (\n    AliasChoices,\n    BaseModel,",
+        1,
+    )
+    return content
+
+
+# ── Public API ────────────────────────────────────────────────────────────────
+
 def generate(
     schema_path: str = "laura/schema/laura_schema.yaml",
 ) -> str:
@@ -196,7 +441,8 @@ def generate(
     raw = _run_gen_pydantic(schema_path)
     _enum_names, model_names = _collect_schema_classes(raw)
     renamed = _rename_classes(raw, model_names)
-    return _HEADER + renamed
+    fixed = _apply_schema_fixes(renamed, schema_path)
+    return _HEADER + fixed
 
 
 # ── CLI entry point ───────────────────────────────────────────────────────────

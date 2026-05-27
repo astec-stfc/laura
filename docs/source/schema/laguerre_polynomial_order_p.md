@@ -49,6 +49,7 @@ URI: [laura:laguerre_polynomial_order_p](https://w3id.org/laura/laguerre_polynom
 
 | Property | Value |
 | --- | --- |
+| If Absent | `int(0)` |
 | Owner | [LaserElement](LaserElement.md) |
 
 
@@ -101,6 +102,7 @@ name: laguerre_polynomial_order_p
 description: Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``).
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: int(0)
 owner: LaserElement
 domain_of:
 - LaserElement

@@ -49,6 +49,7 @@ URI: [laura:deltaL](https://w3id.org/laura/deltaL)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0.0)` |
 | Owner | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
@@ -104,6 +105,7 @@ name: deltaL
 description: Longitudinal step-size override for thick-lens integration [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0.0)
 owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement

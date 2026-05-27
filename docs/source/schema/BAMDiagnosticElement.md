@@ -128,6 +128,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - bam_type
+    ifabsent: string(DESY)
     domain_of:
     - BPMDiagnosticElement
     - BAMDiagnosticElement
@@ -158,6 +159,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - bam_type
+    ifabsent: string(DESY)
     owner: BAMDiagnosticElement
     domain_of:
     - BPMDiagnosticElement

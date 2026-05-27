@@ -28,7 +28,7 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
         
       ElectricalElement : min_i
         
-      ElectricalElement : ri_tolerance
+      ElectricalElement : read_tolerance
         
       
 ```
@@ -51,7 +51,7 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
 | ---  | --- | --- | --- |
 | [min_i](min_i.md) | 0..1 <br/> [Float](Float.md) | Minimum current [A] | direct |
 | [max_i](max_i.md) | 0..1 <br/> [Float](Float.md) | Maximum current [A] | direct |
-| [ri_tolerance](ri_tolerance.md) | 0..1 <br/> [Float](Float.md) | Read-back vs | direct |
+| [read_tolerance](read_tolerance.md) | 0..1 <br/> [Float](Float.md) | Read-back vs | direct |
 
 
 
@@ -165,6 +165,7 @@ attributes:
     aliases:
     - minI
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - ElectricalElement
     range: float
@@ -177,18 +178,20 @@ attributes:
     aliases:
     - maxI
     rank: 1000
+    ifabsent: float(0)
     domain_of:
     - ElectricalElement
     range: float
     unit:
       ucum_code: A
-  ri_tolerance:
-    name: ri_tolerance
+  read_tolerance:
+    name: read_tolerance
     description: Read-back vs. set-point tolerance fraction (default 0.1 = 10 %).
     from_schema: https://w3id.org/laura/schema
     aliases:
-    - read_tolerance
+    - ri_tolerance
     rank: 1000
+    ifabsent: float(0.1)
     domain_of:
     - ElectricalElement
     range: float
@@ -212,6 +215,7 @@ attributes:
     aliases:
     - minI
     rank: 1000
+    ifabsent: float(0)
     owner: ElectricalElement
     domain_of:
     - ElectricalElement
@@ -225,19 +229,21 @@ attributes:
     aliases:
     - maxI
     rank: 1000
+    ifabsent: float(0)
     owner: ElectricalElement
     domain_of:
     - ElectricalElement
     range: float
     unit:
       ucum_code: A
-  ri_tolerance:
-    name: ri_tolerance
+  read_tolerance:
+    name: read_tolerance
     description: Read-back vs. set-point tolerance fraction (default 0.1 = 10 %).
     from_schema: https://w3id.org/laura/schema
     aliases:
-    - read_tolerance
+    - ri_tolerance
     rank: 1000
+    ifabsent: float(0.1)
     owner: ElectricalElement
     domain_of:
     - ElectricalElement

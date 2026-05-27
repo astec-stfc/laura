@@ -5,9 +5,12 @@
       "description": "Root base class for all LAURA accelerator elements.  Every lattice element is an instance of a concrete subclass identified by ``hardware_type``.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -69,9 +72,12 @@
       "description": "Mechanical aperture restriction in the beam pipe.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -324,9 +330,12 @@
       "description": "Beam-arrival-time monitor (BAM).",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -466,9 +475,12 @@
       "description": "Beam-position monitor (BPM).",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -608,9 +620,12 @@
       "description": "Bunch-length monitor (BLM / CDR detector).",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -750,9 +765,12 @@
       "description": "Camera-based beam-profile monitor.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -912,6 +930,39 @@
             "null"
           ]
         },
+        "mask": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraMask"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Camera analysis mask configuration."
+        },
+        "pixel_results_indices": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraPixelResultsIndices"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Indices of pixel analysis result arrays."
+        },
+        "pixel_results_names": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraPixelResultsNames"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Names of pixel analysis result arrays."
+        },
         "rotation": {
           "description": "Camera rotation relative to the screen plane [deg].",
           "type": [
@@ -925,6 +976,17 @@
             "string",
             "null"
           ]
+        },
+        "sensor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraSensor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Camera sensor hardware configuration."
         },
         "type": {
           "description": "Camera type / model string (e.g., ``PCO``, ``Manta``). Accepted in YAML as ``CAM_TYPE``.",
@@ -951,14 +1013,318 @@
       "title": "CameraDiagnosticElement",
       "type": "object"
     },
+    "CameraMask": {
+      "additionalProperties": false,
+      "description": "Camera analysis mask parameters.",
+      "properties": {
+        "maximum": {
+          "description": "Maximum mask radius in pixels [x, y].",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "middle": {
+          "description": "Center of the mask in pixels [x, y].",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "radius": {
+          "description": "Mask radius in pixels [x, y].",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "use_maximum_values": {
+          "description": "If True, use maximum mask radius constraints.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "title": "CameraMask",
+      "type": "object"
+    },
+    "CameraPixelResultsIndices": {
+      "additionalProperties": false,
+      "description": "Indices into camera pixel-analysis result arrays.",
+      "properties": {
+        "covariance": {
+          "description": "Beam covariance index.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "x": {
+          "description": "Beam centroid index in x.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "x_sigma": {
+          "description": "Beam sigma index in x.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "y": {
+          "description": "Beam centroid index in y.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "y_sigma": {
+          "description": "Beam sigma index in y.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "title": "CameraPixelResultsIndices",
+      "type": "object"
+    },
+    "CameraPixelResultsNames": {
+      "additionalProperties": false,
+      "description": "Names of camera pixel-analysis result arrays.",
+      "properties": {
+        "covariance": {
+          "description": "Beam covariance name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "x": {
+          "description": "Beam centroid name in x.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "x_sigma": {
+          "description": "Beam sigma name in x.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "y": {
+          "description": "Beam centroid name in y.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "y_sigma": {
+          "description": "Beam sigma name in y.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "CameraPixelResultsNames",
+      "type": "object"
+    },
+    "CameraSensor": {
+      "additionalProperties": false,
+      "description": "Camera sensor hardware configuration.",
+      "properties": {
+        "beam_pixel_average": {
+          "description": "Average pixel value for beam detection.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "bit_depth": {
+          "description": "Camera bit depth.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "maximum": {
+          "description": "Maximum pixel positions [x, y].",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "mechanical_middle": {
+          "description": "Mechanical center of the camera in pixels [x, y].",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "middle": {
+          "description": "Sensor optical center in pixels [x, y].",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "minimum": {
+          "description": "Minimum pixel positions [x, y].",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "operating_middle": {
+          "description": "Operating center positions in pixels [x, y].",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "x_pixels": {
+          "description": "Raw sensor pixel count in x.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "x_pixels_to_mm": {
+          "description": "Pixel-to-mm scale factor in x.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "x_scale_factor": {
+          "description": "Pixel binning factor in x.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "y_pixels": {
+          "description": "Raw sensor pixel count in y.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "y_pixels_to_mm": {
+          "description": "Pixel-to-mm scale factor in y.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "y_scale_factor": {
+          "description": "Pixel binning factor in y.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "title": "CameraSensor",
+      "type": "object"
+    },
+    "ChannelNames": {
+      "additionalProperties": false,
+      "description": "Names for LLRF channels 1..8.",
+      "properties": {
+        "ch1": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ch2": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ch3": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ch4": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ch5": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ch6": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ch7": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ch8": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "ChannelNames",
+      "type": "object"
+    },
     "ChargeDiagnostic": {
       "additionalProperties": false,
       "description": "Base class for charge-measurement diagnostics.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -1113,9 +1479,12 @@
       "description": "Movable collimator jaw (extends Aperture).",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -1255,9 +1624,12 @@
       "description": "Combined horizontal and vertical orbit-corrector magnet.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -1530,9 +1902,12 @@
       "description": "Base class for all beam-diagnostic instruments.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -1686,7 +2061,14 @@
         "field_reference_position": {
           "description": "Longitudinal origin of the field map [m].",
           "type": [
-            "number",
+            "string",
+            "null"
+          ]
+        },
+        "output_filename": {
+          "description": "Output filename for diagnostic data.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -1713,9 +2095,12 @@
       "description": "Dipole bending magnet.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -1866,9 +2251,12 @@
       "description": "Field-free drift space between elements.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -1996,6 +2384,20 @@
       "additionalProperties": false,
       "description": "Simulation attributes for field-free drift sections.",
       "properties": {
+        "csr_enable": {
+          "description": "Enable CSR drift calculations.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Step size for CSR calculations.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -2006,6 +2408,55 @@
         "field_reference_position": {
           "description": "Longitudinal origin of the field map [m].",
           "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins for LSC calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Enable LSC drift calculations.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "lsc_high_frequency_cutoff_end": {
+          "description": "High-frequency cutoff end for LSC.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lsc_high_frequency_cutoff_start": {
+          "description": "High-frequency cutoff start for LSC.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lsc_interpolate": {
+          "description": "Flag to allow interpolation of computed LSC wake.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_low_frequency_cutoff_end": {
+          "description": "Low-frequency cutoff end for LSC.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lsc_low_frequency_cutoff_start": {
+          "description": "Low-frequency cutoff start for LSC.",
+          "type": [
             "number",
             "null"
           ]
@@ -2014,6 +2465,13 @@
           "description": "Multiplicative scale factor applied to the field map.",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "use_stupakov": {
+          "description": "Use Stupakov formula.",
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -2046,7 +2504,7 @@
             "null"
           ]
         },
-        "ri_tolerance": {
+        "read_tolerance": {
           "description": "Read-back vs. set-point tolerance fraction (default 0.1 = 10 %).",
           "type": [
             "number",
@@ -2122,9 +2580,12 @@
       "description": "Faraday cup for destructive charge measurement.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -2303,9 +2764,12 @@
       "description": "Horizontal orbit-corrector dipole.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -2456,9 +2920,12 @@
       "description": "Integrated current transformer (ICT) for non-destructive single-shot charge measurement.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -2593,14 +3060,102 @@
       "title": "IntegratedCurrentTransformer",
       "type": "object"
     },
+    "LLRFTiming": {
+      "additionalProperties": false,
+      "description": "Start/end window timing definition.",
+      "properties": {
+        "end": {
+          "description": "End time.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "start": {
+          "description": "Start time.",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "LLRFTiming",
+      "type": "object"
+    },
+    "LLRFTimings": {
+      "additionalProperties": false,
+      "description": "Collection of timing windows for key LLRF channels.",
+      "properties": {
+        "cavity_forward": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LLRFTiming"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Timing for cavity forward power."
+        },
+        "cavity_probe": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LLRFTiming"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Timing for cavity probe."
+        },
+        "cavity_reverse": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LLRFTiming"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Timing for cavity reverse power."
+        },
+        "klystron_forward": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LLRFTiming"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Timing for klystron forward power."
+        },
+        "klystron_reverse": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LLRFTiming"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Timing for klystron reverse power."
+        }
+      },
+      "title": "LLRFTimings",
+      "type": "object"
+    },
     "Laser": {
       "additionalProperties": false,
       "description": "Laser system element (full laser setup including beam parameters).",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -2740,9 +3295,12 @@
       "description": "Laser power attenuator (waveplate + polariser combination).",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -2959,9 +3517,12 @@
       "description": "Laser pulse-energy diagnostic (photodiode / pyroelectric).",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -3096,9 +3657,12 @@
       "description": "Half-wave plate for laser polarisation rotation.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -3233,9 +3797,12 @@
       "description": "Laser steering or focusing mirror.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -3282,6 +3849,17 @@
             "string",
             "null"
           ]
+        },
+        "laser": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LaserMirrorElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Mirror steering parameters."
         },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
@@ -3348,6 +3926,82 @@
       "title": "LaserMirror",
       "type": "object"
     },
+    "LaserMirrorElement": {
+      "additionalProperties": false,
+      "description": "Mirror steering parameters for a laser mirror.",
+      "properties": {
+        "horizontal_channel": {
+          "description": "Horizontal control channel index.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "sense": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LaserMirrorSense"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Mirror sense/interlock configuration."
+        },
+        "step_max": {
+          "description": "Maximum step size for mirror adjustment.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "vertical_channel": {
+          "description": "Vertical control channel index.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "title": "LaserMirrorElement",
+      "type": "object"
+    },
+    "LaserMirrorSense": {
+      "additionalProperties": false,
+      "description": "Mirror sense switch values.",
+      "properties": {
+        "down": {
+          "description": "Down sense value.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "left": {
+          "description": "Left sense value.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "right": {
+          "description": "Right sense value.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "up": {
+          "description": "Up sense value.",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "LaserMirrorSense",
+      "type": "object"
+    },
     "LaserPolarizationEnum": {
       "description": "Polarization state of a laser beam.",
       "enum": [
@@ -3374,9 +4028,12 @@
       "description": "Experimental-hall lighting element.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -3568,9 +4225,12 @@
       "description": "Low-level RF (LLRF) controller.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -3697,6 +4357,55 @@
     "LowLevelRFElement": {
       "additionalProperties": false,
       "description": "Low-level RF (LLRF) system parameters.",
+      "properties": {
+        "channel_names": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChannelNames"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Channel labels."
+        },
+        "crest_phase": {
+          "description": "Cavity crest phase.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "max_amplitude": {
+          "description": "Maximum allowed amplitude.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "timings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LLRFTimings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Timing windows for LLRF channels."
+        },
+        "trace": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Trace"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Trace metadata."
+        }
+      },
       "title": "LowLevelRFElement",
       "type": "object"
     },
@@ -3775,9 +4484,12 @@
       "description": "Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement`` in the schema to avoid collision with the ``magnetic`` composition-model class; maps to ``Magnet`` in Python.)",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -3975,6 +4687,13 @@
             "null"
           ]
         },
+        "field_amplitude": {
+          "description": "Field amplitude scaling for magnet tracking.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -3985,7 +4704,7 @@
         "field_reference_position": {
           "description": "Longitudinal origin of the field map [m].",
           "type": [
-            "number",
+            "string",
             "null"
           ]
         },
@@ -4037,6 +4756,13 @@
           "description": "Use a smoothed field profile.",
           "type": [
             "boolean",
+            "null"
+          ]
+        },
+        "smooth_points": {
+          "description": "Number of points used to smooth the field map [ASTRA].",
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -4131,6 +4857,14 @@
             "null"
           ]
         },
+        "length": {
+          "description": "Magnetic (effective) length [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "linear_saturation_coefficients": {
           "anyOf": [
             {
@@ -4141,14 +4875,6 @@
             }
           ],
           "description": "Bi-linear saturation calibration."
-        },
-        "magnetic_length": {
-          "description": "Magnetic (effective) length [m].",
-          "minimum": 0.0,
-          "type": [
-            "number",
-            "null"
-          ]
         },
         "multipoles": {
           "anyOf": [
@@ -4163,7 +4889,7 @@
         },
         "order": {
           "description": "Principal multipole order (0 = dipole, 1 = quad, ?).",
-          "minimum": 0,
+          "minimum": -1,
           "type": [
             "integer",
             "null"
@@ -4257,9 +4983,12 @@
       "description": "Virtual survey marker -- a zero-length reference point used for alignment.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -4488,9 +5217,12 @@
       "description": "Non-linear focusing lens (IOTA-style).",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -4641,9 +5373,12 @@
       "description": "Octupole magnet.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -4794,9 +5529,12 @@
       "description": "Proportional-integral-derivative (PID) feedback controller.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -4944,9 +5682,103 @@
             "number",
             "null"
           ]
+        },
+        "disable": {
+          "description": "Disable command/value.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enable": {
+          "description": "Enable command/value.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "forward_channel": {
+          "description": "Forward channel index.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "phase_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PIDPhaseRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Phase tuning range."
+        },
+        "phase_weight_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PIDWeightRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Phase weighting range."
+        },
+        "probe_channel": {
+          "description": "Probe channel index.",
+          "type": [
+            "integer",
+            "null"
+          ]
         }
       },
       "title": "PIDElement",
+      "type": "object"
+    },
+    "PIDPhaseRange": {
+      "additionalProperties": false,
+      "description": "Numeric min/max range for PID phase control.",
+      "properties": {
+        "max": {
+          "description": "Maximum value.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Minimum value.",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "PIDPhaseRange",
+      "type": "object"
+    },
+    "PIDWeightRange": {
+      "additionalProperties": false,
+      "description": "Numeric min/max range for PID phase weighting.",
+      "properties": {
+        "max": {
+          "description": "Maximum value.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "Minimum value.",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "PIDWeightRange",
       "type": "object"
     },
     "PhysicalAcceleratorElement": {
@@ -4954,9 +5786,12 @@
       "description": "Accelerator element with a well-defined physical position and orientation in the beamline.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -5187,9 +6022,12 @@
       "description": "Laser-driven plasma-accelerator stage.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -5408,6 +6246,27 @@
       "additionalProperties": false,
       "description": "Simulation attributes for plasma-accelerator stages.",
       "properties": {
+        "bunch_pusher": {
+          "description": "Pusher used to evolve bunch particles in time.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dt_bunch": {
+          "description": "Time-step control for bunch evolution (or 'auto').",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dz_fields": {
+          "description": "Interval for plasma wakefield updates.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -5417,6 +6276,69 @@
         },
         "field_reference_position": {
           "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "max_longitudinal_position": {
+          "description": "Maximum longitudinal position [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "min_longitudinal_position": {
+          "description": "Minimum longitudinal position [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "n_longitudinal": {
+          "description": "Number of grid points in the longitudinal direction.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "n_out": {
+          "description": "Number of distribution dumps during the plasma stage.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "n_radial": {
+          "description": "Number of grid points in the radial direction.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "plasma_particles_per_cell": {
+          "description": "Number of plasma particles per cell.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "plasma_pusher": {
+          "description": "Pusher used to evolve the plasma in time.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "r_max": {
+          "description": "Radial extent of the simulation box [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "r_max_plasma": {
+          "description": "Maximum radial extension of the plasma column.",
           "type": [
             "number",
             "null"
@@ -5431,6 +6353,13 @@
         },
         "wakefield_definition": {
           "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_model": {
+          "description": "Wakefield model identifier.",
           "type": [
             "string",
             "null"
@@ -5474,9 +6403,12 @@
       "description": "Quadrupole focusing magnet.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -5627,9 +6559,12 @@
       "description": "Accelerating RF cavity.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -5824,8 +6759,11 @@
         },
         "gradient_calibration": {
           "description": "Calibration relating measured signal to gradient [MV/m per a.u.].",
+          "items": {
+            "type": "number"
+          },
           "type": [
-            "number",
+            "array",
             "null"
           ]
         },
@@ -5860,8 +6798,11 @@
         },
         "power_calibration": {
           "description": "Calibration constant relating measured power to cavity gradient.",
+          "items": {
+            "type": "number"
+          },
           "type": [
-            "number",
+            "array",
             "null"
           ]
         },
@@ -5887,8 +6828,64 @@
       "additionalProperties": false,
       "description": "Simulation attributes for RF cavity elements.",
       "properties": {
+        "body_focus_model": {
+          "description": "Cavity body focusing model.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "change_p0": {
+          "description": "Flag indicating whether the cavity changes reference momentum.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "current_bins": {
+          "description": "Number of current bins.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "end1_focus": {
+          "description": "Apply entrance focusing.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "end2_focus": {
+          "description": "Apply exit focusing.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "ez_peak": {
+          "description": "Peak longitudinal electric field.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_amplitude": {
+          "description": "Cavity field amplitude.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_file_name": {
+          "description": "Cavity field file name.",
           "type": [
             "string",
             "null"
@@ -5897,7 +6894,28 @@
         "field_reference_position": {
           "description": "Longitudinal origin of the field map [m].",
           "type": [
-            "number",
+            "string",
+            "null"
+          ]
+        },
+        "interpolate_current_bins": {
+          "description": "Flag indicating current-bin interpolation.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of longitudinal space-charge bins.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of cavity kicks to apply.",
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -5908,8 +6926,78 @@
             "null"
           ]
         },
+        "smooth": {
+          "description": "Cavity smoothing parameter.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "smooth_current_bins": {
+          "description": "Flag indicating current-bin smoothing.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "t_column": {
+          "description": "Time column in the wake file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trwakefile": {
+          "description": "Transverse wake file name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "wakefield_definition": {
           "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefile": {
+          "description": "Wake file name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wx_column": {
+          "description": "Horizontal wake column in the wake file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wy_column": {
+          "description": "Vertical wake column in the wake file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wz_column": {
+          "description": "Longitudinal wake column in the wake file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "z_column": {
+          "description": "Longitudinal position column in the wake file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "zwakefile": {
+          "description": "Longitudinal wake file name.",
           "type": [
             "string",
             "null"
@@ -5924,9 +7012,12 @@
       "description": "Transverse-deflecting (streak) RF cavity.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -6065,8 +7156,23 @@
       "additionalProperties": false,
       "description": "Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for streak-mode operation.",
       "properties": {
+        "cell_length": {
+          "description": "Length of a single accelerating cell [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "coupling_cell_length": {
           "description": "Length of the coupling cell [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "crest": {
+          "description": "On-crest phase offset providing maximum energy gain [deg].",
           "type": [
             "number",
             "null"
@@ -6139,9 +7245,12 @@
       "description": "RF timing heartbeat / signal-monitor element.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -6276,9 +7385,12 @@
       "description": "RF modulator (klystron driver) element.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -6413,9 +7525,12 @@
       "description": "RF protection system element.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -6542,6 +7657,15 @@
     "RFProtectionElement": {
       "additionalProperties": false,
       "description": "RF protection system parameters.",
+      "properties": {
+        "prot_type": {
+          "description": "Protection system type.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
       "title": "RFProtectionElement",
       "type": "object"
     },
@@ -6613,9 +7737,12 @@
       "description": "Scintillator or OTR screen with an associated camera.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -6816,9 +7943,12 @@
       "description": "Sextupole chromaticity-correction magnet.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -6969,9 +8099,12 @@
       "description": "Beam or laser shutter with interlock logic.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -7138,7 +8271,7 @@
         "field_reference_position": {
           "description": "Longitudinal origin of the field map [m].",
           "type": [
-            "number",
+            "string",
             "null"
           ]
         },
@@ -7165,9 +8298,12 @@
       "description": "Solenoid focussing magnet.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -7318,9 +8454,12 @@
       "description": "Motorised positioning stage.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -7449,9 +8588,12 @@
       "description": "Accelerator element with control-system, electrical, manufacturer, simulation, and reference sub-models.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -7563,14 +8705,53 @@
       "title": "StandardElement",
       "type": "object"
     },
+    "Trace": {
+      "additionalProperties": false,
+      "description": "LLRF trace metadata.",
+      "properties": {
+        "data_chunk_size": {
+          "description": "Chunk size for one-record traces.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "data_count": {
+          "description": "Number of one-record trace entries.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "data_size": {
+          "description": "Number of points in a trace.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "number_of_start_zeros": {
+          "description": "Number of leading zeros in a trace.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "title": "Trace",
+      "type": "object"
+    },
     "TwissMatch": {
       "additionalProperties": false,
       "description": "Virtual Twiss-parameter matching point -- a zero-length marker that defines the desired optical functions at a location in the lattice.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -7698,6 +8879,62 @@
       "additionalProperties": false,
       "description": "Simulation attributes for Twiss-matching points.",
       "properties": {
+        "alpha_x": {
+          "description": "Horizontal alpha.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "alpha_y": {
+          "description": "Vertical alpha.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "beta_x": {
+          "description": "Horizontal beta.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "beta_y": {
+          "description": "Vertical beta.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "eta_x": {
+          "description": "Horizontal dispersion.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "eta_xp": {
+          "description": "Horizontal dispersion derivative.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "eta_y": {
+          "description": "Vertical dispersion.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "eta_yp": {
+          "description": "Vertical dispersion derivative.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -7708,7 +8945,14 @@
         "field_reference_position": {
           "description": "Longitudinal origin of the field map [m].",
           "type": [
-            "number",
+            "string",
+            "null"
+          ]
+        },
+        "from_beam": {
+          "description": "Compute transform from tracked beam properties.",
+          "type": [
+            "boolean",
             "null"
           ]
         },
@@ -7735,9 +8979,12 @@
       "description": "Vacuum-pressure gauge.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -7866,9 +9113,12 @@
       "description": "Vacuum gate valve.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -8014,9 +9264,12 @@
       "description": "Vertical orbit-corrector dipole.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -8167,9 +9420,12 @@
       "description": "Passive wakefield structure (dielectric, corrugated, etc.).",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -8339,6 +9595,41 @@
       "additionalProperties": false,
       "description": "Simulation attributes for passive wakefield structures.",
       "properties": {
+        "allow_long_beam": {
+          "description": "Allow beams longer than the wakefield.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "bunched_beam": {
+          "description": "Use bunched beam mode.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "change_momentum": {
+          "description": "Allow wakefield to change bunch momentum.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "equal_grid": {
+          "description": "Interpolation between equidistant and equal-charge grids.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "factor": {
+          "description": "Wake scaling factor.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -8349,7 +9640,21 @@
         "field_reference_position": {
           "description": "Longitudinal origin of the field map [m].",
           "type": [
-            "number",
+            "string",
+            "null"
+          ]
+        },
+        "interpolate": {
+          "description": "Interpolate points in wake file.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "interpolation_method": {
+          "description": "Interpolation method for ASTRA.",
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -8360,8 +9665,106 @@
             "null"
           ]
         },
+        "scale_field_ex": {
+          "description": "x-component of the longitudinal direction vector.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale_field_ey": {
+          "description": "y-component of the longitudinal direction vector.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale_field_ez": {
+          "description": "z-component of the longitudinal direction vector.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale_field_hx": {
+          "description": "x-component of the horizontal direction vector.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale_field_hy": {
+          "description": "y-component of the horizontal direction vector.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale_field_hz": {
+          "description": "z-component of the horizontal direction vector.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale_kick": {
+          "description": "Factor by which to scale wake kicks.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "description": "Smoothing parameter for Gaussian interpolation.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "subbins": {
+          "description": "Sub-binning parameter.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "t_column": {
+          "description": "Time column in wake file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "wakefield_definition": {
           "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wx_column": {
+          "description": "Horizontal wake column.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wy_column": {
+          "description": "Vertical wake column.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wz_column": {
+          "description": "Longitudinal wake column.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "z_column": {
+          "description": "Longitudinal position column in wake file.",
           "type": [
             "string",
             "null"
@@ -8376,9 +9779,12 @@
       "description": "Wall-current monitor (WCM) for non-destructive charge measurement.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -8518,9 +9924,12 @@
       "description": "Wiggler / undulator permanent-magnet array.",
       "properties": {
         "alias": {
-          "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
           "type": [
-            "string",
+            "array",
             "null"
           ]
         },
@@ -8674,9 +10083,12 @@
   "metamodel_version": "1.11.0",
   "properties": {
     "alias": {
-      "description": "Short human-readable alias. Populated from ``name_alias`` in YAML.",
+      "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+      "items": {
+        "type": "string"
+      },
       "type": [
-        "string",
+        "array",
         "null"
       ]
     },

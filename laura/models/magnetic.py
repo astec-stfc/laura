@@ -12,6 +12,7 @@ from pydantic import (
 )
 from typing import ClassVar, Dict, Any, List, Union
 from .baseModels import IgnoreExtra, T
+from ._generated import _MultipoleBase, _FieldIntegralBase, _LinearSaturationFitBase, _MagneticElementBase
 
 
 def Power(a, b):
@@ -26,22 +27,12 @@ Pi = pi
 Degree = pi / 180.0
 
 
-class Multipole(BaseModel):
+class Multipole(_MultipoleBase):
     """
     Single order magnetic multipole model.
     """
 
-    order: NonNegativeInt = 0
-    """Multipole order (0=dipole, 1=quadrupole, etc.)."""
-
-    normal: float = 0.0
-    """Normal component of the multipole strength."""
-
-    skew: float = 0.0
-    """Skew component of the multipole strength."""
-
-    radius: float = 0.0
-    """Reference radius for the multipole strength."""
+    pass
 
 
 multipoles = {
@@ -127,13 +118,10 @@ class Multipoles(MultipolesData):
         return not self.__eq__(other)
 
 
-class FieldIntegral(BaseModel):
+class FieldIntegral(_FieldIntegralBase):
     """
     Field integral coefficients model.
     """
-
-    coefficients: List[Union[int, float]] = [0]
-    """Integrated field coefficients."""
 
     def currentToK(self, current: float, energy: float) -> float:
         """
@@ -161,7 +149,7 @@ class FieldIntegral(BaseModel):
         return iter(self.coefficients)
 
 
-class LinearSaturationFit(BaseModel):
+class LinearSaturationFit(_LinearSaturationFitBase):
     """
     Linear + saturation fit coefficients model.
     """
@@ -171,13 +159,6 @@ class LinearSaturationFit(BaseModel):
     # field is never interpreted as a coefficient.
     _COEFF_KEYS: ClassVar[list] = ["m", "I_max", "f", "a", "I0", "d", "L"]
 
-    m: float = 0
-    I_max: NonNegativeFloat = 0
-    f: float = 0
-    a: float = 0
-    I0: float = 0
-    d: float = 0
-    L: NonNegativeFloat = 0
     # Magnet order (0 = dipole/corrector, 1 = quadrupole, …).
     # Set by MagneticElement after construction; excluded from serialisation.
     order: int = Field(default=1, exclude=True)
@@ -331,19 +312,10 @@ class LinearSaturationFit(BaseModel):
         )
 
 
-class MagneticElement(IgnoreExtra):
+class MagneticElement(_MagneticElementBase):
     """
     Magnetic info model.
     """
-
-    order: int = Field(repr=False, default=-1, frozen=True)
-    """Magnetic order"""
-
-    skew: bool = False
-    """Flag to indicate if the multipole is skew."""
-
-    length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
-    """Magnetic length [m]."""
 
     multipoles: Multipoles | None = Multipoles()
     """Magnetic multipoles."""
@@ -353,52 +325,6 @@ class MagneticElement(IgnoreExtra):
 
     random_multipoles: Multipoles | None = Multipoles()
     """Random magnetic multipoles."""
-
-    field_integral_coefficients: FieldIntegral | None = None  # FieldIntegral()
-    """Field integral coefficients."""
-
-    linear_saturation_coefficients: LinearSaturationFit | None = (
-        None  # LinearSaturationFit()
-    )
-    """Linear saturation fit coefficients."""
-
-    settle_time: float | None = (
-        None  # Field(alias="mag_set_max_wait_time", default=45.0)
-    )
-    """
-    Maximum time to wait for the magnet current to settle [s].
-    #TODO move to electrical?
-    """
-
-    entrance_edge_angle: float | str = Field(default=0.0)
-    """Entrance edge angle in degrees; can be "angle" which uses the bend angle."""
-
-    exit_edge_angle: float | str = Field(default=0.0)
-    """Exit edge angle in degrees; can be "angle" which uses the bend angle."""
-
-    gap: float = Field(default=0.032)
-    """Magnetic gap [m]."""
-
-    bore: float = Field(default=0.037)
-    """Magnetic bore radius [m]."""
-
-    plane: str = Field(default="horizontal")
-    """Magnetic field plane: 'horizontal' or 'vertical'."""
-
-    width: float = Field(default=0.2)
-    """Width of magnet [m]."""
-
-    tilt: float = Field(default=0.0)
-    """Tilt angle of magnet [degrees]."""
-
-    edge_field_integral: float = Field(default=0.5)
-    """Edge field integral."""
-
-    fringe_field_coefficient: float = Field(default=0.0)
-    """Fringe field coefficient."""
-
-    gradient: float | None = None
-    """Magnetic gradient."""
 
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)

@@ -124,9 +124,11 @@ attributes:
     name: cell_length
     description: Length of a single cell [m].
     from_schema: https://w3id.org/laura/schema
+    ifabsent: float(0.03333333333333333)
     domain_of:
     - RFCavityElement
     - WakefieldElement
+    - RFDeflectingCavityElement
     range: float
     minimum_value: 0.0
     unit:
@@ -135,6 +137,7 @@ attributes:
     name: n_cells
     description: Number of cells.
     from_schema: https://w3id.org/laura/schema
+    ifabsent: int(1)
     domain_of:
     - RFCavityElement
     - WakefieldElement
@@ -145,6 +148,7 @@ attributes:
     name: coupling_cell_length
     description: Length of the coupling cell [m].
     from_schema: https://w3id.org/laura/schema
+    ifabsent: float(0.0)
     domain_of:
     - RFCavityElement
     - WakefieldElement
@@ -171,10 +175,12 @@ attributes:
     name: cell_length
     description: Length of a single cell [m].
     from_schema: https://w3id.org/laura/schema
+    ifabsent: float(0.03333333333333333)
     owner: WakefieldElement
     domain_of:
     - RFCavityElement
     - WakefieldElement
+    - RFDeflectingCavityElement
     range: float
     minimum_value: 0.0
     unit:
@@ -183,6 +189,7 @@ attributes:
     name: n_cells
     description: Number of cells.
     from_schema: https://w3id.org/laura/schema
+    ifabsent: int(1)
     owner: WakefieldElement
     domain_of:
     - RFCavityElement
@@ -194,6 +201,7 @@ attributes:
     name: coupling_cell_length
     description: Length of the coupling cell [m].
     from_schema: https://w3id.org/laura/schema
+    ifabsent: float(0.0)
     owner: WakefieldElement
     domain_of:
     - RFCavityElement

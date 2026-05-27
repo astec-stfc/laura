@@ -66,6 +66,17 @@ URI: [laura:LaserMirror](https://w3id.org/laura/LaserMirror)
         
       LaserMirror : hardware_type
         
+      LaserMirror : laser
+        
+          
+    
+        
+        
+        LaserMirror --> "0..1" LaserMirrorElement : laser
+        click LaserMirrorElement href "../LaserMirrorElement/"
+    
+
+        
       LaserMirror : machine_area
         
       LaserMirror : manufacturer
@@ -131,6 +142,7 @@ URI: [laura:LaserMirror](https://w3id.org/laura/LaserMirror)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
+| [laser](laser.md) | 0..1 <br/> [LaserMirrorElement](LaserMirrorElement.md) | Mirror steering parameters | direct |
 | [simulation](simulation.md) | 0..1 <br/> [SimulationElement](SimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -142,7 +154,7 @@ URI: [laura:LaserMirror](https://w3id.org/laura/LaserMirror)
 | [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | [AcceleratorElement](AcceleratorElement.md) |
 | [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | [AcceleratorElement](AcceleratorElement.md) |
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
-| [alias](alias.md) | 0..1 <br/> [String](String.md) | Short human-readable alias | [AcceleratorElement](AcceleratorElement.md) |
+| [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
 
 
@@ -209,6 +221,18 @@ slot_usage:
   hardware_type:
     name: hardware_type
     equals_string: LaserMirror
+attributes:
+  laser:
+    name: laser
+    description: Mirror steering parameters.
+    from_schema: https://w3id.org/laura/schema
+    domain_of:
+    - Laser
+    - Plasma
+    - LaserEnergyMeter
+    - LaserHalfWavePlate
+    - LaserMirror
+    range: LaserMirrorElement
 class_uri: laura:LaserMirror
 
 ```
@@ -229,6 +253,18 @@ slot_usage:
     name: hardware_type
     equals_string: LaserMirror
 attributes:
+  laser:
+    name: laser
+    description: Mirror steering parameters.
+    from_schema: https://w3id.org/laura/schema
+    owner: LaserMirror
+    domain_of:
+    - Laser
+    - Plasma
+    - LaserEnergyMeter
+    - LaserHalfWavePlate
+    - LaserMirror
+    range: LaserMirrorElement
   simulation:
     name: simulation
     description: Simulation / tracking attributes.
@@ -314,6 +350,7 @@ attributes:
       ``TESLA``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string(Generic)
     owner: LaserMirror
     domain_of:
     - AcceleratorElement
@@ -333,13 +370,15 @@ attributes:
       name is inaccessible.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string()
     owner: LaserMirror
     domain_of:
     - AcceleratorElement
     range: string
   alias:
     name: alias
-    description: Short human-readable alias. Populated from ``name_alias`` in YAML.
+    description: Human-readable aliases for the element. Populated from ``name_alias``
+      in YAML. Accepts a single string or a list of strings.
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
@@ -348,6 +387,7 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+    multivalued: true
   subelement:
     name: subelement
     description: If set, this element is a logical sub-component of the named parent

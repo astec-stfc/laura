@@ -148,6 +148,7 @@ attributes:
     description: Full horizontal aperture [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     domain_of:
     - ApertureElement
     range: float
@@ -159,6 +160,7 @@ attributes:
     description: Full vertical aperture [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     domain_of:
     - ApertureElement
     range: float
@@ -180,6 +182,7 @@ attributes:
     domain_of:
     - Multipole
     - ApertureElement
+    - CameraMask
     range: float
     minimum_value: 0.0
     unit:
@@ -232,6 +235,7 @@ attributes:
     description: Full horizontal aperture [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     owner: ApertureElement
     domain_of:
     - ApertureElement
@@ -244,6 +248,7 @@ attributes:
     description: Full vertical aperture [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(0.0)
     owner: ApertureElement
     domain_of:
     - ApertureElement
@@ -268,6 +273,7 @@ attributes:
     domain_of:
     - Multipole
     - ApertureElement
+    - CameraMask
     range: float
     minimum_value: 0.0
     unit:

@@ -49,6 +49,7 @@ URI: [laura:bore](https://w3id.org/laura/bore)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0.037)` |
 | Owner | [MagneticElement](MagneticElement.md) |
 
 
@@ -111,6 +112,7 @@ name: bore
 description: Magnet bore radius [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0.037)
 owner: MagneticElement
 domain_of:
 - MagneticElement

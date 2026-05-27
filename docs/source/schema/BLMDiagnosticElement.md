@@ -128,6 +128,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - blm_type
+    ifabsent: string(CDR)
     domain_of:
     - BPMDiagnosticElement
     - BAMDiagnosticElement
@@ -158,6 +159,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     aliases:
     - blm_type
+    ifabsent: string(CDR)
     owner: BLMDiagnosticElement
     domain_of:
     - BPMDiagnosticElement

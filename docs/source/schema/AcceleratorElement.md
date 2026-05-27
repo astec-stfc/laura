@@ -82,7 +82,7 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | direct |
 | [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | direct |
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | direct |
-| [alias](alias.md) | 0..1 <br/> [String](String.md) | Short human-readable alias | direct |
+| [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | direct |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | direct |
 
 
@@ -180,6 +180,7 @@ attributes:
       ``TESLA``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string(Generic)
     domain_of:
     - AcceleratorElement
     range: string
@@ -197,12 +198,14 @@ attributes:
       name is inaccessible.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string()
     domain_of:
     - AcceleratorElement
     range: string
   alias:
     name: alias
-    description: Short human-readable alias. Populated from ``name_alias`` in YAML.
+    description: Human-readable aliases for the element. Populated from ``name_alias``
+      in YAML. Accepts a single string or a list of strings.
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
@@ -210,6 +213,7 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+    multivalued: true
   subelement:
     name: subelement
     description: If set, this element is a logical sub-component of the named parent
@@ -273,6 +277,7 @@ attributes:
       ``TESLA``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string(Generic)
     owner: AcceleratorElement
     domain_of:
     - AcceleratorElement
@@ -292,13 +297,15 @@ attributes:
       name is inaccessible.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: string()
     owner: AcceleratorElement
     domain_of:
     - AcceleratorElement
     range: string
   alias:
     name: alias
-    description: Short human-readable alias. Populated from ``name_alias`` in YAML.
+    description: Human-readable aliases for the element. Populated from ``name_alias``
+      in YAML. Accepts a single string or a list of strings.
     from_schema: https://w3id.org/laura/schema
     aliases:
     - name_alias
@@ -307,6 +314,7 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+    multivalued: true
   subelement:
     name: subelement
     description: If set, this element is a logical sub-component of the named parent

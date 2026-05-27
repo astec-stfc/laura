@@ -49,6 +49,7 @@ URI: [laura:isr_enable](https://w3id.org/laura/isr_enable)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `True` |
 | Owner | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
@@ -94,6 +95,7 @@ name: isr_enable
 description: Enable incoherent synchrotron-radiation emittance growth.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: 'True'
 owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement

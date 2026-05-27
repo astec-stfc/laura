@@ -49,6 +49,7 @@ URI: [laura:tolerance](https://w3id.org/laura/tolerance)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0.5)` |
 | Owner | [DegaussableElement](DegaussableElement.md) |
 
 
@@ -111,6 +112,7 @@ from_schema: https://w3id.org/laura/schema
 aliases:
 - degauss_tolerance
 rank: 1000
+ifabsent: float(0.5)
 owner: DegaussableElement
 domain_of:
 - DegaussableElement

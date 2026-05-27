@@ -49,6 +49,7 @@ URI: [laura:plane](https://w3id.org/laura/plane)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string(horizontal)` |
 | Owner | [MagneticElement](MagneticElement.md) |
 
 
@@ -94,6 +95,7 @@ name: plane
 description: Principal bending / focusing plane (``H``, ``V``, or ``HV``).
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: string(horizontal)
 owner: MagneticElement
 domain_of:
 - MagneticElement

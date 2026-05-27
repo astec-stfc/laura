@@ -49,6 +49,7 @@ URI: [laura:width](https://w3id.org/laura/width)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0.2)` |
 | Owner | [MagneticElement](MagneticElement.md) |
 
 
@@ -104,6 +105,7 @@ name: width
 description: Physical width of the magnet in the bending plane [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0.2)
 owner: MagneticElement
 domain_of:
 - MagneticElement

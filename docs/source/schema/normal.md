@@ -49,6 +49,7 @@ URI: [laura:normal](https://w3id.org/laura/normal)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0)` |
 | Owner | [Multipole](Multipole.md) |
 
 
@@ -94,6 +95,7 @@ name: normal
 description: Integrated normal (upright) multipole strength [T.m^{1-n}].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0)
 owner: Multipole
 domain_of:
 - Multipole

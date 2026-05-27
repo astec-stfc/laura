@@ -97,15 +97,6 @@ class TestIgnoreExtra:
         assert obj.x == 5
         assert not hasattr(obj, "unknown_field")
 
-    def test_from_CATAP(self):
-        class IE(IgnoreExtra):
-            x: int
-            y: float = 0.0
-
-        obj = IE.from_CATAP({"x": 10, "y": 3.14})
-        assert obj.x == 10
-        assert obj.y == pytest.approx(3.14)
-
     def test_update(self):
         class IE(IgnoreExtra):
             x: int = 0

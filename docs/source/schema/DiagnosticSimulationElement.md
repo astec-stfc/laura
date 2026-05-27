@@ -31,6 +31,8 @@ URI: [laura:DiagnosticSimulationElement](https://w3id.org/laura/DiagnosticSimula
         
       DiagnosticSimulationElement : field_reference_position
         
+      DiagnosticSimulationElement : output_filename
+        
       DiagnosticSimulationElement : scale_field
         
       DiagnosticSimulationElement : wakefield_definition
@@ -58,9 +60,10 @@ URI: [laura:DiagnosticSimulationElement](https://w3id.org/laura/DiagnosticSimula
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
+| [output_filename](output_filename.md) | 0..1 <br/> [String](String.md) | Output filename for diagnostic data | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
-| [field_reference_position](field_reference_position.md) | 0..1 <br/> [Float](Float.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
+| [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
 | [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
@@ -131,6 +134,15 @@ name: DiagnosticSimulationElement
 description: Simulation attributes for beam-diagnostic elements.
 from_schema: https://w3id.org/laura/schema
 is_a: SimulationElement
+attributes:
+  output_filename:
+    name: output_filename
+    description: Output filename for diagnostic data.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - DiagnosticSimulationElement
+    range: string
 class_uri: laura:DiagnosticSimulationElement
 
 ```
@@ -145,6 +157,15 @@ description: Simulation attributes for beam-diagnostic elements.
 from_schema: https://w3id.org/laura/schema
 is_a: SimulationElement
 attributes:
+  output_filename:
+    name: output_filename
+    description: Output filename for diagnostic data.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: DiagnosticSimulationElement
+    domain_of:
+    - DiagnosticSimulationElement
+    range: string
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.
@@ -171,14 +192,13 @@ attributes:
     owner: DiagnosticSimulationElement
     domain_of:
     - SimulationElement
-    range: float
-    unit:
-      ucum_code: m
+    range: string
   scale_field:
     name: scale_field
     description: Multiplicative scale factor applied to the field map.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: float(1)
     owner: DiagnosticSimulationElement
     domain_of:
     - SimulationElement
