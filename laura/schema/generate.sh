@@ -31,10 +31,39 @@ echo "Generating JSON-LD context..."
 gen-jsonld-context "$SCHEMA" > "$OUT_DIR/laura_context.jsonld"
 
 echo "Generating SHACL shapes..."
-gen-shacl "$SCHEMA" > "$OUT_DIR/laura_shacl.ttl"
+# NOTE: gen-shacl (linkml 1.11.x) fails on multi-file schemas with a KeyError.
+# Workaround: merge with gen-yaml first, then run gen-shacl on the merged output.
+(
+  cd "laura/schema/YAML"
+  gen-yaml --mergeimports laura_schema.yaml \
+    | grep -v "UserWarning\|warnings.warn\|RequestsDependency" \
+    > _merged_temp.yaml
+  gen-shacl _merged_temp.yaml > ../generated/laura_shacl.ttl
+  rm -f _merged_temp.yaml
+)
+
+echo "Generating TypeScript types..."
+gen-typescript "$SCHEMA" > "$OUT_DIR/laura_types.ts"
+
+echo "Generating SQL DDL..."
+gen-sqltables "$SCHEMA" > "$OUT_DIR/laura_schema.sql"
+
+echo "Generating SQLAlchemy ORM..."
+gen-sqla "$SCHEMA" > "$OUT_DIR/laura_orm.py"
 
 echo "Generating GraphQL schema..."
 gen-graphql "$SCHEMA" > "$OUT_DIR/laura_schema.graphql"
+# gen-graphql emits empty type bodies for abstract classes, which is invalid
+# GraphQL SDL (object types must have at least one field).  Patch them in-place.
+echo "  Patching empty GraphQL types..."
+python - <<'EOF'
+import re, pathlib
+path = pathlib.Path("laura/schema/generated/laura_schema.graphql")
+content = path.read_text()
+patched = re.sub(r'(type \w+\n  \{\n)  \}', r'\1    _placeholder: Boolean\n  }', content)
+path.write_text(patched)
+print(f"  Patched {content.count(chr(10)+'  {'+chr(10)+'  }')} empty types")
+EOF
 
 echo "Generating HTML documentation..."
 gen-doc -d "$DOCS_DIR" "$SCHEMA"
@@ -51,6 +80,9 @@ echo "  JSON Schema : $OUT_DIR/laura_element.schema.json"
 echo "  OWL         : $OUT_DIR/laura_ontology.owl"
 echo "  JSON-LD ctx : $OUT_DIR/laura_context.jsonld"
 echo "  SHACL       : $OUT_DIR/laura_shacl.ttl"
+echo "  TypeScript  : $OUT_DIR/laura_types.ts"
+echo "  SQL DDL     : $OUT_DIR/laura_schema.sql"
+echo "  SQLAlchemy  : $OUT_DIR/laura_orm.py"
 echo "  GraphQL     : $OUT_DIR/laura_schema.graphql"
 echo "  HTML docs   : $DOCS_DIR/"
 echo "  ER diagram  : $ER_FILE"

@@ -7,6 +7,13 @@ enum ApertureShapeEnum
     elliptical
   }
 
+enum BendingPlaneEnum
+  {
+    Horizontal
+    Vertical
+    Combined
+  }
+
 enum HardwareClassEnum
   {
     Magnet
@@ -23,6 +30,9 @@ enum HardwareClassEnum
     Shutter
     Wakefield
     TwissMatch
+    Drift
+    Generic
+    Monitor
   }
 
 enum LaserPolarizationEnum
@@ -43,7 +53,7 @@ enum LaserProfileTypeEnum
 type AcceleratorElement
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareType: String
     hardwareModel: String
     machineArea: String
@@ -55,7 +65,7 @@ type AcceleratorElement
 type Aperture
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -90,7 +100,7 @@ type BAMDiagnosticElement
 type BeamArrivalMonitor
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -109,7 +119,7 @@ type BeamArrivalMonitor
 type BeamPositionMonitor
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -138,7 +148,7 @@ type BPMDiagnosticElement
 type BunchLengthMonitor
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -157,7 +167,7 @@ type BunchLengthMonitor
 type Camera
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -247,7 +257,7 @@ type ChannelNames
 type ChargeDiagnostic
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -271,7 +281,7 @@ type ChargeDiagnosticElement
 type Collimator
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -284,26 +294,6 @@ type Collimator
     reference: ReferenceElement
     physical: PhysicalElement
     aperture: ApertureElement
-    hardwareType: String
-  }
-
-type CombinedCorrector
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    magnetic: MagneticElement
-    degauss: DegaussableElement
-    simulation: MagnetSimulationElement
     hardwareType: String
   }
 
@@ -335,7 +325,7 @@ type DegaussableElement
 type Diagnostic
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareType: String
     hardwareModel: String
     machineArea: String
@@ -353,6 +343,7 @@ type Diagnostic
 
 type DiagnosticElement
   {
+    _placeholder: Boolean
   }
 
 type DiagnosticSimulationElement
@@ -364,30 +355,10 @@ type DiagnosticSimulationElement
     outputFilename: String
   }
 
-type Dipole
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    magnetic: MagneticElement
-    degauss: DegaussableElement
-    simulation: MagnetSimulationElement
-    hardwareType: String
-  }
-
 type Drift
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -408,12 +379,12 @@ type DriftSimulationElement
     wakefieldDefinition: String
     fieldReferencePosition: String
     scaleField: Float
+    lscBins: Int
     lscInterpolate: Int
     csrEnable: Boolean
     lscEnable: Boolean
     useStupakov: Int
     csrdz: Float
-    lscBins: Int
     lscHighFrequencyCutoffStart: Float
     lscHighFrequencyCutoffEnd: Float
     lscLowFrequencyCutoffStart: Float
@@ -425,6 +396,23 @@ type ElectricalElement
     minI: Float
     maxI: Float
     readTolerance: Float
+  }
+
+type Element
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareType: String
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
   }
 
 type ElementPositionError
@@ -442,7 +430,7 @@ type ElementSurvey
 type FaradayCupMonitor
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -463,30 +451,10 @@ type FieldIntegral
     coefficients: [Float]
   }
 
-type HorizontalCorrector
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    magnetic: MagneticElement
-    degauss: DegaussableElement
-    simulation: MagnetSimulationElement
-    hardwareType: String
-  }
-
 type IntegratedCurrentTransformer
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -505,7 +473,7 @@ type IntegratedCurrentTransformer
 type Laser
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -524,7 +492,7 @@ type Laser
 type LaserAttenuator
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -558,7 +526,7 @@ type LaserElement
 type LaserEnergyMeter
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -575,12 +543,13 @@ type LaserEnergyMeter
 
 type LaserEnergyMeterElement
   {
+    _placeholder: Boolean
   }
 
 type LaserHalfWavePlate
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -597,12 +566,13 @@ type LaserHalfWavePlate
 
 type LaserHalfWavePlateElement
   {
+    _placeholder: Boolean
   }
 
 type LaserMirror
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -636,7 +606,7 @@ type LaserMirrorSense
 type Lighting
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -653,6 +623,7 @@ type Lighting
 
 type LightingElement
   {
+    _placeholder: Boolean
   }
 
 type LinearSaturationFit
@@ -684,7 +655,7 @@ type LLRFTimings
 type LowLevelRF
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -725,7 +696,7 @@ type MachineModel
 type MagnetBaseElement
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareType: String
     hardwareModel: String
     machineArea: String
@@ -757,7 +728,7 @@ type MagneticElement
     exitEdgeAngle: Float
     gap: Float
     bore: Float
-    plane: String
+    plane: BendingPlaneEnum
     width: Float
     tilt: Float
     edgeFieldIntegral: Float
@@ -772,6 +743,7 @@ type MagnetSimulationElement
     fieldReferencePosition: String
     scaleField: Float
     nKicks: Int
+    fieldAmplitude: Float
     nSlices: Int
     smooth: Boolean
     edgeFieldIntegral: Float
@@ -786,7 +758,6 @@ type MagnetSimulationElement
     smoothingHalfWidth: Int
     edgeOrder: Int
     deltaL: Float
-    fieldAmplitude: Float
     smoothPoints: Float
   }
 
@@ -799,7 +770,7 @@ type ManufacturerElement
 type Marker
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -831,50 +802,10 @@ type Multipoles
     k4L: Multipole
   }
 
-type NonLinearLens
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    magnetic: MagneticElement
-    degauss: DegaussableElement
-    simulation: MagnetSimulationElement
-    hardwareType: String
-  }
-
-type Octupole
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    magnetic: MagneticElement
-    degauss: DegaussableElement
-    simulation: MagnetSimulationElement
-    hardwareType: String
-  }
-
 type PhysicalAcceleratorElement
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareType: String
     hardwareModel: String
     machineArea: String
@@ -906,7 +837,7 @@ type PhysicalElement
 type PID
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -949,7 +880,7 @@ type PIDWeightRange
 type Plasma
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1006,26 +937,6 @@ type Position
     z: Float
   }
 
-type Quadrupole
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    magnetic: MagneticElement
-    degauss: DegaussableElement
-    simulation: MagnetSimulationElement
-    hardwareType: String
-  }
-
 type ReferenceElement
   {
     drawings: [String]
@@ -1035,7 +946,7 @@ type ReferenceElement
 type RFCavity
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1053,8 +964,6 @@ type RFCavity
 
 type RFCavityElement
   {
-    structureType: String
-    attenuationConstant: Float
     cellLength: Float
     couplingCellLength: Float
     designGamma: Float
@@ -1066,6 +975,8 @@ type RFCavityElement
     shuntImpedance: Float
     modeNumerator: Int
     modeDenominator: Int
+    structureType: String
+    attenuationConstant: Float
     powerCalibration: [Float]
     gradientCalibration: [Float]
   }
@@ -1076,18 +987,18 @@ type RFCavitySimulationElement
     wakefieldDefinition: String
     fieldReferencePosition: String
     scaleField: Float
-    fieldAmplitude: Float
     tColumn: String
     zColumn: String
     wxColumn: String
     wyColumn: String
     wzColumn: String
-    changeP0: Int
     nKicks: Int
+    lscBins: Int
+    fieldAmplitude: Float
+    changeP0: Int
     end1Focus: Int
     end2Focus: Int
     bodyFocusModel: String
-    lscBins: Int
     currentBins: Int
     interpolateCurrentBins: Int
     smoothCurrentBins: Int
@@ -1102,7 +1013,7 @@ type RFCavitySimulationElement
 type RFDeflectingCavity
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1136,7 +1047,7 @@ type RFDeflectingCavityElement
 type RFHeartbeat
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1153,12 +1064,13 @@ type RFHeartbeat
 
 type RFHeartbeatElement
   {
+    _placeholder: Boolean
   }
 
 type RFModulator
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1175,12 +1087,13 @@ type RFModulator
 
 type RFModulatorElement
   {
+    _placeholder: Boolean
   }
 
 type RFProtection
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1210,7 +1123,7 @@ type Rotation
 type Screen
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1231,6 +1144,7 @@ type ScreenDiagnosticElement
     type: String
     hasCamera: Boolean
     cameraName: String
+    devices: [String]
   }
 
 type SectionLattice
@@ -1240,30 +1154,10 @@ type SectionLattice
     elements: [String]
   }
 
-type Sextupole
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    magnetic: MagneticElement
-    degauss: DegaussableElement
-    simulation: MagnetSimulationElement
-    hardwareType: String
-  }
-
 type Shutter
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1292,30 +1186,10 @@ type SimulationElement
     scaleField: Float
   }
 
-type Solenoid
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    magnetic: MagneticElement
-    degauss: DegaussableElement
-    simulation: MagnetSimulationElement
-    hardwareType: String
-  }
-
 type Stage
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1333,7 +1207,7 @@ type Stage
 type StandardElement
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareType: String
     hardwareModel: String
     machineArea: String
@@ -1358,7 +1232,7 @@ type Trace
 type TwissMatch
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1393,7 +1267,7 @@ type TwissMatchSimulationElement
 type VacuumGauge
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1411,7 +1285,7 @@ type VacuumGauge
 type Valve
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1429,32 +1303,13 @@ type Valve
 
 type ValveElement
   {
-  }
-
-type VerticalCorrector
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    magnetic: MagneticElement
-    degauss: DegaussableElement
-    simulation: MagnetSimulationElement
-    hardwareType: String
+    _placeholder: Boolean
   }
 
 type Wakefield
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1483,17 +1338,17 @@ type WakefieldSimulationElement
     wakefieldDefinition: String
     fieldReferencePosition: String
     scaleField: Float
+    tColumn: String
+    zColumn: String
+    wxColumn: String
+    wyColumn: String
+    wzColumn: String
     allowLongBeam: Boolean
     bunchedBeam: Boolean
     changeMomentum: Boolean
     factor: Float
     interpolate: Boolean
     scaleKick: Float
-    tColumn: String
-    zColumn: String
-    wxColumn: String
-    wyColumn: String
-    wzColumn: String
     scaleFieldEx: Float
     scaleFieldEy: Float
     scaleFieldEz: Float
@@ -1509,7 +1364,7 @@ type WakefieldSimulationElement
 type WallCurrentMonitor
   {
     name: String!
-    hardwareClass: HardwareClassEnum
+    hardwareClass: HardwareClassEnum!
     hardwareModel: String
     machineArea: String
     virtualName: String
@@ -1522,26 +1377,6 @@ type WallCurrentMonitor
     physical: PhysicalElement
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
-    hardwareType: String
-  }
-
-type Wiggler
-  {
-    name: String!
-    hardwareClass: HardwareClassEnum
-    hardwareModel: String
-    machineArea: String
-    virtualName: String
-    alias: [String]
-    subelement: String
-    electrical: ElectricalElement
-    manufacturer: ManufacturerElement
-    controls: ControlsInformation
-    reference: ReferenceElement
-    physical: PhysicalElement
-    magnetic: MagneticElement
-    degauss: DegaussableElement
-    simulation: MagnetSimulationElement
     hardwareType: String
   }
 
