@@ -28,8 +28,8 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
         click AcceleratorElement href "../AcceleratorElement/"
       
 
-      StandardElement <|-- PhysicalAcceleratorElement
-        click PhysicalAcceleratorElement href "../PhysicalAcceleratorElement/"
+      StandardElement <|-- Element
+        click Element href "../Element/"
       StandardElement <|-- LowLevelRF
         click LowLevelRF href "../LowLevelRF/"
       StandardElement <|-- RFModulator
@@ -82,7 +82,7 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
     
         
         
-        StandardElement --> "0..1" HardwareClassEnum : hardware_class
+        StandardElement --> "1" HardwareClassEnum : hardware_class
         click HardwareClassEnum href "../HardwareClassEnum/"
     
 
@@ -142,7 +142,7 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
 ## Inheritance
 * [AcceleratorElement](AcceleratorElement.md)
     * **StandardElement**
-        * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
+        * [Element](Element.md)
         * [LowLevelRF](LowLevelRF.md)
         * [RFModulator](RFModulator.md)
         * [RFProtection](RFProtection.md)
@@ -172,7 +172,7 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
 | [controls](controls.md) | 0..1 <br/> [ControlsInformation](ControlsInformation.md) | Control-system process-variable definitions | direct |
 | [reference](reference.md) | 0..1 <br/> [ReferenceElement](ReferenceElement.md) | Links to design drawings and files | direct |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique element name within the machine | [AcceleratorElement](AcceleratorElement.md) |
-| [hardware_class](hardware_class.md) | 0..1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
+| [hardware_class](hardware_class.md) | 1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for MODEL_REGISTRY dispatch | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | [AcceleratorElement](AcceleratorElement.md) |
 | [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | [AcceleratorElement](AcceleratorElement.md) |
@@ -356,13 +356,14 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: HardwareClassEnum
+    required: true
   hardware_type:
     name: hardware_type
     description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the
       concrete subclass to instantiate when loading from YAML.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    designates_type: true
+    ifabsent: string(Generic)
     owner: StandardElement
     domain_of:
     - AcceleratorElement

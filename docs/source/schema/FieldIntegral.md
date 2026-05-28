@@ -110,9 +110,8 @@ attributes:
     name: coefficients
     description: 'Polynomial coefficients ordered from lowest to highest degree: ``FieldIntegral
       = sum c_n . I^n``.'
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    ifabsent: '[0]'
     domain_of:
     - FieldIntegral
     range: float
@@ -134,9 +133,8 @@ attributes:
     name: coefficients
     description: 'Polynomial coefficients ordered from lowest to highest degree: ``FieldIntegral
       = sum c_n . I^n``.'
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    ifabsent: '[0]'
     owner: FieldIntegral
     domain_of:
     - FieldIntegral

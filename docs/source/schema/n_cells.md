@@ -5,6 +5,11 @@ search:
 
 # Slot: n_cells 
 
+
+_Number of cells._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -35,13 +40,27 @@ URI: [laura:n_cells](https://w3id.org/laura/n_cells)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [Integer](Integer.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [WakefieldElement](WakefieldElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+### Slot Characteristics
+
+| Property | Value |
+| --- | --- |
+| If Absent | `int(1)` |
+
+
+### Value Constraints
+
+| Property | Value |
+| --- | --- |
+| Minimum Value | 1 |
+
+
 
 
 
@@ -55,6 +74,13 @@ URI: [laura:n_cells](https://w3id.org/laura/n_cells)
 ## Identifier and Mapping Information
 
 
+
+
+
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
 
 
 
@@ -74,11 +100,16 @@ URI: [laura:n_cells](https://w3id.org/laura/n_cells)
 <details>
 ```yaml
 name: n_cells
+description: Number of cells.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
+ifabsent: int(1)
 domain_of:
 - RFCavityElement
 - WakefieldElement
 - RFDeflectingCavityElement
-range: string
+range: integer
+minimum_value: 1
 
 ```
 </details></div>

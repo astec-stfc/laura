@@ -167,7 +167,7 @@ attributes:
   initial_position:
     name: initial_position
     description: Initial longitudinal position of the laser pulse [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -178,7 +178,7 @@ attributes:
   waist:
     name: waist
     description: Laser beam waist (1/e^2 radius) [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -190,7 +190,7 @@ attributes:
   wavelength:
     name: wavelength
     description: Laser wavelength [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     domain_of:
     - LaserElement
@@ -201,7 +201,7 @@ attributes:
   pulse_energy:
     name: pulse_energy
     description: Laser pulse energy [J].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     domain_of:
     - LaserElement
@@ -212,7 +212,7 @@ attributes:
   pulse_duration_fwhm:
     name: pulse_duration_fwhm
     description: Pulse duration at FWHM [s].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     domain_of:
     - LaserElement
@@ -223,7 +223,7 @@ attributes:
   focal_position:
     name: focal_position
     description: Focal (waist) position along the propagation axis [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -234,7 +234,7 @@ attributes:
   cep_phase:
     name: cep_phase
     description: Carrier-envelope phase [rad].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -245,7 +245,7 @@ attributes:
   polarization:
     name: polarization
     description: Laser polarization state.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     domain_of:
     - LaserElement
@@ -253,7 +253,7 @@ attributes:
   profile_type:
     name: profile_type
     description: Transverse intensity profile model.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: string(gaussian)
     domain_of:
@@ -262,7 +262,7 @@ attributes:
   laguerre_polynomial_order_p:
     name: laguerre_polynomial_order_p
     description: Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: int(0)
     domain_of:
@@ -273,7 +273,7 @@ attributes:
     name: flatness
     description: Flatness order N of a flattened-Gaussian profile (for ``profile_type
       = flattened-gaussian``).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: int(6)
     domain_of:
@@ -299,7 +299,7 @@ attributes:
   initial_position:
     name: initial_position
     description: Initial longitudinal position of the laser pulse [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0)
     owner: LaserElement
@@ -311,7 +311,7 @@ attributes:
   waist:
     name: waist
     description: Laser beam waist (1/e^2 radius) [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0)
     owner: LaserElement
@@ -324,7 +324,7 @@ attributes:
   wavelength:
     name: wavelength
     description: Laser wavelength [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     owner: LaserElement
     domain_of:
@@ -336,7 +336,7 @@ attributes:
   pulse_energy:
     name: pulse_energy
     description: Laser pulse energy [J].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     owner: LaserElement
     domain_of:
@@ -348,7 +348,7 @@ attributes:
   pulse_duration_fwhm:
     name: pulse_duration_fwhm
     description: Pulse duration at FWHM [s].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     owner: LaserElement
     domain_of:
@@ -360,7 +360,7 @@ attributes:
   focal_position:
     name: focal_position
     description: Focal (waist) position along the propagation axis [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0.0)
     owner: LaserElement
@@ -372,7 +372,7 @@ attributes:
   cep_phase:
     name: cep_phase
     description: Carrier-envelope phase [rad].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0)
     owner: LaserElement
@@ -384,7 +384,7 @@ attributes:
   polarization:
     name: polarization
     description: Laser polarization state.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     owner: LaserElement
     domain_of:
@@ -393,7 +393,7 @@ attributes:
   profile_type:
     name: profile_type
     description: Transverse intensity profile model.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: string(gaussian)
     owner: LaserElement
@@ -403,7 +403,7 @@ attributes:
   laguerre_polynomial_order_p:
     name: laguerre_polynomial_order_p
     description: Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: int(0)
     owner: LaserElement
@@ -415,7 +415,7 @@ attributes:
     name: flatness
     description: Flatness order N of a flattened-Gaussian profile (for ``profile_type
       = flattened-gaussian``).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: int(6)
     owner: LaserElement

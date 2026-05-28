@@ -26,16 +26,6 @@ URI: [laura:magnetic](https://w3id.org/laura/magnetic)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [MagnetBaseElement](MagnetBaseElement.md) | Base class for all magnetic focusing and bending elements |  no  |
-| [Dipole](Dipole.md) | Dipole bending magnet |  no  |
-| [Quadrupole](Quadrupole.md) | Quadrupole focusing magnet |  no  |
-| [Sextupole](Sextupole.md) | Sextupole chromaticity-correction magnet |  no  |
-| [Octupole](Octupole.md) | Octupole magnet |  no  |
-| [HorizontalCorrector](HorizontalCorrector.md) | Horizontal orbit-corrector dipole |  no  |
-| [VerticalCorrector](VerticalCorrector.md) | Vertical orbit-corrector dipole |  no  |
-| [CombinedCorrector](CombinedCorrector.md) | Combined horizontal and vertical orbit-corrector magnet |  no  |
-| [Solenoid](Solenoid.md) | Solenoid focussing magnet |  no  |
-| [NonLinearLens](NonLinearLens.md) | Non-linear focusing lens (IOTA-style) |  no  |
-| [Wiggler](Wiggler.md) | Wiggler / undulator permanent-magnet array |  no  |
 
 
 

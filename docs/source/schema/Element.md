@@ -3,10 +3,10 @@ search:
   boost: 10.0
 ---
 
-# Class: VacuumGauge 
+# Class: Element 
 
 
-_Vacuum-pressure gauge._
+_Concrete schema counterpart of the Python ``Element`` wrapper class. Inherits standard element composition fields._
 
 
 
@@ -14,7 +14,7 @@ _Vacuum-pressure gauge._
 
 
 
-URI: [laura:VacuumGauge](https://w3id.org/laura/VacuumGauge)
+URI: [laura:Element](https://w3id.org/laura/Element)
 
 
 
@@ -22,101 +22,95 @@ URI: [laura:VacuumGauge](https://w3id.org/laura/VacuumGauge)
 
 ```mermaid
  classDiagram
-    class VacuumGauge
-    click VacuumGauge href "../VacuumGauge/"
-      PhysicalAcceleratorElement <|-- VacuumGauge
+    class Element
+    click Element href "../Element/"
+      StandardElement <|-- Element
+        click StandardElement href "../StandardElement/"
+      
+
+      Element <|-- PhysicalAcceleratorElement
         click PhysicalAcceleratorElement href "../PhysicalAcceleratorElement/"
       
-      VacuumGauge : alias
+
+      Element : alias
         
-      VacuumGauge : controls
+      Element : controls
         
           
     
         
         
-        VacuumGauge --> "0..1" ControlsInformation : controls
+        Element --> "0..1" ControlsInformation : controls
         click ControlsInformation href "../ControlsInformation/"
     
 
         
-      VacuumGauge : electrical
+      Element : electrical
         
           
     
         
         
-        VacuumGauge --> "0..1" ElectricalElement : electrical
+        Element --> "0..1" ElectricalElement : electrical
         click ElectricalElement href "../ElectricalElement/"
     
 
         
-      VacuumGauge : hardware_class
+      Element : hardware_class
         
           
     
         
         
-        VacuumGauge --> "1" HardwareClassEnum : hardware_class
+        Element --> "1" HardwareClassEnum : hardware_class
         click HardwareClassEnum href "../HardwareClassEnum/"
     
 
         
-      VacuumGauge : hardware_model
+      Element : hardware_model
         
-      VacuumGauge : hardware_type
+      Element : hardware_type
         
-      VacuumGauge : machine_area
+      Element : machine_area
         
-      VacuumGauge : manufacturer
+      Element : manufacturer
         
           
     
         
         
-        VacuumGauge --> "0..1" ManufacturerElement : manufacturer
+        Element --> "0..1" ManufacturerElement : manufacturer
         click ManufacturerElement href "../ManufacturerElement/"
     
 
         
-      VacuumGauge : name
+      Element : name
         
-      VacuumGauge : physical
-        
-          
-    
-        
-        
-        VacuumGauge --> "0..1" PhysicalElement : physical
-        click PhysicalElement href "../PhysicalElement/"
-    
-
-        
-      VacuumGauge : reference
+      Element : reference
         
           
     
         
         
-        VacuumGauge --> "0..1" ReferenceElement : reference
+        Element --> "0..1" ReferenceElement : reference
         click ReferenceElement href "../ReferenceElement/"
     
 
         
-      VacuumGauge : simulation
+      Element : simulation
         
           
     
         
         
-        VacuumGauge --> "0..1" SimulationElement : simulation
+        Element --> "0..1" SimulationElement : simulation
         click SimulationElement href "../SimulationElement/"
     
 
         
-      VacuumGauge : subelement
+      Element : subelement
         
-      VacuumGauge : virtual_name
+      Element : virtual_name
         
       
 ```
@@ -128,23 +122,21 @@ URI: [laura:VacuumGauge](https://w3id.org/laura/VacuumGauge)
 ## Inheritance
 * [AcceleratorElement](AcceleratorElement.md)
     * [StandardElement](StandardElement.md)
-        * [Element](Element.md)
+        * **Element**
             * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
-                * **VacuumGauge**
 
 
 ## Class Properties
 
 | Property | Value |
 | --- | --- |
-| Class URI | [laura:VacuumGauge](https://w3id.org/laura/VacuumGauge) |
+| Class URI | [laura:Element](https://w3id.org/laura/Element) |
 
 
 ## Slots
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [SimulationElement](SimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -191,8 +183,8 @@ URI: [laura:VacuumGauge](https://w3id.org/laura/VacuumGauge)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:VacuumGauge |
-| native | laura:VacuumGauge |
+| self | laura:Element |
+| native | laura:Element |
 
 
 
@@ -207,15 +199,12 @@ URI: [laura:VacuumGauge](https://w3id.org/laura/VacuumGauge)
 
 <details>
 ```yaml
-name: VacuumGauge
-description: Vacuum-pressure gauge.
+name: Element
+description: Concrete schema counterpart of the Python ``Element`` wrapper class.
+  Inherits standard element composition fields.
 from_schema: https://w3id.org/laura/schema
-is_a: PhysicalAcceleratorElement
-slot_usage:
-  hardware_type:
-    name: hardware_type
-    equals_string: VacuumGauge
-class_uri: laura:VacuumGauge
+is_a: StandardElement
+class_uri: laura:Element
 
 ```
 </details>
@@ -224,32 +213,18 @@ class_uri: laura:VacuumGauge
 
 <details>
 ```yaml
-name: VacuumGauge
-description: Vacuum-pressure gauge.
+name: Element
+description: Concrete schema counterpart of the Python ``Element`` wrapper class.
+  Inherits standard element composition fields.
 from_schema: https://w3id.org/laura/schema
-is_a: PhysicalAcceleratorElement
-slot_usage:
-  hardware_type:
-    name: hardware_type
-    equals_string: VacuumGauge
+is_a: StandardElement
 attributes:
-  physical:
-    name: physical
-    description: Position, rotation, and length data.
-    in_subset:
-    - physical_properties
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    owner: VacuumGauge
-    domain_of:
-    - PhysicalAcceleratorElement
-    range: PhysicalElement
   simulation:
     name: simulation
     description: Simulation / tracking attributes.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - StandardElement
     range: SimulationElement
@@ -258,7 +233,7 @@ attributes:
     description: Power-supply electrical limits.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - StandardElement
     range: ElectricalElement
@@ -266,7 +241,7 @@ attributes:
     name: manufacturer
     description: Manufacturer and serial-number data.
     from_schema: https://w3id.org/laura/schema
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - ManufacturerElement
     - StandardElement
@@ -276,7 +251,7 @@ attributes:
     description: Control-system process-variable definitions.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - StandardElement
     range: ControlsInformation
@@ -285,7 +260,7 @@ attributes:
     description: Links to design drawings and files.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - StandardElement
     range: ReferenceElement
@@ -295,7 +270,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     identifier: true
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - AcceleratorElement
     - SectionLattice
@@ -307,7 +282,7 @@ attributes:
     description: Functional category (e.g., ``Magnet``, ``Diagnostic``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - AcceleratorElement
     range: HardwareClassEnum
@@ -319,11 +294,10 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string(Generic)
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - AcceleratorElement
     range: string
-    equals_string: VacuumGauge
   hardware_model:
     name: hardware_model
     description: Model or variant name within the hardware type (e.g., ``Generic``,
@@ -331,7 +305,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string(Generic)
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - AcceleratorElement
     range: string
@@ -340,7 +314,7 @@ attributes:
     description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - AcceleratorElement
     range: string
@@ -351,7 +325,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string()
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - AcceleratorElement
     range: string
@@ -363,7 +337,7 @@ attributes:
     aliases:
     - name_alias
     rank: 1000
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - AcceleratorElement
     range: string
@@ -374,11 +348,11 @@ attributes:
       element.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: VacuumGauge
+    owner: Element
     domain_of:
     - AcceleratorElement
     range: string
-class_uri: laura:VacuumGauge
+class_uri: laura:Element
 
 ```
 </details></div>

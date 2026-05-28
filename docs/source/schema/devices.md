@@ -3,10 +3,10 @@ search:
   boost: 5.0
 ---
 
-# Slot: wz_column 
+# Slot: devices 
 
 
-_Longitudinal wake column in the wake file._
+_List of attached devices._
 
 
 
@@ -14,7 +14,7 @@ _Longitudinal wake column in the wake file._
 
 
 
-URI: [laura:wz_column](https://w3id.org/laura/wz_column)
+URI: [laura:devices](https://w3id.org/laura/devices)
 <!-- no inheritance hierarchy -->
 
 
@@ -25,8 +25,7 @@ URI: [laura:wz_column](https://w3id.org/laura/wz_column)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  no  |
-| [WakefieldSimulationElement](WakefieldSimulationElement.md) | Simulation attributes for passive wakefield structures |  no  |
+| [ScreenDiagnosticElement](ScreenDiagnosticElement.md) | Scintillator or OTR screen diagnostic data |  no  |
 
 
 
@@ -40,12 +39,20 @@ URI: [laura:wz_column](https://w3id.org/laura/wz_column)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [RFCavitySimulationElement](RFCavitySimulationElement.md), [WakefieldSimulationElement](WakefieldSimulationElement.md) |
+| Domain Of | [ScreenDiagnosticElement](ScreenDiagnosticElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+| Multivalued | Yes |
+### Slot Characteristics
+
+| Property | Value |
+| --- | --- |
+| Owner | [ScreenDiagnosticElement](ScreenDiagnosticElement.md) |
+
+
 
 
 
@@ -74,8 +81,8 @@ URI: [laura:wz_column](https://w3id.org/laura/wz_column)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:wz_column |
-| native | laura:wz_column |
+| self | laura:devices |
+| native | laura:devices |
 
 
 
@@ -84,14 +91,15 @@ URI: [laura:wz_column](https://w3id.org/laura/wz_column)
 
 <details>
 ```yaml
-name: wz_column
-description: Longitudinal wake column in the wake file.
+name: devices
+description: List of attached devices.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+owner: ScreenDiagnosticElement
 domain_of:
-- RFCavitySimulationElement
-- WakefieldSimulationElement
+- ScreenDiagnosticElement
 range: string
+multivalued: true
 
 ```
 </details></div>

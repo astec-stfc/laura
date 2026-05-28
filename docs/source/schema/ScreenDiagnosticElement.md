@@ -29,6 +29,8 @@ URI: [laura:ScreenDiagnosticElement](https://w3id.org/laura/ScreenDiagnosticElem
       
       ScreenDiagnosticElement : camera_name
         
+      ScreenDiagnosticElement : devices
+        
       ScreenDiagnosticElement : has_camera
         
       ScreenDiagnosticElement : type
@@ -59,6 +61,7 @@ URI: [laura:ScreenDiagnosticElement](https://w3id.org/laura/ScreenDiagnosticElem
 | [type](type.md) | 0..1 <br/> [String](String.md) | Screen type (e | direct |
 | [has_camera](has_camera.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the screen has an associated camera | direct |
 | [camera_name](camera_name.md) | 0..1 <br/> [String](String.md) | Name of the associated camera element | direct |
+| [devices](devices.md) | * <br/> [String](String.md) | List of attached devices | direct |
 
 
 
@@ -131,7 +134,7 @@ attributes:
   type:
     name: type
     description: Screen type (e.g., ``OTR``, ``YAG``).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - screen_type
     ifabsent: string(CLARA_HV_MOVER)
@@ -146,7 +149,7 @@ attributes:
   has_camera:
     name: has_camera
     description: Whether the screen has an associated camera.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: 'True'
     domain_of:
@@ -155,12 +158,21 @@ attributes:
   camera_name:
     name: camera_name
     description: Name of the associated camera element.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: string()
     domain_of:
     - ScreenDiagnosticElement
     range: string
+  devices:
+    name: devices
+    description: List of attached devices.
+    from_schema: https://w3id.org/laura/schema/diagnostics
+    rank: 1000
+    domain_of:
+    - ScreenDiagnosticElement
+    range: string
+    multivalued: true
 class_uri: laura:ScreenDiagnosticElement
 
 ```
@@ -180,7 +192,7 @@ attributes:
   type:
     name: type
     description: Screen type (e.g., ``OTR``, ``YAG``).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - screen_type
     ifabsent: string(CLARA_HV_MOVER)
@@ -196,7 +208,7 @@ attributes:
   has_camera:
     name: has_camera
     description: Whether the screen has an associated camera.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: 'True'
     owner: ScreenDiagnosticElement
@@ -206,13 +218,23 @@ attributes:
   camera_name:
     name: camera_name
     description: Name of the associated camera element.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: string()
     owner: ScreenDiagnosticElement
     domain_of:
     - ScreenDiagnosticElement
     range: string
+  devices:
+    name: devices
+    description: List of attached devices.
+    from_schema: https://w3id.org/laura/schema/diagnostics
+    rank: 1000
+    owner: ScreenDiagnosticElement
+    domain_of:
+    - ScreenDiagnosticElement
+    range: string
+    multivalued: true
 class_uri: laura:ScreenDiagnosticElement
 
 ```

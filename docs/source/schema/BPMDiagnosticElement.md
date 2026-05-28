@@ -126,7 +126,7 @@ attributes:
     name: type
     description: BPM type (e.g., ``Stripline``, ``Cavity``, ``Button``). Accepted
       in YAML as ``bpm_type``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - bpm_type
     rank: 1000
@@ -159,7 +159,7 @@ attributes:
     name: type
     description: BPM type (e.g., ``Stripline``, ``Cavity``, ``Button``). Accepted
       in YAML as ``bpm_type``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - bpm_type
     rank: 1000

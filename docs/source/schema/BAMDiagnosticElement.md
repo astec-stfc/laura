@@ -125,7 +125,7 @@ attributes:
   type:
     name: type
     description: BAM type. Accepted in YAML as ``bam_type``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - bam_type
     ifabsent: string(DESY)
@@ -156,7 +156,7 @@ attributes:
   type:
     name: type
     description: BAM type. Accepted in YAML as ``bam_type``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - bam_type
     ifabsent: string(DESY)

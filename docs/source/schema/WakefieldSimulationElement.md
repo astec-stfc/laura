@@ -100,17 +100,17 @@ URI: [laura:WakefieldSimulationElement](https://w3id.org/laura/WakefieldSimulati
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
+| [t_column](t_column.md) | 0..1 <br/> [String](String.md) | Time column in the wake file | direct |
+| [z_column](z_column.md) | 0..1 <br/> [String](String.md) | Longitudinal position column in the wake file | direct |
+| [wx_column](wx_column.md) | 0..1 <br/> [String](String.md) | Horizontal wake column in the wake file | direct |
+| [wy_column](wy_column.md) | 0..1 <br/> [String](String.md) | Vertical wake column in the wake file | direct |
+| [wz_column](wz_column.md) | 0..1 <br/> [String](String.md) | Longitudinal wake column in the wake file | direct |
 | [allow_long_beam](allow_long_beam.md) | 0..1 <br/> [Boolean](Boolean.md) | Allow beams longer than the wakefield | direct |
 | [bunched_beam](bunched_beam.md) | 0..1 <br/> [Boolean](Boolean.md) | Use bunched beam mode | direct |
 | [change_momentum](change_momentum.md) | 0..1 <br/> [Boolean](Boolean.md) | Allow wakefield to change bunch momentum | direct |
 | [factor](factor.md) | 0..1 <br/> [Float](Float.md) | Wake scaling factor | direct |
 | [interpolate](interpolate.md) | 0..1 <br/> [Boolean](Boolean.md) | Interpolate points in wake file | direct |
 | [scale_kick](scale_kick.md) | 0..1 <br/> [Float](Float.md) | Factor by which to scale wake kicks | direct |
-| [t_column](t_column.md) | 0..1 <br/> [String](String.md) | Time column in wake file | direct |
-| [z_column](z_column.md) | 0..1 <br/> [String](String.md) | Longitudinal position column in wake file | direct |
-| [wx_column](wx_column.md) | 0..1 <br/> [String](String.md) | Horizontal wake column | direct |
-| [wy_column](wy_column.md) | 0..1 <br/> [String](String.md) | Vertical wake column | direct |
-| [wz_column](wz_column.md) | 0..1 <br/> [String](String.md) | Longitudinal wake column | direct |
 | [scale_field_ex](scale_field_ex.md) | 0..1 <br/> [Float](Float.md) | x-component of the longitudinal direction vector | direct |
 | [scale_field_ey](scale_field_ey.md) | 0..1 <br/> [Float](Float.md) | y-component of the longitudinal direction vector | direct |
 | [scale_field_ez](scale_field_ez.md) | 0..1 <br/> [Float](Float.md) | z-component of the longitudinal direction vector | direct |
@@ -185,11 +185,17 @@ name: WakefieldSimulationElement
 description: Simulation attributes for passive wakefield structures.
 from_schema: https://w3id.org/laura/schema
 is_a: SimulationElement
+slots:
+- t_column
+- z_column
+- wx_column
+- wy_column
+- wz_column
 attributes:
   allow_long_beam:
     name: allow_long_beam
     description: Allow beams longer than the wakefield.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'True'
     domain_of:
@@ -198,7 +204,7 @@ attributes:
   bunched_beam:
     name: bunched_beam
     description: Use bunched beam mode.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'False'
     domain_of:
@@ -207,7 +213,7 @@ attributes:
   change_momentum:
     name: change_momentum
     description: Allow wakefield to change bunch momentum.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'True'
     domain_of:
@@ -216,7 +222,7 @@ attributes:
   factor:
     name: factor
     description: Wake scaling factor.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1)
     domain_of:
@@ -225,7 +231,7 @@ attributes:
   interpolate:
     name: interpolate
     description: Interpolate points in wake file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'True'
     domain_of:
@@ -234,56 +240,16 @@ attributes:
   scale_kick:
     name: scale_kick
     description: Factor by which to scale wake kicks.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1)
     domain_of:
     - WakefieldSimulationElement
     range: float
-  t_column:
-    name: t_column
-    description: Time column in wake file.
-    from_schema: https://w3id.org/laura/schema
-    domain_of:
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
-    range: string
-  z_column:
-    name: z_column
-    description: Longitudinal position column in wake file.
-    from_schema: https://w3id.org/laura/schema
-    domain_of:
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
-    range: string
-  wx_column:
-    name: wx_column
-    description: Horizontal wake column.
-    from_schema: https://w3id.org/laura/schema
-    domain_of:
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
-    range: string
-  wy_column:
-    name: wy_column
-    description: Vertical wake column.
-    from_schema: https://w3id.org/laura/schema
-    domain_of:
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
-    range: string
-  wz_column:
-    name: wz_column
-    description: Longitudinal wake column.
-    from_schema: https://w3id.org/laura/schema
-    domain_of:
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
-    range: string
   scale_field_ex:
     name: scale_field_ex
     description: x-component of the longitudinal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -292,7 +258,7 @@ attributes:
   scale_field_ey:
     name: scale_field_ey
     description: y-component of the longitudinal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -301,7 +267,7 @@ attributes:
   scale_field_ez:
     name: scale_field_ez
     description: z-component of the longitudinal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1.0)
     domain_of:
@@ -310,7 +276,7 @@ attributes:
   scale_field_hx:
     name: scale_field_hx
     description: x-component of the horizontal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1.0)
     domain_of:
@@ -319,7 +285,7 @@ attributes:
   scale_field_hy:
     name: scale_field_hy
     description: y-component of the horizontal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -328,7 +294,7 @@ attributes:
   scale_field_hz:
     name: scale_field_hz
     description: z-component of the horizontal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -337,7 +303,7 @@ attributes:
   equal_grid:
     name: equal_grid
     description: Interpolation between equidistant and equal-charge grids.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.66)
     domain_of:
@@ -346,7 +312,7 @@ attributes:
   interpolation_method:
     name: interpolation_method
     description: Interpolation method for ASTRA.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(2)
     domain_of:
@@ -355,7 +321,7 @@ attributes:
   smooth:
     name: smooth
     description: Smoothing parameter for Gaussian interpolation.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     ifabsent: float(0.25)
     domain_of:
     - MagnetSimulationElement
@@ -365,7 +331,7 @@ attributes:
   subbins:
     name: subbins
     description: Sub-binning parameter.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(10)
     domain_of:
@@ -388,7 +354,7 @@ attributes:
   allow_long_beam:
     name: allow_long_beam
     description: Allow beams longer than the wakefield.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'True'
     owner: WakefieldSimulationElement
@@ -398,7 +364,7 @@ attributes:
   bunched_beam:
     name: bunched_beam
     description: Use bunched beam mode.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'False'
     owner: WakefieldSimulationElement
@@ -408,7 +374,7 @@ attributes:
   change_momentum:
     name: change_momentum
     description: Allow wakefield to change bunch momentum.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'True'
     owner: WakefieldSimulationElement
@@ -418,7 +384,7 @@ attributes:
   factor:
     name: factor
     description: Wake scaling factor.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1)
     owner: WakefieldSimulationElement
@@ -428,7 +394,7 @@ attributes:
   interpolate:
     name: interpolate
     description: Interpolate points in wake file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'True'
     owner: WakefieldSimulationElement
@@ -438,62 +404,17 @@ attributes:
   scale_kick:
     name: scale_kick
     description: Factor by which to scale wake kicks.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1)
     owner: WakefieldSimulationElement
     domain_of:
     - WakefieldSimulationElement
     range: float
-  t_column:
-    name: t_column
-    description: Time column in wake file.
-    from_schema: https://w3id.org/laura/schema
-    owner: WakefieldSimulationElement
-    domain_of:
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
-    range: string
-  z_column:
-    name: z_column
-    description: Longitudinal position column in wake file.
-    from_schema: https://w3id.org/laura/schema
-    owner: WakefieldSimulationElement
-    domain_of:
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
-    range: string
-  wx_column:
-    name: wx_column
-    description: Horizontal wake column.
-    from_schema: https://w3id.org/laura/schema
-    owner: WakefieldSimulationElement
-    domain_of:
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
-    range: string
-  wy_column:
-    name: wy_column
-    description: Vertical wake column.
-    from_schema: https://w3id.org/laura/schema
-    owner: WakefieldSimulationElement
-    domain_of:
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
-    range: string
-  wz_column:
-    name: wz_column
-    description: Longitudinal wake column.
-    from_schema: https://w3id.org/laura/schema
-    owner: WakefieldSimulationElement
-    domain_of:
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
-    range: string
   scale_field_ex:
     name: scale_field_ex
     description: x-component of the longitudinal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     owner: WakefieldSimulationElement
@@ -503,7 +424,7 @@ attributes:
   scale_field_ey:
     name: scale_field_ey
     description: y-component of the longitudinal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     owner: WakefieldSimulationElement
@@ -513,7 +434,7 @@ attributes:
   scale_field_ez:
     name: scale_field_ez
     description: z-component of the longitudinal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1.0)
     owner: WakefieldSimulationElement
@@ -523,7 +444,7 @@ attributes:
   scale_field_hx:
     name: scale_field_hx
     description: x-component of the horizontal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1.0)
     owner: WakefieldSimulationElement
@@ -533,7 +454,7 @@ attributes:
   scale_field_hy:
     name: scale_field_hy
     description: y-component of the horizontal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     owner: WakefieldSimulationElement
@@ -543,7 +464,7 @@ attributes:
   scale_field_hz:
     name: scale_field_hz
     description: z-component of the horizontal direction vector.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     owner: WakefieldSimulationElement
@@ -553,7 +474,7 @@ attributes:
   equal_grid:
     name: equal_grid
     description: Interpolation between equidistant and equal-charge grids.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.66)
     owner: WakefieldSimulationElement
@@ -563,7 +484,7 @@ attributes:
   interpolation_method:
     name: interpolation_method
     description: Interpolation method for ASTRA.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(2)
     owner: WakefieldSimulationElement
@@ -573,7 +494,7 @@ attributes:
   smooth:
     name: smooth
     description: Smoothing parameter for Gaussian interpolation.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     ifabsent: float(0.25)
     owner: WakefieldSimulationElement
     domain_of:
@@ -584,17 +505,67 @@ attributes:
   subbins:
     name: subbins
     description: Sub-binning parameter.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(10)
     owner: WakefieldSimulationElement
     domain_of:
     - WakefieldSimulationElement
     range: integer
+  t_column:
+    name: t_column
+    description: Time column in the wake file.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: WakefieldSimulationElement
+    domain_of:
+    - RFCavitySimulationElement
+    - WakefieldSimulationElement
+    range: string
+  z_column:
+    name: z_column
+    description: Longitudinal position column in the wake file.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: WakefieldSimulationElement
+    domain_of:
+    - RFCavitySimulationElement
+    - WakefieldSimulationElement
+    range: string
+  wx_column:
+    name: wx_column
+    description: Horizontal wake column in the wake file.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: WakefieldSimulationElement
+    domain_of:
+    - RFCavitySimulationElement
+    - WakefieldSimulationElement
+    range: string
+  wy_column:
+    name: wy_column
+    description: Vertical wake column in the wake file.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: WakefieldSimulationElement
+    domain_of:
+    - RFCavitySimulationElement
+    - WakefieldSimulationElement
+    range: string
+  wz_column:
+    name: wz_column
+    description: Longitudinal wake column in the wake file.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: WakefieldSimulationElement
+    domain_of:
+    - RFCavitySimulationElement
+    - WakefieldSimulationElement
+    range: string
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: WakefieldSimulationElement
     domain_of:
@@ -603,7 +574,7 @@ attributes:
   wakefield_definition:
     name: wakefield_definition
     description: Path to the wakefield impedance file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: WakefieldSimulationElement
     domain_of:
@@ -612,7 +583,7 @@ attributes:
   field_reference_position:
     name: field_reference_position
     description: Longitudinal origin of the field map [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: WakefieldSimulationElement
     domain_of:
@@ -621,7 +592,7 @@ attributes:
   scale_field:
     name: scale_field
     description: Multiplicative scale factor applied to the field map.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1)
     owner: WakefieldSimulationElement

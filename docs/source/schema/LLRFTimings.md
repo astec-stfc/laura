@@ -166,7 +166,7 @@ attributes:
   klystron_forward:
     name: klystron_forward
     description: Timing for klystron forward power.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - LLRFTimings
@@ -174,7 +174,7 @@ attributes:
   klystron_reverse:
     name: klystron_reverse
     description: Timing for klystron reverse power.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - LLRFTimings
@@ -182,7 +182,7 @@ attributes:
   cavity_forward:
     name: cavity_forward
     description: Timing for cavity forward power.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - LLRFTimings
@@ -190,7 +190,7 @@ attributes:
   cavity_reverse:
     name: cavity_reverse
     description: Timing for cavity reverse power.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - LLRFTimings
@@ -198,7 +198,7 @@ attributes:
   cavity_probe:
     name: cavity_probe
     description: Timing for cavity probe.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - LLRFTimings
@@ -219,7 +219,7 @@ attributes:
   klystron_forward:
     name: klystron_forward
     description: Timing for klystron forward power.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: LLRFTimings
     domain_of:
@@ -228,7 +228,7 @@ attributes:
   klystron_reverse:
     name: klystron_reverse
     description: Timing for klystron reverse power.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: LLRFTimings
     domain_of:
@@ -237,7 +237,7 @@ attributes:
   cavity_forward:
     name: cavity_forward
     description: Timing for cavity forward power.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: LLRFTimings
     domain_of:
@@ -246,7 +246,7 @@ attributes:
   cavity_reverse:
     name: cavity_reverse
     description: Timing for cavity reverse power.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: LLRFTimings
     domain_of:
@@ -255,7 +255,7 @@ attributes:
   cavity_probe:
     name: cavity_probe
     description: Timing for cavity probe.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: LLRFTimings
     domain_of:

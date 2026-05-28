@@ -65,10 +65,10 @@ URI: [laura:RFDeflectingCavityElement](https://w3id.org/laura/RFDeflectingCavity
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [cell_length](cell_length.md) | 0..1 <br/> [Float](Float.md) | Length of a single accelerating cell [m] | direct |
+| [cell_length](cell_length.md) | 0..1 <br/> [Float](Float.md) | Length of a single cell [m] | direct |
 | [coupling_cell_length](coupling_cell_length.md) | 0..1 <br/> [Float](Float.md) | Length of the coupling cell [m] | direct |
 | [crest](crest.md) | 0..1 <br/> [Float](Float.md) | On-crest phase offset providing maximum energy gain [deg] | direct |
-| [design_gamma](design_gamma.md) | 0..1 <br/> [Float](Float.md) | Design Lorentz factor ? | direct |
+| [design_gamma](design_gamma.md) | 0..1 <br/> [Float](Float.md) | Design Lorentz factor | direct |
 | [design_power](design_power.md) | 0..1 <br/> [Float](Float.md) | Design peak power [W] | direct |
 | [frequency](frequency.md) | 0..1 <br/> [Float](Float.md) | Operating frequency [Hz] | direct |
 | [n_cells](n_cells.md) | 0..1 <br/> [Integer](Integer.md) | Number of cells | direct |
@@ -144,120 +144,18 @@ description: Transverse-deflecting RF cavity parameters -- a subset of RFCavityE
 in_subset:
 - rf_properties
 from_schema: https://w3id.org/laura/schema
-attributes:
-  cell_length:
-    name: cell_length
-    description: Length of a single accelerating cell [m].
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: float(0.03333333333333333)
-    domain_of:
-    - RFCavityElement
-    - WakefieldElement
-    - RFDeflectingCavityElement
-    range: float
-    minimum_value: 0.0
-    unit:
-      ucum_code: m
-  coupling_cell_length:
-    name: coupling_cell_length
-    description: Length of the coupling cell [m].
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: float(0.0)
-    domain_of:
-    - RFCavityElement
-    - WakefieldElement
-    - RFDeflectingCavityElement
-    range: float
-    unit:
-      ucum_code: m
-  crest:
-    name: crest
-    description: On-crest phase offset providing maximum energy gain [deg].
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: float(0)
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-    unit:
-      ucum_code: deg
-  design_gamma:
-    name: design_gamma
-    description: Design Lorentz factor ?.
-    from_schema: https://w3id.org/laura/schema
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-    minimum_value: 1.0
-  design_power:
-    name: design_power
-    description: Design peak power [W].
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: float(25000000)
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-    unit:
-      ucum_code: W
-  frequency:
-    name: frequency
-    description: Operating frequency [Hz].
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: float(2998500000.0)
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-    unit:
-      ucum_code: Hz
-  n_cells:
-    name: n_cells
-    description: Number of cells.
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: int(1)
-    domain_of:
-    - RFCavityElement
-    - WakefieldElement
-    - RFDeflectingCavityElement
-    range: integer
-    minimum_value: 1
-  phase:
-    name: phase
-    description: Operating phase offset [deg].
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: float(0.0)
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-    unit:
-      ucum_code: deg
-  shunt_impedance:
-    name: shunt_impedance
-    description: Shunt impedance [M?/m].
-    from_schema: https://w3id.org/laura/schema
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-  mode_numerator:
-    name: mode_numerator
-    description: Mode fraction numerator.
-    from_schema: https://w3id.org/laura/schema
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: integer
-  mode_denominator:
-    name: mode_denominator
-    description: Mode fraction denominator.
-    from_schema: https://w3id.org/laura/schema
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: integer
+slots:
+- cell_length
+- coupling_cell_length
+- crest
+- design_gamma
+- design_power
+- frequency
+- n_cells
+- phase
+- shunt_impedance
+- mode_numerator
+- mode_denominator
 class_uri: laura:RFDeflectingCavityElement
 
 ```
@@ -276,8 +174,9 @@ from_schema: https://w3id.org/laura/schema
 attributes:
   cell_length:
     name: cell_length
-    description: Length of a single accelerating cell [m].
+    description: Length of a single cell [m].
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     ifabsent: float(0.03333333333333333)
     owner: RFDeflectingCavityElement
     domain_of:
@@ -292,6 +191,7 @@ attributes:
     name: coupling_cell_length
     description: Length of the coupling cell [m].
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     ifabsent: float(0.0)
     owner: RFDeflectingCavityElement
     domain_of:
@@ -299,12 +199,14 @@ attributes:
     - WakefieldElement
     - RFDeflectingCavityElement
     range: float
+    minimum_value: 0.0
     unit:
       ucum_code: m
   crest:
     name: crest
     description: On-crest phase offset providing maximum energy gain [deg].
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     ifabsent: float(0)
     owner: RFDeflectingCavityElement
     domain_of:
@@ -315,8 +217,9 @@ attributes:
       ucum_code: deg
   design_gamma:
     name: design_gamma
-    description: Design Lorentz factor ?.
+    description: Design Lorentz factor.
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     owner: RFDeflectingCavityElement
     domain_of:
     - RFCavityElement
@@ -327,30 +230,35 @@ attributes:
     name: design_power
     description: Design peak power [W].
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     ifabsent: float(25000000)
     owner: RFDeflectingCavityElement
     domain_of:
     - RFCavityElement
     - RFDeflectingCavityElement
     range: float
+    minimum_value: 0.0
     unit:
       ucum_code: W
   frequency:
     name: frequency
     description: Operating frequency [Hz].
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     ifabsent: float(2998500000.0)
     owner: RFDeflectingCavityElement
     domain_of:
     - RFCavityElement
     - RFDeflectingCavityElement
     range: float
+    minimum_value: 0.0
     unit:
       ucum_code: Hz
   n_cells:
     name: n_cells
     description: Number of cells.
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     ifabsent: int(1)
     owner: RFDeflectingCavityElement
     domain_of:
@@ -363,6 +271,7 @@ attributes:
     name: phase
     description: Operating phase offset [deg].
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     ifabsent: float(0.0)
     owner: RFDeflectingCavityElement
     domain_of:
@@ -375,6 +284,7 @@ attributes:
     name: shunt_impedance
     description: Shunt impedance [M?/m].
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     owner: RFDeflectingCavityElement
     domain_of:
     - RFCavityElement
@@ -384,6 +294,7 @@ attributes:
     name: mode_numerator
     description: Mode fraction numerator.
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     owner: RFDeflectingCavityElement
     domain_of:
     - RFCavityElement
@@ -393,6 +304,7 @@ attributes:
     name: mode_denominator
     description: Mode fraction denominator.
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     owner: RFDeflectingCavityElement
     domain_of:
     - RFCavityElement

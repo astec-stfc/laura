@@ -65,18 +65,9 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [StandardElement](StandardElement.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [Element](Element.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [MagnetBaseElement](MagnetBaseElement.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [Dipole](Dipole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [Quadrupole](Quadrupole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [Sextupole](Sextupole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [Octupole](Octupole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [HorizontalCorrector](HorizontalCorrector.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [VerticalCorrector](VerticalCorrector.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [CombinedCorrector](CombinedCorrector.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [Solenoid](Solenoid.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [NonLinearLens](NonLinearLens.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [Wiggler](Wiggler.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Diagnostic](Diagnostic.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [BeamPositionMonitor](BeamPositionMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [BeamArrivalMonitor](BeamArrivalMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |

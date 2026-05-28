@@ -121,7 +121,7 @@ attributes:
   x:
     name: x
     description: Beam centroid index in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - X_POS
     ifabsent: int(0)
@@ -133,7 +133,7 @@ attributes:
   y:
     name: y
     description: Beam centroid index in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - Y_POS
     ifabsent: int(1)
@@ -145,7 +145,7 @@ attributes:
   x_sigma:
     name: x_sigma
     description: Beam sigma index in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - X_SIGMA_POS
     rank: 1000
@@ -157,7 +157,7 @@ attributes:
   y_sigma:
     name: y_sigma
     description: Beam sigma index in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - Y_SIGMA_POS
     rank: 1000
@@ -169,7 +169,7 @@ attributes:
   covariance:
     name: covariance
     description: Beam covariance index.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - COV_POS
     rank: 1000
@@ -194,7 +194,7 @@ attributes:
   x:
     name: x
     description: Beam centroid index in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - X_POS
     ifabsent: int(0)
@@ -207,7 +207,7 @@ attributes:
   y:
     name: y
     description: Beam centroid index in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - Y_POS
     ifabsent: int(1)
@@ -220,7 +220,7 @@ attributes:
   x_sigma:
     name: x_sigma
     description: Beam sigma index in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - X_SIGMA_POS
     rank: 1000
@@ -233,7 +233,7 @@ attributes:
   y_sigma:
     name: y_sigma
     description: Beam sigma index in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - Y_SIGMA_POS
     rank: 1000
@@ -246,7 +246,7 @@ attributes:
   covariance:
     name: covariance
     description: Beam covariance index.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - COV_POS
     rank: 1000

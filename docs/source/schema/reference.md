@@ -26,18 +26,9 @@ URI: [laura:reference](https://w3id.org/laura/reference)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [StandardElement](StandardElement.md) | Accelerator element with control-system, electrical, manufacturer, simulation... |  no  |
+| [Element](Element.md) | Concrete schema counterpart of the Python ``Element`` wrapper class |  no  |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | Accelerator element with a well-defined physical position and orientation in ... |  no  |
 | [MagnetBaseElement](MagnetBaseElement.md) | Base class for all magnetic focusing and bending elements |  no  |
-| [Dipole](Dipole.md) | Dipole bending magnet |  no  |
-| [Quadrupole](Quadrupole.md) | Quadrupole focusing magnet |  no  |
-| [Sextupole](Sextupole.md) | Sextupole chromaticity-correction magnet |  no  |
-| [Octupole](Octupole.md) | Octupole magnet |  no  |
-| [HorizontalCorrector](HorizontalCorrector.md) | Horizontal orbit-corrector dipole |  no  |
-| [VerticalCorrector](VerticalCorrector.md) | Vertical orbit-corrector dipole |  no  |
-| [CombinedCorrector](CombinedCorrector.md) | Combined horizontal and vertical orbit-corrector magnet |  no  |
-| [Solenoid](Solenoid.md) | Solenoid focussing magnet |  no  |
-| [NonLinearLens](NonLinearLens.md) | Non-linear focusing lens (IOTA-style) |  no  |
-| [Wiggler](Wiggler.md) | Wiggler / undulator permanent-magnet array |  no  |
 | [Diagnostic](Diagnostic.md) | Base class for all beam-diagnostic instruments |  no  |
 | [BeamPositionMonitor](BeamPositionMonitor.md) | Beam-position monitor (BPM) |  no  |
 | [BeamArrivalMonitor](BeamArrivalMonitor.md) | Beam-arrival-time monitor (BAM) |  no  |

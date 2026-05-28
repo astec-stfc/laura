@@ -138,7 +138,7 @@ attributes:
   output_filename:
     name: output_filename
     description: Output filename for diagnostic data.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - DiagnosticSimulationElement
@@ -160,7 +160,7 @@ attributes:
   output_filename:
     name: output_filename
     description: Output filename for diagnostic data.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: DiagnosticSimulationElement
     domain_of:
@@ -169,7 +169,7 @@ attributes:
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: DiagnosticSimulationElement
     domain_of:
@@ -178,7 +178,7 @@ attributes:
   wakefield_definition:
     name: wakefield_definition
     description: Path to the wakefield impedance file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: DiagnosticSimulationElement
     domain_of:
@@ -187,7 +187,7 @@ attributes:
   field_reference_position:
     name: field_reference_position
     description: Longitudinal origin of the field map [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: DiagnosticSimulationElement
     domain_of:
@@ -196,7 +196,7 @@ attributes:
   scale_field:
     name: scale_field
     description: Multiplicative scale factor applied to the field map.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1)
     owner: DiagnosticSimulationElement

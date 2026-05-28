@@ -77,6 +77,15 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
         
       MagneticElement : plane
         
+          
+    
+        
+        
+        MagneticElement --> "0..1" BendingPlaneEnum : plane
+        click BendingPlaneEnum href "../BendingPlaneEnum/"
+    
+
+        
       MagneticElement : random_multipoles
         
           
@@ -139,7 +148,7 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 | [exit_edge_angle](exit_edge_angle.md) | 0..1 <br/> [Float](Float.md) | Fringe-field exit edge angle [rad] | direct |
 | [gap](gap.md) | 0..1 <br/> [Float](Float.md) | Full gap between pole faces [m] | direct |
 | [bore](bore.md) | 0..1 <br/> [Float](Float.md) | Magnet bore radius [m] | direct |
-| [plane](plane.md) | 0..1 <br/> [String](String.md) | Principal bending / focusing plane (``H``, ``V``, or ``HV``) | direct |
+| [plane](plane.md) | 0..1 <br/> [BendingPlaneEnum](BendingPlaneEnum.md) | Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combin... | direct |
 | [width](width.md) | 0..1 <br/> [Float](Float.md) | Physical width of the magnet in the bending plane [m] | direct |
 | [tilt](tilt.md) | 0..1 <br/> [Float](Float.md) | Global tilt about the beam axis [rad] | direct |
 | [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless) | direct |
@@ -155,16 +164,6 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [MagnetBaseElement](MagnetBaseElement.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
-| [Dipole](Dipole.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
-| [Quadrupole](Quadrupole.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
-| [Sextupole](Sextupole.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
-| [Octupole](Octupole.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
-| [HorizontalCorrector](HorizontalCorrector.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
-| [VerticalCorrector](VerticalCorrector.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
-| [CombinedCorrector](CombinedCorrector.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
-| [Solenoid](Solenoid.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
-| [NonLinearLens](NonLinearLens.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
-| [Wiggler](Wiggler.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
 
 
 
@@ -227,7 +226,7 @@ attributes:
   order:
     name: order
     description: Principal multipole order (0 = dipole, 1 = quad, ?).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: int(-1)
     domain_of:
     - Multipole
@@ -237,7 +236,7 @@ attributes:
   skew:
     name: skew
     description: Whether the magnet is rotated 45? to produce a skew field component.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: 'False'
     domain_of:
     - Multipole
@@ -246,7 +245,7 @@ attributes:
   magnetic_length:
     name: magnetic_length
     description: Magnetic (effective) length [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     alias: length
@@ -259,7 +258,7 @@ attributes:
   multipoles:
     name: multipoles
     description: Integrated multipole field components.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     domain_of:
     - MagneticElement
@@ -267,7 +266,7 @@ attributes:
   systematic_multipoles:
     name: systematic_multipoles
     description: Systematic (design) multipole errors at the reference radius.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     domain_of:
     - MagneticElement
@@ -275,7 +274,7 @@ attributes:
   random_multipoles:
     name: random_multipoles
     description: Random multipole errors at the reference radius.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     domain_of:
     - MagneticElement
@@ -283,7 +282,7 @@ attributes:
   field_integral_coefficients:
     name: field_integral_coefficients
     description: Polynomial calibration of integrated field vs. current.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     domain_of:
     - MagneticElement
@@ -291,7 +290,7 @@ attributes:
   linear_saturation_coefficients:
     name: linear_saturation_coefficients
     description: Bi-linear saturation calibration.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     domain_of:
     - MagneticElement
@@ -299,7 +298,7 @@ attributes:
   settle_time:
     name: settle_time
     description: Power-supply settle time after a change [s].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     domain_of:
     - MagneticElement
@@ -309,7 +308,7 @@ attributes:
   entrance_edge_angle:
     name: entrance_edge_angle
     description: Fringe-field entrance edge angle [rad].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     domain_of:
     - MagneticElement
@@ -319,7 +318,7 @@ attributes:
   exit_edge_angle:
     name: exit_edge_angle
     description: Fringe-field exit edge angle [rad].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     domain_of:
     - MagneticElement
@@ -329,7 +328,7 @@ attributes:
   gap:
     name: gap
     description: Full gap between pole faces [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.032)
     domain_of:
@@ -341,7 +340,7 @@ attributes:
   bore:
     name: bore
     description: Magnet bore radius [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.037)
     domain_of:
@@ -352,17 +351,18 @@ attributes:
       ucum_code: m
   plane:
     name: plane
-    description: Principal bending / focusing plane (``H``, ``V``, or ``HV``).
-    from_schema: https://w3id.org/laura/schema
+    description: Principal bending / focusing plane (``Horizontal``, ``Vertical``,
+      or ``Combined``).
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    ifabsent: string(horizontal)
+    ifabsent: string(Horizontal)
     domain_of:
     - MagneticElement
-    range: string
+    range: BendingPlaneEnum
   width:
     name: width
     description: Physical width of the magnet in the bending plane [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.2)
     domain_of:
@@ -373,7 +373,7 @@ attributes:
   tilt:
     name: tilt
     description: Global tilt about the beam axis [rad].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -384,7 +384,7 @@ attributes:
   edge_field_integral:
     name: edge_field_integral
     description: Enge fringe-field integral parameter (dimensionless).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.5)
     domain_of:
     - MagnetSimulationElement
@@ -393,7 +393,7 @@ attributes:
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -402,7 +402,7 @@ attributes:
   gradient:
     name: gradient
     description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     domain_of:
     - MagneticElement
@@ -428,7 +428,7 @@ attributes:
   order:
     name: order
     description: Principal multipole order (0 = dipole, 1 = quad, ?).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: int(-1)
     owner: MagneticElement
     domain_of:
@@ -439,7 +439,7 @@ attributes:
   skew:
     name: skew
     description: Whether the magnet is rotated 45? to produce a skew field component.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: 'False'
     owner: MagneticElement
     domain_of:
@@ -449,7 +449,7 @@ attributes:
   magnetic_length:
     name: magnetic_length
     description: Magnetic (effective) length [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     alias: length
@@ -463,7 +463,7 @@ attributes:
   multipoles:
     name: multipoles
     description: Integrated multipole field components.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: MagneticElement
     domain_of:
@@ -472,7 +472,7 @@ attributes:
   systematic_multipoles:
     name: systematic_multipoles
     description: Systematic (design) multipole errors at the reference radius.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: MagneticElement
     domain_of:
@@ -481,7 +481,7 @@ attributes:
   random_multipoles:
     name: random_multipoles
     description: Random multipole errors at the reference radius.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: MagneticElement
     domain_of:
@@ -490,7 +490,7 @@ attributes:
   field_integral_coefficients:
     name: field_integral_coefficients
     description: Polynomial calibration of integrated field vs. current.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: MagneticElement
     domain_of:
@@ -499,7 +499,7 @@ attributes:
   linear_saturation_coefficients:
     name: linear_saturation_coefficients
     description: Bi-linear saturation calibration.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: MagneticElement
     domain_of:
@@ -508,7 +508,7 @@ attributes:
   settle_time:
     name: settle_time
     description: Power-supply settle time after a change [s].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: MagneticElement
     domain_of:
@@ -519,7 +519,7 @@ attributes:
   entrance_edge_angle:
     name: entrance_edge_angle
     description: Fringe-field entrance edge angle [rad].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: MagneticElement
     domain_of:
@@ -530,7 +530,7 @@ attributes:
   exit_edge_angle:
     name: exit_edge_angle
     description: Fringe-field exit edge angle [rad].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: MagneticElement
     domain_of:
@@ -541,7 +541,7 @@ attributes:
   gap:
     name: gap
     description: Full gap between pole faces [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.032)
     owner: MagneticElement
@@ -554,7 +554,7 @@ attributes:
   bore:
     name: bore
     description: Magnet bore radius [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.037)
     owner: MagneticElement
@@ -566,18 +566,19 @@ attributes:
       ucum_code: m
   plane:
     name: plane
-    description: Principal bending / focusing plane (``H``, ``V``, or ``HV``).
-    from_schema: https://w3id.org/laura/schema
+    description: Principal bending / focusing plane (``Horizontal``, ``Vertical``,
+      or ``Combined``).
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    ifabsent: string(horizontal)
+    ifabsent: string(Horizontal)
     owner: MagneticElement
     domain_of:
     - MagneticElement
-    range: string
+    range: BendingPlaneEnum
   width:
     name: width
     description: Physical width of the magnet in the bending plane [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.2)
     owner: MagneticElement
@@ -589,7 +590,7 @@ attributes:
   tilt:
     name: tilt
     description: Global tilt about the beam axis [rad].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.0)
     owner: MagneticElement
@@ -601,7 +602,7 @@ attributes:
   edge_field_integral:
     name: edge_field_integral
     description: Enge fringe-field integral parameter (dimensionless).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.5)
     owner: MagneticElement
     domain_of:
@@ -611,7 +612,7 @@ attributes:
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.0)
     owner: MagneticElement
@@ -621,7 +622,7 @@ attributes:
   gradient:
     name: gradient
     description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: MagneticElement
     domain_of:

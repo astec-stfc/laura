@@ -121,7 +121,7 @@ attributes:
   x:
     name: x
     description: Beam centroid name in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - X_NAME
     ifabsent: string(X)
@@ -133,7 +133,7 @@ attributes:
   y:
     name: y
     description: Beam centroid name in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - Y_NAME
     ifabsent: string(Y)
@@ -145,7 +145,7 @@ attributes:
   x_sigma:
     name: x_sigma
     description: Beam sigma name in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - X_SIGMA_NAME
     ifabsent: string(X_SIGMA)
@@ -156,7 +156,7 @@ attributes:
   y_sigma:
     name: y_sigma
     description: Beam sigma name in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - Y_SIGMA_NAME
     ifabsent: string(Y_SIGMA)
@@ -167,7 +167,7 @@ attributes:
   covariance:
     name: covariance
     description: Beam covariance name.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - COV_NAME
     ifabsent: string(COV)
@@ -191,7 +191,7 @@ attributes:
   x:
     name: x
     description: Beam centroid name in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - X_NAME
     ifabsent: string(X)
@@ -204,7 +204,7 @@ attributes:
   y:
     name: y
     description: Beam centroid name in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - Y_NAME
     ifabsent: string(Y)
@@ -217,7 +217,7 @@ attributes:
   x_sigma:
     name: x_sigma
     description: Beam sigma name in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - X_SIGMA_NAME
     ifabsent: string(X_SIGMA)
@@ -229,7 +229,7 @@ attributes:
   y_sigma:
     name: y_sigma
     description: Beam sigma name in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - Y_SIGMA_NAME
     ifabsent: string(Y_SIGMA)
@@ -241,7 +241,7 @@ attributes:
   covariance:
     name: covariance
     description: Beam covariance name.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - COV_NAME
     ifabsent: string(COV)

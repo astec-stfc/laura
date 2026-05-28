@@ -5,6 +5,11 @@ search:
 
 # Slot: mode_denominator 
 
+
+_Mode fraction denominator._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -34,7 +39,7 @@ URI: [laura:mode_denominator](https://w3id.org/laura/mode_denominator)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [Integer](Integer.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -57,6 +62,13 @@ URI: [laura:mode_denominator](https://w3id.org/laura/mode_denominator)
 
 
 
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
+
+
+
 
 ## Mappings
 
@@ -73,10 +85,13 @@ URI: [laura:mode_denominator](https://w3id.org/laura/mode_denominator)
 <details>
 ```yaml
 name: mode_denominator
+description: Mode fraction denominator.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
 domain_of:
 - RFCavityElement
 - RFDeflectingCavityElement
-range: string
+range: integer
 
 ```
 </details></div>

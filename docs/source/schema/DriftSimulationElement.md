@@ -78,12 +78,12 @@ URI: [laura:DriftSimulationElement](https://w3id.org/laura/DriftSimulationElemen
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
+| [lsc_bins](lsc_bins.md) | 0..1 <br/> [Integer](Integer.md) | Number of bins for LSC calculations | direct |
 | [lsc_interpolate](lsc_interpolate.md) | 0..1 <br/> [Integer](Integer.md) | Flag to allow interpolation of computed LSC wake | direct |
 | [csr_enable](csr_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable CSR drift calculations | direct |
 | [lsc_enable](lsc_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable LSC drift calculations | direct |
 | [use_stupakov](use_stupakov.md) | 0..1 <br/> [Integer](Integer.md) | Use Stupakov formula | direct |
 | [csrdz](csrdz.md) | 0..1 <br/> [Float](Float.md) | Step size for CSR calculations | direct |
-| [lsc_bins](lsc_bins.md) | 0..1 <br/> [Integer](Integer.md) | Number of bins for LSC calculations | direct |
 | [lsc_high_frequency_cutoff_start](lsc_high_frequency_cutoff_start.md) | 0..1 <br/> [Float](Float.md) | High-frequency cutoff start for LSC | direct |
 | [lsc_high_frequency_cutoff_end](lsc_high_frequency_cutoff_end.md) | 0..1 <br/> [Float](Float.md) | High-frequency cutoff end for LSC | direct |
 | [lsc_low_frequency_cutoff_start](lsc_low_frequency_cutoff_start.md) | 0..1 <br/> [Float](Float.md) | Low-frequency cutoff start for LSC | direct |
@@ -152,11 +152,18 @@ name: DriftSimulationElement
 description: Simulation attributes for field-free drift sections.
 from_schema: https://w3id.org/laura/schema
 is_a: SimulationElement
+slots:
+- lsc_bins
+slot_usage:
+  lsc_bins:
+    name: lsc_bins
+    description: Number of bins for LSC calculations.
+    ifabsent: int(20)
 attributes:
   lsc_interpolate:
     name: lsc_interpolate
     description: Flag to allow interpolation of computed LSC wake.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(1)
     domain_of:
@@ -165,7 +172,7 @@ attributes:
   csr_enable:
     name: csr_enable
     description: Enable CSR drift calculations.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     ifabsent: 'True'
     domain_of:
     - MagnetSimulationElement
@@ -174,7 +181,7 @@ attributes:
   lsc_enable:
     name: lsc_enable
     description: Enable LSC drift calculations.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'True'
     domain_of:
@@ -183,7 +190,7 @@ attributes:
   use_stupakov:
     name: use_stupakov
     description: Use Stupakov formula.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(1)
     domain_of:
@@ -192,25 +199,16 @@ attributes:
   csrdz:
     name: csrdz
     description: Step size for CSR calculations.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.01)
     domain_of:
     - DriftSimulationElement
     range: float
-  lsc_bins:
-    name: lsc_bins
-    description: Number of bins for LSC calculations.
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: int(20)
-    domain_of:
-    - RFCavitySimulationElement
-    - DriftSimulationElement
-    range: integer
   lsc_high_frequency_cutoff_start:
     name: lsc_high_frequency_cutoff_start
     description: High-frequency cutoff start for LSC.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - DriftSimulationElement
@@ -218,7 +216,7 @@ attributes:
   lsc_high_frequency_cutoff_end:
     name: lsc_high_frequency_cutoff_end
     description: High-frequency cutoff end for LSC.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - DriftSimulationElement
@@ -226,7 +224,7 @@ attributes:
   lsc_low_frequency_cutoff_start:
     name: lsc_low_frequency_cutoff_start
     description: Low-frequency cutoff start for LSC.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - DriftSimulationElement
@@ -234,7 +232,7 @@ attributes:
   lsc_low_frequency_cutoff_end:
     name: lsc_low_frequency_cutoff_end
     description: Low-frequency cutoff end for LSC.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - DriftSimulationElement
@@ -252,11 +250,16 @@ name: DriftSimulationElement
 description: Simulation attributes for field-free drift sections.
 from_schema: https://w3id.org/laura/schema
 is_a: SimulationElement
+slot_usage:
+  lsc_bins:
+    name: lsc_bins
+    description: Number of bins for LSC calculations.
+    ifabsent: int(20)
 attributes:
   lsc_interpolate:
     name: lsc_interpolate
     description: Flag to allow interpolation of computed LSC wake.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(1)
     owner: DriftSimulationElement
@@ -266,7 +269,7 @@ attributes:
   csr_enable:
     name: csr_enable
     description: Enable CSR drift calculations.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     ifabsent: 'True'
     owner: DriftSimulationElement
     domain_of:
@@ -276,7 +279,7 @@ attributes:
   lsc_enable:
     name: lsc_enable
     description: Enable LSC drift calculations.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'True'
     owner: DriftSimulationElement
@@ -286,7 +289,7 @@ attributes:
   use_stupakov:
     name: use_stupakov
     description: Use Stupakov formula.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(1)
     owner: DriftSimulationElement
@@ -296,27 +299,17 @@ attributes:
   csrdz:
     name: csrdz
     description: Step size for CSR calculations.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.01)
     owner: DriftSimulationElement
     domain_of:
     - DriftSimulationElement
     range: float
-  lsc_bins:
-    name: lsc_bins
-    description: Number of bins for LSC calculations.
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: int(20)
-    owner: DriftSimulationElement
-    domain_of:
-    - RFCavitySimulationElement
-    - DriftSimulationElement
-    range: integer
   lsc_high_frequency_cutoff_start:
     name: lsc_high_frequency_cutoff_start
     description: High-frequency cutoff start for LSC.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: DriftSimulationElement
     domain_of:
@@ -325,7 +318,7 @@ attributes:
   lsc_high_frequency_cutoff_end:
     name: lsc_high_frequency_cutoff_end
     description: High-frequency cutoff end for LSC.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: DriftSimulationElement
     domain_of:
@@ -334,7 +327,7 @@ attributes:
   lsc_low_frequency_cutoff_start:
     name: lsc_low_frequency_cutoff_start
     description: Low-frequency cutoff start for LSC.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: DriftSimulationElement
     domain_of:
@@ -343,16 +336,27 @@ attributes:
   lsc_low_frequency_cutoff_end:
     name: lsc_low_frequency_cutoff_end
     description: Low-frequency cutoff end for LSC.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: DriftSimulationElement
     domain_of:
     - DriftSimulationElement
     range: float
+  lsc_bins:
+    name: lsc_bins
+    description: Number of bins for LSC calculations.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: int(20)
+    owner: DriftSimulationElement
+    domain_of:
+    - RFCavitySimulationElement
+    - DriftSimulationElement
+    range: integer
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: DriftSimulationElement
     domain_of:
@@ -361,7 +365,7 @@ attributes:
   wakefield_definition:
     name: wakefield_definition
     description: Path to the wakefield impedance file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: DriftSimulationElement
     domain_of:
@@ -370,7 +374,7 @@ attributes:
   field_reference_position:
     name: field_reference_position
     description: Longitudinal origin of the field map [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: DriftSimulationElement
     domain_of:
@@ -379,7 +383,7 @@ attributes:
   scale_field:
     name: scale_field
     description: Multiplicative scale factor applied to the field map.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1)
     owner: DriftSimulationElement

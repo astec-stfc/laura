@@ -90,6 +90,7 @@ URI: [laura:SimulationElement](https://w3id.org/laura/SimulationElement)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [StandardElement](StandardElement.md) | [simulation](simulation.md) | range | [SimulationElement](SimulationElement.md) |
+| [Element](Element.md) | [simulation](simulation.md) | range | [SimulationElement](SimulationElement.md) |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [simulation](simulation.md) | range | [SimulationElement](SimulationElement.md) |
 | [LowLevelRF](LowLevelRF.md) | [simulation](simulation.md) | range | [SimulationElement](SimulationElement.md) |
 | [RFModulator](RFModulator.md) | [simulation](simulation.md) | range | [SimulationElement](SimulationElement.md) |
@@ -163,7 +164,7 @@ attributes:
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - SimulationElement
@@ -171,7 +172,7 @@ attributes:
   wakefield_definition:
     name: wakefield_definition
     description: Path to the wakefield impedance file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - SimulationElement
@@ -179,7 +180,7 @@ attributes:
   field_reference_position:
     name: field_reference_position
     description: Longitudinal origin of the field map [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - SimulationElement
@@ -187,7 +188,7 @@ attributes:
   scale_field:
     name: scale_field
     description: Multiplicative scale factor applied to the field map.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1)
     domain_of:
@@ -210,7 +211,7 @@ attributes:
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: SimulationElement
     domain_of:
@@ -219,7 +220,7 @@ attributes:
   wakefield_definition:
     name: wakefield_definition
     description: Path to the wakefield impedance file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: SimulationElement
     domain_of:
@@ -228,7 +229,7 @@ attributes:
   field_reference_position:
     name: field_reference_position
     description: Longitudinal origin of the field map [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: SimulationElement
     domain_of:
@@ -237,7 +238,7 @@ attributes:
   scale_field:
     name: scale_field
     description: Multiplicative scale factor applied to the field map.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1)
     owner: SimulationElement

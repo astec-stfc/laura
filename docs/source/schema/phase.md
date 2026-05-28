@@ -5,6 +5,11 @@ search:
 
 # Slot: phase 
 
+
+_Operating phase offset [deg]._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -34,13 +39,30 @@ URI: [laura:phase](https://w3id.org/laura/phase)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [Float](Float.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+### Slot Characteristics
+
+| Property | Value |
+| --- | --- |
+| If Absent | `float(0.0)` |
+
+
+<details>
+<summary>Additional Constraints</summary>
+**Unit:**
+
+| Property | Value |
+| --- | --- |
+| ucum_code | deg |
+
+</details>
+
 
 
 
@@ -54,6 +76,13 @@ URI: [laura:phase](https://w3id.org/laura/phase)
 ## Identifier and Mapping Information
 
 
+
+
+
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
 
 
 
@@ -73,10 +102,16 @@ URI: [laura:phase](https://w3id.org/laura/phase)
 <details>
 ```yaml
 name: phase
+description: Operating phase offset [deg].
+from_schema: https://w3id.org/laura/schema
+rank: 1000
+ifabsent: float(0.0)
 domain_of:
 - RFCavityElement
 - RFDeflectingCavityElement
-range: string
+range: float
+unit:
+  ucum_code: deg
 
 ```
 </details></div>

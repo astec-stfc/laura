@@ -118,7 +118,7 @@ attributes:
   middle:
     name: middle
     description: Center of the mask in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     domain_of:
     - PhysicalElement
     - CameraMask
@@ -128,7 +128,7 @@ attributes:
   radius:
     name: radius
     description: Mask radius in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     domain_of:
     - Multipole
     - ApertureElement
@@ -138,18 +138,17 @@ attributes:
   maximum:
     name: maximum
     description: Maximum mask radius in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    from_schema: https://w3id.org/laura/schema/diagnostics
     domain_of:
+    - LaserAttenuator
     - CameraMask
     - CameraSensor
-    - LaserAttenuator
     range: float
     multivalued: true
   use_maximum_values:
     name: use_maximum_values
     description: If True, use maximum mask radius constraints.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - USE_MASK_RAD_LIMITS
     rank: 1000
@@ -173,7 +172,7 @@ attributes:
   middle:
     name: middle
     description: Center of the mask in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     owner: CameraMask
     domain_of:
     - PhysicalElement
@@ -184,7 +183,7 @@ attributes:
   radius:
     name: radius
     description: Mask radius in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     owner: CameraMask
     domain_of:
     - Multipole
@@ -195,19 +194,18 @@ attributes:
   maximum:
     name: maximum
     description: Maximum mask radius in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    from_schema: https://w3id.org/laura/schema/diagnostics
     owner: CameraMask
     domain_of:
+    - LaserAttenuator
     - CameraMask
     - CameraSensor
-    - LaserAttenuator
     range: float
     multivalued: true
   use_maximum_values:
     name: use_maximum_values
     description: If True, use maximum mask radius constraints.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - USE_MASK_RAD_LIMITS
     rank: 1000

@@ -5,6 +5,11 @@ search:
 
 # Slot: wx_column 
 
+
+_Horizontal wake column in the wake file._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -57,6 +62,13 @@ URI: [laura:wx_column](https://w3id.org/laura/wx_column)
 
 
 
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
+
+
+
 
 ## Mappings
 
@@ -73,6 +85,9 @@ URI: [laura:wx_column](https://w3id.org/laura/wx_column)
 <details>
 ```yaml
 name: wx_column
+description: Horizontal wake column in the wake file.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
 domain_of:
 - RFCavitySimulationElement
 - WakefieldSimulationElement

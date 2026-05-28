@@ -165,7 +165,7 @@ attributes:
   wakefield_model:
     name: wakefield_model
     description: Wakefield model identifier.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - PlasmaSimulationElement
@@ -173,7 +173,7 @@ attributes:
   bunch_pusher:
     name: bunch_pusher
     description: Pusher used to evolve bunch particles in time.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: string(boris)
     domain_of:
@@ -182,7 +182,7 @@ attributes:
   dt_bunch:
     name: dt_bunch
     description: Time-step control for bunch evolution (or 'auto').
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: string(auto)
     domain_of:
@@ -191,7 +191,7 @@ attributes:
   n_out:
     name: n_out
     description: Number of distribution dumps during the plasma stage.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(1)
     domain_of:
@@ -200,7 +200,7 @@ attributes:
   min_longitudinal_position:
     name: min_longitudinal_position
     description: Minimum longitudinal position [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -209,7 +209,7 @@ attributes:
   max_longitudinal_position:
     name: max_longitudinal_position
     description: Maximum longitudinal position [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -218,7 +218,7 @@ attributes:
   n_longitudinal:
     name: n_longitudinal
     description: Number of grid points in the longitudinal direction.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(0)
     domain_of:
@@ -227,7 +227,7 @@ attributes:
   n_radial:
     name: n_radial
     description: Number of grid points in the radial direction.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(0)
     domain_of:
@@ -236,7 +236,7 @@ attributes:
   plasma_particles_per_cell:
     name: plasma_particles_per_cell
     description: Number of plasma particles per cell.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(2)
     domain_of:
@@ -245,7 +245,7 @@ attributes:
   r_max:
     name: r_max
     description: Radial extent of the simulation box [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -254,7 +254,7 @@ attributes:
   r_max_plasma:
     name: r_max_plasma
     description: Maximum radial extension of the plasma column.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - PlasmaSimulationElement
@@ -262,7 +262,7 @@ attributes:
   dz_fields:
     name: dz_fields
     description: Interval for plasma wakefield updates.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - PlasmaSimulationElement
@@ -270,7 +270,7 @@ attributes:
   plasma_pusher:
     name: plasma_pusher
     description: Pusher used to evolve the plasma in time.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: string(boris)
     domain_of:
@@ -293,7 +293,7 @@ attributes:
   wakefield_model:
     name: wakefield_model
     description: Wakefield model identifier.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: PlasmaSimulationElement
     domain_of:
@@ -302,7 +302,7 @@ attributes:
   bunch_pusher:
     name: bunch_pusher
     description: Pusher used to evolve bunch particles in time.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: string(boris)
     owner: PlasmaSimulationElement
@@ -312,7 +312,7 @@ attributes:
   dt_bunch:
     name: dt_bunch
     description: Time-step control for bunch evolution (or 'auto').
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: string(auto)
     owner: PlasmaSimulationElement
@@ -322,7 +322,7 @@ attributes:
   n_out:
     name: n_out
     description: Number of distribution dumps during the plasma stage.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(1)
     owner: PlasmaSimulationElement
@@ -332,7 +332,7 @@ attributes:
   min_longitudinal_position:
     name: min_longitudinal_position
     description: Minimum longitudinal position [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0)
     owner: PlasmaSimulationElement
@@ -342,7 +342,7 @@ attributes:
   max_longitudinal_position:
     name: max_longitudinal_position
     description: Maximum longitudinal position [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0)
     owner: PlasmaSimulationElement
@@ -352,7 +352,7 @@ attributes:
   n_longitudinal:
     name: n_longitudinal
     description: Number of grid points in the longitudinal direction.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(0)
     owner: PlasmaSimulationElement
@@ -362,7 +362,7 @@ attributes:
   n_radial:
     name: n_radial
     description: Number of grid points in the radial direction.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(0)
     owner: PlasmaSimulationElement
@@ -372,7 +372,7 @@ attributes:
   plasma_particles_per_cell:
     name: plasma_particles_per_cell
     description: Number of plasma particles per cell.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(2)
     owner: PlasmaSimulationElement
@@ -382,7 +382,7 @@ attributes:
   r_max:
     name: r_max
     description: Radial extent of the simulation box [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0)
     owner: PlasmaSimulationElement
@@ -392,7 +392,7 @@ attributes:
   r_max_plasma:
     name: r_max_plasma
     description: Maximum radial extension of the plasma column.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: PlasmaSimulationElement
     domain_of:
@@ -401,7 +401,7 @@ attributes:
   dz_fields:
     name: dz_fields
     description: Interval for plasma wakefield updates.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: PlasmaSimulationElement
     domain_of:
@@ -410,7 +410,7 @@ attributes:
   plasma_pusher:
     name: plasma_pusher
     description: Pusher used to evolve the plasma in time.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: string(boris)
     owner: PlasmaSimulationElement
@@ -420,7 +420,7 @@ attributes:
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: PlasmaSimulationElement
     domain_of:
@@ -429,7 +429,7 @@ attributes:
   wakefield_definition:
     name: wakefield_definition
     description: Path to the wakefield impedance file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: PlasmaSimulationElement
     domain_of:
@@ -438,7 +438,7 @@ attributes:
   field_reference_position:
     name: field_reference_position
     description: Longitudinal origin of the field map [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: PlasmaSimulationElement
     domain_of:
@@ -447,7 +447,7 @@ attributes:
   scale_field:
     name: scale_field
     description: Multiplicative scale factor applied to the field map.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1)
     owner: PlasmaSimulationElement

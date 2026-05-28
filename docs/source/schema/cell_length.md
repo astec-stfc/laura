@@ -5,6 +5,11 @@ search:
 
 # Slot: cell_length 
 
+
+_Length of a single cell [m]._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -35,13 +40,37 @@ URI: [laura:cell_length](https://w3id.org/laura/cell_length)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [Float](Float.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [WakefieldElement](WakefieldElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+### Slot Characteristics
+
+| Property | Value |
+| --- | --- |
+| If Absent | `float(0.03333333333333333)` |
+
+
+### Value Constraints
+
+| Property | Value |
+| --- | --- |
+| Minimum Value | 0 |
+
+
+<details>
+<summary>Additional Constraints</summary>
+**Unit:**
+
+| Property | Value |
+| --- | --- |
+| ucum_code | m |
+
+</details>
+
 
 
 
@@ -55,6 +84,13 @@ URI: [laura:cell_length](https://w3id.org/laura/cell_length)
 ## Identifier and Mapping Information
 
 
+
+
+
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
 
 
 
@@ -74,11 +110,18 @@ URI: [laura:cell_length](https://w3id.org/laura/cell_length)
 <details>
 ```yaml
 name: cell_length
+description: Length of a single cell [m].
+from_schema: https://w3id.org/laura/schema
+rank: 1000
+ifabsent: float(0.03333333333333333)
 domain_of:
 - RFCavityElement
 - WakefieldElement
 - RFDeflectingCavityElement
-range: string
+range: float
+minimum_value: 0.0
+unit:
+  ucum_code: m
 
 ```
 </details></div>

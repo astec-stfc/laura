@@ -130,7 +130,7 @@ attributes:
   density:
     name: density
     description: Plasma (electron) number density [m^-^3].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     domain_of:
     - PlasmaElement
@@ -141,7 +141,7 @@ attributes:
   species:
     name: species
     description: Plasma species name (e.g., ``electron``).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: string(electron)
     domain_of:
@@ -150,7 +150,7 @@ attributes:
   ramp_up:
     name: ramp_up
     description: Entrance density-ramp length [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0.001)
     domain_of:
@@ -162,7 +162,7 @@ attributes:
   plateau:
     name: plateau
     description: Flat-top plateau length [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0.001)
     domain_of:
@@ -174,7 +174,7 @@ attributes:
   ramp_down:
     name: ramp_down
     description: Exit density-ramp length [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0.001)
     domain_of:
@@ -186,7 +186,7 @@ attributes:
   ramp_decay_length:
     name: ramp_decay_length
     description: Exponential decay length of the density ramp [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0.001)
     domain_of:
@@ -198,7 +198,7 @@ attributes:
   density_profile:
     name: density_profile
     description: If True, use a user-defined profile; if False, use a flat-top model.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: 'False'
     domain_of:
@@ -207,7 +207,7 @@ attributes:
   parabolic_coefficient:
     name: parabolic_coefficient
     description: Parabolic coefficient for a transverse density profile.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -229,7 +229,7 @@ attributes:
   density:
     name: density
     description: Plasma (electron) number density [m^-^3].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     owner: PlasmaElement
     domain_of:
@@ -241,7 +241,7 @@ attributes:
   species:
     name: species
     description: Plasma species name (e.g., ``electron``).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: string(electron)
     owner: PlasmaElement
@@ -251,7 +251,7 @@ attributes:
   ramp_up:
     name: ramp_up
     description: Entrance density-ramp length [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0.001)
     owner: PlasmaElement
@@ -264,7 +264,7 @@ attributes:
   plateau:
     name: plateau
     description: Flat-top plateau length [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0.001)
     owner: PlasmaElement
@@ -277,7 +277,7 @@ attributes:
   ramp_down:
     name: ramp_down
     description: Exit density-ramp length [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0.001)
     owner: PlasmaElement
@@ -290,7 +290,7 @@ attributes:
   ramp_decay_length:
     name: ramp_decay_length
     description: Exponential decay length of the density ramp [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0.001)
     owner: PlasmaElement
@@ -303,7 +303,7 @@ attributes:
   density_profile:
     name: density_profile
     description: If True, use a user-defined profile; if False, use a flat-top model.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: 'False'
     owner: PlasmaElement
@@ -313,7 +313,7 @@ attributes:
   parabolic_coefficient:
     name: parabolic_coefficient
     description: Parabolic coefficient for a transverse density profile.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     ifabsent: float(0)
     owner: PlasmaElement

@@ -138,16 +138,6 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | ---  | --- | --- | --- |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [MagnetBaseElement](MagnetBaseElement.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [Dipole](Dipole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [Quadrupole](Quadrupole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [Sextupole](Sextupole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [Octupole](Octupole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [HorizontalCorrector](HorizontalCorrector.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [VerticalCorrector](VerticalCorrector.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [CombinedCorrector](CombinedCorrector.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [Solenoid](Solenoid.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [NonLinearLens](NonLinearLens.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [Wiggler](Wiggler.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Diagnostic](Diagnostic.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [BeamPositionMonitor](BeamPositionMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [BeamArrivalMonitor](BeamArrivalMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |

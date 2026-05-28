@@ -5,6 +5,11 @@ search:
 
 # Slot: field_amplitude 
 
+
+_Field amplitude scaling._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -20,8 +25,8 @@ URI: [laura:field_amplitude](https://w3id.org/laura/field_amplitude)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  no  |
-| [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  no  |
+| [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  yes  |
+| [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  yes  |
 
 
 
@@ -34,7 +39,7 @@ URI: [laura:field_amplitude](https://w3id.org/laura/field_amplitude)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [Float](Float.md) |
 | Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md), [RFCavitySimulationElement](RFCavitySimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -57,6 +62,13 @@ URI: [laura:field_amplitude](https://w3id.org/laura/field_amplitude)
 
 
 
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
+
+
+
 
 ## Mappings
 
@@ -73,10 +85,13 @@ URI: [laura:field_amplitude](https://w3id.org/laura/field_amplitude)
 <details>
 ```yaml
 name: field_amplitude
+description: Field amplitude scaling.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
 domain_of:
 - MagnetSimulationElement
 - RFCavitySimulationElement
-range: string
+range: float
 
 ```
 </details></div>

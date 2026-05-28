@@ -148,7 +148,7 @@ attributes:
   trace:
     name: trace
     description: Trace metadata.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - LowLevelRFElement
@@ -156,7 +156,7 @@ attributes:
   max_amplitude:
     name: max_amplitude
     description: Maximum allowed amplitude.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - MAX_AMPLITUDE
     rank: 1000
@@ -166,7 +166,7 @@ attributes:
   channel_names:
     name: channel_names
     description: Channel labels.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - LowLevelRFElement
@@ -174,7 +174,7 @@ attributes:
   crest_phase:
     name: crest_phase
     description: Cavity crest phase.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - LowLevelRFElement
@@ -182,7 +182,7 @@ attributes:
   timings:
     name: timings
     description: Timing windows for LLRF channels.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - LowLevelRFElement
@@ -203,7 +203,7 @@ attributes:
   trace:
     name: trace
     description: Trace metadata.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: LowLevelRFElement
     domain_of:
@@ -212,7 +212,7 @@ attributes:
   max_amplitude:
     name: max_amplitude
     description: Maximum allowed amplitude.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - MAX_AMPLITUDE
     rank: 1000
@@ -223,7 +223,7 @@ attributes:
   channel_names:
     name: channel_names
     description: Channel labels.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: LowLevelRFElement
     domain_of:
@@ -232,7 +232,7 @@ attributes:
   crest_phase:
     name: crest_phase
     description: Cavity crest phase.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: LowLevelRFElement
     domain_of:
@@ -241,7 +241,7 @@ attributes:
   timings:
     name: timings
     description: Timing windows for LLRF channels.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: LowLevelRFElement
     domain_of:

@@ -125,7 +125,7 @@ attributes:
   type:
     name: type
     description: BLM type (e.g., ``CDR``). Accepted in YAML as ``blm_type``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - blm_type
     ifabsent: string(CDR)
@@ -156,7 +156,7 @@ attributes:
   type:
     name: type
     description: BLM type (e.g., ``CDR``). Accepted in YAML as ``blm_type``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - blm_type
     ifabsent: string(CDR)

@@ -133,7 +133,7 @@ attributes:
   min:
     name: min
     description: Minimum value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: PIDWeightRange
     domain_of:
@@ -142,7 +142,7 @@ attributes:
   max:
     name: max
     description: Maximum value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: PIDWeightRange
     domain_of:

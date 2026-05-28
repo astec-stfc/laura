@@ -27,9 +27,6 @@
         },
         "hardware_type": {
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "AcceleratorElement"
-          ],
           "type": [
             "string",
             "null"
@@ -62,7 +59,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "AcceleratorElement",
       "type": "object"
@@ -128,9 +126,6 @@
         "hardware_type": {
           "const": "Aperture",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Aperture"
-          ],
           "type": [
             "string",
             "null"
@@ -207,7 +202,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Aperture",
       "type": "object"
@@ -386,9 +382,6 @@
         "hardware_type": {
           "const": "Beam_Arrival_Monitor",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "BeamArrivalMonitor"
-          ],
           "type": [
             "string",
             "null"
@@ -465,7 +458,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "BeamArrivalMonitor",
       "type": "object"
@@ -531,9 +525,6 @@
         "hardware_type": {
           "const": "Beam_Position_Monitor",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "BeamPositionMonitor"
-          ],
           "type": [
             "string",
             "null"
@@ -610,10 +601,21 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "BeamPositionMonitor",
       "type": "object"
+    },
+    "BendingPlaneEnum": {
+      "description": "Bending plane enum.",
+      "enum": [
+        "Horizontal",
+        "Vertical",
+        "Combined"
+      ],
+      "title": "BendingPlaneEnum",
+      "type": "string"
     },
     "BunchLengthMonitor": {
       "additionalProperties": false,
@@ -676,9 +678,6 @@
         "hardware_type": {
           "const": "Bunch_Length_Monitor",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "BunchLengthMonitor"
-          ],
           "type": [
             "string",
             "null"
@@ -755,7 +754,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "BunchLengthMonitor",
       "type": "object"
@@ -821,9 +821,6 @@
         "hardware_type": {
           "const": "Camera",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Camera"
-          ],
           "type": [
             "string",
             "null"
@@ -900,7 +897,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Camera",
       "type": "object"
@@ -1375,9 +1373,6 @@
         "hardware_type": {
           "const": "ChargeDiagnostic",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "ChargeDiagnostic"
-          ],
           "type": [
             "string",
             "null"
@@ -1454,7 +1449,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "ChargeDiagnostic",
       "type": "object"
@@ -1535,9 +1531,6 @@
         "hardware_type": {
           "const": "Collimator",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Collimator"
-          ],
           "type": [
             "string",
             "null"
@@ -1614,165 +1607,10 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Collimator",
-      "type": "object"
-    },
-    "CombinedCorrector": {
-      "additionalProperties": false,
-      "description": "Combined horizontal and vertical orbit-corrector magnet.",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "degauss": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DegaussableElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Degaussing-cycle parameters."
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "Combined_Corrector",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "CombinedCorrector"
-          ],
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "magnetic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagneticElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Magnetic field parameters."
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagnetSimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "CombinedCorrector",
       "type": "object"
     },
     "ControlVariable": {
@@ -1957,9 +1795,6 @@
         },
         "hardware_type": {
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Diagnostic"
-          ],
           "type": [
             "string",
             "null"
@@ -2036,7 +1871,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Diagnostic",
       "type": "object"
@@ -2090,162 +1926,6 @@
       "title": "DiagnosticSimulationElement",
       "type": "object"
     },
-    "Dipole": {
-      "additionalProperties": false,
-      "description": "Dipole bending magnet.",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "degauss": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DegaussableElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Degaussing-cycle parameters."
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "Dipole",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Dipole"
-          ],
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "magnetic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagneticElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Magnetic field parameters."
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagnetSimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "Dipole",
-      "type": "object"
-    },
     "Drift": {
       "additionalProperties": false,
       "description": "Field-free drift space between elements.",
@@ -2296,9 +1976,6 @@
         "hardware_type": {
           "const": "Drift",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Drift"
-          ],
           "type": [
             "string",
             "null"
@@ -2375,7 +2052,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Drift",
       "type": "object"
@@ -2515,6 +2193,126 @@
       "title": "ElectricalElement",
       "type": "object"
     },
+    "Element": {
+      "additionalProperties": false,
+      "description": "Concrete schema counterpart of the Python ``Element`` wrapper class. Inherits standard element composition fields.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Element",
+      "type": "object"
+    },
     "ElementPositionError": {
       "additionalProperties": false,
       "description": "Alignment position and rotation errors for a physically-located element.",
@@ -2636,9 +2434,6 @@
         "hardware_type": {
           "const": "Faraday_Cup_Monitor",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "FaradayCupMonitor"
-          ],
           "type": [
             "string",
             "null"
@@ -2715,7 +2510,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "FaradayCupMonitor",
       "type": "object"
@@ -2754,166 +2550,13 @@
         "Lighting",
         "Shutter",
         "Wakefield",
-        "TwissMatch"
+        "TwissMatch",
+        "Drift",
+        "Generic",
+        "Monitor"
       ],
       "title": "HardwareClassEnum",
       "type": "string"
-    },
-    "HorizontalCorrector": {
-      "additionalProperties": false,
-      "description": "Horizontal orbit-corrector dipole.",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "degauss": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DegaussableElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Degaussing-cycle parameters."
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "Horizontal_Corrector",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "HorizontalCorrector"
-          ],
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "magnetic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagneticElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Magnetic field parameters."
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagnetSimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "HorizontalCorrector",
-      "type": "object"
     },
     "IntegratedCurrentTransformer": {
       "additionalProperties": false,
@@ -2976,9 +2619,6 @@
         "hardware_type": {
           "const": "Integrated_Current_Transformer",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "IntegratedCurrentTransformer"
-          ],
           "type": [
             "string",
             "null"
@@ -3055,7 +2695,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "IntegratedCurrentTransformer",
       "type": "object"
@@ -3195,9 +2836,6 @@
         "hardware_type": {
           "const": "Laser",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Laser"
-          ],
           "type": [
             "string",
             "null"
@@ -3285,7 +2923,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Laser",
       "type": "object"
@@ -3340,9 +2979,6 @@
         "hardware_type": {
           "const": "LaserAttenuator",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "LaserAttenuator"
-          ],
           "type": [
             "string",
             "null"
@@ -3422,7 +3058,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "LaserAttenuator",
       "type": "object"
@@ -3562,9 +3199,6 @@
         "hardware_type": {
           "const": "LaserEnergyMeter",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "LaserEnergyMeter"
-          ],
           "type": [
             "string",
             "null"
@@ -3641,7 +3275,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "LaserEnergyMeter",
       "type": "object"
@@ -3702,9 +3337,6 @@
         "hardware_type": {
           "const": "LaserHalfWavePlate",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "LaserHalfWavePlate"
-          ],
           "type": [
             "string",
             "null"
@@ -3781,7 +3413,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "LaserHalfWavePlate",
       "type": "object"
@@ -3842,9 +3475,6 @@
         "hardware_type": {
           "const": "LaserMirror",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "LaserMirror"
-          ],
           "type": [
             "string",
             "null"
@@ -3921,7 +3551,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "LaserMirror",
       "type": "object"
@@ -4073,9 +3704,6 @@
         "hardware_type": {
           "const": "Lighting",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Lighting"
-          ],
           "type": [
             "string",
             "null"
@@ -4152,7 +3780,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Lighting",
       "type": "object"
@@ -4270,9 +3899,6 @@
         "hardware_type": {
           "const": "Low_Level_RF",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "LowLevelRF"
-          ],
           "type": [
             "string",
             "null"
@@ -4349,7 +3975,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "LowLevelRF",
       "type": "object"
@@ -4539,9 +4166,6 @@
         },
         "hardware_type": {
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "MagnetBaseElement"
-          ],
           "type": [
             "string",
             "null"
@@ -4629,7 +4253,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "MagnetBaseElement",
       "type": "object"
@@ -4896,11 +4521,8 @@
           ]
         },
         "plane": {
-          "description": "Principal bending / focusing plane (``H``, ``V``, or ``HV``).",
-          "type": [
-            "string",
-            "null"
-          ]
+          "$ref": "#/$defs/BendingPlaneEnum",
+          "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
         },
         "random_multipoles": {
           "anyOf": [
@@ -5028,9 +4650,6 @@
         "hardware_type": {
           "const": "Marker",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Marker"
-          ],
           "type": [
             "string",
             "null"
@@ -5107,7 +4726,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Marker",
       "type": "object"
@@ -5212,318 +4832,6 @@
       "title": "Multipoles",
       "type": "object"
     },
-    "NonLinearLens": {
-      "additionalProperties": false,
-      "description": "Non-linear focusing lens (IOTA-style).",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "degauss": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DegaussableElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Degaussing-cycle parameters."
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "NonLinearLens",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "NonLinearLens"
-          ],
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "magnetic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagneticElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Magnetic field parameters."
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagnetSimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "NonLinearLens",
-      "type": "object"
-    },
-    "Octupole": {
-      "additionalProperties": false,
-      "description": "Octupole magnet.",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "degauss": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DegaussableElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Degaussing-cycle parameters."
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "Octupole",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Octupole"
-          ],
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "magnetic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagneticElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Magnetic field parameters."
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagnetSimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "Octupole",
-      "type": "object"
-    },
     "PID": {
       "additionalProperties": false,
       "description": "Proportional-integral-derivative (PID) feedback controller.",
@@ -5574,9 +4882,6 @@
         "hardware_type": {
           "const": "PID",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "PID"
-          ],
           "type": [
             "string",
             "null"
@@ -5653,7 +4958,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "PID",
       "type": "object"
@@ -5830,9 +5136,6 @@
         },
         "hardware_type": {
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "PhysicalAcceleratorElement"
-          ],
           "type": [
             "string",
             "null"
@@ -5909,7 +5212,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "PhysicalAcceleratorElement",
       "type": "object"
@@ -6067,9 +5371,6 @@
         "hardware_type": {
           "const": "Plasma",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Plasma"
-          ],
           "type": [
             "string",
             "null"
@@ -6168,7 +5469,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Plasma",
       "type": "object"
@@ -6398,162 +5700,6 @@
       "title": "Position",
       "type": "object"
     },
-    "Quadrupole": {
-      "additionalProperties": false,
-      "description": "Quadrupole focusing magnet.",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "degauss": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DegaussableElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Degaussing-cycle parameters."
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "Quadrupole",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Quadrupole"
-          ],
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "magnetic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagneticElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Magnetic field parameters."
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagnetSimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "Quadrupole",
-      "type": "object"
-    },
     "RFCavity": {
       "additionalProperties": false,
       "description": "Accelerating RF cavity.",
@@ -6615,9 +5761,6 @@
         "hardware_type": {
           "const": "RFCavity",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "RFCavity"
-          ],
           "type": [
             "string",
             "null"
@@ -6694,7 +5837,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "RFCavity",
       "type": "object"
@@ -6711,7 +5855,7 @@
           ]
         },
         "cell_length": {
-          "description": "Length of a single accelerating cell [m].",
+          "description": "Length of a single cell [m].",
           "minimum": 0.0,
           "type": [
             "number",
@@ -6719,7 +5863,7 @@
           ]
         },
         "coupling_cell_length": {
-          "description": "Length of a coupling cell [m].",
+          "description": "Length of the coupling cell [m].",
           "minimum": 0.0,
           "type": [
             "number",
@@ -6734,7 +5878,7 @@
           ]
         },
         "design_gamma": {
-          "description": "Relativistic Lorentz factor ? at design operating point.",
+          "description": "Design Lorentz factor.",
           "minimum": 1.0,
           "type": [
             "number",
@@ -6742,7 +5886,7 @@
           ]
         },
         "design_power": {
-          "description": "Design peak RF power [W].",
+          "description": "Design peak power [W].",
           "minimum": 0.0,
           "type": [
             "number",
@@ -6750,7 +5894,7 @@
           ]
         },
         "frequency": {
-          "description": "RF operating frequency [Hz].",
+          "description": "Operating frequency [Hz].",
           "minimum": 0.0,
           "type": [
             "number",
@@ -6768,21 +5912,21 @@
           ]
         },
         "mode_denominator": {
-          "description": "Denominator of the operating mode fraction.",
+          "description": "Mode fraction denominator.",
           "type": [
             "integer",
             "null"
           ]
         },
         "mode_numerator": {
-          "description": "Numerator of the operating mode fraction (e.g., 2 for 2pi/3).",
+          "description": "Mode fraction numerator.",
           "type": [
             "integer",
             "null"
           ]
         },
         "n_cells": {
-          "description": "Number of accelerating cells.",
+          "description": "Number of cells.",
           "minimum": 1,
           "type": [
             "integer",
@@ -6790,7 +5934,7 @@
           ]
         },
         "phase": {
-          "description": "Operating phase relative to crest [deg].",
+          "description": "Operating phase offset [deg].",
           "type": [
             "number",
             "null"
@@ -7068,9 +6212,6 @@
         "hardware_type": {
           "const": "RFDeflectingCavity",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "RFDeflectingCavity"
-          ],
           "type": [
             "string",
             "null"
@@ -7147,7 +6288,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "RFDeflectingCavity",
       "type": "object"
@@ -7157,7 +6299,7 @@
       "description": "Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for streak-mode operation.",
       "properties": {
         "cell_length": {
-          "description": "Length of a single accelerating cell [m].",
+          "description": "Length of a single cell [m].",
           "minimum": 0.0,
           "type": [
             "number",
@@ -7166,6 +6308,7 @@
         },
         "coupling_cell_length": {
           "description": "Length of the coupling cell [m].",
+          "minimum": 0.0,
           "type": [
             "number",
             "null"
@@ -7179,7 +6322,7 @@
           ]
         },
         "design_gamma": {
-          "description": "Design Lorentz factor ?.",
+          "description": "Design Lorentz factor.",
           "minimum": 1.0,
           "type": [
             "number",
@@ -7188,6 +6331,7 @@
         },
         "design_power": {
           "description": "Design peak power [W].",
+          "minimum": 0.0,
           "type": [
             "number",
             "null"
@@ -7195,6 +6339,7 @@
         },
         "frequency": {
           "description": "Operating frequency [Hz].",
+          "minimum": 0.0,
           "type": [
             "number",
             "null"
@@ -7290,9 +6435,6 @@
         "hardware_type": {
           "const": "RFHeartbeat",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "RFHeartbeat"
-          ],
           "type": [
             "string",
             "null"
@@ -7369,7 +6511,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "RFHeartbeat",
       "type": "object"
@@ -7430,9 +6573,6 @@
         "hardware_type": {
           "const": "RFModulator",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "RFModulator"
-          ],
           "type": [
             "string",
             "null"
@@ -7509,7 +6649,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "RFModulator",
       "type": "object"
@@ -7570,9 +6711,6 @@
         "hardware_type": {
           "const": "RFProtection",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "RFProtection"
-          ],
           "type": [
             "string",
             "null"
@@ -7649,7 +6787,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "RFProtection",
       "type": "object"
@@ -7793,9 +6932,6 @@
         "hardware_type": {
           "const": "Screen",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Screen"
-          ],
           "type": [
             "string",
             "null"
@@ -7872,7 +7008,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Screen",
       "type": "object"
@@ -7885,6 +7022,16 @@
           "description": "Name of the associated camera element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "devices": {
+          "description": "List of attached devices.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -7938,162 +7085,6 @@
       "title": "SectionLattice",
       "type": "object"
     },
-    "Sextupole": {
-      "additionalProperties": false,
-      "description": "Sextupole chromaticity-correction magnet.",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "degauss": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DegaussableElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Degaussing-cycle parameters."
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "Sextupole",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Sextupole"
-          ],
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "magnetic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagneticElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Magnetic field parameters."
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagnetSimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "Sextupole",
-      "type": "object"
-    },
     "Shutter": {
       "additionalProperties": false,
       "description": "Beam or laser shutter with interlock logic.",
@@ -8144,9 +7135,6 @@
         "hardware_type": {
           "const": "Shutter",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Shutter"
-          ],
           "type": [
             "string",
             "null"
@@ -8234,7 +7222,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Shutter",
       "type": "object"
@@ -8293,162 +7282,6 @@
       "title": "SimulationElement",
       "type": "object"
     },
-    "Solenoid": {
-      "additionalProperties": false,
-      "description": "Solenoid focussing magnet.",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "degauss": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DegaussableElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Degaussing-cycle parameters."
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "Solenoid",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Solenoid"
-          ],
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "magnetic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagneticElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Magnetic field parameters."
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagnetSimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "Solenoid",
-      "type": "object"
-    },
     "Stage": {
       "additionalProperties": false,
       "description": "Motorised positioning stage.",
@@ -8499,9 +7332,6 @@
         "hardware_type": {
           "const": "Stage",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Stage"
-          ],
           "type": [
             "string",
             "null"
@@ -8578,7 +7408,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Stage",
       "type": "object"
@@ -8632,9 +7463,6 @@
         },
         "hardware_type": {
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "StandardElement"
-          ],
           "type": [
             "string",
             "null"
@@ -8700,7 +7528,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "StandardElement",
       "type": "object"
@@ -8791,9 +7620,6 @@
         "hardware_type": {
           "const": "TwissMatch",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "TwissMatch"
-          ],
           "type": [
             "string",
             "null"
@@ -8870,7 +7696,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "TwissMatch",
       "type": "object"
@@ -9024,9 +7851,6 @@
         "hardware_type": {
           "const": "VacuumGauge",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "VacuumGauge"
-          ],
           "type": [
             "string",
             "null"
@@ -9103,7 +7927,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "VacuumGauge",
       "type": "object"
@@ -9158,9 +7983,6 @@
         "hardware_type": {
           "const": "Valve",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Valve"
-          ],
           "type": [
             "string",
             "null"
@@ -9248,7 +8070,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Valve",
       "type": "object"
@@ -9257,162 +8080,6 @@
       "additionalProperties": false,
       "description": "Vacuum valve configuration (no additional fields).",
       "title": "ValveElement",
-      "type": "object"
-    },
-    "VerticalCorrector": {
-      "additionalProperties": false,
-      "description": "Vertical orbit-corrector dipole.",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "degauss": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DegaussableElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Degaussing-cycle parameters."
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "Vertical_Corrector",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "VerticalCorrector"
-          ],
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "magnetic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagneticElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Magnetic field parameters."
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagnetSimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "VerticalCorrector",
       "type": "object"
     },
     "Wakefield": {
@@ -9476,9 +8143,6 @@
         "hardware_type": {
           "const": "Wakefield",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Wakefield"
-          ],
           "type": [
             "string",
             "null"
@@ -9555,7 +8219,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "Wakefield",
       "type": "object"
@@ -9574,6 +8239,7 @@
         },
         "coupling_cell_length": {
           "description": "Length of the coupling cell [m].",
+          "minimum": 0.0,
           "type": [
             "number",
             "null"
@@ -9729,7 +8395,7 @@
           ]
         },
         "t_column": {
-          "description": "Time column in wake file.",
+          "description": "Time column in the wake file.",
           "type": [
             "string",
             "null"
@@ -9743,28 +8409,28 @@
           ]
         },
         "wx_column": {
-          "description": "Horizontal wake column.",
+          "description": "Horizontal wake column in the wake file.",
           "type": [
             "string",
             "null"
           ]
         },
         "wy_column": {
-          "description": "Vertical wake column.",
+          "description": "Vertical wake column in the wake file.",
           "type": [
             "string",
             "null"
           ]
         },
         "wz_column": {
-          "description": "Longitudinal wake column.",
+          "description": "Longitudinal wake column in the wake file.",
           "type": [
             "string",
             "null"
           ]
         },
         "z_column": {
-          "description": "Longitudinal position column in wake file.",
+          "description": "Longitudinal position column in the wake file.",
           "type": [
             "string",
             "null"
@@ -9835,9 +8501,6 @@
         "hardware_type": {
           "const": "Wall_Current_Monitor",
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "WallCurrentMonitor"
-          ],
           "type": [
             "string",
             "null"
@@ -9914,165 +8577,10 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "hardware_class"
       ],
       "title": "WallCurrentMonitor",
-      "type": "object"
-    },
-    "Wiggler": {
-      "additionalProperties": false,
-      "description": "Wiggler / undulator permanent-magnet array.",
-      "properties": {
-        "alias": {
-          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
-          "items": {
-            "type": "string"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "controls": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ControlsInformation"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Control-system process-variable definitions."
-        },
-        "degauss": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DegaussableElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Degaussing-cycle parameters."
-        },
-        "electrical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ElectricalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Power-supply electrical limits."
-        },
-        "hardware_class": {
-          "$ref": "#/$defs/HardwareClassEnum",
-          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
-        },
-        "hardware_model": {
-          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "hardware_type": {
-          "const": "Wiggler",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-          "enum": [
-            "Wiggler"
-          ],
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "machine_area": {
-          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "magnetic": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagneticElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Magnetic field parameters."
-        },
-        "manufacturer": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ManufacturerElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Manufacturer and serial-number data."
-        },
-        "name": {
-          "description": "Unique element name within the machine.",
-          "type": "string"
-        },
-        "physical": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhysicalElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Position, rotation, and length data."
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ReferenceElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Links to design drawings and files."
-        },
-        "simulation": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/MagnetSimulationElement"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Simulation / tracking attributes."
-        },
-        "subelement": {
-          "description": "If set, this element is a logical sub-component of the named parent element.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "virtual_name": {
-          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "Wiggler",
       "type": "object"
     }
   },
@@ -10105,9 +8613,6 @@
     },
     "hardware_type": {
       "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
-      "enum": [
-        "AcceleratorElement"
-      ],
       "type": [
         "string",
         "null"
@@ -10140,7 +8645,8 @@
     }
   },
   "required": [
-    "name"
+    "name",
+    "hardware_class"
   ],
   "title": "laura_schema",
   "type": "object",

@@ -5,6 +5,11 @@ search:
 
 # Slot: t_column 
 
+
+_Time column in the wake file._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -57,6 +62,13 @@ URI: [laura:t_column](https://w3id.org/laura/t_column)
 
 
 
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
+
+
+
 
 ## Mappings
 
@@ -73,6 +85,9 @@ URI: [laura:t_column](https://w3id.org/laura/t_column)
 <details>
 ```yaml
 name: t_column
+description: Time column in the wake file.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
 domain_of:
 - RFCavitySimulationElement
 - WakefieldSimulationElement

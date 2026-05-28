@@ -196,7 +196,7 @@ attributes:
     name: type
     description: Camera type / model string (e.g., ``PCO``, ``Manta``). Accepted in
       YAML as ``CAM_TYPE``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - CAM_TYPE
     domain_of:
@@ -210,7 +210,7 @@ attributes:
   x_pixels:
     name: x_pixels
     description: Image width reported by the control system [pix].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - ARRAY_DATA_NUM_PIX_X
     - epics_x_pixels
@@ -222,7 +222,7 @@ attributes:
   y_pixels:
     name: y_pixels
     description: Image height reported by the control system [pix].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - ARRAY_DATA_NUM_PIX_Y
     - epics_y_pixels
@@ -234,7 +234,7 @@ attributes:
   rotation:
     name: rotation
     description: Camera rotation relative to the screen plane [deg].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     ifabsent: float(0)
     domain_of:
     - ElementPositionError
@@ -247,7 +247,7 @@ attributes:
   flipped_horizontally:
     name: flipped_horizontally
     description: True if the image is mirrored left-right.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - IMAGE_FLIP_LR
     rank: 1000
@@ -258,7 +258,7 @@ attributes:
   flipped_vertically:
     name: flipped_vertically
     description: True if the image is mirrored top-bottom.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - IMAGE_FLIP_UD
     rank: 1000
@@ -269,7 +269,7 @@ attributes:
   screen_name:
     name: screen_name
     description: Name of the screen element to which this camera is attached.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     domain_of:
     - CameraDiagnosticElement
@@ -277,7 +277,7 @@ attributes:
   has_led:
     name: has_led
     description: True if the camera mount includes an LED backlight.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: 'True'
     domain_of:
@@ -286,7 +286,7 @@ attributes:
   pixel_results_indices:
     name: pixel_results_indices
     description: Indices of pixel analysis result arrays.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     domain_of:
     - CameraDiagnosticElement
@@ -294,7 +294,7 @@ attributes:
   pixel_results_names:
     name: pixel_results_names
     description: Names of pixel analysis result arrays.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     domain_of:
     - CameraDiagnosticElement
@@ -302,7 +302,7 @@ attributes:
   mask:
     name: mask
     description: Camera analysis mask configuration.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     domain_of:
     - CameraDiagnosticElement
@@ -310,7 +310,7 @@ attributes:
   sensor:
     name: sensor
     description: Camera sensor hardware configuration.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     domain_of:
     - CameraDiagnosticElement
@@ -336,7 +336,7 @@ attributes:
     name: type
     description: Camera type / model string (e.g., ``PCO``, ``Manta``). Accepted in
       YAML as ``CAM_TYPE``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - CAM_TYPE
     owner: CameraDiagnosticElement
@@ -351,7 +351,7 @@ attributes:
   x_pixels:
     name: x_pixels
     description: Image width reported by the control system [pix].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - ARRAY_DATA_NUM_PIX_X
     - epics_x_pixels
@@ -364,7 +364,7 @@ attributes:
   y_pixels:
     name: y_pixels
     description: Image height reported by the control system [pix].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - ARRAY_DATA_NUM_PIX_Y
     - epics_y_pixels
@@ -377,7 +377,7 @@ attributes:
   rotation:
     name: rotation
     description: Camera rotation relative to the screen plane [deg].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     ifabsent: float(0)
     owner: CameraDiagnosticElement
     domain_of:
@@ -391,7 +391,7 @@ attributes:
   flipped_horizontally:
     name: flipped_horizontally
     description: True if the image is mirrored left-right.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - IMAGE_FLIP_LR
     rank: 1000
@@ -403,7 +403,7 @@ attributes:
   flipped_vertically:
     name: flipped_vertically
     description: True if the image is mirrored top-bottom.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - IMAGE_FLIP_UD
     rank: 1000
@@ -415,7 +415,7 @@ attributes:
   screen_name:
     name: screen_name
     description: Name of the screen element to which this camera is attached.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     owner: CameraDiagnosticElement
     domain_of:
@@ -424,7 +424,7 @@ attributes:
   has_led:
     name: has_led
     description: True if the camera mount includes an LED backlight.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: 'True'
     owner: CameraDiagnosticElement
@@ -434,7 +434,7 @@ attributes:
   pixel_results_indices:
     name: pixel_results_indices
     description: Indices of pixel analysis result arrays.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     owner: CameraDiagnosticElement
     domain_of:
@@ -443,7 +443,7 @@ attributes:
   pixel_results_names:
     name: pixel_results_names
     description: Names of pixel analysis result arrays.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     owner: CameraDiagnosticElement
     domain_of:
@@ -452,7 +452,7 @@ attributes:
   mask:
     name: mask
     description: Camera analysis mask configuration.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     owner: CameraDiagnosticElement
     domain_of:
@@ -461,7 +461,7 @@ attributes:
   sensor:
     name: sensor
     description: Camera sensor hardware configuration.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     owner: CameraDiagnosticElement
     domain_of:

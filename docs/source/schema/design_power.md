@@ -5,6 +5,11 @@ search:
 
 # Slot: design_power 
 
+
+_Design peak power [W]._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -34,13 +39,37 @@ URI: [laura:design_power](https://w3id.org/laura/design_power)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [Float](Float.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+### Slot Characteristics
+
+| Property | Value |
+| --- | --- |
+| If Absent | `float(25000000)` |
+
+
+### Value Constraints
+
+| Property | Value |
+| --- | --- |
+| Minimum Value | 0 |
+
+
+<details>
+<summary>Additional Constraints</summary>
+**Unit:**
+
+| Property | Value |
+| --- | --- |
+| ucum_code | W |
+
+</details>
+
 
 
 
@@ -54,6 +83,13 @@ URI: [laura:design_power](https://w3id.org/laura/design_power)
 ## Identifier and Mapping Information
 
 
+
+
+
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
 
 
 
@@ -73,10 +109,17 @@ URI: [laura:design_power](https://w3id.org/laura/design_power)
 <details>
 ```yaml
 name: design_power
+description: Design peak power [W].
+from_schema: https://w3id.org/laura/schema
+rank: 1000
+ifabsent: float(25000000)
 domain_of:
 - RFCavityElement
 - RFDeflectingCavityElement
-range: string
+range: float
+minimum_value: 0.0
+unit:
+  ucum_code: W
 
 ```
 </details></div>

@@ -145,7 +145,7 @@ attributes:
   x_pixels:
     name: x_pixels
     description: Raw sensor pixel count in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - BINARY_NUM_PIX_X
     rank: 1000
@@ -157,7 +157,7 @@ attributes:
   y_pixels:
     name: y_pixels
     description: Raw sensor pixel count in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - BINARY_NUM_PIX_Y
     rank: 1000
@@ -169,7 +169,7 @@ attributes:
   x_scale_factor:
     name: x_scale_factor
     description: Pixel binning factor in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - X_PIX_SCALE_FACTOR
     rank: 1000
@@ -180,7 +180,7 @@ attributes:
   y_scale_factor:
     name: y_scale_factor
     description: Pixel binning factor in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - Y_PIX_SCALE_FACTOR
     rank: 1000
@@ -191,7 +191,7 @@ attributes:
   beam_pixel_average:
     name: beam_pixel_average
     description: Average pixel value for beam detection.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - AVG_PIXEL_VALUE_FOR_BEAM
     rank: 1000
@@ -202,7 +202,7 @@ attributes:
   middle:
     name: middle
     description: Sensor optical center in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     domain_of:
     - PhysicalElement
     - CameraMask
@@ -212,7 +212,7 @@ attributes:
   x_pixels_to_mm:
     name: x_pixels_to_mm
     description: Pixel-to-mm scale factor in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: float(0.0134)
     domain_of:
@@ -221,7 +221,7 @@ attributes:
   y_pixels_to_mm:
     name: y_pixels_to_mm
     description: Pixel-to-mm scale factor in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: float(0.0134)
     domain_of:
@@ -230,27 +230,26 @@ attributes:
   minimum:
     name: minimum
     description: Minimum pixel positions [x, y].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    from_schema: https://w3id.org/laura/schema/diagnostics
     domain_of:
-    - CameraSensor
     - LaserAttenuator
+    - CameraSensor
     range: float
     multivalued: true
   maximum:
     name: maximum
     description: Maximum pixel positions [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     domain_of:
+    - LaserAttenuator
     - CameraMask
     - CameraSensor
-    - LaserAttenuator
     range: float
     multivalued: true
   bit_depth:
     name: bit_depth
     description: Camera bit depth.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: int(16)
     domain_of:
@@ -259,7 +258,7 @@ attributes:
   operating_middle:
     name: operating_middle
     description: Operating center positions in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     domain_of:
     - CameraSensor
@@ -268,7 +267,7 @@ attributes:
   mechanical_middle:
     name: mechanical_middle
     description: Mechanical center of the camera in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     domain_of:
     - CameraSensor
@@ -290,7 +289,7 @@ attributes:
   x_pixels:
     name: x_pixels
     description: Raw sensor pixel count in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - BINARY_NUM_PIX_X
     rank: 1000
@@ -303,7 +302,7 @@ attributes:
   y_pixels:
     name: y_pixels
     description: Raw sensor pixel count in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - BINARY_NUM_PIX_Y
     rank: 1000
@@ -316,7 +315,7 @@ attributes:
   x_scale_factor:
     name: x_scale_factor
     description: Pixel binning factor in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - X_PIX_SCALE_FACTOR
     rank: 1000
@@ -328,7 +327,7 @@ attributes:
   y_scale_factor:
     name: y_scale_factor
     description: Pixel binning factor in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - Y_PIX_SCALE_FACTOR
     rank: 1000
@@ -340,7 +339,7 @@ attributes:
   beam_pixel_average:
     name: beam_pixel_average
     description: Average pixel value for beam detection.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - AVG_PIXEL_VALUE_FOR_BEAM
     rank: 1000
@@ -352,7 +351,7 @@ attributes:
   middle:
     name: middle
     description: Sensor optical center in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     owner: CameraSensor
     domain_of:
     - PhysicalElement
@@ -363,7 +362,7 @@ attributes:
   x_pixels_to_mm:
     name: x_pixels_to_mm
     description: Pixel-to-mm scale factor in x.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: float(0.0134)
     owner: CameraSensor
@@ -373,7 +372,7 @@ attributes:
   y_pixels_to_mm:
     name: y_pixels_to_mm
     description: Pixel-to-mm scale factor in y.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: float(0.0134)
     owner: CameraSensor
@@ -383,29 +382,28 @@ attributes:
   minimum:
     name: minimum
     description: Minimum pixel positions [x, y].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    from_schema: https://w3id.org/laura/schema/diagnostics
     owner: CameraSensor
     domain_of:
-    - CameraSensor
     - LaserAttenuator
+    - CameraSensor
     range: float
     multivalued: true
   maximum:
     name: maximum
     description: Maximum pixel positions [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     owner: CameraSensor
     domain_of:
+    - LaserAttenuator
     - CameraMask
     - CameraSensor
-    - LaserAttenuator
     range: float
     multivalued: true
   bit_depth:
     name: bit_depth
     description: Camera bit depth.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     ifabsent: int(16)
     owner: CameraSensor
@@ -415,7 +413,7 @@ attributes:
   operating_middle:
     name: operating_middle
     description: Operating center positions in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     owner: CameraSensor
     domain_of:
@@ -425,7 +423,7 @@ attributes:
   mechanical_middle:
     name: mechanical_middle
     description: Mechanical center of the camera in pixels [x, y].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
     owner: CameraSensor
     domain_of:

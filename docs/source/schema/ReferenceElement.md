@@ -59,18 +59,9 @@ URI: [laura:ReferenceElement](https://w3id.org/laura/ReferenceElement)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [StandardElement](StandardElement.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [Element](Element.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [MagnetBaseElement](MagnetBaseElement.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
-| [Dipole](Dipole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
-| [Quadrupole](Quadrupole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
-| [Sextupole](Sextupole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
-| [Octupole](Octupole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
-| [HorizontalCorrector](HorizontalCorrector.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
-| [VerticalCorrector](VerticalCorrector.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
-| [CombinedCorrector](CombinedCorrector.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
-| [Solenoid](Solenoid.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
-| [NonLinearLens](NonLinearLens.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
-| [Wiggler](Wiggler.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [Diagnostic](Diagnostic.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [BeamPositionMonitor](BeamPositionMonitor.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [BeamArrivalMonitor](BeamArrivalMonitor.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |

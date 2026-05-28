@@ -5,6 +5,11 @@ search:
 
 # Slot: z_column 
 
+
+_Longitudinal position column in the wake file._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -57,6 +62,13 @@ URI: [laura:z_column](https://w3id.org/laura/z_column)
 
 
 
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
+
+
+
 
 ## Mappings
 
@@ -73,6 +85,9 @@ URI: [laura:z_column](https://w3id.org/laura/z_column)
 <details>
 ```yaml
 name: z_column
+description: Longitudinal position column in the wake file.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
 domain_of:
 - RFCavitySimulationElement
 - WakefieldSimulationElement

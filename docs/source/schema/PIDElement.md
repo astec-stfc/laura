@@ -151,7 +151,7 @@ attributes:
   Kp:
     name: Kp
     description: Proportional gain.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - PIDElement
@@ -159,7 +159,7 @@ attributes:
   Ki:
     name: Ki
     description: Integral gain.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - PIDElement
@@ -167,7 +167,7 @@ attributes:
   Kd:
     name: Kd
     description: Derivative gain.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - PIDElement
@@ -175,7 +175,7 @@ attributes:
   forward_channel:
     name: forward_channel
     description: Forward channel index.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - PIDElement
@@ -183,7 +183,7 @@ attributes:
   probe_channel:
     name: probe_channel
     description: Probe channel index.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - PIDElement
@@ -191,7 +191,7 @@ attributes:
   enable:
     name: enable
     description: Enable command/value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - PIDElement
@@ -199,7 +199,7 @@ attributes:
   disable:
     name: disable
     description: Disable command/value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - PIDElement
@@ -207,7 +207,7 @@ attributes:
   phase_range:
     name: phase_range
     description: Phase tuning range.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - PIDElement
@@ -215,7 +215,7 @@ attributes:
   phase_weight_range:
     name: phase_weight_range
     description: Phase weighting range.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - PIDElement
@@ -236,7 +236,7 @@ attributes:
   Kp:
     name: Kp
     description: Proportional gain.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: PIDElement
     domain_of:
@@ -245,7 +245,7 @@ attributes:
   Ki:
     name: Ki
     description: Integral gain.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: PIDElement
     domain_of:
@@ -254,7 +254,7 @@ attributes:
   Kd:
     name: Kd
     description: Derivative gain.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: PIDElement
     domain_of:
@@ -263,7 +263,7 @@ attributes:
   forward_channel:
     name: forward_channel
     description: Forward channel index.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: PIDElement
     domain_of:
@@ -272,7 +272,7 @@ attributes:
   probe_channel:
     name: probe_channel
     description: Probe channel index.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: PIDElement
     domain_of:
@@ -281,7 +281,7 @@ attributes:
   enable:
     name: enable
     description: Enable command/value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: PIDElement
     domain_of:
@@ -290,7 +290,7 @@ attributes:
   disable:
     name: disable
     description: Disable command/value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: PIDElement
     domain_of:
@@ -299,7 +299,7 @@ attributes:
   phase_range:
     name: phase_range
     description: Phase tuning range.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: PIDElement
     domain_of:
@@ -308,7 +308,7 @@ attributes:
   phase_weight_range:
     name: phase_weight_range
     description: Phase weighting range.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: PIDElement
     domain_of:

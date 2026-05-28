@@ -123,7 +123,7 @@ attributes:
   order:
     name: order
     description: Multipole order (0 = dipole, 1 = quadrupole, ?).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: int(0)
     domain_of:
@@ -134,7 +134,7 @@ attributes:
   normal:
     name: normal
     description: Integrated normal (upright) multipole strength [T.m^{1-n}].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -143,7 +143,7 @@ attributes:
   skew:
     name: skew
     description: Integrated skew (rotated) multipole strength [T.m^{1-n}].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -153,7 +153,7 @@ attributes:
   radius:
     name: radius
     description: Reference radius for multipole normalisation [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -180,7 +180,7 @@ attributes:
   order:
     name: order
     description: Multipole order (0 = dipole, 1 = quadrupole, ?).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: int(0)
     owner: Multipole
@@ -192,7 +192,7 @@ attributes:
   normal:
     name: normal
     description: Integrated normal (upright) multipole strength [T.m^{1-n}].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     owner: Multipole
@@ -202,7 +202,7 @@ attributes:
   skew:
     name: skew
     description: Integrated skew (rotated) multipole strength [T.m^{1-n}].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     owner: Multipole
@@ -213,7 +213,7 @@ attributes:
   radius:
     name: radius
     description: Reference radius for multipole normalisation [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     owner: Multipole

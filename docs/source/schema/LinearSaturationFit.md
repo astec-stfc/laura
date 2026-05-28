@@ -128,7 +128,7 @@ attributes:
   m:
     name: m
     description: Linear slope of the unsaturated region.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -137,7 +137,7 @@ attributes:
   I_max:
     name: I_max
     description: Current at which saturation begins [A].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -148,7 +148,7 @@ attributes:
   f:
     name: f
     description: Saturation fraction (slope ratio below/above I_max).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -157,7 +157,7 @@ attributes:
   a:
     name: a
     description: Quadratic saturation coefficient.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -166,7 +166,7 @@ attributes:
   I0:
     name: I0
     description: Current offset [A].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -177,7 +177,7 @@ attributes:
   d:
     name: d
     description: Constant offset term.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -186,7 +186,7 @@ attributes:
   L:
     name: L
     description: Effective magnetic length [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -211,7 +211,7 @@ attributes:
   m:
     name: m
     description: Linear slope of the unsaturated region.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     owner: LinearSaturationFit
@@ -221,7 +221,7 @@ attributes:
   I_max:
     name: I_max
     description: Current at which saturation begins [A].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     owner: LinearSaturationFit
@@ -233,7 +233,7 @@ attributes:
   f:
     name: f
     description: Saturation fraction (slope ratio below/above I_max).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     owner: LinearSaturationFit
@@ -243,7 +243,7 @@ attributes:
   a:
     name: a
     description: Quadratic saturation coefficient.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     owner: LinearSaturationFit
@@ -253,7 +253,7 @@ attributes:
   I0:
     name: I0
     description: Current offset [A].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     owner: LinearSaturationFit
@@ -265,7 +265,7 @@ attributes:
   d:
     name: d
     description: Constant offset term.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     owner: LinearSaturationFit
@@ -275,7 +275,7 @@ attributes:
   L:
     name: L
     description: Effective magnetic length [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     owner: LinearSaturationFit

@@ -129,7 +129,7 @@ from_schema: https://w3id.org/laura/schema
 attributes:
   ch1:
     name: ch1
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH1
     rank: 1000
@@ -139,7 +139,7 @@ attributes:
     range: string
   ch2:
     name: ch2
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH2
     rank: 1000
@@ -149,7 +149,7 @@ attributes:
     range: string
   ch3:
     name: ch3
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH3
     rank: 1000
@@ -159,7 +159,7 @@ attributes:
     range: string
   ch4:
     name: ch4
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH4
     rank: 1000
@@ -169,7 +169,7 @@ attributes:
     range: string
   ch5:
     name: ch5
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH5
     rank: 1000
@@ -179,7 +179,7 @@ attributes:
     range: string
   ch6:
     name: ch6
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH6
     rank: 1000
@@ -189,7 +189,7 @@ attributes:
     range: string
   ch7:
     name: ch7
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH7
     rank: 1000
@@ -199,7 +199,7 @@ attributes:
     range: string
   ch8:
     name: ch8
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH8
     rank: 1000
@@ -222,7 +222,7 @@ from_schema: https://w3id.org/laura/schema
 attributes:
   ch1:
     name: ch1
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH1
     rank: 1000
@@ -233,7 +233,7 @@ attributes:
     range: string
   ch2:
     name: ch2
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH2
     rank: 1000
@@ -244,7 +244,7 @@ attributes:
     range: string
   ch3:
     name: ch3
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH3
     rank: 1000
@@ -255,7 +255,7 @@ attributes:
     range: string
   ch4:
     name: ch4
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH4
     rank: 1000
@@ -266,7 +266,7 @@ attributes:
     range: string
   ch5:
     name: ch5
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH5
     rank: 1000
@@ -277,7 +277,7 @@ attributes:
     range: string
   ch6:
     name: ch6
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH6
     rank: 1000
@@ -288,7 +288,7 @@ attributes:
     range: string
   ch7:
     name: ch7
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH7
     rank: 1000
@@ -299,7 +299,7 @@ attributes:
     range: string
   ch8:
     name: ch8
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - CH8
     rank: 1000

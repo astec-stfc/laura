@@ -62,16 +62,6 @@ URI: [laura:DegaussableElement](https://w3id.org/laura/DegaussableElement)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [MagnetBaseElement](MagnetBaseElement.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
-| [Dipole](Dipole.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
-| [Quadrupole](Quadrupole.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
-| [Sextupole](Sextupole.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
-| [Octupole](Octupole.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
-| [HorizontalCorrector](HorizontalCorrector.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
-| [VerticalCorrector](VerticalCorrector.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
-| [CombinedCorrector](CombinedCorrector.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
-| [Solenoid](Solenoid.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
-| [NonLinearLens](NonLinearLens.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
-| [Wiggler](Wiggler.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
 
 
 
@@ -134,7 +124,7 @@ attributes:
   tolerance:
     name: tolerance
     description: Current tolerance band during the degauss cycle [A].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     aliases:
     - degauss_tolerance
     rank: 1000
@@ -147,7 +137,7 @@ attributes:
   values:
     name: values
     description: Sequence of peak currents applied during the degauss cycle [A].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     aliases:
     - degauss_values
     rank: 1000
@@ -160,7 +150,7 @@ attributes:
   steps:
     name: steps
     description: Number of degauss steps per half-cycle.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     aliases:
     - num_degauss_steps
     rank: 1000
@@ -188,7 +178,7 @@ attributes:
   tolerance:
     name: tolerance
     description: Current tolerance band during the degauss cycle [A].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     aliases:
     - degauss_tolerance
     rank: 1000
@@ -202,7 +192,7 @@ attributes:
   values:
     name: values
     description: Sequence of peak currents applied during the degauss cycle [A].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     aliases:
     - degauss_values
     rank: 1000
@@ -216,7 +206,7 @@ attributes:
   steps:
     name: steps
     description: Number of degauss steps per half-cycle.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     aliases:
     - num_degauss_steps
     rank: 1000

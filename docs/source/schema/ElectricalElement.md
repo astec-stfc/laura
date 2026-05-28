@@ -62,18 +62,9 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [StandardElement](StandardElement.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [Element](Element.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [MagnetBaseElement](MagnetBaseElement.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
-| [Dipole](Dipole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
-| [Quadrupole](Quadrupole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
-| [Sextupole](Sextupole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
-| [Octupole](Octupole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
-| [HorizontalCorrector](HorizontalCorrector.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
-| [VerticalCorrector](VerticalCorrector.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
-| [CombinedCorrector](CombinedCorrector.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
-| [Solenoid](Solenoid.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
-| [NonLinearLens](NonLinearLens.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
-| [Wiggler](Wiggler.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Diagnostic](Diagnostic.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [BeamPositionMonitor](BeamPositionMonitor.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [BeamArrivalMonitor](BeamArrivalMonitor.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |

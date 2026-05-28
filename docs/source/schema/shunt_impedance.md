@@ -5,6 +5,11 @@ search:
 
 # Slot: shunt_impedance 
 
+
+_Shunt impedance [M?/m]._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -34,7 +39,7 @@ URI: [laura:shunt_impedance](https://w3id.org/laura/shunt_impedance)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [Float](Float.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -57,6 +62,13 @@ URI: [laura:shunt_impedance](https://w3id.org/laura/shunt_impedance)
 
 
 
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
+
+
+
 
 ## Mappings
 
@@ -73,10 +85,13 @@ URI: [laura:shunt_impedance](https://w3id.org/laura/shunt_impedance)
 <details>
 ```yaml
 name: shunt_impedance
+description: Shunt impedance [M?/m].
+from_schema: https://w3id.org/laura/schema
+rank: 1000
 domain_of:
 - RFCavityElement
 - RFDeflectingCavityElement
-range: string
+range: float
 
 ```
 </details></div>

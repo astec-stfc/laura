@@ -343,8 +343,7 @@ type Diagnostic
 
 type DiagnosticElement
   {
-    _placeholder: Boolean
-  }
+    _placeholder: Boolean`n  }
 
 type DiagnosticSimulationElement
   {
@@ -543,8 +542,7 @@ type LaserEnergyMeter
 
 type LaserEnergyMeterElement
   {
-    _placeholder: Boolean
-  }
+    _placeholder: Boolean`n  }
 
 type LaserHalfWavePlate
   {
@@ -566,8 +564,7 @@ type LaserHalfWavePlate
 
 type LaserHalfWavePlateElement
   {
-    _placeholder: Boolean
-  }
+    _placeholder: Boolean`n  }
 
 type LaserMirror
   {
@@ -623,8 +620,7 @@ type Lighting
 
 type LightingElement
   {
-    _placeholder: Boolean
-  }
+    _placeholder: Boolean`n  }
 
 type LinearSaturationFit
   {
@@ -1064,8 +1060,7 @@ type RFHeartbeat
 
 type RFHeartbeatElement
   {
-    _placeholder: Boolean
-  }
+    _placeholder: Boolean`n  }
 
 type RFModulator
   {
@@ -1087,8 +1082,7 @@ type RFModulator
 
 type RFModulatorElement
   {
-    _placeholder: Boolean
-  }
+    _placeholder: Boolean`n  }
 
 type RFProtection
   {
@@ -1303,8 +1297,7 @@ type Valve
 
 type ValveElement
   {
-    _placeholder: Boolean
-  }
+    _placeholder: Boolean`n  }
 
 type Wakefield
   {
@@ -1379,4 +1372,5 @@ type WallCurrentMonitor
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
   }
+
 

@@ -35,7 +35,7 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
     
         
         
-        AcceleratorElement --> "0..1" HardwareClassEnum : hardware_class
+        AcceleratorElement --> "1" HardwareClassEnum : hardware_class
         click HardwareClassEnum href "../HardwareClassEnum/"
     
 
@@ -77,7 +77,7 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique element name within the machine | direct |
-| [hardware_class](hardware_class.md) | 0..1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | direct |
+| [hardware_class](hardware_class.md) | 1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | direct |
 | [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for MODEL_REGISTRY dispatch | direct |
 | [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | direct |
 | [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | direct |
@@ -156,6 +156,7 @@ attributes:
     - SectionLattice
     - MachineLayout
     range: string
+    required: true
   hardware_class:
     name: hardware_class
     description: Functional category (e.g., ``Magnet``, ``Diagnostic``).
@@ -164,13 +165,14 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: HardwareClassEnum
+    required: true
   hardware_type:
     name: hardware_type
     description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the
       concrete subclass to instantiate when loading from YAML.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    designates_type: true
+    ifabsent: string(Generic)
     domain_of:
     - AcceleratorElement
     range: string
@@ -260,13 +262,14 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: HardwareClassEnum
+    required: true
   hardware_type:
     name: hardware_type
     description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the
       concrete subclass to instantiate when loading from YAML.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    designates_type: true
+    ifabsent: string(Generic)
     owner: AcceleratorElement
     domain_of:
     - AcceleratorElement

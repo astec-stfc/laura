@@ -153,7 +153,7 @@ attributes:
   beta_x:
     name: beta_x
     description: Horizontal beta.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - TwissMatchSimulationElement
@@ -161,7 +161,7 @@ attributes:
   beta_y:
     name: beta_y
     description: Vertical beta.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - TwissMatchSimulationElement
@@ -169,7 +169,7 @@ attributes:
   alpha_x:
     name: alpha_x
     description: Horizontal alpha.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - TwissMatchSimulationElement
@@ -177,7 +177,7 @@ attributes:
   alpha_y:
     name: alpha_y
     description: Vertical alpha.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - TwissMatchSimulationElement
@@ -185,7 +185,7 @@ attributes:
   eta_x:
     name: eta_x
     description: Horizontal dispersion.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -194,7 +194,7 @@ attributes:
   eta_y:
     name: eta_y
     description: Vertical dispersion.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -203,7 +203,7 @@ attributes:
   eta_xp:
     name: eta_xp
     description: Horizontal dispersion derivative.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -212,7 +212,7 @@ attributes:
   eta_yp:
     name: eta_yp
     description: Vertical dispersion derivative.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -221,7 +221,7 @@ attributes:
   from_beam:
     name: from_beam
     description: Compute transform from tracked beam properties.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'True'
     domain_of:
@@ -244,7 +244,7 @@ attributes:
   beta_x:
     name: beta_x
     description: Horizontal beta.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: TwissMatchSimulationElement
     domain_of:
@@ -253,7 +253,7 @@ attributes:
   beta_y:
     name: beta_y
     description: Vertical beta.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: TwissMatchSimulationElement
     domain_of:
@@ -262,7 +262,7 @@ attributes:
   alpha_x:
     name: alpha_x
     description: Horizontal alpha.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: TwissMatchSimulationElement
     domain_of:
@@ -271,7 +271,7 @@ attributes:
   alpha_y:
     name: alpha_y
     description: Vertical alpha.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: TwissMatchSimulationElement
     domain_of:
@@ -280,7 +280,7 @@ attributes:
   eta_x:
     name: eta_x
     description: Horizontal dispersion.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     owner: TwissMatchSimulationElement
@@ -290,7 +290,7 @@ attributes:
   eta_y:
     name: eta_y
     description: Vertical dispersion.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     owner: TwissMatchSimulationElement
@@ -300,7 +300,7 @@ attributes:
   eta_xp:
     name: eta_xp
     description: Horizontal dispersion derivative.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     owner: TwissMatchSimulationElement
@@ -310,7 +310,7 @@ attributes:
   eta_yp:
     name: eta_yp
     description: Vertical dispersion derivative.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0.0)
     owner: TwissMatchSimulationElement
@@ -320,7 +320,7 @@ attributes:
   from_beam:
     name: from_beam
     description: Compute transform from tracked beam properties.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: 'True'
     owner: TwissMatchSimulationElement
@@ -330,7 +330,7 @@ attributes:
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: TwissMatchSimulationElement
     domain_of:
@@ -339,7 +339,7 @@ attributes:
   wakefield_definition:
     name: wakefield_definition
     description: Path to the wakefield impedance file.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: TwissMatchSimulationElement
     domain_of:
@@ -348,7 +348,7 @@ attributes:
   field_reference_position:
     name: field_reference_position
     description: Longitudinal origin of the field map [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: TwissMatchSimulationElement
     domain_of:
@@ -357,7 +357,7 @@ attributes:
   scale_field:
     name: scale_field
     description: Multiplicative scale factor applied to the field map.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(1)
     owner: TwissMatchSimulationElement

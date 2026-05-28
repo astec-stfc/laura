@@ -109,7 +109,7 @@ attributes:
   prot_type:
     name: prot_type
     description: Protection system type.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - RFProtectionElement
@@ -130,7 +130,7 @@ attributes:
   prot_type:
     name: prot_type
     description: Protection system type.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: RFProtectionElement
     domain_of:

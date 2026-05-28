@@ -546,7 +546,7 @@ class _FieldIntegralBase(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:FieldIntegral',
          'from_schema': 'https://w3id.org/laura/schema/magnetic'})
 
-    coefficients: Optional[list[float]] = Field(default=[0], description="""Polynomial coefficients ordered from lowest to highest degree: ``FieldIntegral = sum c_n . I^n``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['FieldIntegral'], 'ifabsent': '[0]'} })
+    coefficients: list[float] = Field(default_factory=list, description="""Polynomial coefficients ordered from lowest to highest degree: ``FieldIntegral = sum c_n . I^n``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['FieldIntegral']} })
 
 
 class _LinearSaturationFitBase(ConfiguredBaseModel):
@@ -982,7 +982,7 @@ class _ScreenDiagnosticElementBase(_DiagnosticElementBase):
          'ifabsent': 'string(CLARA_HV_MOVER)'} })
     has_camera: Optional[bool] = Field(default=True, description="""Whether the screen has an associated camera.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenDiagnosticElement'], 'ifabsent': 'True'} })
     camera_name: str = Field(default="", description="""Name of the associated camera element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenDiagnosticElement'], 'ifabsent': 'string()'} })
-    devices: Optional[list[str]] = Field(default="[]", description="""List of attached devices.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenDiagnosticElement'], 'ifabsent': '[]'} })
+    devices: list[str] = Field(default_factory=list, description="""List of attached devices.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenDiagnosticElement']} })
 
 
 class _ChargeDiagnosticElementBase(_DiagnosticElementBase):

@@ -27,18 +27,9 @@ URI: [laura:hardware_type](https://w3id.org/laura/hardware_type)
 | --- | --- | --- |
 | [AcceleratorElement](AcceleratorElement.md) | Root base class for all LAURA accelerator elements |  no  |
 | [StandardElement](StandardElement.md) | Accelerator element with control-system, electrical, manufacturer, simulation... |  no  |
+| [Element](Element.md) | Concrete schema counterpart of the Python ``Element`` wrapper class |  no  |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | Accelerator element with a well-defined physical position and orientation in ... |  no  |
 | [MagnetBaseElement](MagnetBaseElement.md) | Base class for all magnetic focusing and bending elements |  no  |
-| [Dipole](Dipole.md) | Dipole bending magnet |  yes  |
-| [Quadrupole](Quadrupole.md) | Quadrupole focusing magnet |  yes  |
-| [Sextupole](Sextupole.md) | Sextupole chromaticity-correction magnet |  yes  |
-| [Octupole](Octupole.md) | Octupole magnet |  yes  |
-| [HorizontalCorrector](HorizontalCorrector.md) | Horizontal orbit-corrector dipole |  yes  |
-| [VerticalCorrector](VerticalCorrector.md) | Vertical orbit-corrector dipole |  yes  |
-| [CombinedCorrector](CombinedCorrector.md) | Combined horizontal and vertical orbit-corrector magnet |  yes  |
-| [Solenoid](Solenoid.md) | Solenoid focussing magnet |  yes  |
-| [NonLinearLens](NonLinearLens.md) | Non-linear focusing lens (IOTA-style) |  yes  |
-| [Wiggler](Wiggler.md) | Wiggler / undulator permanent-magnet array |  yes  |
 | [Diagnostic](Diagnostic.md) | Base class for all beam-diagnostic instruments |  no  |
 | [BeamPositionMonitor](BeamPositionMonitor.md) | Beam-position monitor (BPM) |  yes  |
 | [BeamArrivalMonitor](BeamArrivalMonitor.md) | Beam-arrival-time monitor (BAM) |  yes  |
@@ -96,7 +87,7 @@ URI: [laura:hardware_type](https://w3id.org/laura/hardware_type)
 
 | Property | Value |
 | --- | --- |
-| Designates Type | Yes |
+| If Absent | `string(Generic)` |
 | Owner | [AcceleratorElement](AcceleratorElement.md) |
 
 
@@ -143,7 +134,7 @@ description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the
   subclass to instantiate when loading from YAML.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-designates_type: true
+ifabsent: string(Generic)
 owner: AcceleratorElement
 domain_of:
 - AcceleratorElement

@@ -5,6 +5,11 @@ search:
 
 # Slot: design_gamma 
 
+
+_Design Lorentz factor._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -34,13 +39,20 @@ URI: [laura:design_gamma](https://w3id.org/laura/design_gamma)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [Float](Float.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+### Value Constraints
+
+| Property | Value |
+| --- | --- |
+| Minimum Value | 1 |
+
+
 
 
 
@@ -54,6 +66,13 @@ URI: [laura:design_gamma](https://w3id.org/laura/design_gamma)
 ## Identifier and Mapping Information
 
 
+
+
+
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
 
 
 
@@ -73,10 +92,14 @@ URI: [laura:design_gamma](https://w3id.org/laura/design_gamma)
 <details>
 ```yaml
 name: design_gamma
+description: Design Lorentz factor.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
 domain_of:
 - RFCavityElement
 - RFDeflectingCavityElement
-range: string
+range: float
+minimum_value: 1.0
 
 ```
 </details></div>

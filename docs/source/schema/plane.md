@@ -6,7 +6,7 @@ search:
 # Slot: plane 
 
 
-_Principal bending / focusing plane (``H``, ``V``, or ``HV``)._
+_Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)._
 
 
 
@@ -38,7 +38,7 @@ URI: [laura:plane](https://w3id.org/laura/plane)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [BendingPlaneEnum](BendingPlaneEnum.md) |
 | Domain Of | [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
@@ -49,7 +49,7 @@ URI: [laura:plane](https://w3id.org/laura/plane)
 
 | Property | Value |
 | --- | --- |
-| If Absent | `string(horizontal)` |
+| If Absent | `string(Horizontal)` |
 | Owner | [MagneticElement](MagneticElement.md) |
 
 
@@ -92,14 +92,15 @@ URI: [laura:plane](https://w3id.org/laura/plane)
 <details>
 ```yaml
 name: plane
-description: Principal bending / focusing plane (``H``, ``V``, or ``HV``).
+description: Principal bending / focusing plane (``Horizontal``, ``Vertical``, or
+  ``Combined``).
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: string(horizontal)
+ifabsent: string(Horizontal)
 owner: MagneticElement
 domain_of:
 - MagneticElement
-range: string
+range: BendingPlaneEnum
 
 ```
 </details></div>

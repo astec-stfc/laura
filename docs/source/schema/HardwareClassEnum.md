@@ -34,6 +34,9 @@ URI: [laura:HardwareClassEnum](https://w3id.org/laura/HardwareClassEnum)
 | Shutter | None | Beam or laser shutter |
 | Wakefield | None | Passive wakefield structure |
 | TwissMatch | None | Virtual Twiss-parameter matching point |
+| Drift | None | Drift element |
+| Generic | None | Generic element |
+| Monitor | None | Beam monitor element |
 
 
 
@@ -121,6 +124,15 @@ permissible_values:
   TwissMatch:
     text: TwissMatch
     description: Virtual Twiss-parameter matching point.
+  Drift:
+    text: Drift
+    description: Drift element.
+  Generic:
+    text: Generic
+    description: Generic element.
+  Monitor:
+    text: Monitor
+    description: Beam monitor element.
 
 ```
 </details>

@@ -73,19 +73,19 @@ URI: [laura:RFCavityElement](https://w3id.org/laura/RFCavityElement)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
+| [cell_length](cell_length.md) | 0..1 <br/> [Float](Float.md) | Length of a single cell [m] | direct |
+| [coupling_cell_length](coupling_cell_length.md) | 0..1 <br/> [Float](Float.md) | Length of the coupling cell [m] | direct |
+| [design_gamma](design_gamma.md) | 0..1 <br/> [Float](Float.md) | Design Lorentz factor | direct |
+| [design_power](design_power.md) | 0..1 <br/> [Float](Float.md) | Design peak power [W] | direct |
+| [frequency](frequency.md) | 0..1 <br/> [Float](Float.md) | Operating frequency [Hz] | direct |
+| [n_cells](n_cells.md) | 0..1 <br/> [Integer](Integer.md) | Number of cells | direct |
+| [crest](crest.md) | 0..1 <br/> [Float](Float.md) | On-crest phase offset providing maximum energy gain [deg] | direct |
+| [phase](phase.md) | 0..1 <br/> [Float](Float.md) | Operating phase offset [deg] | direct |
+| [shunt_impedance](shunt_impedance.md) | 0..1 <br/> [Float](Float.md) | Shunt impedance [M?/m] | direct |
+| [mode_numerator](mode_numerator.md) | 0..1 <br/> [Integer](Integer.md) | Mode fraction numerator | direct |
+| [mode_denominator](mode_denominator.md) | 0..1 <br/> [Integer](Integer.md) | Mode fraction denominator | direct |
 | [structure_type](structure_type.md) | 0..1 <br/> [String](String.md) | RF structure type (e | direct |
 | [attenuation_constant](attenuation_constant.md) | 0..1 <br/> [Float](Float.md) | Attenuation constant ? of a travelling-wave structure [Np/m] | direct |
-| [cell_length](cell_length.md) | 0..1 <br/> [Float](Float.md) | Length of a single accelerating cell [m] | direct |
-| [coupling_cell_length](coupling_cell_length.md) | 0..1 <br/> [Float](Float.md) | Length of a coupling cell [m] | direct |
-| [design_gamma](design_gamma.md) | 0..1 <br/> [Float](Float.md) | Relativistic Lorentz factor ? at design operating point | direct |
-| [design_power](design_power.md) | 0..1 <br/> [Float](Float.md) | Design peak RF power [W] | direct |
-| [frequency](frequency.md) | 0..1 <br/> [Float](Float.md) | RF operating frequency [Hz] | direct |
-| [n_cells](n_cells.md) | 0..1 <br/> [Integer](Integer.md) | Number of accelerating cells | direct |
-| [crest](crest.md) | 0..1 <br/> [Float](Float.md) | On-crest phase offset providing maximum energy gain [deg] | direct |
-| [phase](phase.md) | 0..1 <br/> [Float](Float.md) | Operating phase relative to crest [deg] | direct |
-| [shunt_impedance](shunt_impedance.md) | 0..1 <br/> [Float](Float.md) | Shunt impedance [M?/m] | direct |
-| [mode_numerator](mode_numerator.md) | 0..1 <br/> [Integer](Integer.md) | Numerator of the operating mode fraction (e | direct |
-| [mode_denominator](mode_denominator.md) | 0..1 <br/> [Integer](Integer.md) | Denominator of the operating mode fraction | direct |
 | [power_calibration](power_calibration.md) | * <br/> [Float](Float.md) | Calibration constant relating measured power to cavity gradient | direct |
 | [gradient_calibration](gradient_calibration.md) | * <br/> [Float](Float.md) | Calibration relating measured signal to gradient [MV/m per a | direct |
 
@@ -155,11 +155,23 @@ description: RF cavity accelerating-structure parameters.
 in_subset:
 - rf_properties
 from_schema: https://w3id.org/laura/schema
+slots:
+- cell_length
+- coupling_cell_length
+- design_gamma
+- design_power
+- frequency
+- n_cells
+- crest
+- phase
+- shunt_impedance
+- mode_numerator
+- mode_denominator
 attributes:
   structure_type:
     name: structure_type
     description: RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - structure_Type
     rank: 1000
@@ -170,143 +182,16 @@ attributes:
   attenuation_constant:
     name: attenuation_constant
     description: Attenuation constant ? of a travelling-wave structure [Np/m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     ifabsent: float(0)
     domain_of:
     - RFCavityElement
     range: float
-  cell_length:
-    name: cell_length
-    description: Length of a single accelerating cell [m].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    ifabsent: float(0.03333333333333333)
-    domain_of:
-    - RFCavityElement
-    - WakefieldElement
-    - RFDeflectingCavityElement
-    range: float
-    minimum_value: 0.0
-    unit:
-      ucum_code: m
-  coupling_cell_length:
-    name: coupling_cell_length
-    description: Length of a coupling cell [m].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    ifabsent: float(0.0)
-    domain_of:
-    - RFCavityElement
-    - WakefieldElement
-    - RFDeflectingCavityElement
-    range: float
-    minimum_value: 0.0
-    unit:
-      ucum_code: m
-  design_gamma:
-    name: design_gamma
-    description: Relativistic Lorentz factor ? at design operating point.
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-    minimum_value: 1.0
-  design_power:
-    name: design_power
-    description: Design peak RF power [W].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    ifabsent: float(25000000)
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-    minimum_value: 0.0
-    unit:
-      ucum_code: W
-  frequency:
-    name: frequency
-    description: RF operating frequency [Hz].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    ifabsent: float(2998500000.0)
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-    minimum_value: 0.0
-    unit:
-      ucum_code: Hz
-  n_cells:
-    name: n_cells
-    description: Number of accelerating cells.
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    ifabsent: int(1)
-    domain_of:
-    - RFCavityElement
-    - WakefieldElement
-    - RFDeflectingCavityElement
-    range: integer
-    minimum_value: 1
-  crest:
-    name: crest
-    description: On-crest phase offset providing maximum energy gain [deg].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    ifabsent: float(0)
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-    unit:
-      ucum_code: deg
-  phase:
-    name: phase
-    description: Operating phase relative to crest [deg].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    ifabsent: float(0.0)
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-    unit:
-      ucum_code: deg
-  shunt_impedance:
-    name: shunt_impedance
-    description: Shunt impedance [M?/m].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: float
-  mode_numerator:
-    name: mode_numerator
-    description: Numerator of the operating mode fraction (e.g., 2 for 2pi/3).
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: integer
-  mode_denominator:
-    name: mode_denominator
-    description: Denominator of the operating mode fraction.
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    domain_of:
-    - RFCavityElement
-    - RFDeflectingCavityElement
-    range: integer
   power_calibration:
     name: power_calibration
     description: Calibration constant relating measured power to cavity gradient.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - RFCavityElement
@@ -315,7 +200,7 @@ attributes:
   gradient_calibration:
     name: gradient_calibration
     description: Calibration relating measured signal to gradient [MV/m per a.u.].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - RFCavityElement
@@ -339,7 +224,7 @@ attributes:
   structure_type:
     name: structure_type
     description: RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave).
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     aliases:
     - structure_Type
     rank: 1000
@@ -351,16 +236,36 @@ attributes:
   attenuation_constant:
     name: attenuation_constant
     description: Attenuation constant ? of a travelling-wave structure [Np/m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     ifabsent: float(0)
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
     range: float
+  power_calibration:
+    name: power_calibration
+    description: Calibration constant relating measured power to cavity gradient.
+    from_schema: https://w3id.org/laura/schema/rf
+    rank: 1000
+    owner: RFCavityElement
+    domain_of:
+    - RFCavityElement
+    range: float
+    multivalued: true
+  gradient_calibration:
+    name: gradient_calibration
+    description: Calibration relating measured signal to gradient [MV/m per a.u.].
+    from_schema: https://w3id.org/laura/schema/rf
+    rank: 1000
+    owner: RFCavityElement
+    domain_of:
+    - RFCavityElement
+    range: float
+    multivalued: true
   cell_length:
     name: cell_length
-    description: Length of a single accelerating cell [m].
+    description: Length of a single cell [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: float(0.03333333333333333)
@@ -375,7 +280,7 @@ attributes:
       ucum_code: m
   coupling_cell_length:
     name: coupling_cell_length
-    description: Length of a coupling cell [m].
+    description: Length of the coupling cell [m].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: float(0.0)
@@ -390,7 +295,7 @@ attributes:
       ucum_code: m
   design_gamma:
     name: design_gamma
-    description: Relativistic Lorentz factor ? at design operating point.
+    description: Design Lorentz factor.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: RFCavityElement
@@ -401,7 +306,7 @@ attributes:
     minimum_value: 1.0
   design_power:
     name: design_power
-    description: Design peak RF power [W].
+    description: Design peak power [W].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: float(25000000)
@@ -415,7 +320,7 @@ attributes:
       ucum_code: W
   frequency:
     name: frequency
-    description: RF operating frequency [Hz].
+    description: Operating frequency [Hz].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: float(2998500000.0)
@@ -429,7 +334,7 @@ attributes:
       ucum_code: Hz
   n_cells:
     name: n_cells
-    description: Number of accelerating cells.
+    description: Number of cells.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: int(1)
@@ -455,7 +360,7 @@ attributes:
       ucum_code: deg
   phase:
     name: phase
-    description: Operating phase relative to crest [deg].
+    description: Operating phase offset [deg].
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: float(0.0)
@@ -478,7 +383,7 @@ attributes:
     range: float
   mode_numerator:
     name: mode_numerator
-    description: Numerator of the operating mode fraction (e.g., 2 for 2pi/3).
+    description: Mode fraction numerator.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: RFCavityElement
@@ -488,7 +393,7 @@ attributes:
     range: integer
   mode_denominator:
     name: mode_denominator
-    description: Denominator of the operating mode fraction.
+    description: Mode fraction denominator.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: RFCavityElement
@@ -496,26 +401,6 @@ attributes:
     - RFCavityElement
     - RFDeflectingCavityElement
     range: integer
-  power_calibration:
-    name: power_calibration
-    description: Calibration constant relating measured power to cavity gradient.
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    owner: RFCavityElement
-    domain_of:
-    - RFCavityElement
-    range: float
-    multivalued: true
-  gradient_calibration:
-    name: gradient_calibration
-    description: Calibration relating measured signal to gradient [MV/m per a.u.].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    owner: RFCavityElement
-    domain_of:
-    - RFCavityElement
-    range: float
-    multivalued: true
 class_uri: laura:RFCavityElement
 
 ```

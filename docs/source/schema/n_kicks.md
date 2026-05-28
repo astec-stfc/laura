@@ -5,6 +5,11 @@ search:
 
 # Slot: n_kicks 
 
+
+_Number of integration kicks._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -20,8 +25,8 @@ URI: [laura:n_kicks](https://w3id.org/laura/n_kicks)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  no  |
-| [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  no  |
+| [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  yes  |
+| [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  yes  |
 
 
 
@@ -34,7 +39,7 @@ URI: [laura:n_kicks](https://w3id.org/laura/n_kicks)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [Integer](Integer.md) |
 | Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md), [RFCavitySimulationElement](RFCavitySimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -57,6 +62,13 @@ URI: [laura:n_kicks](https://w3id.org/laura/n_kicks)
 
 
 
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
+
+
+
 
 ## Mappings
 
@@ -73,10 +85,13 @@ URI: [laura:n_kicks](https://w3id.org/laura/n_kicks)
 <details>
 ```yaml
 name: n_kicks
+description: Number of integration kicks.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
 domain_of:
 - MagnetSimulationElement
 - RFCavitySimulationElement
-range: string
+range: integer
 
 ```
 </details></div>

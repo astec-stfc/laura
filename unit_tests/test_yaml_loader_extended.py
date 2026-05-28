@@ -300,24 +300,32 @@ class TestValidateElementDict:
         }
 
     def test_base_class_element_passes(self):
-        """An element with hardware_type 'AcceleratorElement' satisfies the root schema."""
+        """An element with both required fields (name, hardware_class) satisfies the root schema."""
         jsonschema = pytest.importorskip("jsonschema")
         from laura.Importers.YAML_Loader import validate_element_dict
-        # The root JSON Schema constrains hardware_type to ['AcceleratorElement']
-        base_elem = {"name": "BASE_ELEM", "hardware_type": "AcceleratorElement"}
+        # Root schema requires 'name' and 'hardware_class'; hardware_type is an unconstrained string
+        base_elem = {"name": "BASE_ELEM", "hardware_class": "Generic", "hardware_type": "AcceleratorElement"}
         # Should not raise
         validate_element_dict(base_elem)
 
-    def test_concrete_hardware_type_raises_validation_error(self):
-        """Concrete hardware types (Quadrupole, Marker, …) fail root schema validation.
+    def test_concrete_hardware_type_with_hardware_class_passes(self):
+        """Concrete hardware types (Quadrupole, etc.) pass validation when hardware_class is present.
 
-        The root schema only accepts hardware_type == 'AcceleratorElement'; concrete
-        element types are defined in $defs but the root validator does not use them.
+        The root schema does not constrain hardware_type — it accepts any string value.
+        Validation only fails if 'name' or 'hardware_class' are missing.
         """
         jsonschema = pytest.importorskip("jsonschema")
         from laura.Importers.YAML_Loader import validate_element_dict
+        # Should not raise: name and hardware_class are both present
+        validate_element_dict(self._valid_quad_dict())
+
+    def test_missing_hardware_class_raises_validation_error(self):
+        """An element missing the required 'hardware_class' field fails validation."""
+        jsonschema = pytest.importorskip("jsonschema")
+        from laura.Importers.YAML_Loader import validate_element_dict
+        bad = {"name": "QV", "hardware_type": "Quadrupole"}  # missing hardware_class
         with pytest.raises(jsonschema.ValidationError):
-            validate_element_dict(self._valid_quad_dict())
+            validate_element_dict(bad)
 
     def test_missing_required_name_raises_validation_error(self):
         """An element missing the required 'name' field fails validation."""
@@ -360,17 +368,18 @@ class TestValidateElementDict:
 class TestReadYAMLElementFileWithValidation:
     """read_YAML_Element_File(validate=True) validates before Pydantic parsing."""
 
-    def test_real_element_file_raises_with_validate_true(self, tmp_path):
-        """validate=True on a concrete element file raises ValidationError.
+    def test_real_element_file_passes_with_validate_true(self, tmp_path):
+        """validate=True on a concrete element file does not raise.
 
-        The root JSON Schema only allows hardware_type='AcceleratorElement';
-        concrete types written to YAML files will fail root-schema validation.
+        Element YAML files include both 'name' and 'hardware_class', satisfying
+        all root-schema requirements.  The schema accepts any hardware_type string.
         """
         q = _make_quad("QV", "SEC")
         fpath = _write_element_yaml(str(tmp_path), q)
-        jsonschema = pytest.importorskip("jsonschema")
-        with pytest.raises(jsonschema.ValidationError):
-            read_YAML_Element_File(fpath, validate=True)
+        pytest.importorskip("jsonschema")
+        # Should not raise: exported YAML has name + hardware_class
+        elem = read_YAML_Element_File(fpath, validate=True)
+        assert elem is not None
 
     def test_validate_false_reads_element_successfully(self, tmp_path):
         """validate=False (default) loads an element without schema validation."""
@@ -396,12 +405,13 @@ class TestReadYAMLElementFileWithValidation:
 class TestReadYAMLCombinedFileWithValidation:
     """read_YAML_Combined_File(validate=True) validates each element dict."""
 
-    def test_real_combined_file_raises_with_validate_true(self, tmp_path):
-        """validate=True on a combined file with concrete elements raises ValidationError.
+    def test_real_combined_file_passes_with_validate_true(self, tmp_path):
+        """validate=True on a combined file with concrete elements does not raise.
 
-        The root JSON Schema only allows hardware_type='AcceleratorElement'.
+        All exported element dicts include 'name' and 'hardware_class', satisfying
+        the root-schema requirements.  The schema accepts any hardware_type string.
         """
-        jsonschema = pytest.importorskip("jsonschema")
+        pytest.importorskip("jsonschema")
         q = _make_quad("QC", "SEC")
         m = _make_marker("MC", "SEC")
         sections = {"sections": {"SEC": ["MC", "QC"]}}
@@ -410,8 +420,9 @@ class TestReadYAMLCombinedFileWithValidation:
         export_path = str(tmp_path / "combined")
         export_machine_combined_file(path=export_path, machine=machine)
         summary = os.path.join(export_path, "summary.yaml")
-        with pytest.raises(jsonschema.ValidationError):
-            read_YAML_Combined_File(summary, validate=True)
+        # Should not raise: all elements have name + hardware_class
+        elements = read_YAML_Combined_File(summary, validate=True)
+        assert len(elements) > 0
 
     def test_combined_file_loads_without_validation(self, tmp_path):
         """validate=False (default) loads combined files normally."""
@@ -430,7 +441,7 @@ class TestReadYAMLCombinedFileWithValidation:
     def test_missing_name_raises_in_combined_file_validate(self, tmp_path):
         """An element missing 'name' raises ValidationError with validate=True."""
         jsonschema = pytest.importorskip("jsonschema")
-        # Use base class hardware_type so only 'name' being missing causes the error
+        # Dict is missing both 'name' and 'hardware_class' (both required by root schema)
         bad_data = {"elem1": {"hardware_type": "AcceleratorElement"}}
         bad_path = str(tmp_path / "bad.yaml")
         with open(bad_path, "w") as fh:

@@ -119,43 +119,10 @@ description: Passive wakefield structure parameters.
 in_subset:
 - rf_properties
 from_schema: https://w3id.org/laura/schema
-attributes:
-  cell_length:
-    name: cell_length
-    description: Length of a single cell [m].
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: float(0.03333333333333333)
-    domain_of:
-    - RFCavityElement
-    - WakefieldElement
-    - RFDeflectingCavityElement
-    range: float
-    minimum_value: 0.0
-    unit:
-      ucum_code: m
-  n_cells:
-    name: n_cells
-    description: Number of cells.
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: int(1)
-    domain_of:
-    - RFCavityElement
-    - WakefieldElement
-    - RFDeflectingCavityElement
-    range: integer
-    minimum_value: 1
-  coupling_cell_length:
-    name: coupling_cell_length
-    description: Length of the coupling cell [m].
-    from_schema: https://w3id.org/laura/schema
-    ifabsent: float(0.0)
-    domain_of:
-    - RFCavityElement
-    - WakefieldElement
-    - RFDeflectingCavityElement
-    range: float
-    unit:
-      ucum_code: m
+slots:
+- cell_length
+- n_cells
+- coupling_cell_length
 class_uri: laura:WakefieldElement
 
 ```
@@ -175,6 +142,7 @@ attributes:
     name: cell_length
     description: Length of a single cell [m].
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     ifabsent: float(0.03333333333333333)
     owner: WakefieldElement
     domain_of:
@@ -189,6 +157,7 @@ attributes:
     name: n_cells
     description: Number of cells.
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     ifabsent: int(1)
     owner: WakefieldElement
     domain_of:
@@ -201,6 +170,7 @@ attributes:
     name: coupling_cell_length
     description: Length of the coupling cell [m].
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
     ifabsent: float(0.0)
     owner: WakefieldElement
     domain_of:
@@ -208,6 +178,7 @@ attributes:
     - WakefieldElement
     - RFDeflectingCavityElement
     range: float
+    minimum_value: 0.0
     unit:
       ucum_code: m
 class_uri: laura:WakefieldElement

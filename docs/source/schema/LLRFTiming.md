@@ -116,7 +116,7 @@ attributes:
   start:
     name: start
     description: Start time.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - LLRFTiming
@@ -124,7 +124,7 @@ attributes:
   end:
     name: end
     description: End time.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - LLRFTiming
@@ -145,7 +145,7 @@ attributes:
   start:
     name: start
     description: Start time.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: LLRFTiming
     domain_of:
@@ -154,7 +154,7 @@ attributes:
   end:
     name: end
     description: End time.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: LLRFTiming
     domain_of:

@@ -59,18 +59,9 @@ URI: [laura:ManufacturerElement](https://w3id.org/laura/ManufacturerElement)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [StandardElement](StandardElement.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [Element](Element.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [MagnetBaseElement](MagnetBaseElement.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
-| [Dipole](Dipole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
-| [Quadrupole](Quadrupole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
-| [Sextupole](Sextupole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
-| [Octupole](Octupole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
-| [HorizontalCorrector](HorizontalCorrector.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
-| [VerticalCorrector](VerticalCorrector.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
-| [CombinedCorrector](CombinedCorrector.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
-| [Solenoid](Solenoid.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
-| [NonLinearLens](NonLinearLens.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
-| [Wiggler](Wiggler.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [Diagnostic](Diagnostic.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [BeamPositionMonitor](BeamPositionMonitor.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [BeamArrivalMonitor](BeamArrivalMonitor.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |

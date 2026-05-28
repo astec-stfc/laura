@@ -128,7 +128,7 @@ attributes:
   type:
     name: type
     description: Charge-diagnostic type. Accepted in YAML as ``charge_type``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - charge_type
     domain_of:
@@ -158,7 +158,7 @@ attributes:
   type:
     name: type
     description: Charge-diagnostic type. Accepted in YAML as ``charge_type``.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     aliases:
     - charge_type
     owner: ChargeDiagnosticElement
