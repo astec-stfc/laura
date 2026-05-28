@@ -1,0 +1,13 @@
+flowchart TD
+    LS[laura/schema/laura_schema.yaml\nLinkML Schema — source of truth]
+    LS -->|gen-pydantic| PM[laura/models/\nPydantic models]
+    LS -->|gen-json-schema| JS[JSON Schema\nvalidates element YAML files]
+    LS -->|gen-doc| HD[HTML docs\nAuto-generated schema site]
+    LS -->|gen-owl| OWL[OWL Ontology\nlinkml-style + QUDT + CERN]
+    LS -->|gen-jsonld-context| JLD[JSON-LD Context]
+    LS -->|gen-typescript| TS[TypeScript types\nfor LauraGUI / LauraAPIClient]
+    LS -->|gen-sqltables + gen-sqlalchemy| SQL[SQL DDL + SQLAlchemy\nfor database storage]
+    LS -->|gen-graphql| GQL[GraphQL Schema\nfor LauraAPI]
+    JLD -->|linkml-runtime| RDF[RDF / Turtle export\nof full machine data]
+    RDF -->|rdflib| SPARQL[SPARQL queries\nover machine model]
+    OWL -->|OWL reasoner| INF[Ontological inference\n+ consistency checking]
