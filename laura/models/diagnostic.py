@@ -108,12 +108,16 @@ class Camera_Sensor(_CameraSensorBase, IgnoreExtra):
     """Mechanical center of the camera in x and y"""
 
 
+def _build_camera_sensor(**kwargs) -> Camera_Sensor:
+    return Camera_Sensor(**kwargs)
+
+
 def PCO_Camera_Sensor():
     """
     A specific instantiation of `~laura.models.diagnostic.Camera_Sensor` for PCO cameras.
     """
 
-    return Camera_Sensor(
+    return _build_camera_sensor(
         x_pixels=2560,
         y_pixels=2160,
         x_scale_factor=2,
@@ -134,7 +138,7 @@ def Manta_Camera_Sensor():
     A specific instantiation of `~laura.models.diagnostic.Camera_Sensor` for Manta cameras.
     """
 
-    return Camera_Sensor(
+    return _build_camera_sensor(
         x_pixels=1936,
         y_pixels=1216,
         x_scale_factor=2,
@@ -173,6 +177,18 @@ def Manta_Camera_Diagnostic(**kwargs):
     return Camera_Diagnostic(sensor=Manta_Camera_Sensor(), **kwargs)
 
 
+def _coerce_device_list(v: Union[str, List, dict, DeviceList]) -> DeviceList:
+    if isinstance(v, str):
+        return DeviceList(devices=list(map(str.strip, v.split(","))))
+    if isinstance(v, (list, tuple)):
+        return DeviceList(devices=list(v))
+    if isinstance(v, dict):
+        return DeviceList(**v)
+    if isinstance(v, DeviceList):
+        return v
+    raise ValueError("devices should be a string or a list of strings")
+
+
 class Screen_Diagnostic(_ScreenDiagnosticElementBase):
     """
     Screen Diagnostic model.
@@ -181,16 +197,7 @@ class Screen_Diagnostic(_ScreenDiagnosticElementBase):
     @field_validator("devices", mode="before")
     @classmethod
     def validate_devices(cls, v: Union[str, List]) -> DeviceList:
-        if isinstance(v, str):
-            return DeviceList(devices=list(map(str.strip, v.split(","))))
-        elif isinstance(v, (list, tuple)):
-            return DeviceList(devices=list(v))
-        elif isinstance(v, (dict)):
-            return DeviceList(**v)
-        elif isinstance(v, (DeviceList)):
-            return v
-        else:
-            raise ValueError("devices should be a string or a list of strings")
+        return _coerce_device_list(v)
 
 
 class Charge_Diagnostic(_ChargeDiagnosticElementBase):

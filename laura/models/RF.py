@@ -19,6 +19,20 @@ from ._generated import (
 )
 
 
+def _coerce_pid_range(v: Union[str, List], range_type):
+    if isinstance(v, str):
+        splitlist = list(map(str.strip, v.split(",")))
+        assert len(splitlist) == 2
+        min_value, max_value = splitlist
+        return range_type(min=min_value, max=max_value)
+    if isinstance(v, (list, tuple)):
+        assert len(v) == 2
+        return range_type(min=v[0], max=v[1])
+    if isinstance(v, range_type):
+        return v
+    raise ValueError("range should be a string or a list of numbers")
+
+
 class RFCavityElement(_RFCavityElementBase):
     """
     RF Cavity model.
@@ -72,36 +86,12 @@ class PIDElement(_PIDElementBase):
     @field_validator("phase_range", mode="before")
     @classmethod
     def validate_phase_range(cls, v: Union[str, List]) -> PIDPhaseRange:
-        if isinstance(v, str):
-            splitlist = list(map(str.strip, v.split(",")))
-            assert len(splitlist) == 2
-            min, max = splitlist
-            return PIDPhaseRange(min=min, max=max)
-        elif isinstance(v, (list, tuple)):
-            assert len(v) == 2
-            return PIDPhaseRange(min=v[0], max=v[1])
-        elif isinstance(v, (PIDPhaseRange)):
-            return v
-        else:
-            raise ValueError("phase_range should be a string or a list of numbers")
+        return _coerce_pid_range(v, PIDPhaseRange)
 
     @field_validator("phase_weight_range", mode="before")
     @classmethod
     def validate_phase_weight_range(cls, v: Union[str, List]) -> PIDWeightRange:
-        if isinstance(v, str):
-            splitlist = list(map(str.strip, v.split(",")))
-            assert len(splitlist) == 2
-            min, max = splitlist
-            return PIDWeightRange(min=min, max=max)
-        elif isinstance(v, (list, tuple)):
-            assert len(v) == 2
-            return PIDWeightRange(min=v[0], max=v[1])
-        elif isinstance(v, (PIDWeightRange)):
-            return v
-        else:
-            raise ValueError(
-                "phase_weight_range should be a string or a list of numbers"
-            )
+        return _coerce_pid_range(v, PIDWeightRange)
 
 
 class Trace(_TraceBase):

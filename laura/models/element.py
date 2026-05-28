@@ -119,6 +119,21 @@ string_with_quotes = StringWithQuotes
 flow_list = FlowList
 
 
+def _ensure_nested_default(instance: Any, attribute_name: str, factory) -> None:
+    if getattr(instance, attribute_name) is None:
+        setattr(instance, attribute_name, factory())
+
+
+def _coerce_nested_model(value: Any, model_cls):
+    if value is None or isinstance(value, model_cls):
+        return value if value is not None else model_cls()
+    if hasattr(value, "model_dump"):
+        return model_cls(**value.model_dump())
+    if isinstance(value, dict):
+        return model_cls(**value)
+    return value
+
+
 class baseElement(CascadingAccessMixin, _AcceleratorElementBase, IgnoreExtra):
     """
     Base-level element class. All LAURA elements derive from this.
@@ -229,12 +244,9 @@ class Element(baseElement, _ElementBase):
     def model_post_init(self, __context: Any) -> None:
         # Preserve prior convenience behavior while keeping declarations schema-first.
         super().model_post_init(__context)
-        if self.simulation is None:
-            self.simulation = SimulationElement()
-        if self.electrical is None:
-            self.electrical = ElectricalElement()
-        if self.manufacturer is None:
-            self.manufacturer = ManufacturerElement()
+        _ensure_nested_default(self, "simulation", SimulationElement)
+        _ensure_nested_default(self, "electrical", ElectricalElement)
+        _ensure_nested_default(self, "manufacturer", ManufacturerElement)
 
 
 class PhysicalBaseElement(Element, _PhysicalAcceleratorElementBase):
@@ -247,13 +259,7 @@ class PhysicalBaseElement(Element, _PhysicalAcceleratorElementBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.physical is None:
-            self.physical = PhysicalElement()
-        elif not isinstance(self.physical, PhysicalElement):
-            if hasattr(self.physical, "model_dump"):
-                self.physical = PhysicalElement(**self.physical.model_dump())
-            elif isinstance(self.physical, dict):
-                self.physical = PhysicalElement(**self.physical)
+        self.physical = _coerce_nested_model(self.physical, PhysicalElement)
 
     @property
     def bend_angle(self) -> Rotation:
@@ -303,8 +309,7 @@ class Magnet(PhysicalBaseElement, _MagnetBaseElementBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.simulation is None:
-            self.simulation = MagnetSimulationElement()
+        _ensure_nested_default(self, "simulation", MagnetSimulationElement)
 
     @property
     def bend_angle(self) -> Rotation:
@@ -334,10 +339,6 @@ class Dipole(Magnet):
     """Dipole hardware type."""
 
     magnetic: Dipole_Magnet = Field(default_factory=Dipole_Magnet)
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        self.physical._parent = self
 
 
 class Quadrupole(Magnet):
@@ -502,8 +503,7 @@ class TwissMatch(PhysicalBaseElement, _TwissMatchBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.simulation is None:
-            self.simulation = TwissMatchSimulationElement()
+        _ensure_nested_default(self, "simulation", TwissMatchSimulationElement)
 
 
 class Diagnostic(PhysicalBaseElement, _DiagnosticBase):
@@ -525,8 +525,7 @@ class Diagnostic(PhysicalBaseElement, _DiagnosticBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.simulation is None:
-            self.simulation = DiagnosticSimulationElement()
+        _ensure_nested_default(self, "simulation", DiagnosticSimulationElement)
 
 
 class Beam_Position_Monitor(Diagnostic, _BeamPositionMonitorBase):
@@ -550,8 +549,7 @@ class Beam_Position_Monitor(Diagnostic, _BeamPositionMonitorBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.diagnostic is None:
-            self.diagnostic = Beam_Position_Monitor_Diagnostic()
+        _ensure_nested_default(self, "diagnostic", Beam_Position_Monitor_Diagnostic)
 
 
 class Beam_Arrival_Monitor(Diagnostic, _BeamArrivalMonitorBase):
@@ -573,8 +571,7 @@ class Beam_Arrival_Monitor(Diagnostic, _BeamArrivalMonitorBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.diagnostic is None:
-            self.diagnostic = Beam_Arrival_Monitor_Diagnostic()
+        _ensure_nested_default(self, "diagnostic", Beam_Arrival_Monitor_Diagnostic)
 
 
 class Bunch_Length_Monitor(Diagnostic, _BunchLengthMonitorBase):
@@ -596,8 +593,7 @@ class Bunch_Length_Monitor(Diagnostic, _BunchLengthMonitorBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.diagnostic is None:
-            self.diagnostic = Bunch_Length_Monitor_Diagnostic()
+        _ensure_nested_default(self, "diagnostic", Bunch_Length_Monitor_Diagnostic)
 
 
 class Camera(Diagnostic, _CameraBase):
@@ -619,8 +615,7 @@ class Camera(Diagnostic, _CameraBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.diagnostic is None:
-            self.diagnostic = Camera_Diagnostic()
+        _ensure_nested_default(self, "diagnostic", Camera_Diagnostic)
 
 
 class Screen(Diagnostic, _ScreenBase):
@@ -644,8 +639,7 @@ class Screen(Diagnostic, _ScreenBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.diagnostic is None:
-            self.diagnostic = Screen_Diagnostic()
+        _ensure_nested_default(self, "diagnostic", Screen_Diagnostic)
 
 
 class ChargeDiagnostic(Diagnostic, _ChargeDiagnosticBase):
@@ -663,8 +657,7 @@ class ChargeDiagnostic(Diagnostic, _ChargeDiagnosticBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.diagnostic is None:
-            self.diagnostic = Charge_Diagnostic()
+        _ensure_nested_default(self, "diagnostic", Charge_Diagnostic)
 
 
 class Wall_Current_Monitor(ChargeDiagnostic, _WallCurrentMonitorBase):
@@ -764,8 +757,7 @@ class Laser(PhysicalBaseElement, _LaserBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.laser is None:
-            self.laser = LaserElement()
+        _ensure_nested_default(self, "laser", LaserElement)
 
 
 class LaserEnergyMeter(Element, _LaserEnergyMeterBase):
@@ -791,8 +783,7 @@ class LaserEnergyMeter(Element, _LaserEnergyMeterBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.laser is None:
-            self.laser = LaserEnergyMeterElement()
+        _ensure_nested_default(self, "laser", LaserEnergyMeterElement)
 
 
 class LaserHalfWavePlate(Element, _LaserHalfWavePlateBase):
@@ -818,8 +809,7 @@ class LaserHalfWavePlate(Element, _LaserHalfWavePlateBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.laser is None:
-            self.laser = LaserHalfWavePlateElement()
+        _ensure_nested_default(self, "laser", LaserHalfWavePlateElement)
 
 
 class LaserMirror(Element, _LaserMirrorBase):
@@ -883,10 +873,8 @@ class Plasma(PhysicalBaseElement, _PlasmaBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.simulation is None:
-            self.simulation = PlasmaSimulationElement()
-        if self.plasma is None:
-            self.plasma = PlasmaElement()
+        _ensure_nested_default(self, "simulation", PlasmaSimulationElement)
+        _ensure_nested_default(self, "plasma", PlasmaElement)
 
 
 class Lighting(Element, _LightingBase):
@@ -910,8 +898,7 @@ class Lighting(Element, _LightingBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.lights is None:
-            self.lights = LightingElement()
+        _ensure_nested_default(self, "lights", LightingElement)
 
 
 class PID(Element, _PIDBase):
@@ -983,10 +970,8 @@ class RFCavity(PhysicalBaseElement, _RFCavityBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.cavity is None:
-            self.cavity = RFCavityElement()
-        if self.simulation is None:
-            self.simulation = RFCavitySimulationElement()
+        _ensure_nested_default(self, "cavity", RFCavityElement)
+        _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
 
 
 class Wakefield(PhysicalBaseElement, _WakefieldBase):
@@ -1012,10 +997,8 @@ class Wakefield(PhysicalBaseElement, _WakefieldBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.cavity is None:
-            self.cavity = WakefieldElement()
-        if self.simulation is None:
-            self.simulation = WakefieldSimulationElement()
+        _ensure_nested_default(self, "cavity", WakefieldElement)
+        _ensure_nested_default(self, "simulation", WakefieldSimulationElement)
 
 
 class RFDeflectingCavity(RFCavity, _RFDeflectingCavityBase):
@@ -1038,10 +1021,8 @@ class RFDeflectingCavity(RFCavity, _RFDeflectingCavityBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.cavity is None:
-            self.cavity = RFDeflectingCavityElement()
-        if self.simulation is None:
-            self.simulation = RFCavitySimulationElement()
+        _ensure_nested_default(self, "cavity", RFDeflectingCavityElement)
+        _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
 
 
 class RFModulator(Element, _RFModulatorBase):
@@ -1066,8 +1047,7 @@ class RFModulator(Element, _RFModulatorBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.modulator is None:
-            self.modulator = RFModulatorElement()
+        _ensure_nested_default(self, "modulator", RFModulatorElement)
 
 
 class RFProtection(Element, _RFProtectionBase):
@@ -1110,8 +1090,7 @@ class RFHeartbeat(Element, _RFHeartbeatBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.heartbeat is None:
-            self.heartbeat = RFHeartbeatElement()
+        _ensure_nested_default(self, "heartbeat", RFHeartbeatElement)
 
 
 class Shutter(PhysicalBaseElement, _ShutterBase):
@@ -1134,8 +1113,7 @@ class Shutter(PhysicalBaseElement, _ShutterBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.shutter is None:
-            self.shutter = ShutterElement()
+        _ensure_nested_default(self, "shutter", ShutterElement)
 
 
 class Valve(PhysicalBaseElement, _ValveBase):
@@ -1155,8 +1133,7 @@ class Valve(PhysicalBaseElement, _ValveBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.valve is None:
-            self.valve = ValveElement()
+        _ensure_nested_default(self, "valve", ValveElement)
 
 
 class Marker(PhysicalBaseElement, _MarkerBase):
@@ -1181,8 +1158,7 @@ class Marker(PhysicalBaseElement, _MarkerBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.simulation is None:
-            self.simulation = DiagnosticSimulationElement()
+        _ensure_nested_default(self, "simulation", DiagnosticSimulationElement)
 
 
 class Aperture(PhysicalBaseElement, _ApertureBase):
@@ -1207,8 +1183,7 @@ class Aperture(PhysicalBaseElement, _ApertureBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.aperture is None:
-            self.aperture = ApertureElement()
+        _ensure_nested_default(self, "aperture", ApertureElement)
 
 
 class Collimator(Aperture, _CollimatorBase):
@@ -1242,5 +1217,4 @@ class Drift(PhysicalBaseElement, _DriftBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        if self.simulation is None:
-            self.simulation = DriftSimulationElement()
+        _ensure_nested_default(self, "simulation", DriftSimulationElement)

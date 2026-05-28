@@ -102,7 +102,12 @@ linkml_meta = LinkMLMeta({'default_prefix': 'laura',
                     'Covers all element types, their physical, magnetic, '
                     'diagnostic, RF, and control-system properties.',
      'id': 'https://w3id.org/laura/schema',
-     'imports': ['linkml:types'],
+     'imports': ['linkml:types',
+                 'simulation',
+                 'magnetic',
+                 'rf',
+                 'diagnostics',
+                 'laser_plasma'],
      'license': 'Apache Software License 2.0',
      'name': 'laura_schema',
      'prefixes': {'dcterms': {'prefix_prefix': 'dcterms',
@@ -123,7 +128,7 @@ linkml_meta = LinkMLMeta({'default_prefix': 'laura',
                            'prefix_reference': 'http://qudt.org/vocab/unit/'},
                   'xsd': {'prefix_prefix': 'xsd',
                           'prefix_reference': 'http://www.w3.org/2001/XMLSchema#'}},
-     'source_file': 'laura/schema/laura_schema.yaml',
+     'source_file': 'laura/schema/YAML/laura_schema.yaml',
      'subsets': {'diagnostic_properties': {'description': 'Slots specific to '
                                                           'beam-diagnostic '
                                                           'instruments.',
@@ -147,6 +152,24 @@ linkml_meta = LinkMLMeta({'default_prefix': 'laura',
                                    'from_schema': 'https://w3id.org/laura/schema',
                                    'name': 'rf_properties'}},
      'title': 'LAURA Accelerator Element Schema'} )
+
+class BendingPlaneEnum(str, Enum):
+    """
+    Bending plane enum.
+    """
+    Horizontal = "Horizontal"
+    """
+    Horizontal bending plane.
+    """
+    Vertical = "Vertical"
+    """
+    Vertical bending plane.
+    """
+    Combined = "Combined"
+    """
+    Combined Horizontal and Vertical bending plane.
+    """
+
 
 class HardwareClassEnum(str, Enum):
     """
@@ -251,6 +274,952 @@ class ApertureShapeEnum(str, Enum):
 
 
 
+class _SimulationElementBase(ConfiguredBaseModel):
+    """
+    Base simulation attributes: field-map files and reference positions for tracking codes.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:SimulationElement',
+         'from_schema': 'https://w3id.org/laura/schema/simulation'})
+
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
+
+
+class _MagnetSimulationElementBase(_SimulationElementBase):
+    """
+    Simulation attributes specific to magnets: integrator settings, fringe-field model, and radiation flags.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MagnetSimulationElement',
+         'from_schema': 'https://w3id.org/laura/schema/simulation',
+         'slot_usage': {'field_amplitude': {'description': 'Field amplitude scaling '
+                                                           'for magnet tracking.',
+                                            'ifabsent': 'float(0.0)',
+                                            'name': 'field_amplitude'},
+                        'n_kicks': {'description': 'Number of integration kicks.',
+                                    'ifabsent': 'int(4)',
+                                    'minimum_value': 1,
+                                    'name': 'n_kicks'}}})
+
+    n_kicks: Optional[int] = Field(default=4, description="""Number of integration kicks.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
+         'ifabsent': 'int(4)'} })
+    field_amplitude: Optional[float] = Field(default=0.0, description="""Field amplitude scaling for magnet tracking.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
+         'ifabsent': 'float(0.0)'} })
+    n_slices: int = Field(default=4, description="""Number of longitudinal slices for thick-lens tracking.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(4)'} })
+    smooth: Optional[bool] = Field(default=None, description="""Use a smoothed field profile.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
+                       'RFCavitySimulationElement',
+                       'WakefieldSimulationElement']} })
+    edge_field_integral: float = Field(default=0.5, description="""Fringe-field integral for edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
+         'ifabsent': 'float(0.5)'} })
+    edge1_effects: Optional[bool] = Field(default=None, description="""Enable entrance-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
+    edge2_effects: Optional[bool] = Field(default=None, description="""Enable exit-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
+    sr_enable: Optional[bool] = Field(default=True, description="""Enable synchrotron-radiation energy loss.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
+    isr_enable: Optional[bool] = Field(default=True, description="""Enable incoherent synchrotron-radiation emittance growth.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
+    csr_enable: Optional[bool] = Field(default=True, description="""Enable coherent synchrotron radiation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'DriftSimulationElement'],
+         'ifabsent': 'True'} })
+    csr_bins: int = Field(default=100, description="""Number of longitudinal bins for the CSR mesh.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(100)'} })
+    integration_order: int = Field(default=4, description="""Order of the symplectic integrator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(4)'} })
+    nonlinear: Optional[bool] = Field(default=None, description="""Include higher-order (sextupole+) field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
+    smoothing_half_width: int = Field(default=1, description="""Half-width of the current-profile smoothing kernel.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(1)'} })
+    edge_order: int = Field(default=2, description="""Polynomial order of the edge-field expansion.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(2)'} })
+    deltaL: float = Field(default=0.0, description="""Longitudinal step-size override for thick-lens integration [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    smooth_points: float = Field(default=2, description="""Number of points used to smooth the field map [ASTRA].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'float(2)'} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
+
+
+class _RFCavitySimulationElementBase(_SimulationElementBase):
+    """
+    Simulation attributes for RF cavity elements.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFCavitySimulationElement',
+         'from_schema': 'https://w3id.org/laura/schema/simulation',
+         'slot_usage': {'field_amplitude': {'description': 'Cavity field amplitude.',
+                                            'ifabsent': 'float(0)',
+                                            'name': 'field_amplitude'},
+                        'lsc_bins': {'description': 'Number of longitudinal '
+                                                    'space-charge bins.',
+                                     'ifabsent': 'int(100)',
+                                     'name': 'lsc_bins'},
+                        'n_kicks': {'description': 'Number of cavity kicks to apply.',
+                                    'ifabsent': 'int(0)',
+                                    'name': 'n_kicks'}}})
+
+    t_column: Optional[str] = Field(default=None, description="""Time column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
+    z_column: Optional[str] = Field(default=None, description="""Longitudinal position column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
+    wx_column: Optional[str] = Field(default=None, description="""Horizontal wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
+    wy_column: Optional[str] = Field(default=None, description="""Vertical wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
+    wz_column: Optional[str] = Field(default=None, description="""Longitudinal wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
+    n_kicks: Optional[int] = Field(default=0, description="""Number of cavity kicks to apply.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
+         'ifabsent': 'int(0)'} })
+    lsc_bins: Optional[int] = Field(default=100, description="""Number of longitudinal space-charge bins.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'DriftSimulationElement'],
+         'ifabsent': 'int(100)'} })
+    field_amplitude: Optional[float] = Field(default=0, description="""Cavity field amplitude.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
+         'ifabsent': 'float(0)'} })
+    change_p0: int = Field(default=1, description="""Flag indicating whether the cavity changes reference momentum.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
+    end1_focus: int = Field(default=1, description="""Apply entrance focusing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
+    end2_focus: int = Field(default=1, description="""Apply exit focusing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
+    body_focus_model: str = Field(default="SRS", description="""Cavity body focusing model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'string(SRS)'} })
+    current_bins: int = Field(default=0, description="""Number of current bins.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(0)'} })
+    interpolate_current_bins: int = Field(default=1, description="""Flag indicating current-bin interpolation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
+    smooth_current_bins: int = Field(default=1, description="""Flag indicating current-bin smoothing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
+    smooth: Optional[int] = Field(default=None, description="""Cavity smoothing parameter.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
+                       'RFCavitySimulationElement',
+                       'WakefieldSimulationElement']} })
+    ez_peak: Optional[float] = Field(default=None, description="""Peak longitudinal electric field.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
+    field_file_name: Optional[str] = Field(default=None, description="""Cavity field file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
+    wakefile: Optional[str] = Field(default=None, description="""Wake file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
+    zwakefile: Optional[str] = Field(default=None, description="""Longitudinal wake file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
+    trwakefile: Optional[str] = Field(default=None, description="""Transverse wake file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
+
+
+class _WakefieldSimulationElementBase(_SimulationElementBase):
+    """
+    Simulation attributes for passive wakefield structures.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:WakefieldSimulationElement',
+         'from_schema': 'https://w3id.org/laura/schema/simulation'})
+
+    t_column: Optional[str] = Field(default=None, description="""Time column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
+    z_column: Optional[str] = Field(default=None, description="""Longitudinal position column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
+    wx_column: Optional[str] = Field(default=None, description="""Horizontal wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
+    wy_column: Optional[str] = Field(default=None, description="""Vertical wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
+    wz_column: Optional[str] = Field(default=None, description="""Longitudinal wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
+    allow_long_beam: Optional[bool] = Field(default=True, description="""Allow beams longer than the wakefield.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'True'} })
+    bunched_beam: Optional[bool] = Field(default=False, description="""Use bunched beam mode.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'False'} })
+    change_momentum: Optional[bool] = Field(default=True, description="""Allow wakefield to change bunch momentum.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'True'} })
+    factor: float = Field(default=1, description="""Wake scaling factor.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(1)'} })
+    interpolate: Optional[bool] = Field(default=True, description="""Interpolate points in wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'True'} })
+    scale_kick: float = Field(default=1, description="""Factor by which to scale wake kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(1)'} })
+    scale_field_ex: float = Field(default=0.0, description="""x-component of the longitudinal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(0.0)'} })
+    scale_field_ey: float = Field(default=0.0, description="""y-component of the longitudinal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(0.0)'} })
+    scale_field_ez: float = Field(default=1.0, description="""z-component of the longitudinal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(1.0)'} })
+    scale_field_hx: float = Field(default=1.0, description="""x-component of the horizontal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(1.0)'} })
+    scale_field_hy: float = Field(default=0.0, description="""y-component of the horizontal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(0.0)'} })
+    scale_field_hz: float = Field(default=0.0, description="""z-component of the horizontal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(0.0)'} })
+    equal_grid: float = Field(default=0.66, description="""Interpolation between equidistant and equal-charge grids.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(0.66)'} })
+    interpolation_method: int = Field(default=2, description="""Interpolation method for ASTRA.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'int(2)'} })
+    smooth: float = Field(default=0.25, description="""Smoothing parameter for Gaussian interpolation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
+                       'RFCavitySimulationElement',
+                       'WakefieldSimulationElement'],
+         'ifabsent': 'float(0.25)'} })
+    subbins: int = Field(default=10, description="""Sub-binning parameter.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'int(10)'} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
+
+
+class _DriftSimulationElementBase(_SimulationElementBase):
+    """
+    Simulation attributes for field-free drift sections.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:DriftSimulationElement',
+         'from_schema': 'https://w3id.org/laura/schema/simulation',
+         'slot_usage': {'lsc_bins': {'description': 'Number of bins for LSC '
+                                                    'calculations.',
+                                     'ifabsent': 'int(20)',
+                                     'name': 'lsc_bins'}}})
+
+    lsc_bins: Optional[int] = Field(default=20, description="""Number of bins for LSC calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'DriftSimulationElement'],
+         'ifabsent': 'int(20)'} })
+    lsc_interpolate: int = Field(default=1, description="""Flag to allow interpolation of computed LSC wake.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'int(1)'} })
+    csr_enable: Optional[bool] = Field(default=True, description="""Enable CSR drift calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'DriftSimulationElement'],
+         'ifabsent': 'True'} })
+    lsc_enable: Optional[bool] = Field(default=True, description="""Enable LSC drift calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'True'} })
+    use_stupakov: int = Field(default=1, description="""Use Stupakov formula.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'int(1)'} })
+    csrdz: float = Field(default=0.01, description="""Step size for CSR calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'float(0.01)'} })
+    lsc_high_frequency_cutoff_start: Optional[float] = Field(default=None, description="""High-frequency cutoff start for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
+    lsc_high_frequency_cutoff_end: Optional[float] = Field(default=None, description="""High-frequency cutoff end for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
+    lsc_low_frequency_cutoff_start: Optional[float] = Field(default=None, description="""Low-frequency cutoff start for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
+    lsc_low_frequency_cutoff_end: Optional[float] = Field(default=None, description="""Low-frequency cutoff end for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
+
+
+class _DiagnosticSimulationElementBase(_SimulationElementBase):
+    """
+    Simulation attributes for beam-diagnostic elements.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:DiagnosticSimulationElement',
+         'from_schema': 'https://w3id.org/laura/schema/simulation'})
+
+    output_filename: Optional[str] = Field(default=None, description="""Output filename for diagnostic data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticSimulationElement']} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
+
+
+class _PlasmaSimulationElementBase(_SimulationElementBase):
+    """
+    Simulation attributes for plasma-accelerator stages.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PlasmaSimulationElement',
+         'from_schema': 'https://w3id.org/laura/schema/simulation'})
+
+    wakefield_model: Optional[str] = Field(default=None, description="""Wakefield model identifier.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
+    bunch_pusher: str = Field(default="boris", description="""Pusher used to evolve bunch particles in time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'string(boris)'} })
+    dt_bunch: str = Field(default="auto", description="""Time-step control for bunch evolution (or 'auto').""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'string(auto)'} })
+    n_out: int = Field(default=1, description="""Number of distribution dumps during the plasma stage.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(1)'} })
+    min_longitudinal_position: float = Field(default=0, description="""Minimum longitudinal position [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
+    max_longitudinal_position: float = Field(default=0, description="""Maximum longitudinal position [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
+    n_longitudinal: int = Field(default=0, description="""Number of grid points in the longitudinal direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(0)'} })
+    n_radial: int = Field(default=0, description="""Number of grid points in the radial direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(0)'} })
+    plasma_particles_per_cell: int = Field(default=2, description="""Number of plasma particles per cell.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(2)'} })
+    r_max: float = Field(default=0, description="""Radial extent of the simulation box [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
+    r_max_plasma: Optional[float] = Field(default=None, description="""Maximum radial extension of the plasma column.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
+    dz_fields: Optional[float] = Field(default=None, description="""Interval for plasma wakefield updates.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
+    plasma_pusher: str = Field(default="boris", description="""Pusher used to evolve the plasma in time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'string(boris)'} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
+
+
+class _TwissMatchSimulationElementBase(_SimulationElementBase):
+    """
+    Simulation attributes for Twiss-matching points.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:TwissMatchSimulationElement',
+         'from_schema': 'https://w3id.org/laura/schema/simulation'})
+
+    beta_x: Optional[float] = Field(default=None, description="""Horizontal beta.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
+    beta_y: Optional[float] = Field(default=None, description="""Vertical beta.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
+    alpha_x: Optional[float] = Field(default=None, description="""Horizontal alpha.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
+    alpha_y: Optional[float] = Field(default=None, description="""Vertical alpha.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
+    eta_x: float = Field(default=0.0, description="""Horizontal dispersion.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(0.0)'} })
+    eta_y: float = Field(default=0.0, description="""Vertical dispersion.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(0.0)'} })
+    eta_xp: float = Field(default=0.0, description="""Horizontal dispersion derivative.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(0.0)'} })
+    eta_yp: float = Field(default=0.0, description="""Vertical dispersion derivative.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(0.0)'} })
+    from_beam: Optional[bool] = Field(default=True, description="""Compute transform from tracked beam properties.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'True'} })
+    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
+
+
+class _MultipoleBase(ConfiguredBaseModel):
+    """
+    Individual multipole field component, characterised by order and integrated normal / skew strengths at a reference radius.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Multipole',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic'})
+
+    order: int = Field(default=0, description="""Multipole order (0 = dipole, 1 = quadrupole, ?).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'int(0)'} })
+    normal: float = Field(default=0, description="""Integrated normal (upright) multipole strength [T.m^{1-n}].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole'], 'ifabsent': 'float(0)'} })
+    skew: float = Field(default=0, description="""Integrated skew (rotated) multipole strength [T.m^{1-n}].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'float(0)'} })
+    radius: float = Field(default=0, description="""Reference radius for multipole normalisation [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'ApertureElement', 'CameraMask'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'm'}} })
+
+
+class _MultipolesBase(ConfiguredBaseModel):
+    """
+    Complete set of integrated multipole strengths up to decapole order, as named slots for efficient element look-up.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MultipoleList',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic'})
+
+    K0L: Optional[_MultipoleBase] = Field(default=None, description="""Integrated dipole field.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipoles']} })
+    K1L: Optional[_MultipoleBase] = Field(default=None, description="""Integrated quadrupole gradient.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipoles']} })
+    K2L: Optional[_MultipoleBase] = Field(default=None, description="""Integrated sextupole strength.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipoles']} })
+    K3L: Optional[_MultipoleBase] = Field(default=None, description="""Integrated octupole strength.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipoles']} })
+    K4L: Optional[_MultipoleBase] = Field(default=None, description="""Integrated decapole strength.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipoles']} })
+
+
+class _FieldIntegralBase(ConfiguredBaseModel):
+    """
+    Polynomial fit of integrated field strength as a function of magnet current.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:FieldIntegral',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic'})
+
+    coefficients: Optional[list[float]] = Field(default=[0], description="""Polynomial coefficients ordered from lowest to highest degree: ``FieldIntegral = sum c_n . I^n``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['FieldIntegral'], 'ifabsent': '[0]'} })
+
+
+class _LinearSaturationFitBase(ConfiguredBaseModel):
+    """
+    Bi-linear saturation model mapping magnet current to integrated field strength (K-value conversion).
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LinearSaturationFit',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic'})
+
+    m: float = Field(default=0, description="""Linear slope of the unsaturated region.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'], 'ifabsent': 'float(0)'} })
+    I_max: float = Field(default=0, description="""Current at which saturation begins [A].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'A'}} })
+    f: float = Field(default=0, description="""Saturation fraction (slope ratio below/above I_max).""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'], 'ifabsent': 'float(0)'} })
+    a: float = Field(default=0, description="""Quadratic saturation coefficient.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'], 'ifabsent': 'float(0)'} })
+    I0: float = Field(default=0, description="""Current offset [A].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'A'}} })
+    d: float = Field(default=0, description="""Constant offset term.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'], 'ifabsent': 'float(0)'} })
+    L: float = Field(default=0, description="""Effective magnetic length [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'm'}} })
+
+
+class _MagneticElementBase(ConfiguredBaseModel):
+    """
+    Magnetic field parameters for a beamline magnet, including multipole components, field integrals, and geometric edge parameters.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MagneticElement',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic',
+         'in_subset': ['magnetic_properties']})
+
+    order: int = Field(default=-1, description="""Principal multipole order (0 = dipole, 1 = quad, ?).""", ge=-1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'int(-1)'} })
+    skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
+    length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'm'}} })
+    multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Integrated multipole field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    systematic_multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Systematic (design) multipole errors at the reference radius.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    random_multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Random multipole errors at the reference radius.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    field_integral_coefficients: Optional[_FieldIntegralBase] = Field(default=None, description="""Polynomial calibration of integrated field vs. current.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    linear_saturation_coefficients: Optional[_LinearSaturationFitBase] = Field(default=None, description="""Bi-linear saturation calibration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    settle_time: Optional[float] = Field(default=None, description="""Power-supply settle time after a change [s].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 's'}} })
+    entrance_edge_angle: Optional[float] = Field(default=None, description="""Fringe-field entrance edge angle [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
+    exit_edge_angle: Optional[float] = Field(default=None, description="""Fringe-field exit edge angle [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
+    gap: float = Field(default=0.032, description="""Full gap between pole faces [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+         'ifabsent': 'float(0.032)',
+         'unit': {'ucum_code': 'm'}} })
+    bore: float = Field(default=0.037, description="""Magnet bore radius [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+         'ifabsent': 'float(0.037)',
+         'unit': {'ucum_code': 'm'}} })
+    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum.Horizontal, description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
+    width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+         'ifabsent': 'float(0.2)',
+         'unit': {'ucum_code': 'm'}} })
+    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'rad'}} })
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
+         'ifabsent': 'float(0.5)'} })
+    fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
+    gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
+
+
+class _ApertureElementBase(ConfiguredBaseModel):
+    """
+    Transverse aperture geometry for drift-space checks and collimators.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ApertureElement',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic'})
+
+    number_of_elements: Optional[int] = Field(default=None, description="""Number of aperture sub-elements (e.g., for multi-leaf collimators).""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
+    horizontal_size: float = Field(default=0.0, description="""Full horizontal aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    vertical_size: float = Field(default=0.0, description="""Full vertical aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    shape: Optional[ApertureShapeEnum] = Field(default=None, description="""Cross-sectional aperture shape.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
+    radius: Optional[float] = Field(default=None, description="""Radius for circular apertures [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'ApertureElement', 'CameraMask'],
+         'unit': {'ucum_code': 'm'}} })
+    negative_extent: Optional[float] = Field(default=None, description="""Upstream / inner extent [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'unit': {'ucum_code': 'm'}} })
+    positive_extent: Optional[float] = Field(default=None, description="""Downstream / outer extent [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'unit': {'ucum_code': 'm'}} })
+
+
+class _DegaussableElementBase(ConfiguredBaseModel):
+    """
+    Degaussing (demagnetisation cycle) parameters for magnets that require a field-reset procedure.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:DegaussableElement',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic',
+         'in_subset': ['magnetic_properties']})
+
+    tolerance: float = Field(default=0.5, description="""Current tolerance band during the degauss cycle [A].""", validation_alias=AliasChoices('tolerance', 'degauss_tolerance'), json_schema_extra = { "linkml_meta": {'aliases': ['degauss_tolerance'],
+         'domain_of': ['DegaussableElement'],
+         'ifabsent': 'float(0.5)',
+         'unit': {'ucum_code': 'A'}} })
+    values: list[float] = Field(default_factory=list, description="""Sequence of peak currents applied during the degauss cycle [A].""", validation_alias=AliasChoices('values', 'degauss_values'), json_schema_extra = { "linkml_meta": {'aliases': ['degauss_values'],
+         'domain_of': ['DegaussableElement'],
+         'unit': {'ucum_code': 'A'}} })
+    steps: int = Field(default=11, description="""Number of degauss steps per half-cycle.""", ge=1, validation_alias=AliasChoices('steps', 'num_degauss_steps'), json_schema_extra = { "linkml_meta": {'aliases': ['num_degauss_steps'],
+         'domain_of': ['DegaussableElement'],
+         'ifabsent': 'int(11)'} })
+
+
+class _RFCavityElementBase(ConfiguredBaseModel):
+    """
+    RF cavity accelerating-structure parameters.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFCavityElement',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'in_subset': ['rf_properties']})
+
+    cell_length: Optional[float] = Field(default=0.03333333333333333, description="""Length of a single cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+                       'WakefieldElement',
+                       'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0.03333333333333333)',
+         'unit': {'ucum_code': 'm'}} })
+    coupling_cell_length: Optional[float] = Field(default=0.0, description="""Length of the coupling cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+                       'WakefieldElement',
+                       'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    design_gamma: Optional[float] = Field(default=None, description="""Design Lorentz factor.""", ge=1.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
+    design_power: Optional[float] = Field(default=25000000, description="""Design peak power [W].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+         'ifabsent': 'float(25000000)',
+         'unit': {'ucum_code': 'W'}} })
+    frequency: Optional[float] = Field(default=2998500000.0, description="""Operating frequency [Hz].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+         'ifabsent': 'float(2998500000.0)',
+         'unit': {'ucum_code': 'Hz'}} })
+    n_cells: Optional[int] = Field(default=1, description="""Number of cells.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+                       'WakefieldElement',
+                       'RFDeflectingCavityElement'],
+         'ifabsent': 'int(1)'} })
+    crest: Optional[float] = Field(default=0, description="""On-crest phase offset providing maximum energy gain [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'deg'}} })
+    phase: Optional[float] = Field(default=0.0, description="""Operating phase offset [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'deg'}} })
+    shunt_impedance: Optional[float] = Field(default=None, description="""Shunt impedance [M?/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
+    mode_numerator: Optional[int] = Field(default=None, description="""Mode fraction numerator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
+    mode_denominator: Optional[int] = Field(default=None, description="""Mode fraction denominator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
+    structure_type: str = Field(default="StandingWave", description="""RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave).""", validation_alias=AliasChoices('structure_type', 'structure_Type'), json_schema_extra = { "linkml_meta": {'aliases': ['structure_Type'],
+         'domain_of': ['RFCavityElement'],
+         'ifabsent': 'string(StandingWave)'} })
+    attenuation_constant: float = Field(default=0, description="""Attenuation constant ? of a travelling-wave structure [Np/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement'], 'ifabsent': 'float(0)'} })
+    power_calibration: list[float] = Field(default_factory=list, description="""Calibration constant relating measured power to cavity gradient.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement']} })
+    gradient_calibration: list[float] = Field(default_factory=list, description="""Calibration relating measured signal to gradient [MV/m per a.u.].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement']} })
+
+
+class _WakefieldElementBase(ConfiguredBaseModel):
+    """
+    Passive wakefield structure parameters.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:WakefieldElement',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'in_subset': ['rf_properties']})
+
+    cell_length: Optional[float] = Field(default=0.03333333333333333, description="""Length of a single cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+                       'WakefieldElement',
+                       'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0.03333333333333333)',
+         'unit': {'ucum_code': 'm'}} })
+    n_cells: Optional[int] = Field(default=1, description="""Number of cells.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+                       'WakefieldElement',
+                       'RFDeflectingCavityElement'],
+         'ifabsent': 'int(1)'} })
+    coupling_cell_length: Optional[float] = Field(default=0.0, description="""Length of the coupling cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+                       'WakefieldElement',
+                       'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+
+
+class _RFDeflectingCavityElementBase(ConfiguredBaseModel):
+    """
+    Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for streak-mode operation.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFDeflectingCavityElement',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'in_subset': ['rf_properties']})
+
+    cell_length: Optional[float] = Field(default=0.03333333333333333, description="""Length of a single cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+                       'WakefieldElement',
+                       'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0.03333333333333333)',
+         'unit': {'ucum_code': 'm'}} })
+    coupling_cell_length: Optional[float] = Field(default=0.0, description="""Length of the coupling cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+                       'WakefieldElement',
+                       'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    crest: Optional[float] = Field(default=0, description="""On-crest phase offset providing maximum energy gain [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'deg'}} })
+    design_gamma: Optional[float] = Field(default=None, description="""Design Lorentz factor.""", ge=1.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
+    design_power: Optional[float] = Field(default=25000000, description="""Design peak power [W].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+         'ifabsent': 'float(25000000)',
+         'unit': {'ucum_code': 'W'}} })
+    frequency: Optional[float] = Field(default=2998500000.0, description="""Operating frequency [Hz].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+         'ifabsent': 'float(2998500000.0)',
+         'unit': {'ucum_code': 'Hz'}} })
+    n_cells: Optional[int] = Field(default=1, description="""Number of cells.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+                       'WakefieldElement',
+                       'RFDeflectingCavityElement'],
+         'ifabsent': 'int(1)'} })
+    phase: Optional[float] = Field(default=0.0, description="""Operating phase offset [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'deg'}} })
+    shunt_impedance: Optional[float] = Field(default=None, description="""Shunt impedance [M?/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
+    mode_numerator: Optional[int] = Field(default=None, description="""Mode fraction numerator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
+    mode_denominator: Optional[int] = Field(default=None, description="""Mode fraction denominator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
+
+
+class _PIDElementBase(ConfiguredBaseModel):
+    """
+    PID feedback-controller parameters.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PIDElement',
+         'from_schema': 'https://w3id.org/laura/schema/rf'})
+
+    Kp: Optional[float] = Field(default=None, description="""Proportional gain.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
+    Ki: Optional[float] = Field(default=None, description="""Integral gain.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
+    Kd: Optional[float] = Field(default=None, description="""Derivative gain.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
+    forward_channel: Optional[int] = Field(default=None, description="""Forward channel index.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
+    probe_channel: Optional[int] = Field(default=None, description="""Probe channel index.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
+    enable: Optional[str] = Field(default=None, description="""Enable command/value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
+    disable: Optional[str] = Field(default=None, description="""Disable command/value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
+    phase_range: Optional[_PIDPhaseRangeBase] = Field(default=None, description="""Phase tuning range.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
+    phase_weight_range: Optional[_PIDWeightRangeBase] = Field(default=None, description="""Phase weighting range.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
+
+
+class _PIDPhaseRangeBase(ConfiguredBaseModel):
+    """
+    Numeric min/max range for PID phase control.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PIDPhaseRange',
+         'from_schema': 'https://w3id.org/laura/schema/rf'})
+
+    min: Optional[float] = Field(default=None, description="""Minimum value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDPhaseRange']} })
+    max: Optional[float] = Field(default=None, description="""Maximum value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDPhaseRange']} })
+
+
+class _PIDWeightRangeBase(_PIDPhaseRangeBase):
+    """
+    Numeric min/max range for PID phase weighting.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PIDWeightRange',
+         'from_schema': 'https://w3id.org/laura/schema/rf'})
+
+    min: Optional[float] = Field(default=None, description="""Minimum value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDPhaseRange']} })
+    max: Optional[float] = Field(default=None, description="""Maximum value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDPhaseRange']} })
+
+
+class _TraceBase(ConfiguredBaseModel):
+    """
+    LLRF trace metadata.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Trace', 'from_schema': 'https://w3id.org/laura/schema/rf'})
+
+    data_size: Optional[int] = Field(default=None, description="""Number of points in a trace.""", validation_alias=AliasChoices('data_size', 'trace_data_size'), json_schema_extra = { "linkml_meta": {'aliases': ['trace_data_size'], 'domain_of': ['Trace']} })
+    data_count: Optional[int] = Field(default=None, description="""Number of one-record trace entries.""", validation_alias=AliasChoices('data_count', 'one_trace_data_count'), json_schema_extra = { "linkml_meta": {'aliases': ['one_trace_data_count'], 'domain_of': ['Trace']} })
+    data_chunk_size: Optional[int] = Field(default=None, description="""Chunk size for one-record traces.""", validation_alias=AliasChoices('data_chunk_size', 'one_trace_data_chunk_size'), json_schema_extra = { "linkml_meta": {'aliases': ['one_trace_data_chunk_size'], 'domain_of': ['Trace']} })
+    number_of_start_zeros: Optional[int] = Field(default=None, description="""Number of leading zeros in a trace.""", validation_alias=AliasChoices('number_of_start_zeros', 'trace_num_of_start_zeros'), json_schema_extra = { "linkml_meta": {'aliases': ['trace_num_of_start_zeros'], 'domain_of': ['Trace']} })
+
+
+class _ChannelNamesBase(ConfiguredBaseModel):
+    """
+    Names for LLRF channels 1..8.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ChannelNames',
+         'from_schema': 'https://w3id.org/laura/schema/rf'})
+
+    ch1: str = Field(default="", validation_alias=AliasChoices('ch1', 'CH1'), json_schema_extra = { "linkml_meta": {'aliases': ['CH1'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
+    ch2: str = Field(default="", validation_alias=AliasChoices('ch2', 'CH2'), json_schema_extra = { "linkml_meta": {'aliases': ['CH2'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
+    ch3: str = Field(default="", validation_alias=AliasChoices('ch3', 'CH3'), json_schema_extra = { "linkml_meta": {'aliases': ['CH3'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
+    ch4: str = Field(default="", validation_alias=AliasChoices('ch4', 'CH4'), json_schema_extra = { "linkml_meta": {'aliases': ['CH4'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
+    ch5: str = Field(default="", validation_alias=AliasChoices('ch5', 'CH5'), json_schema_extra = { "linkml_meta": {'aliases': ['CH5'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
+    ch6: str = Field(default="", validation_alias=AliasChoices('ch6', 'CH6'), json_schema_extra = { "linkml_meta": {'aliases': ['CH6'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
+    ch7: str = Field(default="", validation_alias=AliasChoices('ch7', 'CH7'), json_schema_extra = { "linkml_meta": {'aliases': ['CH7'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
+    ch8: str = Field(default="", validation_alias=AliasChoices('ch8', 'CH8'), json_schema_extra = { "linkml_meta": {'aliases': ['CH8'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
+
+
+class _LLRFTimingBase(ConfiguredBaseModel):
+    """
+    Start/end window timing definition.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LLRFTiming',
+         'from_schema': 'https://w3id.org/laura/schema/rf'})
+
+    start: Optional[float] = Field(default=None, description="""Start time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTiming']} })
+    end: Optional[float] = Field(default=None, description="""End time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTiming']} })
+
+
+class _LLRFTimingsBase(ConfiguredBaseModel):
+    """
+    Collection of timing windows for key LLRF channels.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LLRFTimings',
+         'from_schema': 'https://w3id.org/laura/schema/rf'})
+
+    klystron_forward: Optional[_LLRFTimingBase] = Field(default=None, description="""Timing for klystron forward power.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTimings']} })
+    klystron_reverse: Optional[_LLRFTimingBase] = Field(default=None, description="""Timing for klystron reverse power.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTimings']} })
+    cavity_forward: Optional[_LLRFTimingBase] = Field(default=None, description="""Timing for cavity forward power.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTimings']} })
+    cavity_reverse: Optional[_LLRFTimingBase] = Field(default=None, description="""Timing for cavity reverse power.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTimings']} })
+    cavity_probe: Optional[_LLRFTimingBase] = Field(default=None, description="""Timing for cavity probe.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTimings']} })
+
+
+class _LowLevelRFElementBase(ConfiguredBaseModel):
+    """
+    Low-level RF (LLRF) system parameters.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LowLevelRFElement',
+         'from_schema': 'https://w3id.org/laura/schema/rf'})
+
+    trace: Optional[_TraceBase] = Field(default=None, description="""Trace metadata.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LowLevelRFElement']} })
+    max_amplitude: Optional[float] = Field(default=None, description="""Maximum allowed amplitude.""", validation_alias=AliasChoices('max_amplitude', 'MAX_AMPLITUDE'), json_schema_extra = { "linkml_meta": {'aliases': ['MAX_AMPLITUDE'], 'domain_of': ['LowLevelRFElement']} })
+    channel_names: Optional[_ChannelNamesBase] = Field(default=None, description="""Channel labels.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LowLevelRFElement']} })
+    crest_phase: Optional[float] = Field(default=None, description="""Cavity crest phase.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LowLevelRFElement']} })
+    timings: Optional[_LLRFTimingsBase] = Field(default=None, description="""Timing windows for LLRF channels.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LowLevelRFElement']} })
+
+
+class _RFModulatorElementBase(ConfiguredBaseModel):
+    """
+    RF modulator (klystron driver) parameters.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFModulatorElement',
+         'from_schema': 'https://w3id.org/laura/schema/rf'})
+
+    pass
+
+
+class _RFProtectionElementBase(ConfiguredBaseModel):
+    """
+    RF protection system parameters.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFProtectionElement',
+         'from_schema': 'https://w3id.org/laura/schema/rf'})
+
+    prot_type: Optional[str] = Field(default=None, description="""Protection system type.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFProtectionElement']} })
+
+
+class _RFHeartbeatElementBase(ConfiguredBaseModel):
+    """
+    RF heartbeat / timing-monitor element parameters.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFHeartbeatElement',
+         'from_schema': 'https://w3id.org/laura/schema/rf'})
+
+    pass
+
+
+class _DiagnosticElementBase(ConfiguredBaseModel):
+    """
+    Base class for diagnostic instrument sub-models.  Concrete sub-models extend this with instrument-specific fields.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:DiagnosticElement',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics'})
+
+    pass
+
+
+class _BPMDiagnosticElementBase(_DiagnosticElementBase):
+    """
+    Beam-position monitor (BPM) diagnostic data.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:BPMDiagnosticElement',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
+         'in_subset': ['diagnostic_properties']})
+
+    type: str = Field(default="Stripline", description="""BPM type (e.g., ``Stripline``, ``Cavity``, ``Button``). Accepted in YAML as ``bpm_type``.""", validation_alias=AliasChoices('type', 'bpm_type'), json_schema_extra = { "linkml_meta": {'aliases': ['bpm_type'],
+         'domain_of': ['BPMDiagnosticElement',
+                       'BAMDiagnosticElement',
+                       'BLMDiagnosticElement',
+                       'ScreenDiagnosticElement',
+                       'ChargeDiagnosticElement',
+                       'CameraDiagnosticElement'],
+         'ifabsent': 'string(Stripline)'} })
+
+
+class _BAMDiagnosticElementBase(_DiagnosticElementBase):
+    """
+    Beam-arrival monitor (BAM) diagnostic data.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:BAMDiagnosticElement',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
+         'in_subset': ['diagnostic_properties']})
+
+    type: str = Field(default="DESY", description="""BAM type. Accepted in YAML as ``bam_type``.""", validation_alias=AliasChoices('type', 'bam_type'), json_schema_extra = { "linkml_meta": {'aliases': ['bam_type'],
+         'domain_of': ['BPMDiagnosticElement',
+                       'BAMDiagnosticElement',
+                       'BLMDiagnosticElement',
+                       'ScreenDiagnosticElement',
+                       'ChargeDiagnosticElement',
+                       'CameraDiagnosticElement'],
+         'ifabsent': 'string(DESY)'} })
+
+
+class _BLMDiagnosticElementBase(_DiagnosticElementBase):
+    """
+    Bunch-length monitor (BLM) diagnostic data.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:BLMDiagnosticElement',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
+         'in_subset': ['diagnostic_properties']})
+
+    type: str = Field(default="CDR", description="""BLM type (e.g., ``CDR``). Accepted in YAML as ``blm_type``.""", validation_alias=AliasChoices('type', 'blm_type'), json_schema_extra = { "linkml_meta": {'aliases': ['blm_type'],
+         'domain_of': ['BPMDiagnosticElement',
+                       'BAMDiagnosticElement',
+                       'BLMDiagnosticElement',
+                       'ScreenDiagnosticElement',
+                       'ChargeDiagnosticElement',
+                       'CameraDiagnosticElement'],
+         'ifabsent': 'string(CDR)'} })
+
+
+class _ScreenDiagnosticElementBase(_DiagnosticElementBase):
+    """
+    Scintillator or OTR screen diagnostic data.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ScreenDiagnosticElement',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
+         'in_subset': ['diagnostic_properties']})
+
+    type: str = Field(default="CLARA_HV_MOVER", description="""Screen type (e.g., ``OTR``, ``YAG``).""", validation_alias=AliasChoices('type', 'screen_type'), json_schema_extra = { "linkml_meta": {'aliases': ['screen_type'],
+         'domain_of': ['BPMDiagnosticElement',
+                       'BAMDiagnosticElement',
+                       'BLMDiagnosticElement',
+                       'ScreenDiagnosticElement',
+                       'ChargeDiagnosticElement',
+                       'CameraDiagnosticElement'],
+         'ifabsent': 'string(CLARA_HV_MOVER)'} })
+    has_camera: Optional[bool] = Field(default=True, description="""Whether the screen has an associated camera.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenDiagnosticElement'], 'ifabsent': 'True'} })
+    camera_name: str = Field(default="", description="""Name of the associated camera element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenDiagnosticElement'], 'ifabsent': 'string()'} })
+    devices: Optional[list[str]] = Field(default="[]", description="""List of attached devices.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenDiagnosticElement'], 'ifabsent': '[]'} })
+
+
+class _ChargeDiagnosticElementBase(_DiagnosticElementBase):
+    """
+    Charge-measurement diagnostic data (base for ICT, FCM, WCM).
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ChargeDiagnosticElement',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
+         'in_subset': ['diagnostic_properties']})
+
+    type: Optional[str] = Field(default=None, description="""Charge-diagnostic type. Accepted in YAML as ``charge_type``.""", validation_alias=AliasChoices('type', 'charge_type'), json_schema_extra = { "linkml_meta": {'aliases': ['charge_type'],
+         'domain_of': ['BPMDiagnosticElement',
+                       'BAMDiagnosticElement',
+                       'BLMDiagnosticElement',
+                       'ScreenDiagnosticElement',
+                       'ChargeDiagnosticElement',
+                       'CameraDiagnosticElement']} })
+
+
+class _CameraPixelResultsIndicesBase(ConfiguredBaseModel):
+    """
+    Indices into camera pixel-analysis result arrays.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CameraPixelResultsIndices',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics'})
+
+    x: int = Field(default=0, description="""Beam centroid index in x.""", validation_alias=AliasChoices('x', 'X_POS'), json_schema_extra = { "linkml_meta": {'aliases': ['X_POS'],
+         'domain_of': ['CameraPixelResultsIndices',
+                       'CameraPixelResultsNames',
+                       'Position'],
+         'ifabsent': 'int(0)'} })
+    y: int = Field(default=1, description="""Beam centroid index in y.""", validation_alias=AliasChoices('y', 'Y_POS'), json_schema_extra = { "linkml_meta": {'aliases': ['Y_POS'],
+         'domain_of': ['CameraPixelResultsIndices',
+                       'CameraPixelResultsNames',
+                       'Position'],
+         'ifabsent': 'int(1)'} })
+    x_sigma: int = Field(default=2, description="""Beam sigma index in x.""", validation_alias=AliasChoices('x_sigma', 'X_SIGMA_POS'), json_schema_extra = { "linkml_meta": {'aliases': ['X_SIGMA_POS'],
+         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
+         'ifabsent': 'int(2)'} })
+    y_sigma: int = Field(default=3, description="""Beam sigma index in y.""", validation_alias=AliasChoices('y_sigma', 'Y_SIGMA_POS'), json_schema_extra = { "linkml_meta": {'aliases': ['Y_SIGMA_POS'],
+         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
+         'ifabsent': 'int(3)'} })
+    covariance: int = Field(default=4, description="""Beam covariance index.""", validation_alias=AliasChoices('covariance', 'COV_POS'), json_schema_extra = { "linkml_meta": {'aliases': ['COV_POS'],
+         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
+         'ifabsent': 'int(4)'} })
+
+
+class _CameraPixelResultsNamesBase(ConfiguredBaseModel):
+    """
+    Names of camera pixel-analysis result arrays.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CameraPixelResultsNames',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics'})
+
+    x: str = Field(default="X", description="""Beam centroid name in x.""", validation_alias=AliasChoices('x', 'X_NAME'), json_schema_extra = { "linkml_meta": {'aliases': ['X_NAME'],
+         'domain_of': ['CameraPixelResultsIndices',
+                       'CameraPixelResultsNames',
+                       'Position'],
+         'ifabsent': 'string(X)'} })
+    y: str = Field(default="Y", description="""Beam centroid name in y.""", validation_alias=AliasChoices('y', 'Y_NAME'), json_schema_extra = { "linkml_meta": {'aliases': ['Y_NAME'],
+         'domain_of': ['CameraPixelResultsIndices',
+                       'CameraPixelResultsNames',
+                       'Position'],
+         'ifabsent': 'string(Y)'} })
+    x_sigma: str = Field(default="X_SIGMA", description="""Beam sigma name in x.""", validation_alias=AliasChoices('x_sigma', 'X_SIGMA_NAME'), json_schema_extra = { "linkml_meta": {'aliases': ['X_SIGMA_NAME'],
+         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
+         'ifabsent': 'string(X_SIGMA)'} })
+    y_sigma: str = Field(default="Y_SIGMA", description="""Beam sigma name in y.""", validation_alias=AliasChoices('y_sigma', 'Y_SIGMA_NAME'), json_schema_extra = { "linkml_meta": {'aliases': ['Y_SIGMA_NAME'],
+         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
+         'ifabsent': 'string(Y_SIGMA)'} })
+    covariance: str = Field(default="COV", description="""Beam covariance name.""", validation_alias=AliasChoices('covariance', 'COV_NAME'), json_schema_extra = { "linkml_meta": {'aliases': ['COV_NAME'],
+         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
+         'ifabsent': 'string(COV)'} })
+
+
+class _CameraMaskBase(ConfiguredBaseModel):
+    """
+    Camera analysis mask parameters.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CameraMask',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics'})
+
+    middle: list[float] = Field(default_factory=list, description="""Center of the mask in pixels [x, y].""", validation_alias=AliasChoices('middle', 'position', 'centre'), json_schema_extra = { "linkml_meta": {'domain_of': ['CameraMask', 'CameraSensor', 'PhysicalElement']} })
+    radius: list[float] = Field(default_factory=list, description="""Mask radius in pixels [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'ApertureElement', 'CameraMask']} })
+    maximum: list[float] = Field(default_factory=list, description="""Maximum mask radius in pixels [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraMask', 'CameraSensor', 'LaserAttenuator']} })
+    use_maximum_values: Optional[bool] = Field(default=True, description="""If True, use maximum mask radius constraints.""", validation_alias=AliasChoices('use_maximum_values', 'USE_MASK_RAD_LIMITS'), json_schema_extra = { "linkml_meta": {'aliases': ['USE_MASK_RAD_LIMITS'],
+         'domain_of': ['CameraMask'],
+         'ifabsent': 'True'} })
+
+
+class _CameraSensorBase(ConfiguredBaseModel):
+    """
+    Camera sensor hardware configuration.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CameraSensor',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics'})
+
+    x_pixels: int = Field(default=2160, description="""Raw sensor pixel count in x.""", validation_alias=AliasChoices('x_pixels', 'BINARY_NUM_PIX_X'), json_schema_extra = { "linkml_meta": {'aliases': ['BINARY_NUM_PIX_X'],
+         'domain_of': ['CameraSensor', 'CameraDiagnosticElement'],
+         'ifabsent': 'int(2160)'} })
+    y_pixels: int = Field(default=2560, description="""Raw sensor pixel count in y.""", validation_alias=AliasChoices('y_pixels', 'BINARY_NUM_PIX_Y'), json_schema_extra = { "linkml_meta": {'aliases': ['BINARY_NUM_PIX_Y'],
+         'domain_of': ['CameraSensor', 'CameraDiagnosticElement'],
+         'ifabsent': 'int(2560)'} })
+    x_scale_factor: int = Field(default=2, description="""Pixel binning factor in x.""", validation_alias=AliasChoices('x_scale_factor', 'X_PIX_SCALE_FACTOR'), json_schema_extra = { "linkml_meta": {'aliases': ['X_PIX_SCALE_FACTOR'],
+         'domain_of': ['CameraSensor'],
+         'ifabsent': 'int(2)'} })
+    y_scale_factor: int = Field(default=2, description="""Pixel binning factor in y.""", validation_alias=AliasChoices('y_scale_factor', 'Y_PIX_SCALE_FACTOR'), json_schema_extra = { "linkml_meta": {'aliases': ['Y_PIX_SCALE_FACTOR'],
+         'domain_of': ['CameraSensor'],
+         'ifabsent': 'int(2)'} })
+    beam_pixel_average: float = Field(default=97.2, description="""Average pixel value for beam detection.""", validation_alias=AliasChoices('beam_pixel_average', 'AVG_PIXEL_VALUE_FOR_BEAM'), json_schema_extra = { "linkml_meta": {'aliases': ['AVG_PIXEL_VALUE_FOR_BEAM'],
+         'domain_of': ['CameraSensor'],
+         'ifabsent': 'float(97.2)'} })
+    middle: list[float] = Field(default_factory=list, description="""Sensor optical center in pixels [x, y].""", validation_alias=AliasChoices('middle', 'position', 'centre'), json_schema_extra = { "linkml_meta": {'domain_of': ['CameraMask', 'CameraSensor', 'PhysicalElement']} })
+    x_pixels_to_mm: float = Field(default=0.0134, description="""Pixel-to-mm scale factor in x.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor'], 'ifabsent': 'float(0.0134)'} })
+    y_pixels_to_mm: float = Field(default=0.0134, description="""Pixel-to-mm scale factor in y.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor'], 'ifabsent': 'float(0.0134)'} })
+    minimum: list[float] = Field(default_factory=list, description="""Minimum pixel positions [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor', 'LaserAttenuator']} })
+    maximum: list[float] = Field(default_factory=list, description="""Maximum pixel positions [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraMask', 'CameraSensor', 'LaserAttenuator']} })
+    bit_depth: int = Field(default=16, description="""Camera bit depth.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor'], 'ifabsent': 'int(16)'} })
+    operating_middle: list[float] = Field(default_factory=list, description="""Operating center positions in pixels [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor']} })
+    mechanical_middle: list[float] = Field(default_factory=list, description="""Mechanical center of the camera in pixels [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor']} })
+
+
+class _CameraDiagnosticElementBase(_DiagnosticElementBase):
+    """
+    Camera diagnostic data, including sensor parameters, analysis mask, and pixel-to-mm scale factors.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CameraDiagnosticElement',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
+         'in_subset': ['diagnostic_properties']})
+
+    type: Optional[str] = Field(default=None, description="""Camera type / model string (e.g., ``PCO``, ``Manta``). Accepted in YAML as ``CAM_TYPE``.""", validation_alias=AliasChoices('type', 'CAM_TYPE'), json_schema_extra = { "linkml_meta": {'aliases': ['CAM_TYPE'],
+         'domain_of': ['BPMDiagnosticElement',
+                       'BAMDiagnosticElement',
+                       'BLMDiagnosticElement',
+                       'ScreenDiagnosticElement',
+                       'ChargeDiagnosticElement',
+                       'CameraDiagnosticElement']} })
+    x_pixels: int = Field(default=1080, description="""Image width reported by the control system [pix].""", validation_alias=AliasChoices('x_pixels', 'ARRAY_DATA_NUM_PIX_X', 'epics_x_pixels'), json_schema_extra = { "linkml_meta": {'aliases': ['ARRAY_DATA_NUM_PIX_X', 'epics_x_pixels'],
+         'domain_of': ['CameraSensor', 'CameraDiagnosticElement'],
+         'ifabsent': 'int(1080)'} })
+    y_pixels: int = Field(default=1280, description="""Image height reported by the control system [pix].""", validation_alias=AliasChoices('y_pixels', 'ARRAY_DATA_NUM_PIX_Y', 'epics_y_pixels'), json_schema_extra = { "linkml_meta": {'aliases': ['ARRAY_DATA_NUM_PIX_Y', 'epics_y_pixels'],
+         'domain_of': ['CameraSensor', 'CameraDiagnosticElement'],
+         'ifabsent': 'int(1280)'} })
+    rotation: float = Field(default=0, description="""Camera rotation relative to the screen plane [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement',
+                       'ElementPositionError',
+                       'ElementSurvey',
+                       'PhysicalElement'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'deg'}} })
+    flipped_horizontally: Optional[bool] = Field(default=True, description="""True if the image is mirrored left-right.""", validation_alias=AliasChoices('flipped_horizontally', 'IMAGE_FLIP_LR'), json_schema_extra = { "linkml_meta": {'aliases': ['IMAGE_FLIP_LR'],
+         'domain_of': ['CameraDiagnosticElement'],
+         'ifabsent': 'True'} })
+    flipped_vertically: Optional[bool] = Field(default=False, description="""True if the image is mirrored top-bottom.""", validation_alias=AliasChoices('flipped_vertically', 'IMAGE_FLIP_UD'), json_schema_extra = { "linkml_meta": {'aliases': ['IMAGE_FLIP_UD'],
+         'domain_of': ['CameraDiagnosticElement'],
+         'ifabsent': 'False'} })
+    screen_name: Optional[str] = Field(default=None, description="""Name of the screen element to which this camera is attached.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
+    has_led: Optional[bool] = Field(default=True, description="""True if the camera mount includes an LED backlight.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement'], 'ifabsent': 'True'} })
+    pixel_results_indices: Optional[_CameraPixelResultsIndicesBase] = Field(default=None, description="""Indices of pixel analysis result arrays.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
+    pixel_results_names: Optional[_CameraPixelResultsNamesBase] = Field(default=None, description="""Names of pixel analysis result arrays.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
+    mask: Optional[_CameraMaskBase] = Field(default=None, description="""Camera analysis mask configuration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
+    sensor: Optional[_CameraSensorBase] = Field(default=None, description="""Camera sensor hardware configuration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
+
+
+class _LaserElementBase(ConfiguredBaseModel):
+    """
+    Laser-beam parameters (wavelength, pulse energy, profile, etc.) for a laser element or laser-driven plasma stage.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserElement',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
+         'in_subset': ['laser_properties']})
+
+    initial_position: float = Field(default=0, description="""Initial longitudinal position of the laser pulse [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'm'}} })
+    waist: float = Field(default=0, description="""Laser beam waist (1/e^2 radius) [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'm'}} })
+    wavelength: Optional[float] = Field(default=None, description="""Laser wavelength [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'unit': {'ucum_code': 'm'}} })
+    pulse_energy: Optional[float] = Field(default=None, description="""Laser pulse energy [J].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'unit': {'ucum_code': 'J'}} })
+    pulse_duration_fwhm: Optional[float] = Field(default=None, description="""Pulse duration at FWHM [s].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'unit': {'ucum_code': 's'}} })
+    focal_position: float = Field(default=0.0, description="""Focal (waist) position along the propagation axis [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    cep_phase: float = Field(default=0, description="""Carrier-envelope phase [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'rad'}} })
+    polarization: Optional[LaserPolarizationEnum] = Field(default=None, description="""Laser polarization state.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement']} })
+    profile_type: Optional[LaserProfileTypeEnum] = Field(default=LaserProfileTypeEnum.gaussian, description="""Transverse intensity profile model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'string(gaussian)'} })
+    laguerre_polynomial_order_p: int = Field(default=0, description="""Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'int(0)'} })
+    flatness: int = Field(default=6, description="""Flatness order N of a flattened-Gaussian profile (for ``profile_type = flattened-gaussian``).""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'int(6)'} })
+
+
+class _LaserEnergyMeterElementBase(ConfiguredBaseModel):
+    """
+    Laser energy-meter sub-model (no additional fields).
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserEnergyMeterElement',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma'})
+
+    pass
+
+
+class _LaserHalfWavePlateElementBase(ConfiguredBaseModel):
+    """
+    Half-wave plate sub-model (no additional fields).
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserHalfWavePlateElement',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma'})
+
+    pass
+
+
+class _PlasmaElementBase(ConfiguredBaseModel):
+    """
+    Plasma channel parameters for a laser-driven plasma-accelerator stage.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PlasmaElement',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma'})
+
+    density: Optional[float] = Field(default=None, description="""Plasma (electron) number density [m^-^3].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'unit': {'ucum_code': 'm-3'}} })
+    species: str = Field(default="electron", description="""Plasma species name (e.g., ``electron``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'string(electron)'} })
+    ramp_up: float = Field(default=0.001, description="""Entrance density-ramp length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
+         'ifabsent': 'float(0.001)',
+         'unit': {'ucum_code': 'm'}} })
+    plateau: float = Field(default=0.001, description="""Flat-top plateau length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
+         'ifabsent': 'float(0.001)',
+         'unit': {'ucum_code': 'm'}} })
+    ramp_down: float = Field(default=0.001, description="""Exit density-ramp length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
+         'ifabsent': 'float(0.001)',
+         'unit': {'ucum_code': 'm'}} })
+    ramp_decay_length: float = Field(default=0.001, description="""Exponential decay length of the density ramp [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
+         'ifabsent': 'float(0.001)',
+         'unit': {'ucum_code': 'm'}} })
+    density_profile: Optional[bool] = Field(default=False, description="""If True, use a user-defined profile; if False, use a flat-top model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'False'} })
+    parabolic_coefficient: float = Field(default=0, description="""Parabolic coefficient for a transverse density profile.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'float(0)'} })
+
+
 class _PositionBase(ConfiguredBaseModel):
     """
     Cartesian position in the global accelerator coordinate system. All components are in metres.
@@ -259,14 +1228,14 @@ class _PositionBase(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/laura/schema',
          'in_subset': ['physical_properties']})
 
-    x: float = Field(default=0, description="""Horizontal component [m].""", validation_alias=AliasChoices('x', 'X_POS'), json_schema_extra = { "linkml_meta": {'domain_of': ['Position',
-                       'CameraPixelResultsIndices',
-                       'CameraPixelResultsNames'],
+    x: float = Field(default=0, description="""Horizontal component [m].""", validation_alias=AliasChoices('x', 'X_POS'), json_schema_extra = { "linkml_meta": {'domain_of': ['CameraPixelResultsIndices',
+                       'CameraPixelResultsNames',
+                       'Position'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
-    y: float = Field(default=0, description="""Vertical component [m].""", validation_alias=AliasChoices('y', 'Y_POS'), json_schema_extra = { "linkml_meta": {'domain_of': ['Position',
-                       'CameraPixelResultsIndices',
-                       'CameraPixelResultsNames'],
+    y: float = Field(default=0, description="""Vertical component [m].""", validation_alias=AliasChoices('y', 'Y_POS'), json_schema_extra = { "linkml_meta": {'domain_of': ['CameraPixelResultsIndices',
+                       'CameraPixelResultsNames',
+                       'Position'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     z: float = Field(default=0, description="""Longitudinal (beam-direction) component [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Position'], 'ifabsent': 'float(0)', 'unit': {'ucum_code': 'm'}} })
@@ -299,10 +1268,10 @@ class _ElementPositionErrorBase(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/laura/schema'})
 
     position: Optional[_PositionBase] = Field(default=None, description="""Positional misalignment error [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElementPositionError', 'ElementSurvey']} })
-    rotation: Optional[_RotationBase] = Field(default=None, description="""Angular misalignment error [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElementPositionError',
+    rotation: Optional[_RotationBase] = Field(default=None, description="""Angular misalignment error [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement',
+                       'ElementPositionError',
                        'ElementSurvey',
-                       'PhysicalElement',
-                       'CameraDiagnosticElement']} })
+                       'PhysicalElement']} })
 
 
 class _ElementSurveyBase(ConfiguredBaseModel):
@@ -313,10 +1282,10 @@ class _ElementSurveyBase(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/laura/schema'})
 
     position: Optional[_PositionBase] = Field(default=None, description="""Surveyed position.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElementPositionError', 'ElementSurvey']} })
-    rotation: Optional[_RotationBase] = Field(default=None, description="""Surveyed rotation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElementPositionError',
+    rotation: Optional[_RotationBase] = Field(default=None, description="""Surveyed rotation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement',
+                       'ElementPositionError',
                        'ElementSurvey',
-                       'PhysicalElement',
-                       'CameraDiagnosticElement']} })
+                       'PhysicalElement']} })
 
 
 class _PhysicalElementBase(ConfiguredBaseModel):
@@ -328,12 +1297,12 @@ class _PhysicalElementBase(ConfiguredBaseModel):
          'in_subset': ['physical_properties']})
 
     middle: Optional[_PositionBase] = Field(default=None, description="""Longitudinal midpoint (centre) of the element. Also accepted as ``position`` or ``centre`` in YAML.""", validation_alias=AliasChoices('middle', 'position', 'centre'), json_schema_extra = { "linkml_meta": {'aliases': ['position', 'centre'],
-         'domain_of': ['PhysicalElement', 'CameraMask', 'CameraSensor']} })
+         'domain_of': ['CameraMask', 'CameraSensor', 'PhysicalElement']} })
     datum: Optional[_PositionBase] = Field(default=None, description="""Datum reference position.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement']} })
-    rotation: Optional[_RotationBase] = Field(default=None, description="""Local rotation in the global frame.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElementPositionError',
+    rotation: Optional[_RotationBase] = Field(default=None, description="""Local rotation in the global frame.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement',
+                       'ElementPositionError',
                        'ElementSurvey',
-                       'PhysicalElement',
-                       'CameraDiagnosticElement']} })
+                       'PhysicalElement']} })
     global_rotation: Optional[_RotationBase] = Field(default=None, description="""Accumulated global rotation including parent-frame contributions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement']} })
     error: Optional[_ElementPositionErrorBase] = Field(default=None, description="""Alignment errors.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement']} })
     survey: Optional[_ElementSurveyBase] = Field(default=None, description="""Survey-measured position and rotation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement']} })
@@ -421,931 +1390,6 @@ class _ControlsInformationBase(ConfiguredBaseModel):
     variables: list[_ControlVariableBase] = Field(default_factory=list, description="""Named control variables keyed by logical name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlsInformation']} })
 
 
-class _SimulationElementBase(ConfiguredBaseModel):
-    """
-    Base simulation attributes: field-map files and reference positions for tracking codes.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:SimulationElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
-
-
-class _MagnetSimulationElementBase(_SimulationElementBase):
-    """
-    Simulation attributes specific to magnets: integrator settings, fringe-field model, and radiation flags.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MagnetSimulationElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'field_amplitude': {'description': 'Field amplitude scaling '
-                                                           'for magnet tracking.',
-                                            'ifabsent': 'float(0.0)',
-                                            'name': 'field_amplitude'},
-                        'n_kicks': {'description': 'Number of integration kicks.',
-                                    'ifabsent': 'int(4)',
-                                    'minimum_value': 1,
-                                    'name': 'n_kicks'}}})
-
-    n_kicks: Optional[int] = Field(default=4, description="""Number of integration kicks.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
-         'ifabsent': 'int(4)'} })
-    field_amplitude: Optional[float] = Field(default=0.0, description="""Field amplitude scaling for magnet tracking.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
-         'ifabsent': 'float(0.0)'} })
-    n_slices: int = Field(default=4, description="""Number of longitudinal slices for thick-lens tracking.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(4)'} })
-    smooth: Optional[bool] = Field(default=None, description="""Use a smoothed field profile.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
-                       'RFCavitySimulationElement',
-                       'WakefieldSimulationElement']} })
-    edge_field_integral: float = Field(default=0.5, description="""Fringe-field integral for edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
-         'ifabsent': 'float(0.5)'} })
-    edge1_effects: Optional[bool] = Field(default=None, description="""Enable entrance-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
-    edge2_effects: Optional[bool] = Field(default=None, description="""Enable exit-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
-    sr_enable: Optional[bool] = Field(default=True, description="""Enable synchrotron-radiation energy loss.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
-    isr_enable: Optional[bool] = Field(default=True, description="""Enable incoherent synchrotron-radiation emittance growth.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
-    csr_enable: Optional[bool] = Field(default=True, description="""Enable coherent synchrotron radiation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'True'} })
-    csr_bins: int = Field(default=100, description="""Number of longitudinal bins for the CSR mesh.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(100)'} })
-    integration_order: int = Field(default=4, description="""Order of the symplectic integrator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(4)'} })
-    nonlinear: Optional[bool] = Field(default=None, description="""Include higher-order (sextupole+) field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
-    smoothing_half_width: int = Field(default=1, description="""Half-width of the current-profile smoothing kernel.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(1)'} })
-    edge_order: int = Field(default=2, description="""Polynomial order of the edge-field expansion.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(2)'} })
-    deltaL: float = Field(default=0.0, description="""Longitudinal step-size override for thick-lens integration [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    smooth_points: float = Field(default=2, description="""Number of points used to smooth the field map [ASTRA].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'float(2)'} })
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
-
-
-class _RFCavitySimulationElementBase(_SimulationElementBase):
-    """
-    Simulation attributes for RF cavity elements.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFCavitySimulationElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'field_amplitude': {'description': 'Cavity field amplitude.',
-                                            'ifabsent': 'float(0)',
-                                            'name': 'field_amplitude'},
-                        'lsc_bins': {'description': 'Number of longitudinal '
-                                                    'space-charge bins.',
-                                     'ifabsent': 'int(100)',
-                                     'name': 'lsc_bins'},
-                        'n_kicks': {'description': 'Number of cavity kicks to apply.',
-                                    'ifabsent': 'int(0)',
-                                    'name': 'n_kicks'}}})
-
-    t_column: Optional[str] = Field(default=None, description="""Time column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
-    z_column: Optional[str] = Field(default=None, description="""Longitudinal position column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
-    wx_column: Optional[str] = Field(default=None, description="""Horizontal wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
-    wy_column: Optional[str] = Field(default=None, description="""Vertical wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
-    wz_column: Optional[str] = Field(default=None, description="""Longitudinal wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
-    n_kicks: Optional[int] = Field(default=0, description="""Number of cavity kicks to apply.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
-         'ifabsent': 'int(0)'} })
-    lsc_bins: Optional[int] = Field(default=100, description="""Number of longitudinal space-charge bins.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'int(100)'} })
-    field_amplitude: Optional[float] = Field(default=0, description="""Cavity field amplitude.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
-         'ifabsent': 'float(0)'} })
-    change_p0: int = Field(default=1, description="""Flag indicating whether the cavity changes reference momentum.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
-    end1_focus: int = Field(default=1, description="""Apply entrance focusing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
-    end2_focus: int = Field(default=1, description="""Apply exit focusing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
-    body_focus_model: str = Field(default="SRS", description="""Cavity body focusing model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'string(SRS)'} })
-    current_bins: int = Field(default=0, description="""Number of current bins.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(0)'} })
-    interpolate_current_bins: int = Field(default=1, description="""Flag indicating current-bin interpolation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
-    smooth_current_bins: int = Field(default=1, description="""Flag indicating current-bin smoothing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
-    smooth: Optional[int] = Field(default=None, description="""Cavity smoothing parameter.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
-                       'RFCavitySimulationElement',
-                       'WakefieldSimulationElement']} })
-    ez_peak: Optional[float] = Field(default=None, description="""Peak longitudinal electric field.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
-    field_file_name: Optional[str] = Field(default=None, description="""Cavity field file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
-    wakefile: Optional[str] = Field(default=None, description="""Wake file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
-    zwakefile: Optional[str] = Field(default=None, description="""Longitudinal wake file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
-    trwakefile: Optional[str] = Field(default=None, description="""Transverse wake file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
-
-
-class _WakefieldSimulationElementBase(_SimulationElementBase):
-    """
-    Simulation attributes for passive wakefield structures.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:WakefieldSimulationElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    t_column: Optional[str] = Field(default=None, description="""Time column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
-    z_column: Optional[str] = Field(default=None, description="""Longitudinal position column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
-    wx_column: Optional[str] = Field(default=None, description="""Horizontal wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
-    wy_column: Optional[str] = Field(default=None, description="""Vertical wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
-    wz_column: Optional[str] = Field(default=None, description="""Longitudinal wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
-    allow_long_beam: Optional[bool] = Field(default=True, description="""Allow beams longer than the wakefield.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'True'} })
-    bunched_beam: Optional[bool] = Field(default=False, description="""Use bunched beam mode.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'False'} })
-    change_momentum: Optional[bool] = Field(default=True, description="""Allow wakefield to change bunch momentum.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'True'} })
-    factor: float = Field(default=1, description="""Wake scaling factor.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(1)'} })
-    interpolate: Optional[bool] = Field(default=True, description="""Interpolate points in wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'True'} })
-    scale_kick: float = Field(default=1, description="""Factor by which to scale wake kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(1)'} })
-    scale_field_ex: float = Field(default=0.0, description="""x-component of the longitudinal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(0.0)'} })
-    scale_field_ey: float = Field(default=0.0, description="""y-component of the longitudinal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(0.0)'} })
-    scale_field_ez: float = Field(default=1.0, description="""z-component of the longitudinal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(1.0)'} })
-    scale_field_hx: float = Field(default=1.0, description="""x-component of the horizontal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(1.0)'} })
-    scale_field_hy: float = Field(default=0.0, description="""y-component of the horizontal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(0.0)'} })
-    scale_field_hz: float = Field(default=0.0, description="""z-component of the horizontal direction vector.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(0.0)'} })
-    equal_grid: float = Field(default=0.66, description="""Interpolation between equidistant and equal-charge grids.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(0.66)'} })
-    interpolation_method: int = Field(default=2, description="""Interpolation method for ASTRA.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'int(2)'} })
-    smooth: float = Field(default=0.25, description="""Smoothing parameter for Gaussian interpolation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
-                       'RFCavitySimulationElement',
-                       'WakefieldSimulationElement'],
-         'ifabsent': 'float(0.25)'} })
-    subbins: int = Field(default=10, description="""Sub-binning parameter.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'int(10)'} })
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
-
-
-class _DriftSimulationElementBase(_SimulationElementBase):
-    """
-    Simulation attributes for field-free drift sections.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:DriftSimulationElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'lsc_bins': {'description': 'Number of bins for LSC '
-                                                    'calculations.',
-                                     'ifabsent': 'int(20)',
-                                     'name': 'lsc_bins'}}})
-
-    lsc_bins: Optional[int] = Field(default=20, description="""Number of bins for LSC calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'int(20)'} })
-    lsc_interpolate: int = Field(default=1, description="""Flag to allow interpolation of computed LSC wake.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'int(1)'} })
-    csr_enable: Optional[bool] = Field(default=True, description="""Enable CSR drift calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'True'} })
-    lsc_enable: Optional[bool] = Field(default=True, description="""Enable LSC drift calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'True'} })
-    use_stupakov: int = Field(default=1, description="""Use Stupakov formula.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'int(1)'} })
-    csrdz: float = Field(default=0.01, description="""Step size for CSR calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'float(0.01)'} })
-    lsc_high_frequency_cutoff_start: Optional[float] = Field(default=None, description="""High-frequency cutoff start for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
-    lsc_high_frequency_cutoff_end: Optional[float] = Field(default=None, description="""High-frequency cutoff end for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
-    lsc_low_frequency_cutoff_start: Optional[float] = Field(default=None, description="""Low-frequency cutoff start for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
-    lsc_low_frequency_cutoff_end: Optional[float] = Field(default=None, description="""Low-frequency cutoff end for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
-
-
-class _DiagnosticSimulationElementBase(_SimulationElementBase):
-    """
-    Simulation attributes for beam-diagnostic elements.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:DiagnosticSimulationElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    output_filename: Optional[str] = Field(default=None, description="""Output filename for diagnostic data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticSimulationElement']} })
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
-
-
-class _PlasmaSimulationElementBase(_SimulationElementBase):
-    """
-    Simulation attributes for plasma-accelerator stages.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PlasmaSimulationElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    wakefield_model: Optional[str] = Field(default=None, description="""Wakefield model identifier.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
-    bunch_pusher: str = Field(default="boris", description="""Pusher used to evolve bunch particles in time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'string(boris)'} })
-    dt_bunch: str = Field(default="auto", description="""Time-step control for bunch evolution (or 'auto').""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'string(auto)'} })
-    n_out: int = Field(default=1, description="""Number of distribution dumps during the plasma stage.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(1)'} })
-    min_longitudinal_position: float = Field(default=0, description="""Minimum longitudinal position [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
-    max_longitudinal_position: float = Field(default=0, description="""Maximum longitudinal position [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
-    n_longitudinal: int = Field(default=0, description="""Number of grid points in the longitudinal direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(0)'} })
-    n_radial: int = Field(default=0, description="""Number of grid points in the radial direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(0)'} })
-    plasma_particles_per_cell: int = Field(default=2, description="""Number of plasma particles per cell.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(2)'} })
-    r_max: float = Field(default=0, description="""Radial extent of the simulation box [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
-    r_max_plasma: Optional[float] = Field(default=None, description="""Maximum radial extension of the plasma column.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
-    dz_fields: Optional[float] = Field(default=None, description="""Interval for plasma wakefield updates.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
-    plasma_pusher: str = Field(default="boris", description="""Pusher used to evolve the plasma in time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'string(boris)'} })
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
-
-
-class _TwissMatchSimulationElementBase(_SimulationElementBase):
-    """
-    Simulation attributes for Twiss-matching points.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:TwissMatchSimulationElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    beta_x: Optional[float] = Field(default=None, description="""Horizontal beta.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
-    beta_y: Optional[float] = Field(default=None, description="""Vertical beta.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
-    alpha_x: Optional[float] = Field(default=None, description="""Horizontal alpha.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
-    alpha_y: Optional[float] = Field(default=None, description="""Vertical alpha.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
-    eta_x: float = Field(default=0.0, description="""Horizontal dispersion.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(0.0)'} })
-    eta_y: float = Field(default=0.0, description="""Vertical dispersion.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(0.0)'} })
-    eta_xp: float = Field(default=0.0, description="""Horizontal dispersion derivative.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(0.0)'} })
-    eta_yp: float = Field(default=0.0, description="""Vertical dispersion derivative.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(0.0)'} })
-    from_beam: Optional[bool] = Field(default=True, description="""Compute transform from tracked beam properties.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'True'} })
-    field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
-    scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
-
-
-class _MultipoleBase(ConfiguredBaseModel):
-    """
-    Individual multipole field component, characterised by order and integrated normal / skew strengths at a reference radius.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Multipole', 'from_schema': 'https://w3id.org/laura/schema'})
-
-    order: int = Field(default=0, description="""Multipole order (0 = dipole, 1 = quadrupole, ?).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'int(0)'} })
-    normal: float = Field(default=0, description="""Integrated normal (upright) multipole strength [T.m^{1-n}].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole'], 'ifabsent': 'float(0)'} })
-    skew: float = Field(default=0, description="""Integrated skew (rotated) multipole strength [T.m^{1-n}].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'float(0)'} })
-    radius: float = Field(default=0, description="""Reference radius for multipole normalisation [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'ApertureElement', 'CameraMask'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'm'}} })
-
-
-class _MultipolesBase(ConfiguredBaseModel):
-    """
-    Complete set of integrated multipole strengths up to decapole order, as named slots for efficient element look-up.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MultipoleList',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    K0L: Optional[_MultipoleBase] = Field(default=None, description="""Integrated dipole field.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipoles']} })
-    K1L: Optional[_MultipoleBase] = Field(default=None, description="""Integrated quadrupole gradient.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipoles']} })
-    K2L: Optional[_MultipoleBase] = Field(default=None, description="""Integrated sextupole strength.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipoles']} })
-    K3L: Optional[_MultipoleBase] = Field(default=None, description="""Integrated octupole strength.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipoles']} })
-    K4L: Optional[_MultipoleBase] = Field(default=None, description="""Integrated decapole strength.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipoles']} })
-
-
-class _FieldIntegralBase(ConfiguredBaseModel):
-    """
-    Polynomial fit of integrated field strength as a function of magnet current.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:FieldIntegral',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    coefficients: Optional[list[float]] = Field(default=[0], description="""Polynomial coefficients ordered from lowest to highest degree: ``FieldIntegral = sum c_n . I^n``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['FieldIntegral'], 'ifabsent': '[0]'} })
-
-
-class _LinearSaturationFitBase(ConfiguredBaseModel):
-    """
-    Bi-linear saturation model mapping magnet current to integrated field strength (K-value conversion).
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LinearSaturationFit',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    m: float = Field(default=0, description="""Linear slope of the unsaturated region.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'], 'ifabsent': 'float(0)'} })
-    I_max: float = Field(default=0, description="""Current at which saturation begins [A].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'A'}} })
-    f: float = Field(default=0, description="""Saturation fraction (slope ratio below/above I_max).""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'], 'ifabsent': 'float(0)'} })
-    a: float = Field(default=0, description="""Quadratic saturation coefficient.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'], 'ifabsent': 'float(0)'} })
-    I0: float = Field(default=0, description="""Current offset [A].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'A'}} })
-    d: float = Field(default=0, description="""Constant offset term.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'], 'ifabsent': 'float(0)'} })
-    L: float = Field(default=0, description="""Effective magnetic length [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LinearSaturationFit'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'm'}} })
-
-
-class _MagneticElementBase(ConfiguredBaseModel):
-    """
-    Magnetic field parameters for a beamline magnet, including multipole components, field integrals, and geometric edge parameters.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MagneticElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['magnetic_properties']})
-
-    order: int = Field(default=-1, description="""Principal multipole order (0 = dipole, 1 = quad, ?).""", ge=-1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'int(-1)'} })
-    skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
-    length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'm'}} })
-    multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Integrated multipole field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
-    systematic_multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Systematic (design) multipole errors at the reference radius.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
-    random_multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Random multipole errors at the reference radius.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
-    field_integral_coefficients: Optional[_FieldIntegralBase] = Field(default=None, description="""Polynomial calibration of integrated field vs. current.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
-    linear_saturation_coefficients: Optional[_LinearSaturationFitBase] = Field(default=None, description="""Bi-linear saturation calibration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
-    settle_time: Optional[float] = Field(default=None, description="""Power-supply settle time after a change [s].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 's'}} })
-    entrance_edge_angle: Optional[float] = Field(default=None, description="""Fringe-field entrance edge angle [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    exit_edge_angle: Optional[float] = Field(default=None, description="""Fringe-field exit edge angle [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    gap: float = Field(default=0.032, description="""Full gap between pole faces [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
-         'ifabsent': 'float(0.032)',
-         'unit': {'ucum_code': 'm'}} })
-    bore: float = Field(default=0.037, description="""Magnet bore radius [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
-         'ifabsent': 'float(0.037)',
-         'unit': {'ucum_code': 'm'}} })
-    plane: str = Field(default="horizontal", description="""Principal bending / focusing plane (``H``, ``V``, or ``HV``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(horizontal)'} })
-    width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
-         'ifabsent': 'float(0.2)',
-         'unit': {'ucum_code': 'm'}} })
-    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'rad'}} })
-    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
-         'ifabsent': 'float(0.5)'} })
-    fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
-    gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
-
-
-class _ApertureElementBase(ConfiguredBaseModel):
-    """
-    Transverse aperture geometry for drift-space checks and collimators.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ApertureElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    number_of_elements: Optional[int] = Field(default=None, description="""Number of aperture sub-elements (e.g., for multi-leaf collimators).""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
-    horizontal_size: float = Field(default=0.0, description="""Full horizontal aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    vertical_size: float = Field(default=0.0, description="""Full vertical aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    shape: Optional[ApertureShapeEnum] = Field(default=None, description="""Cross-sectional aperture shape.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
-    radius: Optional[float] = Field(default=None, description="""Radius for circular apertures [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'ApertureElement', 'CameraMask'],
-         'unit': {'ucum_code': 'm'}} })
-    negative_extent: Optional[float] = Field(default=None, description="""Upstream / inner extent [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'unit': {'ucum_code': 'm'}} })
-    positive_extent: Optional[float] = Field(default=None, description="""Downstream / outer extent [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'unit': {'ucum_code': 'm'}} })
-
-
-class _RFCavityElementBase(ConfiguredBaseModel):
-    """
-    RF cavity accelerating-structure parameters.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFCavityElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['rf_properties']})
-
-    cell_length: Optional[float] = Field(default=0.03333333333333333, description="""Length of a single cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
-                       'WakefieldElement',
-                       'RFDeflectingCavityElement'],
-         'ifabsent': 'float(0.03333333333333333)',
-         'unit': {'ucum_code': 'm'}} })
-    coupling_cell_length: Optional[float] = Field(default=0.0, description="""Length of the coupling cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
-                       'WakefieldElement',
-                       'RFDeflectingCavityElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    design_gamma: Optional[float] = Field(default=None, description="""Design Lorentz factor.""", ge=1.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
-    design_power: Optional[float] = Field(default=25000000, description="""Design peak power [W].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
-         'ifabsent': 'float(25000000)',
-         'unit': {'ucum_code': 'W'}} })
-    frequency: Optional[float] = Field(default=2998500000.0, description="""Operating frequency [Hz].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
-         'ifabsent': 'float(2998500000.0)',
-         'unit': {'ucum_code': 'Hz'}} })
-    n_cells: Optional[int] = Field(default=1, description="""Number of cells.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
-                       'WakefieldElement',
-                       'RFDeflectingCavityElement'],
-         'ifabsent': 'int(1)'} })
-    crest: Optional[float] = Field(default=0, description="""On-crest phase offset providing maximum energy gain [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'deg'}} })
-    phase: Optional[float] = Field(default=0.0, description="""Operating phase offset [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'deg'}} })
-    shunt_impedance: Optional[float] = Field(default=None, description="""Shunt impedance [M?/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
-    mode_numerator: Optional[int] = Field(default=None, description="""Mode fraction numerator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
-    mode_denominator: Optional[int] = Field(default=None, description="""Mode fraction denominator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
-    structure_type: str = Field(default="StandingWave", description="""RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave).""", validation_alias=AliasChoices('structure_type', 'structure_Type'), json_schema_extra = { "linkml_meta": {'aliases': ['structure_Type'],
-         'domain_of': ['RFCavityElement'],
-         'ifabsent': 'string(StandingWave)'} })
-    attenuation_constant: float = Field(default=0, description="""Attenuation constant ? of a travelling-wave structure [Np/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement'], 'ifabsent': 'float(0)'} })
-    power_calibration: list[float] = Field(default_factory=list, description="""Calibration constant relating measured power to cavity gradient.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement']} })
-    gradient_calibration: list[float] = Field(default_factory=list, description="""Calibration relating measured signal to gradient [MV/m per a.u.].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement']} })
-
-
-class _WakefieldElementBase(ConfiguredBaseModel):
-    """
-    Passive wakefield structure parameters.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:WakefieldElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['rf_properties']})
-
-    cell_length: Optional[float] = Field(default=0.03333333333333333, description="""Length of a single cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
-                       'WakefieldElement',
-                       'RFDeflectingCavityElement'],
-         'ifabsent': 'float(0.03333333333333333)',
-         'unit': {'ucum_code': 'm'}} })
-    n_cells: Optional[int] = Field(default=1, description="""Number of cells.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
-                       'WakefieldElement',
-                       'RFDeflectingCavityElement'],
-         'ifabsent': 'int(1)'} })
-    coupling_cell_length: Optional[float] = Field(default=0.0, description="""Length of the coupling cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
-                       'WakefieldElement',
-                       'RFDeflectingCavityElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-
-
-class _RFDeflectingCavityElementBase(ConfiguredBaseModel):
-    """
-    Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for streak-mode operation.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFDeflectingCavityElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['rf_properties']})
-
-    cell_length: Optional[float] = Field(default=0.03333333333333333, description="""Length of a single cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
-                       'WakefieldElement',
-                       'RFDeflectingCavityElement'],
-         'ifabsent': 'float(0.03333333333333333)',
-         'unit': {'ucum_code': 'm'}} })
-    coupling_cell_length: Optional[float] = Field(default=0.0, description="""Length of the coupling cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
-                       'WakefieldElement',
-                       'RFDeflectingCavityElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    crest: Optional[float] = Field(default=0, description="""On-crest phase offset providing maximum energy gain [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'deg'}} })
-    design_gamma: Optional[float] = Field(default=None, description="""Design Lorentz factor.""", ge=1.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
-    design_power: Optional[float] = Field(default=25000000, description="""Design peak power [W].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
-         'ifabsent': 'float(25000000)',
-         'unit': {'ucum_code': 'W'}} })
-    frequency: Optional[float] = Field(default=2998500000.0, description="""Operating frequency [Hz].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
-         'ifabsent': 'float(2998500000.0)',
-         'unit': {'ucum_code': 'Hz'}} })
-    n_cells: Optional[int] = Field(default=1, description="""Number of cells.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
-                       'WakefieldElement',
-                       'RFDeflectingCavityElement'],
-         'ifabsent': 'int(1)'} })
-    phase: Optional[float] = Field(default=0.0, description="""Operating phase offset [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'deg'}} })
-    shunt_impedance: Optional[float] = Field(default=None, description="""Shunt impedance [M?/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
-    mode_numerator: Optional[int] = Field(default=None, description="""Mode fraction numerator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
-    mode_denominator: Optional[int] = Field(default=None, description="""Mode fraction denominator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
-
-
-class _PIDElementBase(ConfiguredBaseModel):
-    """
-    PID feedback-controller parameters.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PIDElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    Kp: Optional[float] = Field(default=None, description="""Proportional gain.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
-    Ki: Optional[float] = Field(default=None, description="""Integral gain.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
-    Kd: Optional[float] = Field(default=None, description="""Derivative gain.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
-    forward_channel: Optional[int] = Field(default=None, description="""Forward channel index.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
-    probe_channel: Optional[int] = Field(default=None, description="""Probe channel index.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
-    enable: Optional[str] = Field(default=None, description="""Enable command/value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
-    disable: Optional[str] = Field(default=None, description="""Disable command/value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
-    phase_range: Optional[_PIDPhaseRangeBase] = Field(default=None, description="""Phase tuning range.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
-    phase_weight_range: Optional[_PIDWeightRangeBase] = Field(default=None, description="""Phase weighting range.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDElement']} })
-
-
-class _PIDPhaseRangeBase(ConfiguredBaseModel):
-    """
-    Numeric min/max range for PID phase control.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PIDPhaseRange',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    min: Optional[float] = Field(default=None, description="""Minimum value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDPhaseRange']} })
-    max: Optional[float] = Field(default=None, description="""Maximum value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDPhaseRange']} })
-
-
-class _PIDWeightRangeBase(_PIDPhaseRangeBase):
-    """
-    Numeric min/max range for PID phase weighting.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PIDWeightRange',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    min: Optional[float] = Field(default=None, description="""Minimum value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDPhaseRange']} })
-    max: Optional[float] = Field(default=None, description="""Maximum value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PIDPhaseRange']} })
-
-
-class _TraceBase(ConfiguredBaseModel):
-    """
-    LLRF trace metadata.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Trace', 'from_schema': 'https://w3id.org/laura/schema'})
-
-    data_size: Optional[int] = Field(default=None, description="""Number of points in a trace.""", validation_alias=AliasChoices('data_size', 'trace_data_size'), json_schema_extra = { "linkml_meta": {'aliases': ['trace_data_size'], 'domain_of': ['Trace']} })
-    data_count: Optional[int] = Field(default=None, description="""Number of one-record trace entries.""", validation_alias=AliasChoices('data_count', 'one_trace_data_count'), json_schema_extra = { "linkml_meta": {'aliases': ['one_trace_data_count'], 'domain_of': ['Trace']} })
-    data_chunk_size: Optional[int] = Field(default=None, description="""Chunk size for one-record traces.""", validation_alias=AliasChoices('data_chunk_size', 'one_trace_data_chunk_size'), json_schema_extra = { "linkml_meta": {'aliases': ['one_trace_data_chunk_size'], 'domain_of': ['Trace']} })
-    number_of_start_zeros: Optional[int] = Field(default=None, description="""Number of leading zeros in a trace.""", validation_alias=AliasChoices('number_of_start_zeros', 'trace_num_of_start_zeros'), json_schema_extra = { "linkml_meta": {'aliases': ['trace_num_of_start_zeros'], 'domain_of': ['Trace']} })
-
-
-class _ChannelNamesBase(ConfiguredBaseModel):
-    """
-    Names for LLRF channels 1..8.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ChannelNames',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    ch1: str = Field(default="", validation_alias=AliasChoices('ch1', 'CH1'), json_schema_extra = { "linkml_meta": {'aliases': ['CH1'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
-    ch2: str = Field(default="", validation_alias=AliasChoices('ch2', 'CH2'), json_schema_extra = { "linkml_meta": {'aliases': ['CH2'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
-    ch3: str = Field(default="", validation_alias=AliasChoices('ch3', 'CH3'), json_schema_extra = { "linkml_meta": {'aliases': ['CH3'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
-    ch4: str = Field(default="", validation_alias=AliasChoices('ch4', 'CH4'), json_schema_extra = { "linkml_meta": {'aliases': ['CH4'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
-    ch5: str = Field(default="", validation_alias=AliasChoices('ch5', 'CH5'), json_schema_extra = { "linkml_meta": {'aliases': ['CH5'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
-    ch6: str = Field(default="", validation_alias=AliasChoices('ch6', 'CH6'), json_schema_extra = { "linkml_meta": {'aliases': ['CH6'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
-    ch7: str = Field(default="", validation_alias=AliasChoices('ch7', 'CH7'), json_schema_extra = { "linkml_meta": {'aliases': ['CH7'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
-    ch8: str = Field(default="", validation_alias=AliasChoices('ch8', 'CH8'), json_schema_extra = { "linkml_meta": {'aliases': ['CH8'], 'domain_of': ['ChannelNames'], 'ifabsent': 'string()'} })
-
-
-class _LLRFTimingBase(ConfiguredBaseModel):
-    """
-    Start/end window timing definition.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LLRFTiming',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    start: Optional[float] = Field(default=None, description="""Start time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTiming']} })
-    end: Optional[float] = Field(default=None, description="""End time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTiming']} })
-
-
-class _LLRFTimingsBase(ConfiguredBaseModel):
-    """
-    Collection of timing windows for key LLRF channels.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LLRFTimings',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    klystron_forward: Optional[_LLRFTimingBase] = Field(default=None, description="""Timing for klystron forward power.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTimings']} })
-    klystron_reverse: Optional[_LLRFTimingBase] = Field(default=None, description="""Timing for klystron reverse power.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTimings']} })
-    cavity_forward: Optional[_LLRFTimingBase] = Field(default=None, description="""Timing for cavity forward power.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTimings']} })
-    cavity_reverse: Optional[_LLRFTimingBase] = Field(default=None, description="""Timing for cavity reverse power.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTimings']} })
-    cavity_probe: Optional[_LLRFTimingBase] = Field(default=None, description="""Timing for cavity probe.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LLRFTimings']} })
-
-
-class _LowLevelRFElementBase(ConfiguredBaseModel):
-    """
-    Low-level RF (LLRF) system parameters.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LowLevelRFElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    trace: Optional[_TraceBase] = Field(default=None, description="""Trace metadata.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LowLevelRFElement']} })
-    max_amplitude: Optional[float] = Field(default=None, description="""Maximum allowed amplitude.""", validation_alias=AliasChoices('max_amplitude', 'MAX_AMPLITUDE'), json_schema_extra = { "linkml_meta": {'aliases': ['MAX_AMPLITUDE'], 'domain_of': ['LowLevelRFElement']} })
-    channel_names: Optional[_ChannelNamesBase] = Field(default=None, description="""Channel labels.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LowLevelRFElement']} })
-    crest_phase: Optional[float] = Field(default=None, description="""Cavity crest phase.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LowLevelRFElement']} })
-    timings: Optional[_LLRFTimingsBase] = Field(default=None, description="""Timing windows for LLRF channels.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LowLevelRFElement']} })
-
-
-class _RFModulatorElementBase(ConfiguredBaseModel):
-    """
-    RF modulator (klystron driver) parameters.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFModulatorElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    pass
-
-
-class _RFProtectionElementBase(ConfiguredBaseModel):
-    """
-    RF protection system parameters.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFProtectionElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    prot_type: Optional[str] = Field(default=None, description="""Protection system type.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFProtectionElement']} })
-
-
-class _RFHeartbeatElementBase(ConfiguredBaseModel):
-    """
-    RF heartbeat / timing-monitor element parameters.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFHeartbeatElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    pass
-
-
-class _DiagnosticElementBase(ConfiguredBaseModel):
-    """
-    Base class for diagnostic instrument sub-models.  Concrete sub-models extend this with instrument-specific fields.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:DiagnosticElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    pass
-
-
-class _BPMDiagnosticElementBase(_DiagnosticElementBase):
-    """
-    Beam-position monitor (BPM) diagnostic data.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:BPMDiagnosticElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['diagnostic_properties']})
-
-    type: str = Field(default="Stripline", description="""BPM type (e.g., ``Stripline``, ``Cavity``, ``Button``). Accepted in YAML as ``bpm_type``.""", validation_alias=AliasChoices('type', 'bpm_type'), json_schema_extra = { "linkml_meta": {'aliases': ['bpm_type'],
-         'domain_of': ['BPMDiagnosticElement',
-                       'BAMDiagnosticElement',
-                       'BLMDiagnosticElement',
-                       'ScreenDiagnosticElement',
-                       'ChargeDiagnosticElement',
-                       'CameraDiagnosticElement'],
-         'ifabsent': 'string(Stripline)'} })
-
-
-class _BAMDiagnosticElementBase(_DiagnosticElementBase):
-    """
-    Beam-arrival monitor (BAM) diagnostic data.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:BAMDiagnosticElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['diagnostic_properties']})
-
-    type: str = Field(default="DESY", description="""BAM type. Accepted in YAML as ``bam_type``.""", validation_alias=AliasChoices('type', 'bam_type'), json_schema_extra = { "linkml_meta": {'aliases': ['bam_type'],
-         'domain_of': ['BPMDiagnosticElement',
-                       'BAMDiagnosticElement',
-                       'BLMDiagnosticElement',
-                       'ScreenDiagnosticElement',
-                       'ChargeDiagnosticElement',
-                       'CameraDiagnosticElement'],
-         'ifabsent': 'string(DESY)'} })
-
-
-class _BLMDiagnosticElementBase(_DiagnosticElementBase):
-    """
-    Bunch-length monitor (BLM) diagnostic data.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:BLMDiagnosticElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['diagnostic_properties']})
-
-    type: str = Field(default="CDR", description="""BLM type (e.g., ``CDR``). Accepted in YAML as ``blm_type``.""", validation_alias=AliasChoices('type', 'blm_type'), json_schema_extra = { "linkml_meta": {'aliases': ['blm_type'],
-         'domain_of': ['BPMDiagnosticElement',
-                       'BAMDiagnosticElement',
-                       'BLMDiagnosticElement',
-                       'ScreenDiagnosticElement',
-                       'ChargeDiagnosticElement',
-                       'CameraDiagnosticElement'],
-         'ifabsent': 'string(CDR)'} })
-
-
-class _ScreenDiagnosticElementBase(_DiagnosticElementBase):
-    """
-    Scintillator or OTR screen diagnostic data.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ScreenDiagnosticElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['diagnostic_properties']})
-
-    type: str = Field(default="CLARA_HV_MOVER", description="""Screen type (e.g., ``OTR``, ``YAG``).""", validation_alias=AliasChoices('type', 'screen_type'), json_schema_extra = { "linkml_meta": {'aliases': ['screen_type'],
-         'domain_of': ['BPMDiagnosticElement',
-                       'BAMDiagnosticElement',
-                       'BLMDiagnosticElement',
-                       'ScreenDiagnosticElement',
-                       'ChargeDiagnosticElement',
-                       'CameraDiagnosticElement'],
-         'ifabsent': 'string(CLARA_HV_MOVER)'} })
-    has_camera: Optional[bool] = Field(default=True, description="""Whether the screen has an associated camera.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenDiagnosticElement'], 'ifabsent': 'True'} })
-    camera_name: str = Field(default="", description="""Name of the associated camera element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenDiagnosticElement'], 'ifabsent': 'string()'} })
-    devices: Optional[list[str]] = Field(default="[]", description="""List of attached devices.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenDiagnosticElement'], 'ifabsent': '[]'} })
-
-
-class _ChargeDiagnosticElementBase(_DiagnosticElementBase):
-    """
-    Charge-measurement diagnostic data (base for ICT, FCM, WCM).
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ChargeDiagnosticElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['diagnostic_properties']})
-
-    type: Optional[str] = Field(default=None, description="""Charge-diagnostic type. Accepted in YAML as ``charge_type``.""", validation_alias=AliasChoices('type', 'charge_type'), json_schema_extra = { "linkml_meta": {'aliases': ['charge_type'],
-         'domain_of': ['BPMDiagnosticElement',
-                       'BAMDiagnosticElement',
-                       'BLMDiagnosticElement',
-                       'ScreenDiagnosticElement',
-                       'ChargeDiagnosticElement',
-                       'CameraDiagnosticElement']} })
-
-
-class _CameraPixelResultsIndicesBase(ConfiguredBaseModel):
-    """
-    Indices into camera pixel-analysis result arrays.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CameraPixelResultsIndices',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    x: int = Field(default=0, description="""Beam centroid index in x.""", validation_alias=AliasChoices('x', 'X_POS'), json_schema_extra = { "linkml_meta": {'aliases': ['X_POS'],
-         'domain_of': ['Position',
-                       'CameraPixelResultsIndices',
-                       'CameraPixelResultsNames'],
-         'ifabsent': 'int(0)'} })
-    y: int = Field(default=1, description="""Beam centroid index in y.""", validation_alias=AliasChoices('y', 'Y_POS'), json_schema_extra = { "linkml_meta": {'aliases': ['Y_POS'],
-         'domain_of': ['Position',
-                       'CameraPixelResultsIndices',
-                       'CameraPixelResultsNames'],
-         'ifabsent': 'int(1)'} })
-    x_sigma: int = Field(default=2, description="""Beam sigma index in x.""", validation_alias=AliasChoices('x_sigma', 'X_SIGMA_POS'), json_schema_extra = { "linkml_meta": {'aliases': ['X_SIGMA_POS'],
-         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
-         'ifabsent': 'int(2)'} })
-    y_sigma: int = Field(default=3, description="""Beam sigma index in y.""", validation_alias=AliasChoices('y_sigma', 'Y_SIGMA_POS'), json_schema_extra = { "linkml_meta": {'aliases': ['Y_SIGMA_POS'],
-         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
-         'ifabsent': 'int(3)'} })
-    covariance: int = Field(default=4, description="""Beam covariance index.""", validation_alias=AliasChoices('covariance', 'COV_POS'), json_schema_extra = { "linkml_meta": {'aliases': ['COV_POS'],
-         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
-         'ifabsent': 'int(4)'} })
-
-
-class _CameraPixelResultsNamesBase(ConfiguredBaseModel):
-    """
-    Names of camera pixel-analysis result arrays.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CameraPixelResultsNames',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    x: str = Field(default="X", description="""Beam centroid name in x.""", validation_alias=AliasChoices('x', 'X_NAME'), json_schema_extra = { "linkml_meta": {'aliases': ['X_NAME'],
-         'domain_of': ['Position',
-                       'CameraPixelResultsIndices',
-                       'CameraPixelResultsNames'],
-         'ifabsent': 'string(X)'} })
-    y: str = Field(default="Y", description="""Beam centroid name in y.""", validation_alias=AliasChoices('y', 'Y_NAME'), json_schema_extra = { "linkml_meta": {'aliases': ['Y_NAME'],
-         'domain_of': ['Position',
-                       'CameraPixelResultsIndices',
-                       'CameraPixelResultsNames'],
-         'ifabsent': 'string(Y)'} })
-    x_sigma: str = Field(default="X_SIGMA", description="""Beam sigma name in x.""", validation_alias=AliasChoices('x_sigma', 'X_SIGMA_NAME'), json_schema_extra = { "linkml_meta": {'aliases': ['X_SIGMA_NAME'],
-         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
-         'ifabsent': 'string(X_SIGMA)'} })
-    y_sigma: str = Field(default="Y_SIGMA", description="""Beam sigma name in y.""", validation_alias=AliasChoices('y_sigma', 'Y_SIGMA_NAME'), json_schema_extra = { "linkml_meta": {'aliases': ['Y_SIGMA_NAME'],
-         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
-         'ifabsent': 'string(Y_SIGMA)'} })
-    covariance: str = Field(default="COV", description="""Beam covariance name.""", validation_alias=AliasChoices('covariance', 'COV_NAME'), json_schema_extra = { "linkml_meta": {'aliases': ['COV_NAME'],
-         'domain_of': ['CameraPixelResultsIndices', 'CameraPixelResultsNames'],
-         'ifabsent': 'string(COV)'} })
-
-
-class _CameraMaskBase(ConfiguredBaseModel):
-    """
-    Camera analysis mask parameters.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CameraMask',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    middle: list[float] = Field(default_factory=list, description="""Center of the mask in pixels [x, y].""", validation_alias=AliasChoices('middle', 'position', 'centre'), json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement', 'CameraMask', 'CameraSensor']} })
-    radius: list[float] = Field(default_factory=list, description="""Mask radius in pixels [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'ApertureElement', 'CameraMask']} })
-    maximum: list[float] = Field(default_factory=list, description="""Maximum mask radius in pixels [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraMask', 'CameraSensor', 'LaserAttenuator']} })
-    use_maximum_values: Optional[bool] = Field(default=True, description="""If True, use maximum mask radius constraints.""", validation_alias=AliasChoices('use_maximum_values', 'USE_MASK_RAD_LIMITS'), json_schema_extra = { "linkml_meta": {'aliases': ['USE_MASK_RAD_LIMITS'],
-         'domain_of': ['CameraMask'],
-         'ifabsent': 'True'} })
-
-
-class _CameraSensorBase(ConfiguredBaseModel):
-    """
-    Camera sensor hardware configuration.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CameraSensor',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    x_pixels: int = Field(default=2160, description="""Raw sensor pixel count in x.""", validation_alias=AliasChoices('x_pixels', 'BINARY_NUM_PIX_X'), json_schema_extra = { "linkml_meta": {'aliases': ['BINARY_NUM_PIX_X'],
-         'domain_of': ['CameraSensor', 'CameraDiagnosticElement'],
-         'ifabsent': 'int(2160)'} })
-    y_pixels: int = Field(default=2560, description="""Raw sensor pixel count in y.""", validation_alias=AliasChoices('y_pixels', 'BINARY_NUM_PIX_Y'), json_schema_extra = { "linkml_meta": {'aliases': ['BINARY_NUM_PIX_Y'],
-         'domain_of': ['CameraSensor', 'CameraDiagnosticElement'],
-         'ifabsent': 'int(2560)'} })
-    x_scale_factor: int = Field(default=2, description="""Pixel binning factor in x.""", validation_alias=AliasChoices('x_scale_factor', 'X_PIX_SCALE_FACTOR'), json_schema_extra = { "linkml_meta": {'aliases': ['X_PIX_SCALE_FACTOR'],
-         'domain_of': ['CameraSensor'],
-         'ifabsent': 'int(2)'} })
-    y_scale_factor: int = Field(default=2, description="""Pixel binning factor in y.""", validation_alias=AliasChoices('y_scale_factor', 'Y_PIX_SCALE_FACTOR'), json_schema_extra = { "linkml_meta": {'aliases': ['Y_PIX_SCALE_FACTOR'],
-         'domain_of': ['CameraSensor'],
-         'ifabsent': 'int(2)'} })
-    beam_pixel_average: float = Field(default=97.2, description="""Average pixel value for beam detection.""", validation_alias=AliasChoices('beam_pixel_average', 'AVG_PIXEL_VALUE_FOR_BEAM'), json_schema_extra = { "linkml_meta": {'aliases': ['AVG_PIXEL_VALUE_FOR_BEAM'],
-         'domain_of': ['CameraSensor'],
-         'ifabsent': 'float(97.2)'} })
-    middle: list[float] = Field(default_factory=list, description="""Sensor optical center in pixels [x, y].""", validation_alias=AliasChoices('middle', 'position', 'centre'), json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement', 'CameraMask', 'CameraSensor']} })
-    x_pixels_to_mm: float = Field(default=0.0134, description="""Pixel-to-mm scale factor in x.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor'], 'ifabsent': 'float(0.0134)'} })
-    y_pixels_to_mm: float = Field(default=0.0134, description="""Pixel-to-mm scale factor in y.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor'], 'ifabsent': 'float(0.0134)'} })
-    minimum: list[float] = Field(default_factory=list, description="""Minimum pixel positions [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor', 'LaserAttenuator']} })
-    maximum: list[float] = Field(default_factory=list, description="""Maximum pixel positions [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraMask', 'CameraSensor', 'LaserAttenuator']} })
-    bit_depth: int = Field(default=16, description="""Camera bit depth.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor'], 'ifabsent': 'int(16)'} })
-    operating_middle: list[float] = Field(default_factory=list, description="""Operating center positions in pixels [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor']} })
-    mechanical_middle: list[float] = Field(default_factory=list, description="""Mechanical center of the camera in pixels [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor']} })
-
-
-class _CameraDiagnosticElementBase(_DiagnosticElementBase):
-    """
-    Camera diagnostic data, including sensor parameters, analysis mask, and pixel-to-mm scale factors.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CameraDiagnosticElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['diagnostic_properties']})
-
-    type: Optional[str] = Field(default=None, description="""Camera type / model string (e.g., ``PCO``, ``Manta``). Accepted in YAML as ``CAM_TYPE``.""", validation_alias=AliasChoices('type', 'CAM_TYPE'), json_schema_extra = { "linkml_meta": {'aliases': ['CAM_TYPE'],
-         'domain_of': ['BPMDiagnosticElement',
-                       'BAMDiagnosticElement',
-                       'BLMDiagnosticElement',
-                       'ScreenDiagnosticElement',
-                       'ChargeDiagnosticElement',
-                       'CameraDiagnosticElement']} })
-    x_pixels: int = Field(default=1080, description="""Image width reported by the control system [pix].""", validation_alias=AliasChoices('x_pixels', 'ARRAY_DATA_NUM_PIX_X', 'epics_x_pixels'), json_schema_extra = { "linkml_meta": {'aliases': ['ARRAY_DATA_NUM_PIX_X', 'epics_x_pixels'],
-         'domain_of': ['CameraSensor', 'CameraDiagnosticElement'],
-         'ifabsent': 'int(1080)'} })
-    y_pixels: int = Field(default=1280, description="""Image height reported by the control system [pix].""", validation_alias=AliasChoices('y_pixels', 'ARRAY_DATA_NUM_PIX_Y', 'epics_y_pixels'), json_schema_extra = { "linkml_meta": {'aliases': ['ARRAY_DATA_NUM_PIX_Y', 'epics_y_pixels'],
-         'domain_of': ['CameraSensor', 'CameraDiagnosticElement'],
-         'ifabsent': 'int(1280)'} })
-    rotation: float = Field(default=0, description="""Camera rotation relative to the screen plane [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElementPositionError',
-                       'ElementSurvey',
-                       'PhysicalElement',
-                       'CameraDiagnosticElement'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'deg'}} })
-    flipped_horizontally: Optional[bool] = Field(default=True, description="""True if the image is mirrored left-right.""", validation_alias=AliasChoices('flipped_horizontally', 'IMAGE_FLIP_LR'), json_schema_extra = { "linkml_meta": {'aliases': ['IMAGE_FLIP_LR'],
-         'domain_of': ['CameraDiagnosticElement'],
-         'ifabsent': 'True'} })
-    flipped_vertically: Optional[bool] = Field(default=False, description="""True if the image is mirrored top-bottom.""", validation_alias=AliasChoices('flipped_vertically', 'IMAGE_FLIP_UD'), json_schema_extra = { "linkml_meta": {'aliases': ['IMAGE_FLIP_UD'],
-         'domain_of': ['CameraDiagnosticElement'],
-         'ifabsent': 'False'} })
-    screen_name: Optional[str] = Field(default=None, description="""Name of the screen element to which this camera is attached.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
-    has_led: Optional[bool] = Field(default=True, description="""True if the camera mount includes an LED backlight.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement'], 'ifabsent': 'True'} })
-    pixel_results_indices: Optional[_CameraPixelResultsIndicesBase] = Field(default=None, description="""Indices of pixel analysis result arrays.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
-    pixel_results_names: Optional[_CameraPixelResultsNamesBase] = Field(default=None, description="""Names of pixel analysis result arrays.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
-    mask: Optional[_CameraMaskBase] = Field(default=None, description="""Camera analysis mask configuration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
-    sensor: Optional[_CameraSensorBase] = Field(default=None, description="""Camera sensor hardware configuration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
-
-
-class _LaserElementBase(ConfiguredBaseModel):
-    """
-    Laser-beam parameters (wavelength, pulse energy, profile, etc.) for a laser element or laser-driven plasma stage.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['laser_properties']})
-
-    initial_position: float = Field(default=0, description="""Initial longitudinal position of the laser pulse [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'm'}} })
-    waist: float = Field(default=0, description="""Laser beam waist (1/e^2 radius) [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'm'}} })
-    wavelength: Optional[float] = Field(default=None, description="""Laser wavelength [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'unit': {'ucum_code': 'm'}} })
-    pulse_energy: Optional[float] = Field(default=None, description="""Laser pulse energy [J].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'unit': {'ucum_code': 'J'}} })
-    pulse_duration_fwhm: Optional[float] = Field(default=None, description="""Pulse duration at FWHM [s].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'unit': {'ucum_code': 's'}} })
-    focal_position: float = Field(default=0.0, description="""Focal (waist) position along the propagation axis [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    cep_phase: float = Field(default=0, description="""Carrier-envelope phase [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'rad'}} })
-    polarization: Optional[LaserPolarizationEnum] = Field(default=None, description="""Laser polarization state.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement']} })
-    profile_type: Optional[LaserProfileTypeEnum] = Field(default=LaserProfileTypeEnum.gaussian, description="""Transverse intensity profile model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'string(gaussian)'} })
-    laguerre_polynomial_order_p: int = Field(default=0, description="""Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'int(0)'} })
-    flatness: int = Field(default=6, description="""Flatness order N of a flattened-Gaussian profile (for ``profile_type = flattened-gaussian``).""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'int(6)'} })
-
-
-class _LaserEnergyMeterElementBase(ConfiguredBaseModel):
-    """
-    Laser energy-meter sub-model (no additional fields).
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserEnergyMeterElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    pass
-
-
-class _LaserHalfWavePlateElementBase(ConfiguredBaseModel):
-    """
-    Half-wave plate sub-model (no additional fields).
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserHalfWavePlateElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    pass
-
-
-class _PlasmaElementBase(ConfiguredBaseModel):
-    """
-    Plasma channel parameters for a laser-driven plasma-accelerator stage.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PlasmaElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    density: Optional[float] = Field(default=None, description="""Plasma (electron) number density [m^-^3].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'unit': {'ucum_code': 'm-3'}} })
-    species: str = Field(default="electron", description="""Plasma species name (e.g., ``electron``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'string(electron)'} })
-    ramp_up: float = Field(default=0.001, description="""Entrance density-ramp length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
-         'ifabsent': 'float(0.001)',
-         'unit': {'ucum_code': 'm'}} })
-    plateau: float = Field(default=0.001, description="""Flat-top plateau length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
-         'ifabsent': 'float(0.001)',
-         'unit': {'ucum_code': 'm'}} })
-    ramp_down: float = Field(default=0.001, description="""Exit density-ramp length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
-         'ifabsent': 'float(0.001)',
-         'unit': {'ucum_code': 'm'}} })
-    ramp_decay_length: float = Field(default=0.001, description="""Exponential decay length of the density ramp [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
-         'ifabsent': 'float(0.001)',
-         'unit': {'ucum_code': 'm'}} })
-    density_profile: Optional[bool] = Field(default=False, description="""If True, use a user-defined profile; if False, use a flat-top model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'False'} })
-    parabolic_coefficient: float = Field(default=0, description="""Parabolic coefficient for a transverse density profile.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'float(0)'} })
-
-
 class _ShutterElementBase(ConfiguredBaseModel):
     """
     Shutter interlock configuration.
@@ -1374,26 +1418,6 @@ class _LightingElementBase(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/laura/schema'})
 
     pass
-
-
-class _DegaussableElementBase(ConfiguredBaseModel):
-    """
-    Degaussing (demagnetisation cycle) parameters for magnets that require a field-reset procedure.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:DegaussableElement',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['magnetic_properties']})
-
-    tolerance: float = Field(default=0.5, description="""Current tolerance band during the degauss cycle [A].""", validation_alias=AliasChoices('tolerance', 'degauss_tolerance'), json_schema_extra = { "linkml_meta": {'aliases': ['degauss_tolerance'],
-         'domain_of': ['DegaussableElement'],
-         'ifabsent': 'float(0.5)',
-         'unit': {'ucum_code': 'A'}} })
-    values: list[float] = Field(default_factory=list, description="""Sequence of peak currents applied during the degauss cycle [A].""", validation_alias=AliasChoices('values', 'degauss_values'), json_schema_extra = { "linkml_meta": {'aliases': ['degauss_values'],
-         'domain_of': ['DegaussableElement'],
-         'unit': {'ucum_code': 'A'}} })
-    steps: int = Field(default=11, description="""Number of degauss steps per half-cycle.""", ge=1, validation_alias=AliasChoices('steps', 'num_degauss_steps'), json_schema_extra = { "linkml_meta": {'aliases': ['num_degauss_steps'],
-         'domain_of': ['DegaussableElement'],
-         'ifabsent': 'int(11)'} })
 
 
 class _AcceleratorElementBase(ConfiguredBaseModel):
@@ -2642,16 +2666,6 @@ class _MachineModelBase(ConfiguredBaseModel):
 
 # Model rebuild
 # see https://pydantic-docs.helpmanual.io/usage/models/#rebuilding-a-model
-_PositionBase.model_rebuild()
-_RotationBase.model_rebuild()
-_ElementPositionErrorBase.model_rebuild()
-_ElementSurveyBase.model_rebuild()
-_PhysicalElementBase.model_rebuild()
-_ElectricalElementBase.model_rebuild()
-_ManufacturerElementBase.model_rebuild()
-_ReferenceElementBase.model_rebuild()
-_ControlVariableBase.model_rebuild()
-_ControlsInformationBase.model_rebuild()
 _SimulationElementBase.model_rebuild()
 _MagnetSimulationElementBase.model_rebuild()
 _RFCavitySimulationElementBase.model_rebuild()
@@ -2666,6 +2680,7 @@ _FieldIntegralBase.model_rebuild()
 _LinearSaturationFitBase.model_rebuild()
 _MagneticElementBase.model_rebuild()
 _ApertureElementBase.model_rebuild()
+_DegaussableElementBase.model_rebuild()
 _RFCavityElementBase.model_rebuild()
 _WakefieldElementBase.model_rebuild()
 _RFDeflectingCavityElementBase.model_rebuild()
@@ -2695,10 +2710,19 @@ _LaserElementBase.model_rebuild()
 _LaserEnergyMeterElementBase.model_rebuild()
 _LaserHalfWavePlateElementBase.model_rebuild()
 _PlasmaElementBase.model_rebuild()
+_PositionBase.model_rebuild()
+_RotationBase.model_rebuild()
+_ElementPositionErrorBase.model_rebuild()
+_ElementSurveyBase.model_rebuild()
+_PhysicalElementBase.model_rebuild()
+_ElectricalElementBase.model_rebuild()
+_ManufacturerElementBase.model_rebuild()
+_ReferenceElementBase.model_rebuild()
+_ControlVariableBase.model_rebuild()
+_ControlsInformationBase.model_rebuild()
 _ShutterElementBase.model_rebuild()
 _ValveElementBase.model_rebuild()
 _LightingElementBase.model_rebuild()
-_DegaussableElementBase.model_rebuild()
 _AcceleratorElementBase.model_rebuild()
 _StandardElementBase.model_rebuild()
 _ElementBase.model_rebuild()

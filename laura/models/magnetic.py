@@ -23,6 +23,20 @@ def Sqrt(a):
     return Power(a, 0.5)
 
 
+def _coerce_field_integral(v: Union[str, List, dict, Any, None]) -> Any:
+    if isinstance(v, str):
+        return FieldIntegral(coefficients=list(map(float, v.split(","))))
+    if isinstance(v, (list, tuple)):
+        return FieldIntegral(coefficients=list(v))
+    if isinstance(v, dict):
+        return FieldIntegral(**v)
+    if isinstance(v, FieldIntegral):
+        return v
+    if v is None:
+        return None
+    raise ValueError("field_integral_coefficients should be a string or a list of floats")
+
+
 Pi = pi
 Degree = pi / 180.0
 
@@ -369,20 +383,7 @@ class MagneticElement(_MagneticElementBase):
     def validate_field_integral_coefficients(
             cls, v: Union[str, List, dict | None]
     ) -> FieldIntegral | None:
-        if isinstance(v, str):
-            return FieldIntegral(coefficients=list(map(float, v.split(","))))
-        elif isinstance(v, (list, tuple)):
-            return FieldIntegral(coefficients=list(v))
-        elif isinstance(v, dict):
-            return FieldIntegral(**v)
-        elif isinstance(v, FieldIntegral):
-            return v
-        elif v is None:
-            return None
-        else:
-            raise ValueError(
-                "field_integral_coefficients should be a string or a list of floats"
-            )
+        return _coerce_field_integral(v)
 
     # @debug
     def KnL(self, order: int = None) -> Union[int, float]:
@@ -671,18 +672,12 @@ class Solenoid_Magnet(IgnoreExtra):
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
     def validate_field_integral_coefficients(cls, v: Union[str, List]) -> FieldIntegral:
-        if isinstance(v, str):
-            return FieldIntegral(coefficients=list(map(float, v.split(","))))
-        elif isinstance(v, (list, tuple)):
-            return FieldIntegral(coefficients=list(v))
-        elif isinstance(v, dict):
-            return FieldIntegral(**v)
-        elif isinstance(v, FieldIntegral):
-            return v
-        else:
+        result = _coerce_field_integral(v)
+        if result is None:
             raise ValueError(
                 "field_integral_coefficients should be a string or a list of floats"
             )
+        return result
 
     @property
     def field_amplitude(self) -> Union[int, float]:

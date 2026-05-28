@@ -239,33 +239,62 @@ def _parse_schema_info(
                             in several classes (e.g. ``type`` in every diagnostic
                             sub-class) gets the correct alias for each class.
     """
-    with open(schema_path, encoding="utf-8") as fh:
-        schema = yaml.safe_load(fh)
-
     defaults: dict[str, str] = {}
     multivalued: set[str] = set()
     global_aliases: dict[str, list[str]] = {}
     class_aliases: dict[str, dict[str, list[str]]] = {}
 
-    for class_name, class_def in (schema.get("classes") or {}).items():
-        for slot_name, slot_def in (class_def.get("attributes") or {}).items():
-            if not slot_def:
+    seen_paths: set[Path] = set()
+
+    def _resolve_import_path(base_path: Path, import_name: str) -> Path | None:
+        if ":" in import_name and not import_name.lower().endswith(".yaml"):
+            return None
+        candidate = Path(import_name)
+        if not candidate.is_absolute():
+            candidate = (base_path.parent / candidate).resolve()
+        if candidate.exists():
+            return candidate
+        if candidate.suffix.lower() != ".yaml":
+            yaml_candidate = candidate.with_suffix(".yaml")
+            if yaml_candidate.exists():
+                return yaml_candidate
+        return None
+
+    def _visit(path: Path) -> None:
+        path = path.resolve()
+        if path in seen_paths:
+            return
+        seen_paths.add(path)
+
+        with open(path, encoding="utf-8") as fh:
+            schema = yaml.safe_load(fh) or {}
+
+        for class_name, class_def in (schema.get("classes") or {}).items():
+            for slot_name, slot_def in (class_def.get("attributes") or {}).items():
+                if not slot_def:
+                    continue
+                ifabsent = slot_def.get("ifabsent")
+                if ifabsent:
+                    parsed = _parse_ifabsent(str(ifabsent))
+                    if parsed is not None and slot_name not in defaults:
+                        defaults[slot_name] = parsed
+                if slot_def.get("multivalued"):
+                    multivalued.add(slot_name)
+                slot_aliases = slot_def.get("aliases")
+                if slot_aliases:
+                    aliases_list = list(slot_aliases)
+                    class_aliases.setdefault(class_name, {})[slot_name] = aliases_list
+                    if slot_name not in global_aliases:
+                        global_aliases[slot_name] = aliases_list
+
+        for import_name in schema.get("imports") or []:
+            if not isinstance(import_name, str):
                 continue
-            ifabsent = slot_def.get("ifabsent")
-            if ifabsent:
-                parsed = _parse_ifabsent(str(ifabsent))
-                if parsed is not None and slot_name not in defaults:
-                    defaults[slot_name] = parsed
-            if slot_def.get("multivalued"):
-                multivalued.add(slot_name)
-            slot_aliases = slot_def.get("aliases")
-            if slot_aliases:
-                aliases_list = list(slot_aliases)
-                # Per-class map (precise — no collision)
-                class_aliases.setdefault(class_name, {})[slot_name] = aliases_list
-                # Global fallback (first-wins)
-                if slot_name not in global_aliases:
-                    global_aliases[slot_name] = aliases_list
+            import_path = _resolve_import_path(path, import_name)
+            if import_path is not None:
+                _visit(import_path)
+
+    _visit(Path(schema_path))
 
     return defaults, multivalued, global_aliases, class_aliases
 
@@ -435,7 +464,7 @@ def _inject_alias_choices_import(content: str) -> str:
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def generate(
-    schema_path: str = "laura/schema/laura_schema.yaml",
+    schema_path: str = "laura/schema/YAML/laura_schema.yaml",
 ) -> str:
     """Generate and return the full content of ``_generated.py``."""
     raw = _run_gen_pydantic(schema_path)

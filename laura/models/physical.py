@@ -12,6 +12,40 @@ from ._generated import _PositionBase, _RotationBase, _ElementPositionErrorBase,
 from ..utils.rotation_matrix import euler_angles_to_rotation_matrix
 
 
+def _coerce_position_vector(v: Union[List, tuple, np.ndarray]) -> "Position | None":
+    if len(v) == 3:
+        return Position(x=v[0], y=v[1], z=v[2])
+    if len(v) == 2:
+        return Position(x=v[0], y=0, z=v[1])
+    return None
+
+
+def _coerce_rotation_vector(v: Union[List, tuple, np.ndarray]) -> "Rotation | None":
+    if len(v) == 3:
+        return Rotation(phi=v[0], psi=v[1], theta=v[2])
+    return None
+
+
+def _coerce_position_mapping(v: dict, *, error_message: str) -> "Position":
+    if all(k in ("x", "y", "z") for k in v):
+        return Position(
+            x=float(v.get("x", 0.0)),
+            y=float(v.get("y", 0.0)),
+            z=float(v.get("z", 0.0)),
+        )
+    raise ValueError(error_message)
+
+
+def _coerce_rotation_mapping(v: dict, *, error_message: str) -> "Rotation":
+    if all(k in ("phi", "psi", "theta") for k in v):
+        return Rotation(
+            phi=float(v.get("phi", 0.0)),
+            psi=float(v.get("psi", 0.0)),
+            theta=float(v.get("theta", 0.0)),
+        )
+    raise ValueError(error_message)
+
+
 class Position(_PositionBase):
     """
     Position model. Cartesian co-ordinates are used.
@@ -171,48 +205,38 @@ class ElementError(_ElementPositionErrorBase):
     def validate_position(cls, v: Union[Position, Dict, List, np.ndarray]) -> Position:
         if v is None:
             return Position(x=0, y=0, z=0)
-        if isinstance(v, (list, tuple, np.ndarray)) and len(v) == 3:
-            return Position(x=v[0], y=v[1], z=v[2])
-        elif isinstance(v, Position):
-            return v
-        elif isinstance(v, dict):
-            if all(k in ("x", "y", "z") for k in v):
-                return Position(
-                    x=float(v.get("x", 0.0)),
-                    y=float(v.get("y", 0.0)),
-                    z=float(v.get("z", 0.0)),
-                )
-            else:
-                raise ValueError(
-                    "setting position as dictionary must include x, y, z as floats"
-                )
-
-        else:
+        if isinstance(v, (list, tuple, np.ndarray)):
+            coerced = _coerce_position_vector(v)
+            if coerced is not None:
+                return coerced
             raise ValueError("position should be a number or a list of floats")
+        if isinstance(v, Position):
+            return v
+        if isinstance(v, dict):
+            return _coerce_position_mapping(
+                v, error_message="setting position as dictionary must include x, y, z as floats"
+            )
+
+        raise ValueError("position should be a number or a list of floats")
 
     @field_validator("rotation", mode="before")
     @classmethod
     def validate_rotation(cls, v: Union[Rotation, Dict, List, np.ndarray]) -> Rotation:
         if v is None:
             return Rotation(theta=0, phi=0, psi=0)
-        if isinstance(v, (list, tuple, np.ndarray)) and len(v) == 3:
-            return Rotation(theta=v[0], phi=v[1], psi=v[2])
-        elif isinstance(v, Rotation):
-            return v
-        elif isinstance(v, dict):
-            if all(k in ("phi", "psi", "theta") for k in v):
-                return Rotation(
-                    phi=float(v.get("phi", 0.0)),
-                    psi=float(v.get("psi", 0.0)),
-                    theta=float(v.get("theta", 0.0)),
-                )
-            else:
-                raise ValueError(
-                    "setting rotation as dictionary must include phi, psi, theta as floats"
-                )
-
-        else:
+        if isinstance(v, (list, tuple, np.ndarray)):
+            coerced = _coerce_rotation_vector(v)
+            if coerced is not None:
+                return Rotation(theta=coerced.phi, phi=coerced.psi, psi=coerced.theta)
             raise ValueError("rotation should be a number or a list of floats")
+        if isinstance(v, Rotation):
+            return v
+        if isinstance(v, dict):
+            return _coerce_rotation_mapping(
+                v, error_message="setting rotation as dictionary must include phi, psi, theta as floats"
+            )
+
+        raise ValueError("rotation should be a number or a list of floats")
 
     def __str__(self):
         cls = self.__class__
@@ -301,27 +325,19 @@ class PhysicalElement(_PhysicalElementBase):
             return Position()
         if isinstance(v, (float, int)):
             return Position(z=v)
-        elif isinstance(v, (list, tuple, np.ndarray)):
-            if len(v) == 3:
-                return Position(x=v[0], y=v[1], z=v[2])
-            elif len(v) == 2:
-                return Position(x=v[0], y=0, z=v[1])
-        elif isinstance(v, Position):
-            return v
-        elif isinstance(v, dict):
-            if all(k in ("x", "y", "z") for k in v):
-                return Position(
-                    x=float(v.get("x", 0.0)),
-                    y=float(v.get("y", 0.0)),
-                    z=float(v.get("z", 0.0)),
-                )
-            else:
-                raise ValueError(
-                    "setting middle as dictionary must include x, y, z as floats"
-                )
-
-        else:
+        if isinstance(v, (list, tuple, np.ndarray)):
+            coerced = _coerce_position_vector(v)
+            if coerced is not None:
+                return coerced
             raise ValueError("middle should be a number or a list of floats")
+        if isinstance(v, Position):
+            return v
+        if isinstance(v, dict):
+            return _coerce_position_mapping(
+                v, error_message="setting middle as dictionary must include x, y, z as floats"
+            )
+
+        raise ValueError("middle should be a number or a list of floats")
 
     @field_validator("rotation", "global_rotation", mode="before")
     @classmethod
@@ -330,25 +346,19 @@ class PhysicalElement(_PhysicalElementBase):
             return Rotation(theta=0, phi=0, psi=0)
         if isinstance(v, (float, int)):
             return Rotation(theta=v)
-        elif isinstance(v, (list, tuple, np.ndarray)):
-            if len(v) == 3:
-                return Rotation(phi=v[0], psi=v[1], theta=v[2])
-        elif isinstance(v, Rotation):
-            return v
-        elif isinstance(v, dict):
-            if all(k in ("phi", "psi", "theta") for k in v):
-                return Rotation(
-                    phi=float(v.get("phi", 0.0)),
-                    psi=float(v.get("psi", 0.0)),
-                    theta=float(v.get("theta", 0.0)),
-                )
-            else:
-                raise ValueError(
-                    "setting rotation as dictionary must include phi, psi, theta as floats"
-                )
-
-        else:
+        if isinstance(v, (list, tuple, np.ndarray)):
+            coerced = _coerce_rotation_vector(v)
+            if coerced is not None:
+                return coerced
             raise ValueError("rotation should be a number or a list of floats")
+        if isinstance(v, Rotation):
+            return v
+        if isinstance(v, dict):
+            return _coerce_rotation_mapping(
+                v, error_message="setting rotation as dictionary must include phi, psi, theta as floats"
+            )
+
+        raise ValueError("rotation should be a number or a list of floats")
 
     _rotation_matrix_cache = None
 

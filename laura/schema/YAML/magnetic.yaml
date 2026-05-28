@@ -1,0 +1,319 @@
+id: https://w3id.org/laura/schema/magnetic
+name: laura_magnetic_schema
+title: LAURA Magnetic Model Chunk
+description: >-
+  Magnetic, aperture, and degauss-related schema classes.
+version: "0.1.0"
+license: Apache Software License 2.0
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+imports:
+  - linkml:types
+
+enums:
+  BendingPlaneEnum:
+    description: >-
+        Bending plane enum.
+    permissible_values:
+      Horizontal:
+        description: Horizontal bending plane.
+      Vertical:
+        description: Vertical bending plane.
+      Combined:
+        description: Combined Horizontal and Vertical bending plane.
+
+classes:
+
+  Multipole:
+    description: >-
+      Individual multipole field component, characterised by order and
+      integrated normal / skew strengths at a reference radius.
+    class_uri: laura:Multipole
+    attributes:
+      order:
+        range: integer
+        description: "Multipole order (0 = dipole, 1 = quadrupole, ?)."
+        ifabsent: int(0)
+        minimum_value: 0
+      normal:
+        range: float
+        description: "Integrated normal (upright) multipole strength [T.m^{1-n}]."
+        ifabsent: float(0)
+      skew:
+        range: float
+        description: "Integrated skew (rotated) multipole strength [T.m^{1-n}]."
+        ifabsent: float(0)
+      radius:
+        range: float
+        description: Reference radius for multipole normalisation [m].
+        ifabsent: float(0)
+        unit:
+          ucum_code: m
+
+  Multipoles:
+    description: >-
+      Complete set of integrated multipole strengths up to decapole order,
+      as named slots for efficient element look-up.
+    class_uri: laura:MultipoleList
+    attributes:
+      K0L:
+        range: Multipole
+        description: Integrated dipole field.
+      K1L:
+        range: Multipole
+        description: Integrated quadrupole gradient.
+      K2L:
+        range: Multipole
+        description: Integrated sextupole strength.
+      K3L:
+        range: Multipole
+        description: Integrated octupole strength.
+      K4L:
+        range: Multipole
+        description: Integrated decapole strength.
+
+  FieldIntegral:
+    description: >-
+      Polynomial fit of integrated field strength as a function of magnet
+      current.
+    class_uri: laura:FieldIntegral
+    attributes:
+      coefficients:
+        multivalued: true
+        range: float
+        description: >-
+          Polynomial coefficients ordered from lowest to highest degree:
+          ``FieldIntegral = sum c_n . I^n``.
+
+  LinearSaturationFit:
+    description: >-
+      Bi-linear saturation model mapping magnet current to integrated
+      field strength (K-value conversion).
+    class_uri: laura:LinearSaturationFit
+    attributes:
+      m:
+        range: float
+        description: Linear slope of the unsaturated region.
+        ifabsent: float(0)
+      I_max:
+        range: float
+        description: Current at which saturation begins [A].
+        ifabsent: float(0)
+        unit:
+          ucum_code: A
+      f:
+        range: float
+        description: Saturation fraction (slope ratio below/above I_max).
+        ifabsent: float(0)
+      a:
+        range: float
+        description: Quadratic saturation coefficient.
+        ifabsent: float(0)
+      I0:
+        range: float
+        description: Current offset [A].
+        ifabsent: float(0)
+        unit:
+          ucum_code: A
+      d:
+        range: float
+        description: Constant offset term.
+        ifabsent: float(0)
+      L:
+        range: float
+        description: Effective magnetic length [m].
+        ifabsent: float(0)
+        unit:
+          ucum_code: m
+
+  MagneticElement:
+    description: >-
+      Magnetic field parameters for a beamline magnet, including multipole
+      components, field integrals, and geometric edge parameters.
+    class_uri: laura:MagneticElement
+    in_subset:
+      - magnetic_properties
+    attributes:
+      order:
+        range: integer
+        ifabsent: int(-1)
+        description: "Principal multipole order (0 = dipole, 1 = quad, ?)."
+        minimum_value: -1
+      skew:
+        range: boolean
+        ifabsent: "False"
+        description: >-
+          Whether the magnet is rotated 45? to produce a skew field
+          component.
+      magnetic_length:
+        alias: length
+        range: float
+        ifabsent: float(0)
+        description: Magnetic (effective) length [m].
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      multipoles:
+        range: Multipoles
+        description: Integrated multipole field components.
+      systematic_multipoles:
+        range: Multipoles
+        description: Systematic (design) multipole errors at the reference radius.
+      random_multipoles:
+        range: Multipoles
+        description: Random multipole errors at the reference radius.
+      field_integral_coefficients:
+        range: FieldIntegral
+        description: Polynomial calibration of integrated field vs. current.
+      linear_saturation_coefficients:
+        range: LinearSaturationFit
+        description: Bi-linear saturation calibration.
+      settle_time:
+        range: float
+        description: Power-supply settle time after a change [s].
+        unit:
+          ucum_code: s
+      entrance_edge_angle:
+        range: float
+        description: Fringe-field entrance edge angle [rad].
+        unit:
+          ucum_code: rad
+      exit_edge_angle:
+        range: float
+        description: Fringe-field exit edge angle [rad].
+        unit:
+          ucum_code: rad
+      gap:
+        range: float
+        ifabsent: float(0.032)
+        description: Full gap between pole faces [m].
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      bore:
+        range: float
+        ifabsent: float(0.037)
+        description: Magnet bore radius [m].
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      plane:
+        range: BendingPlaneEnum
+        ifabsent: string(Horizontal)
+        description: "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
+      width:
+        range: float
+        ifabsent: float(0.2)
+        description: Physical width of the magnet in the bending plane [m].
+        unit:
+          ucum_code: m
+      tilt:
+        range: float
+        ifabsent: float(0.0)
+        description: Global tilt about the beam axis [rad].
+        unit:
+          ucum_code: rad
+      edge_field_integral:
+        range: float
+        ifabsent: float(0.5)
+        description: Enge fringe-field integral parameter (dimensionless).
+      fringe_field_coefficient:
+        ifabsent: float(0.0)
+        range: float
+        description: Coefficient controlling the fringe-field roll-off rate.
+      gradient:
+        range: float
+        description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
+        unit:
+          ucum_code: T.m-1
+
+  # -- Aperture ---------------------------------------------------------------
+
+  ApertureElement:
+    description: Transverse aperture geometry for drift-space checks and collimators.
+    class_uri: laura:ApertureElement
+    attributes:
+      number_of_elements:
+        range: integer
+        description: Number of aperture sub-elements (e.g., for multi-leaf collimators).
+        minimum_value: 1
+      horizontal_size:
+        range: float
+        description: Full horizontal aperture [m].
+        ifabsent: float(0.0)
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      vertical_size:
+        range: float
+        description: Full vertical aperture [m].
+        ifabsent: float(0.0)
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      shape:
+        range: ApertureShapeEnum
+        description: Cross-sectional aperture shape.
+      radius:
+        range: float
+        description: Radius for circular apertures [m].
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      negative_extent:
+        range: float
+        description: Upstream / inner extent [m].
+        unit:
+          ucum_code: m
+      positive_extent:
+        range: float
+        description: Downstream / outer extent [m].
+        unit:
+          ucum_code: m
+
+  # -- Degauss sub-model ------------------------------------------------------
+
+  DegaussableElement:
+    description: >-
+      Degaussing (demagnetisation cycle) parameters for magnets that
+      require a field-reset procedure.
+    class_uri: laura:DegaussableElement
+    in_subset:
+      - magnetic_properties
+    attributes:
+      tolerance:
+        range: float
+        description: Current tolerance band during the degauss cycle [A].
+        ifabsent: float(0.5)
+        aliases:
+          - degauss_tolerance
+        unit:
+          ucum_code: A
+      values:
+        multivalued: true
+        range: float
+        description: Sequence of peak currents applied during the degauss cycle [A].
+        aliases:
+          - degauss_values
+        unit:
+          ucum_code: A
+      steps:
+        range: integer
+        description: Number of degauss steps per half-cycle.
+        ifabsent: int(11)
+        aliases:
+          - num_degauss_steps
+        minimum_value: 1

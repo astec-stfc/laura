@@ -10,7 +10,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$SCHEMA   = "laura/schema/laura_schema.yaml"
+$SCHEMA   = "laura/schema/YAML/laura_schema.yaml"
 $OUT_DIR  = "laura/schema/generated"
 $DOCS_DIR = "docs/source/schema"
 $ER_FILE  = "docs/source/Architecture/element-er.md"
@@ -37,7 +37,16 @@ Write-Host "Generating JSON-LD context..." -ForegroundColor Cyan
 gen-jsonld-context $SCHEMA | Set-Content "$OUT_DIR/laura_context.jsonld"
 
 Write-Host "Generating SHACL shapes..." -ForegroundColor Cyan
-gen-shacl $SCHEMA | Set-Content "$OUT_DIR/laura_shacl.ttl"
+# NOTE: gen-shacl (linkml 1.11.x) fails on multi-file schemas with a KeyError.
+# Workaround: merge with gen-yaml first, then run gen-shacl on the merged output.
+Push-Location "laura/schema/YAML"
+gen-yaml --mergeimports laura_schema.yaml `
+    | Where-Object { $_ -notmatch "UserWarning" -and $_ -notmatch "click" -and
+                     $_ -notmatch "warnings.warn" -and $_ -notmatch "RequestsDependency" } `
+    | Set-Content "_merged_temp.yaml"
+gen-shacl _merged_temp.yaml | Set-Content "..\generated\laura_shacl.ttl"
+Remove-Item "_merged_temp.yaml"
+Pop-Location
 
 Write-Host "Generating GraphQL schema..." -ForegroundColor Cyan
 gen-graphql $SCHEMA | Set-Content "$OUT_DIR/laura_schema.graphql"

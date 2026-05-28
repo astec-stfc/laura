@@ -1,0 +1,1162 @@
+id: https://w3id.org/laura/schema
+name: laura_schema
+title: LAURA Accelerator Element Schema
+description: >-
+  Linked Data schema for the LAURA (Lattice And Unified Representation of
+  Accelerators) accelerator element model.  Covers all element types,
+  their physical, magnetic, diagnostic, RF, and control-system properties.
+version: "0.1.0"
+license: Apache Software License 2.0
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+imports:
+  - linkml:types
+  - simulation
+  - magnetic
+  - rf
+  - diagnostics
+  - laser_plasma
+
+subsets:
+
+  physical_properties:
+    description: Slots relevant to the physical placement or geometry of an element.
+
+  magnetic_properties:
+    description: Slots specific to magnetic elements.
+
+  rf_properties:
+    description: Slots specific to RF cavity elements.
+
+  diagnostic_properties:
+    description: Slots specific to beam-diagnostic instruments.
+
+  laser_properties:
+    description: Slots specific to laser-related elements.
+
+# --- Enumerations -------------------------------------------------------------
+
+enums:
+
+  HardwareClassEnum:
+    description: >-
+      High-level category organising elements by function within the
+      accelerator.  Corresponds to the YAML ``hardware_class`` field.
+    permissible_values:
+      Magnet:
+        description: Magnetic focusing or bending element.
+      Diagnostic:
+        description: Beam-diagnostic instrument.
+      RF:
+        description: Radio-frequency accelerating or deflecting structure.
+      Vacuum:
+        description: Vacuum instrumentation (gauges, valves).
+      Laser:
+        description: Laser optical element or complete laser system.
+      Plasma:
+        description: Plasma-based accelerating stage.
+      Feedback:
+        description: Control-system feedback element.
+      Marker:
+        description: Virtual survey marker with no physical aperture.
+      Aperture:
+        description: Mechanical aperture or collimator.
+      Stage:
+        description: Motorised positioning stage.
+      Lighting:
+        description: Experimental-hall lighting element.
+      Shutter:
+        description: Beam or laser shutter.
+      Wakefield:
+        description: Passive wakefield structure.
+      TwissMatch:
+        description: Virtual Twiss-parameter matching point.
+      Drift:
+        description: Drift element.
+      Generic:
+        description: Generic element.
+      Monitor:
+        description: Beam monitor element.
+
+  LaserPolarizationEnum:
+    description: Polarization state of a laser beam.
+    permissible_values:
+      linear:     {}
+      circular:   {}
+      elliptical: {}
+
+  LaserProfileTypeEnum:
+    description: Transverse intensity profile model for a laser beam.
+    permissible_values:
+      gaussian:           {}
+      laguerre-gaussian:  {}
+      flattened-gaussian: {}
+      file:               {}
+
+  ApertureShapeEnum:
+    description: Cross-sectional shape of a beam-pipe aperture.
+    permissible_values:
+      circular:    {}
+      rectangular: {}
+      elliptical:  {}
+
+# --- Reusable Slots ----------------------------------------------------------
+
+slots:
+
+  # RF cavity / wakefield shared geometry
+  cell_length:
+    range: float
+    description: Length of a single cell [m].
+    ifabsent: float(0.03333333333333333)
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
+
+  coupling_cell_length:
+    range: float
+    description: Length of the coupling cell [m].
+    ifabsent: float(0.0)
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
+
+  n_cells:
+    range: integer
+    description: Number of cells.
+    ifabsent: int(1)
+    minimum_value: 1
+
+  design_gamma:
+    range: float
+    description: Design Lorentz factor.
+    minimum_value: 1.0
+
+  design_power:
+    range: float
+    description: Design peak power [W].
+    ifabsent: float(25000000)
+    minimum_value: 0.0
+    unit:
+      ucum_code: W
+
+  frequency:
+    range: float
+    description: Operating frequency [Hz].
+    ifabsent: float(2998500000.0)
+    minimum_value: 0.0
+    unit:
+      ucum_code: Hz
+
+  crest:
+    range: float
+    description: On-crest phase offset providing maximum energy gain [deg].
+    ifabsent: float(0)
+    unit:
+      ucum_code: deg
+
+  phase:
+    range: float
+    description: Operating phase offset [deg].
+    ifabsent: float(0.0)
+    unit:
+      ucum_code: deg
+
+  shunt_impedance:
+    range: float
+    description: Shunt impedance [M?/m].
+
+  mode_numerator:
+    range: integer
+    description: Mode fraction numerator.
+
+  mode_denominator:
+    range: integer
+    description: Mode fraction denominator.
+
+  # Shared wake-file column labels
+  t_column:
+    range: string
+    description: Time column in the wake file.
+
+  z_column:
+    range: string
+    description: Longitudinal position column in the wake file.
+
+  wx_column:
+    range: string
+    description: Horizontal wake column in the wake file.
+
+  wy_column:
+    range: string
+    description: Vertical wake column in the wake file.
+
+  wz_column:
+    range: string
+    description: Longitudinal wake column in the wake file.
+
+  # Shared simulation numeric controls
+  n_kicks:
+    range: integer
+    description: Number of integration kicks.
+
+  lsc_bins:
+    range: integer
+    description: Number of bins used in longitudinal space-charge calculations.
+
+  field_amplitude:
+    range: float
+    description: Field amplitude scaling.
+
+# --- Classes ------------------------------------------------------------------
+
+classes:
+
+  # -- Position & Rotation ----------------------------------------------------
+
+  Position:
+    description: >-
+      Cartesian position in the global accelerator coordinate system.
+      All components are in metres.
+    class_uri: laura:Position
+    in_subset:
+      - physical_properties
+    attributes:
+      x:
+        range: float
+        ifabsent: float(0)
+        description: Horizontal component [m].
+        unit:
+          ucum_code: m
+      y:
+        range: float
+        ifabsent: float(0)
+        description: Vertical component [m].
+        unit:
+          ucum_code: m
+      z:
+        range: float
+        ifabsent: float(0)
+        description: Longitudinal (beam-direction) component [m].
+        unit:
+          ucum_code: m
+
+  Rotation:
+    description: >-
+      Euler-angle rotation relative to the global coordinate system.
+      All angles are in radians, bounded to [-pi, pi].
+    class_uri: laura:Rotation
+    in_subset:
+      - physical_properties
+    attributes:
+      phi:
+        range: float
+        ifabsent: float(0)
+        description: Rotation about the horizontal (x) axis [rad].
+        minimum_value: -3.141592653589793
+        maximum_value:  3.141592653589793
+        unit:
+          ucum_code: rad
+      psi:
+        range: float
+        ifabsent: float(0)
+        description: Rotation about the vertical (y) axis [rad].
+        minimum_value: -3.141592653589793
+        maximum_value:  3.141592653589793
+        unit:
+          ucum_code: rad
+      theta:
+        range: float
+        ifabsent: float(0)
+        description: Rotation about the longitudinal (z) axis [rad].
+        minimum_value: -3.141592653589793
+        maximum_value:  3.141592653589793
+        unit:
+          ucum_code: rad
+
+  # -- Physical placement -----------------------------------------------------
+
+  ElementPositionError:
+    description: Alignment position and rotation errors for a physically-located element.
+    class_uri: laura:ElementPositionError
+    attributes:
+      position:
+        range: Position
+        description: Positional misalignment error [m].
+      rotation:
+        range: Rotation
+        description: Angular misalignment error [rad].
+
+  ElementSurvey:
+    description: >-
+      Survey-measured position and rotation of an element.
+      Structure is identical to ElementPositionError.
+    class_uri: laura:ElementSurvey
+    attributes:
+      position:
+        range: Position
+        description: Surveyed position.
+      rotation:
+        range: Rotation
+        description: Surveyed rotation.
+
+  PhysicalElement:
+    description: >-
+      Physical placement data: position, rotation, length, and associated
+      survey / alignment-error information.
+    class_uri: laura:PhysicalElement
+    in_subset:
+      - physical_properties
+    attributes:
+      middle:
+        range: Position
+        description: >-
+          Longitudinal midpoint (centre) of the element.
+          Also accepted as ``position`` or ``centre`` in YAML.
+        aliases:
+          - position
+          - centre
+      datum:
+        range: Position
+        description: Datum reference position.
+      rotation:
+        range: Rotation
+        description: Local rotation in the global frame.
+      global_rotation:
+        range: Rotation
+        description: Accumulated global rotation including parent-frame contributions.
+      error:
+        range: ElementPositionError
+        description: Alignment errors.
+      survey:
+        range: ElementSurvey
+        description: Survey-measured position and rotation.
+      length:
+        range: float
+        ifabsent: float(0)
+        description: Effective length along the beam axis [m].
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      maximum_position:
+        range: float
+        description: Maximum downstream s-coordinate [m].
+        unit:
+          ucum_code: m
+      minimum_position:
+        range: float
+        description: Minimum upstream s-coordinate [m].
+        unit:
+          ucum_code: m
+      physical_angle:
+        range: float
+        ifabsent: float(0)
+        description: >-
+          Bending angle in the horizontal plane [rad].
+          Derived from ``magnetic.angle`` when available.
+        unit:
+          ucum_code: rad
+
+  # -- Electrical -------------------------------------------------------------
+
+  ElectricalElement:
+    description: Power-supply electrical limits for a beamline element.
+    class_uri: laura:ElectricalElement
+    attributes:
+      min_i:
+        range: float
+        ifabsent: float(0)
+        description: Minimum current [A].
+        aliases:
+          - minI
+        unit:
+          ucum_code: A
+      max_i:
+        range: float
+        ifabsent: float(0)
+        description: Maximum current [A].
+        aliases:
+          - maxI
+        unit:
+          ucum_code: A
+      read_tolerance:
+        range: float
+        ifabsent: float(0.1)
+        description: >-
+          Read-back vs. set-point tolerance fraction (default 0.1 = 10 %).
+        aliases:
+          - ri_tolerance
+
+  # -- Manufacturer ----------------------------------------------------------
+
+  ManufacturerElement:
+    description: Manufacturer and serial-number metadata.
+    class_uri: laura:ManufacturerElement
+    attributes:
+      manufacturer:
+        range: string
+        ifabsent: string()
+        description: Name of the manufacturer.
+        slot_uri: schema:manufacturer
+      serial_number:
+        range: string
+        ifabsent: string()
+        description: Manufacturer serial number.
+        slot_uri: schema:serialNumber
+
+  # -- Reference documents ----------------------------------------------------
+
+  ReferenceElement:
+    description: Links to engineering drawings and design files.
+    class_uri: laura:ReferenceElement
+    attributes:
+      drawings:
+        multivalued: true
+        range: string
+        description: Engineering-drawing identifiers or URIs.
+      design_files:
+        multivalued: true
+        range: string
+        description: Design-file paths or URIs.
+
+  # -- Control system ---------------------------------------------------------
+
+  ControlVariable:
+    description: >-
+      A single process-variable entry mapping a logical name to a
+      control-system PV identifier.
+    class_uri: laura:ControlVariable
+    attributes:
+      identifier:
+        range: string
+        description: Protocol-specific PV name (e.g., EPICS PV address).
+      dtype:
+        range: string
+        description: Data type (e.g., ``float``, ``int``).
+      protocol:
+        range: string
+        description: Control-system protocol (e.g., ``EPICS``, ``Tango``).
+      units:
+        range: string
+        description: Physical units string (e.g., ``A``, ``T/m``).
+      description:
+        range: string
+        description: Human-readable description.
+      read_only:
+        range: boolean
+        description: Whether the variable is read-only.
+      value:
+        range: float
+        description: Last-read value.
+      target:
+        range: float
+        description: Set-point target value.
+      expression:
+        range: string
+        description: Optional expression string for derived values.
+
+  ControlsInformation:
+    description: >-
+      Collection of process-variable definitions for an element's control
+      interface.
+    class_uri: laura:ControlsInformation
+    attributes:
+      variables:
+        multivalued: true
+        range: ControlVariable
+        description: Named control variables keyed by logical name.
+
+  # -- Shutter / Valve sub-models ---------------------------------------------
+
+  ShutterElement:
+    description: Shutter interlock configuration.
+    class_uri: laura:ShutterElement
+    attributes:
+      interlocks:
+        multivalued: true
+        range: string
+        description: Names of the interlocks guarding this shutter.
+        aliases:
+          - shutter_interlock_names
+
+  ValveElement:
+    description: Vacuum valve configuration (no additional fields).
+    class_uri: laura:ValveElement
+
+  # -- Lighting sub-model -----------------------------------------------------
+
+  LightingElement:
+    description: Lighting element (no additional fields currently defined).
+    class_uri: laura:LightingElement
+
+# ===============================================================================
+# Element class hierarchy
+# ===============================================================================
+
+  # -- Root base element ------------------------------------------------------
+
+  AcceleratorElement:
+    description: >-
+      Root base class for all LAURA accelerator elements.  Every lattice
+      element is an instance of a concrete subclass identified by
+      ``hardware_type``.
+    tree_root: true
+    class_uri: laura:AcceleratorElement
+    attributes:
+      name:
+        identifier: true
+        required: true
+        range: string
+        description: Unique element name within the machine.
+      hardware_class:
+        range: HardwareClassEnum
+        required: true
+        description: >-
+          Functional category (e.g., ``Magnet``, ``Diagnostic``).
+      hardware_type:
+        range: string
+        ifabsent: string(Generic)
+        description: >-
+          Python class name used for MODEL_REGISTRY dispatch.  Identifies
+          the concrete subclass to instantiate when loading from YAML.
+      hardware_model:
+        range: string
+        ifabsent: string(Generic)
+        description: >-
+          Model or variant name within the hardware type
+          (e.g., ``Generic``, ``TESLA``).
+      machine_area:
+        range: string
+        description: >-
+          Machine area label grouping related elements
+          (e.g., ``LINAC``, ``BA1``).
+      virtual_name:
+        range: string
+        ifabsent: string()
+        description: >-
+          Alternative internal name used by the control system when the
+          physical name is inaccessible.
+      alias:
+        range: string
+        multivalued: true
+        description: >-
+          Human-readable aliases for the element. Populated from ``name_alias``
+          in YAML. Accepts a single string or a list of strings.
+        aliases:
+          - name_alias
+      subelement:
+        range: string
+        description: >-
+          If set, this element is a logical sub-component of the named
+          parent element.
+
+  # -- Standard element -------------------------------------------------------
+
+  StandardElement:
+    is_a: AcceleratorElement
+    description: >-
+      Accelerator element with control-system, electrical, manufacturer,
+      simulation, and reference sub-models.
+    class_uri: laura:StandardElement
+    attributes:
+      simulation:
+        range: SimulationElement
+        description: Simulation / tracking attributes.
+      electrical:
+        range: ElectricalElement
+        description: Power-supply electrical limits.
+      manufacturer:
+        range: ManufacturerElement
+        description: Manufacturer and serial-number data.
+      controls:
+        range: ControlsInformation
+        description: Control-system process-variable definitions.
+      reference:
+        range: ReferenceElement
+        description: Links to design drawings and files.
+
+  Element:
+    is_a: StandardElement
+    description: >-
+      Concrete schema counterpart of the Python ``Element`` wrapper class.
+      Inherits standard element composition fields.
+    class_uri: laura:Element
+
+  # -- Physical element -------------------------------------------------------
+
+  PhysicalAcceleratorElement:
+    is_a: Element
+    description: >-
+      Accelerator element with a well-defined physical position and
+      orientation in the beamline.
+    class_uri: laura:PhysicalAcceleratorElement
+    attributes:
+      physical:
+        range: PhysicalElement
+        description: Position, rotation, and length data.
+        in_subset:
+          - physical_properties
+
+  # -- Magnet -----------------------------------------------------------------
+
+  MagnetBaseElement:
+    is_a: PhysicalAcceleratorElement
+    description: >-
+      Base class for all magnetic focusing and bending elements.
+      (Named ``MagnetBaseElement`` in the schema to avoid collision with
+      the ``magnetic`` composition-model class; maps to ``Magnet`` in Python.)
+    class_uri: laura:MagnetBaseElement
+    slot_usage:
+      simulation:
+        range: MagnetSimulationElement
+    attributes:
+      magnetic:
+        range: MagneticElement
+        description: Magnetic field parameters.
+        in_subset:
+          - magnetic_properties
+      degauss:
+        range: DegaussableElement
+        description: Degaussing-cycle parameters.
+
+  # -- Diagnostics ------------------------------------------------------------
+
+  Diagnostic:
+    is_a: PhysicalAcceleratorElement
+    description: Base class for all beam-diagnostic instruments.
+    class_uri: laura:Diagnostic
+    slot_usage:
+      simulation:
+        range: DiagnosticSimulationElement
+    attributes:
+      diagnostic:
+        range: DiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  BeamPositionMonitor:
+    is_a: Diagnostic
+    description: Beam-position monitor (BPM).
+    class_uri: laura:BeamPositionMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Beam_Position_Monitor
+    attributes:
+      diagnostic:
+        range: BPMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  BeamArrivalMonitor:
+    is_a: Diagnostic
+    description: Beam-arrival-time monitor (BAM).
+    class_uri: laura:BeamArrivalMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Beam_Arrival_Monitor
+    attributes:
+      diagnostic:
+        range: BAMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  BunchLengthMonitor:
+    is_a: Diagnostic
+    description: "Bunch-length monitor (BLM / CDR detector)."
+    class_uri: laura:BunchLengthMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Bunch_Length_Monitor
+    attributes:
+      diagnostic:
+        range: BLMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  Camera:
+    is_a: Diagnostic
+    description: Camera-based beam-profile monitor.
+    class_uri: laura:Camera
+    slot_usage:
+      hardware_type:
+        equals_string: Camera
+    attributes:
+      diagnostic:
+        range: CameraDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  Screen:
+    is_a: Diagnostic
+    description: Scintillator or OTR screen with an associated camera.
+    class_uri: laura:Screen
+    slot_usage:
+      hardware_type:
+        equals_string: Screen
+    attributes:
+      diagnostic:
+        range: ScreenDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  ChargeDiagnostic:
+    is_a: Diagnostic
+    description: Base class for charge-measurement diagnostics.
+    class_uri: laura:ChargeDiagnostic
+    slot_usage:
+      hardware_type:
+        equals_string: ChargeDiagnostic
+    attributes:
+      diagnostic:
+        range: ChargeDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  WallCurrentMonitor:
+    is_a: ChargeDiagnostic
+    description: Wall-current monitor (WCM) for non-destructive charge measurement.
+    class_uri: laura:WallCurrentMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Wall_Current_Monitor
+
+  FaradayCupMonitor:
+    is_a: ChargeDiagnostic
+    description: Faraday cup for destructive charge measurement.
+    class_uri: laura:FaradayCupMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Faraday_Cup_Monitor
+
+  IntegratedCurrentTransformer:
+    is_a: ChargeDiagnostic
+    description: >-
+      Integrated current transformer (ICT) for non-destructive single-shot
+      charge measurement.
+    class_uri: laura:IntegratedCurrentTransformer
+    slot_usage:
+      hardware_type:
+        equals_string: Integrated_Current_Transformer
+
+  # -- RF & Feedback elements -------------------------------------------------
+
+  RFCavity:
+    is_a: PhysicalAcceleratorElement
+    description: Accelerating RF cavity.
+    class_uri: laura:RFCavity
+    slot_usage:
+      hardware_type:
+        equals_string: RFCavity
+      simulation:
+        range: RFCavitySimulationElement
+    attributes:
+      cavity:
+        range: RFCavityElement
+        description: RF structure parameters.
+        in_subset:
+          - rf_properties
+
+  RFDeflectingCavity:
+    is_a: RFCavity
+    description: Transverse-deflecting (streak) RF cavity.
+    class_uri: laura:RFDeflectingCavity
+    slot_usage:
+      hardware_type:
+        equals_string: RFDeflectingCavity
+    attributes:
+      cavity:
+        range: RFDeflectingCavityElement
+        description: RF structure parameters.
+        in_subset:
+          - rf_properties
+
+  Wakefield:
+    is_a: PhysicalAcceleratorElement
+    description: "Passive wakefield structure (dielectric, corrugated, etc.)."
+    class_uri: laura:Wakefield
+    slot_usage:
+      hardware_type:
+        equals_string: Wakefield
+      simulation:
+        range: WakefieldSimulationElement
+    attributes:
+      cavity:
+        range: WakefieldElement
+        description: Wakefield structure parameters.
+
+  LowLevelRF:
+    is_a: StandardElement
+    description: Low-level RF (LLRF) controller.
+    class_uri: laura:LowLevelRF
+    slot_usage:
+      hardware_type:
+        equals_string: Low_Level_RF
+    attributes:
+      llrf:
+        range: LowLevelRFElement
+        description: LLRF parameters.
+
+  RFModulator:
+    is_a: StandardElement
+    description: RF modulator (klystron driver) element.
+    class_uri: laura:RFModulator
+    slot_usage:
+      hardware_type:
+        equals_string: RFModulator
+    attributes:
+      modulator:
+        range: RFModulatorElement
+        description: Modulator parameters.
+
+  RFProtection:
+    is_a: StandardElement
+    description: RF protection system element.
+    class_uri: laura:RFProtection
+    slot_usage:
+      hardware_type:
+        equals_string: RFProtection
+    attributes:
+      protection:
+        range: RFProtectionElement
+        description: RF protection parameters.
+
+  RFHeartbeat:
+    is_a: StandardElement
+    description: RF timing heartbeat / signal-monitor element.
+    class_uri: laura:RFHeartbeat
+    slot_usage:
+      hardware_type:
+        equals_string: RFHeartbeat
+    attributes:
+      heartbeat:
+        range: RFHeartbeatElement
+        description: RF heartbeat parameters.
+
+  PID:
+    is_a: StandardElement
+    description: Proportional-integral-derivative (PID) feedback controller.
+    class_uri: laura:PID
+    slot_usage:
+      hardware_type:
+        equals_string: PID
+    attributes:
+      pid:
+        range: PIDElement
+        description: PID gain parameters.
+
+  # -- Other physically-located elements --------------------------------------
+
+  TwissMatch:
+    is_a: PhysicalAcceleratorElement
+    description: >-
+      Virtual Twiss-parameter matching point -- a zero-length marker that
+      defines the desired optical functions at a location in the lattice.
+    class_uri: laura:TwissMatch
+    slot_usage:
+      hardware_type:
+        equals_string: TwissMatch
+      simulation:
+        range: TwissMatchSimulationElement
+
+  Stage:
+    is_a: PhysicalAcceleratorElement
+    description: Motorised positioning stage.
+    class_uri: laura:Stage
+    slot_usage:
+      hardware_type:
+        equals_string: Stage
+
+  VacuumGauge:
+    is_a: PhysicalAcceleratorElement
+    description: Vacuum-pressure gauge.
+    class_uri: laura:VacuumGauge
+    slot_usage:
+      hardware_type:
+        equals_string: VacuumGauge
+
+  Laser:
+    is_a: PhysicalAcceleratorElement
+    description: Laser system element (full laser setup including beam parameters).
+    class_uri: laura:Laser
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: Laser
+    attributes:
+      laser:
+        range: LaserElement
+        description: Laser-beam parameters.
+
+  Shutter:
+    is_a: PhysicalAcceleratorElement
+    description: Beam or laser shutter with interlock logic.
+    class_uri: laura:Shutter
+    slot_usage:
+      hardware_type:
+        equals_string: Shutter
+    attributes:
+      shutter:
+        range: ShutterElement
+        description: Shutter interlock configuration.
+
+  Valve:
+    is_a: PhysicalAcceleratorElement
+    description: Vacuum gate valve.
+    class_uri: laura:Valve
+    slot_usage:
+      hardware_type:
+        equals_string: Valve
+    attributes:
+      valve:
+        range: ValveElement
+        description: Valve configuration.
+
+  Marker:
+    is_a: PhysicalAcceleratorElement
+    description: >-
+      Virtual survey marker -- a zero-length reference point used for
+      alignment.
+    class_uri: laura:Marker
+    slot_usage:
+      hardware_type:
+        equals_string: Marker
+
+  Aperture:
+    is_a: PhysicalAcceleratorElement
+    description: Mechanical aperture restriction in the beam pipe.
+    class_uri: laura:Aperture
+    slot_usage:
+      hardware_type:
+        equals_string: Aperture
+    attributes:
+      aperture:
+        range: ApertureElement
+        description: Aperture geometry parameters.
+
+  Collimator:
+    is_a: Aperture
+    description: Movable collimator jaw (extends Aperture).
+    class_uri: laura:Collimator
+    slot_usage:
+      hardware_type:
+        equals_string: Collimator
+
+  Drift:
+    is_a: PhysicalAcceleratorElement
+    description: Field-free drift space between elements.
+    class_uri: laura:Drift
+    slot_usage:
+      hardware_type:
+        equals_string: Drift
+      simulation:
+        range: DriftSimulationElement
+
+  Plasma:
+    is_a: PhysicalAcceleratorElement
+    description: Laser-driven plasma-accelerator stage.
+    class_uri: laura:Plasma
+    slot_usage:
+      hardware_type:
+        equals_string: Plasma
+      simulation:
+        range: PlasmaSimulationElement
+    attributes:
+      plasma:
+        range: PlasmaElement
+        description: Plasma channel parameters.
+      laser:
+        range: LaserElement
+        description: Laser driving the plasma stage.
+
+  # -- Non-physical (no position) elements -----------------------------------
+
+  LaserEnergyMeter:
+    is_a: StandardElement
+    description: Laser pulse-energy diagnostic (photodiode / pyroelectric).
+    class_uri: laura:LaserEnergyMeter
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserEnergyMeter
+    attributes:
+      laser:
+        range: LaserEnergyMeterElement
+        description: Energy-meter instrument parameters.
+
+  LaserHalfWavePlate:
+    is_a: StandardElement
+    description: Half-wave plate for laser polarisation rotation.
+    class_uri: laura:LaserHalfWavePlate
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserHalfWavePlate
+    attributes:
+      laser:
+        range: LaserHalfWavePlateElement
+        description: Half-wave plate parameters.
+
+  LaserMirror:
+    is_a: StandardElement
+    description: Laser steering or focusing mirror.
+    class_uri: laura:LaserMirror
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserMirror
+    attributes:
+      laser:
+        range: LaserMirrorElement
+        description: Mirror steering parameters.
+
+  LaserMirrorElement:
+    description: Mirror steering parameters for a laser mirror.
+    class_uri: laura:LaserMirrorElement
+    attributes:
+      step_max:
+        range: float
+        description: Maximum step size for mirror adjustment.
+      sense:
+        range: LaserMirrorSense
+        description: Mirror sense/interlock configuration.
+      vertical_channel:
+        range: integer
+        description: Vertical control channel index.
+      horizontal_channel:
+        range: integer
+        description: Horizontal control channel index.
+
+  LaserMirrorSense:
+    description: Mirror sense switch values.
+    class_uri: laura:LaserMirrorSense
+    attributes:
+      left:
+        range: float
+        description: Left sense value.
+        aliases: [left_sense]
+      right:
+        range: float
+        description: Right sense value.
+        aliases: [right_sense]
+      up:
+        range: float
+        description: Up sense value.
+        aliases: [up_sense]
+      down:
+        range: float
+        description: Down sense value.
+        aliases: [down_sense]
+
+  LaserAttenuator:
+    is_a: StandardElement
+    description: Laser power attenuator (waveplate + polariser combination).
+    class_uri: laura:LaserAttenuator
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserAttenuator
+    attributes:
+      maximum:
+        range: float
+        description: Maximum attenuation angle [deg].
+        unit:
+          ucum_code: deg
+      minimum:
+        range: float
+        description: Minimum attenuation angle [deg].
+        unit:
+          ucum_code: deg
+
+  Lighting:
+    is_a: StandardElement
+    description: Experimental-hall lighting element.
+    class_uri: laura:Lighting
+    slot_usage:
+      hardware_type:
+        equals_string: Lighting
+    attributes:
+      lights:
+        range: LightingElement
+        description: Lighting configuration.
+
+  # -- Machine structure ------------------------------------------------------
+
+  SectionLattice:
+    description: >-
+      An ordered list of element names defining a contiguous beamline
+      section.
+    class_uri: laura:SectionLattice
+    attributes:
+      name:
+        identifier: true
+        range: string
+        description: Unique section name.
+      master_lattice:
+        range: string
+        description: Name of the master lattice this section belongs to.
+      elements:
+        multivalued: true
+        range: string
+        description: Ordered list of element names in this section.
+
+  MachineLayout:
+    description: >-
+      An ordered list of section names defining a beamline layout
+      (a contiguous sequence of sections).
+    class_uri: laura:MachineLayout
+    attributes:
+      name:
+        identifier: true
+        range: string
+        description: Unique layout name.
+      master_lattice:
+        range: string
+        description: Name of the master lattice this layout belongs to.
+      sections:
+        multivalued: true
+        range: string
+        description: Ordered list of section names.
+
+  MachineModel:
+    description: >-
+      Top-level container for a complete accelerator lattice: elements,
+      sections, layouts, and named lattice configurations.
+    class_uri: laura:MachineModel
+    attributes:
+      elements:
+        multivalued: true
+        range: AcceleratorElement
+        description: All elements in the machine, keyed by name.
+      sections:
+        multivalued: true
+        range: SectionLattice
+        description: All named beamline sections.
+      layouts:
+        multivalued: true
+        range: MachineLayout
+        description: All named beamline layouts.

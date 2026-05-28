@@ -6,7 +6,7 @@
 
 set -euo pipefail
 
-SCHEMA="laura/schema/laura_schema.yaml"
+SCHEMA="laura/schema/YAML/laura_schema.yaml"
 OUT_DIR="laura/schema/generated"
 DOCS_DIR="docs/source/schema"
 ER_FILE="docs/source/Architecture/element-er.md"
