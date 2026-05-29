@@ -76,6 +76,9 @@ Homepage = "https://github.com/astec-stfc/laura"
 Repository = "https://github.com/astec-stfc/laura.git"
 Issues = "https://github.com/astec-stfc/laura/-/issues/"
 
+[tool.setuptools.package-data]
+"laura.schema.generated" = ["*.owl", "*.graphql", "*.json", "*.ttl", "*.ts", "*.sql"]
+
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore:Pydantic serializer warnings:UserWarning",
