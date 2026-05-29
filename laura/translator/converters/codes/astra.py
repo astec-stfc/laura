@@ -1,3 +1,8 @@
+"""
+ASTRA namelist generator.
+
+.. _ASTRA manual: https://www.desy.de/~mpyflo/Astra_dokumentation/
+"""
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, List, Any
 import numpy as np

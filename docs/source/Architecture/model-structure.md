@@ -3,7 +3,7 @@
 How LAURA represents an accelerator from top to bottom.
 
 LAURA uses a **schema-first** design: the canonical element hierarchy lives in
-the [LinkML ontology](../../laura/schema/YAML/laura_schema.yaml); Pydantic
+the ``laura/schema/YAML/laura_schema.yaml`` LinkML ontology; Pydantic
 classes are generated from it into `laura/models/_generated.py` and wrapped
 by hand-written classes in `laura/models/element.py`.
 See [element-hierarchy.md](element-hierarchy.md) for the class hierarchy and

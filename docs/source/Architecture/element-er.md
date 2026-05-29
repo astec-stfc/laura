@@ -1,7 +1,7 @@
 # LAURA Element Class Hierarchy
 
 This diagram represents the full element class hierarchy as defined in the
-[LinkML schema](../../laura/schema/YAML/laura_schema.yaml).
+the ``laura/schema/YAML/laura_schema.yaml`` LinkML schema.
 Concrete element classes (leaf nodes) correspond to `hardware_type` values in
 YAML lattice files and to Python classes registered in `MODEL_REGISTRY`.
 

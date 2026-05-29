@@ -10,7 +10,7 @@ required for specific codes.
 Classes:
     - :class:`~laura.translator.utils.fields.field`: Generic field definition.
     - :class:`~laura.translator.utils.fields.FieldParameter.FieldParameter`: Field parameter with a
-    name and a :class:`~laura.translator.utils.units.UnitValue` associated with it.
+      name and a :class:`~laura.translator.utils.units.UnitValue` associated with it.
 """
 
 import os

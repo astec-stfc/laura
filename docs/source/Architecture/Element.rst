@@ -474,7 +474,7 @@ TANGO Attribute, organised as follows:
 .. _electrical-and-manufacturer:
 
 Electrical, Manufacturer and Reference Information
----------------------------------------
+--------------------------------------------------
 
 Other useful sets of information about an :py:class:`Element <laura.models.element.Element>` include electrical,
 manufacturer and reference information, stored in

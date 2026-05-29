@@ -53,32 +53,33 @@ class ControlVariable(BaseModel):
     Model representing a control variable in a system.
 
     Example on updating element attributes based on control variables:
-    ```python
-    from laura.models.element import Element
-    from laura.models.control import ControlVariable, ControlsInformation
-    # Define control variables
-    cv1 = ControlVariable(
-        identifier="k1l_control",
-        dtype=float,
-        protocol="some_protocol",
-        units="1/m",
-        description="Control for k1l",
-        read_only=False,
-        value=0.1,
-        target="magnetic.k1l",
-        expression={"op": "mul", "args": ["k1l_control", "magnetic.length"]},
-    )
-    controls_info = ControlsInformation(variables={"k1l_control": cv1})
-    # Create an element with magnetic attributes
-    element = Element(
-        name="Quad1",
-        magnetic={"k1l": 0.0, "k2l": 0.0},
-        controls=controls_info,
-    )
-    # Apply control variables to the element
-    controls_info.apply(element)
-    print(element.magnetic.k1l)  # Should reflect the updated value based on the control variable
-    ```
+
+    .. code-block:: python
+
+        from laura.models.element import Element
+        from laura.models.control import ControlVariable, ControlsInformation
+        # Define control variables
+        cv1 = ControlVariable(
+            identifier="k1l_control",
+            dtype=float,
+            protocol="some_protocol",
+            units="1/m",
+            description="Control for k1l",
+            read_only=False,
+            value=0.1,
+            target="magnetic.k1l",
+            expression={"op": "mul", "args": ["k1l_control", "magnetic.length"]},
+        )
+        controls_info = ControlsInformation(variables={"k1l_control": cv1})
+        # Create an element with magnetic attributes
+        element = Element(
+            name="Quad1",
+            magnetic={"k1l": 0.0, "k2l": 0.0},
+            controls=controls_info,
+        )
+        # Apply control variables to the element
+        controls_info.apply(element)
+        print(element.magnetic.k1l)  # Should reflect the updated value based on the control variable
     """
 
     identifier: str

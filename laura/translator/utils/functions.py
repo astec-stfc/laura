@@ -92,10 +92,12 @@ def lattice_to_cartesian(elements):
     Parameters
     ----------
     elements : list of tuples
-        Each element is defined as:
-          ("drift", L)
-          ("dipole_h", L, phi)   # horizontal bend (x-z plane)
-          ("dipole_v", L, phi)   # vertical bend (x-y plane)
+        Each element is defined as one of:
+
+        - ``("drift", L)``
+        - ``("dipole_h", L, phi)`` -- horizontal bend (x-z plane)
+        - ``("dipole_v", L, phi)`` -- vertical bend (x-y plane)
+
         where L = length, phi = bending angle in radians.
 
     Returns

@@ -1,8 +1,12 @@
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 from textwrap import wrap
 from laura.models.elementList import MachineLayout
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
+
+if TYPE_CHECKING:
+    from ocelot.cpbd.magnetic_lattice import MagneticLattice
+    from cheetah import Segment
 
 
 class MachineLayoutTranslator(MachineLayout):

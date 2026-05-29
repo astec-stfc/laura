@@ -1,8 +1,14 @@
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 from warnings import warn
 from textwrap import wrap
 import numpy as np
 from pydantic import PositiveInt
+
+if TYPE_CHECKING:
+    from ocelot.cpbd.magnetic_lattice import MagneticLattice
+    from cheetah import Segment
+    from wake_t import Beamline
+    from xtrack import Line
 
 from ...models.elementList import SectionLattice
 from ...models.RF import WakefieldElement

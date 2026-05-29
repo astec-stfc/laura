@@ -1,16 +1,20 @@
+from __future__ import annotations
+
 import os
 import numpy as np
 import yaml
 from pydantic import BaseModel, ConfigDict
-from typing import Dict
+from typing import Any, Dict, TYPE_CHECKING
 from scipy.spatial.transform import Rotation
 try:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
-except ImportError as _err:
-    raise ImportError(
-        "ocelot-desy is not installed. "
-        "Install with: pip install \"laura-accelerator[ocelot]\""
-    ) from _err
+    _OCELOT_AVAILABLE = True
+except ImportError:
+    _OCELOT_AVAILABLE = False
+    MagneticLattice = None  # type: ignore[assignment, misc]
+
+if TYPE_CHECKING:
+    from ocelot.cpbd.magnetic_lattice import MagneticLattice  # type: ignore[no-redef]
 import laura.models.element as LAURA_elements
 from . import magnetic_orders
 from ...utils.functions import introspect_model_defaults
@@ -45,7 +49,7 @@ class OcelotLatticeImporter(BaseModel):
 
     machine_area: str = "Lattice"
 
-    magnetic_lattice: MagneticLattice
+    magnetic_lattice: Any
     """Name of ELEGANT parameters file"""
 
     laura_elements: Dict = {}
@@ -57,8 +61,9 @@ class OcelotLatticeImporter(BaseModel):
     def create_element_dictionary(self):
         elements = self.magnetic_lattice_to_elements()
         self.laura_elements = {}
+        strip_chars = "'>"
         switch_dict = {
-            f"{str(y).lower().split('.')[-1].strip("\'>")}_{x}": x
+            f"{str(y).lower().split('.')[-1].strip(strip_chars)}_{x}": x
             for x, y in type_conversion_rules_Ocelot.items()
         }
 

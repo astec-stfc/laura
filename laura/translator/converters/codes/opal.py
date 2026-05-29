@@ -9,7 +9,7 @@ class opal_header(BaseModel):
 
     See `OPAL manual`_ for more details.
 
-    .. OPAL manual: https://amas.web.psi.ch/opal/Documentation/master/OPAL_Manual.html
+    .. _OPAL manual: https://amas.web.psi.ch/opal/Documentation/master/OPAL_Manual.html
     """
 
     model_config = ConfigDict(

@@ -5,3 +5,4 @@ sphinx-autodoc-typehints
 autodoc-pydantic
 sphinx-automodapi
 sphinx-substitution-extensions
+myst-parser

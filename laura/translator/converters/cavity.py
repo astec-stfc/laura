@@ -64,7 +64,7 @@ class RFCavityTranslator(BaseElementTranslator):
 
     def set_wakefield_column_names(self, wakefield_file_name: str) -> None:
         """
-        Set the column names for the wakefield file, based on `wakefield_definition.
+        Set the column names for the wakefield file, based on ``wakefield_definition``.
 
         Parameters
         ----------

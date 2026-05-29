@@ -20,10 +20,8 @@ import sys
 import subprocess
 
 # docs/ is at project_root/docs
-# add project root:
+# add project root (sufficient for `import laura` to work):
 sys.path.insert(0, os.path.abspath(".."))
-# also add project_root/laura so Python can find the inner package dir
-sys.path.insert(0, os.path.abspath("../laura"))
 
 
 def get_git_revision_hash(short: bool = True) -> str:
@@ -97,19 +95,28 @@ extensions = [
     "sphinx_autodoc_typehints",
     # "sphinxcontrib.autodoc_pydantic",
     "sphinx.ext.mathjax",  # enables math rendering
+    "myst_parser",         # enables Markdown source files
+    "sphinxcontrib.mermaid",  # enables Mermaid diagrams in Markdown files
     # "myst_nb",
 ]
 
 
 # set sphinx options
-source_suffix = ".rst"  # use reStructedText files for sphinx pages
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "myst",
+}
 master_doc = "index"  # name for the root document
-exclude_patterns = ["_build"]  # patterns to exclude when looking for source files
+exclude_patterns = ["_build", "schema/**"]  # patterns to exclude when looking for source files
 templates_path = ["_templates"]  # list of paths that contain extra templates
 add_function_parentheses = True  # display function and method names with parentheses
 add_module_names = False  # don't include module names before object names
 pygments_style = "sphinx"  # style for highlighting of source code
 bibtex_bibfiles = ["references.bib"]
+
+# MyST-Parser options
+myst_heading_anchors = 3  # auto-generate heading anchors for h1/h2/h3
+myst_fence_as_directive = {"mermaid"}  # treat ```mermaid fences as sphinxcontrib.mermaid directives
 
 # set automodapi options
 automodapi_toctreedirnm = (
@@ -150,8 +157,14 @@ autodoc_pydantic_field_doc_policy = "both"  # shows docstrings and Field descrip
 # autodoc_typehints = "none"
 
 autodoc_mock_imports = [
-    # "laura.models.elementList",  # or whichever module fails
-    "pydantic",  # mock dependencies if needed
+    "Importers",       # legacy absolute-import path used in CATAP_Loader.py
+    "laura.models.PV",  # legacy module that no longer exists
+    "IPython",          # optional dependency for SimFrame_Loader
+    "ocelot",           # optional accelerator-code dependency
+    "xsuite",           # optional accelerator-code dependency
+    "xtrack",           # optional accelerator-code dependency (used by xsuite converters)
+    "cheetah",          # optional accelerator-code dependency
+    "wake_t",           # optional accelerator-code dependency
 ]
 
 numfig = True
@@ -188,6 +201,16 @@ autodoc_pydantic_settings_show_config_summary = False
 autodoc_pydantic_field_list_validators = False
 autodoc_pydantic_model_show_validator_members = False
 
+# Suppress duplicate-object-description warnings that arise because sphinx-apidoc
+# documents each module both in its parent package RST and in its own RST file.
+suppress_warnings = [
+    "ref.python",           # Sphinx 8.1.3: duplicate object descriptions are not suppressable via type=
+    "myst.xref_missing",    # .md files link to .yaml files which Sphinx cannot resolve as cross-references
+    "ref.any",              # suppress any-role cross-reference parse failures
+    "ref.c",                # .yaml paths in markdown links are misidentified as C cross-references
+    "ref.cpp",              # .yaml paths in markdown links are misidentified as C++ cross-references
+]
+
 # nb_execution_mode = "off"  # options: "off", "auto", "force"
 
 
@@ -200,9 +223,9 @@ intersphinx_mapping = {
 
 # set HTML output options
 html_theme = "sphinx_rtd_theme"  # set HTML themse (read the docs theme)
-html_logo = "icon.png"  # set logo for top-left corner of HTML pages
-html_favicon = "favicon.ico"  # set HTML favicon
-html_static_path = ["_static"]  # path to custom static files
+# html_logo = "icon.png"  # set logo for top-left corner of HTML pages (file not present)
+# html_favicon = "favicon.ico"  # set HTML favicon (file not present)
+html_static_path = []  # no custom static files currently
 
 # set mathjax equation rendering options
 mathjax3_config = {"chtml": {"displayAlign": "left", "displayIndent": "2em"}}

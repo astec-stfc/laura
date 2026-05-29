@@ -1,9 +1,11 @@
-.. _element:
+:orphan:
+
+.. _old-element:
 
 Element Definition
 ==================
 
-.. _base-element:
+.. _old-base-element:
 
 Base-level element
 ------------------
@@ -24,7 +26,7 @@ The following additional properties can also be provided:
 
 While most elements that are typically considered part of an accelerator lattice are defined with reference to a fiducial position, and therefore are described in physical space with respect to that position, not all elements supported by the :mod:`LAURA` standard need to have their position defined. Objects that control lighting, low-level RF modules, RF modulators, or feedback systems, are all examples of elements that derive from :py:class:`baseElement <laura.models.element.baseElement>` but do not have a physical position defined.
 
-.. _element-class:
+.. _old-element-class:
 
 Element
 -------
@@ -39,7 +41,7 @@ following additional properties (described in more detail in :ref:`auxiliary`):
 * ``electrical: ElectricalElement`` -- see :py:class:`ElectricalElement <laura.models.electrical.ElectricalElement>`.
 * ``reference: ReferenceElement`` -- see :py:class:`ReferenceElement <laura.models.reference.ReferenceElement>`.
 
-.. _physical-element:
+.. _old-physical-element:
 
 Physical element
 ----------------

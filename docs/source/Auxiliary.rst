@@ -1,4 +1,6 @@
-.. _auxiliary:
+:orphan:
+
+.. _old-auxiliary:
 
 Auxiliary Classes
 =================
@@ -7,7 +9,7 @@ The goal of describing a lattice with :mod:`LAURA` is to encapsulate as much inf
 This page describes the auxiliary information that can be associated with an
 :py:class:`Element <laura.models.element.Element>` (see :ref:`element-class`).
 
-.. _simulation-element:
+.. _old-simulation-element:
 
 Simulation Element
 ------------------

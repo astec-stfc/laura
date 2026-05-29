@@ -1,7 +1,7 @@
 # Element Class Hierarchy
 
 LAURA uses a **schema-first** design.  The canonical class hierarchy is
-defined in the [LinkML ontology](../../laura/schema/YAML/laura_schema.yaml)
+defined in the ``laura/schema/YAML/laura_schema.yaml`` LinkML ontology
 and auto-generates Pydantic base classes into `laura/models/_generated.py`.
 Hand-written wrapper classes in `laura/models/element.py` inherit from those
 generated bases and add Python-specific logic (validators, computed properties,
