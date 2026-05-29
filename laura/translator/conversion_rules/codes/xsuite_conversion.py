@@ -1,16 +1,23 @@
-from xtrack.beam_elements import Solenoid as Solenoid_xs
-from xtrack.beam_elements import Bend as Bend_xs
-from xtrack.beam_elements import DipoleEdge as DipoleEdge_xs
-from xtrack.beam_elements import Quadrupole as Quadrupole_xs
-from xtrack.beam_elements import Sextupole as Sextupole_xs
-from xtrack.beam_elements import Octupole as Octupole_xs
-from xtrack.beam_elements import Drift as Drift_xs
-from xtrack.beam_elements import NonLinearLens as NonLinearLens_xs
-from xtrack.beam_elements import Cavity as Cavity_xs
-from xtrack.beam_elements import UniformSolenoid as UniformSolenoid_xs
-from xtrack.beam_elements import Multipole as Multipole_xs
-from xtrack.beam_elements import Marker as Marker_xs
-from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
+try:
+    from xtrack.beam_elements import Solenoid as Solenoid_xs
+    from xtrack.beam_elements import Bend as Bend_xs
+    from xtrack.beam_elements import DipoleEdge as DipoleEdge_xs
+    from xtrack.beam_elements import Quadrupole as Quadrupole_xs
+    from xtrack.beam_elements import Sextupole as Sextupole_xs
+    from xtrack.beam_elements import Octupole as Octupole_xs
+    from xtrack.beam_elements import Drift as Drift_xs
+    from xtrack.beam_elements import NonLinearLens as NonLinearLens_xs
+    from xtrack.beam_elements import Cavity as Cavity_xs
+    from xtrack.beam_elements import UniformSolenoid as UniformSolenoid_xs
+    from xtrack.beam_elements import Multipole as Multipole_xs
+    from xtrack.beam_elements import Marker as Marker_xs
+    from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
+    _XSUITE_AVAILABLE = True
+except ImportError as _err:
+    raise ImportError(
+        "xsuite is not installed. "
+        "Install with: pip install \"laura-accelerator[xsuite]\""
+    ) from _err
 
 from laura.models.element import (
     Dipole,

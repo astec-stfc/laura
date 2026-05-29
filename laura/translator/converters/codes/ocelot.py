@@ -4,7 +4,13 @@ import yaml
 from pydantic import BaseModel, ConfigDict
 from typing import Dict
 from scipy.spatial.transform import Rotation
-from ocelot.cpbd.magnetic_lattice import MagneticLattice
+try:
+    from ocelot.cpbd.magnetic_lattice import MagneticLattice
+except ImportError as _err:
+    raise ImportError(
+        "ocelot-desy is not installed. "
+        "Install with: pip install \"laura-accelerator[ocelot]\""
+    ) from _err
 import laura.models.element as LAURA_elements
 from . import magnetic_orders
 from ...utils.functions import introspect_model_defaults

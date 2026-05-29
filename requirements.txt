@@ -1,12 +1,13 @@
 munch>=2.5.0
 numpy>=2.1.1
-pandas>=2.2.2
 pydantic>=2.8.2
 PyYAML>=6.0.2
 vg>=2.0.0
-xsuite>=0.40.0
-ocelot-desy>=25.06.0
 pydantic-core>=2.41.5
-pytao>=0.5.5
-cheetah-accelerator>=0.7.5
-wake_t>=0.8.0
+# Lattice conversion backends — install individually or all at once:
+# pip install "laura-accelerator[conversion]"
+# pip install "laura-accelerator[xsuite]"
+# pip install "laura-accelerator[ocelot]"
+# pip install "laura-accelerator[cheetah]"
+# pip install "laura-accelerator[wake_t]"
+# pip install "laura-accelerator[bmad]"

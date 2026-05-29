@@ -1,6 +1,12 @@
 import os
 from math import ceil
-import pandas
+try:
+    import pandas
+except ImportError as _err:
+    raise ImportError(
+        "pandas is not installed. "
+        "Install with: pip install pandas"
+    ) from _err
 
 magnet_table_filename = os.path.join(
     os.path.dirname(__file__), "CLARA Magnet Table v6.xlsx"

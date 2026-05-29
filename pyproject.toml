@@ -18,17 +18,12 @@ maintainers = [
 ]
 
 dependencies = [
-    "pydantic>=2", 
-    "pyyaml>=6", 
+    "pydantic>=2",
+    "pyyaml>=6",
     "numpy>=1.26",
     "scipy>=1.15",
     "munch>=4",
-    "xsuite>=0.40.0",
-    "ocelot-desy>=25.06.0",
     "pydantic-core>=2.41.5",
-    "pytao>=0.5.5",
-    "cheetah-accelerator>=0.7.5",
-    "wake_t>=0.8.0",
 ]
 
 requires-python = ">= 3.10"
@@ -43,6 +38,37 @@ local_scheme = "no-local-version" # removes +untagged suffix
 
 
 [project.optional-dependencies]
+
+# Individual simulation-code extras
+xsuite = [
+    "xsuite>=0.40.0",
+]
+
+ocelot = [
+    "ocelot-desy>=25.06.0",
+]
+
+cheetah = [
+    "cheetah-accelerator>=0.7.5",
+]
+
+wake_t = [
+    "wake_t>=0.8.0",
+]
+
+bmad = [
+    "pytao>=0.5.5",
+]
+
+# All lattice-conversion backends in one go
+# Install with: pip install "laura-accelerator[conversion]"
+conversion = [
+    "xsuite>=0.40.0",
+    "ocelot-desy>=25.06.0",
+    "cheetah-accelerator>=0.7.5",
+    "wake_t>=0.8.0",
+    "pytao>=0.5.5",
+]
 
 test = [
     "pytest",
@@ -68,6 +94,25 @@ schema = [
 # RDF / Linked-Data export support
 # Install with: pip install "laura-accelerator[rdf]"
 rdf = [
+    "rdflib>=7.0",
+]
+
+# Everything — conversion backends, docs, schema tooling, and RDF support
+# Install with: pip install "laura-accelerator[full]"
+full = [
+    "xsuite>=0.40.0",
+    "ocelot-desy>=25.06.0",
+    "cheetah-accelerator>=0.7.5",
+    "wake_t>=0.8.0",
+    "pytao>=0.5.5",
+    "sphinx>=8",
+    "sphinx-rtd-theme",
+    "myst-nb",
+    "sphinx_autodoc_typehints>=3",
+    "sphinxcontrib-bibtex",
+    "linkml>=1.8",
+    "linkml-runtime>=1.8",
+    "jsonschema>=4.0",
     "rdflib>=7.0",
 ]
 

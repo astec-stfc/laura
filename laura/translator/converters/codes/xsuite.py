@@ -4,8 +4,14 @@ import yaml
 from pydantic import BaseModel, ConfigDict
 from pydantic_core import PydanticUndefinedType
 from typing import Dict, List
-import xtrack as xt
-from xtrack.beam_elements.elements import _HasKnlKsl
+try:
+    import xtrack as xt
+    from xtrack.beam_elements.elements import _HasKnlKsl
+except ImportError as _err:
+    raise ImportError(
+        "xsuite is not installed. "
+        "Install with: pip install \"laura-accelerator[xsuite]\""
+    ) from _err
 from laura.models.elementList import (
     SectionLattice,
     MachineLayout,
