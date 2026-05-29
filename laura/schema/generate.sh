@@ -9,10 +9,14 @@ set -euo pipefail
 SCHEMA="laura/schema/YAML/laura_schema.yaml"
 OUT_DIR="laura/schema/generated"
 DOCS_DIR="docs/source/schema"
-ER_FILE="docs/source/Architecture/element-er.md"
+# NOTE: The hand-maintained element-er.md (docs/source/Architecture/element-er.md)
+# contains a comprehensive classDiagram that gen-erdiagram cannot produce for
+# multi-file schemas.  Auto-generated output is written to $OUT_DIR instead so
+# the documented diagram is never overwritten.
+ER_FILE_AUTO="$OUT_DIR/element-er-auto.md"
 
 # ── Ensure output directories exist ──────────────────────────────────────────
-mkdir -p "$OUT_DIR" "$DOCS_DIR" "$(dirname "$ER_FILE")"
+mkdir -p "$OUT_DIR" "$DOCS_DIR"
 
 echo "Linting schema..."
 linkml-lint "$SCHEMA"
@@ -68,8 +72,10 @@ EOF
 echo "Generating HTML documentation..."
 gen-doc -d "$DOCS_DIR" "$SCHEMA"
 
-echo "Generating ER diagram..."
-gen-erdiagram "$SCHEMA" > "$ER_FILE"
+echo "Generating ER diagram (auto, written to generated/)..."
+# Written to generated/ — does NOT overwrite the hand-maintained
+# docs/source/Architecture/element-er.md (which has the full classDiagram).
+gen-erdiagram "$SCHEMA" > "$ER_FILE_AUTO"
 
 echo "Generating Pydantic base classes (_generated.py)..."
 python "laura/schema/generate_pydantic.py"
@@ -85,5 +91,6 @@ echo "  SQL DDL     : $OUT_DIR/laura_schema.sql"
 echo "  SQLAlchemy  : $OUT_DIR/laura_orm.py"
 echo "  GraphQL     : $OUT_DIR/laura_schema.graphql"
 echo "  HTML docs   : $DOCS_DIR/"
-echo "  ER diagram  : $ER_FILE"
+echo "  ER diagram  : $ER_FILE_AUTO (auto-generated skeleton)"
+echo "  Full diagram: docs/source/Architecture/element-er.md (hand-maintained)"
 echo "  Pydantic    : laura/models/_generated.py"

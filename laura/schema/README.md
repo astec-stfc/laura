@@ -38,8 +38,9 @@ bash laura/schema/generate.sh
 | `generated/laura_context.jsonld` | `gen-jsonld-context` | JSON-LD context for linked-data export |
 | `generated/laura_shacl.ttl` | `gen-shacl` | SHACL shapes for RDF validation |
 | `generated/laura_schema.graphql` | `gen-graphql` | GraphQL schema |
+| `generated/element-er-auto.md` | `gen-erdiagram` | Auto-generated ER skeleton (incomplete for multi-file schemas) |
 | `docs/source/schema/` | `gen-doc` | Human-readable HTML documentation |
-| `docs/source/Architecture/element-er.md` | `gen-erdiagram` | Mermaid ER diagram |
+| `docs/source/Architecture/element-er.md` | *hand-maintained* | Full Mermaid `classDiagram` of the element hierarchy |
 
 ## Using validation in Python
 

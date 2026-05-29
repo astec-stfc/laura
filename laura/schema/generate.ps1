@@ -13,12 +13,15 @@ $ErrorActionPreference = "Stop"
 $SCHEMA   = "laura/schema/YAML/laura_schema.yaml"
 $OUT_DIR  = "laura/schema/generated"
 $DOCS_DIR = "docs/source/schema"
-$ER_FILE  = "docs/source/Architecture/element-er.md"
+# NOTE: The hand-maintained element-er.md (docs/source/Architecture/element-er.md)
+# contains a comprehensive classDiagram that gen-erdiagram cannot produce for
+# multi-file schemas.  Auto-generated output is written to $OUT_DIR instead so
+# the documented diagram is never overwritten.
+$ER_FILE_AUTO = "$OUT_DIR/element-er-auto.md"
 
 # ── Ensure output directories exist ──────────────────────────────────────────
 New-Item -ItemType Directory -Force -Path $OUT_DIR  | Out-Null
 New-Item -ItemType Directory -Force -Path $DOCS_DIR | Out-Null
-New-Item -ItemType Directory -Force -Path (Split-Path $ER_FILE) | Out-Null
 
 Write-Host "Linting schema..." -ForegroundColor Cyan
 linkml-lint $SCHEMA
@@ -69,8 +72,10 @@ Set-Content "$OUT_DIR/laura_schema.graphql" $gql
 Write-Host "Generating HTML documentation..." -ForegroundColor Cyan
 gen-doc -d $DOCS_DIR $SCHEMA
 
-Write-Host "Generating ER diagram..." -ForegroundColor Cyan
-gen-erdiagram $SCHEMA | Set-Content $ER_FILE
+Write-Host "Generating ER diagram (auto, written to generated/)..." -ForegroundColor Cyan
+# Written to generated/ — does NOT overwrite the hand-maintained
+# docs/source/Architecture/element-er.md (which has the full classDiagram).
+gen-erdiagram $SCHEMA | Set-Content $ER_FILE_AUTO
 
 Write-Host "Generating Pydantic base classes (_generated.py)..." -ForegroundColor Cyan
 python "laura/schema/generate_pydantic.py"
@@ -86,5 +91,6 @@ Write-Host "  SQL DDL     : $OUT_DIR/laura_schema.sql"
 Write-Host "  SQLAlchemy  : $OUT_DIR/laura_orm.py"
 Write-Host "  GraphQL     : $OUT_DIR/laura_schema.graphql"
 Write-Host "  HTML docs   : $DOCS_DIR/"
-Write-Host "  ER diagram  : $ER_FILE"
+Write-Host "  ER diagram  : $ER_FILE_AUTO (auto-generated skeleton)
+  Full diagram: docs/source/Architecture/element-er.md (hand-maintained)"
 Write-Host "  Pydantic    : laura/models/_generated.py"

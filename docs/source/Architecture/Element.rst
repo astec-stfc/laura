@@ -3,17 +3,16 @@
 Element Definition
 ==================
 
-Accelerator elements in :mod:`LAURA` are based on a hierarchical structure. All elements must define some common
-properties in order to identify their type, machine_area, and other fields.
-From this base level, additional details can be added progressively depending on the element type and its
-intended use.
+Accelerator elements in :mod:`LAURA` are based on a hierarchical structure defined by a
+`LinkML ontology <../../laura/schema/YAML/laura_schema.yaml>`_.
+All elements must define some common properties in order to identify their type,
+``machine_area``, and other fields.
+From this base level, additional details can be added progressively depending on
+the element type and its intended use.
 
-These generic classes are outlined below; refer to :numref:`fig-element-structure` for an inheritance diagram.
-
-.. _fig-element-structure:
-.. figure:: assets/element-structure.png
-
-   Class structure of :mod:`LAURA` elements.
+The class hierarchy is illustrated in the
+`element class diagram <element-er.html>`_
+and described in detail in :doc:`element-hierarchy`.
 
 
 .. _base-element:
@@ -21,8 +20,10 @@ These generic classes are outlined below; refer to :numref:`fig-element-structur
 Base-level element
 ------------------
 
-All elements in a :mod:`LAURA` lattice derive from the :py:class:`baseElement <laura.models.element.baseElement>`
-class. At a minimum, each element must define:
+All elements in a :mod:`LAURA` lattice derive from the
+:py:class:`baseElement <laura.models.element.baseElement>` class
+(schema: ``AcceleratorElement``).
+At a minimum, each element must define:
 
 * ``name: str``: The (unique) name of the element.
 * ``hardware_class: str``: The generic type of the element. 
@@ -41,7 +42,7 @@ fiducial position, and therefore are described in physical space with respect to
 elements supported by the :mod:`LAURA` standard need to have their position defined.
 Objects that control lighting, low-level RF modules, RF modulators, or feedback systems, are all examples of
 elements that derive from :py:class:`baseElement <laura.models.element.baseElement>`
-but do not have a physical position defined.
+(schema: ``StandardElement``) but do not have a physical position defined.
 
 **Example:** Creating a basic element without physical position:
 
@@ -74,7 +75,8 @@ but do not have a physical position defined.
 Physical element
 ----------------
 
-The :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>` class derives from
+The :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>` class
+(schema: ``PhysicalAcceleratorElement``) derives from
 :py:class:`baseElement <laura.models.element.baseElement>`, with the additional ``physical`` property based on
 the :py:class:`PhysicalElement <laura.models.physical.PhysicalElement>` class.
 This allows the position and rotation of the element in Cartesian co-ordinates to be defined. 
@@ -86,7 +88,7 @@ The full specification of an element position therefore consists of:
 * ``global_rotation: Rotation(phi, psi, theta)``
 * ``length: float``
 * ``angle: float`` -- this is a simplified way of retrieving the bend angle in the X-Z plane.
-* ``error: ElementError(position=Position(x, y, z), rotation=Rotation(phi, psi, theta))`` -- see :py:class:`ElementError <laura.models.physical.ElementError>`; the reference position for an error is the middle of the element.
+* ``error: ElementPositionError(position=Position(x, y, z), rotation=Rotation(phi, psi, theta))`` -- see :py:class:`ElementPositionError <laura.models.physical.ElementPositionError>`; the reference position for an error is the middle of the element.
 * ``survey: ElementSurvey(position=Position(x, y, z), rotation=Rotation(phi, psi, theta))`` -- see :py:class:`ElementSurvey <laura.models.physical.ElementSurvey>`.
 
 **Example:** Creating elements with physical properties:
@@ -94,7 +96,7 @@ The full specification of an element position therefore consists of:
 .. code-block:: python
 
     from laura.models.element import PhysicalBaseElement
-    from laura.models.physical import PhysicalElement, Position, Rotation, ElementError
+    from laura.models.physical import PhysicalElement, Position, Rotation, ElementPositionError
 
     # Quadrupole with position and alignment error
     quad = PhysicalBaseElement(
@@ -105,7 +107,7 @@ The full specification of an element position therefore consists of:
         physical=PhysicalElement(
             length=0.5,
             middle=Position(x=0, y=0, z=10.0),
-            error=ElementError(
+            error=ElementPositionError(
                 position=Position(x=0.0001, y=-0.0002, z=0),  # 0.1mm X, -0.2mm Y offset
                 rotation=Rotation(phi=0, psi=0, theta=0.001)  # 1 mrad roll
             )
@@ -121,8 +123,10 @@ The full specification of an element position therefore consists of:
 Element
 -------
 
-On top of the :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>`, additional information
-pertaining to a given element can be specified in the :py:class:`Element <laura.models.element.Element>` class,
+On top of the :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>`,
+additional information pertaining to a given element can be specified in the
+:py:class:`Element <laura.models.element.Element>` class
+(schema: ``StandardElement`` / ``Element``),
 which defines the following additional properties (described in more detail in :ref:`auxiliary`):
 
 * ``simulation: SimulationElement`` -- see :ref:`simulation-element`.
@@ -131,6 +135,124 @@ which defines the following additional properties (described in more detail in :
 * ``electrical: ElectricalElement`` -- see :ref:`electrical-and-manufacturer`.
 
 **Example:** Complete element definition with all properties:
+
+.. code-block:: python
+
+    from laura.models.element import Quadrupole
+    from laura.models.magnetic import Quadrupole_Magnet
+    from laura.models.simulation import MagnetSimulationElement
+    from laura.models.control import ControlsInformation, ControlVariable
+
+    # Full quadrupole definition
+    quad = Quadrupole(
+        name="QUAD-MATCH-01",
+        machine_area="MATCHING",
+        physical={
+            "length": 0.3,
+            "middle": [0, 0, 15.0],
+        },
+        magnetic=Quadrupole_Magnet(
+            k1l=5.2,  # Normalized gradient
+            length=0.31 # Magnetic length
+        ),
+        electrical={
+            "maxI": 250.0,
+            "minI": 0.0,
+            "read_tolerance": 0.01
+        },
+        manufacturer={
+            "manufacturer": "Sigma Phi",
+            "model": "QF-250",
+            "serial_number": "2023-001"
+        },
+        simulation=MagnetSimulationElement(
+            n_kicks=10,
+        ),
+        controls=ControlsInformation(
+            variables={
+                "READ": ControlVariable(
+                    identifier="QUAD:MATCH:01:BACT",
+                    dtype=float,
+                    protocol="CA", # EPICS channel access
+                    units="A",
+                    description="Quadrupole read current",
+                    read_only=True
+                )
+            }
+        )
+    )
+
+    # Direct attribute access across nested models
+    print(quad.k1l)            # 5.2 (finds magnetic.k1)
+
+For more examples of creating elements and combining them into lattices, see :ref:`examples`.
+Elements can be organized into :ref:`section-lattice` and :ref:`machine-layout` structures as
+described in :ref:`lattice`. Once defined, elements can be exported to simulation codes using
+the :ref:`translator` module.
+
+**Alternative:** Element definition using dictionaries:
+
+.. code-block:: python
+
+    from laura.models.element import Quadrupole
+
+    # Same quadrupole using dictionary notation
+    # LAURA automatically converts dictionaries to appropriate class instances
+    from laura.models.element import Quadrupole
+
+    # Same quadrupole using dictionary notation
+    # LAURA automatically converts dictionaries to appropriate class instances
+    quad = Quadrupole(
+        name="QUAD-MATCH-01",
+        machine_area="MATCHING",
+        physical={
+            "length": 0.3,
+            "middle": [0, 0, 15.0],
+            "error": {
+                "position": [0.0001, -0.0002, 0],
+                "rotation": [0, 0, 0.001],
+            }
+        },
+        magnetic={
+            "k1l": 5.2,
+            "length": 0.31,
+        },
+        electrical={
+            "maxI": 250.0,
+            "minI": 0.0,
+            "read_tolerance": 0.01,
+        },
+        manufacturer={
+            "manufacturer": "Sigma Phi",
+            "model": "QF-250",
+            "serial_number": "2023-001",
+            "manufacture_date": "2023-06-15"
+        },
+        simulation={
+            "field_amplitude": 5.2,
+            "slice_method": "DRIFT_KICK_DRIFT",
+            "n_slices": 10,
+            "field_reference_position": "middle"
+        },
+        controls={
+            "variables": {
+                "READ": {
+                    "identifier": "QUAD:MATCH:01:BACT",
+                    "dtype": float,
+                    "protocol": "CA", # EPICS channel access
+                    "units": "A",
+                    "description": "Quadrupole read current",
+                    "read_only": True
+                }
+            }
+        },
+        degauss={
+            "tolerance": 0.1,
+            "steps": 10,
+            "values": [100, -100, 80, -80, 60, -60, 40, -40, 20, -20]
+        }
+    )
+
 
 .. code-block:: python
 

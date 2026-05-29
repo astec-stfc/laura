@@ -2,12 +2,19 @@
 
 How LAURA represents an accelerator from top to bottom.
 
+LAURA uses a **schema-first** design: the canonical element hierarchy lives in
+the [LinkML ontology](../../laura/schema/YAML/laura_schema.yaml); Pydantic
+classes are generated from it into `laura/models/_generated.py` and wrapped
+by hand-written classes in `laura/models/element.py`.
+See [element-hierarchy.md](element-hierarchy.md) for the class hierarchy and
+[element-er.md](element-er.md) for the full class diagram.
+
 ## Composition Hierarchy
 
 ```
 LAURA (MachineModel)
 │
-├── elements: Dict[str, baseElement]
+├── elements: Dict[str, AcceleratorElement]   (Python: baseElement)
 │       All elements in the machine, keyed by name.
 │       May be a LazyElementDict (loads from YAML on first access).
 │
@@ -21,7 +28,7 @@ LAURA (MachineModel)
 │
 ├── layout: str | Dict     (layouts.yaml path or dict)
 ├── section: str | Dict    (sections.yaml path or dict)
-└── element_list: str | List[baseElement]
+└── element_list: str | List[AcceleratorElement]
         Path to summary file, YAML directory, or list of element objects.
 ```
 
