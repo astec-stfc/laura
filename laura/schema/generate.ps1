@@ -58,7 +58,7 @@ Write-Host "Generating SQL DDL..." -ForegroundColor Cyan
 gen-sqltables $SCHEMA | Set-Content "$OUT_DIR/laura_schema.sql"
 
 Write-Host "Generating SQLAlchemy ORM..." -ForegroundColor Cyan
-gen-sqla $SCHEMA | Set-Content "$OUT_DIR/laura_orm.py"
+python "laura/schema/generate_orm.py"
 
 Write-Host "Generating GraphQL schema..." -ForegroundColor Cyan
 gen-graphql $SCHEMA | Set-Content "$OUT_DIR/laura_schema.graphql"

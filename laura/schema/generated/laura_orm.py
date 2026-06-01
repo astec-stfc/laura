@@ -324,11 +324,21 @@ class AcceleratorElement(Base):
     
     
     # ManyToMany
-    upstream = relationship( "AcceleratorElement", secondary="AcceleratorElement_upstream")
+    upstream = relationship(
+        "AcceleratorElement",
+        secondary="AcceleratorElement_upstream",
+        primaryjoin="AcceleratorElement.name == AcceleratorElementUpstream.AcceleratorElement_name",
+        secondaryjoin="AcceleratorElement.name == AcceleratorElementUpstream.upstream_name",
+    )
     
     
     # ManyToMany
-    downstream = relationship( "AcceleratorElement", secondary="AcceleratorElement_downstream")
+    downstream = relationship(
+        "AcceleratorElement",
+        secondary="AcceleratorElement_downstream",
+        primaryjoin="AcceleratorElement.name == AcceleratorElementDownstream.AcceleratorElement_name",
+        secondaryjoin="AcceleratorElement.name == AcceleratorElementDownstream.downstream_name",
+    )
     
 
     def __repr__(self):

@@ -1,7 +1,7 @@
 import logging
 import os
 import numpy as np
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, Literal
 from pydantic import field_validator, BaseModel, ValidationInfo, Field, PositiveInt
 from warnings import warn
 from ._functions import read_yaml, merge_two_dicts
@@ -14,6 +14,29 @@ import warnings
 from .simulation import DriftSimulationElement
 
 _log = logging.getLogger("laura.model")
+
+LatticeType = Literal["beam", "rf", "laser"]
+ALLOWED_LATTICE_TYPES = {"beam", "rf", "laser"}
+
+
+def normalise_lattice_type(
+    lattice_type: str | None,
+    *,
+    context: str,
+    default: LatticeType = "beam",
+) -> LatticeType:
+    """Validate and normalise lattice type labels across model layers."""
+    if lattice_type is None:
+        return default
+    if not isinstance(lattice_type, str):
+        raise TypeError(f"{context} type must be a string")
+
+    value = lattice_type.strip().lower()
+    if value not in ALLOWED_LATTICE_TYPES:
+        allowed = ", ".join(sorted(ALLOWED_LATTICE_TYPES))
+        raise ValueError(f"{context} type must be one of: {allowed}")
+
+    return value
 
 
 def dot(a, b) -> float:
@@ -133,10 +156,18 @@ class SectionLattice(BaseLatticeModel):
     elements: ElementList = Field(default_factory=ElementList)
     """Container for elements."""
 
+    section_type: LatticeType = "beam"
+    """Logical lattice type of this section (beam/rf/laser)."""
+
     # other_elements: ElementList = ElementList(elements={})
     # TODO should we put this back in?
 
     _basename: str = "elements"
+
+    @field_validator("section_type", mode="before")
+    @classmethod
+    def validate_section_type(cls, value: str | None) -> LatticeType:
+        return normalise_lattice_type(value, context="section")
 
     @field_validator("elements", mode="before")
     @classmethod
@@ -338,7 +369,35 @@ class MachineLayout(BaseLatticeModel):
     master_lattice: str | None = None
     """Directory containing lattice files. """
 
+    layout_type: LatticeType = "beam"
+    """Logical lattice type of this path (beam/rf/laser)."""
+
     _basename: str = "sections"
+
+    @field_validator("layout_type", mode="before")
+    @classmethod
+    def validate_layout_type(cls, value: str | None) -> LatticeType:
+        return normalise_lattice_type(value, context="layout")
+
+    @staticmethod
+    def _normalise_type_filter(
+        lattice_type: Union[str, list, None],
+        *,
+        context: str,
+    ) -> set[LatticeType] | None:
+        if lattice_type is None:
+            return None
+
+        if isinstance(lattice_type, str):
+            return {normalise_lattice_type(lattice_type, context=context)}
+
+        if isinstance(lattice_type, list):
+            return {
+                normalise_lattice_type(value, context=context)
+                for value in lattice_type
+            }
+
+        raise TypeError(f"{context} filter must be a str or list[str]")
 
     def model_post_init(self, __context):
         matrix = [v.elements.elements.values() for v in self.sections.values()]
@@ -499,6 +558,7 @@ class MachineLayout(BaseLatticeModel):
         element_type: Union[str, list, None] = None,
         element_model: Union[str, list, None] = None,
         element_class: Union[str, list, None] = None,
+        section_type: Union[str, list, None] = None,
     ) -> List[str]:
         """
         Get all elements in the lattice, or filter them by type/model/class
@@ -524,6 +584,7 @@ class MachineLayout(BaseLatticeModel):
             element_type=element_type,
             element_class=element_class,
             element_model=element_model,
+            section_type=section_type,
         )
 
     def elements_between(
@@ -533,6 +594,7 @@ class MachineLayout(BaseLatticeModel):
         element_type: Union[str, list, None] = None,
         element_model: Union[str, list, None] = None,
         element_class: Union[str, list, None] = None,
+        section_type: Union[str, list, None] = None,
     ) -> List[str]:
         """
         Returns a list of all lattice elements (of a specified type) between
@@ -568,6 +630,27 @@ class MachineLayout(BaseLatticeModel):
         first = self._lookup_index(start)
         last = self._lookup_index(end) + 1
         result = self._get_all_elements()[first:last]
+
+        filtered_section_types = self._normalise_type_filter(
+            section_type,
+            context="section",
+        )
+        if filtered_section_types is not None:
+            element_to_section = {
+                element_name: section_name
+                for section_name, section in self.sections.items()
+                for element_name in section.names
+            }
+            allowed_sections = {
+                name
+                for name, section in self.sections.items()
+                if section.section_type in filtered_section_types
+            }
+            result = [
+                ele
+                for ele in result
+                if element_to_section.get(ele.name) in allowed_sections
+            ]
 
         result = self._filter_element_list(result, element_type, "hardware_type")
         result = self._filter_element_list(result, element_model, "hardware_model")
@@ -606,9 +689,109 @@ class MachineModel(ModelBase):
 
     _layouts: List[str] = None
 
-    _section_definitions: Dict = {}
+    _layout_metadata: Dict[str, Dict[str, LatticeType]] = {}
+
+    _section_definitions: Dict[str, Dict[str, Any]] = {}
 
     _default_path: str = None
+
+    @staticmethod
+    def _normalise_type_filter(
+        lattice_type: Union[str, list, None],
+        *,
+        context: str,
+    ) -> set[LatticeType] | None:
+        if lattice_type is None:
+            return None
+
+        if isinstance(lattice_type, str):
+            return {normalise_lattice_type(lattice_type, context=context)}
+
+        if isinstance(lattice_type, list):
+            return {
+                normalise_lattice_type(value, context=context)
+                for value in lattice_type
+            }
+
+        raise TypeError(f"{context} filter must be a str or list[str]")
+
+    @staticmethod
+    def _normalise_section_definitions(sections: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        normalised_sections = {}
+
+        for section_name, section_data in sections.items():
+            if isinstance(section_data, list):
+                elements = section_data
+                section_type = "beam"
+            elif isinstance(section_data, dict):
+                if "elements" not in section_data:
+                    raise KeyError(
+                        f"Section '{section_name}' must define an 'elements' list"
+                    )
+                elements = section_data["elements"]
+                section_type = normalise_lattice_type(
+                    section_data.get("type", section_data.get("section_type")),
+                    context=f"section '{section_name}'",
+                )
+            else:
+                raise TypeError(
+                    f"Section '{section_name}' must be a list or dict"
+                )
+
+            if not isinstance(elements, list):
+                raise TypeError(f"Section '{section_name}' elements must be a list")
+
+            normalised_sections[section_name] = {
+                "elements": elements,
+                "type": section_type,
+            }
+
+        return normalised_sections
+
+    @staticmethod
+    def _normalise_layout_metadata(
+        layout_metadata: Dict[str, Any] | None,
+    ) -> Dict[str, Dict[str, LatticeType]]:
+        if not layout_metadata:
+            return {}
+
+        normalised = {}
+        for layout_name, metadata in layout_metadata.items():
+            if isinstance(metadata, str):
+                layout_type = metadata
+            elif isinstance(metadata, dict):
+                layout_type = metadata.get("type")
+            else:
+                raise TypeError(
+                    f"layout_metadata['{layout_name}'] must be a string or dict"
+                )
+
+            normalised[layout_name] = {
+                "type": normalise_lattice_type(
+                    layout_type,
+                    context=f"layout '{layout_name}'",
+                )
+            }
+
+        return normalised
+
+    @staticmethod
+    def _section_elements_and_type(
+        section_name: str,
+        section_definition: Dict[str, Any],
+    ) -> tuple[list[str], LatticeType]:
+        if "elements" not in section_definition:
+            raise KeyError(f"Section '{section_name}' is missing 'elements'")
+
+        elements = section_definition["elements"]
+        if not isinstance(elements, list):
+            raise TypeError(f"Section '{section_name}' elements must be a list")
+
+        section_type = normalise_lattice_type(
+            section_definition.get("type"),
+            context=f"section '{section_name}'",
+        )
+        return elements, section_type
 
     @field_validator("layout", mode="before")
     @classmethod
@@ -661,6 +844,9 @@ class MachineModel(ModelBase):
                     layout_file = candidate
             config = read_yaml(layout_file)
             self._layouts = config.layouts
+            self._layout_metadata = self._normalise_layout_metadata(
+                getattr(config, "layout_metadata", {})
+            )
             try:
                 self._default_path = config.default_layout
             except AttributeError:
@@ -668,6 +854,7 @@ class MachineModel(ModelBase):
                 warn(message)
         elif self.layout is None:
             self._layouts = {}
+            self._layout_metadata = {}
             self._default_path = None
             warnings.warn("No layouts specified. Lattices will be empty.")
         else:
@@ -675,6 +862,9 @@ class MachineModel(ModelBase):
                 if key not in self.layout:
                     raise KeyError("layout must specify layouts")
             self._layouts = self.layout["layouts"]
+            self._layout_metadata = self._normalise_layout_metadata(
+                self.layout.get("layout_metadata", {})
+            )
             if "default_layout" in self.layout:
                 self._default_path = self.layout["default_layout"]
         if isinstance(self.section, str):
@@ -684,13 +874,17 @@ class MachineModel(ModelBase):
                 if os.path.exists(candidate):
                     section_file = candidate
             config = read_yaml(section_file)
-            self._section_definitions = config.sections
+            self._section_definitions = self._normalise_section_definitions(
+                config.sections
+            )
         elif self.section is None:
             self._section_definitions = {}
         else:
             if "sections" not in self.section:
                 raise KeyError("section must specify sections with a list of sections")
-            self._section_definitions = self.section["sections"]
+            self._section_definitions = self._normalise_section_definitions(
+                self.section["sections"]
+            )
         if len(self.elements) > 0:
             if self.section:
                 self._build_layouts(self.elements)
@@ -802,11 +996,15 @@ class MachineModel(ModelBase):
                 name=area,
                 elements=new_elements,
                 order=order,
+                section_type="beam",
                 master_lattice=self.master_lattice,
             )
 
             if not self._section_definitions or area not in self._section_definitions:
-                self._section_definitions[area] = order
+                self._section_definitions[area] = {
+                    "elements": order,
+                    "type": "beam",
+                }
 
         self.lattices = {}
 
@@ -815,9 +1013,14 @@ class MachineModel(ModelBase):
 
         if self._section_definitions and not self._layouts:
             # Sections are defined but no layouts — build sections directly
-            for area, elem_names in self._section_definitions.items():
+            for area, section_definition in self._section_definitions.items():
                 if area in self.sections:
                     continue
+
+                elem_names, section_type = self._section_elements_and_type(
+                    area,
+                    section_definition,
+                )
 
                 new_elements = [
                     by_name[name]
@@ -828,6 +1031,7 @@ class MachineModel(ModelBase):
                     name=area,
                     elements=new_elements,
                     order=elem_names,
+                    section_type=section_type,
                     master_lattice=self.master_lattice,
                 )
             return
@@ -836,7 +1040,10 @@ class MachineModel(ModelBase):
             for path, areas in self._layouts.items():
                 for area in areas:
                     if area in self._section_definitions:
-                        elem_names = self._section_definitions[area]
+                        elem_names, section_type = self._section_elements_and_type(
+                            area,
+                            self._section_definitions[area],
+                        )
 
                         new_elements = [
                             by_name[name]
@@ -848,10 +1055,12 @@ class MachineModel(ModelBase):
                             name=area,
                             elements=new_elements,
                             order=elem_names,
+                            section_type=section_type,
                             master_lattice=self.master_lattice,
                         )
 
                 if path not in self.lattices:
+                    layout_type = self._layout_metadata.get(path, {}).get("type", "beam")
                     self.lattices[path] = MachineLayout(
                         name=path,
                         sections={
@@ -859,6 +1068,7 @@ class MachineModel(ModelBase):
                             for area in areas
                             if area in self.sections
                         },
+                        layout_type=layout_type,
                         master_lattice=self.master_lattice,
                     )
 
@@ -885,6 +1095,7 @@ class MachineModel(ModelBase):
         element_type: Union[str, list, None] = None,
         element_model: Union[str, list, None] = None,
         element_class: Union[str, list, None] = None,
+        section_type: Union[str, list, None] = None,
     ) -> List[str]:
         """
         Get all elements in the lattice, or filter them by type/model/class
@@ -910,7 +1121,38 @@ class MachineModel(ModelBase):
             element_type=element_type,
             element_class=element_class,
             element_model=element_model,
+            section_type=section_type,
         )
+
+    def get_sections_by_type(
+        self,
+        section_type: Union[str, list, None] = None,
+    ) -> Dict[str, SectionLattice]:
+        """Return sections filtered by section type."""
+        filtered_types = self._normalise_type_filter(section_type, context="section")
+        if filtered_types is None:
+            return self.sections
+
+        return {
+            name: section
+            for name, section in self.sections.items()
+            if section.section_type in filtered_types
+        }
+
+    def get_layouts_by_type(
+        self,
+        layout_type: Union[str, list, None] = None,
+    ) -> Dict[str, MachineLayout]:
+        """Return layouts filtered by layout type."""
+        filtered_types = self._normalise_type_filter(layout_type, context="layout")
+        if filtered_types is None:
+            return self.lattices
+
+        return {
+            name: layout
+            for name, layout in self.lattices.items()
+            if layout.layout_type in filtered_types
+        }
 
     def elements_between(
         self,
@@ -920,6 +1162,7 @@ class MachineModel(ModelBase):
         element_model: Union[str, list, None] = None,
         element_class: Union[str, list, None] = None,
         path: str = None,
+        section_type: Union[str, list, None] = None,
     ) -> List[str]:
         """
         Returns a list of all lattice elements (of a specified type) between
@@ -981,6 +1224,7 @@ class MachineModel(ModelBase):
             element_type=element_type,
             element_class=element_class,
             element_model=element_model,
+            section_type=section_type,
         )
         return elements
 

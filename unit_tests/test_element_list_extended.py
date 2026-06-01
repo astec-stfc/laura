@@ -149,6 +149,9 @@ class TestSectionLattice:
         s = str(section_lattice)
         assert "M1" in s
 
+    def test_section_type_default(self, section_lattice):
+        assert section_lattice.section_type == "beam"
+
 
 # ---------------------------------------------------------------------------
 # MachineLayout
@@ -194,6 +197,15 @@ class TestMachineLayout:
         assert "Q1" in result
         assert "M1" not in result
 
+    def test_elements_between_filter_section_type(self, machine_layout):
+        machine_layout.sections["S1"].section_type = "beam"
+        result = machine_layout.elements_between(section_type="beam")
+        assert len(result) == 4
+
+    def test_elements_between_filter_section_type_invalid(self, machine_layout):
+        with pytest.raises(ValueError):
+            machine_layout.elements_between(section_type="invalid")
+
     def test_get_all_elements(self, machine_layout):
         result = machine_layout.get_all_elements()
         assert len(result) == 4
@@ -229,6 +241,83 @@ class TestMachineModel:
         assert "S1" in mm.sections
         assert "beam1" in mm.lattices
         assert mm.default_path == "beam1"
+
+    def test_from_elements_and_inline_typed_sections(self, elements):
+        sections = {
+            "sections": {
+                "S1": {
+                    "type": "rf",
+                    "elements": ["M1", "Q1", "Q2", "M2"],
+                }
+            }
+        }
+        layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1"]}}
+        mm = MachineModel(
+            layout=layouts,
+            section=sections,
+            elements={e.name: e for e in elements},
+        )
+        assert mm.sections["S1"].section_type == "rf"
+
+    def test_layout_metadata_defaults_and_types(self, elements):
+        sections = {"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}}
+        layouts = {
+            "default_layout": "beam1",
+            "layouts": {"beam1": ["S1"], "rf1": ["S1"]},
+            "layout_metadata": {"rf1": {"type": "rf"}},
+        }
+        mm = MachineModel(
+            layout=layouts,
+            section=sections,
+            elements={e.name: e for e in elements},
+        )
+        assert mm.lattices["beam1"].layout_type == "beam"
+        assert mm.lattices["rf1"].layout_type == "rf"
+
+    def test_get_sections_by_type(self, elements):
+        sections = {
+            "sections": {
+                "S1": {"type": "beam", "elements": ["M1", "Q1"]},
+                "S2": {"type": "laser", "elements": ["Q2", "M2"]},
+            }
+        }
+        layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1", "S2"]}}
+        mm = MachineModel(
+            layout=layouts,
+            section=sections,
+            elements={e.name: e for e in elements},
+        )
+        assert list(mm.get_sections_by_type("laser").keys()) == ["S2"]
+
+    def test_get_layouts_by_type(self, elements):
+        sections = {"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}}
+        layouts = {
+            "default_layout": "beam1",
+            "layouts": {"beam1": ["S1"], "laser1": ["S1"]},
+            "layout_metadata": {"laser1": {"type": "laser"}},
+        }
+        mm = MachineModel(
+            layout=layouts,
+            section=sections,
+            elements={e.name: e for e in elements},
+        )
+        assert list(mm.get_layouts_by_type("laser").keys()) == ["laser1"]
+
+    def test_elements_between_section_type(self, elements):
+        sections = {
+            "sections": {
+                "S1": {"type": "beam", "elements": ["M1", "Q1"]},
+                "S2": {"type": "rf", "elements": ["Q2", "M2"]},
+            }
+        }
+        layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1", "S2"]}}
+        mm = MachineModel(
+            layout=layouts,
+            section=sections,
+            elements={e.name: e for e in elements},
+        )
+        result = mm.elements_between(path="beam1", section_type="rf")
+        assert result == ["Q2", "M2"]
 
     def test_getitem(self, elements):
         sections = {"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}}
