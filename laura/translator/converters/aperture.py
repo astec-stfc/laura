@@ -278,4 +278,7 @@ class ApertureTranslator(BaseElementTranslator):
         for key, value in self.full_dump().items():
             if key in required or self._convertKeyword_BDSIM(key) in required:
                 elem_dict.update({self._convertKeyword_BDSIM(key): value})
+        elem_dict.update({"name": self.name.replace("-", "_")})
+        if self.material is not None:
+            elem_dict.update({"material": self.material})
         return obj(**elem_dict)

@@ -988,6 +988,9 @@ class DipoleTranslator(BaseElementTranslator):
                 if key == "ks":
                     value = self.magnetic.field_amplitude  # / self.magnetic.length
                 elem_dict.update({key: value})
+        elem_dict.update({"name": self.name.replace("-", "_")})
+        if self.material is not None:
+            elem_dict.update({"material": self.material})
         return obj(**elem_dict)
 
     #
@@ -1265,6 +1268,9 @@ class SolenoidTranslator(BaseElementTranslator):
                 if key == "ks":
                     value = self.magnetic.field_amplitude  # / self.magnetic.length
                 elem_dict.update({key: value})
+        elem_dict.update({"name": self.name.replace("-", "_")})
+        if self.material is not None:
+            elem_dict.update({"material": self.material})
         return obj(**elem_dict)
 
 

@@ -1,4 +1,4 @@
-def aperture_params(dic: dict):
+def aperture_params(dic: dict | None):
     conv = {}
     if dic is None:
         return conv

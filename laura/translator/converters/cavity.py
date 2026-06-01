@@ -453,6 +453,9 @@ class RFCavityTranslator(BaseElementTranslator):
                     else:
                         value = value / self.physical.length
                 elem_dict.update({key: value})
+        elem_dict.update({"name": self.name.replace("-", "_")})
+        if self.material is not None:
+            elem_dict.update({"material": self.material})
         return obj(**elem_dict)
 
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:

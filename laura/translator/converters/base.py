@@ -508,6 +508,9 @@ class BaseElementTranslator(PhysicalBaseElement):
             warn(f"WARNING! Corrector {self.name} being converted to BDSIM with zero kick; please check the output.")
             elem_dict.update({"hkick": 0})
             elem_dict.update({"vkick": 0})
+        elem_dict.update({"name": self.name.replace("-", "_")})
+        if self.hardware_type.lower() not in ["marker"] and self.material is not None:
+            elem_dict.update({"material": self.material})
         return obj(**elem_dict)
 
     def _convertType_Elegant(self, etype: str) -> str:

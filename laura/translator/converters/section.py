@@ -658,9 +658,10 @@ class SectionLatticeTranslator(SectionLattice):
             elements.append(d.to_bdsim(section_aperture=section_aperture))
 
         machine = Machine()
+        sanitized_name = self.name.replace("-", "_")
         for be in elements:
             machine.Append(be)
         if save:
-            machine.Write(f"{self.directory}/{self.name}.gmad")
+            machine.Write(f"{self.directory}/{sanitized_name}.gmad")
 
         return machine

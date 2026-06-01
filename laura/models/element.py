@@ -495,6 +495,8 @@ class PhysicalBaseElement(Element):
     aperture: ApertureElement | None = None
     """Aperture attributes of the element [optional]."""
 
+    material: str | Dict | None = None
+
     def to_CATAP(self):
         catap_dict = super().to_CATAP()
         catap_dict.update(
