@@ -20,9 +20,9 @@ URI: [laura:maximum](https://w3id.org/laura/maximum)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |  no  |
 | [CameraMask](CameraMask.md) | Camera analysis mask parameters |  no  |
 | [CameraSensor](CameraSensor.md) | Camera sensor hardware configuration |  no  |
+| [LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |  no  |
 
 
 
@@ -36,7 +36,7 @@ URI: [laura:maximum](https://w3id.org/laura/maximum)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [LaserAttenuator](LaserAttenuator.md), [CameraMask](CameraMask.md), [CameraSensor](CameraSensor.md) |
+| Domain Of | [CameraMask](CameraMask.md), [CameraSensor](CameraSensor.md), [LaserAttenuator](LaserAttenuator.md) |
 
 ### Cardinality and Requirements
 
@@ -75,9 +75,9 @@ URI: [laura:maximum](https://w3id.org/laura/maximum)
 ```yaml
 name: maximum
 domain_of:
-- LaserAttenuator
 - CameraMask
 - CameraSensor
+- LaserAttenuator
 range: string
 
 ```

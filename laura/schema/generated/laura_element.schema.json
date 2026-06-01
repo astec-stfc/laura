@@ -14,6 +14,16 @@
             "null"
           ]
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "hardware_class": {
           "$ref": "#/$defs/HardwareClassEnum",
           "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
@@ -32,6 +42,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -43,10 +63,30 @@
           "description": "Unique element name within the machine.",
           "type": "string"
         },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "subelement": {
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -101,6 +141,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -131,6 +181,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -152,6 +212,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -190,6 +260,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -357,6 +437,16 @@
           ],
           "description": "Instrument-specific diagnostic parameters."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -387,6 +477,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -408,6 +508,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -446,6 +556,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -500,6 +620,16 @@
           ],
           "description": "Instrument-specific diagnostic parameters."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -530,6 +660,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -551,6 +691,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -589,6 +739,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -653,6 +813,16 @@
           ],
           "description": "Instrument-specific diagnostic parameters."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -683,6 +853,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -704,6 +884,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -742,6 +932,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -796,6 +996,16 @@
           ],
           "description": "Instrument-specific diagnostic parameters."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -826,6 +1036,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -847,6 +1067,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -885,6 +1115,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -1348,6 +1588,16 @@
           ],
           "description": "Instrument-specific diagnostic parameters."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -1378,6 +1628,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -1399,6 +1659,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -1437,6 +1707,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -1506,6 +1786,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -1536,6 +1826,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -1557,6 +1857,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -1595,6 +1905,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -1771,6 +2091,16 @@
           ],
           "description": "Instrument-specific diagnostic parameters."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -1800,6 +2130,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -1821,6 +2161,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -1859,6 +2209,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -1951,6 +2311,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -1981,6 +2351,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -2002,6 +2382,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -2040,6 +2430,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -2218,6 +2618,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -2247,6 +2657,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -2268,6 +2688,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "reference": {
           "anyOf": [
@@ -2295,6 +2725,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -2409,6 +2849,16 @@
           ],
           "description": "Instrument-specific diagnostic parameters."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -2439,6 +2889,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -2460,6 +2920,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -2498,6 +2968,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -2558,6 +3038,30 @@
       "title": "HardwareClassEnum",
       "type": "string"
     },
+    "IOTypeEnum": {
+      "description": "Input types for accelerator elements.",
+      "enum": [
+        "current",
+        "voltage",
+        "phase",
+        "setpoint",
+        "on_off_state",
+        "open_closed_state",
+        "position",
+        "rotation",
+        "power",
+        "pressure",
+        "charge",
+        "absolute_time",
+        "relative_time",
+        "shot_number",
+        "value",
+        "waveform",
+        "magnetic_field"
+      ],
+      "title": "IOTypeEnum",
+      "type": "string"
+    },
     "IntegratedCurrentTransformer": {
       "additionalProperties": false,
       "description": "Integrated current transformer (ICT) for non-destructive single-shot charge measurement.",
@@ -2594,6 +3098,16 @@
           ],
           "description": "Instrument-specific diagnostic parameters."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -2624,6 +3138,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -2645,6 +3169,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -2683,6 +3217,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -2811,6 +3355,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -2838,6 +3392,16 @@
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -2873,6 +3437,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -2911,6 +3485,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -2954,6 +3538,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -2981,6 +3575,16 @@
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3020,6 +3624,16 @@
           "description": "Unique element name within the machine.",
           "type": "string"
         },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "reference": {
           "anyOf": [
             {
@@ -3046,6 +3660,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3174,6 +3798,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -3201,6 +3835,16 @@
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3237,6 +3881,16 @@
           "description": "Unique element name within the machine.",
           "type": "string"
         },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "reference": {
           "anyOf": [
             {
@@ -3263,6 +3917,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3312,6 +3976,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -3339,6 +4013,16 @@
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3375,6 +4059,16 @@
           "description": "Unique element name within the machine.",
           "type": "string"
         },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "reference": {
           "anyOf": [
             {
@@ -3401,6 +4095,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3450,6 +4154,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -3477,6 +4191,16 @@
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3513,6 +4237,16 @@
           "description": "Unique element name within the machine.",
           "type": "string"
         },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "reference": {
           "anyOf": [
             {
@@ -3539,6 +4273,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3679,6 +4423,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -3706,6 +4460,16 @@
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3742,6 +4506,16 @@
           "description": "Unique element name within the machine.",
           "type": "string"
         },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "reference": {
           "anyOf": [
             {
@@ -3768,6 +4542,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3874,6 +4658,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -3901,6 +4695,16 @@
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -3937,6 +4741,16 @@
           "description": "Unique element name within the machine.",
           "type": "string"
         },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "reference": {
           "anyOf": [
             {
@@ -3963,6 +4777,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -4106,7 +4930,7 @@
       "title": "MachineModel",
       "type": "object"
     },
-    "MagnetBaseElement": {
+    "Magnet": {
       "additionalProperties": false,
       "description": "Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement`` in the schema to avoid collision with the ``magnetic`` composition-model class; maps to ``Magnet`` in Python.)",
       "properties": {
@@ -4142,6 +4966,16 @@
           ],
           "description": "Degaussing-cycle parameters."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -4168,6 +5002,16 @@
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -4203,6 +5047,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -4244,6 +5098,16 @@
             "null"
           ]
         },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "virtual_name": {
           "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
           "type": [
@@ -4256,7 +5120,7 @@
         "name",
         "hardware_class"
       ],
-      "title": "MagnetBaseElement",
+      "title": "Magnet",
       "type": "object"
     },
     "MagnetSimulationElement": {
@@ -4625,6 +5489,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -4655,6 +5529,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -4676,6 +5560,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -4714,6 +5608,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -4857,6 +5761,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -4887,6 +5801,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -4908,6 +5832,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "pid": {
           "anyOf": [
@@ -4946,6 +5880,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -5112,6 +6056,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -5141,6 +6095,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -5162,6 +6126,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -5200,6 +6174,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -5346,6 +6330,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -5373,6 +6367,16 @@
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -5408,6 +6412,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -5457,6 +6471,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -5700,6 +6724,167 @@
       "title": "Position",
       "type": "object"
     },
+    "PowerSupply": {
+      "additionalProperties": false,
+      "description": "Generic power-supply unit providing control/setpoint-driven outputs (for example current/voltage) to other accelerator components.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "PowerSupply",
+          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "PowerSupply",
+      "type": "object"
+    },
     "RFCavity": {
       "additionalProperties": false,
       "description": "Accelerating RF cavity.",
@@ -5736,6 +6921,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -5766,6 +6961,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -5787,6 +6992,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -5825,6 +7040,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -5921,15 +7146,15 @@
         "mode_numerator": {
           "description": "Mode fraction numerator.",
           "type": [
-            "integer",
+            "number",
             "null"
           ]
         },
         "n_cells": {
           "description": "Number of cells.",
-          "minimum": 1,
+          "minimum": 0,
           "type": [
-            "integer",
+            "number",
             "null"
           ]
         },
@@ -6187,6 +7412,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -6217,6 +7452,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -6238,6 +7483,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -6276,6 +7531,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -6355,15 +7620,15 @@
         "mode_numerator": {
           "description": "Mode fraction numerator.",
           "type": [
-            "integer",
+            "number",
             "null"
           ]
         },
         "n_cells": {
           "description": "Number of cells.",
-          "minimum": 1,
+          "minimum": 0,
           "type": [
-            "integer",
+            "number",
             "null"
           ]
         },
@@ -6410,6 +7675,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -6451,6 +7726,16 @@
           ],
           "description": "RF heartbeat parameters."
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -6472,6 +7757,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "reference": {
           "anyOf": [
@@ -6499,6 +7794,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -6548,6 +7853,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -6575,6 +7890,16 @@
           "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -6611,6 +7936,16 @@
           "description": "Unique element name within the machine.",
           "type": "string"
         },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "reference": {
           "anyOf": [
             {
@@ -6637,6 +7972,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -6686,6 +8031,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -6716,6 +8071,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -6737,6 +8102,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "protection": {
           "anyOf": [
@@ -6775,6 +8150,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -6907,6 +8292,16 @@
           ],
           "description": "Instrument-specific diagnostic parameters."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -6937,6 +8332,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -6958,6 +8363,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -6996,6 +8411,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -7110,6 +8535,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -7140,6 +8575,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -7161,6 +8606,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -7210,6 +8665,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -7307,6 +8772,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -7337,6 +8812,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -7358,6 +8843,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -7396,6 +8891,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -7439,6 +8944,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -7468,6 +8983,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -7489,6 +9014,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "reference": {
           "anyOf": [
@@ -7516,6 +9051,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -7595,6 +9140,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -7625,6 +9180,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -7646,6 +9211,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -7684,6 +9259,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -7826,6 +9411,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -7856,6 +9451,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -7877,6 +9482,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -7915,6 +9530,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -7958,6 +9583,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -7988,6 +9623,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -8009,6 +9654,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -8047,6 +9702,16 @@
           "description": "If set, this element is a logical sub-component of the named parent element.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -8118,6 +9783,16 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -8148,6 +9823,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -8169,6 +9854,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -8210,6 +9905,16 @@
             "null"
           ]
         },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "virtual_name": {
           "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
           "type": [
@@ -8247,9 +9952,9 @@
         },
         "n_cells": {
           "description": "Number of cells.",
-          "minimum": 1,
+          "minimum": 0,
           "type": [
-            "integer",
+            "number",
             "null"
           ]
         }
@@ -8476,6 +10181,16 @@
           ],
           "description": "Instrument-specific diagnostic parameters."
         },
+        "downstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "electrical": {
           "anyOf": [
             {
@@ -8506,6 +10221,16 @@
             "null"
           ]
         },
+        "inputs": {
+          "description": "(List) of input types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
           "type": [
@@ -8527,6 +10252,16 @@
         "name": {
           "description": "Unique element name within the machine.",
           "type": "string"
+        },
+        "outputs": {
+          "description": "(List) of output types",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "physical": {
           "anyOf": [
@@ -8568,6 +10303,16 @@
             "null"
           ]
         },
+        "upstream": {
+          "description": "(List) of upstream elements.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "virtual_name": {
           "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
           "type": [
@@ -8600,6 +10345,16 @@
         "null"
       ]
     },
+    "downstream": {
+      "description": "(List) of upstream elements.",
+      "items": {
+        "type": "string"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
     "hardware_class": {
       "$ref": "#/$defs/HardwareClassEnum",
       "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
@@ -8618,6 +10373,16 @@
         "null"
       ]
     },
+    "inputs": {
+      "description": "(List) of input types",
+      "items": {
+        "$ref": "#/$defs/IOTypeEnum"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
     "machine_area": {
       "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
       "type": [
@@ -8629,10 +10394,30 @@
       "description": "Unique element name within the machine.",
       "type": "string"
     },
+    "outputs": {
+      "description": "(List) of output types",
+      "items": {
+        "$ref": "#/$defs/IOTypeEnum"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
     "subelement": {
       "description": "If set, this element is a logical sub-component of the named parent element.",
       "type": [
         "string",
+        "null"
+      ]
+    },
+    "upstream": {
+      "description": "(List) of upstream elements.",
+      "items": {
+        "type": "string"
+      },
+      "type": [
+        "array",
         "null"
       ]
     },

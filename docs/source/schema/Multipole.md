@@ -154,11 +154,10 @@ attributes:
     name: radius
     description: Reference radius for multipole normalisation [m].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0)
     domain_of:
-    - Multipole
     - ApertureElement
+    - Multipole
     - CameraMask
     range: float
     unit:
@@ -214,12 +213,11 @@ attributes:
     name: radius
     description: Reference radius for multipole normalisation [m].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0)
     owner: Multipole
     domain_of:
-    - Multipole
     - ApertureElement
+    - Multipole
     - CameraMask
     range: float
     unit:

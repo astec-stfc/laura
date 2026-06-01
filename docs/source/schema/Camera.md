@@ -51,6 +51,17 @@ URI: [laura:Camera](https://w3id.org/laura/Camera)
     
 
         
+      Camera : downstream
+        
+          
+    
+        
+        
+        Camera --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       Camera : electrical
         
           
@@ -77,6 +88,17 @@ URI: [laura:Camera](https://w3id.org/laura/Camera)
         
       Camera : hardware_type
         
+      Camera : inputs
+        
+          
+    
+        
+        
+        Camera --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
       Camera : machine_area
         
       Camera : manufacturer
@@ -91,6 +113,17 @@ URI: [laura:Camera](https://w3id.org/laura/Camera)
 
         
       Camera : name
+        
+      Camera : outputs
+        
+          
+    
+        
+        
+        Camera --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       Camera : physical
         
@@ -126,6 +159,17 @@ URI: [laura:Camera](https://w3id.org/laura/Camera)
 
         
       Camera : subelement
+        
+      Camera : upstream
+        
+          
+    
+        
+        
+        Camera --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
         
       Camera : virtual_name
         
@@ -171,6 +215,10 @@ URI: [laura:Camera](https://w3id.org/laura/Camera)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -234,7 +282,7 @@ attributes:
     description: Instrument-specific diagnostic parameters.
     in_subset:
     - diagnostic_properties
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     domain_of:
     - Diagnostic
     - BeamPositionMonitor
@@ -267,7 +315,7 @@ attributes:
     description: Instrument-specific diagnostic parameters.
     in_subset:
     - diagnostic_properties
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     owner: Camera
     domain_of:
     - Diagnostic
@@ -423,6 +471,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Camera
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Camera
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Camera
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Camera
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:Camera
 
 ```

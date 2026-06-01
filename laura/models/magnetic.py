@@ -331,6 +331,12 @@ class MagneticElement(_MagneticElementBase):
     Magnetic info model.
     """
 
+    entrance_edge_angle: float | str = 0.0
+    """Entrance edge angle"""
+
+    exit_edge_angle: float | str = 0.0
+    """Exit edge angle"""
+
     multipoles: Multipoles | None = Multipoles()
     """Magnetic multipoles."""
 
@@ -339,6 +345,9 @@ class MagneticElement(_MagneticElementBase):
 
     random_multipoles: Multipoles | None = Multipoles()
     """Random magnetic multipoles."""
+
+    linear_saturation_coefficients: LinearSaturationFit | None = None
+    """Linear saturation fit coefficients (typed to allow order assignment)."""
 
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)
@@ -377,6 +386,13 @@ class MagneticElement(_MagneticElementBase):
                         f"K{i}L",
                         Multipole(normal=data[f"k{i}l"], order=i),
                     )
+
+    @field_validator("plane", mode="before")
+    @classmethod
+    def validate_plane(cls, v) -> str:
+        if isinstance(v, str):
+            return v.capitalize()
+        return v
 
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
@@ -462,7 +478,7 @@ class Dipole_Magnet(MagneticElement):
     Dipole magnet with magnetic order 0.
     """
 
-    order: int = Field(repr=False, default=0, frozen=True)
+    order: int = Field(repr=False, default=0)
     """Magnetic order of the dipole."""
 
     @property
@@ -542,7 +558,7 @@ class Quadrupole_Magnet(MagneticElement):
     Quadrupole with magnetic order 1.
     """
 
-    order: int = Field(repr=False, default=1, frozen=True)
+    order: int = Field(repr=False, default=1)
     """Magnetic order of the quadrupole."""
 
     @property
@@ -559,7 +575,7 @@ class Sextupole_Magnet(MagneticElement):
     Sextupole magnet with magnetic order 2.
     """
 
-    order: int = Field(repr=False, default=2, frozen=True)
+    order: int = Field(repr=False, default=2)
     """Magnetic order of the sextupole."""
 
     @property
@@ -576,7 +592,7 @@ class Octupole_Magnet(MagneticElement):
     Octupole magnet with magnetic order 3.
     """
 
-    order: int = Field(repr=False, default=3, frozen=True)
+    order: int = Field(repr=False, default=3)
     """Magnetic order of the octupole."""
 
     @property
@@ -636,7 +652,7 @@ class Solenoid_Magnet(IgnoreExtra):
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
     """Magnetic length [m]."""
 
-    order: int = Field(repr=False, default=0, frozen=True)
+    order: int = Field(repr=False, default=0)
     """Solenoid multipole order."""
 
     fields: SolenoidFields = SolenoidFields()

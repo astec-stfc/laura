@@ -35,6 +35,27 @@ enum HardwareClassEnum
     Monitor
   }
 
+enum IOTypeEnum
+  {
+    current
+    voltage
+    phase
+    setpoint
+    on_off_state
+    open_closed_state
+    position
+    rotation
+    power
+    pressure
+    charge
+    absolute_time
+    relative_time
+    shot_number
+    value
+    waveform
+    magnetic_field
+  }
+
 enum LaserPolarizationEnum
   {
     linear
@@ -60,6 +81,10 @@ type AcceleratorElement
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
   }
 
 type Aperture
@@ -71,6 +96,10 @@ type Aperture
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -106,6 +135,10 @@ type BeamArrivalMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -125,6 +158,10 @@ type BeamPositionMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -154,6 +191,10 @@ type BunchLengthMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -173,6 +214,10 @@ type Camera
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -263,6 +308,10 @@ type ChargeDiagnostic
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -287,6 +336,10 @@ type Collimator
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -332,6 +385,10 @@ type Diagnostic
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -363,6 +420,10 @@ type Drift
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -407,6 +468,10 @@ type Element
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -435,6 +500,10 @@ type FaradayCupMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -459,6 +528,10 @@ type IntegratedCurrentTransformer
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -478,6 +551,10 @@ type Laser
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -497,6 +574,10 @@ type LaserAttenuator
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -531,6 +612,10 @@ type LaserEnergyMeter
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -553,6 +638,10 @@ type LaserHalfWavePlate
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -575,6 +664,10 @@ type LaserMirror
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -609,6 +702,10 @@ type Lighting
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -657,6 +754,10 @@ type LowLevelRF
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -689,7 +790,7 @@ type MachineModel
     layouts: [MachineLayout]
   }
 
-type MagnetBaseElement
+type Magnet
   {
     name: String!
     hardwareClass: HardwareClassEnum!
@@ -699,6 +800,10 @@ type MagnetBaseElement
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -772,6 +877,10 @@ type Marker
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -808,6 +917,10 @@ type PhysicalAcceleratorElement
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -839,6 +952,10 @@ type PID
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -882,6 +999,10 @@ type Plasma
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -933,6 +1054,27 @@ type Position
     z: Float
   }
 
+type PowerSupply
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    hardwareType: String
+  }
+
 type ReferenceElement
   {
     drawings: [String]
@@ -948,6 +1090,10 @@ type RFCavity
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -965,11 +1111,11 @@ type RFCavityElement
     designGamma: Float
     designPower: Float
     frequency: Float
-    nCells: Int
+    nCells: Float
     crest: Float
     phase: Float
     shuntImpedance: Float
-    modeNumerator: Int
+    modeNumerator: Float
     modeDenominator: Int
     structureType: String
     attenuationConstant: Float
@@ -1015,6 +1161,10 @@ type RFDeflectingCavity
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -1033,10 +1183,10 @@ type RFDeflectingCavityElement
     designGamma: Float
     designPower: Float
     frequency: Float
-    nCells: Int
+    nCells: Float
     phase: Float
     shuntImpedance: Float
-    modeNumerator: Int
+    modeNumerator: Float
     modeDenominator: Int
   }
 
@@ -1049,6 +1199,10 @@ type RFHeartbeat
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1071,6 +1225,10 @@ type RFModulator
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1093,6 +1251,10 @@ type RFProtection
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1123,6 +1285,10 @@ type Screen
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -1157,6 +1323,10 @@ type Shutter
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1189,6 +1359,10 @@ type Stage
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1208,6 +1382,10 @@ type StandardElement
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1232,6 +1410,10 @@ type TwissMatch
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -1267,6 +1449,10 @@ type VacuumGauge
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1285,6 +1471,10 @@ type Valve
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     simulation: SimulationElement
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
@@ -1308,6 +1498,10 @@ type Wakefield
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation
@@ -1321,7 +1515,7 @@ type Wakefield
 type WakefieldElement
   {
     cellLength: Float
-    nCells: Int
+    nCells: Float
     couplingCellLength: Float
   }
 
@@ -1363,6 +1557,10 @@ type WallCurrentMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
     electrical: ElectricalElement
     manufacturer: ManufacturerElement
     controls: ControlsInformation

@@ -50,7 +50,7 @@ URI: [laura:WakefieldElement](https://w3id.org/laura/WakefieldElement)
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [cell_length](cell_length.md) | 0..1 <br/> [Float](Float.md) | Length of a single cell [m] | direct |
-| [n_cells](n_cells.md) | 0..1 <br/> [Integer](Integer.md) | Number of cells | direct |
+| [n_cells](n_cells.md) | 0..1 <br/> [Float](Float.md) | Number of cells | direct |
 | [coupling_cell_length](coupling_cell_length.md) | 0..1 <br/> [Float](Float.md) | Length of the coupling cell [m] | direct |
 
 
@@ -158,14 +158,14 @@ attributes:
     description: Number of cells.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    ifabsent: int(1)
+    ifabsent: float(1)
     owner: WakefieldElement
     domain_of:
     - RFCavityElement
     - WakefieldElement
     - RFDeflectingCavityElement
-    range: integer
-    minimum_value: 1
+    range: float
+    minimum_value: 0
   coupling_cell_length:
     name: coupling_cell_length
     description: Length of the coupling cell [m].

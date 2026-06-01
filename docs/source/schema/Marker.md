@@ -40,6 +40,17 @@ URI: [laura:Marker](https://w3id.org/laura/Marker)
     
 
         
+      Marker : downstream
+        
+          
+    
+        
+        
+        Marker --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       Marker : electrical
         
           
@@ -66,6 +77,17 @@ URI: [laura:Marker](https://w3id.org/laura/Marker)
         
       Marker : hardware_type
         
+      Marker : inputs
+        
+          
+    
+        
+        
+        Marker --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
       Marker : machine_area
         
       Marker : manufacturer
@@ -80,6 +102,17 @@ URI: [laura:Marker](https://w3id.org/laura/Marker)
 
         
       Marker : name
+        
+      Marker : outputs
+        
+          
+    
+        
+        
+        Marker --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       Marker : physical
         
@@ -115,6 +148,17 @@ URI: [laura:Marker](https://w3id.org/laura/Marker)
 
         
       Marker : subelement
+        
+      Marker : upstream
+        
+          
+    
+        
+        
+        Marker --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
         
       Marker : virtual_name
         
@@ -158,6 +202,10 @@ URI: [laura:Marker](https://w3id.org/laura/Marker)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -378,6 +426,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Marker
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Marker
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Marker
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Marker
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:Marker
 
 ```

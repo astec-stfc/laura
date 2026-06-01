@@ -30,6 +30,10 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
 
       StandardElement <|-- Element
         click Element href "../Element/"
+      StandardElement <|-- Lighting
+        click Lighting href "../Lighting/"
+      StandardElement <|-- PowerSupply
+        click PowerSupply href "../PowerSupply/"
       StandardElement <|-- LowLevelRF
         click LowLevelRF href "../LowLevelRF/"
       StandardElement <|-- RFModulator
@@ -48,8 +52,6 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
         click LaserMirror href "../LaserMirror/"
       StandardElement <|-- LaserAttenuator
         click LaserAttenuator href "../LaserAttenuator/"
-      StandardElement <|-- Lighting
-        click Lighting href "../Lighting/"
       
 
       StandardElement : alias
@@ -62,6 +64,17 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
         
         StandardElement --> "0..1" ControlsInformation : controls
         click ControlsInformation href "../ControlsInformation/"
+    
+
+        
+      StandardElement : downstream
+        
+          
+    
+        
+        
+        StandardElement --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
     
 
         
@@ -91,6 +104,17 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
         
       StandardElement : hardware_type
         
+      StandardElement : inputs
+        
+          
+    
+        
+        
+        StandardElement --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
       StandardElement : machine_area
         
       StandardElement : manufacturer
@@ -105,6 +129,17 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
 
         
       StandardElement : name
+        
+      StandardElement : outputs
+        
+          
+    
+        
+        
+        StandardElement --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       StandardElement : reference
         
@@ -130,6 +165,17 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
         
       StandardElement : subelement
         
+      StandardElement : upstream
+        
+          
+    
+        
+        
+        StandardElement --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       StandardElement : virtual_name
         
       
@@ -143,6 +189,8 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
 * [AcceleratorElement](AcceleratorElement.md)
     * **StandardElement**
         * [Element](Element.md)
+        * [Lighting](Lighting.md)
+        * [PowerSupply](PowerSupply.md)
         * [LowLevelRF](LowLevelRF.md)
         * [RFModulator](RFModulator.md)
         * [RFProtection](RFProtection.md)
@@ -152,7 +200,6 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
         * [LaserHalfWavePlate](LaserHalfWavePlate.md)
         * [LaserMirror](LaserMirror.md)
         * [LaserAttenuator](LaserAttenuator.md)
-        * [Lighting](Lighting.md)
 
 
 ## Class Properties
@@ -179,6 +226,10 @@ URI: [laura:StandardElement](https://w3id.org/laura/StandardElement)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -422,6 +473,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: StandardElement
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: StandardElement
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: StandardElement
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: StandardElement
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:StandardElement
 
 ```

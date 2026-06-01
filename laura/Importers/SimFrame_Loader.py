@@ -1,9 +1,12 @@
+import logging
 import os
 from copy import copy
 from typing import Any, Union
 import yaml
 from IPython.core.magic import Bunch
 from pydantic import BaseModel, field_validator, ValidationInfo, Field
+
+_log = logging.getLogger("laura.loader.simframe")
 
 from .Magnet_Table import add_magnet_table_parameters
 from ..models.element import (
@@ -179,7 +182,10 @@ def read_SimFrame_YAML(filename):
                     if elemmodel.name in camera_types
                     else "PCO"
                 )
-                print(elemmodel.diagnostic.camera_name, "camtype = ", camtype)
+                _log.debug(
+                    "Screen '%s': camera '%s' type='%s'",
+                    elemmodel.name, elemmodel.diagnostic.camera_name, camtype,
+                )
                 elemmodelcam = Camera(
                     name=elemmodel.diagnostic.camera_name,
                     hardware_model=camtype,
@@ -194,7 +200,10 @@ def read_SimFrame_YAML(filename):
                 elemlist.update({name: elemmodel})
         else:
             # pass
-            print("read_SimFrame_YAML", name, elem["type"])
+            _log.warning(
+                "Skipping SimFrame element '%s': unrecognised type '%s'",
+                name, elem["type"],
+            )
         if "sub_elements" in elem:
             for subname, subelem in elem["sub_elements"].items():
                 if "type" in subelem and subelem["type"] in SimFrame_Elements:

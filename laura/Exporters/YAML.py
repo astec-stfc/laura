@@ -1,9 +1,12 @@
+import logging
 import os
 import yaml
 from typing import Union
 from ..models.elementList import MachineModel
 from ..models.element import PhysicalElement
 from ..models.magnetic import MagneticElement
+
+_log = logging.getLogger("laura.exporter.yaml")
 
 
 def represent_tuple(dumper, data):
@@ -84,7 +87,7 @@ def export_machine(
         filename = os.path.join(directory, elem.name + ".yaml")
         if overwrite or not os.path.isfile(filename):
             if verbose:
-                print("Exporting Element", name, "to file", filename)
+                _log.debug("Exporting element '%s' to file '%s'", name, filename)
             export_as_yaml(filename, elem)
 
 

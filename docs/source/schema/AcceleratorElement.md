@@ -29,6 +29,17 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
       
       AcceleratorElement : alias
         
+      AcceleratorElement : downstream
+        
+          
+    
+        
+        
+        AcceleratorElement --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       AcceleratorElement : hardware_class
         
           
@@ -44,11 +55,44 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
         
       AcceleratorElement : hardware_type
         
+      AcceleratorElement : inputs
+        
+          
+    
+        
+        
+        AcceleratorElement --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
       AcceleratorElement : machine_area
         
       AcceleratorElement : name
         
+      AcceleratorElement : outputs
+        
+          
+    
+        
+        
+        AcceleratorElement --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
       AcceleratorElement : subelement
+        
+      AcceleratorElement : upstream
+        
+          
+    
+        
+        
+        AcceleratorElement --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
         
       AcceleratorElement : virtual_name
         
@@ -84,6 +128,10 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | direct |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | direct |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | direct |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | direct |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | direct |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | direct |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | direct |
 
 
 
@@ -93,7 +141,87 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
+| [AcceleratorElement](AcceleratorElement.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [AcceleratorElement](AcceleratorElement.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [StandardElement](StandardElement.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [StandardElement](StandardElement.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Element](Element.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Element](Element.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [TwissMatch](TwissMatch.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [TwissMatch](TwissMatch.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Stage](Stage.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Stage](Stage.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [VacuumGauge](VacuumGauge.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [VacuumGauge](VacuumGauge.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Laser](Laser.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Laser](Laser.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Shutter](Shutter.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Shutter](Shutter.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Valve](Valve.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Valve](Valve.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Marker](Marker.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Marker](Marker.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Aperture](Aperture.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Aperture](Aperture.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Collimator](Collimator.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Collimator](Collimator.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Drift](Drift.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Drift](Drift.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Lighting](Lighting.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Lighting](Lighting.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [PowerSupply](PowerSupply.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [PowerSupply](PowerSupply.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [MachineModel](MachineModel.md) | [elements](elements.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Magnet](Magnet.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Magnet](Magnet.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [RFCavity](RFCavity.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [RFCavity](RFCavity.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [RFDeflectingCavity](RFDeflectingCavity.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [RFDeflectingCavity](RFDeflectingCavity.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Wakefield](Wakefield.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Wakefield](Wakefield.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [LowLevelRF](LowLevelRF.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [LowLevelRF](LowLevelRF.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [RFModulator](RFModulator.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [RFModulator](RFModulator.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [RFProtection](RFProtection.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [RFProtection](RFProtection.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [RFHeartbeat](RFHeartbeat.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [RFHeartbeat](RFHeartbeat.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [PID](PID.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [PID](PID.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Diagnostic](Diagnostic.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Diagnostic](Diagnostic.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [BeamPositionMonitor](BeamPositionMonitor.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [BeamPositionMonitor](BeamPositionMonitor.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [BeamArrivalMonitor](BeamArrivalMonitor.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [BeamArrivalMonitor](BeamArrivalMonitor.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [BunchLengthMonitor](BunchLengthMonitor.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [BunchLengthMonitor](BunchLengthMonitor.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Camera](Camera.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Camera](Camera.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Screen](Screen.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Screen](Screen.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [ChargeDiagnostic](ChargeDiagnostic.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [ChargeDiagnostic](ChargeDiagnostic.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [WallCurrentMonitor](WallCurrentMonitor.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [WallCurrentMonitor](WallCurrentMonitor.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [FaradayCupMonitor](FaradayCupMonitor.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [FaradayCupMonitor](FaradayCupMonitor.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Plasma](Plasma.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Plasma](Plasma.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [LaserEnergyMeter](LaserEnergyMeter.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [LaserEnergyMeter](LaserEnergyMeter.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [LaserHalfWavePlate](LaserHalfWavePlate.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [LaserHalfWavePlate](LaserHalfWavePlate.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [LaserMirror](LaserMirror.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [LaserMirror](LaserMirror.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [LaserAttenuator](LaserAttenuator.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [LaserAttenuator](LaserAttenuator.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -225,6 +353,42 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:AcceleratorElement
 tree_root: true
 
@@ -328,6 +492,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: AcceleratorElement
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: AcceleratorElement
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: AcceleratorElement
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: AcceleratorElement
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:AcceleratorElement
 tree_root: true
 

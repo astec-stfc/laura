@@ -51,6 +51,17 @@ URI: [laura:Collimator](https://w3id.org/laura/Collimator)
     
 
         
+      Collimator : downstream
+        
+          
+    
+        
+        
+        Collimator --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       Collimator : electrical
         
           
@@ -77,6 +88,17 @@ URI: [laura:Collimator](https://w3id.org/laura/Collimator)
         
       Collimator : hardware_type
         
+      Collimator : inputs
+        
+          
+    
+        
+        
+        Collimator --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
       Collimator : machine_area
         
       Collimator : manufacturer
@@ -91,6 +113,17 @@ URI: [laura:Collimator](https://w3id.org/laura/Collimator)
 
         
       Collimator : name
+        
+      Collimator : outputs
+        
+          
+    
+        
+        
+        Collimator --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       Collimator : physical
         
@@ -126,6 +159,17 @@ URI: [laura:Collimator](https://w3id.org/laura/Collimator)
 
         
       Collimator : subelement
+        
+      Collimator : upstream
+        
+          
+    
+        
+        
+        Collimator --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
         
       Collimator : virtual_name
         
@@ -171,6 +215,10 @@ URI: [laura:Collimator](https://w3id.org/laura/Collimator)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -400,6 +448,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Collimator
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Collimator
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Collimator
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Collimator
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:Collimator
 
 ```

@@ -163,7 +163,7 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
-| [MagnetBaseElement](MagnetBaseElement.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
+| [Magnet](Magnet.md) | [magnetic](magnetic.md) | range | [MagneticElement](MagneticElement.md) |
 
 
 

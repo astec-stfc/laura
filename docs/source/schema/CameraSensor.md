@@ -231,9 +231,10 @@ attributes:
     name: minimum
     description: Minimum pixel positions [x, y].
     from_schema: https://w3id.org/laura/schema/diagnostics
+    rank: 1000
     domain_of:
-    - LaserAttenuator
     - CameraSensor
+    - LaserAttenuator
     range: float
     multivalued: true
   maximum:
@@ -241,9 +242,9 @@ attributes:
     description: Maximum pixel positions [x, y].
     from_schema: https://w3id.org/laura/schema/diagnostics
     domain_of:
-    - LaserAttenuator
     - CameraMask
     - CameraSensor
+    - LaserAttenuator
     range: float
     multivalued: true
   bit_depth:
@@ -383,10 +384,11 @@ attributes:
     name: minimum
     description: Minimum pixel positions [x, y].
     from_schema: https://w3id.org/laura/schema/diagnostics
+    rank: 1000
     owner: CameraSensor
     domain_of:
-    - LaserAttenuator
     - CameraSensor
+    - LaserAttenuator
     range: float
     multivalued: true
   maximum:
@@ -395,9 +397,9 @@ attributes:
     from_schema: https://w3id.org/laura/schema/diagnostics
     owner: CameraSensor
     domain_of:
-    - LaserAttenuator
     - CameraMask
     - CameraSensor
+    - LaserAttenuator
     range: float
     multivalued: true
   bit_depth:

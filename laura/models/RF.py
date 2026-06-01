@@ -19,7 +19,9 @@ from ._generated import (
 )
 
 
-def _coerce_pid_range(v: Union[str, List], range_type):
+def _coerce_pid_range(v: Union[str, List, None], range_type):
+    if v is None:
+        return None
     if isinstance(v, str):
         splitlist = list(map(str.strip, v.split(",")))
         assert len(splitlist) == 2
@@ -85,12 +87,12 @@ class PIDElement(_PIDElementBase):
 
     @field_validator("phase_range", mode="before")
     @classmethod
-    def validate_phase_range(cls, v: Union[str, List]) -> PIDPhaseRange:
+    def validate_phase_range(cls, v: Union[str, List, None]) -> PIDPhaseRange | None:
         return _coerce_pid_range(v, PIDPhaseRange)
 
     @field_validator("phase_weight_range", mode="before")
     @classmethod
-    def validate_phase_weight_range(cls, v: Union[str, List]) -> PIDWeightRange:
+    def validate_phase_weight_range(cls, v: Union[str, List, None]) -> PIDWeightRange | None:
         return _coerce_pid_range(v, PIDWeightRange)
 
 

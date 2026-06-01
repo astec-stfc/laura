@@ -1,8 +1,12 @@
-export type AcceleratorElementName = string;
-export type StandardElementName = string;
-export type ElementName = string;
-export type PhysicalAcceleratorElementName = string;
-export type MagnetBaseElementName = string;
+export type MagnetName = string;
+export type RFCavityName = string;
+export type RFDeflectingCavityName = string;
+export type WakefieldName = string;
+export type LowLevelRFName = string;
+export type RFModulatorName = string;
+export type RFProtectionName = string;
+export type RFHeartbeatName = string;
+export type PIDName = string;
 export type DiagnosticName = string;
 export type BeamPositionMonitorName = string;
 export type BeamArrivalMonitorName = string;
@@ -13,14 +17,15 @@ export type ChargeDiagnosticName = string;
 export type WallCurrentMonitorName = string;
 export type FaradayCupMonitorName = string;
 export type IntegratedCurrentTransformerName = string;
-export type RFCavityName = string;
-export type RFDeflectingCavityName = string;
-export type WakefieldName = string;
-export type LowLevelRFName = string;
-export type RFModulatorName = string;
-export type RFProtectionName = string;
-export type RFHeartbeatName = string;
-export type PIDName = string;
+export type PlasmaName = string;
+export type LaserEnergyMeterName = string;
+export type LaserHalfWavePlateName = string;
+export type LaserMirrorName = string;
+export type LaserAttenuatorName = string;
+export type AcceleratorElementName = string;
+export type StandardElementName = string;
+export type ElementName = string;
+export type PhysicalAcceleratorElementName = string;
 export type TwissMatchName = string;
 export type StageName = string;
 export type VacuumGaugeName = string;
@@ -31,12 +36,8 @@ export type MarkerName = string;
 export type ApertureName = string;
 export type CollimatorName = string;
 export type DriftName = string;
-export type PlasmaName = string;
-export type LaserEnergyMeterName = string;
-export type LaserHalfWavePlateName = string;
-export type LaserMirrorName = string;
-export type LaserAttenuatorName = string;
 export type LightingName = string;
+export type PowerSupplyName = string;
 export type SectionLatticeName = string;
 export type MachineLayoutName = string;
 /**
@@ -118,6 +119,46 @@ export enum ApertureShapeEnum {
     circular = "circular",
     rectangular = "rectangular",
     elliptical = "elliptical",
+};
+/**
+* Input types for accelerator elements.
+*/
+export enum IOTypeEnum {
+    
+    /** Electrical current. */
+    current = "current",
+    /** Electrical voltage. */
+    voltage = "voltage",
+    /** Phase in radians. */
+    phase = "phase",
+    /** Control setpoint. */
+    setpoint = "setpoint",
+    /** On/Off state. */
+    on_off_state = "on_off_state",
+    /** Open/Closed state. */
+    open_closed_state = "open_closed_state",
+    /** Physical position. */
+    position = "position",
+    /** Physical rotation. */
+    rotation = "rotation",
+    /** Electrical power. */
+    power = "power",
+    /** Gas pressure. */
+    pressure = "pressure",
+    /** Electrical charge. */
+    charge = "charge",
+    /** Absolute timing. */
+    absolute_time = "absolute_time",
+    /** Relative timing. */
+    relative_time = "relative_time",
+    /** Shot number. */
+    shot_number = "shot_number",
+    /** Single value. */
+    value = "value",
+    /** Multivalued waveform. */
+    waveform = "waveform",
+    /** Magnetic field. */
+    magnetic_field = "magnetic_field",
 };
 
 
@@ -370,6 +411,17 @@ export interface TwissMatchSimulationElement extends SimulationElement {
 
 
 /**
+ * Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement`` in the schema to avoid collision with the ``magnetic`` composition-model class; maps to ``Magnet`` in Python.)
+ */
+export interface Magnet extends PhysicalAcceleratorElement {
+    /** Magnetic field parameters. */
+    magnetic?: MagneticElement,
+    /** Degaussing-cycle parameters. */
+    degauss?: DegaussableElement,
+}
+
+
+/**
  * Individual multipole field component, characterised by order and integrated normal / skew strengths at a reference radius.
  */
 export interface Multipole {
@@ -477,27 +529,6 @@ export interface MagneticElement {
 
 
 /**
- * Transverse aperture geometry for drift-space checks and collimators.
- */
-export interface ApertureElement {
-    /** Number of aperture sub-elements (e.g., for multi-leaf collimators). */
-    number_of_elements?: number,
-    /** Full horizontal aperture [m]. */
-    horizontal_size?: number,
-    /** Full vertical aperture [m]. */
-    vertical_size?: number,
-    /** Cross-sectional aperture shape. */
-    shape?: string,
-    /** Radius for circular apertures [m]. */
-    radius?: number,
-    /** Upstream / inner extent [m]. */
-    negative_extent?: number,
-    /** Downstream / outer extent [m]. */
-    positive_extent?: number,
-}
-
-
-/**
  * Degaussing (demagnetisation cycle) parameters for magnets that require a field-reset procedure.
  */
 export interface DegaussableElement {
@@ -507,6 +538,78 @@ export interface DegaussableElement {
     values?: number[],
     /** Number of degauss steps per half-cycle. */
     steps?: number,
+}
+
+
+/**
+ * Accelerating RF cavity.
+ */
+export interface RFCavity extends PhysicalAcceleratorElement {
+    /** RF structure parameters. */
+    cavity?: RFCavityElement,
+}
+
+
+/**
+ * Transverse-deflecting (streak) RF cavity.
+ */
+export interface RFDeflectingCavity extends RFCavity {
+    /** RF structure parameters. */
+    cavity?: RFDeflectingCavityElement,
+}
+
+
+/**
+ * Passive wakefield structure (dielectric, corrugated, etc.).
+ */
+export interface Wakefield extends PhysicalAcceleratorElement {
+    /** Wakefield structure parameters. */
+    cavity?: WakefieldElement,
+}
+
+
+/**
+ * Low-level RF (LLRF) controller.
+ */
+export interface LowLevelRF extends StandardElement {
+    /** LLRF parameters. */
+    llrf?: LowLevelRFElement,
+}
+
+
+/**
+ * RF modulator (klystron driver) element.
+ */
+export interface RFModulator extends StandardElement {
+    /** Modulator parameters. */
+    modulator?: RFModulatorElement,
+}
+
+
+/**
+ * RF protection system element.
+ */
+export interface RFProtection extends StandardElement {
+    /** RF protection parameters. */
+    protection?: RFProtectionElement,
+}
+
+
+/**
+ * RF timing heartbeat / signal-monitor element.
+ */
+export interface RFHeartbeat extends StandardElement {
+    /** RF heartbeat parameters. */
+    heartbeat?: RFHeartbeatElement,
+}
+
+
+/**
+ * Proportional-integral-derivative (PID) feedback controller.
+ */
+export interface PID extends StandardElement {
+    /** PID gain parameters. */
+    pid?: PIDElement,
 }
 
 
@@ -731,6 +834,90 @@ export interface RFHeartbeatElement {
 
 
 /**
+ * Base class for all beam-diagnostic instruments.
+ */
+export interface Diagnostic extends PhysicalAcceleratorElement {
+    /** Instrument-specific diagnostic parameters. */
+    diagnostic?: DiagnosticElement,
+}
+
+
+/**
+ * Beam-position monitor (BPM).
+ */
+export interface BeamPositionMonitor extends Diagnostic {
+    /** Instrument-specific diagnostic parameters. */
+    diagnostic?: BPMDiagnosticElement,
+}
+
+
+/**
+ * Beam-arrival-time monitor (BAM).
+ */
+export interface BeamArrivalMonitor extends Diagnostic {
+    /** Instrument-specific diagnostic parameters. */
+    diagnostic?: BAMDiagnosticElement,
+}
+
+
+/**
+ * Bunch-length monitor (BLM / CDR detector).
+ */
+export interface BunchLengthMonitor extends Diagnostic {
+    /** Instrument-specific diagnostic parameters. */
+    diagnostic?: BLMDiagnosticElement,
+}
+
+
+/**
+ * Camera-based beam-profile monitor.
+ */
+export interface Camera extends Diagnostic {
+    /** Instrument-specific diagnostic parameters. */
+    diagnostic?: CameraDiagnosticElement,
+}
+
+
+/**
+ * Scintillator or OTR screen with an associated camera.
+ */
+export interface Screen extends Diagnostic {
+    /** Instrument-specific diagnostic parameters. */
+    diagnostic?: ScreenDiagnosticElement,
+}
+
+
+/**
+ * Base class for charge-measurement diagnostics.
+ */
+export interface ChargeDiagnostic extends Diagnostic {
+    /** Instrument-specific diagnostic parameters. */
+    diagnostic?: ChargeDiagnosticElement,
+}
+
+
+/**
+ * Wall-current monitor (WCM) for non-destructive charge measurement.
+ */
+export interface WallCurrentMonitor extends ChargeDiagnostic {
+}
+
+
+/**
+ * Faraday cup for destructive charge measurement.
+ */
+export interface FaradayCupMonitor extends ChargeDiagnostic {
+}
+
+
+/**
+ * Integrated current transformer (ICT) for non-destructive single-shot charge measurement.
+ */
+export interface IntegratedCurrentTransformer extends ChargeDiagnostic {
+}
+
+
+/**
  * Base class for diagnostic instrument sub-models.  Concrete sub-models extend this with instrument-specific fields.
  */
 export interface DiagnosticElement {
@@ -898,6 +1085,85 @@ export interface CameraDiagnosticElement extends DiagnosticElement {
     mask?: CameraMask,
     /** Camera sensor hardware configuration. */
     sensor?: CameraSensor,
+}
+
+
+/**
+ * Laser-driven plasma-accelerator stage.
+ */
+export interface Plasma extends PhysicalAcceleratorElement {
+    /** Plasma channel parameters. */
+    plasma?: PlasmaElement,
+    /** Laser driving the plasma stage. */
+    laser?: LaserElement,
+}
+
+
+/**
+ * Laser pulse-energy diagnostic (photodiode / pyroelectric).
+ */
+export interface LaserEnergyMeter extends StandardElement {
+    /** Energy-meter instrument parameters. */
+    laser?: LaserEnergyMeterElement,
+}
+
+
+/**
+ * Half-wave plate for laser polarisation rotation.
+ */
+export interface LaserHalfWavePlate extends StandardElement {
+    /** Half-wave plate parameters. */
+    laser?: LaserHalfWavePlateElement,
+}
+
+
+/**
+ * Laser steering or focusing mirror.
+ */
+export interface LaserMirror extends StandardElement {
+    /** Mirror steering parameters. */
+    laser?: LaserMirrorElement,
+}
+
+
+/**
+ * Mirror steering parameters for a laser mirror.
+ */
+export interface LaserMirrorElement {
+    /** Maximum step size for mirror adjustment. */
+    step_max?: number,
+    /** Mirror sense/interlock configuration. */
+    sense?: LaserMirrorSense,
+    /** Vertical control channel index. */
+    vertical_channel?: number,
+    /** Horizontal control channel index. */
+    horizontal_channel?: number,
+}
+
+
+/**
+ * Mirror sense switch values.
+ */
+export interface LaserMirrorSense {
+    /** Left sense value. */
+    left?: number,
+    /** Right sense value. */
+    right?: number,
+    /** Up sense value. */
+    up?: number,
+    /** Down sense value. */
+    down?: number,
+}
+
+
+/**
+ * Laser power attenuator (waveplate + polariser combination).
+ */
+export interface LaserAttenuator extends StandardElement {
+    /** Maximum attenuation angle [deg]. */
+    maximum?: number,
+    /** Minimum attenuation angle [deg]. */
+    minimum?: number,
 }
 
 
@@ -1154,6 +1420,14 @@ export interface AcceleratorElement {
     alias?: string[],
     /** If set, this element is a logical sub-component of the named parent element. */
     subelement?: string,
+    /** (List) of input types */
+    inputs?: string,
+    /** (List) of output types */
+    outputs?: string,
+    /** (List) of upstream elements. */
+    upstream?: AcceleratorElementName[],
+    /** (List) of upstream elements. */
+    downstream?: AcceleratorElementName[],
 }
 
 
@@ -1187,173 +1461,6 @@ export interface Element extends StandardElement {
 export interface PhysicalAcceleratorElement extends Element {
     /** Position, rotation, and length data. */
     physical?: PhysicalElement,
-}
-
-
-/**
- * Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement`` in the schema to avoid collision with the ``magnetic`` composition-model class; maps to ``Magnet`` in Python.)
- */
-export interface MagnetBaseElement extends PhysicalAcceleratorElement {
-    /** Magnetic field parameters. */
-    magnetic?: MagneticElement,
-    /** Degaussing-cycle parameters. */
-    degauss?: DegaussableElement,
-}
-
-
-/**
- * Base class for all beam-diagnostic instruments.
- */
-export interface Diagnostic extends PhysicalAcceleratorElement {
-    /** Instrument-specific diagnostic parameters. */
-    diagnostic?: DiagnosticElement,
-}
-
-
-/**
- * Beam-position monitor (BPM).
- */
-export interface BeamPositionMonitor extends Diagnostic {
-    /** Instrument-specific diagnostic parameters. */
-    diagnostic?: BPMDiagnosticElement,
-}
-
-
-/**
- * Beam-arrival-time monitor (BAM).
- */
-export interface BeamArrivalMonitor extends Diagnostic {
-    /** Instrument-specific diagnostic parameters. */
-    diagnostic?: BAMDiagnosticElement,
-}
-
-
-/**
- * Bunch-length monitor (BLM / CDR detector).
- */
-export interface BunchLengthMonitor extends Diagnostic {
-    /** Instrument-specific diagnostic parameters. */
-    diagnostic?: BLMDiagnosticElement,
-}
-
-
-/**
- * Camera-based beam-profile monitor.
- */
-export interface Camera extends Diagnostic {
-    /** Instrument-specific diagnostic parameters. */
-    diagnostic?: CameraDiagnosticElement,
-}
-
-
-/**
- * Scintillator or OTR screen with an associated camera.
- */
-export interface Screen extends Diagnostic {
-    /** Instrument-specific diagnostic parameters. */
-    diagnostic?: ScreenDiagnosticElement,
-}
-
-
-/**
- * Base class for charge-measurement diagnostics.
- */
-export interface ChargeDiagnostic extends Diagnostic {
-    /** Instrument-specific diagnostic parameters. */
-    diagnostic?: ChargeDiagnosticElement,
-}
-
-
-/**
- * Wall-current monitor (WCM) for non-destructive charge measurement.
- */
-export interface WallCurrentMonitor extends ChargeDiagnostic {
-}
-
-
-/**
- * Faraday cup for destructive charge measurement.
- */
-export interface FaradayCupMonitor extends ChargeDiagnostic {
-}
-
-
-/**
- * Integrated current transformer (ICT) for non-destructive single-shot charge measurement.
- */
-export interface IntegratedCurrentTransformer extends ChargeDiagnostic {
-}
-
-
-/**
- * Accelerating RF cavity.
- */
-export interface RFCavity extends PhysicalAcceleratorElement {
-    /** RF structure parameters. */
-    cavity?: RFCavityElement,
-}
-
-
-/**
- * Transverse-deflecting (streak) RF cavity.
- */
-export interface RFDeflectingCavity extends RFCavity {
-    /** RF structure parameters. */
-    cavity?: RFDeflectingCavityElement,
-}
-
-
-/**
- * Passive wakefield structure (dielectric, corrugated, etc.).
- */
-export interface Wakefield extends PhysicalAcceleratorElement {
-    /** Wakefield structure parameters. */
-    cavity?: WakefieldElement,
-}
-
-
-/**
- * Low-level RF (LLRF) controller.
- */
-export interface LowLevelRF extends StandardElement {
-    /** LLRF parameters. */
-    llrf?: LowLevelRFElement,
-}
-
-
-/**
- * RF modulator (klystron driver) element.
- */
-export interface RFModulator extends StandardElement {
-    /** Modulator parameters. */
-    modulator?: RFModulatorElement,
-}
-
-
-/**
- * RF protection system element.
- */
-export interface RFProtection extends StandardElement {
-    /** RF protection parameters. */
-    protection?: RFProtectionElement,
-}
-
-
-/**
- * RF timing heartbeat / signal-monitor element.
- */
-export interface RFHeartbeat extends StandardElement {
-    /** RF heartbeat parameters. */
-    heartbeat?: RFHeartbeatElement,
-}
-
-
-/**
- * Proportional-integral-derivative (PID) feedback controller.
- */
-export interface PID extends StandardElement {
-    /** PID gain parameters. */
-    pid?: PIDElement,
 }
 
 
@@ -1397,6 +1504,27 @@ export interface Shutter extends PhysicalAcceleratorElement {
 
 
 /**
+ * Transverse aperture geometry for drift-space checks and collimators.
+ */
+export interface ApertureElement {
+    /** Number of aperture sub-elements (e.g., for multi-leaf collimators). */
+    number_of_elements?: number,
+    /** Full horizontal aperture [m]. */
+    horizontal_size?: number,
+    /** Full vertical aperture [m]. */
+    vertical_size?: number,
+    /** Cross-sectional aperture shape. */
+    shape?: string,
+    /** Radius for circular apertures [m]. */
+    radius?: number,
+    /** Upstream / inner extent [m]. */
+    negative_extent?: number,
+    /** Downstream / outer extent [m]. */
+    positive_extent?: number,
+}
+
+
+/**
  * Vacuum gate valve.
  */
 export interface Valve extends PhysicalAcceleratorElement {
@@ -1436,90 +1564,18 @@ export interface Drift extends PhysicalAcceleratorElement {
 
 
 /**
- * Laser-driven plasma-accelerator stage.
- */
-export interface Plasma extends PhysicalAcceleratorElement {
-    /** Plasma channel parameters. */
-    plasma?: PlasmaElement,
-    /** Laser driving the plasma stage. */
-    laser?: LaserElement,
-}
-
-
-/**
- * Laser pulse-energy diagnostic (photodiode / pyroelectric).
- */
-export interface LaserEnergyMeter extends StandardElement {
-    /** Energy-meter instrument parameters. */
-    laser?: LaserEnergyMeterElement,
-}
-
-
-/**
- * Half-wave plate for laser polarisation rotation.
- */
-export interface LaserHalfWavePlate extends StandardElement {
-    /** Half-wave plate parameters. */
-    laser?: LaserHalfWavePlateElement,
-}
-
-
-/**
- * Laser steering or focusing mirror.
- */
-export interface LaserMirror extends StandardElement {
-    /** Mirror steering parameters. */
-    laser?: LaserMirrorElement,
-}
-
-
-/**
- * Mirror steering parameters for a laser mirror.
- */
-export interface LaserMirrorElement {
-    /** Maximum step size for mirror adjustment. */
-    step_max?: number,
-    /** Mirror sense/interlock configuration. */
-    sense?: LaserMirrorSense,
-    /** Vertical control channel index. */
-    vertical_channel?: number,
-    /** Horizontal control channel index. */
-    horizontal_channel?: number,
-}
-
-
-/**
- * Mirror sense switch values.
- */
-export interface LaserMirrorSense {
-    /** Left sense value. */
-    left?: number,
-    /** Right sense value. */
-    right?: number,
-    /** Up sense value. */
-    up?: number,
-    /** Down sense value. */
-    down?: number,
-}
-
-
-/**
- * Laser power attenuator (waveplate + polariser combination).
- */
-export interface LaserAttenuator extends StandardElement {
-    /** Maximum attenuation angle [deg]. */
-    maximum?: number,
-    /** Minimum attenuation angle [deg]. */
-    minimum?: number,
-}
-
-
-/**
  * Experimental-hall lighting element.
  */
 export interface Lighting extends StandardElement {
     /** Lighting configuration. */
     lights?: LightingElement,
+}
+
+
+/**
+ * Generic power-supply unit providing control/setpoint-driven outputs (for example current/voltage) to other accelerator components.
+ */
+export interface PowerSupply extends StandardElement {
 }
 
 

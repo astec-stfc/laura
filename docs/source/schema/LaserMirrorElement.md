@@ -127,7 +127,7 @@ attributes:
   step_max:
     name: step_max
     description: Maximum step size for mirror adjustment.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     domain_of:
     - LaserMirrorElement
@@ -135,7 +135,7 @@ attributes:
   sense:
     name: sense
     description: Mirror sense/interlock configuration.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     domain_of:
     - LaserMirrorElement
@@ -143,7 +143,7 @@ attributes:
   vertical_channel:
     name: vertical_channel
     description: Vertical control channel index.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     domain_of:
     - LaserMirrorElement
@@ -151,7 +151,7 @@ attributes:
   horizontal_channel:
     name: horizontal_channel
     description: Horizontal control channel index.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     domain_of:
     - LaserMirrorElement
@@ -172,7 +172,7 @@ attributes:
   step_max:
     name: step_max
     description: Maximum step size for mirror adjustment.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     owner: LaserMirrorElement
     domain_of:
@@ -181,7 +181,7 @@ attributes:
   sense:
     name: sense
     description: Mirror sense/interlock configuration.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     owner: LaserMirrorElement
     domain_of:
@@ -190,7 +190,7 @@ attributes:
   vertical_channel:
     name: vertical_channel
     description: Vertical control channel index.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     owner: LaserMirrorElement
     domain_of:
@@ -199,7 +199,7 @@ attributes:
   horizontal_channel:
     name: horizontal_channel
     description: Horizontal control channel index.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     rank: 1000
     owner: LaserMirrorElement
     domain_of:

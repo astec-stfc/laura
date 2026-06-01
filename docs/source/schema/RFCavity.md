@@ -56,6 +56,17 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
     
 
         
+      RFCavity : downstream
+        
+          
+    
+        
+        
+        RFCavity --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       RFCavity : electrical
         
           
@@ -82,6 +93,17 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
         
       RFCavity : hardware_type
         
+      RFCavity : inputs
+        
+          
+    
+        
+        
+        RFCavity --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
       RFCavity : machine_area
         
       RFCavity : manufacturer
@@ -96,6 +118,17 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
 
         
       RFCavity : name
+        
+      RFCavity : outputs
+        
+          
+    
+        
+        
+        RFCavity --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       RFCavity : physical
         
@@ -131,6 +164,17 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
 
         
       RFCavity : subelement
+        
+      RFCavity : upstream
+        
+          
+    
+        
+        
+        RFCavity --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
         
       RFCavity : virtual_name
         
@@ -176,6 +220,10 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -242,7 +290,7 @@ attributes:
     description: RF structure parameters.
     in_subset:
     - rf_properties
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     domain_of:
     - RFCavity
@@ -275,7 +323,7 @@ attributes:
     description: RF structure parameters.
     in_subset:
     - rf_properties
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/rf
     rank: 1000
     owner: RFCavity
     domain_of:
@@ -428,6 +476,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavity
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavity
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavity
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavity
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:RFCavity
 
 ```

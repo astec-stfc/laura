@@ -61,7 +61,7 @@ URI: [laura:DegaussableElement](https://w3id.org/laura/DegaussableElement)
 
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
-| [MagnetBaseElement](MagnetBaseElement.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
+| [Magnet](Magnet.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
 
 
 

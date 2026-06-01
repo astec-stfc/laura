@@ -137,20 +137,6 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [MagnetBaseElement](MagnetBaseElement.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [Diagnostic](Diagnostic.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [BeamPositionMonitor](BeamPositionMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [BeamArrivalMonitor](BeamArrivalMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [BunchLengthMonitor](BunchLengthMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [Camera](Camera.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [Screen](Screen.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [ChargeDiagnostic](ChargeDiagnostic.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [WallCurrentMonitor](WallCurrentMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [FaradayCupMonitor](FaradayCupMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [RFCavity](RFCavity.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [RFDeflectingCavity](RFDeflectingCavity.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
-| [Wakefield](Wakefield.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [TwissMatch](TwissMatch.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Stage](Stage.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [VacuumGauge](VacuumGauge.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
@@ -161,6 +147,20 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | [Aperture](Aperture.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Collimator](Collimator.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Drift](Drift.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Magnet](Magnet.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [RFCavity](RFCavity.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [RFDeflectingCavity](RFDeflectingCavity.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Wakefield](Wakefield.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Diagnostic](Diagnostic.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [BeamPositionMonitor](BeamPositionMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [BeamArrivalMonitor](BeamArrivalMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [BunchLengthMonitor](BunchLengthMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Camera](Camera.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Screen](Screen.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [ChargeDiagnostic](ChargeDiagnostic.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [WallCurrentMonitor](WallCurrentMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [FaradayCupMonitor](FaradayCupMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Plasma](Plasma.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 
 

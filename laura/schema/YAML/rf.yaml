@@ -25,6 +25,112 @@ imports:
 
 classes:
 
+  # -- RF & Feedback elements -------------------------------------------------
+
+  RFCavity:
+    is_a: PhysicalAcceleratorElement
+    description: Accelerating RF cavity.
+    class_uri: laura:RFCavity
+    slot_usage:
+      hardware_type:
+        equals_string: RFCavity
+      simulation:
+        range: RFCavitySimulationElement
+    attributes:
+      cavity:
+        range: RFCavityElement
+        description: RF structure parameters.
+        in_subset:
+          - rf_properties
+
+  RFDeflectingCavity:
+    is_a: RFCavity
+    description: Transverse-deflecting (streak) RF cavity.
+    class_uri: laura:RFDeflectingCavity
+    slot_usage:
+      hardware_type:
+        equals_string: RFDeflectingCavity
+    attributes:
+      cavity:
+        range: RFDeflectingCavityElement
+        description: RF structure parameters.
+        in_subset:
+          - rf_properties
+
+  Wakefield:
+    is_a: PhysicalAcceleratorElement
+    description: "Passive wakefield structure (dielectric, corrugated, etc.)."
+    class_uri: laura:Wakefield
+    slot_usage:
+      hardware_type:
+        equals_string: Wakefield
+      simulation:
+        range: WakefieldSimulationElement
+    attributes:
+      cavity:
+        range: WakefieldElement
+        description: Wakefield structure parameters.
+
+  LowLevelRF:
+    is_a: StandardElement
+    description: Low-level RF (LLRF) controller.
+    class_uri: laura:LowLevelRF
+    slot_usage:
+      hardware_type:
+        equals_string: Low_Level_RF
+    attributes:
+      llrf:
+        range: LowLevelRFElement
+        description: LLRF parameters.
+
+  RFModulator:
+    is_a: StandardElement
+    description: RF modulator (klystron driver) element.
+    class_uri: laura:RFModulator
+    slot_usage:
+      hardware_type:
+        equals_string: RFModulator
+    attributes:
+      modulator:
+        range: RFModulatorElement
+        description: Modulator parameters.
+
+  RFProtection:
+    is_a: StandardElement
+    description: RF protection system element.
+    class_uri: laura:RFProtection
+    slot_usage:
+      hardware_type:
+        equals_string: RFProtection
+    attributes:
+      protection:
+        range: RFProtectionElement
+        description: RF protection parameters.
+
+  RFHeartbeat:
+    is_a: StandardElement
+    description: RF timing heartbeat / signal-monitor element.
+    class_uri: laura:RFHeartbeat
+    slot_usage:
+      hardware_type:
+        equals_string: RFHeartbeat
+    attributes:
+      heartbeat:
+        range: RFHeartbeatElement
+        description: RF heartbeat parameters.
+
+  PID:
+    is_a: StandardElement
+    description: Proportional-integral-derivative (PID) feedback controller.
+    class_uri: laura:PID
+    slot_usage:
+      hardware_type:
+        equals_string: PID
+    attributes:
+      pid:
+        range: PIDElement
+        description: PID gain parameters.
+
   RFCavityElement:
     description: RF cavity accelerating-structure parameters.
     class_uri: laura:RFCavityElement

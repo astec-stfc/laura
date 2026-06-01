@@ -25,6 +25,129 @@ imports:
 
 classes:
 
+  # -- Laser + plasma objects -----------------------------------
+
+
+  Plasma:
+    is_a: PhysicalAcceleratorElement
+    description: Laser-driven plasma-accelerator stage.
+    class_uri: laura:Plasma
+    slot_usage:
+      hardware_type:
+        equals_string: Plasma
+      simulation:
+        range: PlasmaSimulationElement
+    attributes:
+      plasma:
+        range: PlasmaElement
+        description: Plasma channel parameters.
+      laser:
+        range: LaserElement
+        description: Laser driving the plasma stage.
+
+  LaserEnergyMeter:
+    is_a: StandardElement
+    description: Laser pulse-energy diagnostic (photodiode / pyroelectric).
+    class_uri: laura:LaserEnergyMeter
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserEnergyMeter
+    attributes:
+      laser:
+        range: LaserEnergyMeterElement
+        description: Energy-meter instrument parameters.
+
+  LaserHalfWavePlate:
+    is_a: StandardElement
+    description: Half-wave plate for laser polarisation rotation.
+    class_uri: laura:LaserHalfWavePlate
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserHalfWavePlate
+    attributes:
+      laser:
+        range: LaserHalfWavePlateElement
+        description: Half-wave plate parameters.
+
+  LaserMirror:
+    is_a: StandardElement
+    description: Laser steering or focusing mirror.
+    class_uri: laura:LaserMirror
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserMirror
+    attributes:
+      laser:
+        range: LaserMirrorElement
+        description: Mirror steering parameters.
+
+  LaserMirrorElement:
+    description: Mirror steering parameters for a laser mirror.
+    class_uri: laura:LaserMirrorElement
+    attributes:
+      step_max:
+        range: float
+        description: Maximum step size for mirror adjustment.
+      sense:
+        range: LaserMirrorSense
+        description: Mirror sense/interlock configuration.
+      vertical_channel:
+        range: integer
+        description: Vertical control channel index.
+      horizontal_channel:
+        range: integer
+        description: Horizontal control channel index.
+
+  LaserMirrorSense:
+    description: Mirror sense switch values.
+    class_uri: laura:LaserMirrorSense
+    attributes:
+      left:
+        range: float
+        description: Left sense value.
+        aliases: [left_sense]
+      right:
+        range: float
+        description: Right sense value.
+        aliases: [right_sense]
+      up:
+        range: float
+        description: Up sense value.
+        aliases: [up_sense]
+      down:
+        range: float
+        description: Down sense value.
+        aliases: [down_sense]
+
+  LaserAttenuator:
+    is_a: StandardElement
+    description: Laser power attenuator (waveplate + polariser combination).
+    class_uri: laura:LaserAttenuator
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserAttenuator
+    attributes:
+      maximum:
+        range: float
+        description: Maximum attenuation angle [deg].
+        unit:
+          ucum_code: deg
+      minimum:
+        range: float
+        description: Minimum attenuation angle [deg].
+        unit:
+          ucum_code: deg
+
+  # -- Laser + plasma elements -----------------------------------
+
   LaserElement:
     description: >-
       Laser-beam parameters (wavelength, pulse energy, profile, etc.) for

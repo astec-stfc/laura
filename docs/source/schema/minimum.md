@@ -20,8 +20,8 @@ URI: [laura:minimum](https://w3id.org/laura/minimum)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |  no  |
 | [CameraSensor](CameraSensor.md) | Camera sensor hardware configuration |  no  |
+| [LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |  no  |
 
 
 
@@ -35,7 +35,7 @@ URI: [laura:minimum](https://w3id.org/laura/minimum)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [LaserAttenuator](LaserAttenuator.md), [CameraSensor](CameraSensor.md) |
+| Domain Of | [CameraSensor](CameraSensor.md), [LaserAttenuator](LaserAttenuator.md) |
 
 ### Cardinality and Requirements
 
@@ -74,8 +74,8 @@ URI: [laura:minimum](https://w3id.org/laura/minimum)
 ```yaml
 name: minimum
 domain_of:
-- LaserAttenuator
 - CameraSensor
+- LaserAttenuator
 range: string
 
 ```

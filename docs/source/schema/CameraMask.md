@@ -130,8 +130,8 @@ attributes:
     description: Mask radius in pixels [x, y].
     from_schema: https://w3id.org/laura/schema/diagnostics
     domain_of:
-    - Multipole
     - ApertureElement
+    - Multipole
     - CameraMask
     range: float
     multivalued: true
@@ -139,10 +139,11 @@ attributes:
     name: maximum
     description: Maximum mask radius in pixels [x, y].
     from_schema: https://w3id.org/laura/schema/diagnostics
+    rank: 1000
     domain_of:
-    - LaserAttenuator
     - CameraMask
     - CameraSensor
+    - LaserAttenuator
     range: float
     multivalued: true
   use_maximum_values:
@@ -186,8 +187,8 @@ attributes:
     from_schema: https://w3id.org/laura/schema/diagnostics
     owner: CameraMask
     domain_of:
-    - Multipole
     - ApertureElement
+    - Multipole
     - CameraMask
     range: float
     multivalued: true
@@ -195,11 +196,12 @@ attributes:
     name: maximum
     description: Maximum mask radius in pixels [x, y].
     from_schema: https://w3id.org/laura/schema/diagnostics
+    rank: 1000
     owner: CameraMask
     domain_of:
-    - LaserAttenuator
     - CameraMask
     - CameraSensor
+    - LaserAttenuator
     range: float
     multivalued: true
   use_maximum_values:

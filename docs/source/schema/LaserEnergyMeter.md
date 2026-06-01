@@ -40,6 +40,17 @@ URI: [laura:LaserEnergyMeter](https://w3id.org/laura/LaserEnergyMeter)
     
 
         
+      LaserEnergyMeter : downstream
+        
+          
+    
+        
+        
+        LaserEnergyMeter --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       LaserEnergyMeter : electrical
         
           
@@ -65,6 +76,17 @@ URI: [laura:LaserEnergyMeter](https://w3id.org/laura/LaserEnergyMeter)
       LaserEnergyMeter : hardware_model
         
       LaserEnergyMeter : hardware_type
+        
+      LaserEnergyMeter : inputs
+        
+          
+    
+        
+        
+        LaserEnergyMeter --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       LaserEnergyMeter : laser
         
@@ -92,6 +114,17 @@ URI: [laura:LaserEnergyMeter](https://w3id.org/laura/LaserEnergyMeter)
         
       LaserEnergyMeter : name
         
+      LaserEnergyMeter : outputs
+        
+          
+    
+        
+        
+        LaserEnergyMeter --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
       LaserEnergyMeter : reference
         
           
@@ -115,6 +148,17 @@ URI: [laura:LaserEnergyMeter](https://w3id.org/laura/LaserEnergyMeter)
 
         
       LaserEnergyMeter : subelement
+        
+      LaserEnergyMeter : upstream
+        
+          
+    
+        
+        
+        LaserEnergyMeter --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
         
       LaserEnergyMeter : virtual_name
         
@@ -156,6 +200,10 @@ URI: [laura:LaserEnergyMeter](https://w3id.org/laura/LaserEnergyMeter)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -225,7 +273,7 @@ attributes:
   laser:
     name: laser
     description: Energy-meter instrument parameters.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     domain_of:
     - Laser
     - Plasma
@@ -256,7 +304,7 @@ attributes:
   laser:
     name: laser
     description: Energy-meter instrument parameters.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     owner: LaserEnergyMeter
     domain_of:
     - Laser
@@ -399,6 +447,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: LaserEnergyMeter
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: LaserEnergyMeter
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: LaserEnergyMeter
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: LaserEnergyMeter
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:LaserEnergyMeter
 
 ```

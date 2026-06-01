@@ -273,6 +273,80 @@ class ApertureShapeEnum(str, Enum):
     elliptical = "elliptical"
 
 
+class IOTypeEnum(str, Enum):
+    """
+    Input types for accelerator elements.
+    """
+    current = "current"
+    """
+    Electrical current.
+    """
+    voltage = "voltage"
+    """
+    Electrical voltage.
+    """
+    phase = "phase"
+    """
+    Phase in radians.
+    """
+    setpoint = "setpoint"
+    """
+    Control setpoint.
+    """
+    on_off_state = "on_off_state"
+    """
+    On/Off state.
+    """
+    open_closed_state = "open_closed_state"
+    """
+    Open/Closed state.
+    """
+    position = "position"
+    """
+    Physical position.
+    """
+    rotation = "rotation"
+    """
+    Physical rotation.
+    """
+    power = "power"
+    """
+    Electrical power.
+    """
+    pressure = "pressure"
+    """
+    Gas pressure.
+    """
+    charge = "charge"
+    """
+    Electrical charge.
+    """
+    absolute_time = "absolute_time"
+    """
+    Absolute timing.
+    """
+    relative_time = "relative_time"
+    """
+    Relative timing.
+    """
+    shot_number = "shot_number"
+    """
+    Shot number.
+    """
+    value = "value"
+    """
+    Single value.
+    """
+    waveform = "waveform"
+    """
+    Multivalued waveform.
+    """
+    magnetic_field = "magnetic_field"
+    """
+    Magnetic field.
+    """
+
+
 
 class _SimulationElementBase(ConfiguredBaseModel):
     """
@@ -520,7 +594,7 @@ class _MultipoleBase(ConfiguredBaseModel):
     order: int = Field(default=0, description="""Multipole order (0 = dipole, 1 = quadrupole, ?).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'int(0)'} })
     normal: float = Field(default=0, description="""Integrated normal (upright) multipole strength [T.m^{1-n}].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole'], 'ifabsent': 'float(0)'} })
     skew: float = Field(default=0, description="""Integrated skew (rotated) multipole strength [T.m^{1-n}].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'float(0)'} })
-    radius: float = Field(default=0, description="""Reference radius for multipole normalisation [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'ApertureElement', 'CameraMask'],
+    radius: float = Field(default=0, description="""Reference radius for multipole normalisation [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'CameraMask', 'ApertureElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
 
@@ -611,27 +685,6 @@ class _MagneticElementBase(ConfiguredBaseModel):
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
 
 
-class _ApertureElementBase(ConfiguredBaseModel):
-    """
-    Transverse aperture geometry for drift-space checks and collimators.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ApertureElement',
-         'from_schema': 'https://w3id.org/laura/schema/magnetic'})
-
-    number_of_elements: Optional[int] = Field(default=None, description="""Number of aperture sub-elements (e.g., for multi-leaf collimators).""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
-    horizontal_size: float = Field(default=0.0, description="""Full horizontal aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    vertical_size: float = Field(default=0.0, description="""Full vertical aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    shape: Optional[ApertureShapeEnum] = Field(default=None, description="""Cross-sectional aperture shape.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
-    radius: Optional[float] = Field(default=None, description="""Radius for circular apertures [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'ApertureElement', 'CameraMask'],
-         'unit': {'ucum_code': 'm'}} })
-    negative_extent: Optional[float] = Field(default=None, description="""Upstream / inner extent [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'unit': {'ucum_code': 'm'}} })
-    positive_extent: Optional[float] = Field(default=None, description="""Downstream / outer extent [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'unit': {'ucum_code': 'm'}} })
-
-
 class _DegaussableElementBase(ConfiguredBaseModel):
     """
     Degaussing (demagnetisation cycle) parameters for magnets that require a field-reset procedure.
@@ -677,10 +730,10 @@ class _RFCavityElementBase(ConfiguredBaseModel):
     frequency: Optional[float] = Field(default=2998500000.0, description="""Operating frequency [Hz].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
          'ifabsent': 'float(2998500000.0)',
          'unit': {'ucum_code': 'Hz'}} })
-    n_cells: Optional[int] = Field(default=1, description="""Number of cells.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+    n_cells: Optional[float] = Field(default=1, description="""Number of cells.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
                        'WakefieldElement',
                        'RFDeflectingCavityElement'],
-         'ifabsent': 'int(1)'} })
+         'ifabsent': 'float(1)'} })
     crest: Optional[float] = Field(default=0, description="""On-crest phase offset providing maximum energy gain [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'deg'}} })
@@ -688,7 +741,7 @@ class _RFCavityElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'deg'}} })
     shunt_impedance: Optional[float] = Field(default=None, description="""Shunt impedance [M?/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
-    mode_numerator: Optional[int] = Field(default=None, description="""Mode fraction numerator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
+    mode_numerator: Optional[float] = Field(default=None, description="""Mode fraction numerator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
     mode_denominator: Optional[int] = Field(default=None, description="""Mode fraction denominator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
     structure_type: str = Field(default="StandingWave", description="""RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave).""", validation_alias=AliasChoices('structure_type', 'structure_Type'), json_schema_extra = { "linkml_meta": {'aliases': ['structure_Type'],
          'domain_of': ['RFCavityElement'],
@@ -711,10 +764,10 @@ class _WakefieldElementBase(ConfiguredBaseModel):
                        'RFDeflectingCavityElement'],
          'ifabsent': 'float(0.03333333333333333)',
          'unit': {'ucum_code': 'm'}} })
-    n_cells: Optional[int] = Field(default=1, description="""Number of cells.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+    n_cells: Optional[float] = Field(default=1, description="""Number of cells.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
                        'WakefieldElement',
                        'RFDeflectingCavityElement'],
-         'ifabsent': 'int(1)'} })
+         'ifabsent': 'float(1)'} })
     coupling_cell_length: Optional[float] = Field(default=0.0, description="""Length of the coupling cell [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
                        'WakefieldElement',
                        'RFDeflectingCavityElement'],
@@ -750,15 +803,15 @@ class _RFDeflectingCavityElementBase(ConfiguredBaseModel):
     frequency: Optional[float] = Field(default=2998500000.0, description="""Operating frequency [Hz].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
          'ifabsent': 'float(2998500000.0)',
          'unit': {'ucum_code': 'Hz'}} })
-    n_cells: Optional[int] = Field(default=1, description="""Number of cells.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
+    n_cells: Optional[float] = Field(default=1, description="""Number of cells.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement',
                        'WakefieldElement',
                        'RFDeflectingCavityElement'],
-         'ifabsent': 'int(1)'} })
+         'ifabsent': 'float(1)'} })
     phase: Optional[float] = Field(default=0.0, description="""Operating phase offset [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'deg'}} })
     shunt_impedance: Optional[float] = Field(default=None, description="""Shunt impedance [M?/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
-    mode_numerator: Optional[int] = Field(default=None, description="""Mode fraction numerator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
+    mode_numerator: Optional[float] = Field(default=None, description="""Mode fraction numerator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
     mode_denominator: Optional[int] = Field(default=None, description="""Mode fraction denominator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
 
 
@@ -1066,7 +1119,7 @@ class _CameraMaskBase(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/laura/schema/diagnostics'})
 
     middle: list[float] = Field(default_factory=list, description="""Center of the mask in pixels [x, y].""", validation_alias=AliasChoices('middle', 'position', 'centre'), json_schema_extra = { "linkml_meta": {'domain_of': ['CameraMask', 'CameraSensor', 'PhysicalElement']} })
-    radius: list[float] = Field(default_factory=list, description="""Mask radius in pixels [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'ApertureElement', 'CameraMask']} })
+    radius: list[float] = Field(default_factory=list, description="""Mask radius in pixels [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'CameraMask', 'ApertureElement']} })
     maximum: list[float] = Field(default_factory=list, description="""Maximum mask radius in pixels [x, y].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraMask', 'CameraSensor', 'LaserAttenuator']} })
     use_maximum_values: Optional[bool] = Field(default=True, description="""If True, use maximum mask radius constraints.""", validation_alias=AliasChoices('use_maximum_values', 'USE_MASK_RAD_LIMITS'), json_schema_extra = { "linkml_meta": {'aliases': ['USE_MASK_RAD_LIMITS'],
          'domain_of': ['CameraMask'],
@@ -1144,6 +1197,32 @@ class _CameraDiagnosticElementBase(_DiagnosticElementBase):
     pixel_results_names: Optional[_CameraPixelResultsNamesBase] = Field(default=None, description="""Names of pixel analysis result arrays.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
     mask: Optional[_CameraMaskBase] = Field(default=None, description="""Camera analysis mask configuration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
     sensor: Optional[_CameraSensorBase] = Field(default=None, description="""Camera sensor hardware configuration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraDiagnosticElement']} })
+
+
+class _LaserMirrorElementBase(ConfiguredBaseModel):
+    """
+    Mirror steering parameters for a laser mirror.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserMirrorElement',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma'})
+
+    step_max: Optional[float] = Field(default=None, description="""Maximum step size for mirror adjustment.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserMirrorElement']} })
+    sense: Optional[_LaserMirrorSenseBase] = Field(default=None, description="""Mirror sense/interlock configuration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserMirrorElement']} })
+    vertical_channel: Optional[int] = Field(default=None, description="""Vertical control channel index.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserMirrorElement']} })
+    horizontal_channel: Optional[int] = Field(default=None, description="""Horizontal control channel index.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserMirrorElement']} })
+
+
+class _LaserMirrorSenseBase(ConfiguredBaseModel):
+    """
+    Mirror sense switch values.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserMirrorSense',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma'})
+
+    left: Optional[float] = Field(default=None, description="""Left sense value.""", validation_alias=AliasChoices('left', 'left_sense'), json_schema_extra = { "linkml_meta": {'aliases': ['left_sense'], 'domain_of': ['LaserMirrorSense']} })
+    right: Optional[float] = Field(default=None, description="""Right sense value.""", validation_alias=AliasChoices('right', 'right_sense'), json_schema_extra = { "linkml_meta": {'aliases': ['right_sense'], 'domain_of': ['LaserMirrorSense']} })
+    up: Optional[float] = Field(default=None, description="""Up sense value.""", validation_alias=AliasChoices('up', 'up_sense'), json_schema_extra = { "linkml_meta": {'aliases': ['up_sense'], 'domain_of': ['LaserMirrorSense']} })
+    down: Optional[float] = Field(default=None, description="""Down sense value.""", validation_alias=AliasChoices('down', 'down_sense'), json_schema_extra = { "linkml_meta": {'aliases': ['down_sense'], 'domain_of': ['LaserMirrorSense']} })
 
 
 class _LaserElementBase(ConfiguredBaseModel):
@@ -1436,6 +1515,10 @@ class _AcceleratorElementBase(ConfiguredBaseModel):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _StandardElementBase(_AcceleratorElementBase):
@@ -1458,6 +1541,307 @@ class _StandardElementBase(_AcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _LowLevelRFBase(_StandardElementBase):
+    """
+    Low-level RF (LLRF) controller.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LowLevelRF',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'slot_usage': {'hardware_type': {'equals_string': 'Low_Level_RF',
+                                          'name': 'hardware_type'}}})
+
+    llrf: Optional[_LowLevelRFElementBase] = Field(default=None, description="""LLRF parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LowLevelRF']} })
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["Low_Level_RF"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'Low_Level_RF',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _RFModulatorBase(_StandardElementBase):
+    """
+    RF modulator (klystron driver) element.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFModulator',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'slot_usage': {'hardware_type': {'equals_string': 'RFModulator',
+                                          'name': 'hardware_type'}}})
+
+    modulator: Optional[_RFModulatorElementBase] = Field(default=None, description="""Modulator parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFModulator']} })
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["RFModulator"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'RFModulator',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _RFProtectionBase(_StandardElementBase):
+    """
+    RF protection system element.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFProtection',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'slot_usage': {'hardware_type': {'equals_string': 'RFProtection',
+                                          'name': 'hardware_type'}}})
+
+    protection: Optional[_RFProtectionElementBase] = Field(default=None, description="""RF protection parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFProtection']} })
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["RFProtection"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'RFProtection',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _RFHeartbeatBase(_StandardElementBase):
+    """
+    RF timing heartbeat / signal-monitor element.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFHeartbeat',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'slot_usage': {'hardware_type': {'equals_string': 'RFHeartbeat',
+                                          'name': 'hardware_type'}}})
+
+    heartbeat: Optional[_RFHeartbeatElementBase] = Field(default=None, description="""RF heartbeat parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFHeartbeat']} })
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["RFHeartbeat"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'RFHeartbeat',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _PIDBase(_StandardElementBase):
+    """
+    Proportional-integral-derivative (PID) feedback controller.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PID',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'slot_usage': {'hardware_type': {'equals_string': 'PID',
+                                          'name': 'hardware_type'}}})
+
+    pid: Optional[_PIDElementBase] = Field(default=None, description="""PID gain parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PID']} })
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["PID"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'PID',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _LaserEnergyMeterBase(_StandardElementBase):
+    """
+    Laser pulse-energy diagnostic (photodiode / pyroelectric).
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserEnergyMeter',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
+         'in_subset': ['laser_properties'],
+         'slot_usage': {'hardware_type': {'equals_string': 'LaserEnergyMeter',
+                                          'name': 'hardware_type'}}})
+
+    laser: Optional[_LaserEnergyMeterElementBase] = Field(default=None, description="""Energy-meter instrument parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Plasma',
+                       'LaserEnergyMeter',
+                       'LaserHalfWavePlate',
+                       'LaserMirror',
+                       'Laser']} })
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["LaserEnergyMeter"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'LaserEnergyMeter',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _LaserHalfWavePlateBase(_StandardElementBase):
+    """
+    Half-wave plate for laser polarisation rotation.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserHalfWavePlate',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
+         'in_subset': ['laser_properties'],
+         'slot_usage': {'hardware_type': {'equals_string': 'LaserHalfWavePlate',
+                                          'name': 'hardware_type'}}})
+
+    laser: Optional[_LaserHalfWavePlateElementBase] = Field(default=None, description="""Half-wave plate parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Plasma',
+                       'LaserEnergyMeter',
+                       'LaserHalfWavePlate',
+                       'LaserMirror',
+                       'Laser']} })
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["LaserHalfWavePlate"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'LaserHalfWavePlate',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _LaserMirrorBase(_StandardElementBase):
+    """
+    Laser steering or focusing mirror.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserMirror',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
+         'in_subset': ['laser_properties'],
+         'slot_usage': {'hardware_type': {'equals_string': 'LaserMirror',
+                                          'name': 'hardware_type'}}})
+
+    laser: Optional[_LaserMirrorElementBase] = Field(default=None, description="""Mirror steering parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Plasma',
+                       'LaserEnergyMeter',
+                       'LaserHalfWavePlate',
+                       'LaserMirror',
+                       'Laser']} })
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["LaserMirror"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'LaserMirror',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _LaserAttenuatorBase(_StandardElementBase):
+    """
+    Laser power attenuator (waveplate + polariser combination).
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserAttenuator',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
+         'in_subset': ['laser_properties'],
+         'slot_usage': {'hardware_type': {'equals_string': 'LaserAttenuator',
+                                          'name': 'hardware_type'}}})
+
+    maximum: Optional[float] = Field(default=None, description="""Maximum attenuation angle [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraMask', 'CameraSensor', 'LaserAttenuator'],
+         'unit': {'ucum_code': 'deg'}} })
+    minimum: Optional[float] = Field(default=None, description="""Minimum attenuation angle [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor', 'LaserAttenuator'], 'unit': {'ucum_code': 'deg'}} })
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["LaserAttenuator"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'LaserAttenuator',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _ElementBase(_StandardElementBase):
@@ -1479,6 +1863,10 @@ class _ElementBase(_StandardElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _PhysicalAcceleratorElementBase(_ElementBase):
@@ -1503,19 +1891,23 @@ class _PhysicalAcceleratorElementBase(_ElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
-class _MagnetBaseElementBase(_PhysicalAcceleratorElementBase):
+class _MagnetBase(_PhysicalAcceleratorElementBase):
     """
     Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement`` in the schema to avoid collision with the ``magnetic`` composition-model class; maps to ``Magnet`` in Python.)
     """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MagnetBaseElement',
-         'from_schema': 'https://w3id.org/laura/schema',
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Magnet',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic',
          'slot_usage': {'simulation': {'name': 'simulation',
                                        'range': 'MagnetSimulationElement'}}})
 
-    magnetic: Optional[_MagneticElementBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetBaseElement'], 'in_subset': ['magnetic_properties']} })
-    degauss: Optional[_DegaussableElementBase] = Field(default=None, description="""Degaussing-cycle parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetBaseElement']} })
+    magnetic: Optional[_MagneticElementBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
+    degauss: Optional[_DegaussableElementBase] = Field(default=None, description="""Degaussing-cycle parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet']} })
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -1531,6 +1923,115 @@ class _MagnetBaseElementBase(_PhysicalAcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _RFCavityBase(_PhysicalAcceleratorElementBase):
+    """
+    Accelerating RF cavity.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFCavity',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'slot_usage': {'hardware_type': {'equals_string': 'RFCavity',
+                                          'name': 'hardware_type'},
+                        'simulation': {'name': 'simulation',
+                                       'range': 'RFCavitySimulationElement'}}})
+
+    cavity: Optional[_RFCavityElementBase] = Field(default=None, description="""RF structure parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavity', 'RFDeflectingCavity', 'Wakefield'],
+         'in_subset': ['rf_properties']} })
+    physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
+         'in_subset': ['physical_properties']} })
+    simulation: Optional[_RFCavitySimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["RFCavity"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'RFCavity',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _RFDeflectingCavityBase(_RFCavityBase):
+    """
+    Transverse-deflecting (streak) RF cavity.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFDeflectingCavity',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'slot_usage': {'hardware_type': {'equals_string': 'RFDeflectingCavity',
+                                          'name': 'hardware_type'}}})
+
+    cavity: Optional[_RFDeflectingCavityElementBase] = Field(default=None, description="""RF structure parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavity', 'RFDeflectingCavity', 'Wakefield'],
+         'in_subset': ['rf_properties']} })
+    physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
+         'in_subset': ['physical_properties']} })
+    simulation: Optional[_RFCavitySimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["RFDeflectingCavity"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'RFDeflectingCavity',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _WakefieldBase(_PhysicalAcceleratorElementBase):
+    """
+    Passive wakefield structure (dielectric, corrugated, etc.).
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Wakefield',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'slot_usage': {'hardware_type': {'equals_string': 'Wakefield',
+                                          'name': 'hardware_type'},
+                        'simulation': {'name': 'simulation',
+                                       'range': 'WakefieldSimulationElement'}}})
+
+    cavity: Optional[_WakefieldElementBase] = Field(default=None, description="""Wakefield structure parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavity', 'RFDeflectingCavity', 'Wakefield']} })
+    physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
+         'in_subset': ['physical_properties']} })
+    simulation: Optional[_WakefieldSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["Wakefield"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'Wakefield',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _DiagnosticBase(_PhysicalAcceleratorElementBase):
@@ -1538,7 +2039,7 @@ class _DiagnosticBase(_PhysicalAcceleratorElementBase):
     Base class for all beam-diagnostic instruments.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Diagnostic',
-         'from_schema': 'https://w3id.org/laura/schema',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
          'slot_usage': {'simulation': {'name': 'simulation',
                                        'range': 'DiagnosticSimulationElement'}}})
 
@@ -1565,6 +2066,10 @@ class _DiagnosticBase(_PhysicalAcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _BeamPositionMonitorBase(_DiagnosticBase):
@@ -1572,7 +2077,7 @@ class _BeamPositionMonitorBase(_DiagnosticBase):
     Beam-position monitor (BPM).
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:BeamPositionMonitor',
-         'from_schema': 'https://w3id.org/laura/schema',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
          'slot_usage': {'hardware_type': {'equals_string': 'Beam_Position_Monitor',
                                           'name': 'hardware_type'}}})
 
@@ -1601,6 +2106,10 @@ class _BeamPositionMonitorBase(_DiagnosticBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _BeamArrivalMonitorBase(_DiagnosticBase):
@@ -1608,7 +2117,7 @@ class _BeamArrivalMonitorBase(_DiagnosticBase):
     Beam-arrival-time monitor (BAM).
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:BeamArrivalMonitor',
-         'from_schema': 'https://w3id.org/laura/schema',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
          'slot_usage': {'hardware_type': {'equals_string': 'Beam_Arrival_Monitor',
                                           'name': 'hardware_type'}}})
 
@@ -1637,6 +2146,10 @@ class _BeamArrivalMonitorBase(_DiagnosticBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _BunchLengthMonitorBase(_DiagnosticBase):
@@ -1644,7 +2157,7 @@ class _BunchLengthMonitorBase(_DiagnosticBase):
     Bunch-length monitor (BLM / CDR detector).
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:BunchLengthMonitor',
-         'from_schema': 'https://w3id.org/laura/schema',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
          'slot_usage': {'hardware_type': {'equals_string': 'Bunch_Length_Monitor',
                                           'name': 'hardware_type'}}})
 
@@ -1673,6 +2186,10 @@ class _BunchLengthMonitorBase(_DiagnosticBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _CameraBase(_DiagnosticBase):
@@ -1680,7 +2197,7 @@ class _CameraBase(_DiagnosticBase):
     Camera-based beam-profile monitor.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Camera',
-         'from_schema': 'https://w3id.org/laura/schema',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
          'slot_usage': {'hardware_type': {'equals_string': 'Camera',
                                           'name': 'hardware_type'}}})
 
@@ -1709,6 +2226,10 @@ class _CameraBase(_DiagnosticBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _ScreenBase(_DiagnosticBase):
@@ -1716,7 +2237,7 @@ class _ScreenBase(_DiagnosticBase):
     Scintillator or OTR screen with an associated camera.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Screen',
-         'from_schema': 'https://w3id.org/laura/schema',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
          'slot_usage': {'hardware_type': {'equals_string': 'Screen',
                                           'name': 'hardware_type'}}})
 
@@ -1745,6 +2266,10 @@ class _ScreenBase(_DiagnosticBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _ChargeDiagnosticBase(_DiagnosticBase):
@@ -1752,7 +2277,7 @@ class _ChargeDiagnosticBase(_DiagnosticBase):
     Base class for charge-measurement diagnostics.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ChargeDiagnostic',
-         'from_schema': 'https://w3id.org/laura/schema',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
          'slot_usage': {'hardware_type': {'equals_string': 'ChargeDiagnostic',
                                           'name': 'hardware_type'}}})
 
@@ -1781,6 +2306,10 @@ class _ChargeDiagnosticBase(_DiagnosticBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _WallCurrentMonitorBase(_ChargeDiagnosticBase):
@@ -1788,7 +2317,7 @@ class _WallCurrentMonitorBase(_ChargeDiagnosticBase):
     Wall-current monitor (WCM) for non-destructive charge measurement.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:WallCurrentMonitor',
-         'from_schema': 'https://w3id.org/laura/schema',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
          'slot_usage': {'hardware_type': {'equals_string': 'Wall_Current_Monitor',
                                           'name': 'hardware_type'}}})
 
@@ -1817,6 +2346,10 @@ class _WallCurrentMonitorBase(_ChargeDiagnosticBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _FaradayCupMonitorBase(_ChargeDiagnosticBase):
@@ -1824,7 +2357,7 @@ class _FaradayCupMonitorBase(_ChargeDiagnosticBase):
     Faraday cup for destructive charge measurement.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:FaradayCupMonitor',
-         'from_schema': 'https://w3id.org/laura/schema',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
          'slot_usage': {'hardware_type': {'equals_string': 'Faraday_Cup_Monitor',
                                           'name': 'hardware_type'}}})
 
@@ -1853,6 +2386,10 @@ class _FaradayCupMonitorBase(_ChargeDiagnosticBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _IntegratedCurrentTransformerBase(_ChargeDiagnosticBase):
@@ -1860,7 +2397,7 @@ class _IntegratedCurrentTransformerBase(_ChargeDiagnosticBase):
     Integrated current transformer (ICT) for non-destructive single-shot charge measurement.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:IntegratedCurrentTransformer',
-         'from_schema': 'https://w3id.org/laura/schema',
+         'from_schema': 'https://w3id.org/laura/schema/diagnostics',
          'slot_usage': {'hardware_type': {'equals_string': 'Integrated_Current_Transformer',
                                           'name': 'hardware_type'}}})
 
@@ -1889,234 +2426,50 @@ class _IntegratedCurrentTransformerBase(_ChargeDiagnosticBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
-class _RFCavityBase(_PhysicalAcceleratorElementBase):
+class _PlasmaBase(_PhysicalAcceleratorElementBase):
     """
-    Accelerating RF cavity.
+    Laser-driven plasma-accelerator stage.
     """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFCavity',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'hardware_type': {'equals_string': 'RFCavity',
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Plasma',
+         'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
+         'slot_usage': {'hardware_type': {'equals_string': 'Plasma',
                                           'name': 'hardware_type'},
                         'simulation': {'name': 'simulation',
-                                       'range': 'RFCavitySimulationElement'}}})
+                                       'range': 'PlasmaSimulationElement'}}})
 
-    cavity: Optional[_RFCavityElementBase] = Field(default=None, description="""RF structure parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavity', 'RFDeflectingCavity', 'Wakefield'],
-         'in_subset': ['rf_properties']} })
+    plasma: Optional[_PlasmaElementBase] = Field(default=None, description="""Plasma channel parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Plasma']} })
+    laser: Optional[_LaserElementBase] = Field(default=None, description="""Laser driving the plasma stage.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Plasma',
+                       'LaserEnergyMeter',
+                       'LaserHalfWavePlate',
+                       'LaserMirror',
+                       'Laser']} })
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
-    simulation: Optional[_RFCavitySimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    simulation: Optional[_PlasmaSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
     controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
     hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["RFCavity"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'RFCavity',
+    hardware_type: Optional[Literal["Plasma"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'Plasma',
          'ifabsent': 'string(Generic)'} })
     hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
     machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _RFDeflectingCavityBase(_RFCavityBase):
-    """
-    Transverse-deflecting (streak) RF cavity.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFDeflectingCavity',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'hardware_type': {'equals_string': 'RFDeflectingCavity',
-                                          'name': 'hardware_type'}}})
-
-    cavity: Optional[_RFDeflectingCavityElementBase] = Field(default=None, description="""RF structure parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavity', 'RFDeflectingCavity', 'Wakefield'],
-         'in_subset': ['rf_properties']} })
-    physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
-         'in_subset': ['physical_properties']} })
-    simulation: Optional[_RFCavitySimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["RFDeflectingCavity"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'RFDeflectingCavity',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _WakefieldBase(_PhysicalAcceleratorElementBase):
-    """
-    Passive wakefield structure (dielectric, corrugated, etc.).
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Wakefield',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'hardware_type': {'equals_string': 'Wakefield',
-                                          'name': 'hardware_type'},
-                        'simulation': {'name': 'simulation',
-                                       'range': 'WakefieldSimulationElement'}}})
-
-    cavity: Optional[_WakefieldElementBase] = Field(default=None, description="""Wakefield structure parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavity', 'RFDeflectingCavity', 'Wakefield']} })
-    physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
-         'in_subset': ['physical_properties']} })
-    simulation: Optional[_WakefieldSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["Wakefield"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'Wakefield',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _LowLevelRFBase(_StandardElementBase):
-    """
-    Low-level RF (LLRF) controller.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LowLevelRF',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'hardware_type': {'equals_string': 'Low_Level_RF',
-                                          'name': 'hardware_type'}}})
-
-    llrf: Optional[_LowLevelRFElementBase] = Field(default=None, description="""LLRF parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LowLevelRF']} })
-    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["Low_Level_RF"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'Low_Level_RF',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _RFModulatorBase(_StandardElementBase):
-    """
-    RF modulator (klystron driver) element.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFModulator',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'hardware_type': {'equals_string': 'RFModulator',
-                                          'name': 'hardware_type'}}})
-
-    modulator: Optional[_RFModulatorElementBase] = Field(default=None, description="""Modulator parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFModulator']} })
-    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["RFModulator"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'RFModulator',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _RFProtectionBase(_StandardElementBase):
-    """
-    RF protection system element.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFProtection',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'hardware_type': {'equals_string': 'RFProtection',
-                                          'name': 'hardware_type'}}})
-
-    protection: Optional[_RFProtectionElementBase] = Field(default=None, description="""RF protection parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFProtection']} })
-    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["RFProtection"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'RFProtection',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _RFHeartbeatBase(_StandardElementBase):
-    """
-    RF timing heartbeat / signal-monitor element.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFHeartbeat',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'hardware_type': {'equals_string': 'RFHeartbeat',
-                                          'name': 'hardware_type'}}})
-
-    heartbeat: Optional[_RFHeartbeatElementBase] = Field(default=None, description="""RF heartbeat parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFHeartbeat']} })
-    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["RFHeartbeat"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'RFHeartbeat',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _PIDBase(_StandardElementBase):
-    """
-    Proportional-integral-derivative (PID) feedback controller.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PID',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'hardware_type': {'equals_string': 'PID',
-                                          'name': 'hardware_type'}}})
-
-    pid: Optional[_PIDElementBase] = Field(default=None, description="""PID gain parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PID']} })
-    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["PID"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'PID',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _TwissMatchBase(_PhysicalAcceleratorElementBase):
@@ -2147,6 +2500,10 @@ class _TwissMatchBase(_PhysicalAcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _StageBase(_PhysicalAcceleratorElementBase):
@@ -2175,6 +2532,10 @@ class _StageBase(_PhysicalAcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _VacuumGaugeBase(_PhysicalAcceleratorElementBase):
@@ -2203,6 +2564,10 @@ class _VacuumGaugeBase(_PhysicalAcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _LaserBase(_PhysicalAcceleratorElementBase):
@@ -2215,11 +2580,11 @@ class _LaserBase(_PhysicalAcceleratorElementBase):
          'slot_usage': {'hardware_type': {'equals_string': 'Laser',
                                           'name': 'hardware_type'}}})
 
-    laser: Optional[_LaserElementBase] = Field(default=None, description="""Laser-beam parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Laser',
-                       'Plasma',
+    laser: Optional[_LaserElementBase] = Field(default=None, description="""Laser-beam parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Plasma',
                        'LaserEnergyMeter',
                        'LaserHalfWavePlate',
-                       'LaserMirror']} })
+                       'LaserMirror',
+                       'Laser']} })
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -2237,6 +2602,10 @@ class _LaserBase(_PhysicalAcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _ShutterBase(_PhysicalAcceleratorElementBase):
@@ -2266,6 +2635,31 @@ class _ShutterBase(_PhysicalAcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _ApertureElementBase(ConfiguredBaseModel):
+    """
+    Transverse aperture geometry for drift-space checks and collimators.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ApertureElement',
+         'from_schema': 'https://w3id.org/laura/schema'})
+
+    number_of_elements: Optional[int] = Field(default=None, description="""Number of aperture sub-elements (e.g., for multi-leaf collimators).""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
+    horizontal_size: float = Field(default=0.0, description="""Full horizontal aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    vertical_size: float = Field(default=0.0, description="""Full vertical aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    shape: Optional[ApertureShapeEnum] = Field(default=None, description="""Cross-sectional aperture shape.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
+    radius: Optional[float] = Field(default=None, description="""Radius for circular apertures [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'CameraMask', 'ApertureElement'],
+         'unit': {'ucum_code': 'm'}} })
+    negative_extent: Optional[float] = Field(default=None, description="""Upstream / inner extent [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'unit': {'ucum_code': 'm'}} })
+    positive_extent: Optional[float] = Field(default=None, description="""Downstream / outer extent [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'unit': {'ucum_code': 'm'}} })
 
 
 class _ValveBase(_PhysicalAcceleratorElementBase):
@@ -2295,6 +2689,10 @@ class _ValveBase(_PhysicalAcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _MarkerBase(_PhysicalAcceleratorElementBase):
@@ -2323,6 +2721,10 @@ class _MarkerBase(_PhysicalAcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _ApertureBase(_PhysicalAcceleratorElementBase):
@@ -2352,6 +2754,10 @@ class _ApertureBase(_PhysicalAcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _CollimatorBase(_ApertureBase):
@@ -2381,6 +2787,10 @@ class _CollimatorBase(_ApertureBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _DriftBase(_PhysicalAcceleratorElementBase):
@@ -2411,194 +2821,10 @@ class _DriftBase(_PhysicalAcceleratorElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _PlasmaBase(_PhysicalAcceleratorElementBase):
-    """
-    Laser-driven plasma-accelerator stage.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Plasma',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'slot_usage': {'hardware_type': {'equals_string': 'Plasma',
-                                          'name': 'hardware_type'},
-                        'simulation': {'name': 'simulation',
-                                       'range': 'PlasmaSimulationElement'}}})
-
-    plasma: Optional[_PlasmaElementBase] = Field(default=None, description="""Plasma channel parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Plasma']} })
-    laser: Optional[_LaserElementBase] = Field(default=None, description="""Laser driving the plasma stage.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Laser',
-                       'Plasma',
-                       'LaserEnergyMeter',
-                       'LaserHalfWavePlate',
-                       'LaserMirror']} })
-    physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
-         'in_subset': ['physical_properties']} })
-    simulation: Optional[_PlasmaSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["Plasma"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'Plasma',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _LaserEnergyMeterBase(_StandardElementBase):
-    """
-    Laser pulse-energy diagnostic (photodiode / pyroelectric).
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserEnergyMeter',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['laser_properties'],
-         'slot_usage': {'hardware_type': {'equals_string': 'LaserEnergyMeter',
-                                          'name': 'hardware_type'}}})
-
-    laser: Optional[_LaserEnergyMeterElementBase] = Field(default=None, description="""Energy-meter instrument parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Laser',
-                       'Plasma',
-                       'LaserEnergyMeter',
-                       'LaserHalfWavePlate',
-                       'LaserMirror']} })
-    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["LaserEnergyMeter"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'LaserEnergyMeter',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _LaserHalfWavePlateBase(_StandardElementBase):
-    """
-    Half-wave plate for laser polarisation rotation.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserHalfWavePlate',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['laser_properties'],
-         'slot_usage': {'hardware_type': {'equals_string': 'LaserHalfWavePlate',
-                                          'name': 'hardware_type'}}})
-
-    laser: Optional[_LaserHalfWavePlateElementBase] = Field(default=None, description="""Half-wave plate parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Laser',
-                       'Plasma',
-                       'LaserEnergyMeter',
-                       'LaserHalfWavePlate',
-                       'LaserMirror']} })
-    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["LaserHalfWavePlate"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'LaserHalfWavePlate',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _LaserMirrorBase(_StandardElementBase):
-    """
-    Laser steering or focusing mirror.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserMirror',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['laser_properties'],
-         'slot_usage': {'hardware_type': {'equals_string': 'LaserMirror',
-                                          'name': 'hardware_type'}}})
-
-    laser: Optional[_LaserMirrorElementBase] = Field(default=None, description="""Mirror steering parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Laser',
-                       'Plasma',
-                       'LaserEnergyMeter',
-                       'LaserHalfWavePlate',
-                       'LaserMirror']} })
-    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["LaserMirror"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'LaserMirror',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-
-
-class _LaserMirrorElementBase(ConfiguredBaseModel):
-    """
-    Mirror steering parameters for a laser mirror.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserMirrorElement',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    step_max: Optional[float] = Field(default=None, description="""Maximum step size for mirror adjustment.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserMirrorElement']} })
-    sense: Optional[_LaserMirrorSenseBase] = Field(default=None, description="""Mirror sense/interlock configuration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserMirrorElement']} })
-    vertical_channel: Optional[int] = Field(default=None, description="""Vertical control channel index.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserMirrorElement']} })
-    horizontal_channel: Optional[int] = Field(default=None, description="""Horizontal control channel index.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserMirrorElement']} })
-
-
-class _LaserMirrorSenseBase(ConfiguredBaseModel):
-    """
-    Mirror sense switch values.
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserMirrorSense',
-         'from_schema': 'https://w3id.org/laura/schema'})
-
-    left: Optional[float] = Field(default=None, description="""Left sense value.""", validation_alias=AliasChoices('left', 'left_sense'), json_schema_extra = { "linkml_meta": {'aliases': ['left_sense'], 'domain_of': ['LaserMirrorSense']} })
-    right: Optional[float] = Field(default=None, description="""Right sense value.""", validation_alias=AliasChoices('right', 'right_sense'), json_schema_extra = { "linkml_meta": {'aliases': ['right_sense'], 'domain_of': ['LaserMirrorSense']} })
-    up: Optional[float] = Field(default=None, description="""Up sense value.""", validation_alias=AliasChoices('up', 'up_sense'), json_schema_extra = { "linkml_meta": {'aliases': ['up_sense'], 'domain_of': ['LaserMirrorSense']} })
-    down: Optional[float] = Field(default=None, description="""Down sense value.""", validation_alias=AliasChoices('down', 'down_sense'), json_schema_extra = { "linkml_meta": {'aliases': ['down_sense'], 'domain_of': ['LaserMirrorSense']} })
-
-
-class _LaserAttenuatorBase(_StandardElementBase):
-    """
-    Laser power attenuator (waveplate + polariser combination).
-    """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserAttenuator',
-         'from_schema': 'https://w3id.org/laura/schema',
-         'in_subset': ['laser_properties'],
-         'slot_usage': {'hardware_type': {'equals_string': 'LaserAttenuator',
-                                          'name': 'hardware_type'}}})
-
-    maximum: Optional[float] = Field(default=None, description="""Maximum attenuation angle [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraMask', 'CameraSensor', 'LaserAttenuator'],
-         'unit': {'ucum_code': 'deg'}} })
-    minimum: Optional[float] = Field(default=None, description="""Minimum attenuation angle [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['CameraSensor', 'LaserAttenuator'], 'unit': {'ucum_code': 'deg'}} })
-    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
-    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
-    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    hardware_type: Optional[Literal["LaserAttenuator"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
-         'equals_string': 'LaserAttenuator',
-         'ifabsent': 'string(Generic)'} })
-    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
-    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
-    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
-    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
-    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _LightingBase(_StandardElementBase):
@@ -2626,6 +2852,40 @@ class _LightingBase(_StandardElementBase):
     virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
     alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
     subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+
+
+class _PowerSupplyBase(_StandardElementBase):
+    """
+    Generic power-supply unit providing control/setpoint-driven outputs (for example current/voltage) to other accelerator components.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:PowerSupply',
+         'from_schema': 'https://w3id.org/laura/schema',
+         'slot_usage': {'hardware_type': {'equals_string': 'PowerSupply',
+                                          'name': 'hardware_type'}}})
+
+    simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement', 'SectionLattice', 'MachineLayout']} })
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    hardware_type: Optional[Literal["PowerSupply"]] = Field(default="Generic", description="""Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'PowerSupply',
+         'ifabsent': 'string(Generic)'} })
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of input types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""(List) of output types""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    upstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    downstream: list[str] = Field(default_factory=list, description="""(List) of upstream elements.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
 
 
 class _SectionLatticeBase(ConfiguredBaseModel):
@@ -2679,7 +2939,6 @@ _MultipolesBase.model_rebuild()
 _FieldIntegralBase.model_rebuild()
 _LinearSaturationFitBase.model_rebuild()
 _MagneticElementBase.model_rebuild()
-_ApertureElementBase.model_rebuild()
 _DegaussableElementBase.model_rebuild()
 _RFCavityElementBase.model_rebuild()
 _WakefieldElementBase.model_rebuild()
@@ -2706,6 +2965,8 @@ _CameraPixelResultsNamesBase.model_rebuild()
 _CameraMaskBase.model_rebuild()
 _CameraSensorBase.model_rebuild()
 _CameraDiagnosticElementBase.model_rebuild()
+_LaserMirrorElementBase.model_rebuild()
+_LaserMirrorSenseBase.model_rebuild()
 _LaserElementBase.model_rebuild()
 _LaserEnergyMeterElementBase.model_rebuild()
 _LaserHalfWavePlateElementBase.model_rebuild()
@@ -2725,9 +2986,21 @@ _ValveElementBase.model_rebuild()
 _LightingElementBase.model_rebuild()
 _AcceleratorElementBase.model_rebuild()
 _StandardElementBase.model_rebuild()
+_LowLevelRFBase.model_rebuild()
+_RFModulatorBase.model_rebuild()
+_RFProtectionBase.model_rebuild()
+_RFHeartbeatBase.model_rebuild()
+_PIDBase.model_rebuild()
+_LaserEnergyMeterBase.model_rebuild()
+_LaserHalfWavePlateBase.model_rebuild()
+_LaserMirrorBase.model_rebuild()
+_LaserAttenuatorBase.model_rebuild()
 _ElementBase.model_rebuild()
 _PhysicalAcceleratorElementBase.model_rebuild()
-_MagnetBaseElementBase.model_rebuild()
+_MagnetBase.model_rebuild()
+_RFCavityBase.model_rebuild()
+_RFDeflectingCavityBase.model_rebuild()
+_WakefieldBase.model_rebuild()
 _DiagnosticBase.model_rebuild()
 _BeamPositionMonitorBase.model_rebuild()
 _BeamArrivalMonitorBase.model_rebuild()
@@ -2738,32 +3011,20 @@ _ChargeDiagnosticBase.model_rebuild()
 _WallCurrentMonitorBase.model_rebuild()
 _FaradayCupMonitorBase.model_rebuild()
 _IntegratedCurrentTransformerBase.model_rebuild()
-_RFCavityBase.model_rebuild()
-_RFDeflectingCavityBase.model_rebuild()
-_WakefieldBase.model_rebuild()
-_LowLevelRFBase.model_rebuild()
-_RFModulatorBase.model_rebuild()
-_RFProtectionBase.model_rebuild()
-_RFHeartbeatBase.model_rebuild()
-_PIDBase.model_rebuild()
+_PlasmaBase.model_rebuild()
 _TwissMatchBase.model_rebuild()
 _StageBase.model_rebuild()
 _VacuumGaugeBase.model_rebuild()
 _LaserBase.model_rebuild()
 _ShutterBase.model_rebuild()
+_ApertureElementBase.model_rebuild()
 _ValveBase.model_rebuild()
 _MarkerBase.model_rebuild()
 _ApertureBase.model_rebuild()
 _CollimatorBase.model_rebuild()
 _DriftBase.model_rebuild()
-_PlasmaBase.model_rebuild()
-_LaserEnergyMeterBase.model_rebuild()
-_LaserHalfWavePlateBase.model_rebuild()
-_LaserMirrorBase.model_rebuild()
-_LaserMirrorElementBase.model_rebuild()
-_LaserMirrorSenseBase.model_rebuild()
-_LaserAttenuatorBase.model_rebuild()
 _LightingBase.model_rebuild()
+_PowerSupplyBase.model_rebuild()
 _SectionLatticeBase.model_rebuild()
 _MachineLayoutBase.model_rebuild()
 _MachineModelBase.model_rebuild()

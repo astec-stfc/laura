@@ -28,14 +28,6 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
         click Element href "../Element/"
       
 
-      PhysicalAcceleratorElement <|-- MagnetBaseElement
-        click MagnetBaseElement href "../MagnetBaseElement/"
-      PhysicalAcceleratorElement <|-- Diagnostic
-        click Diagnostic href "../Diagnostic/"
-      PhysicalAcceleratorElement <|-- RFCavity
-        click RFCavity href "../RFCavity/"
-      PhysicalAcceleratorElement <|-- Wakefield
-        click Wakefield href "../Wakefield/"
       PhysicalAcceleratorElement <|-- TwissMatch
         click TwissMatch href "../TwissMatch/"
       PhysicalAcceleratorElement <|-- Stage
@@ -54,6 +46,14 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
         click Aperture href "../Aperture/"
       PhysicalAcceleratorElement <|-- Drift
         click Drift href "../Drift/"
+      PhysicalAcceleratorElement <|-- Magnet
+        click Magnet href "../Magnet/"
+      PhysicalAcceleratorElement <|-- RFCavity
+        click RFCavity href "../RFCavity/"
+      PhysicalAcceleratorElement <|-- Wakefield
+        click Wakefield href "../Wakefield/"
+      PhysicalAcceleratorElement <|-- Diagnostic
+        click Diagnostic href "../Diagnostic/"
       PhysicalAcceleratorElement <|-- Plasma
         click Plasma href "../Plasma/"
       
@@ -68,6 +68,17 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
         
         PhysicalAcceleratorElement --> "0..1" ControlsInformation : controls
         click ControlsInformation href "../ControlsInformation/"
+    
+
+        
+      PhysicalAcceleratorElement : downstream
+        
+          
+    
+        
+        
+        PhysicalAcceleratorElement --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
     
 
         
@@ -97,6 +108,17 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
         
       PhysicalAcceleratorElement : hardware_type
         
+      PhysicalAcceleratorElement : inputs
+        
+          
+    
+        
+        
+        PhysicalAcceleratorElement --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
       PhysicalAcceleratorElement : machine_area
         
       PhysicalAcceleratorElement : manufacturer
@@ -111,6 +133,17 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
 
         
       PhysicalAcceleratorElement : name
+        
+      PhysicalAcceleratorElement : outputs
+        
+          
+    
+        
+        
+        PhysicalAcceleratorElement --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       PhysicalAcceleratorElement : physical
         
@@ -147,6 +180,17 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
         
       PhysicalAcceleratorElement : subelement
         
+      PhysicalAcceleratorElement : upstream
+        
+          
+    
+        
+        
+        PhysicalAcceleratorElement --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       PhysicalAcceleratorElement : virtual_name
         
       
@@ -161,10 +205,6 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
     * [StandardElement](StandardElement.md)
         * [Element](Element.md)
             * **PhysicalAcceleratorElement**
-                * [MagnetBaseElement](MagnetBaseElement.md)
-                * [Diagnostic](Diagnostic.md)
-                * [RFCavity](RFCavity.md)
-                * [Wakefield](Wakefield.md)
                 * [TwissMatch](TwissMatch.md)
                 * [Stage](Stage.md)
                 * [VacuumGauge](VacuumGauge.md)
@@ -174,6 +214,10 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
                 * [Marker](Marker.md)
                 * [Aperture](Aperture.md)
                 * [Drift](Drift.md)
+                * [Magnet](Magnet.md)
+                * [RFCavity](RFCavity.md)
+                * [Wakefield](Wakefield.md)
+                * [Diagnostic](Diagnostic.md)
                 * [Plasma](Plasma.md)
 
 
@@ -202,6 +246,10 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -426,6 +474,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: PhysicalAcceleratorElement
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: PhysicalAcceleratorElement
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: PhysicalAcceleratorElement
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: PhysicalAcceleratorElement
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:PhysicalAcceleratorElement
 
 ```

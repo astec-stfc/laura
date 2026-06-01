@@ -312,6 +312,24 @@ class AcceleratorElement(Base):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: AcceleratorElementAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "AcceleratorElementInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: AcceleratorElementInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "AcceleratorElementOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: AcceleratorElementOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="AcceleratorElement_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="AcceleratorElement_downstream")
+    
 
     def __repr__(self):
         return f"AcceleratorElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},)"
@@ -321,43 +339,24 @@ class AcceleratorElement(Base):
     
 
 
-class LaserMirrorElement(Base):
+class ApertureElement(Base):
     """
-    Mirror steering parameters for a laser mirror.
+    Transverse aperture geometry for drift-space checks and collimators.
     """
-    __tablename__ = 'LaserMirrorElement'
+    __tablename__ = 'ApertureElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
-    step_max = Column(Float())
-    vertical_channel = Column(Integer())
-    horizontal_channel = Column(Integer())
-    sense_id = Column(Integer(), ForeignKey('LaserMirrorSense.id'))
-    sense = relationship("LaserMirrorSense", uselist=False, foreign_keys=[sense_id])
+    number_of_elements = Column(Integer())
+    horizontal_size = Column(Float())
+    vertical_size = Column(Float())
+    shape = Column(Enum('circular', 'rectangular', 'elliptical', name='ApertureShapeEnum'))
+    radius = Column(Float())
+    negative_extent = Column(Float())
+    positive_extent = Column(Float())
     
 
     def __repr__(self):
-        return f"LaserMirrorElement(id={self.id},step_max={self.step_max},vertical_channel={self.vertical_channel},horizontal_channel={self.horizontal_channel},sense_id={self.sense_id},)"
-
-
-
-    
-
-
-class LaserMirrorSense(Base):
-    """
-    Mirror sense switch values.
-    """
-    __tablename__ = 'LaserMirrorSense'
-
-    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
-    left = Column(Float())
-    right = Column(Float())
-    up = Column(Float())
-    down = Column(Float())
-    
-
-    def __repr__(self):
-        return f"LaserMirrorSense(id={self.id},left={self.left},right={self.right},up={self.up},down={self.down},)"
+        return f"ApertureElement(id={self.id},number_of_elements={self.number_of_elements},horizontal_size={self.horizontal_size},vertical_size={self.vertical_size},shape={self.shape},radius={self.radius},negative_extent={self.negative_extent},positive_extent={self.positive_extent},)"
 
 
 
@@ -595,30 +594,6 @@ class MagneticElement(Base):
     
 
 
-class ApertureElement(Base):
-    """
-    Transverse aperture geometry for drift-space checks and collimators.
-    """
-    __tablename__ = 'ApertureElement'
-
-    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
-    number_of_elements = Column(Integer())
-    horizontal_size = Column(Float())
-    vertical_size = Column(Float())
-    shape = Column(Enum('circular', 'rectangular', 'elliptical', name='ApertureShapeEnum'))
-    radius = Column(Float())
-    negative_extent = Column(Float())
-    positive_extent = Column(Float())
-    
-
-    def __repr__(self):
-        return f"ApertureElement(id={self.id},number_of_elements={self.number_of_elements},horizontal_size={self.horizontal_size},vertical_size={self.vertical_size},shape={self.shape},radius={self.radius},negative_extent={self.negative_extent},positive_extent={self.positive_extent},)"
-
-
-
-    
-
-
 class DegaussableElement(Base):
     """
     Degaussing (demagnetisation cycle) parameters for magnets that require a field-reset procedure.
@@ -655,11 +630,11 @@ class RFCavityElement(Base):
     design_gamma = Column(Float())
     design_power = Column(Float())
     frequency = Column(Float())
-    n_cells = Column(Integer())
+    n_cells = Column(Float())
     crest = Column(Float())
     phase = Column(Float())
     shunt_impedance = Column(Float())
-    mode_numerator = Column(Integer())
+    mode_numerator = Column(Float())
     mode_denominator = Column(Integer())
     structure_type = Column(Text())
     attenuation_constant = Column(Float())
@@ -691,7 +666,7 @@ class WakefieldElement(Base):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     cell_length = Column(Float())
-    n_cells = Column(Integer())
+    n_cells = Column(Float())
     coupling_cell_length = Column(Float())
     
 
@@ -716,10 +691,10 @@ class RFDeflectingCavityElement(Base):
     design_gamma = Column(Float())
     design_power = Column(Float())
     frequency = Column(Float())
-    n_cells = Column(Integer())
+    n_cells = Column(Float())
     phase = Column(Float())
     shunt_impedance = Column(Float())
-    mode_numerator = Column(Integer())
+    mode_numerator = Column(Float())
     mode_denominator = Column(Integer())
     
 
@@ -1091,6 +1066,49 @@ class CameraSensor(Base):
     
 
 
+class LaserMirrorElement(Base):
+    """
+    Mirror steering parameters for a laser mirror.
+    """
+    __tablename__ = 'LaserMirrorElement'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    step_max = Column(Float())
+    vertical_channel = Column(Integer())
+    horizontal_channel = Column(Integer())
+    sense_id = Column(Integer(), ForeignKey('LaserMirrorSense.id'))
+    sense = relationship("LaserMirrorSense", uselist=False, foreign_keys=[sense_id])
+    
+
+    def __repr__(self):
+        return f"LaserMirrorElement(id={self.id},step_max={self.step_max},vertical_channel={self.vertical_channel},horizontal_channel={self.horizontal_channel},sense_id={self.sense_id},)"
+
+
+
+    
+
+
+class LaserMirrorSense(Base):
+    """
+    Mirror sense switch values.
+    """
+    __tablename__ = 'LaserMirrorSense'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    left = Column(Float())
+    right = Column(Float())
+    up = Column(Float())
+    down = Column(Float())
+    
+
+    def __repr__(self):
+        return f"LaserMirrorSense(id={self.id},left={self.left},right={self.right},up={self.up},down={self.down},)"
+
+
+
+    
+
+
 class LaserElement(Base):
     """
     Laser-beam parameters (wavelength, pulse energy, profile, etc.) for a laser element or laser-driven plasma stage.
@@ -1268,6 +1286,78 @@ class AcceleratorElementAlias(Base):
     
 
 
+class AcceleratorElementInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'AcceleratorElement_inputs'
+
+    AcceleratorElement_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"AcceleratorElement_inputs(AcceleratorElement_name={self.AcceleratorElement_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class AcceleratorElementOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'AcceleratorElement_outputs'
+
+    AcceleratorElement_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"AcceleratorElement_outputs(AcceleratorElement_name={self.AcceleratorElement_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class AcceleratorElementUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'AcceleratorElement_upstream'
+
+    AcceleratorElement_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"AcceleratorElement_upstream(AcceleratorElement_name={self.AcceleratorElement_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class AcceleratorElementDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'AcceleratorElement_downstream'
+
+    AcceleratorElement_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"AcceleratorElement_downstream(AcceleratorElement_name={self.AcceleratorElement_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class StandardElementAlias(Base):
     """
     None
@@ -1280,6 +1370,78 @@ class StandardElementAlias(Base):
 
     def __repr__(self):
         return f"StandardElement_alias(StandardElement_name={self.StandardElement_name},alias={self.alias},)"
+
+
+
+    
+
+
+class StandardElementInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'StandardElement_inputs'
+
+    StandardElement_name = Column(Text(), ForeignKey('StandardElement.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"StandardElement_inputs(StandardElement_name={self.StandardElement_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class StandardElementOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'StandardElement_outputs'
+
+    StandardElement_name = Column(Text(), ForeignKey('StandardElement.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"StandardElement_outputs(StandardElement_name={self.StandardElement_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class StandardElementUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'StandardElement_upstream'
+
+    StandardElement_name = Column(Text(), ForeignKey('StandardElement.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"StandardElement_upstream(StandardElement_name={self.StandardElement_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class StandardElementDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'StandardElement_downstream'
+
+    StandardElement_name = Column(Text(), ForeignKey('StandardElement.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"StandardElement_downstream(StandardElement_name={self.StandardElement_name},downstream_name={self.downstream_name},)"
 
 
 
@@ -1304,6 +1466,78 @@ class ElementAlias(Base):
     
 
 
+class ElementInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Element_inputs'
+
+    Element_name = Column(Text(), ForeignKey('Element.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Element_inputs(Element_name={self.Element_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class ElementOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Element_outputs'
+
+    Element_name = Column(Text(), ForeignKey('Element.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Element_outputs(Element_name={self.Element_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class ElementUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Element_upstream'
+
+    Element_name = Column(Text(), ForeignKey('Element.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Element_upstream(Element_name={self.Element_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class ElementDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Element_downstream'
+
+    Element_name = Column(Text(), ForeignKey('Element.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Element_downstream(Element_name={self.Element_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class PhysicalAcceleratorElementAlias(Base):
     """
     None
@@ -1322,342 +1556,72 @@ class PhysicalAcceleratorElementAlias(Base):
     
 
 
-class MagnetBaseElementAlias(Base):
+class PhysicalAcceleratorElementInputs(Base):
     """
     None
     """
-    __tablename__ = 'MagnetBaseElement_alias'
+    __tablename__ = 'PhysicalAcceleratorElement_inputs'
 
-    MagnetBaseElement_name = Column(Text(), ForeignKey('MagnetBaseElement.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
+    PhysicalAcceleratorElement_name = Column(Text(), ForeignKey('PhysicalAcceleratorElement.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
-        return f"MagnetBaseElement_alias(MagnetBaseElement_name={self.MagnetBaseElement_name},alias={self.alias},)"
+        return f"PhysicalAcceleratorElement_inputs(PhysicalAcceleratorElement_name={self.PhysicalAcceleratorElement_name},inputs={self.inputs},)"
 
 
 
     
 
 
-class DiagnosticAlias(Base):
+class PhysicalAcceleratorElementOutputs(Base):
     """
     None
     """
-    __tablename__ = 'Diagnostic_alias'
+    __tablename__ = 'PhysicalAcceleratorElement_outputs'
 
-    Diagnostic_name = Column(Text(), ForeignKey('Diagnostic.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
+    PhysicalAcceleratorElement_name = Column(Text(), ForeignKey('PhysicalAcceleratorElement.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
-        return f"Diagnostic_alias(Diagnostic_name={self.Diagnostic_name},alias={self.alias},)"
+        return f"PhysicalAcceleratorElement_outputs(PhysicalAcceleratorElement_name={self.PhysicalAcceleratorElement_name},outputs={self.outputs},)"
 
 
 
     
 
 
-class BeamPositionMonitorAlias(Base):
+class PhysicalAcceleratorElementUpstream(Base):
     """
     None
     """
-    __tablename__ = 'BeamPositionMonitor_alias'
+    __tablename__ = 'PhysicalAcceleratorElement_upstream'
 
-    BeamPositionMonitor_name = Column(Text(), ForeignKey('BeamPositionMonitor.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
+    PhysicalAcceleratorElement_name = Column(Text(), ForeignKey('PhysicalAcceleratorElement.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
     
 
     def __repr__(self):
-        return f"BeamPositionMonitor_alias(BeamPositionMonitor_name={self.BeamPositionMonitor_name},alias={self.alias},)"
+        return f"PhysicalAcceleratorElement_upstream(PhysicalAcceleratorElement_name={self.PhysicalAcceleratorElement_name},upstream_name={self.upstream_name},)"
 
 
 
     
 
 
-class BeamArrivalMonitorAlias(Base):
+class PhysicalAcceleratorElementDownstream(Base):
     """
     None
     """
-    __tablename__ = 'BeamArrivalMonitor_alias'
+    __tablename__ = 'PhysicalAcceleratorElement_downstream'
 
-    BeamArrivalMonitor_name = Column(Text(), ForeignKey('BeamArrivalMonitor.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
+    PhysicalAcceleratorElement_name = Column(Text(), ForeignKey('PhysicalAcceleratorElement.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
     
 
     def __repr__(self):
-        return f"BeamArrivalMonitor_alias(BeamArrivalMonitor_name={self.BeamArrivalMonitor_name},alias={self.alias},)"
-
-
-
-    
-
-
-class BunchLengthMonitorAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'BunchLengthMonitor_alias'
-
-    BunchLengthMonitor_name = Column(Text(), ForeignKey('BunchLengthMonitor.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"BunchLengthMonitor_alias(BunchLengthMonitor_name={self.BunchLengthMonitor_name},alias={self.alias},)"
-
-
-
-    
-
-
-class CameraAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'Camera_alias'
-
-    Camera_name = Column(Text(), ForeignKey('Camera.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"Camera_alias(Camera_name={self.Camera_name},alias={self.alias},)"
-
-
-
-    
-
-
-class ScreenAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'Screen_alias'
-
-    Screen_name = Column(Text(), ForeignKey('Screen.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"Screen_alias(Screen_name={self.Screen_name},alias={self.alias},)"
-
-
-
-    
-
-
-class ChargeDiagnosticAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'ChargeDiagnostic_alias'
-
-    ChargeDiagnostic_name = Column(Text(), ForeignKey('ChargeDiagnostic.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"ChargeDiagnostic_alias(ChargeDiagnostic_name={self.ChargeDiagnostic_name},alias={self.alias},)"
-
-
-
-    
-
-
-class WallCurrentMonitorAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'WallCurrentMonitor_alias'
-
-    WallCurrentMonitor_name = Column(Text(), ForeignKey('WallCurrentMonitor.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"WallCurrentMonitor_alias(WallCurrentMonitor_name={self.WallCurrentMonitor_name},alias={self.alias},)"
-
-
-
-    
-
-
-class FaradayCupMonitorAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'FaradayCupMonitor_alias'
-
-    FaradayCupMonitor_name = Column(Text(), ForeignKey('FaradayCupMonitor.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"FaradayCupMonitor_alias(FaradayCupMonitor_name={self.FaradayCupMonitor_name},alias={self.alias},)"
-
-
-
-    
-
-
-class IntegratedCurrentTransformerAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'IntegratedCurrentTransformer_alias'
-
-    IntegratedCurrentTransformer_name = Column(Text(), ForeignKey('IntegratedCurrentTransformer.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"IntegratedCurrentTransformer_alias(IntegratedCurrentTransformer_name={self.IntegratedCurrentTransformer_name},alias={self.alias},)"
-
-
-
-    
-
-
-class RFCavityAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'RFCavity_alias'
-
-    RFCavity_name = Column(Text(), ForeignKey('RFCavity.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"RFCavity_alias(RFCavity_name={self.RFCavity_name},alias={self.alias},)"
-
-
-
-    
-
-
-class RFDeflectingCavityAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'RFDeflectingCavity_alias'
-
-    RFDeflectingCavity_name = Column(Text(), ForeignKey('RFDeflectingCavity.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"RFDeflectingCavity_alias(RFDeflectingCavity_name={self.RFDeflectingCavity_name},alias={self.alias},)"
-
-
-
-    
-
-
-class WakefieldAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'Wakefield_alias'
-
-    Wakefield_name = Column(Text(), ForeignKey('Wakefield.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"Wakefield_alias(Wakefield_name={self.Wakefield_name},alias={self.alias},)"
-
-
-
-    
-
-
-class LowLevelRFAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'LowLevelRF_alias'
-
-    LowLevelRF_name = Column(Text(), ForeignKey('LowLevelRF.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"LowLevelRF_alias(LowLevelRF_name={self.LowLevelRF_name},alias={self.alias},)"
-
-
-
-    
-
-
-class RFModulatorAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'RFModulator_alias'
-
-    RFModulator_name = Column(Text(), ForeignKey('RFModulator.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"RFModulator_alias(RFModulator_name={self.RFModulator_name},alias={self.alias},)"
-
-
-
-    
-
-
-class RFProtectionAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'RFProtection_alias'
-
-    RFProtection_name = Column(Text(), ForeignKey('RFProtection.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"RFProtection_alias(RFProtection_name={self.RFProtection_name},alias={self.alias},)"
-
-
-
-    
-
-
-class RFHeartbeatAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'RFHeartbeat_alias'
-
-    RFHeartbeat_name = Column(Text(), ForeignKey('RFHeartbeat.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"RFHeartbeat_alias(RFHeartbeat_name={self.RFHeartbeat_name},alias={self.alias},)"
-
-
-
-    
-
-
-class PIDAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'PID_alias'
-
-    PID_name = Column(Text(), ForeignKey('PID.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"PID_alias(PID_name={self.PID_name},alias={self.alias},)"
+        return f"PhysicalAcceleratorElement_downstream(PhysicalAcceleratorElement_name={self.PhysicalAcceleratorElement_name},downstream_name={self.downstream_name},)"
 
 
 
@@ -1682,6 +1646,78 @@ class TwissMatchAlias(Base):
     
 
 
+class TwissMatchInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'TwissMatch_inputs'
+
+    TwissMatch_name = Column(Text(), ForeignKey('TwissMatch.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"TwissMatch_inputs(TwissMatch_name={self.TwissMatch_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class TwissMatchOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'TwissMatch_outputs'
+
+    TwissMatch_name = Column(Text(), ForeignKey('TwissMatch.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"TwissMatch_outputs(TwissMatch_name={self.TwissMatch_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class TwissMatchUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'TwissMatch_upstream'
+
+    TwissMatch_name = Column(Text(), ForeignKey('TwissMatch.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"TwissMatch_upstream(TwissMatch_name={self.TwissMatch_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class TwissMatchDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'TwissMatch_downstream'
+
+    TwissMatch_name = Column(Text(), ForeignKey('TwissMatch.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"TwissMatch_downstream(TwissMatch_name={self.TwissMatch_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class StageAlias(Base):
     """
     None
@@ -1694,6 +1730,78 @@ class StageAlias(Base):
 
     def __repr__(self):
         return f"Stage_alias(Stage_name={self.Stage_name},alias={self.alias},)"
+
+
+
+    
+
+
+class StageInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Stage_inputs'
+
+    Stage_name = Column(Text(), ForeignKey('Stage.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Stage_inputs(Stage_name={self.Stage_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class StageOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Stage_outputs'
+
+    Stage_name = Column(Text(), ForeignKey('Stage.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Stage_outputs(Stage_name={self.Stage_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class StageUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Stage_upstream'
+
+    Stage_name = Column(Text(), ForeignKey('Stage.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Stage_upstream(Stage_name={self.Stage_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class StageDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Stage_downstream'
+
+    Stage_name = Column(Text(), ForeignKey('Stage.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Stage_downstream(Stage_name={self.Stage_name},downstream_name={self.downstream_name},)"
 
 
 
@@ -1718,6 +1826,78 @@ class VacuumGaugeAlias(Base):
     
 
 
+class VacuumGaugeInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'VacuumGauge_inputs'
+
+    VacuumGauge_name = Column(Text(), ForeignKey('VacuumGauge.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"VacuumGauge_inputs(VacuumGauge_name={self.VacuumGauge_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class VacuumGaugeOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'VacuumGauge_outputs'
+
+    VacuumGauge_name = Column(Text(), ForeignKey('VacuumGauge.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"VacuumGauge_outputs(VacuumGauge_name={self.VacuumGauge_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class VacuumGaugeUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'VacuumGauge_upstream'
+
+    VacuumGauge_name = Column(Text(), ForeignKey('VacuumGauge.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"VacuumGauge_upstream(VacuumGauge_name={self.VacuumGauge_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class VacuumGaugeDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'VacuumGauge_downstream'
+
+    VacuumGauge_name = Column(Text(), ForeignKey('VacuumGauge.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"VacuumGauge_downstream(VacuumGauge_name={self.VacuumGauge_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class LaserAlias(Base):
     """
     None
@@ -1730,6 +1910,78 @@ class LaserAlias(Base):
 
     def __repr__(self):
         return f"Laser_alias(Laser_name={self.Laser_name},alias={self.alias},)"
+
+
+
+    
+
+
+class LaserInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Laser_inputs'
+
+    Laser_name = Column(Text(), ForeignKey('Laser.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Laser_inputs(Laser_name={self.Laser_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class LaserOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Laser_outputs'
+
+    Laser_name = Column(Text(), ForeignKey('Laser.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Laser_outputs(Laser_name={self.Laser_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class LaserUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Laser_upstream'
+
+    Laser_name = Column(Text(), ForeignKey('Laser.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Laser_upstream(Laser_name={self.Laser_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class LaserDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Laser_downstream'
+
+    Laser_name = Column(Text(), ForeignKey('Laser.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Laser_downstream(Laser_name={self.Laser_name},downstream_name={self.downstream_name},)"
 
 
 
@@ -1754,6 +2006,78 @@ class ShutterAlias(Base):
     
 
 
+class ShutterInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Shutter_inputs'
+
+    Shutter_name = Column(Text(), ForeignKey('Shutter.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Shutter_inputs(Shutter_name={self.Shutter_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class ShutterOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Shutter_outputs'
+
+    Shutter_name = Column(Text(), ForeignKey('Shutter.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Shutter_outputs(Shutter_name={self.Shutter_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class ShutterUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Shutter_upstream'
+
+    Shutter_name = Column(Text(), ForeignKey('Shutter.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Shutter_upstream(Shutter_name={self.Shutter_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class ShutterDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Shutter_downstream'
+
+    Shutter_name = Column(Text(), ForeignKey('Shutter.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Shutter_downstream(Shutter_name={self.Shutter_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class ValveAlias(Base):
     """
     None
@@ -1766,6 +2090,78 @@ class ValveAlias(Base):
 
     def __repr__(self):
         return f"Valve_alias(Valve_name={self.Valve_name},alias={self.alias},)"
+
+
+
+    
+
+
+class ValveInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Valve_inputs'
+
+    Valve_name = Column(Text(), ForeignKey('Valve.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Valve_inputs(Valve_name={self.Valve_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class ValveOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Valve_outputs'
+
+    Valve_name = Column(Text(), ForeignKey('Valve.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Valve_outputs(Valve_name={self.Valve_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class ValveUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Valve_upstream'
+
+    Valve_name = Column(Text(), ForeignKey('Valve.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Valve_upstream(Valve_name={self.Valve_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class ValveDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Valve_downstream'
+
+    Valve_name = Column(Text(), ForeignKey('Valve.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Valve_downstream(Valve_name={self.Valve_name},downstream_name={self.downstream_name},)"
 
 
 
@@ -1790,6 +2186,78 @@ class MarkerAlias(Base):
     
 
 
+class MarkerInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Marker_inputs'
+
+    Marker_name = Column(Text(), ForeignKey('Marker.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Marker_inputs(Marker_name={self.Marker_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class MarkerOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Marker_outputs'
+
+    Marker_name = Column(Text(), ForeignKey('Marker.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Marker_outputs(Marker_name={self.Marker_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class MarkerUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Marker_upstream'
+
+    Marker_name = Column(Text(), ForeignKey('Marker.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Marker_upstream(Marker_name={self.Marker_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class MarkerDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Marker_downstream'
+
+    Marker_name = Column(Text(), ForeignKey('Marker.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Marker_downstream(Marker_name={self.Marker_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class ApertureAlias(Base):
     """
     None
@@ -1802,6 +2270,78 @@ class ApertureAlias(Base):
 
     def __repr__(self):
         return f"Aperture_alias(Aperture_name={self.Aperture_name},alias={self.alias},)"
+
+
+
+    
+
+
+class ApertureInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Aperture_inputs'
+
+    Aperture_name = Column(Text(), ForeignKey('Aperture.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Aperture_inputs(Aperture_name={self.Aperture_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class ApertureOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Aperture_outputs'
+
+    Aperture_name = Column(Text(), ForeignKey('Aperture.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Aperture_outputs(Aperture_name={self.Aperture_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class ApertureUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Aperture_upstream'
+
+    Aperture_name = Column(Text(), ForeignKey('Aperture.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Aperture_upstream(Aperture_name={self.Aperture_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class ApertureDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Aperture_downstream'
+
+    Aperture_name = Column(Text(), ForeignKey('Aperture.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Aperture_downstream(Aperture_name={self.Aperture_name},downstream_name={self.downstream_name},)"
 
 
 
@@ -1826,6 +2366,78 @@ class CollimatorAlias(Base):
     
 
 
+class CollimatorInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Collimator_inputs'
+
+    Collimator_name = Column(Text(), ForeignKey('Collimator.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Collimator_inputs(Collimator_name={self.Collimator_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class CollimatorOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Collimator_outputs'
+
+    Collimator_name = Column(Text(), ForeignKey('Collimator.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Collimator_outputs(Collimator_name={self.Collimator_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class CollimatorUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Collimator_upstream'
+
+    Collimator_name = Column(Text(), ForeignKey('Collimator.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Collimator_upstream(Collimator_name={self.Collimator_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class CollimatorDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Collimator_downstream'
+
+    Collimator_name = Column(Text(), ForeignKey('Collimator.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Collimator_downstream(Collimator_name={self.Collimator_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class DriftAlias(Base):
     """
     None
@@ -1844,90 +2456,72 @@ class DriftAlias(Base):
     
 
 
-class PlasmaAlias(Base):
+class DriftInputs(Base):
     """
     None
     """
-    __tablename__ = 'Plasma_alias'
+    __tablename__ = 'Drift_inputs'
 
-    Plasma_name = Column(Text(), ForeignKey('Plasma.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
+    Drift_name = Column(Text(), ForeignKey('Drift.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
-        return f"Plasma_alias(Plasma_name={self.Plasma_name},alias={self.alias},)"
+        return f"Drift_inputs(Drift_name={self.Drift_name},inputs={self.inputs},)"
 
 
 
     
 
 
-class LaserEnergyMeterAlias(Base):
+class DriftOutputs(Base):
     """
     None
     """
-    __tablename__ = 'LaserEnergyMeter_alias'
+    __tablename__ = 'Drift_outputs'
 
-    LaserEnergyMeter_name = Column(Text(), ForeignKey('LaserEnergyMeter.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
+    Drift_name = Column(Text(), ForeignKey('Drift.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
-        return f"LaserEnergyMeter_alias(LaserEnergyMeter_name={self.LaserEnergyMeter_name},alias={self.alias},)"
+        return f"Drift_outputs(Drift_name={self.Drift_name},outputs={self.outputs},)"
 
 
 
     
 
 
-class LaserHalfWavePlateAlias(Base):
+class DriftUpstream(Base):
     """
     None
     """
-    __tablename__ = 'LaserHalfWavePlate_alias'
+    __tablename__ = 'Drift_upstream'
 
-    LaserHalfWavePlate_name = Column(Text(), ForeignKey('LaserHalfWavePlate.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
+    Drift_name = Column(Text(), ForeignKey('Drift.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
     
 
     def __repr__(self):
-        return f"LaserHalfWavePlate_alias(LaserHalfWavePlate_name={self.LaserHalfWavePlate_name},alias={self.alias},)"
+        return f"Drift_upstream(Drift_name={self.Drift_name},upstream_name={self.upstream_name},)"
 
 
 
     
 
 
-class LaserMirrorAlias(Base):
+class DriftDownstream(Base):
     """
     None
     """
-    __tablename__ = 'LaserMirror_alias'
+    __tablename__ = 'Drift_downstream'
 
-    LaserMirror_name = Column(Text(), ForeignKey('LaserMirror.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
+    Drift_name = Column(Text(), ForeignKey('Drift.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
     
 
     def __repr__(self):
-        return f"LaserMirror_alias(LaserMirror_name={self.LaserMirror_name},alias={self.alias},)"
-
-
-
-    
-
-
-class LaserAttenuatorAlias(Base):
-    """
-    None
-    """
-    __tablename__ = 'LaserAttenuator_alias'
-
-    LaserAttenuator_name = Column(Text(), ForeignKey('LaserAttenuator.name'), primary_key=True)
-    alias = Column(Text(), primary_key=True)
-    
-
-    def __repr__(self):
-        return f"LaserAttenuator_alias(LaserAttenuator_name={self.LaserAttenuator_name},alias={self.alias},)"
+        return f"Drift_downstream(Drift_name={self.Drift_name},downstream_name={self.downstream_name},)"
 
 
 
@@ -1946,6 +2540,168 @@ class LightingAlias(Base):
 
     def __repr__(self):
         return f"Lighting_alias(Lighting_name={self.Lighting_name},alias={self.alias},)"
+
+
+
+    
+
+
+class LightingInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Lighting_inputs'
+
+    Lighting_name = Column(Text(), ForeignKey('Lighting.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Lighting_inputs(Lighting_name={self.Lighting_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class LightingOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Lighting_outputs'
+
+    Lighting_name = Column(Text(), ForeignKey('Lighting.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Lighting_outputs(Lighting_name={self.Lighting_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class LightingUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Lighting_upstream'
+
+    Lighting_name = Column(Text(), ForeignKey('Lighting.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Lighting_upstream(Lighting_name={self.Lighting_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class LightingDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Lighting_downstream'
+
+    Lighting_name = Column(Text(), ForeignKey('Lighting.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Lighting_downstream(Lighting_name={self.Lighting_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class PowerSupplyAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'PowerSupply_alias'
+
+    PowerSupply_name = Column(Text(), ForeignKey('PowerSupply.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PowerSupply_alias(PowerSupply_name={self.PowerSupply_name},alias={self.alias},)"
+
+
+
+    
+
+
+class PowerSupplyInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'PowerSupply_inputs'
+
+    PowerSupply_name = Column(Text(), ForeignKey('PowerSupply.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PowerSupply_inputs(PowerSupply_name={self.PowerSupply_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class PowerSupplyOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'PowerSupply_outputs'
+
+    PowerSupply_name = Column(Text(), ForeignKey('PowerSupply.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PowerSupply_outputs(PowerSupply_name={self.PowerSupply_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class PowerSupplyUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'PowerSupply_upstream'
+
+    PowerSupply_name = Column(Text(), ForeignKey('PowerSupply.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PowerSupply_upstream(PowerSupply_name={self.PowerSupply_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class PowerSupplyDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'PowerSupply_downstream'
+
+    PowerSupply_name = Column(Text(), ForeignKey('PowerSupply.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PowerSupply_downstream(PowerSupply_name={self.PowerSupply_name},downstream_name={self.downstream_name},)"
 
 
 
@@ -2042,6 +2798,96 @@ class MachineModelLayouts(Base):
     
 
 
+class MagnetAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'Magnet_alias'
+
+    Magnet_name = Column(Text(), ForeignKey('Magnet.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Magnet_alias(Magnet_name={self.Magnet_name},alias={self.alias},)"
+
+
+
+    
+
+
+class MagnetInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Magnet_inputs'
+
+    Magnet_name = Column(Text(), ForeignKey('Magnet.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Magnet_inputs(Magnet_name={self.Magnet_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class MagnetOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Magnet_outputs'
+
+    Magnet_name = Column(Text(), ForeignKey('Magnet.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Magnet_outputs(Magnet_name={self.Magnet_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class MagnetUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Magnet_upstream'
+
+    Magnet_name = Column(Text(), ForeignKey('Magnet.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Magnet_upstream(Magnet_name={self.Magnet_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class MagnetDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Magnet_downstream'
+
+    Magnet_name = Column(Text(), ForeignKey('Magnet.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Magnet_downstream(Magnet_name={self.Magnet_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class FieldIntegralCoefficients(Base):
     """
     None
@@ -2078,6 +2924,726 @@ class DegaussableElementValues(Base):
     
 
 
+class RFCavityAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFCavity_alias'
+
+    RFCavity_name = Column(Text(), ForeignKey('RFCavity.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFCavity_alias(RFCavity_name={self.RFCavity_name},alias={self.alias},)"
+
+
+
+    
+
+
+class RFCavityInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFCavity_inputs'
+
+    RFCavity_name = Column(Text(), ForeignKey('RFCavity.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFCavity_inputs(RFCavity_name={self.RFCavity_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class RFCavityOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFCavity_outputs'
+
+    RFCavity_name = Column(Text(), ForeignKey('RFCavity.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFCavity_outputs(RFCavity_name={self.RFCavity_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class RFCavityUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFCavity_upstream'
+
+    RFCavity_name = Column(Text(), ForeignKey('RFCavity.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFCavity_upstream(RFCavity_name={self.RFCavity_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class RFCavityDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFCavity_downstream'
+
+    RFCavity_name = Column(Text(), ForeignKey('RFCavity.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFCavity_downstream(RFCavity_name={self.RFCavity_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class RFDeflectingCavityAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFDeflectingCavity_alias'
+
+    RFDeflectingCavity_name = Column(Text(), ForeignKey('RFDeflectingCavity.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFDeflectingCavity_alias(RFDeflectingCavity_name={self.RFDeflectingCavity_name},alias={self.alias},)"
+
+
+
+    
+
+
+class RFDeflectingCavityInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFDeflectingCavity_inputs'
+
+    RFDeflectingCavity_name = Column(Text(), ForeignKey('RFDeflectingCavity.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFDeflectingCavity_inputs(RFDeflectingCavity_name={self.RFDeflectingCavity_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class RFDeflectingCavityOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFDeflectingCavity_outputs'
+
+    RFDeflectingCavity_name = Column(Text(), ForeignKey('RFDeflectingCavity.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFDeflectingCavity_outputs(RFDeflectingCavity_name={self.RFDeflectingCavity_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class RFDeflectingCavityUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFDeflectingCavity_upstream'
+
+    RFDeflectingCavity_name = Column(Text(), ForeignKey('RFDeflectingCavity.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFDeflectingCavity_upstream(RFDeflectingCavity_name={self.RFDeflectingCavity_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class RFDeflectingCavityDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFDeflectingCavity_downstream'
+
+    RFDeflectingCavity_name = Column(Text(), ForeignKey('RFDeflectingCavity.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFDeflectingCavity_downstream(RFDeflectingCavity_name={self.RFDeflectingCavity_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class WakefieldAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'Wakefield_alias'
+
+    Wakefield_name = Column(Text(), ForeignKey('Wakefield.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Wakefield_alias(Wakefield_name={self.Wakefield_name},alias={self.alias},)"
+
+
+
+    
+
+
+class WakefieldInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Wakefield_inputs'
+
+    Wakefield_name = Column(Text(), ForeignKey('Wakefield.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Wakefield_inputs(Wakefield_name={self.Wakefield_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class WakefieldOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Wakefield_outputs'
+
+    Wakefield_name = Column(Text(), ForeignKey('Wakefield.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Wakefield_outputs(Wakefield_name={self.Wakefield_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class WakefieldUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Wakefield_upstream'
+
+    Wakefield_name = Column(Text(), ForeignKey('Wakefield.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Wakefield_upstream(Wakefield_name={self.Wakefield_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class WakefieldDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Wakefield_downstream'
+
+    Wakefield_name = Column(Text(), ForeignKey('Wakefield.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Wakefield_downstream(Wakefield_name={self.Wakefield_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class LowLevelRFAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'LowLevelRF_alias'
+
+    LowLevelRF_name = Column(Text(), ForeignKey('LowLevelRF.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LowLevelRF_alias(LowLevelRF_name={self.LowLevelRF_name},alias={self.alias},)"
+
+
+
+    
+
+
+class LowLevelRFInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'LowLevelRF_inputs'
+
+    LowLevelRF_name = Column(Text(), ForeignKey('LowLevelRF.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LowLevelRF_inputs(LowLevelRF_name={self.LowLevelRF_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class LowLevelRFOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'LowLevelRF_outputs'
+
+    LowLevelRF_name = Column(Text(), ForeignKey('LowLevelRF.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LowLevelRF_outputs(LowLevelRF_name={self.LowLevelRF_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class LowLevelRFUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'LowLevelRF_upstream'
+
+    LowLevelRF_name = Column(Text(), ForeignKey('LowLevelRF.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LowLevelRF_upstream(LowLevelRF_name={self.LowLevelRF_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class LowLevelRFDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'LowLevelRF_downstream'
+
+    LowLevelRF_name = Column(Text(), ForeignKey('LowLevelRF.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LowLevelRF_downstream(LowLevelRF_name={self.LowLevelRF_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class RFModulatorAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFModulator_alias'
+
+    RFModulator_name = Column(Text(), ForeignKey('RFModulator.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFModulator_alias(RFModulator_name={self.RFModulator_name},alias={self.alias},)"
+
+
+
+    
+
+
+class RFModulatorInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFModulator_inputs'
+
+    RFModulator_name = Column(Text(), ForeignKey('RFModulator.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFModulator_inputs(RFModulator_name={self.RFModulator_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class RFModulatorOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFModulator_outputs'
+
+    RFModulator_name = Column(Text(), ForeignKey('RFModulator.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFModulator_outputs(RFModulator_name={self.RFModulator_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class RFModulatorUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFModulator_upstream'
+
+    RFModulator_name = Column(Text(), ForeignKey('RFModulator.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFModulator_upstream(RFModulator_name={self.RFModulator_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class RFModulatorDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFModulator_downstream'
+
+    RFModulator_name = Column(Text(), ForeignKey('RFModulator.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFModulator_downstream(RFModulator_name={self.RFModulator_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class RFProtectionAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFProtection_alias'
+
+    RFProtection_name = Column(Text(), ForeignKey('RFProtection.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFProtection_alias(RFProtection_name={self.RFProtection_name},alias={self.alias},)"
+
+
+
+    
+
+
+class RFProtectionInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFProtection_inputs'
+
+    RFProtection_name = Column(Text(), ForeignKey('RFProtection.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFProtection_inputs(RFProtection_name={self.RFProtection_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class RFProtectionOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFProtection_outputs'
+
+    RFProtection_name = Column(Text(), ForeignKey('RFProtection.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFProtection_outputs(RFProtection_name={self.RFProtection_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class RFProtectionUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFProtection_upstream'
+
+    RFProtection_name = Column(Text(), ForeignKey('RFProtection.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFProtection_upstream(RFProtection_name={self.RFProtection_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class RFProtectionDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFProtection_downstream'
+
+    RFProtection_name = Column(Text(), ForeignKey('RFProtection.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFProtection_downstream(RFProtection_name={self.RFProtection_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class RFHeartbeatAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFHeartbeat_alias'
+
+    RFHeartbeat_name = Column(Text(), ForeignKey('RFHeartbeat.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFHeartbeat_alias(RFHeartbeat_name={self.RFHeartbeat_name},alias={self.alias},)"
+
+
+
+    
+
+
+class RFHeartbeatInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFHeartbeat_inputs'
+
+    RFHeartbeat_name = Column(Text(), ForeignKey('RFHeartbeat.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFHeartbeat_inputs(RFHeartbeat_name={self.RFHeartbeat_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class RFHeartbeatOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFHeartbeat_outputs'
+
+    RFHeartbeat_name = Column(Text(), ForeignKey('RFHeartbeat.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFHeartbeat_outputs(RFHeartbeat_name={self.RFHeartbeat_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class RFHeartbeatUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFHeartbeat_upstream'
+
+    RFHeartbeat_name = Column(Text(), ForeignKey('RFHeartbeat.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFHeartbeat_upstream(RFHeartbeat_name={self.RFHeartbeat_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class RFHeartbeatDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'RFHeartbeat_downstream'
+
+    RFHeartbeat_name = Column(Text(), ForeignKey('RFHeartbeat.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"RFHeartbeat_downstream(RFHeartbeat_name={self.RFHeartbeat_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class PIDAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'PID_alias'
+
+    PID_name = Column(Text(), ForeignKey('PID.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PID_alias(PID_name={self.PID_name},alias={self.alias},)"
+
+
+
+    
+
+
+class PIDInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'PID_inputs'
+
+    PID_name = Column(Text(), ForeignKey('PID.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PID_inputs(PID_name={self.PID_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class PIDOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'PID_outputs'
+
+    PID_name = Column(Text(), ForeignKey('PID.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PID_outputs(PID_name={self.PID_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class PIDUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'PID_upstream'
+
+    PID_name = Column(Text(), ForeignKey('PID.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PID_upstream(PID_name={self.PID_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class PIDDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'PID_downstream'
+
+    PID_name = Column(Text(), ForeignKey('PID.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PID_downstream(PID_name={self.PID_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class RFCavityElementPowerCalibration(Base):
     """
     None
@@ -2108,6 +3674,906 @@ class RFCavityElementGradientCalibration(Base):
 
     def __repr__(self):
         return f"RFCavityElement_gradient_calibration(RFCavityElement_id={self.RFCavityElement_id},gradient_calibration={self.gradient_calibration},)"
+
+
+
+    
+
+
+class DiagnosticAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'Diagnostic_alias'
+
+    Diagnostic_name = Column(Text(), ForeignKey('Diagnostic.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Diagnostic_alias(Diagnostic_name={self.Diagnostic_name},alias={self.alias},)"
+
+
+
+    
+
+
+class DiagnosticInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Diagnostic_inputs'
+
+    Diagnostic_name = Column(Text(), ForeignKey('Diagnostic.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Diagnostic_inputs(Diagnostic_name={self.Diagnostic_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class DiagnosticOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Diagnostic_outputs'
+
+    Diagnostic_name = Column(Text(), ForeignKey('Diagnostic.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Diagnostic_outputs(Diagnostic_name={self.Diagnostic_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class DiagnosticUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Diagnostic_upstream'
+
+    Diagnostic_name = Column(Text(), ForeignKey('Diagnostic.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Diagnostic_upstream(Diagnostic_name={self.Diagnostic_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class DiagnosticDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Diagnostic_downstream'
+
+    Diagnostic_name = Column(Text(), ForeignKey('Diagnostic.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Diagnostic_downstream(Diagnostic_name={self.Diagnostic_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class BeamPositionMonitorAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'BeamPositionMonitor_alias'
+
+    BeamPositionMonitor_name = Column(Text(), ForeignKey('BeamPositionMonitor.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BeamPositionMonitor_alias(BeamPositionMonitor_name={self.BeamPositionMonitor_name},alias={self.alias},)"
+
+
+
+    
+
+
+class BeamPositionMonitorInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'BeamPositionMonitor_inputs'
+
+    BeamPositionMonitor_name = Column(Text(), ForeignKey('BeamPositionMonitor.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BeamPositionMonitor_inputs(BeamPositionMonitor_name={self.BeamPositionMonitor_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class BeamPositionMonitorOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'BeamPositionMonitor_outputs'
+
+    BeamPositionMonitor_name = Column(Text(), ForeignKey('BeamPositionMonitor.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BeamPositionMonitor_outputs(BeamPositionMonitor_name={self.BeamPositionMonitor_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class BeamPositionMonitorUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'BeamPositionMonitor_upstream'
+
+    BeamPositionMonitor_name = Column(Text(), ForeignKey('BeamPositionMonitor.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BeamPositionMonitor_upstream(BeamPositionMonitor_name={self.BeamPositionMonitor_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class BeamPositionMonitorDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'BeamPositionMonitor_downstream'
+
+    BeamPositionMonitor_name = Column(Text(), ForeignKey('BeamPositionMonitor.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BeamPositionMonitor_downstream(BeamPositionMonitor_name={self.BeamPositionMonitor_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class BeamArrivalMonitorAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'BeamArrivalMonitor_alias'
+
+    BeamArrivalMonitor_name = Column(Text(), ForeignKey('BeamArrivalMonitor.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BeamArrivalMonitor_alias(BeamArrivalMonitor_name={self.BeamArrivalMonitor_name},alias={self.alias},)"
+
+
+
+    
+
+
+class BeamArrivalMonitorInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'BeamArrivalMonitor_inputs'
+
+    BeamArrivalMonitor_name = Column(Text(), ForeignKey('BeamArrivalMonitor.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BeamArrivalMonitor_inputs(BeamArrivalMonitor_name={self.BeamArrivalMonitor_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class BeamArrivalMonitorOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'BeamArrivalMonitor_outputs'
+
+    BeamArrivalMonitor_name = Column(Text(), ForeignKey('BeamArrivalMonitor.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BeamArrivalMonitor_outputs(BeamArrivalMonitor_name={self.BeamArrivalMonitor_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class BeamArrivalMonitorUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'BeamArrivalMonitor_upstream'
+
+    BeamArrivalMonitor_name = Column(Text(), ForeignKey('BeamArrivalMonitor.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BeamArrivalMonitor_upstream(BeamArrivalMonitor_name={self.BeamArrivalMonitor_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class BeamArrivalMonitorDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'BeamArrivalMonitor_downstream'
+
+    BeamArrivalMonitor_name = Column(Text(), ForeignKey('BeamArrivalMonitor.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BeamArrivalMonitor_downstream(BeamArrivalMonitor_name={self.BeamArrivalMonitor_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class BunchLengthMonitorAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'BunchLengthMonitor_alias'
+
+    BunchLengthMonitor_name = Column(Text(), ForeignKey('BunchLengthMonitor.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BunchLengthMonitor_alias(BunchLengthMonitor_name={self.BunchLengthMonitor_name},alias={self.alias},)"
+
+
+
+    
+
+
+class BunchLengthMonitorInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'BunchLengthMonitor_inputs'
+
+    BunchLengthMonitor_name = Column(Text(), ForeignKey('BunchLengthMonitor.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BunchLengthMonitor_inputs(BunchLengthMonitor_name={self.BunchLengthMonitor_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class BunchLengthMonitorOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'BunchLengthMonitor_outputs'
+
+    BunchLengthMonitor_name = Column(Text(), ForeignKey('BunchLengthMonitor.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BunchLengthMonitor_outputs(BunchLengthMonitor_name={self.BunchLengthMonitor_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class BunchLengthMonitorUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'BunchLengthMonitor_upstream'
+
+    BunchLengthMonitor_name = Column(Text(), ForeignKey('BunchLengthMonitor.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BunchLengthMonitor_upstream(BunchLengthMonitor_name={self.BunchLengthMonitor_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class BunchLengthMonitorDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'BunchLengthMonitor_downstream'
+
+    BunchLengthMonitor_name = Column(Text(), ForeignKey('BunchLengthMonitor.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"BunchLengthMonitor_downstream(BunchLengthMonitor_name={self.BunchLengthMonitor_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class CameraAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'Camera_alias'
+
+    Camera_name = Column(Text(), ForeignKey('Camera.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Camera_alias(Camera_name={self.Camera_name},alias={self.alias},)"
+
+
+
+    
+
+
+class CameraInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Camera_inputs'
+
+    Camera_name = Column(Text(), ForeignKey('Camera.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Camera_inputs(Camera_name={self.Camera_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class CameraOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Camera_outputs'
+
+    Camera_name = Column(Text(), ForeignKey('Camera.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Camera_outputs(Camera_name={self.Camera_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class CameraUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Camera_upstream'
+
+    Camera_name = Column(Text(), ForeignKey('Camera.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Camera_upstream(Camera_name={self.Camera_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class CameraDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Camera_downstream'
+
+    Camera_name = Column(Text(), ForeignKey('Camera.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Camera_downstream(Camera_name={self.Camera_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class ScreenAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'Screen_alias'
+
+    Screen_name = Column(Text(), ForeignKey('Screen.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Screen_alias(Screen_name={self.Screen_name},alias={self.alias},)"
+
+
+
+    
+
+
+class ScreenInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Screen_inputs'
+
+    Screen_name = Column(Text(), ForeignKey('Screen.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Screen_inputs(Screen_name={self.Screen_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class ScreenOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Screen_outputs'
+
+    Screen_name = Column(Text(), ForeignKey('Screen.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Screen_outputs(Screen_name={self.Screen_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class ScreenUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Screen_upstream'
+
+    Screen_name = Column(Text(), ForeignKey('Screen.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Screen_upstream(Screen_name={self.Screen_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class ScreenDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Screen_downstream'
+
+    Screen_name = Column(Text(), ForeignKey('Screen.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Screen_downstream(Screen_name={self.Screen_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class ChargeDiagnosticAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'ChargeDiagnostic_alias'
+
+    ChargeDiagnostic_name = Column(Text(), ForeignKey('ChargeDiagnostic.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"ChargeDiagnostic_alias(ChargeDiagnostic_name={self.ChargeDiagnostic_name},alias={self.alias},)"
+
+
+
+    
+
+
+class ChargeDiagnosticInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'ChargeDiagnostic_inputs'
+
+    ChargeDiagnostic_name = Column(Text(), ForeignKey('ChargeDiagnostic.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"ChargeDiagnostic_inputs(ChargeDiagnostic_name={self.ChargeDiagnostic_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class ChargeDiagnosticOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'ChargeDiagnostic_outputs'
+
+    ChargeDiagnostic_name = Column(Text(), ForeignKey('ChargeDiagnostic.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"ChargeDiagnostic_outputs(ChargeDiagnostic_name={self.ChargeDiagnostic_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class ChargeDiagnosticUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'ChargeDiagnostic_upstream'
+
+    ChargeDiagnostic_name = Column(Text(), ForeignKey('ChargeDiagnostic.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"ChargeDiagnostic_upstream(ChargeDiagnostic_name={self.ChargeDiagnostic_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class ChargeDiagnosticDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'ChargeDiagnostic_downstream'
+
+    ChargeDiagnostic_name = Column(Text(), ForeignKey('ChargeDiagnostic.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"ChargeDiagnostic_downstream(ChargeDiagnostic_name={self.ChargeDiagnostic_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class WallCurrentMonitorAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'WallCurrentMonitor_alias'
+
+    WallCurrentMonitor_name = Column(Text(), ForeignKey('WallCurrentMonitor.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WallCurrentMonitor_alias(WallCurrentMonitor_name={self.WallCurrentMonitor_name},alias={self.alias},)"
+
+
+
+    
+
+
+class WallCurrentMonitorInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'WallCurrentMonitor_inputs'
+
+    WallCurrentMonitor_name = Column(Text(), ForeignKey('WallCurrentMonitor.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WallCurrentMonitor_inputs(WallCurrentMonitor_name={self.WallCurrentMonitor_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class WallCurrentMonitorOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'WallCurrentMonitor_outputs'
+
+    WallCurrentMonitor_name = Column(Text(), ForeignKey('WallCurrentMonitor.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WallCurrentMonitor_outputs(WallCurrentMonitor_name={self.WallCurrentMonitor_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class WallCurrentMonitorUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'WallCurrentMonitor_upstream'
+
+    WallCurrentMonitor_name = Column(Text(), ForeignKey('WallCurrentMonitor.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WallCurrentMonitor_upstream(WallCurrentMonitor_name={self.WallCurrentMonitor_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class WallCurrentMonitorDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'WallCurrentMonitor_downstream'
+
+    WallCurrentMonitor_name = Column(Text(), ForeignKey('WallCurrentMonitor.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WallCurrentMonitor_downstream(WallCurrentMonitor_name={self.WallCurrentMonitor_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class FaradayCupMonitorAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'FaradayCupMonitor_alias'
+
+    FaradayCupMonitor_name = Column(Text(), ForeignKey('FaradayCupMonitor.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"FaradayCupMonitor_alias(FaradayCupMonitor_name={self.FaradayCupMonitor_name},alias={self.alias},)"
+
+
+
+    
+
+
+class FaradayCupMonitorInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'FaradayCupMonitor_inputs'
+
+    FaradayCupMonitor_name = Column(Text(), ForeignKey('FaradayCupMonitor.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"FaradayCupMonitor_inputs(FaradayCupMonitor_name={self.FaradayCupMonitor_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class FaradayCupMonitorOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'FaradayCupMonitor_outputs'
+
+    FaradayCupMonitor_name = Column(Text(), ForeignKey('FaradayCupMonitor.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"FaradayCupMonitor_outputs(FaradayCupMonitor_name={self.FaradayCupMonitor_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class FaradayCupMonitorUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'FaradayCupMonitor_upstream'
+
+    FaradayCupMonitor_name = Column(Text(), ForeignKey('FaradayCupMonitor.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"FaradayCupMonitor_upstream(FaradayCupMonitor_name={self.FaradayCupMonitor_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class FaradayCupMonitorDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'FaradayCupMonitor_downstream'
+
+    FaradayCupMonitor_name = Column(Text(), ForeignKey('FaradayCupMonitor.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"FaradayCupMonitor_downstream(FaradayCupMonitor_name={self.FaradayCupMonitor_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class IntegratedCurrentTransformerAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'IntegratedCurrentTransformer_alias'
+
+    IntegratedCurrentTransformer_name = Column(Text(), ForeignKey('IntegratedCurrentTransformer.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"IntegratedCurrentTransformer_alias(IntegratedCurrentTransformer_name={self.IntegratedCurrentTransformer_name},alias={self.alias},)"
+
+
+
+    
+
+
+class IntegratedCurrentTransformerInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'IntegratedCurrentTransformer_inputs'
+
+    IntegratedCurrentTransformer_name = Column(Text(), ForeignKey('IntegratedCurrentTransformer.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"IntegratedCurrentTransformer_inputs(IntegratedCurrentTransformer_name={self.IntegratedCurrentTransformer_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class IntegratedCurrentTransformerOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'IntegratedCurrentTransformer_outputs'
+
+    IntegratedCurrentTransformer_name = Column(Text(), ForeignKey('IntegratedCurrentTransformer.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"IntegratedCurrentTransformer_outputs(IntegratedCurrentTransformer_name={self.IntegratedCurrentTransformer_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class IntegratedCurrentTransformerUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'IntegratedCurrentTransformer_upstream'
+
+    IntegratedCurrentTransformer_name = Column(Text(), ForeignKey('IntegratedCurrentTransformer.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"IntegratedCurrentTransformer_upstream(IntegratedCurrentTransformer_name={self.IntegratedCurrentTransformer_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class IntegratedCurrentTransformerDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'IntegratedCurrentTransformer_downstream'
+
+    IntegratedCurrentTransformer_name = Column(Text(), ForeignKey('IntegratedCurrentTransformer.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"IntegratedCurrentTransformer_downstream(IntegratedCurrentTransformer_name={self.IntegratedCurrentTransformer_name},downstream_name={self.downstream_name},)"
 
 
 
@@ -2276,6 +4742,456 @@ class CameraSensorMechanicalMiddle(Base):
     
 
 
+class PlasmaAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'Plasma_alias'
+
+    Plasma_name = Column(Text(), ForeignKey('Plasma.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Plasma_alias(Plasma_name={self.Plasma_name},alias={self.alias},)"
+
+
+
+    
+
+
+class PlasmaInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Plasma_inputs'
+
+    Plasma_name = Column(Text(), ForeignKey('Plasma.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Plasma_inputs(Plasma_name={self.Plasma_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class PlasmaOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'Plasma_outputs'
+
+    Plasma_name = Column(Text(), ForeignKey('Plasma.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Plasma_outputs(Plasma_name={self.Plasma_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class PlasmaUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Plasma_upstream'
+
+    Plasma_name = Column(Text(), ForeignKey('Plasma.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Plasma_upstream(Plasma_name={self.Plasma_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class PlasmaDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'Plasma_downstream'
+
+    Plasma_name = Column(Text(), ForeignKey('Plasma.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"Plasma_downstream(Plasma_name={self.Plasma_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class LaserEnergyMeterAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserEnergyMeter_alias'
+
+    LaserEnergyMeter_name = Column(Text(), ForeignKey('LaserEnergyMeter.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserEnergyMeter_alias(LaserEnergyMeter_name={self.LaserEnergyMeter_name},alias={self.alias},)"
+
+
+
+    
+
+
+class LaserEnergyMeterInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserEnergyMeter_inputs'
+
+    LaserEnergyMeter_name = Column(Text(), ForeignKey('LaserEnergyMeter.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserEnergyMeter_inputs(LaserEnergyMeter_name={self.LaserEnergyMeter_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class LaserEnergyMeterOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserEnergyMeter_outputs'
+
+    LaserEnergyMeter_name = Column(Text(), ForeignKey('LaserEnergyMeter.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserEnergyMeter_outputs(LaserEnergyMeter_name={self.LaserEnergyMeter_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class LaserEnergyMeterUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserEnergyMeter_upstream'
+
+    LaserEnergyMeter_name = Column(Text(), ForeignKey('LaserEnergyMeter.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserEnergyMeter_upstream(LaserEnergyMeter_name={self.LaserEnergyMeter_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class LaserEnergyMeterDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserEnergyMeter_downstream'
+
+    LaserEnergyMeter_name = Column(Text(), ForeignKey('LaserEnergyMeter.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserEnergyMeter_downstream(LaserEnergyMeter_name={self.LaserEnergyMeter_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class LaserHalfWavePlateAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserHalfWavePlate_alias'
+
+    LaserHalfWavePlate_name = Column(Text(), ForeignKey('LaserHalfWavePlate.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserHalfWavePlate_alias(LaserHalfWavePlate_name={self.LaserHalfWavePlate_name},alias={self.alias},)"
+
+
+
+    
+
+
+class LaserHalfWavePlateInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserHalfWavePlate_inputs'
+
+    LaserHalfWavePlate_name = Column(Text(), ForeignKey('LaserHalfWavePlate.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserHalfWavePlate_inputs(LaserHalfWavePlate_name={self.LaserHalfWavePlate_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class LaserHalfWavePlateOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserHalfWavePlate_outputs'
+
+    LaserHalfWavePlate_name = Column(Text(), ForeignKey('LaserHalfWavePlate.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserHalfWavePlate_outputs(LaserHalfWavePlate_name={self.LaserHalfWavePlate_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class LaserHalfWavePlateUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserHalfWavePlate_upstream'
+
+    LaserHalfWavePlate_name = Column(Text(), ForeignKey('LaserHalfWavePlate.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserHalfWavePlate_upstream(LaserHalfWavePlate_name={self.LaserHalfWavePlate_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class LaserHalfWavePlateDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserHalfWavePlate_downstream'
+
+    LaserHalfWavePlate_name = Column(Text(), ForeignKey('LaserHalfWavePlate.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserHalfWavePlate_downstream(LaserHalfWavePlate_name={self.LaserHalfWavePlate_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class LaserMirrorAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserMirror_alias'
+
+    LaserMirror_name = Column(Text(), ForeignKey('LaserMirror.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserMirror_alias(LaserMirror_name={self.LaserMirror_name},alias={self.alias},)"
+
+
+
+    
+
+
+class LaserMirrorInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserMirror_inputs'
+
+    LaserMirror_name = Column(Text(), ForeignKey('LaserMirror.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserMirror_inputs(LaserMirror_name={self.LaserMirror_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class LaserMirrorOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserMirror_outputs'
+
+    LaserMirror_name = Column(Text(), ForeignKey('LaserMirror.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserMirror_outputs(LaserMirror_name={self.LaserMirror_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class LaserMirrorUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserMirror_upstream'
+
+    LaserMirror_name = Column(Text(), ForeignKey('LaserMirror.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserMirror_upstream(LaserMirror_name={self.LaserMirror_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class LaserMirrorDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserMirror_downstream'
+
+    LaserMirror_name = Column(Text(), ForeignKey('LaserMirror.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserMirror_downstream(LaserMirror_name={self.LaserMirror_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class LaserAttenuatorAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserAttenuator_alias'
+
+    LaserAttenuator_name = Column(Text(), ForeignKey('LaserAttenuator.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserAttenuator_alias(LaserAttenuator_name={self.LaserAttenuator_name},alias={self.alias},)"
+
+
+
+    
+
+
+class LaserAttenuatorInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserAttenuator_inputs'
+
+    LaserAttenuator_name = Column(Text(), ForeignKey('LaserAttenuator.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserAttenuator_inputs(LaserAttenuator_name={self.LaserAttenuator_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class LaserAttenuatorOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserAttenuator_outputs'
+
+    LaserAttenuator_name = Column(Text(), ForeignKey('LaserAttenuator.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserAttenuator_outputs(LaserAttenuator_name={self.LaserAttenuator_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class LaserAttenuatorUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserAttenuator_upstream'
+
+    LaserAttenuator_name = Column(Text(), ForeignKey('LaserAttenuator.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserAttenuator_upstream(LaserAttenuator_name={self.LaserAttenuator_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class LaserAttenuatorDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'LaserAttenuator_downstream'
+
+    LaserAttenuator_name = Column(Text(), ForeignKey('LaserAttenuator.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"LaserAttenuator_downstream(LaserAttenuator_name={self.LaserAttenuator_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class StandardElement(AcceleratorElement):
     """
     Accelerator element with control-system, electrical, manufacturer, simulation, and reference sub-models.
@@ -2304,6 +5220,24 @@ class StandardElement(AcceleratorElement):
     alias_rel = relationship( "StandardElementAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: StandardElementAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "StandardElementInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: StandardElementInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "StandardElementOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: StandardElementOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="StandardElement_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="StandardElement_downstream")
     
 
     def __repr__(self):
@@ -2806,9 +5740,151 @@ class Element(StandardElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ElementAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "ElementInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: ElementInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "ElementOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: ElementOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Element_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Element_downstream")
+    
 
     def __repr__(self):
         return f"Element(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class Lighting(StandardElement):
+    """
+    Experimental-hall lighting element.
+    """
+    __tablename__ = 'Lighting'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    lights_id = Column(Integer(), ForeignKey('LightingElement.id'))
+    lights = relationship("LightingElement", uselist=False, foreign_keys=[lights_id])
+    simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "LightingAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: LightingAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "LightingInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: LightingInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "LightingOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: LightingOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Lighting_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Lighting_downstream")
+    
+
+    def __repr__(self):
+        return f"Lighting(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},lights_id={self.lights_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class PowerSupply(StandardElement):
+    """
+    Generic power-supply unit providing control/setpoint-driven outputs (for example current/voltage) to other accelerator components.
+    """
+    __tablename__ = 'PowerSupply'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "PowerSupplyAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: PowerSupplyAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "PowerSupplyInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: PowerSupplyInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "PowerSupplyOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: PowerSupplyOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="PowerSupply_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="PowerSupply_downstream")
+    
+
+    def __repr__(self):
+        return f"PowerSupply(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -2850,6 +5926,24 @@ class LowLevelRF(StandardElement):
     alias_rel = relationship( "LowLevelRFAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LowLevelRFAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "LowLevelRFInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: LowLevelRFInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "LowLevelRFOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: LowLevelRFOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="LowLevelRF_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="LowLevelRF_downstream")
     
 
     def __repr__(self):
@@ -2896,6 +5990,24 @@ class RFModulator(StandardElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: RFModulatorAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "RFModulatorInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: RFModulatorInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "RFModulatorOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: RFModulatorOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="RFModulator_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="RFModulator_downstream")
+    
 
     def __repr__(self):
         return f"RFModulator(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},modulator_id={self.modulator_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
@@ -2940,6 +6052,24 @@ class RFProtection(StandardElement):
     alias_rel = relationship( "RFProtectionAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: RFProtectionAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "RFProtectionInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: RFProtectionInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "RFProtectionOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: RFProtectionOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="RFProtection_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="RFProtection_downstream")
     
 
     def __repr__(self):
@@ -2986,6 +6116,24 @@ class RFHeartbeat(StandardElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: RFHeartbeatAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "RFHeartbeatInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: RFHeartbeatInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "RFHeartbeatOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: RFHeartbeatOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="RFHeartbeat_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="RFHeartbeat_downstream")
+    
 
     def __repr__(self):
         return f"RFHeartbeat(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},heartbeat_id={self.heartbeat_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
@@ -3030,6 +6178,24 @@ class PID(StandardElement):
     alias_rel = relationship( "PIDAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: PIDAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "PIDInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: PIDInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "PIDOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: PIDOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="PID_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="PID_downstream")
     
 
     def __repr__(self):
@@ -3076,6 +6242,24 @@ class LaserEnergyMeter(StandardElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LaserEnergyMeterAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "LaserEnergyMeterInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: LaserEnergyMeterInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "LaserEnergyMeterOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: LaserEnergyMeterOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="LaserEnergyMeter_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="LaserEnergyMeter_downstream")
+    
 
     def __repr__(self):
         return f"LaserEnergyMeter(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
@@ -3120,6 +6304,24 @@ class LaserHalfWavePlate(StandardElement):
     alias_rel = relationship( "LaserHalfWavePlateAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LaserHalfWavePlateAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "LaserHalfWavePlateInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: LaserHalfWavePlateInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "LaserHalfWavePlateOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: LaserHalfWavePlateOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="LaserHalfWavePlate_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="LaserHalfWavePlate_downstream")
     
 
     def __repr__(self):
@@ -3166,6 +6368,24 @@ class LaserMirror(StandardElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LaserMirrorAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "LaserMirrorInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: LaserMirrorInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "LaserMirrorOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: LaserMirrorOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="LaserMirror_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="LaserMirror_downstream")
+    
 
     def __repr__(self):
         return f"LaserMirror(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
@@ -3211,54 +6431,27 @@ class LaserAttenuator(StandardElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LaserAttenuatorAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "LaserAttenuatorInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: LaserAttenuatorInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "LaserAttenuatorOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: LaserAttenuatorOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="LaserAttenuator_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="LaserAttenuator_downstream")
+    
 
     def __repr__(self):
         return f"LaserAttenuator(maximum={self.maximum},minimum={self.minimum},name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
-
-
-
-    
-    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
-    __mapper_args__ = {
-        'concrete': True
-    }
-    
-
-
-class Lighting(StandardElement):
-    """
-    Experimental-hall lighting element.
-    """
-    __tablename__ = 'Lighting'
-
-    name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
-    hardware_type = Column(Text())
-    hardware_model = Column(Text())
-    machine_area = Column(Text())
-    virtual_name = Column(Text())
-    subelement = Column(Text())
-    lights_id = Column(Integer(), ForeignKey('LightingElement.id'))
-    lights = relationship("LightingElement", uselist=False, foreign_keys=[lights_id])
-    simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
-    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
-    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
-    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
-    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
-    
-    
-    alias_rel = relationship( "LightingAlias" )
-    alias = association_proxy("alias_rel", "alias",
-                                  creator=lambda x_: LightingAlias(alias=x_))
-    
-
-    def __repr__(self):
-        return f"Lighting(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},lights_id={self.lights_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -3301,199 +6494,27 @@ class PhysicalAcceleratorElement(Element):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: PhysicalAcceleratorElementAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "PhysicalAcceleratorElementInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: PhysicalAcceleratorElementInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "PhysicalAcceleratorElementOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: PhysicalAcceleratorElementOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="PhysicalAcceleratorElement_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="PhysicalAcceleratorElement_downstream")
+    
 
     def __repr__(self):
         return f"PhysicalAcceleratorElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
-
-
-
-    
-    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
-    __mapper_args__ = {
-        'concrete': True
-    }
-    
-
-
-class MagnetBaseElement(PhysicalAcceleratorElement):
-    """
-    Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement`` in the schema to avoid collision with the ``magnetic`` composition-model class; maps to ``Magnet`` in Python.)
-    """
-    __tablename__ = 'MagnetBaseElement'
-
-    name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
-    hardware_type = Column(Text())
-    hardware_model = Column(Text())
-    machine_area = Column(Text())
-    virtual_name = Column(Text())
-    subelement = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('MagneticElement.id'))
-    magnetic = relationship("MagneticElement", uselist=False, foreign_keys=[magnetic_id])
-    degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
-    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
-    simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
-    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
-    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
-    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
-    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
-    
-    
-    alias_rel = relationship( "MagnetBaseElementAlias" )
-    alias = association_proxy("alias_rel", "alias",
-                                  creator=lambda x_: MagnetBaseElementAlias(alias=x_))
-    
-
-    def __repr__(self):
-        return f"MagnetBaseElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
-
-
-
-    
-    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
-    __mapper_args__ = {
-        'concrete': True
-    }
-    
-
-
-class Diagnostic(PhysicalAcceleratorElement):
-    """
-    Base class for all beam-diagnostic instruments.
-    """
-    __tablename__ = 'Diagnostic'
-
-    name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
-    hardware_type = Column(Text())
-    hardware_model = Column(Text())
-    machine_area = Column(Text())
-    virtual_name = Column(Text())
-    subelement = Column(Text())
-    diagnostic_id = Column(Integer(), ForeignKey('DiagnosticElement.id'))
-    diagnostic = relationship("DiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
-    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
-    simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
-    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
-    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
-    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
-    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
-    
-    
-    alias_rel = relationship( "DiagnosticAlias" )
-    alias = association_proxy("alias_rel", "alias",
-                                  creator=lambda x_: DiagnosticAlias(alias=x_))
-    
-
-    def __repr__(self):
-        return f"Diagnostic(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
-
-
-
-    
-    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
-    __mapper_args__ = {
-        'concrete': True
-    }
-    
-
-
-class RFCavity(PhysicalAcceleratorElement):
-    """
-    Accelerating RF cavity.
-    """
-    __tablename__ = 'RFCavity'
-
-    name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
-    hardware_type = Column(Text())
-    hardware_model = Column(Text())
-    machine_area = Column(Text())
-    virtual_name = Column(Text())
-    subelement = Column(Text())
-    cavity_id = Column(Integer(), ForeignKey('RFCavityElement.id'))
-    cavity = relationship("RFCavityElement", uselist=False, foreign_keys=[cavity_id])
-    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
-    simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
-    simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
-    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
-    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
-    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
-    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
-    
-    
-    alias_rel = relationship( "RFCavityAlias" )
-    alias = association_proxy("alias_rel", "alias",
-                                  creator=lambda x_: RFCavityAlias(alias=x_))
-    
-
-    def __repr__(self):
-        return f"RFCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
-
-
-
-    
-    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
-    __mapper_args__ = {
-        'concrete': True
-    }
-    
-
-
-class Wakefield(PhysicalAcceleratorElement):
-    """
-    Passive wakefield structure (dielectric, corrugated, etc.).
-    """
-    __tablename__ = 'Wakefield'
-
-    name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
-    hardware_type = Column(Text())
-    hardware_model = Column(Text())
-    machine_area = Column(Text())
-    virtual_name = Column(Text())
-    subelement = Column(Text())
-    cavity_id = Column(Integer(), ForeignKey('WakefieldElement.id'))
-    cavity = relationship("WakefieldElement", uselist=False, foreign_keys=[cavity_id])
-    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
-    simulation_id = Column(Integer(), ForeignKey('WakefieldSimulationElement.id'))
-    simulation = relationship("WakefieldSimulationElement", uselist=False, foreign_keys=[simulation_id])
-    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
-    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
-    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
-    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
-    
-    
-    alias_rel = relationship( "WakefieldAlias" )
-    alias = association_proxy("alias_rel", "alias",
-                                  creator=lambda x_: WakefieldAlias(alias=x_))
-    
-
-    def __repr__(self):
-        return f"Wakefield(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -3535,6 +6556,24 @@ class TwissMatch(PhysicalAcceleratorElement):
     alias_rel = relationship( "TwissMatchAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: TwissMatchAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "TwissMatchInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: TwissMatchInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "TwissMatchOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: TwissMatchOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="TwissMatch_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="TwissMatch_downstream")
     
 
     def __repr__(self):
@@ -3581,6 +6620,24 @@ class Stage(PhysicalAcceleratorElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: StageAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "StageInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: StageInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "StageOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: StageOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Stage_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Stage_downstream")
+    
 
     def __repr__(self):
         return f"Stage(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
@@ -3625,6 +6682,24 @@ class VacuumGauge(PhysicalAcceleratorElement):
     alias_rel = relationship( "VacuumGaugeAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: VacuumGaugeAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "VacuumGaugeInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: VacuumGaugeInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "VacuumGaugeOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: VacuumGaugeOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="VacuumGauge_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="VacuumGauge_downstream")
     
 
     def __repr__(self):
@@ -3673,6 +6748,24 @@ class Laser(PhysicalAcceleratorElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LaserAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "LaserInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: LaserInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "LaserOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: LaserOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Laser_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Laser_downstream")
+    
 
     def __repr__(self):
         return f"Laser(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
@@ -3719,6 +6812,24 @@ class Shutter(PhysicalAcceleratorElement):
     alias_rel = relationship( "ShutterAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ShutterAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "ShutterInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: ShutterInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "ShutterOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: ShutterOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Shutter_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Shutter_downstream")
     
 
     def __repr__(self):
@@ -3767,6 +6878,24 @@ class Valve(PhysicalAcceleratorElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ValveAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "ValveInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: ValveInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "ValveOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: ValveOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Valve_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Valve_downstream")
+    
 
     def __repr__(self):
         return f"Valve(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},valve_id={self.valve_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
@@ -3811,6 +6940,24 @@ class Marker(PhysicalAcceleratorElement):
     alias_rel = relationship( "MarkerAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: MarkerAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "MarkerInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: MarkerInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "MarkerOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: MarkerOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Marker_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Marker_downstream")
     
 
     def __repr__(self):
@@ -3859,6 +7006,24 @@ class Aperture(PhysicalAcceleratorElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ApertureAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "ApertureInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: ApertureInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "ApertureOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: ApertureOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Aperture_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Aperture_downstream")
+    
 
     def __repr__(self):
         return f"Aperture(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},aperture_id={self.aperture_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
@@ -3904,9 +7069,289 @@ class Drift(PhysicalAcceleratorElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: DriftAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "DriftInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: DriftInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "DriftOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: DriftOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Drift_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Drift_downstream")
+    
 
     def __repr__(self):
         return f"Drift(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class Magnet(PhysicalAcceleratorElement):
+    """
+    Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement`` in the schema to avoid collision with the ``magnetic`` composition-model class; maps to ``Magnet`` in Python.)
+    """
+    __tablename__ = 'Magnet'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    magnetic_id = Column(Integer(), ForeignKey('MagneticElement.id'))
+    magnetic = relationship("MagneticElement", uselist=False, foreign_keys=[magnetic_id])
+    degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "MagnetAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: MagnetAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "MagnetInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: MagnetInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "MagnetOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: MagnetOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Magnet_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Magnet_downstream")
+    
+
+    def __repr__(self):
+        return f"Magnet(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class RFCavity(PhysicalAcceleratorElement):
+    """
+    Accelerating RF cavity.
+    """
+    __tablename__ = 'RFCavity'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    cavity_id = Column(Integer(), ForeignKey('RFCavityElement.id'))
+    cavity = relationship("RFCavityElement", uselist=False, foreign_keys=[cavity_id])
+    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
+    simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "RFCavityAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: RFCavityAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "RFCavityInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: RFCavityInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "RFCavityOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: RFCavityOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="RFCavity_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="RFCavity_downstream")
+    
+
+    def __repr__(self):
+        return f"RFCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class Wakefield(PhysicalAcceleratorElement):
+    """
+    Passive wakefield structure (dielectric, corrugated, etc.).
+    """
+    __tablename__ = 'Wakefield'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    cavity_id = Column(Integer(), ForeignKey('WakefieldElement.id'))
+    cavity = relationship("WakefieldElement", uselist=False, foreign_keys=[cavity_id])
+    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    simulation_id = Column(Integer(), ForeignKey('WakefieldSimulationElement.id'))
+    simulation = relationship("WakefieldSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "WakefieldAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: WakefieldAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "WakefieldInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: WakefieldInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "WakefieldOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: WakefieldOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Wakefield_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Wakefield_downstream")
+    
+
+    def __repr__(self):
+        return f"Wakefield(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class Diagnostic(PhysicalAcceleratorElement):
+    """
+    Base class for all beam-diagnostic instruments.
+    """
+    __tablename__ = 'Diagnostic'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    diagnostic_id = Column(Integer(), ForeignKey('DiagnosticElement.id'))
+    diagnostic = relationship("DiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "DiagnosticAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: DiagnosticAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "DiagnosticInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: DiagnosticInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "DiagnosticOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: DiagnosticOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Diagnostic_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Diagnostic_downstream")
+    
+
+    def __repr__(self):
+        return f"Diagnostic(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -3953,9 +7398,157 @@ class Plasma(PhysicalAcceleratorElement):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: PlasmaAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "PlasmaInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: PlasmaInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "PlasmaOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: PlasmaOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Plasma_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Plasma_downstream")
+    
 
     def __repr__(self):
         return f"Plasma(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},plasma_id={self.plasma_id},laser_id={self.laser_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class Collimator(Aperture):
+    """
+    Movable collimator jaw (extends Aperture).
+    """
+    __tablename__ = 'Collimator'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
+    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "CollimatorAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: CollimatorAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "CollimatorInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: CollimatorInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "CollimatorOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: CollimatorOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Collimator_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Collimator_downstream")
+    
+
+    def __repr__(self):
+        return f"Collimator(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},aperture_id={self.aperture_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class RFDeflectingCavity(RFCavity):
+    """
+    Transverse-deflecting (streak) RF cavity.
+    """
+    __tablename__ = 'RFDeflectingCavity'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    cavity_id = Column(Integer(), ForeignKey('RFDeflectingCavityElement.id'))
+    cavity = relationship("RFDeflectingCavityElement", uselist=False, foreign_keys=[cavity_id])
+    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
+    simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "RFDeflectingCavityAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: RFDeflectingCavityAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "RFDeflectingCavityInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: RFDeflectingCavityInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "RFDeflectingCavityOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: RFDeflectingCavityOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="RFDeflectingCavity_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="RFDeflectingCavity_downstream")
+    
+
+    def __repr__(self):
+        return f"RFDeflectingCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -3999,6 +7592,24 @@ class BeamPositionMonitor(Diagnostic):
     alias_rel = relationship( "BeamPositionMonitorAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: BeamPositionMonitorAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "BeamPositionMonitorInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: BeamPositionMonitorInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "BeamPositionMonitorOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: BeamPositionMonitorOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="BeamPositionMonitor_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="BeamPositionMonitor_downstream")
     
 
     def __repr__(self):
@@ -4047,6 +7658,24 @@ class BeamArrivalMonitor(Diagnostic):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: BeamArrivalMonitorAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "BeamArrivalMonitorInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: BeamArrivalMonitorInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "BeamArrivalMonitorOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: BeamArrivalMonitorOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="BeamArrivalMonitor_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="BeamArrivalMonitor_downstream")
+    
 
     def __repr__(self):
         return f"BeamArrivalMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
@@ -4093,6 +7722,24 @@ class BunchLengthMonitor(Diagnostic):
     alias_rel = relationship( "BunchLengthMonitorAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: BunchLengthMonitorAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "BunchLengthMonitorInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: BunchLengthMonitorInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "BunchLengthMonitorOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: BunchLengthMonitorOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="BunchLengthMonitor_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="BunchLengthMonitor_downstream")
     
 
     def __repr__(self):
@@ -4141,6 +7788,24 @@ class Camera(Diagnostic):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: CameraAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "CameraInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: CameraInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "CameraOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: CameraOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Camera_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Camera_downstream")
+    
 
     def __repr__(self):
         return f"Camera(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
@@ -4187,6 +7852,24 @@ class Screen(Diagnostic):
     alias_rel = relationship( "ScreenAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ScreenAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "ScreenInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: ScreenInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "ScreenOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: ScreenOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="Screen_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="Screen_downstream")
     
 
     def __repr__(self):
@@ -4235,103 +7918,27 @@ class ChargeDiagnostic(Diagnostic):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ChargeDiagnosticAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "ChargeDiagnosticInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: ChargeDiagnosticInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "ChargeDiagnosticOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: ChargeDiagnosticOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="ChargeDiagnostic_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="ChargeDiagnostic_downstream")
+    
 
     def __repr__(self):
         return f"ChargeDiagnostic(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
-
-
-
-    
-    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
-    __mapper_args__ = {
-        'concrete': True
-    }
-    
-
-
-class RFDeflectingCavity(RFCavity):
-    """
-    Transverse-deflecting (streak) RF cavity.
-    """
-    __tablename__ = 'RFDeflectingCavity'
-
-    name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
-    hardware_type = Column(Text())
-    hardware_model = Column(Text())
-    machine_area = Column(Text())
-    virtual_name = Column(Text())
-    subelement = Column(Text())
-    cavity_id = Column(Integer(), ForeignKey('RFDeflectingCavityElement.id'))
-    cavity = relationship("RFDeflectingCavityElement", uselist=False, foreign_keys=[cavity_id])
-    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
-    simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
-    simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
-    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
-    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
-    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
-    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
-    
-    
-    alias_rel = relationship( "RFDeflectingCavityAlias" )
-    alias = association_proxy("alias_rel", "alias",
-                                  creator=lambda x_: RFDeflectingCavityAlias(alias=x_))
-    
-
-    def __repr__(self):
-        return f"RFDeflectingCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
-
-
-
-    
-    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
-    __mapper_args__ = {
-        'concrete': True
-    }
-    
-
-
-class Collimator(Aperture):
-    """
-    Movable collimator jaw (extends Aperture).
-    """
-    __tablename__ = 'Collimator'
-
-    name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', name='HardwareClassEnum'), nullable=False )
-    hardware_type = Column(Text())
-    hardware_model = Column(Text())
-    machine_area = Column(Text())
-    virtual_name = Column(Text())
-    subelement = Column(Text())
-    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
-    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
-    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
-    simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
-    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
-    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
-    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
-    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
-    
-    
-    alias_rel = relationship( "CollimatorAlias" )
-    alias = association_proxy("alias_rel", "alias",
-                                  creator=lambda x_: CollimatorAlias(alias=x_))
-    
-
-    def __repr__(self):
-        return f"Collimator(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},aperture_id={self.aperture_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -4375,6 +7982,24 @@ class WallCurrentMonitor(ChargeDiagnostic):
     alias_rel = relationship( "WallCurrentMonitorAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: WallCurrentMonitorAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "WallCurrentMonitorInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: WallCurrentMonitorInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "WallCurrentMonitorOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: WallCurrentMonitorOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="WallCurrentMonitor_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="WallCurrentMonitor_downstream")
     
 
     def __repr__(self):
@@ -4423,6 +8048,24 @@ class FaradayCupMonitor(ChargeDiagnostic):
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: FaradayCupMonitorAlias(alias=x_))
     
+    
+    inputs_rel = relationship( "FaradayCupMonitorInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: FaradayCupMonitorInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "FaradayCupMonitorOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: FaradayCupMonitorOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="FaradayCupMonitor_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="FaradayCupMonitor_downstream")
+    
 
     def __repr__(self):
         return f"FaradayCupMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
@@ -4469,6 +8112,24 @@ class IntegratedCurrentTransformer(ChargeDiagnostic):
     alias_rel = relationship( "IntegratedCurrentTransformerAlias" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: IntegratedCurrentTransformerAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "IntegratedCurrentTransformerInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: IntegratedCurrentTransformerInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "IntegratedCurrentTransformerOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: IntegratedCurrentTransformerOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="IntegratedCurrentTransformer_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="IntegratedCurrentTransformer_downstream")
     
 
     def __repr__(self):

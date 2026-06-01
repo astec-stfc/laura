@@ -137,7 +137,7 @@ attributes:
   number_of_elements:
     name: number_of_elements
     description: Number of aperture sub-elements (e.g., for multi-leaf collimators).
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     domain_of:
     - ApertureElement
@@ -146,7 +146,7 @@ attributes:
   horizontal_size:
     name: horizontal_size
     description: Full horizontal aperture [m].
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -158,7 +158,7 @@ attributes:
   vertical_size:
     name: vertical_size
     description: Full vertical aperture [m].
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
@@ -170,7 +170,7 @@ attributes:
   shape:
     name: shape
     description: Cross-sectional aperture shape.
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     domain_of:
     - ApertureElement
@@ -178,10 +178,11 @@ attributes:
   radius:
     name: radius
     description: Radius for circular apertures [m].
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
     domain_of:
-    - Multipole
     - ApertureElement
+    - Multipole
     - CameraMask
     range: float
     minimum_value: 0.0
@@ -190,7 +191,7 @@ attributes:
   negative_extent:
     name: negative_extent
     description: Upstream / inner extent [m].
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     domain_of:
     - ApertureElement
@@ -200,7 +201,7 @@ attributes:
   positive_extent:
     name: positive_extent
     description: Downstream / outer extent [m].
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     domain_of:
     - ApertureElement
@@ -223,7 +224,7 @@ attributes:
   number_of_elements:
     name: number_of_elements
     description: Number of aperture sub-elements (e.g., for multi-leaf collimators).
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: ApertureElement
     domain_of:
@@ -233,7 +234,7 @@ attributes:
   horizontal_size:
     name: horizontal_size
     description: Full horizontal aperture [m].
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: float(0.0)
     owner: ApertureElement
@@ -246,7 +247,7 @@ attributes:
   vertical_size:
     name: vertical_size
     description: Full vertical aperture [m].
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: float(0.0)
     owner: ApertureElement
@@ -259,7 +260,7 @@ attributes:
   shape:
     name: shape
     description: Cross-sectional aperture shape.
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: ApertureElement
     domain_of:
@@ -268,11 +269,12 @@ attributes:
   radius:
     name: radius
     description: Radius for circular apertures [m].
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
     owner: ApertureElement
     domain_of:
-    - Multipole
     - ApertureElement
+    - Multipole
     - CameraMask
     range: float
     minimum_value: 0.0
@@ -281,7 +283,7 @@ attributes:
   negative_extent:
     name: negative_extent
     description: Upstream / inner extent [m].
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: ApertureElement
     domain_of:
@@ -292,7 +294,7 @@ attributes:
   positive_extent:
     name: positive_extent
     description: Downstream / outer extent [m].
-    from_schema: https://w3id.org/laura/schema/magnetic
+    from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: ApertureElement
     domain_of:

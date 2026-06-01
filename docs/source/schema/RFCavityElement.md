@@ -78,11 +78,11 @@ URI: [laura:RFCavityElement](https://w3id.org/laura/RFCavityElement)
 | [design_gamma](design_gamma.md) | 0..1 <br/> [Float](Float.md) | Design Lorentz factor | direct |
 | [design_power](design_power.md) | 0..1 <br/> [Float](Float.md) | Design peak power [W] | direct |
 | [frequency](frequency.md) | 0..1 <br/> [Float](Float.md) | Operating frequency [Hz] | direct |
-| [n_cells](n_cells.md) | 0..1 <br/> [Integer](Integer.md) | Number of cells | direct |
+| [n_cells](n_cells.md) | 0..1 <br/> [Float](Float.md) | Number of cells | direct |
 | [crest](crest.md) | 0..1 <br/> [Float](Float.md) | On-crest phase offset providing maximum energy gain [deg] | direct |
 | [phase](phase.md) | 0..1 <br/> [Float](Float.md) | Operating phase offset [deg] | direct |
 | [shunt_impedance](shunt_impedance.md) | 0..1 <br/> [Float](Float.md) | Shunt impedance [M?/m] | direct |
-| [mode_numerator](mode_numerator.md) | 0..1 <br/> [Integer](Integer.md) | Mode fraction numerator | direct |
+| [mode_numerator](mode_numerator.md) | 0..1 <br/> [Float](Float.md) | Mode fraction numerator | direct |
 | [mode_denominator](mode_denominator.md) | 0..1 <br/> [Integer](Integer.md) | Mode fraction denominator | direct |
 | [structure_type](structure_type.md) | 0..1 <br/> [String](String.md) | RF structure type (e | direct |
 | [attenuation_constant](attenuation_constant.md) | 0..1 <br/> [Float](Float.md) | Attenuation constant ? of a travelling-wave structure [Np/m] | direct |
@@ -337,14 +337,14 @@ attributes:
     description: Number of cells.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    ifabsent: int(1)
+    ifabsent: float(1)
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
     - WakefieldElement
     - RFDeflectingCavityElement
-    range: integer
-    minimum_value: 1
+    range: float
+    minimum_value: 0
   crest:
     name: crest
     description: On-crest phase offset providing maximum energy gain [deg].
@@ -390,7 +390,7 @@ attributes:
     domain_of:
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: integer
+    range: float
   mode_denominator:
     name: mode_denominator
     description: Mode fraction denominator.

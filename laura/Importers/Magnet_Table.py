@@ -1,5 +1,9 @@
+import logging
 import os
 from math import ceil
+
+_log = logging.getLogger("laura.loader.magnet_table")
+
 try:
     import pandas
 except ImportError as _err:
@@ -63,4 +67,4 @@ def add_magnet_table_parameters(n, e, magnetPV):
         e.electrical.max_i = ceil(I_degauss)
         e.electrical.min_i = -1.0 * ceil(I_degauss)
     except Exception:
-        print("Magnet missing from magnet table!", magnet)
+        _log.warning("Magnet '%s' not found in magnet table", magnet)

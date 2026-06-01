@@ -122,7 +122,7 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
-| [MagnetBaseElement](MagnetBaseElement.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| [Magnet](Magnet.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
 

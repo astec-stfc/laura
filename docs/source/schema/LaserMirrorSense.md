@@ -118,7 +118,7 @@ attributes:
   left:
     name: left
     description: Left sense value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     aliases:
     - left_sense
     rank: 1000
@@ -128,7 +128,7 @@ attributes:
   right:
     name: right
     description: Right sense value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     aliases:
     - right_sense
     rank: 1000
@@ -138,7 +138,7 @@ attributes:
   up:
     name: up
     description: Up sense value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     aliases:
     - up_sense
     rank: 1000
@@ -148,7 +148,7 @@ attributes:
   down:
     name: down
     description: Down sense value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     aliases:
     - down_sense
     rank: 1000
@@ -171,7 +171,7 @@ attributes:
   left:
     name: left
     description: Left sense value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     aliases:
     - left_sense
     rank: 1000
@@ -182,7 +182,7 @@ attributes:
   right:
     name: right
     description: Right sense value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     aliases:
     - right_sense
     rank: 1000
@@ -193,7 +193,7 @@ attributes:
   up:
     name: up
     description: Up sense value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     aliases:
     - up_sense
     rank: 1000
@@ -204,7 +204,7 @@ attributes:
   down:
     name: down
     description: Down sense value.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     aliases:
     - down_sense
     rank: 1000

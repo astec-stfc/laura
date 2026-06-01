@@ -1,5 +1,6 @@
 import re
 import json
+import logging
 import yaml
 import os
 import pathlib
@@ -8,6 +9,8 @@ from pydantic import TypeAdapter, BaseModel
 
 # Import elements before building registry
 from ..models.element import *  # noqa
+
+_log = logging.getLogger("laura.loader")
 
 # Fast metadata extraction regex
 _NAME_RE = re.compile(r'^\s*name:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE)
@@ -188,18 +191,30 @@ def filter_top_level(elem: dict, exclude_keys: List[str] | None = None) -> dict:
 def interpret_YAML_Element(elem: dict, exclude_set=None):
     hw_type = elem.get("hardware_type")
     if not hw_type:
+        name = elem.get("name", "<unknown>")
+        _log.warning("Skipping element '%s': no hardware_type field", name)
         return None
 
     adapter = ADAPTERS.get(hw_type)
     if adapter is None:
+        name = elem.get("name", "<unknown>")
+        _log.warning("Skipping element '%s': unregistered hardware_type '%s'", name, hw_type)
         return None
 
     if exclude_set:
         elem = {k: v for k, v in elem.items() if k not in exclude_set}
 
     try:
-        return adapter.validate_python(elem)
-    except Exception:
+        result = adapter.validate_python(elem)
+        _log.debug("Loaded %s (%s)", elem.get("name", "?"), hw_type)
+        return result
+    except Exception as exc:
+        name = elem.get("name", "<unknown>")
+        _log.error(
+            "Failed to parse '%s' [%s]: %s",
+            name, hw_type, exc,
+        )
+        _log.debug("Validation error detail for '%s':", name, exc_info=True)
         return None
 
 
@@ -269,7 +284,16 @@ def read_YAML_Combined_File(
         for element in elements.values():
             validate_element_dict(element)
 
-    return [
+    _log.debug("Parsing %d elements from '%s'", len(elements), filename)
+    results = [
         interpret_YAML_Element(element, exclude_set)
         for element in elements.values()
     ]
+    loaded = sum(1 for r in results if r is not None)
+    failed = len(results) - loaded
+    _log.info(
+        "Loaded %d/%d elements from '%s'%s",
+        loaded, len(results), filename,
+        f" ({failed} failed — enable DEBUG for details)" if failed else "",
+    )
+    return results

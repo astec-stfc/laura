@@ -40,7 +40,7 @@ URI: [laura:n_cells](https://w3id.org/laura/n_cells)
 
 | Property | Value |
 | --- | --- |
-| Range | [Integer](Integer.md) |
+| Range | [Float](Float.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [WakefieldElement](WakefieldElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -51,14 +51,14 @@ URI: [laura:n_cells](https://w3id.org/laura/n_cells)
 
 | Property | Value |
 | --- | --- |
-| If Absent | `int(1)` |
+| If Absent | `float(1)` |
 
 
 ### Value Constraints
 
 | Property | Value |
 | --- | --- |
-| Minimum Value | 1 |
+| Minimum Value | 0 |
 
 
 
@@ -103,13 +103,13 @@ name: n_cells
 description: Number of cells.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: int(1)
+ifabsent: float(1)
 domain_of:
 - RFCavityElement
 - WakefieldElement
 - RFDeflectingCavityElement
-range: integer
-minimum_value: 1
+range: float
+minimum_value: 0
 
 ```
 </details></div>

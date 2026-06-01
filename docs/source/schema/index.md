@@ -30,7 +30,7 @@ Name: laura_schema
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Screen](Screen.md) | Scintillator or OTR screen with an associated camera |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Drift](Drift.md) | Field-free drift space between elements |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Laser](Laser.md) | Laser system element (full laser setup including beam parameters) |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[MagnetBaseElement](MagnetBaseElement.md) | Base class for all magnetic focusing and bending elements |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Magnet](Magnet.md) | Base class for all magnetic focusing and bending elements |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Marker](Marker.md) | Virtual survey marker -- a zero-length reference point used for alignment |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Plasma](Plasma.md) | Laser-driven plasma-accelerator stage |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFCavity](RFCavity.md) | Accelerating RF cavity |
@@ -48,6 +48,7 @@ Name: laura_schema
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Lighting](Lighting.md) | Experimental-hall lighting element |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[LowLevelRF](LowLevelRF.md) | Low-level RF (LLRF) controller |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[PID](PID.md) | Proportional-integral-derivative (PID) feedback controller |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[PowerSupply](PowerSupply.md) | Generic power-supply unit providing control/setpoint-driven outputs (for exam... |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFHeartbeat](RFHeartbeat.md) | RF timing heartbeat / signal-monitor element |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFModulator](RFModulator.md) | RF modulator (klystron driver) element |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFProtection](RFProtection.md) | RF protection system element |
@@ -180,6 +181,7 @@ Name: laura_schema
 | [diagnostic](diagnostic.md) | Instrument-specific diagnostic parameters |
 | [disable](disable.md) | Disable command/value |
 | [down](down.md) | Down sense value |
+| [downstream](downstream.md) | (List) of upstream elements |
 | [drawings](drawings.md) | Engineering-drawing identifiers or URIs |
 | [dt_bunch](dt_bunch.md) | Time-step control for bunch evolution (or 'auto') |
 | [dtype](dtype.md) | Data type (e |
@@ -235,6 +237,7 @@ Name: laura_schema
 | [I_max](I_max.md) | Current at which saturation begins [A] |
 | [identifier](identifier.md) | Protocol-specific PV name (e |
 | [initial_position](initial_position.md) | Initial longitudinal position of the laser pulse [m] |
+| [inputs](inputs.md) | (List) of input types |
 | [integration_order](integration_order.md) | Order of the symplectic integrator |
 | [interlocks](interlocks.md) | Names of the interlocks guarding this shutter |
 | [interpolate](interpolate.md) | Interpolate points in wake file |
@@ -278,14 +281,14 @@ Name: laura_schema
 | [max_amplitude](max_amplitude.md) | Maximum allowed amplitude |
 | [max_i](max_i.md) | Maximum current [A] |
 | [max_longitudinal_position](max_longitudinal_position.md) | Maximum longitudinal position [m] |
-| [maximum](maximum.md) | Maximum attenuation angle [deg] |
+| [maximum](maximum.md) | Maximum mask radius in pixels [x, y] |
 | [maximum_position](maximum_position.md) | Maximum downstream s-coordinate [m] |
 | [mechanical_middle](mechanical_middle.md) | Mechanical center of the camera in pixels [x, y] |
 | [middle](middle.md) | Longitudinal midpoint (centre) of the element |
 | [min](min.md) | Minimum value |
 | [min_i](min_i.md) | Minimum current [A] |
 | [min_longitudinal_position](min_longitudinal_position.md) | Minimum longitudinal position [m] |
-| [minimum](minimum.md) | Minimum attenuation angle [deg] |
+| [minimum](minimum.md) | Minimum pixel positions [x, y] |
 | [minimum_position](minimum_position.md) | Minimum upstream s-coordinate [m] |
 | [mode_denominator](mode_denominator.md) | Mode fraction denominator |
 | [mode_numerator](mode_numerator.md) | Mode fraction numerator |
@@ -306,6 +309,7 @@ Name: laura_schema
 | [operating_middle](operating_middle.md) | Operating center positions in pixels [x, y] |
 | [order](order.md) | Multipole order (0 = dipole, 1 = quadrupole, ?) |
 | [output_filename](output_filename.md) | Output filename for diagnostic data |
+| [outputs](outputs.md) | (List) of output types |
 | [parabolic_coefficient](parabolic_coefficient.md) | Parabolic coefficient for a transverse density profile |
 | [phase](phase.md) | Operating phase offset [deg] |
 | [phase_range](phase_range.md) | Phase tuning range |
@@ -335,7 +339,7 @@ Name: laura_schema
 | [pulse_energy](pulse_energy.md) | Laser pulse energy [J] |
 | [r_max](r_max.md) | Radial extent of the simulation box [m] |
 | [r_max_plasma](r_max_plasma.md) | Maximum radial extension of the plasma column |
-| [radius](radius.md) | Reference radius for multipole normalisation [m] |
+| [radius](radius.md) | Radius for circular apertures [m] |
 | [ramp_decay_length](ramp_decay_length.md) | Exponential decay length of the density ramp [m] |
 | [ramp_down](ramp_down.md) | Exit density-ramp length [m] |
 | [ramp_up](ramp_up.md) | Entrance density-ramp length [m] |
@@ -389,6 +393,7 @@ Name: laura_schema
 | [type](type.md) | BPM type (e |
 | [units](units.md) | Physical units string (e |
 | [up](up.md) | Up sense value |
+| [upstream](upstream.md) | (List) of upstream elements |
 | [use_maximum_values](use_maximum_values.md) | If True, use maximum mask radius constraints |
 | [use_stupakov](use_stupakov.md) | Use Stupakov formula |
 | [value](value.md) | Last-read value |
@@ -429,6 +434,7 @@ Name: laura_schema
 | [ApertureShapeEnum](ApertureShapeEnum.md) | Cross-sectional shape of a beam-pipe aperture |
 | [BendingPlaneEnum](BendingPlaneEnum.md) | Bending plane enum |
 | [HardwareClassEnum](HardwareClassEnum.md) | High-level category organising elements by function within the accelerator |
+| [IOTypeEnum](IOTypeEnum.md) | Input types for accelerator elements |
 | [LaserPolarizationEnum](LaserPolarizationEnum.md) | Polarization state of a laser beam |
 | [LaserProfileTypeEnum](LaserProfileTypeEnum.md) | Transverse intensity profile model for a laser beam |
 

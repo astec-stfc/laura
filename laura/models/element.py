@@ -18,7 +18,7 @@ from ._generated import (
     _AcceleratorElementBase,
     _ElementBase,
     _PhysicalAcceleratorElementBase,
-    _MagnetBaseElementBase,
+    _MagnetBase,
     _TwissMatchBase,
     _DiagnosticBase,
     _BeamPositionMonitorBase,
@@ -241,6 +241,9 @@ class Element(baseElement, _ElementBase):
         reference: :class:`~laura.models.reference.ReferenceElement` | None: Reference information for the element.
     """
 
+    controls: ControlsInformation | None = None
+    """Control-system process-variable definitions."""
+
     def model_post_init(self, __context: Any) -> None:
         # Preserve prior convenience behavior while keeping declarations schema-first.
         super().model_post_init(__context)
@@ -290,7 +293,7 @@ class PhysicalBaseElement(Element, _PhysicalAcceleratorElementBase):
         return self.start_angle
 
 
-class Magnet(PhysicalBaseElement, _MagnetBaseElementBase):
+class Magnet(PhysicalBaseElement, _MagnetBase):
     """
     Base class for representing magnets.
     Inherits from PhysicalBaseElement, which provides proper attribute cascading
@@ -899,6 +902,21 @@ class Lighting(Element, _LightingBase):
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "lights", LightingElement)
+
+
+class PowerSupply(Element):
+    """
+    Generic power supply element.
+
+    Used to represent standalone power-supply units that feed other components
+    (for example magnets and RF chains) through control-signal connectivity.
+    """
+
+    hardware_type: str = Field(default="PowerSupply", frozen=True)
+    """Power supply hardware type."""
+
+    hardware_model: str = Field(default="GenericPowerSupply", frozen=True)
+    """Power supply hardware model."""
 
 
 class PID(Element, _PIDBase):

@@ -20,8 +20,8 @@ URI: [laura:radius](https://w3id.org/laura/radius)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [Multipole](Multipole.md) | Individual multipole field component, characterised by order and integrated n... |  no  |
 | [ApertureElement](ApertureElement.md) | Transverse aperture geometry for drift-space checks and collimators |  no  |
+| [Multipole](Multipole.md) | Individual multipole field component, characterised by order and integrated n... |  no  |
 | [CameraMask](CameraMask.md) | Camera analysis mask parameters |  no  |
 
 
@@ -36,7 +36,7 @@ URI: [laura:radius](https://w3id.org/laura/radius)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [Multipole](Multipole.md), [ApertureElement](ApertureElement.md), [CameraMask](CameraMask.md) |
+| Domain Of | [ApertureElement](ApertureElement.md), [Multipole](Multipole.md), [CameraMask](CameraMask.md) |
 
 ### Cardinality and Requirements
 
@@ -75,8 +75,8 @@ URI: [laura:radius](https://w3id.org/laura/radius)
 ```yaml
 name: radius
 domain_of:
-- Multipole
 - ApertureElement
+- Multipole
 - CameraMask
 range: string
 

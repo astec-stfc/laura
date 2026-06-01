@@ -1,7 +1,11 @@
+import logging
 import os
 import glob
 from yaml import load
 from Importers.MySafeLoader import MySafeLoader
+
+_log = logging.getLogger("laura.loader.catap")
+
 from ..models.PV import (  # noqa: F401
     MagnetPV,
     BPMPV,
@@ -77,7 +81,7 @@ def get_camera_pv_names(name):
 
 def read_CATAP_YAML(filename):
     """read a CATAP YAML file and convert to a pydantic model."""
-    print("File:", filename)
+    _log.debug("Reading CATAP YAML file: %s", filename)
     with ReplacePc(filename) as stream:
         data = load(stream, Loader=MySafeLoader)
     # for k in data['controls_information']['pv_record_map'].keys():

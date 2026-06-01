@@ -1,3 +1,4 @@
+import logging
 import os
 import numpy as np
 from typing import List, Dict, Any, Union
@@ -11,6 +12,8 @@ from .exceptions import LatticeError
 import warnings
 
 from .simulation import DriftSimulationElement
+
+_log = logging.getLogger("laura.model")
 
 
 def dot(a, b) -> float:
@@ -262,8 +265,8 @@ class SectionLattice(BaseLatticeModel):
                     length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
                     vector = dot((d[1] - d[0]), [0, 0, 1])
                 except Exception as exc:
-                    print("Element with error = ", e[0])
-                    print(d)
+                    _log.error("Drift calculation error near element '%s': %s", e[0], exc)
+                    _log.debug("Position data: %s", d)
                     raise exc
                 if round(length, 16) > 0:
                     elementno += 1

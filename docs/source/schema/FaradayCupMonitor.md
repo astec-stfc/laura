@@ -51,6 +51,17 @@ URI: [laura:FaradayCupMonitor](https://w3id.org/laura/FaradayCupMonitor)
     
 
         
+      FaradayCupMonitor : downstream
+        
+          
+    
+        
+        
+        FaradayCupMonitor --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       FaradayCupMonitor : electrical
         
           
@@ -77,6 +88,17 @@ URI: [laura:FaradayCupMonitor](https://w3id.org/laura/FaradayCupMonitor)
         
       FaradayCupMonitor : hardware_type
         
+      FaradayCupMonitor : inputs
+        
+          
+    
+        
+        
+        FaradayCupMonitor --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
       FaradayCupMonitor : machine_area
         
       FaradayCupMonitor : manufacturer
@@ -91,6 +113,17 @@ URI: [laura:FaradayCupMonitor](https://w3id.org/laura/FaradayCupMonitor)
 
         
       FaradayCupMonitor : name
+        
+      FaradayCupMonitor : outputs
+        
+          
+    
+        
+        
+        FaradayCupMonitor --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       FaradayCupMonitor : physical
         
@@ -127,6 +160,17 @@ URI: [laura:FaradayCupMonitor](https://w3id.org/laura/FaradayCupMonitor)
         
       FaradayCupMonitor : subelement
         
+      FaradayCupMonitor : upstream
+        
+          
+    
+        
+        
+        FaradayCupMonitor --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       FaradayCupMonitor : virtual_name
         
       
@@ -157,7 +201,7 @@ URI: [laura:FaradayCupMonitor](https://w3id.org/laura/FaradayCupMonitor)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [diagnostic](diagnostic.md) | 0..1 <br/> [ChargeDiagnosticElement](ChargeDiagnosticElement.md) | Instrument-specific diagnostic parameters | [Diagnostic](Diagnostic.md), [ChargeDiagnostic](ChargeDiagnostic.md) |
+| [diagnostic](diagnostic.md) | 0..1 <br/> [ChargeDiagnosticElement](ChargeDiagnosticElement.md) | Instrument-specific diagnostic parameters | [ChargeDiagnostic](ChargeDiagnostic.md), [Diagnostic](Diagnostic.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
@@ -172,6 +216,10 @@ URI: [laura:FaradayCupMonitor](https://w3id.org/laura/FaradayCupMonitor)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -252,7 +300,7 @@ attributes:
     description: Instrument-specific diagnostic parameters.
     in_subset:
     - diagnostic_properties
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/diagnostics
     owner: FaradayCupMonitor
     domain_of:
     - Diagnostic
@@ -408,6 +456,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: FaradayCupMonitor
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: FaradayCupMonitor
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: FaradayCupMonitor
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: FaradayCupMonitor
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:FaradayCupMonitor
 
 ```

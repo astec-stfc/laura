@@ -25,6 +25,134 @@ imports:
 
 classes:
 
+# -- Diagnostics Objects ------------------------------------------------------------
+
+  Diagnostic:
+    is_a: PhysicalAcceleratorElement
+    description: Base class for all beam-diagnostic instruments.
+    class_uri: laura:Diagnostic
+    slot_usage:
+      simulation:
+        range: DiagnosticSimulationElement
+    attributes:
+      diagnostic:
+        range: DiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  BeamPositionMonitor:
+    is_a: Diagnostic
+    description: Beam-position monitor (BPM).
+    class_uri: laura:BeamPositionMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Beam_Position_Monitor
+    attributes:
+      diagnostic:
+        range: BPMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  BeamArrivalMonitor:
+    is_a: Diagnostic
+    description: Beam-arrival-time monitor (BAM).
+    class_uri: laura:BeamArrivalMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Beam_Arrival_Monitor
+    attributes:
+      diagnostic:
+        range: BAMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  BunchLengthMonitor:
+    is_a: Diagnostic
+    description: "Bunch-length monitor (BLM / CDR detector)."
+    class_uri: laura:BunchLengthMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Bunch_Length_Monitor
+    attributes:
+      diagnostic:
+        range: BLMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  Camera:
+    is_a: Diagnostic
+    description: Camera-based beam-profile monitor.
+    class_uri: laura:Camera
+    slot_usage:
+      hardware_type:
+        equals_string: Camera
+    attributes:
+      diagnostic:
+        range: CameraDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  Screen:
+    is_a: Diagnostic
+    description: Scintillator or OTR screen with an associated camera.
+    class_uri: laura:Screen
+    slot_usage:
+      hardware_type:
+        equals_string: Screen
+    attributes:
+      diagnostic:
+        range: ScreenDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  ChargeDiagnostic:
+    is_a: Diagnostic
+    description: Base class for charge-measurement diagnostics.
+    class_uri: laura:ChargeDiagnostic
+    slot_usage:
+      hardware_type:
+        equals_string: ChargeDiagnostic
+    attributes:
+      diagnostic:
+        range: ChargeDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  WallCurrentMonitor:
+    is_a: ChargeDiagnostic
+    description: Wall-current monitor (WCM) for non-destructive charge measurement.
+    class_uri: laura:WallCurrentMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Wall_Current_Monitor
+
+  FaradayCupMonitor:
+    is_a: ChargeDiagnostic
+    description: Faraday cup for destructive charge measurement.
+    class_uri: laura:FaradayCupMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Faraday_Cup_Monitor
+
+  IntegratedCurrentTransformer:
+    is_a: ChargeDiagnostic
+    description: >-
+      Integrated current transformer (ICT) for non-destructive single-shot
+      charge measurement.
+    class_uri: laura:IntegratedCurrentTransformer
+    slot_usage:
+      hardware_type:
+        equals_string: Integrated_Current_Transformer
+
+# -- Diagnostics Elements ------------------------------------------------------------
+
   DiagnosticElement:
     description: >-
       Base class for diagnostic instrument sub-models.  Concrete sub-models

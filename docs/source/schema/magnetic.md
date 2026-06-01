@@ -25,7 +25,7 @@ URI: [laura:magnetic](https://w3id.org/laura/magnetic)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [MagnetBaseElement](MagnetBaseElement.md) | Base class for all magnetic focusing and bending elements |  no  |
+| [Magnet](Magnet.md) | Base class for all magnetic focusing and bending elements |  no  |
 
 
 
@@ -39,7 +39,7 @@ URI: [laura:magnetic](https://w3id.org/laura/magnetic)
 | Property | Value |
 | --- | --- |
 | Range | [MagneticElement](MagneticElement.md) |
-| Domain Of | [MagnetBaseElement](MagnetBaseElement.md) |
+| Domain Of | [Magnet](Magnet.md) |
 
 ### Cardinality and Requirements
 
@@ -49,7 +49,7 @@ URI: [laura:magnetic](https://w3id.org/laura/magnetic)
 
 | Property | Value |
 | --- | --- |
-| Owner | [MagnetBaseElement](MagnetBaseElement.md) |
+| Owner | [Magnet](Magnet.md) |
 
 
 
@@ -102,9 +102,9 @@ in_subset:
 - magnetic_properties
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-owner: MagnetBaseElement
+owner: Magnet
 domain_of:
-- MagnetBaseElement
+- Magnet
 range: MagneticElement
 
 ```

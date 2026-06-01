@@ -40,6 +40,17 @@ URI: [laura:LaserAttenuator](https://w3id.org/laura/LaserAttenuator)
     
 
         
+      LaserAttenuator : downstream
+        
+          
+    
+        
+        
+        LaserAttenuator --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       LaserAttenuator : electrical
         
           
@@ -66,6 +77,17 @@ URI: [laura:LaserAttenuator](https://w3id.org/laura/LaserAttenuator)
         
       LaserAttenuator : hardware_type
         
+      LaserAttenuator : inputs
+        
+          
+    
+        
+        
+        LaserAttenuator --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
       LaserAttenuator : machine_area
         
       LaserAttenuator : manufacturer
@@ -84,6 +106,17 @@ URI: [laura:LaserAttenuator](https://w3id.org/laura/LaserAttenuator)
       LaserAttenuator : minimum
         
       LaserAttenuator : name
+        
+      LaserAttenuator : outputs
+        
+          
+    
+        
+        
+        LaserAttenuator --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       LaserAttenuator : reference
         
@@ -108,6 +141,17 @@ URI: [laura:LaserAttenuator](https://w3id.org/laura/LaserAttenuator)
 
         
       LaserAttenuator : subelement
+        
+      LaserAttenuator : upstream
+        
+          
+    
+        
+        
+        LaserAttenuator --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
         
       LaserAttenuator : virtual_name
         
@@ -150,6 +194,10 @@ URI: [laura:LaserAttenuator](https://w3id.org/laura/LaserAttenuator)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -219,23 +267,21 @@ attributes:
   maximum:
     name: maximum
     description: Maximum attenuation angle [deg].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     domain_of:
-    - LaserAttenuator
     - CameraMask
     - CameraSensor
+    - LaserAttenuator
     range: float
     unit:
       ucum_code: deg
   minimum:
     name: minimum
     description: Minimum attenuation angle [deg].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     domain_of:
-    - LaserAttenuator
     - CameraSensor
+    - LaserAttenuator
     range: float
     unit:
       ucum_code: deg
@@ -262,25 +308,23 @@ attributes:
   maximum:
     name: maximum
     description: Maximum attenuation angle [deg].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     owner: LaserAttenuator
     domain_of:
-    - LaserAttenuator
     - CameraMask
     - CameraSensor
+    - LaserAttenuator
     range: float
     unit:
       ucum_code: deg
   minimum:
     name: minimum
     description: Minimum attenuation angle [deg].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
+    from_schema: https://w3id.org/laura/schema/laser_plasma
     owner: LaserAttenuator
     domain_of:
-    - LaserAttenuator
     - CameraSensor
+    - LaserAttenuator
     range: float
     unit:
       ucum_code: deg
@@ -418,6 +462,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: LaserAttenuator
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: LaserAttenuator
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: LaserAttenuator
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: LaserAttenuator
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:LaserAttenuator
 
 ```
