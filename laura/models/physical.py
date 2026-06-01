@@ -1,13 +1,15 @@
 import numpy as np
 from pydantic import (
     field_validator,
+    model_validator,
     PrivateAttr,
     computed_field,
     model_serializer,
+    BaseModel,
+    Field,
 )
-from typing import List, Union, Dict, Any
+from typing import List, Literal, Optional, Union, Dict, Any
 
-from .baseModels import IgnoreExtra
 from ._generated import _PositionBase, _RotationBase, _ElementPositionErrorBase, _ElementSurveyBase, _PhysicalElementBase
 from ..utils.rotation_matrix import euler_angles_to_rotation_matrix
 
@@ -266,14 +268,90 @@ class ElementSurvey(ElementError):
     pass
 
 
+class ReferencePlacement(BaseModel):
+    """
+    Position an element relative to a named reference element's frame.
+
+    The ``offset`` field is expressed in the reference element's local frame at
+    the chosen ``point`` (start / middle / end).  Use ``world_offset`` instead
+    to supply an offset already in global world coordinates.  Only one of the
+    two offset fields may be set at a time.
+
+    YAML examples::
+
+        # At the exit of a dipole, no offset
+        reference_placement:
+          element: some_dipole
+
+        # 1 m downstream along the dipole exit axis
+        reference_placement:
+          element: some_dipole
+          offset: [0, 0, 1.0]
+
+        # 5 cm horizontal shift in world frame
+        reference_placement:
+          element: some_dipole
+          world_offset: [0.05, 0, 0]
+    """
+
+    element: str
+    point: Literal["start", "middle", "end"] = "end"
+    offset: Optional[Position] = Field(default=None)
+    world_offset: Optional[Position] = Field(default=None)
+
+    @field_validator("offset", "world_offset", mode="before")
+    @classmethod
+    def _coerce_offset(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, Position):
+            return v
+        if isinstance(v, (list, tuple, np.ndarray)):
+            coerced = _coerce_position_vector(v)
+            if coerced is not None:
+                return coerced
+            raise ValueError("offset must be a list of 3 floats")
+        if isinstance(v, dict):
+            return _coerce_position_mapping(
+                v, error_message="offset dict must contain x, y, z"
+            )
+        raise ValueError("offset must be a list of 3 floats or {x, y, z} dict")
+
+    @model_validator(mode="after")
+    def _check_offset_exclusivity(self) -> "ReferencePlacement":
+        if self.offset is not None and self.world_offset is not None:
+            raise ValueError(
+                "Specify either 'offset' (reference-frame) or 'world_offset' "
+                "(world-frame) in reference_placement — not both."
+            )
+        return self
+
+
 class PhysicalElement(_PhysicalElementBase):
     """
     Physical info model.
     """
 
+    reference_placement: Optional[ReferencePlacement] = Field(default=None)
+    """Place this element relative to another element's frame instead of using
+    absolute world coordinates.  Mutually exclusive with ``middle``/``position``/``centre``."""
+
+    @model_validator(mode="after")
+    def _check_placement_exclusivity(self) -> "PhysicalElement":
+        # Check model_fields_set so that an un-provided middle (defaulting to None)
+        # doesn't trigger the error — only an explicitly supplied position does.
+        if self.reference_placement is not None and "middle" in self.model_fields_set:
+            raise ValueError(
+                "Cannot specify both a world position ('middle'/'position'/'centre') "
+                "and 'reference_placement' in a physical element — use one or the other."
+            )
+        return self
+
     def model_post_init(self, __context) -> None:
         # Preserve legacy defaults expected by existing code/tests.
-        if self.middle is None:
+        # Skip the middle default when reference_placement is in use; it will be
+        # resolved to world coordinates later by the lattice assembly.
+        if self.reference_placement is None and self.middle is None:
             self.middle = Position()
         if self.datum is None:
             self.datum = Position()
@@ -318,11 +396,11 @@ class PhysicalElement(_PhysicalElementBase):
         self.physical_angle = 0.0
         return 0.0
 
-    @field_validator("middle", "datum", mode="before")
+    @field_validator("middle", mode="before")
     @classmethod
-    def validate_middle(cls, v: Union[float, int, Dict, List, np.ndarray]) -> Position:
+    def validate_middle(cls, v: Union[float, int, Dict, List, np.ndarray]) -> Optional[Position]:
         if v is None:
-            return Position()
+            return None  # Deferred to model_post_init to respect reference_placement
         if isinstance(v, (float, int)):
             return Position(z=v)
         if isinstance(v, (list, tuple, np.ndarray)):
@@ -336,8 +414,27 @@ class PhysicalElement(_PhysicalElementBase):
             return _coerce_position_mapping(
                 v, error_message="setting middle as dictionary must include x, y, z as floats"
             )
-
         raise ValueError("middle should be a number or a list of floats")
+
+    @field_validator("datum", mode="before")
+    @classmethod
+    def validate_datum(cls, v: Union[float, int, Dict, List, np.ndarray]) -> Position:
+        if v is None:
+            return Position()
+        if isinstance(v, (float, int)):
+            return Position(z=v)
+        if isinstance(v, (list, tuple, np.ndarray)):
+            coerced = _coerce_position_vector(v)
+            if coerced is not None:
+                return coerced
+            raise ValueError("datum should be a number or a list of floats")
+        if isinstance(v, Position):
+            return v
+        if isinstance(v, dict):
+            return _coerce_position_mapping(
+                v, error_message="setting datum as dictionary must include x, y, z as floats"
+            )
+        raise ValueError("datum should be a number or a list of floats")
 
     @field_validator("rotation", "global_rotation", mode="before")
     @classmethod
@@ -393,7 +490,35 @@ class PhysicalElement(_PhysicalElementBase):
         return self.rotation_matrix @ np.array(vec)
 
     @property
+    def end_rotation_matrix(self) -> np.ndarray:
+        """Rotation matrix at the element exit, accounting for bending angle.
+
+        For a straight element this is identical to :attr:`rotation_matrix`.
+        For a bent element (dipole) the exit frame is rotated by the full bend
+        angle relative to the entrance frame.
+
+        Derivation: in the canonical orientation (rotation = 0) the exit beam
+        direction is ``[sin θ, 0, cos θ]`` in global coords.  Rotating by
+        ``rotation_matrix`` gives the actual exit direction, which equals
+        ``rotation_matrix @ Ry(-θ)`` where Ry uses LAURA's convention
+        ``Ry(α) = [[cos α, 0, −sin α], [0,1,0], [sin α, 0, cos α]]``.
+        """
+        theta = self._physical_angle
+        if abs(theta) < 1e-9:
+            return self.rotation_matrix
+        ct, st = np.cos(theta), np.sin(theta)
+        # Ry(-theta) in LAURA's convention
+        ry_neg = np.array([[ct, 0, st], [0, 1, 0], [-st, 0, ct]])
+        return self.rotation_matrix @ ry_neg
+
+    @property
     def start(self) -> Position:
+        if self.middle is None:
+            raise RuntimeError(
+                "Cannot compute 'start': element has an unresolved "
+                "'reference_placement'. Call resolve_reference_placements() "
+                "on the containing lattice first."
+            )
         middle = np.array(self.middle.array)
 
         if abs(self._physical_angle) > 1e-9:
@@ -417,6 +542,12 @@ class PhysicalElement(_PhysicalElementBase):
 
     @property
     def end(self) -> Position:
+        if self.middle is None:
+            raise RuntimeError(
+                "Cannot compute 'end': element has an unresolved "
+                "'reference_placement'. Call resolve_reference_placements() "
+                "on the containing lattice first."
+            )
         middle = np.array(self.middle.array)
 
         if abs(self._physical_angle) > 1e-9:

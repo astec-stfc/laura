@@ -118,6 +118,34 @@ def element_start_position(
     )
 
 
+def rotation_matrix_to_euler(R: np.ndarray) -> tuple:
+    """
+    Extract (yaw, pitch, roll) Euler angles from a 3x3 rotation matrix.
+
+    Inverse of euler_angles_to_rotation_matrix.  Uses the same YXZ convention:
+        R = Rz(roll) @ Rx(pitch) @ Ry(yaw)
+
+    For the expanded matrix:
+        R[2,1] = sin(pitch)
+        R[2,0] = cos(pitch)*sin(yaw),  R[2,2] = cos(pitch)*cos(yaw)
+        R[0,1] = -sin(roll)*cos(pitch), R[1,1] = cos(roll)*cos(pitch)
+
+    Returns
+    -------
+    (yaw, pitch, roll) in radians
+    """
+    pitch = float(np.arcsin(np.clip(R[2, 1], -1.0, 1.0)))
+    cp = np.cos(pitch)
+    if abs(cp) > 1e-9:
+        yaw = float(np.arctan2(R[2, 0], R[2, 2]))
+        roll = float(np.arctan2(-R[0, 1], R[1, 1]))
+    else:
+        # Gimbal lock (pitch = ±90°): assign all rotation to yaw, zero roll
+        yaw = float(np.arctan2(-R[0, 2], R[0, 0]))
+        roll = 0.0
+    return yaw, pitch, roll
+
+
 def element_end_position(
     middle: "Position", rotation: "Rotation", length: float
 ) -> "Position":

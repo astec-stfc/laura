@@ -6,7 +6,8 @@ from pydantic import field_validator, BaseModel, ValidationInfo, Field, Positive
 from warnings import warn
 from ._functions import read_yaml, merge_two_dicts
 from .element import baseElement, Drift, PhysicalBaseElement, Diagnostic
-from .physical import PhysicalElement, Position
+from .physical import PhysicalElement, Position, Rotation
+from ..utils.rotation_matrix import euler_angles_to_rotation_matrix, rotation_matrix_to_euler
 from .baseModels import ModelBase
 from .exceptions import LatticeError
 import warnings
@@ -355,6 +356,88 @@ class SectionLattice(BaseLatticeModel):
         if as_dict:
             return dict(zip([e.name for e in elems.values()], s))
         return list(s)
+
+    def resolve_reference_placements(self, element_registry: dict) -> None:
+        """Resolve any ``reference_placement`` specs in this section.
+
+        Iterates elements in order and, for each one whose physical block
+        carries a ``reference_placement``, computes the world-frame ``middle``
+        position (and orientation) from the named reference element's frame.
+
+        Parameters
+        ----------
+        element_registry:
+            Mapping of element name → element object covering at minimum all
+            elements that might be referenced.  Typically ``MachineModel.elements``.
+        """
+        for name in self.order:
+            # Always operate on the registry object so mutations are visible
+            # to the caller — section.elements may hold Pydantic-copied instances.
+            elem = element_registry.get(name)
+            if elem is None or not hasattr(elem, "physical"):
+                continue
+            phys = elem.physical
+            if phys.reference_placement is None:
+                continue
+
+            rp = phys.reference_placement
+            ref_name = rp.element
+            if ref_name not in element_registry:
+                raise ValueError(
+                    f"reference_placement on '{name}' names element '{ref_name}' "
+                    f"which does not exist in the element registry."
+                )
+            ref_elem = element_registry[ref_name]
+            if not hasattr(ref_elem, "physical"):
+                raise ValueError(
+                    f"reference_placement on '{name}' names element '{ref_name}' "
+                    f"which has no physical data."
+                )
+            ref_phys = ref_elem.physical
+
+            # Reference point position and rotation matrix in world frame
+            if rp.point == "end":
+                ref_pos = ref_phys.end
+                ref_R = ref_phys.end_rotation_matrix
+            elif rp.point == "start":
+                ref_pos = ref_phys.start
+                ref_R = ref_phys.rotation_matrix   # entry frame = element rotation
+            else:  # "middle"
+                ref_pos = ref_phys.middle
+                ref_R = ref_phys.rotation_matrix
+
+            # Compute new world-frame middle position
+            if rp.offset is not None:
+                off = np.array([rp.offset.x, rp.offset.y, rp.offset.z])
+                delta = ref_R @ off
+            elif rp.world_offset is not None:
+                delta = np.array([rp.world_offset.x, rp.world_offset.y, rp.world_offset.z])
+            else:
+                delta = np.zeros(3)
+
+            new_mid = np.array([ref_pos.x, ref_pos.y, ref_pos.z]) + delta
+
+            # Clear reference_placement before writing middle — the model validator
+            # (validate_assignment=True) re-runs on every field write, so both
+            # fields must not be set at the same time.
+            phys.reference_placement = None
+            phys.middle = Position.from_list(new_mid)
+
+            # Determine resolved rotation matrix
+            if "rotation" not in phys.model_fields_set:
+                # No user-specified rotation: inherit reference frame orientation
+                resolved_R = ref_R
+            else:
+                # User-specified rotation is treated as an additional LOCAL rotation
+                # on top of the reference frame: R_world = ref_R @ R_user_local
+                ur = phys.rotation
+                R_user = euler_angles_to_rotation_matrix(ur.theta, ur.phi, ur.psi)
+                resolved_R = ref_R @ R_user
+
+            yaw, pitch, roll = rotation_matrix_to_euler(resolved_R)
+            phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
+            phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
+            phys._rotation_matrix_cache = None
 
 
 class MachineLayout(BaseLatticeModel):
@@ -890,6 +973,7 @@ class MachineModel(ModelBase):
                 self._build_layouts(self.elements)
             else:
                 self._build_sections_from_elements(self.elements)
+            self._resolve_all_reference_placements()
 
     def __add__(self, other) -> dict:
         copy = self.elements.copy()
@@ -1074,6 +1158,20 @@ class MachineModel(ModelBase):
 
             if len(self.lattices) == 1 and self._default_path is None:
                 self._default_path = next(iter(self.lattices))
+
+    def _resolve_all_reference_placements(self) -> None:
+        """Resolve reference_placement specs across all sections."""
+        for section in self.sections.values():
+            section.resolve_reference_placements(self.elements)
+
+    def resolve_reference_placements(self) -> None:
+        """Public entry point to (re-)resolve all reference_placement specs.
+
+        Called automatically during construction.  Exposed publicly so that
+        callers who build the model incrementally can trigger a re-resolution
+        after adding new elements.
+        """
+        self._resolve_all_reference_placements()
 
     def get_element(self, name: str) -> baseElement:
         """

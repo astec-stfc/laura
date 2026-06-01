@@ -4,7 +4,7 @@ LAURA Element Module
 The main class for representing accelerator elements in LAURA.
 """
 
-from typing import Type, List, Union, Dict, Any
+from typing import Optional, Type, List, Union, Dict, Any
 import os
 from pydantic import field_validator, Field
 from .control import (
@@ -260,9 +260,17 @@ class PhysicalBaseElement(Element, _PhysicalAcceleratorElementBase):
         physical: PhysicalElement: The physical attributes of the element.
     """
 
+    # Override the generated base-class type so that dicts are validated directly
+    # as PhysicalElement (which knows about reference_placement) rather than the
+    # base _PhysicalElementBase which would silently drop unknown fields.
+    physical: Optional[PhysicalElement] = Field(default=None)
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         self.physical = _coerce_nested_model(self.physical, PhysicalElement)
+        # Wire parent reference so _physical_angle can read the bend angle
+        if self.physical is not None:
+            self.physical._parent = self
 
     @property
     def bend_angle(self) -> Rotation:
