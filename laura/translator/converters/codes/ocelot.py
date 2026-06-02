@@ -11,6 +11,21 @@ from ...utils.functions import introspect_model_defaults
 from ...conversion_rules.codes import ocelot_conversion
 from warnings import warn
 
+ocelot_unsupported = [
+    "Cleaner",
+    "Scatter",
+    "APContour",
+    "Center",
+    "Wakefield",
+    "Laser",
+    "Plasma",
+    "MatrixTransform",
+    "TwissMatch",
+    "Decapole",
+    "ActivePlasmaLens",
+    "CrabCavity",
+]
+
 try:
     _FastLoader = yaml.CSafeLoader
 except AttributeError:

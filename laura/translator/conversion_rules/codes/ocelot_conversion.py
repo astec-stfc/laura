@@ -12,6 +12,7 @@ from ocelot.cpbd.elements import (
     TDCavity,
     Aperture,
     Drift,
+    Matrix,
 )
 
 ocelot_conversion_rules = {
@@ -20,6 +21,7 @@ ocelot_conversion_rules = {
     "Quadrupole": Quadrupole,
     "Sextupole": Sextupole,
     "Octupole": Octupole,
+    "Decapole": Drift,
     "Beam_Position_Monitor": Marker,
     "Beam_Arrival_Monitor": Drift,
     "Bunch_Length_Monitor": Drift,
@@ -37,7 +39,7 @@ ocelot_conversion_rules = {
     "Valve": Drift,
     "Bellows": Drift,
     "Cleaner": Drift,
-    "lscrift": Drift,
+    "lscdrift": Drift,
     "csrdrift": Drift,
     "edrift": Drift,
     "Drift": Drift,
@@ -56,4 +58,5 @@ ocelot_conversion_rules = {
     "Plasma": Drift,
     "Diagnostic": Marker,
     "TwissMatch": Monitor,
+    "MatrixTransform": Matrix,
 }

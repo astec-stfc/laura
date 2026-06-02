@@ -4,6 +4,17 @@ import numpy as np
 from ...utils.classes import getGrids
 from ...utils.functions import chop
 
+gpt_unsupported = [
+    "Octupole",
+    "Decapole",
+    "TwissMatch",
+    "Plasma",
+    "Laser",
+    "Wiggler",
+    "MatrixTransform",
+    "ActivePlasmaLens",
+    "CrabCavity",
+]
 
 class gpt_ccs(BaseModel):
 

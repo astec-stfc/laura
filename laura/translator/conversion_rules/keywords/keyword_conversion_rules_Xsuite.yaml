@@ -4,6 +4,7 @@ general:
   edge_field_integral: fint
   half_gap: hgap
   n_kicks: num_multipole_kicks
+  length: l
   isr_enable: radiation_flag
 rfcavity:
   phase: lag
@@ -14,3 +15,7 @@ solenoid:
 nonlinearlens:
   integrated_strength: knll
   dimensional_parameter: cnll
+crabcavity:
+  field_amplitude: voltage
+  voltage: crab_voltage
+  phase: lag

@@ -64,6 +64,7 @@ from .simulation import (
     MagnetSimulationElement,
     DriftSimulationElement,
     DiagnosticSimulationElement,
+    MatrixTransformSimulationElement,
     PlasmaSimulationElement,
     SimulationElement,
     TwissMatchSimulationElement,
@@ -788,6 +789,28 @@ class TwissMatch(PhysicalBaseElement):
     """Simulation attributes of the matching element."""
 
 
+class MatrixTransform(PhysicalBaseElement):
+    """
+    Matrix transform element. Applies an instantaneous matrix kick to the beam, up to 2nd order.
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.MatrixSimulationElement`): The simulation attributes of the matrix element.
+    """
+
+    hardware_type: str = Field(default="MatrixTransform", frozen=True)
+    """Twiss match hardware type."""
+
+    hardware_class: str = Field(default="Simulation", frozen=True)
+    """Twiss match hardware class."""
+
+    simulation: MatrixTransformSimulationElement = Field(
+        default_factory=MatrixTransformSimulationElement
+    )
+    """Simulation attributes of the matrix element."""
+
+
 class Diagnostic(PhysicalBaseElement):
     """
     Base class for representing diagnostics.
@@ -1331,6 +1354,33 @@ class RFDeflectingCavity(RFCavity):
         default_factory=RFCavitySimulationElement
     )
     """Simulation attributes of the RF deflecting cavity."""
+
+
+class CrabCavity(RFCavity):
+    """
+    Crab Cavity element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the crab cavity.
+        hardware_model (str): The specific hardware model of the crab cavity.
+        cavity (:class:`~laura.models.RF.RFCavityElement`): The RF cavity attributes of the element.
+        simulation: (:class:`~laura.models.simulation.RFCavitySimulationElement`): The simulation
+        attributes of the crab cavity.
+    """
+
+    hardware_type: str = Field(default="CrabCavity", frozen=True)
+    """Crab cavity hardware type."""
+
+    hardware_model: str = Field(default="SBand", frozen=True)
+    """Crab cavity hardware model."""
+
+    cavity: RFCavityElement = Field(default_factory=RFCavityElement)
+    """Cavity attributes of the crab cavity."""
+
+    simulation: RFCavitySimulationElement = Field(
+        default_factory=RFCavitySimulationElement
+    )
+    """Simulation attributes of the crab cavity."""
 
 
 class RFModulator(Element):

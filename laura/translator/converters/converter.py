@@ -18,7 +18,9 @@ from laura.models.element import (
     Horizontal_Corrector,
     Vertical_Corrector,
     NonLinearLens,
-    TwissMatch, Screen,
+    TwissMatch,
+    Screen,
+    MatrixTransform,
 )
 
 from .base import BaseElementTranslator
@@ -36,6 +38,7 @@ from .aperture import ApertureTranslator
 from .plasma import PlasmaTranslator
 from .laser import LaserTranslator
 from .twiss import TwissMatchTranslator
+from .matrix import MatrixTransformTranslator
 
 
 def translate_elements(
