@@ -1,0 +1,17 @@
+wake_t_unsupported = [
+    "Aperture",
+    "Sextupole",
+    "Octupole",
+    "Decapole",
+    "Solenoid",
+    "RCollimator",
+    "Wakefield",
+    "Wiggler",
+    "Collimator",
+    "Combined_Corrector",
+    "Vertical_Corrector",
+    "Horizontal_Corrector",
+    "TwissMatch",
+    "MatrixTransform",
+    "CrabCavity",
+]

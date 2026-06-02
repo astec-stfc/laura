@@ -8,6 +8,7 @@ from pybdsim.Builder import (
     Marker,
     Octupole,
     Quadrupole,
+    Decapole,
     RBend,
     RCol,
     RFCavity,
@@ -15,6 +16,7 @@ from pybdsim.Builder import (
     Sextupole,
     Solenoid,
     Undulator,
+    Rmat,
 )
 
 bdsim_conversion_rules = {
@@ -23,6 +25,7 @@ bdsim_conversion_rules = {
     "Quadrupole": Quadrupole,
     "Sextupole": Sextupole,
     "Octupole": Octupole,
+    "Decapole": Decapole,
     "Beam_Position_Monitor": Marker,
     "Beam_Arrival_Monitor": Drift,
     "Bunch_Length_Monitor": Drift,
@@ -33,7 +36,7 @@ bdsim_conversion_rules = {
     "Wall_Current_Monitor": Drift,
     "Integrated_Current_Transformer": Drift,
     "Faraday_Cup_Monitor": Drift,
-    "RFDeflectingCavity": RFCavity,
+    "RFDeflectingCavity": Drift,
     "RFCavity": RFCavity,
     "Aperture": RCol,
     "Shutter": Drift,
@@ -59,4 +62,5 @@ bdsim_conversion_rules = {
     "Plasma": Drift,
     "Diagnostic": Marker,
     "TwissMatch": Marker,
+    "MatrixTransform": Rmat,
 }

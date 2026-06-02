@@ -10,11 +10,12 @@ from xtrack.beam_elements import Cavity as Cavity_xs
 from xtrack.beam_elements import UniformSolenoid as UniformSolenoid_xs
 from xtrack.beam_elements import Multipole as Multipole_xs
 from xtrack.beam_elements import Marker as Marker_xs
+from xtrack.beam_elements import SecondOrderTaylorMap as SecondOrderTaylorMap_xs
+from xtrack.beam_elements import CrabCavity as CrabCavity_xs
 from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
 
 from laura.models.element import (
     Dipole,
-    Solenoid,
     Quadrupole,
     Sextupole,
     Octupole,
@@ -24,6 +25,8 @@ from laura.models.element import (
     NonLinearLens,
     Magnet,
     Marker,
+    MatrixTransform,
+    CrabCavity,
 )
 
 xsuite_conversion_rules_reverse = {
@@ -39,6 +42,8 @@ xsuite_conversion_rules_reverse = {
     NonLinearLens_xs: NonLinearLens,
     Multipole_xs: Magnet,
     Marker_xs: Marker,
+    SecondOrderTaylorMap_xs: MatrixTransform,
+    CrabCavity_xs: CrabCavity,
 }
 
 xsuite_conversion_rules = {
@@ -47,6 +52,7 @@ xsuite_conversion_rules = {
     "Quadrupole": Quadrupole_xs,
     "Sextupole": Sextupole_xs,
     "Octupole": Octupole_xs,
+    "Decapole": Multipole_xs,
     "Beam_Position_Monitor": ParticlesMonitor_xs,
     "Beam_Arrival_Monitor": Drift_xs,
     "Bunch_Length_Monitor": Drift_xs,
@@ -79,4 +85,8 @@ xsuite_conversion_rules = {
     "Wakefield": Marker_xs,
     "Watch_Point": ParticlesMonitor_xs,
     "Laser": Drift_xs,
+    "TwissMatch": Drift_xs,
+    "MatrixTransform": SecondOrderTaylorMap_xs,
+    "CrabCavity": CrabCavity_xs,
+    "Target": Marker_xs,
 }

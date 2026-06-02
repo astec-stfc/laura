@@ -18,6 +18,8 @@ from cheetah.accelerator import (  # noqa: F401
     TransverseDeflectingCavity,
     Undulator,
     VerticalCorrector,
+    CombinedCorrector,
+    CustomTransferMap,
 )
 
 cheetah_conversion_rules = {
@@ -26,7 +28,8 @@ cheetah_conversion_rules = {
     "Quadrupole": Quadrupole,
     "Sextupole": Sextupole,
     "Octupole": Drift,
-    "Beam_Position_Monitor": Screen,
+    "Decapole": Drift,
+    "Beam_Position_Monitor": BPM,
     "Beam_Arrival_Monitor": Screen,
     "Bunch_Length_Monitor": Screen,
     "Screen": Screen,
@@ -46,9 +49,14 @@ cheetah_conversion_rules = {
     "lscdrift": Drift,
     "Drift": Drift,
     "csrdrift": Drift,
-    "Kicker": HorizontalCorrector,
-    "Combined_Corrector": HorizontalCorrector,
+    "Kicker": CombinedCorrector,
+    "Combined_Corrector": CombinedCorrector,
     "Marker": Screen,
     "Wakefield": Drift,
     "Laser": Drift,
+    "Plasma": Drift,
+    "TwissMatch": Drift,
+    "MatrixTransform": CustomTransferMap,
+    "Wiggler": Undulator,
+    "Target": Screen,
 }

@@ -20,6 +20,8 @@ from laura.models.element import (
     NonLinearLens,
     TwissMatch,
     Screen,
+    MatrixTransform,
+    CrabCavity,
 )
 
 from .base import BaseElementTranslator
@@ -37,6 +39,7 @@ from .aperture import ApertureTranslator
 from .plasma import PlasmaTranslator
 from .laser import LaserTranslator
 from .twiss import TwissMatchTranslator
+from .matrix import MatrixTransformTranslator
 
 
 def translate_elements(
@@ -79,7 +82,7 @@ def translate_elements(
                 translator = NonLinearLensTranslator
             else:
                 translator = MagnetTranslator
-        elif type(elem) in [RFCavity, RFDeflectingCavity]:
+        elif type(elem) in [RFCavity, RFDeflectingCavity, CrabCavity]:
             translator = RFCavityTranslator
         elif isinstance(elem, Drift):
             translator = DriftTranslator
@@ -97,6 +100,8 @@ def translate_elements(
             translator = LaserTranslator
         elif isinstance(elem, TwissMatch):
             translator = TwissMatchTranslator
+        elif isinstance(elem, MatrixTransform):
+            translator = MatrixTransformTranslator
         else:
             translator = BaseElementTranslator
         elem_dict.update({elem.name: translator.model_validate(elem.model_dump())})

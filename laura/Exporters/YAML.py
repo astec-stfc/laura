@@ -3,6 +3,7 @@ import yaml
 from typing import Union
 from ..models.elementList import MachineModel
 from ..models.element import PhysicalElement
+from ..models.magnetic import MagneticElement
 
 
 def represent_tuple(dumper, data):
@@ -28,7 +29,7 @@ def _clean_export_data(data: dict, ele: PhysicalElement) -> dict:
         data["magnetic"].pop("half_gap", None)
         data["magnetic"].pop("rho", None)
         # Restore order (subclass default matches actual value, but useful in YAML)
-        if hasattr(ele, "magnetic") and ele.magnetic is not None:
+        if hasattr(ele, "magnetic") and isinstance(ele.magnetic, MagneticElement):
             data["magnetic"]["order"] = ele.magnetic.order
 
     # --- Empty alias (Aliases([]) serialises as {} or []) ---

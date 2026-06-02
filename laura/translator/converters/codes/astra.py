@@ -12,6 +12,22 @@ section_header_text_ASTRA = {
     "&WAKE": "LWAKE",
 }
 
+astra_unsupported = [
+    "TwissMatch"
+    "MatrixTransform",
+    "Laser",
+    "Plasma",
+    "Sextupole",
+    "Octupole",
+    "Decapole",
+    "Combined_Corrector",
+    "Vertical_Corrector",
+    "Horizontal_Corrector",
+    "Wiggler",
+    "ActivePlasmaLens",
+    "CrabCavity",
+]
+
 
 class astra_header(BaseModel):
     """

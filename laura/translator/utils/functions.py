@@ -254,11 +254,12 @@ def path_function(a):
         return os.path.abspath(a)
     return "./"
 
-
-def expand_substitution(self, param, subs={}, elements={}, absolute=False):
+def expand_substitution(self, param, master_lattice="./", subs=None, elements=None, absolute=False):
+    subs = subs or {}
+    elements = elements or {}
     if isinstance(param, str):
-        subs["master_lattice"] = path_function(self.master_lattice) + "/"
-        regex = re.compile(r"\$(.*)\$")
+        subs["master_lattice"] = path_function(master_lattice) + "/"
+        regex = re.compile(r"\$(.*?)\$")
         s = re.search(regex, param)
         if s:
             if isevaluable(self, s.group(1)) is True:

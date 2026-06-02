@@ -1,6 +1,15 @@
-from pydantic import PositiveInt, PositiveFloat, SerializeAsAny
+from pydantic import (
+    PositiveInt,
+    PositiveFloat,
+    SerializeAsAny,
+    computed_field,
+    field_validator,
+    Field
+)
 from typing import Literal, Any, Dict
 from .baseModels import IgnoreExtra
+import numpy as np
+import re
 
 
 class ApertureElement(IgnoreExtra):
@@ -398,3 +407,164 @@ class TwissMatchSimulationElement(IgnoreExtra):
 
     from_beam: bool = True
     """If `True`, compute transformation from tracked beam properties instead of Twiss parameters"""
+
+    @computed_field
+    @property
+    def r_matrix(self) -> np.ndarray:
+        bx = np.sqrt(self.beta_x)
+        by = np.sqrt(self.beta_y)
+
+        R = np.eye(6)
+
+        # x-plane CS transform
+        R[0, 0] = bx
+        R[0, 5] = self.eta_x
+
+        R[1, 0] = -self.alpha_x / bx
+        R[1, 1] = 1.0 / bx
+        R[1, 5] = self.eta_xp
+
+        # y-plane CS transform
+        R[2, 2] = by
+        R[2, 5] = self.eta_y
+
+        R[3, 2] = -self.alpha_y / by
+        R[3, 3] = 1.0 / by
+        R[3, 5] = self.eta_yp
+
+        # z, δ untouched
+        R[4, 4] = 1.0
+        R[5, 5] = 1.0
+
+        return R
+
+    @computed_field
+    @property
+    def r_matrix_7x7(self) -> np.ndarray:
+        n = self.r_matrix.shape[0]
+        B = np.zeros((n + 1, n + 1))
+        B[:n, :n] = self.r_matrix
+        B[n, n] = 1
+        return B
+
+
+class MatrixTransformSimulationElement(IgnoreExtra):
+    c_matrix: np.ndarray = Field(default_factory=lambda: np.zeros(6))
+    """C-matrix for the element (0th order transformation matrix)."""
+
+    r_matrix: np.ndarray = Field(default_factory=lambda: np.eye(6))
+    """R-matrix for the element (1st order transformation matrix)."""
+
+    t_matrix: np.ndarray = Field(default_factory=lambda: np.zeros((6, 6, 6)))
+    """T-matrix for the element (2nd order transformation matrix)."""
+
+    @field_validator("c_matrix", mode="before")
+    @classmethod
+    def validate_c_matrix(cls, v):
+        if isinstance(v, dict):
+            vector = np.zeros(6)
+
+            for key, value in v.items():
+                m = re.fullmatch(r"c(\d)", key.lower())
+                if not m:
+                    raise ValueError(
+                        f"Invalid C-matrix element '{key}'. Expected e.g. c1."
+                    )
+
+                idx = int(m.group(1)) - 1
+
+                if not (0 <= idx < 6):
+                    raise ValueError(
+                        f"C-matrix index out of range: {key}"
+                    )
+
+                vector[idx] = float(value)
+
+            return vector
+
+        arr = np.asarray(v, dtype=float)
+
+        if arr.shape != (6,):
+            raise ValueError(
+                f"c_matrix must have shape (6,), got {arr.shape}"
+            )
+
+        return arr
+
+    @field_validator("r_matrix", mode="before")
+    @classmethod
+    def validate_r_matrix(cls, v):
+        if isinstance(v, dict):
+            matrix = np.eye(6)
+
+            for key, value in v.items():
+                m = re.fullmatch(r"r(\d)(\d)", key.lower())
+                if not m:
+                    raise ValueError(
+                        f"Invalid R-matrix element '{key}'. Expected e.g. r21."
+                    )
+
+                row = int(m.group(1)) - 1
+                col = int(m.group(2)) - 1
+
+                if not (0 <= row < 6 and 0 <= col < 6):
+                    raise ValueError(
+                        f"R-matrix index out of range: {key}"
+                    )
+
+                matrix[row, col] = float(value)
+
+            return matrix
+
+        arr = np.asarray(v, dtype=float)
+
+        if arr.shape != (6, 6):
+            raise ValueError(
+                f"r_matrix must have shape (6,6), got {arr.shape}"
+            )
+
+        return arr
+
+    @field_validator("t_matrix", mode="before")
+    @classmethod
+    def validate_t_matrix(cls, v):
+        if isinstance(v, dict):
+            tensor = np.zeros((6, 6, 6))
+
+            for key, value in v.items():
+                m = re.fullmatch(r"t(\d)(\d)(\d)", key.lower())
+                if not m:
+                    raise ValueError(
+                        f"Invalid T-matrix element '{key}'. Expected e.g. t513."
+                    )
+
+                i = int(m.group(1)) - 1
+                j = int(m.group(2)) - 1
+                k = int(m.group(3)) - 1
+
+                if not all(0 <= idx < 6 for idx in (i, j, k)):
+                    raise ValueError(
+                        f"T-matrix index out of range: {key}"
+                    )
+
+                tensor[i, j, k] = float(value)
+
+            return tensor
+
+        arr = np.asarray(v, dtype=float)
+
+        if arr.shape != (6, 6, 6):
+            raise ValueError(
+                f"t_matrix must have shape (6,6,6), got {arr.shape}"
+            )
+
+        return arr
+
+    @computed_field
+    @property
+    def r_matrix_7x7(self) -> np.ndarray:
+        n = self.r_matrix.shape[0]
+        B = np.zeros((n + 1, n + 1))
+        B[:n, :n] = self.r_matrix
+        B[n, n] = 1
+        return B

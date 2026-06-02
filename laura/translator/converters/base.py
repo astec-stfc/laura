@@ -1037,7 +1037,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             ):
                 field_kwargs = {
                     "filename": expand_substitution(
-                        self, self.simulation.field_definition
+                        self, self.simulation.field_definition, self.master_lattice,
                     ),
                     # "field_type": self.field_type,
                 }
@@ -1066,7 +1066,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                         cavity_type = (self.cavity.structure_Type,)
                     self.simulation.wakefield_definition = field(
                         filename=expand_substitution(
-                            self, self.simulation.wakefield_definition
+                            self, self.simulation.wakefield_definition, self.master_lattice,
                         ),
                         # field_type=self.field_type,
                         n_cells=self.cavity.n_cells,
@@ -1075,7 +1075,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 else:
                     self.simulation.wakefield_definition = field(
                         filename=expand_substitution(
-                            self, self.simulation.wakefield_definition
+                            self, self.simulation.wakefield_definition, self.master_lattice,
                         ),
                     )
 
@@ -1133,11 +1133,11 @@ class BaseElementTranslator(PhysicalBaseElement):
                 if hasattr(self.magnetic.fields, "S0L"):
                     if type(self.simulation.scale_field) in [int, float]:
                         return float(self.scale_field) * float(
-                            expand_substitution(self, self.magnetic.fields.S0L)
+                            expand_substitution(self, self.magnetic.fields.S0L, self.master_lattice)
                         )
                     else:
                         return float(
-                            expand_substitution(self, self.magnetic.fields.S0L)
+                            expand_substitution(self, self.magnetic.fields.S0L, self.master_lattice)
                         )
                 return 0.0
             return 0.0
