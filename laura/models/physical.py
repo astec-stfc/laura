@@ -5,13 +5,13 @@ from pydantic import (
     PrivateAttr,
     computed_field,
     model_serializer,
-    BaseModel,
     Field,
 )
 from typing import List, Literal, Optional, Union, Dict, Any
 
-from ._generated import _PositionBase, _RotationBase, _ElementPositionErrorBase, _ElementSurveyBase, _PhysicalElementBase
+from ._generated import _PositionBase, _RotationBase, _ElementPositionErrorBase, _ElementSurveyBase, _PhysicalElementBase, _ReferencePlacementBase
 from ..utils.rotation_matrix import euler_angles_to_rotation_matrix
+from .trajectory import Trajectory
 
 
 def _coerce_position_vector(v: Union[List, tuple, np.ndarray]) -> "Position | None":
@@ -268,14 +268,18 @@ class ElementSurvey(ElementError):
     pass
 
 
-class ReferencePlacement(BaseModel):
+class ReferencePlacement(_ReferencePlacementBase):
     """
     Position an element relative to a named reference element's frame.
 
-    The ``offset`` field is expressed in the reference element's local frame at
-    the chosen ``point`` (start / middle / end).  Use ``world_offset`` instead
-    to supply an offset already in global world coordinates.  Only one of the
-    two offset fields may be set at a time.
+    Exactly one offset field may be set (or none for zero offset):
+
+    * ``offset`` — full 3-D offset **in the reference element's local frame**
+      at the chosen ``point``.
+    * ``world_offset`` — full 3-D offset already in **global world coordinates**.
+    * ``s_offset`` — scalar offset **along the local beam direction** (s-axis)
+      from the reference point.  Equivalent to ``offset: [0, 0, s_offset]``
+      but expressed as a single number.
 
     YAML examples::
 
@@ -283,10 +287,15 @@ class ReferencePlacement(BaseModel):
         reference_placement:
           element: some_dipole
 
-        # 1 m downstream along the dipole exit axis
+        # 1 m downstream along the dipole exit axis (local frame)
         reference_placement:
           element: some_dipole
           offset: [0, 0, 1.0]
+
+        # Same thing, more concisely
+        reference_placement:
+          element: some_dipole
+          s_offset: 1.0
 
         # 5 cm horizontal shift in world frame
         reference_placement:
@@ -294,10 +303,7 @@ class ReferencePlacement(BaseModel):
           world_offset: [0.05, 0, 0]
     """
 
-    element: str
     point: Literal["start", "middle", "end"] = "end"
-    offset: Optional[Position] = Field(default=None)
-    world_offset: Optional[Position] = Field(default=None)
 
     @field_validator("offset", "world_offset", mode="before")
     @classmethod
@@ -319,10 +325,16 @@ class ReferencePlacement(BaseModel):
 
     @model_validator(mode="after")
     def _check_offset_exclusivity(self) -> "ReferencePlacement":
-        if self.offset is not None and self.world_offset is not None:
+        n = sum([
+            self.offset is not None,
+            self.world_offset is not None,
+            self.s_offset is not None,
+        ])
+        if n > 1:
             raise ValueError(
-                "Specify either 'offset' (reference-frame) or 'world_offset' "
-                "(world-frame) in reference_placement — not both."
+                "Specify at most one offset in reference_placement: "
+                "'offset' (local frame), 'world_offset' (global frame), "
+                "or 's_offset' (beam-direction scalar)."
             )
         return self
 
@@ -332,26 +344,44 @@ class PhysicalElement(_PhysicalElementBase):
     Physical info model.
     """
 
+    # Override the generated base-class type so dicts are validated as
+    # ReferencePlacement (which has list/dict coercers) rather than the
+    # bare _ReferencePlacementBase which only accepts dicts or model instances.
     reference_placement: Optional[ReferencePlacement] = Field(default=None)
-    """Place this element relative to another element's frame instead of using
-    absolute world coordinates.  Mutually exclusive with ``middle``/``position``/``centre``."""
+
+    # s and s_point are input / query fields only — excluded from the default
+    # serialisation so that round-tripped YAML stays in global-coordinate form.
+    # Use model_dump_s() to serialise in s-coordinate form.
+    s: Optional[float] = Field(default=None, exclude=True)
+    s_point: Literal["start", "middle", "end"] = Field(default="middle", exclude=True)
+
+    _parent: Any = PrivateAttr(default=None)
+    _trajectory: Optional[Trajectory] = PrivateAttr(default=None)
 
     @model_validator(mode="after")
     def _check_placement_exclusivity(self) -> "PhysicalElement":
-        # Check model_fields_set so that an un-provided middle (defaulting to None)
-        # doesn't trigger the error — only an explicitly supplied position does.
-        if self.reference_placement is not None and "middle" in self.model_fields_set:
+        # Pydantic v2 re-runs model validators on every field assignment when
+        # validate_assignment=True.  After construction the lattice assembly
+        # legitimately sets both middle AND s on the same element, so we only
+        # enforce mutual-exclusion during initial construction.
+        if getattr(self, "_constructed", False):
+            return self
+        sources = [
+            "middle" in self.model_fields_set,
+            self.reference_placement is not None,
+            "s" in self.model_fields_set,
+        ]
+        if sum(sources) > 1:
             raise ValueError(
                 "Cannot specify both a world position ('middle'/'position'/'centre') "
-                "and 'reference_placement' in a physical element — use one or the other."
+                "and another positioning source ('reference_placement' or 's') — "
+                "use only one."
             )
         return self
 
     def model_post_init(self, __context) -> None:
-        # Preserve legacy defaults expected by existing code/tests.
-        # Skip the middle default when reference_placement is in use; it will be
-        # resolved to world coordinates later by the lattice assembly.
-        if self.reference_placement is None and self.middle is None:
+        # Skip the middle default when another positioning mode handles placement.
+        if self.reference_placement is None and self.middle is None and self.s is None:
             self.middle = Position()
         if self.datum is None:
             self.datum = Position()
@@ -366,8 +396,50 @@ class PhysicalElement(_PhysicalElementBase):
                 position=Position(x=0, y=0, z=0),
                 rotation=Rotation(theta=0, phi=0, psi=0),
             )
+        # Mark construction complete so the exclusivity validator is not
+        # re-triggered by lattice-assembly code that sets both s and middle.
+        object.__setattr__(self, "_constructed", True)
 
-    _parent: Any = PrivateAttr(default=None)
+    def __setattr__(self, name: str, value: Any) -> None:
+        # Guard flag stored directly on the instance (not a Pydantic field).
+        if name == "_syncing":
+            object.__setattr__(self, "_syncing", value)
+            return
+        super().__setattr__(name, value)
+        if getattr(self, "_syncing", False):
+            return
+        # Bidirectional s ↔ middle sync when trajectory is available.
+        traj: Optional[Trajectory] = None
+        try:
+            traj = self.__pydantic_private__.get("_trajectory")
+        except (AttributeError, TypeError):
+            pass
+        if traj is None:
+            return
+        object.__setattr__(self, "_syncing", True)
+        try:
+            if name == "s" and value is not None:
+                self.middle = traj.xyz_at_s(value)
+            elif name == "middle" and value is not None:
+                self.s = traj.s_at_xyz(value)
+        finally:
+            object.__setattr__(self, "_syncing", False)
+
+    def model_dump_s(self, **kwargs) -> dict:
+        """Serialise using ``s`` instead of global ``middle`` coordinates.
+
+        If ``s`` has been set (either as input or by lattice assembly), the
+        returned dict contains ``s`` (and ``s_point`` when not ``'middle'``)
+        in place of ``middle``.  Falls back to the standard ``model_dump``
+        output when ``s`` is not available.
+        """
+        d = self.model_dump(**kwargs)
+        if self.s is not None:
+            d.pop("middle", None)
+            d["s"] = round(self.s, 6)
+            if self.s_point != "middle":
+                d["s_point"] = self.s_point
+        return d
 
     def __str__(self):
         cls = self.__class__
@@ -515,9 +587,9 @@ class PhysicalElement(_PhysicalElementBase):
     def start(self) -> Position:
         if self.middle is None:
             raise RuntimeError(
-                "Cannot compute 'start': element has an unresolved "
-                "'reference_placement'. Call resolve_reference_placements() "
-                "on the containing lattice first."
+                "Cannot compute 'start': element has an unresolved position "
+                "(reference_placement or s-coordinate pending). "
+                "Call resolve_positions() on the containing lattice first."
             )
         middle = np.array(self.middle.array)
 
@@ -544,9 +616,9 @@ class PhysicalElement(_PhysicalElementBase):
     def end(self) -> Position:
         if self.middle is None:
             raise RuntimeError(
-                "Cannot compute 'end': element has an unresolved "
-                "'reference_placement'. Call resolve_reference_placements() "
-                "on the containing lattice first."
+                "Cannot compute 'end': element has an unresolved position "
+                "(reference_placement or s-coordinate pending). "
+                "Call resolve_positions() on the containing lattice first."
             )
         middle = np.array(self.middle.array)
 

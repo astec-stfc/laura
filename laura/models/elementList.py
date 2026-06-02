@@ -1,12 +1,13 @@
 import logging
 import os
 import numpy as np
-from typing import List, Dict, Any, Union, Literal
+from typing import List, Dict, Any, Union, Literal, Optional
 from pydantic import field_validator, BaseModel, ValidationInfo, Field, PositiveInt
 from warnings import warn
-from ._functions import read_yaml, merge_two_dicts
+from ._functions import read_yaml
 from .element import baseElement, Drift, PhysicalBaseElement, Diagnostic
 from .physical import PhysicalElement, Position, Rotation
+from .trajectory import Trajectory
 from ..utils.rotation_matrix import euler_angles_to_rotation_matrix, rotation_matrix_to_euler
 from .baseModels import ModelBase
 from .exceptions import LatticeError
@@ -47,7 +48,7 @@ def dot(a, b) -> float:
 def chunks(li, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(li), n):
-        yield li[i : i + n]
+        yield li[i: i + n]
 
 
 class BaseLatticeModel(ModelBase):
@@ -357,6 +358,226 @@ class SectionLattice(BaseLatticeModel):
             return dict(zip([e.name for e in elems.values()], s))
         return list(s)
 
+    # ── s-coordinate support ───────────────────────────────────────────────────
+
+    def _detect_coordinate_system(self, element_registry: dict) -> str:
+        """Return ``'s'``, ``'global'``, or ``'reference'`` for this section.
+
+        An element is treated as *pending-s* only when ``s`` is set but
+        ``middle`` is still ``None`` (i.e., not yet resolved).  Elements that
+        already have both ``s`` and ``middle`` (e.g. after a round-trip) are
+        treated as global.  This avoids false positives when a pre-resolved
+        model is reconstructed alongside elements using explicit xyz.
+
+        Raises :exc:`ValueError` if pending-s and explicit-xyz elements are
+        mixed (``reference_placement``-only elements are always allowed).
+        """
+        has_global = False
+        has_s_pending = False
+        for name in self.order:
+            elem = element_registry.get(name)
+            if elem is None or not hasattr(elem, "physical") or elem.physical is None:
+                continue
+            phys = elem.physical
+            if phys.reference_placement is not None:
+                continue
+            if phys.s is not None and phys.middle is None:
+                has_s_pending = True
+            elif phys.middle is not None:
+                has_global = True
+        if has_s_pending and has_global:
+            raise ValueError(
+                f"Section '{self.name}': cannot mix s-coordinate and global-coordinate "
+                "positioning.  All positioned elements must use the same system."
+            )
+        return "s" if has_s_pending else ("global" if has_global else "reference")
+
+    def _resolve_s_coordinates(self, element_registry: dict) -> Optional[Trajectory]:
+        """Integrate the design orbit and place all s-specified elements.
+
+        Elements are sorted by their s_start value and placed sequentially.
+        Straight-line drifts fill any gaps between elements.  For bent elements
+        the arc geometry from ``_physical_angle`` is used.
+
+        Returns the :class:`~laura.models.trajectory.Trajectory` built during
+        integration, or ``None`` if there are no s-specified elements.
+        """
+        s_elems = [
+            element_registry[n]
+            for n in self.order
+            if element_registry.get(n) is not None
+            and hasattr(element_registry[n], "physical")
+            and element_registry[n].physical is not None
+            and element_registry[n].physical.s is not None
+            and element_registry[n].physical.middle is None
+        ]
+        if not s_elems:
+            return None
+
+        def _s_start(elem: object) -> float:
+            phys = elem.physical
+            s, L, pt = phys.s, phys.length, phys.s_point
+            if pt == "middle":
+                return s - L / 2.0
+            if pt == "end":
+                return s - L
+            return s  # 'start'
+
+        s_elems_sorted = sorted(s_elems, key=_s_start)
+
+        current_s = 0.0
+        current_pos = np.zeros(3)
+        current_R = np.eye(3)
+
+        s_list: list[float] = [0.0]
+        pos_list: list[np.ndarray] = [np.zeros(3)]
+        rot_list: list[np.ndarray] = [np.eye(3)]
+
+        for elem in s_elems_sorted:
+            phys = elem.physical
+            L = phys.length
+            angle = phys._physical_angle
+            s_elem_start = _s_start(elem)
+            s_elem_end = s_elem_start + L
+
+            # Drift to element entry
+            if s_elem_start > current_s + 1e-12:
+                drift = s_elem_start - current_s
+                current_pos = current_pos + current_R @ np.array([0.0, 0.0, drift])
+                current_s = s_elem_start
+                s_list.append(current_s)
+                pos_list.append(current_pos.copy())
+                rot_list.append(current_R.copy())
+
+            # Compute middle and end positions
+            if abs(angle) < 1e-9:
+                mid_pos = current_pos + current_R @ np.array([0.0, 0.0, L / 2.0])
+                end_pos = current_pos + current_R @ np.array([0.0, 0.0, L])
+                exit_R = current_R.copy()
+            else:
+                # Arc in the bend plane using LAURA's Ry(-angle) convention.
+                rho = L / angle
+                half = angle / 2.0
+                local_mid = np.array([rho * (1.0 - np.cos(half)), 0.0, rho * np.sin(half)])
+                local_end = np.array([rho * (1.0 - np.cos(angle)), 0.0, rho * np.sin(angle)])
+                mid_pos = current_pos + current_R @ local_mid
+                end_pos = current_pos + current_R @ local_end
+                ct, st = np.cos(angle), np.sin(angle)
+                ry_neg = np.array([[ct, 0.0, st], [0.0, 1.0, 0.0], [-st, 0.0, ct]])
+                exit_R = current_R @ ry_neg
+
+            # Set world-frame middle on the element
+            phys.middle = Position.from_list(mid_pos.tolist())
+
+            # Inherit trajectory orientation when no explicit rotation given
+            if "rotation" not in phys.model_fields_set:
+                yaw, pitch, roll = rotation_matrix_to_euler(current_R)
+                phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
+                phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
+                phys._rotation_matrix_cache = None
+
+            s_list.extend([s_elem_start + L / 2.0, s_elem_end])
+            pos_list.extend([mid_pos, end_pos])
+            rot_list.extend([current_R.copy(), exit_R])
+
+            current_pos = end_pos
+            current_R = exit_R
+            current_s = s_elem_end
+
+        return Trajectory(np.array(s_list), np.array(pos_list), np.array(rot_list))
+
+    def _build_trajectory_and_assign_s(self, element_registry: dict) -> Optional[Trajectory]:
+        """Build a :class:`~laura.models.trajectory.Trajectory` from all resolved elements.
+
+        Walks elements in section order, traces the arc-length through start /
+        middle / end of each element, assigns the arc-length ``s`` value (at
+        middle) back onto each element's physical block, and attaches the
+        trajectory as ``phys._trajectory`` for bidirectional sync.
+        """
+        s_list: list[float] = [0.0]
+        pos_list: list[np.ndarray] = [np.zeros(3)]
+        rot_list: list[np.ndarray] = [np.eye(3)]
+
+        current_s = 0.0
+        prev_end: Optional[np.ndarray] = None
+
+        elements_to_wire: list[PhysicalElement] = []
+
+        for name in self.order:
+            elem = element_registry.get(name)
+            if elem is None or not hasattr(elem, "physical") or elem.physical is None:
+                continue
+            phys = elem.physical
+            if phys.middle is None:
+                continue
+            try:
+                start = phys.start
+                start_arr = np.array([start.x, start.y, start.z])
+            except RuntimeError:
+                continue
+
+            gap = float(np.linalg.norm(start_arr - prev_end)) if prev_end is not None else float(np.linalg.norm(start_arr))
+            s_elem_start = current_s + gap
+
+            mid_arr = np.array([phys.middle.x, phys.middle.y, phys.middle.z])
+            s_elem_mid = s_elem_start + phys.length / 2.0
+
+            try:
+                end = phys.end
+                end_arr = np.array([end.x, end.y, end.z])
+            except RuntimeError:
+                end_arr = mid_arr
+            s_elem_end = s_elem_start + phys.length
+
+            s_list.extend([s_elem_start, s_elem_mid, s_elem_end])
+            pos_list.extend([start_arr, mid_arr, end_arr])
+            rot_list.extend([phys.rotation_matrix, phys.rotation_matrix, phys.end_rotation_matrix])
+
+            # Assign s (bypasses sync since _trajectory not yet set)
+            phys.s = s_elem_mid
+
+            current_s = s_elem_end
+            prev_end = end_arr
+            elements_to_wire.append(phys)
+
+        traj = Trajectory(np.array(s_list), np.array(pos_list), np.array(rot_list))
+        for phys in elements_to_wire:
+            phys._trajectory = traj
+        return traj
+
+    def resolve_positions(self, element_registry: dict) -> Optional[Trajectory]:
+        """Resolve all positioning modes and build the section trajectory.
+
+        Handles three positioning modes in order:
+
+        1. ``reference_placement`` — resolved first (same as the original
+           :meth:`resolve_reference_placements` method).
+        2. ``s``-coordinate — the design orbit is integrated from s=0 at
+           the global origin to place each element.
+        3. Global xyz (``middle``) — already resolved; s-values and trajectory
+           attachment are computed from the existing positions.
+
+        Mixing s and explicit-xyz positioning raises :exc:`ValueError`.
+
+        Returns the :class:`~laura.models.trajectory.Trajectory` for this
+        section, or ``None`` if no physical elements are present.
+        """
+        coord_sys = self._detect_coordinate_system(element_registry)
+
+        # Step 1: resolve reference_placements (unchanged logic)
+        self.resolve_reference_placements(element_registry)
+
+        # Step 2: resolve s-coordinates (integrates trajectory)
+        traj: Optional[Trajectory] = None
+        if coord_sys == "s":
+            traj = self._resolve_s_coordinates(element_registry)
+
+        # Step 3: build trajectory and assign s to all elements
+        traj = self._build_trajectory_and_assign_s(element_registry)
+        return traj
+
+    # ── end s-coordinate support ───────────────────────────────────────────────
+
     def resolve_reference_placements(self, element_registry: dict) -> None:
         """Resolve any ``reference_placement`` specs in this section.
 
@@ -412,6 +633,9 @@ class SectionLattice(BaseLatticeModel):
                 delta = ref_R @ off
             elif rp.world_offset is not None:
                 delta = np.array([rp.world_offset.x, rp.world_offset.y, rp.world_offset.z])
+            elif rp.s_offset is not None:
+                # s_offset is a scalar along the local beam direction (z-axis of ref frame)
+                delta = ref_R @ np.array([0.0, 0.0, rp.s_offset])
             else:
                 delta = np.zeros(3)
 
@@ -492,21 +716,14 @@ class MachineLayout(BaseLatticeModel):
                 superelem = last_elem.get("name")
                 # Skip geometry correction for stub dicts
                 return
-            
+
             superelem = last_elem.name
             start_pos = last_elem.physical.start
             all_elem_corrected = []
             for elem in all_elems_reversed:
                 if isinstance(elem, PhysicalBaseElement):
-                    vector = (
-                        not elem.physical.end.vector_angle(start_pos, [0, 0, -1]) < -5e-6
-                    )
                     if not elem.is_subelement():
                         superelem = elem.name
-                    subelem = (
-                        elem.subelement == superelem if elem.is_subelement() else False
-                    )
-                    # if vector:
                     all_elem_corrected += [elem]
                     start_pos = elem.physical.start
             self._all_elements = list(reversed(all_elem_corrected))
@@ -970,10 +1187,12 @@ class MachineModel(ModelBase):
             )
         if len(self.elements) > 0:
             if self.section:
-                self._build_layouts(self.elements)
+                self._build_layouts(self.elements)   # creates SectionLattice only
             else:
                 self._build_sections_from_elements(self.elements)
-            self._resolve_all_reference_placements()
+            self._resolve_all_positions()             # resolve before MachineLayout
+            if self.section:
+                self._build_layout_objects()          # MachineLayout after positions ready
 
     def __add__(self, other) -> dict:
         copy = self.elements.copy()
@@ -1093,19 +1312,24 @@ class MachineModel(ModelBase):
         self.lattices = {}
 
     def _build_layouts(self, elements):
+        """Build sections (and layout objects when no full-layout definitions exist)."""
+        self._build_sections_phase(elements)
+        # Layout objects (MachineLayout) require resolved positions so they are
+        # deferred to _build_layout_objects(), called after _resolve_all_positions().
+
+    def _build_sections_phase(self, elements):
+        """Create all SectionLattice objects without yet creating MachineLayout objects."""
         by_area, by_name = self._index_elements(elements)
 
         if self._section_definitions and not self._layouts:
-            # Sections are defined but no layouts — build sections directly
+            # Sections only — no layout wrapper needed
             for area, section_definition in self._section_definitions.items():
                 if area in self.sections:
                     continue
-
                 elem_names, section_type = self._section_elements_and_type(
                     area,
                     section_definition,
                 )
-
                 new_elements = [
                     by_name[name]
                     for name in elem_names
@@ -1128,13 +1352,11 @@ class MachineModel(ModelBase):
                             area,
                             self._section_definitions[area],
                         )
-
                         new_elements = [
                             by_name[name]
                             for name in elem_names
                             if name in by_name
                         ]
-
                         self.sections[area] = SectionLattice(
                             name=area,
                             elements=new_elements,
@@ -1143,35 +1365,57 @@ class MachineModel(ModelBase):
                             master_lattice=self.master_lattice,
                         )
 
-                if path not in self.lattices:
-                    layout_type = self._layout_metadata.get(path, {}).get("type", "beam")
-                    self.lattices[path] = MachineLayout(
-                        name=path,
-                        sections={
-                            area: self.sections[area]
-                            for area in areas
-                            if area in self.sections
-                        },
-                        layout_type=layout_type,
-                        master_lattice=self.master_lattice,
-                    )
+    def _build_layout_objects(self):
+        """Create MachineLayout objects from already-resolved sections.
 
-            if len(self.lattices) == 1 and self._default_path is None:
-                self._default_path = next(iter(self.lattices))
+        Called after :meth:`_resolve_all_positions` so that element positions
+        are available when :class:`MachineLayout` ``model_post_init`` runs.
+        """
+        if not self._layouts:
+            return
+        for path, areas in self._layouts.items():
+            if path not in self.lattices:
+                layout_type = self._layout_metadata.get(path, {}).get("type", "beam")
+                self.lattices[path] = MachineLayout(
+                    name=path,
+                    sections={
+                        area: self.sections[area]
+                        for area in areas
+                        if area in self.sections
+                    },
+                    layout_type=layout_type,
+                    master_lattice=self.master_lattice,
+                )
+        if len(self.lattices) == 1 and self._default_path is None:
+            self._default_path = next(iter(self.lattices))
 
     def _resolve_all_reference_placements(self) -> None:
         """Resolve reference_placement specs across all sections."""
         for section in self.sections.values():
             section.resolve_reference_placements(self.elements)
 
+    def _resolve_all_positions(self) -> None:
+        """Resolve all positioning modes (reference_placement, s, global) for every section."""
+        for section in self.sections.values():
+            section.resolve_positions(self.elements)
+
     def resolve_reference_placements(self) -> None:
-        """Public entry point to (re-)resolve all reference_placement specs.
+        """(Re-)resolve all reference_placement and s-coordinate specs.
 
         Called automatically during construction.  Exposed publicly so that
         callers who build the model incrementally can trigger a re-resolution
         after adding new elements.
         """
-        self._resolve_all_reference_placements()
+        self._resolve_all_positions()
+
+    def resolve_positions(self) -> None:
+        """Re-resolve all positioning modes and rebuild section trajectories.
+
+        Equivalent to :meth:`resolve_reference_placements` but with a more
+        descriptive name.  Handles ``reference_placement``, ``s``-coordinates,
+        and global-xyz elements in one pass.
+        """
+        self._resolve_all_positions()
 
     def get_element(self, name: str) -> baseElement:
         """

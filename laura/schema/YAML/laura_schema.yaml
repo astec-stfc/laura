@@ -352,6 +352,45 @@ classes:
         range: Rotation
         description: Surveyed rotation.
 
+  ReferencePlacement:
+    description: >-
+      Positions an element relative to a named reference element's local frame.
+      The ``offset`` field is expressed in the reference element's local frame
+      at the chosen ``point`` (start / middle / end).  Use ``world_offset``
+      instead to supply an offset already in global world coordinates.
+    class_uri: laura:ReferencePlacement
+    in_subset:
+      - physical_properties
+    attributes:
+      element:
+        range: string
+        required: true
+        description: Name of the reference element.
+      point:
+        range: string
+        ifabsent: string(end)
+        description: >-
+          Which point on the reference element to use as the origin frame:
+          'start', 'middle', or 'end'.
+      offset:
+        range: Position
+        description: >-
+          Offset expressed in the reference element's local frame at the
+          chosen point.
+      world_offset:
+        range: Position
+        description: >-
+          Offset already expressed in global world coordinates.
+      s_offset:
+        range: float
+        description: >-
+          Scalar offset [m] along the local beam direction (s-axis) from the
+          reference point.  Equivalent to ``offset: [0, 0, s_offset]`` but
+          expressed as a single number.  Mutually exclusive with ``offset``
+          and ``world_offset``.
+        unit:
+          ucum_code: m
+
   PhysicalElement:
     description: >-
       Physical placement data: position, rotation, length, and associated
@@ -390,16 +429,6 @@ classes:
         minimum_value: 0.0
         unit:
           ucum_code: m
-      maximum_position:
-        range: float
-        description: Maximum downstream s-coordinate [m].
-        unit:
-          ucum_code: m
-      minimum_position:
-        range: float
-        description: Minimum upstream s-coordinate [m].
-        unit:
-          ucum_code: m
       physical_angle:
         range: float
         ifabsent: float(0)
@@ -408,6 +437,29 @@ classes:
           Derived from ``magnetic.angle`` when available.
         unit:
           ucum_code: rad
+      reference_placement:
+        range: ReferencePlacement
+        description: >-
+          Place this element relative to another element's frame instead of
+          using absolute world coordinates.  Mutually exclusive with
+          ``middle``/``position``/``centre`` and ``s``.
+        in_subset:
+          - physical_properties
+      s:
+        range: float
+        description: >-
+          Arc-length position [m] along the design trajectory (s=0 at the
+          global origin along +Z).  Alternative to absolute world coordinates
+          (``middle``/``position``/``centre``) and ``reference_placement``.
+          Converted to {x,y,z} by LAURA during lattice assembly.
+        unit:
+          ucum_code: m
+      s_point:
+        range: string
+        ifabsent: string(middle)
+        description: >-
+          Which point of the element the ``s`` value refers to:
+          ``start``, ``middle``, or ``end``.  Defaults to ``middle``.
 
   # -- Electrical -------------------------------------------------------------
 

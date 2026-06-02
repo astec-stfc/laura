@@ -1367,6 +1367,21 @@ class _ElementSurveyBase(ConfiguredBaseModel):
                        'PhysicalElement']} })
 
 
+class _ReferencePlacementBase(ConfiguredBaseModel):
+    """
+    Positions an element relative to a named reference element's local frame. The ``offset`` field is expressed in the reference element's local frame at the chosen ``point`` (start / middle / end).  Use ``world_offset`` instead to supply an offset already in global world coordinates.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ReferencePlacement',
+         'from_schema': 'https://w3id.org/laura/schema',
+         'in_subset': ['physical_properties']})
+
+    element: str = Field(default=..., description="""Name of the reference element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ReferencePlacement']} })
+    point: str = Field(default="end", description="""Which point on the reference element to use as the origin frame: 'start', 'middle', or 'end'.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ReferencePlacement'], 'ifabsent': 'string(end)'} })
+    offset: Optional[_PositionBase] = Field(default=None, description="""Offset expressed in the reference element's local frame at the chosen point.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ReferencePlacement']} })
+    world_offset: Optional[_PositionBase] = Field(default=None, description="""Offset already expressed in global world coordinates.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ReferencePlacement']} })
+    s_offset: Optional[float] = Field(default=None, description="""Scalar offset [m] along the local beam direction (s-axis) from the reference point.  Equivalent to ``offset: [0, 0, s_offset]`` but expressed as a single number.  Mutually exclusive with ``offset`` and ``world_offset``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ReferencePlacement'], 'unit': {'ucum_code': 'm'}} })
+
+
 class _PhysicalElementBase(ConfiguredBaseModel):
     """
     Physical placement data: position, rotation, length, and associated survey / alignment-error information.
@@ -1388,11 +1403,12 @@ class _PhysicalElementBase(ConfiguredBaseModel):
     length: float = Field(default=0, description="""Effective length along the beam axis [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
-    maximum_position: Optional[float] = Field(default=None, description="""Maximum downstream s-coordinate [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement'], 'unit': {'ucum_code': 'm'}} })
-    minimum_position: Optional[float] = Field(default=None, description="""Minimum upstream s-coordinate [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement'], 'unit': {'ucum_code': 'm'}} })
     physical_angle: float = Field(default=0, description="""Bending angle in the horizontal plane [rad]. Derived from ``magnetic.angle`` when available.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'rad'}} })
+    reference_placement: Optional[_ReferencePlacementBase] = Field(default=None, description="""Place this element relative to another element's frame instead of using absolute world coordinates.  Mutually exclusive with ``middle``/``position``/``centre`` and ``s``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement'], 'in_subset': ['physical_properties']} })
+    s: Optional[float] = Field(default=None, description="""Arc-length position [m] along the design trajectory (s=0 at the global origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``) and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement'], 'unit': {'ucum_code': 'm'}} })
+    s_point: str = Field(default="middle", description="""Which point of the element the ``s`` value refers to: ``start``, ``middle``, or ``end``.  Defaults to ``middle``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement'], 'ifabsent': 'string(middle)'} })
 
 
 class _ElectricalElementBase(ConfiguredBaseModel):
@@ -2975,6 +2991,7 @@ _PositionBase.model_rebuild()
 _RotationBase.model_rebuild()
 _ElementPositionErrorBase.model_rebuild()
 _ElementSurveyBase.model_rebuild()
+_ReferencePlacementBase.model_rebuild()
 _PhysicalElementBase.model_rebuild()
 _ElectricalElementBase.model_rebuild()
 _ManufacturerElementBase.model_rebuild()
