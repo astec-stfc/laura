@@ -161,7 +161,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     if key == "n_kicks" and self.get_cells() > 1:
                         value = 3 * self.get_cells()
 
-                    if key == "n_bins" and value > 0:
+                    if key == "n_bins" and value > 0 and self.verbose:
                         print(
                             "WARNING: Cavity n_bins is not zero - check log file to ensure correct behaviour!"
                         )

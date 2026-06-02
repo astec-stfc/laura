@@ -46,6 +46,7 @@ def translate_elements(
     elements: List[Element],
     master_lattice: str = None,
     directory: str = ".",
+    verbose: bool = True,
 ) -> Dict[str, BaseElementTranslator]:
     """
     Function for translating a list of elements into their respective Translator classes.
@@ -56,8 +57,10 @@ def translate_elements(
         List of :class:`~laura.models.element.Element` objects.
     master_lattice: str
         Directory containing lattice/data files including field/wakefield files.
-    directory:
+    directory: str
         Directory to which files will be written.
+    verbose: bool
+        Print debug messages and warnings.
 
     Returns
     -------
@@ -104,7 +107,9 @@ def translate_elements(
             translator = MatrixTransformTranslator
         else:
             translator = BaseElementTranslator
-        elem_dict.update({elem.name: translator.model_validate(elem.model_dump())})
+        trans = translator.model_validate(elem.model_dump())
+        trans.verbose = verbose
+        elem_dict.update({elem.name: trans})
         elem_dict[elem.name].master_lattice = master_lattice
         elem_dict[elem.name].directory = directory
     return elem_dict

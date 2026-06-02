@@ -53,7 +53,8 @@ class MagnetTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(1) / self.magnetic.length
         except ZeroDivisionError:
-            warn(f"Magnet {self.name} has zero length; returning k1 = k1l")
+            if self.verbose:
+                warn(f"Magnet {self.name} has zero length; returning k1 = k1l")
             return self.magnetic.KnL(1)
 
     @computed_field
@@ -70,7 +71,8 @@ class MagnetTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(2) / self.magnetic.length
         except ZeroDivisionError:
-            warn(f"Magnet {self.name} has zero length; returning k2 = k2l")
+            if self.verbose:
+                warn(f"Magnet {self.name} has zero length; returning k2 = k2l")
             return self.magnetic.KnL(2)
 
     @computed_field
@@ -87,7 +89,8 @@ class MagnetTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(3) / self.magnetic.length
         except ZeroDivisionError:
-            warn(f"Magnet {self.name} has zero length; returning k3 = k3l")
+            if self.verbose:
+                warn(f"Magnet {self.name} has zero length; returning k3 = k3l")
             return self.magnetic.KnL(3)
 
     @property
@@ -207,9 +210,10 @@ class MagnetTranslator(BaseElementTranslator):
         if self.hardware_type.lower() == "quadrupole":
             return self._write_ASTRA_quadrupole(n, **kwargs)
         else:
-            warn(
-                f"Element type {self.hardware_type} of {self.name} not supported by ASTRA"
-            )
+            if self.verbose:
+                warn(
+                    f"Element type {self.hardware_type} of {self.name} not supported by ASTRA"
+                )
             return ""
 
     def to_csrtrack(self, n: int = 0) -> str:
@@ -231,9 +235,10 @@ class MagnetTranslator(BaseElementTranslator):
         if self.hardware_type.lower() == "quadrupole":
             return self._write_CSRTrack_quadrupole(n)
         else:
-            warn(
-                f"Element type {self.hardware_type} of {self.name} not supported by CSRTrack"
-            )
+            if self.verbose:
+                warn(
+                    f"Element type {self.hardware_type} of {self.name} not supported by CSRTrack"
+                )
             return ""
 
     def _write_ASTRA_quadrupole(self, n: int = 0, **kwargs: dict) -> str:
@@ -451,7 +456,8 @@ class DipoleTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(1) / self.magnetic.length
         except ZeroDivisionError:
-            warn("Magnet has zero length; returning k1 = k1l")
+            if self.verbose:
+                warn("Magnet has zero length; returning k1 = k1l")
             return self.magnetic.KnL(1)
 
     @computed_field
@@ -468,7 +474,8 @@ class DipoleTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(2) / self.magnetic.length
         except ZeroDivisionError:
-            warn("Magnet has zero length; returning k2 = k2l")
+            if self.verbose:
+                warn("Magnet has zero length; returning k2 = k2l")
             return self.magnetic.KnL(2)
 
     @computed_field
@@ -485,7 +492,8 @@ class DipoleTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(3) / self.magnetic.length
         except ZeroDivisionError:
-            warn("Magnet has zero length; returning k3 = k3l")
+            if self.verbose:
+                warn("Magnet has zero length; returning k3 = k3l")
             return self.magnetic.KnL(3)
 
     @property
@@ -719,9 +727,10 @@ class DipoleTranslator(BaseElementTranslator):
                     {},
                     {"angle": self.magnetic.angle},
                 )
-            warn(
-                f"Could not determine the value of entrance_edge_angle for {self.name}; returning 0"
-            )
+            if self.verbose:
+                warn(
+                    f"Could not determine the value of entrance_edge_angle for {self.name}; returning 0"
+                )
             return 0
         return self.magnetic.entrance_edge_angle
 
@@ -744,9 +753,10 @@ class DipoleTranslator(BaseElementTranslator):
                 return eval(
                     self.magnetic.exit_edge_angle, {}, {"angle": self.magnetic.angle}
                 )
-            warn(
-                f"Could not determine the value of exit_edge_angle for {self.name}; returning 0"
-            )
+            if self.verbose:
+                warn(
+                    f"Could not determine the value of exit_edge_angle for {self.name}; returning 0"
+                )
             return 0
         return self.magnetic.exit_edge_angle
 

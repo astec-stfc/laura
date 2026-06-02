@@ -3,6 +3,7 @@ from laura.models.simulation import MatrixTransformSimulationElement
 from torch import tensor, float64
 import numpy as np
 from warnings import warn
+from typing import Dict
 
 
 class MatrixTransformTranslator(BaseElementTranslator):
@@ -113,7 +114,8 @@ class MatrixTransformTranslator(BaseElementTranslator):
 
         type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
-        warn(f"WARNING! Only 1st-order transfer maps implemented for cheetah, {self.name}")
+        if self.verbose:
+            warn(f"WARNING! Only 1st-order transfer maps implemented for cheetah, {self.name}")
         obj = type_conversion_rules_Cheetah[self.hardware_type](
             name=self.name,
             length=tensor(self.physical.length, dtype=float64),

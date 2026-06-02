@@ -37,6 +37,7 @@ class MachineLayoutTranslator(MachineLayout):
                 section_with_drifts.values(),
                 master_lattice=self.master_lattice,
                 directory=self.directory,
+                verbose=section.verbose,
             )
             if charge:
                 string += f"{section.name}_Q: CHARGE, TOTAL = {charge};\n"
@@ -62,6 +63,7 @@ class MachineLayoutTranslator(MachineLayout):
                 section_with_drifts.values(),
                 master_lattice=self.master_lattice,
                 directory=self.directory,
+                verbose=section.verbose,
             )
 
             for d in elem_dict.values():

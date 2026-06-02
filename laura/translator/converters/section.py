@@ -152,6 +152,7 @@ class SectionLatticeTranslator(SectionLattice):
             list(self.elements.elements.values()),
             master_lattice=self.master_lattice,
             directory=self.directory,
+            verbose=self.verbose,
         )
         astrastr = ""
         for h in self.astra_headers.values():
@@ -244,6 +245,7 @@ class SectionLatticeTranslator(SectionLattice):
             list(self.elements.elements.values()),
             master_lattice=self.master_lattice,
             directory=self.directory,
+            verbose=self.verbose,
         )
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
@@ -355,6 +357,7 @@ class SectionLatticeTranslator(SectionLattice):
             list(self.elements.elements.values()),
             master_lattice=self.master_lattice,
             directory=self.directory,
+            verbose=self.verbose,
         )
         written = []
         svals = self.get_s_values(as_dict=True, at_entrance=True)
@@ -420,6 +423,7 @@ class SectionLatticeTranslator(SectionLattice):
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
+            verbose=self.verbose,
         )
         string = ""
         if charge:
@@ -454,6 +458,7 @@ class SectionLatticeTranslator(SectionLattice):
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
+            verbose=self.verbose,
         )
         string = ""
 
@@ -493,6 +498,7 @@ class SectionLatticeTranslator(SectionLattice):
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
+            verbose=self.verbose,
         )
         elements = []
 
@@ -527,6 +533,7 @@ class SectionLatticeTranslator(SectionLattice):
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
+            verbose=self.verbose,
         )
         segment = []
         segments = False
@@ -578,6 +585,7 @@ class SectionLatticeTranslator(SectionLattice):
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
+            verbose=self.verbose,
         )
         line = env.new_line()
         for i, element in enumerate(list(elem_dict.values())):
@@ -607,6 +615,7 @@ class SectionLatticeTranslator(SectionLattice):
             list(self.elements.elements.values()),
             master_lattice=self.master_lattice,
             directory=self.directory,
+            verbose=self.verbose,
         )
         csrtrackstr = "io_path{logfile = log.txt}\nlattice{\n"
         for e in elem_dict.values():
@@ -615,7 +624,7 @@ class SectionLatticeTranslator(SectionLattice):
                     csrtrackstr += e.to_csrtrack(n=count)
                     counter[key] += 1
                 else:
-                    if not e.hardware_class == "Diagnostic":
+                    if not e.hardware_class == "Diagnostic" and self.verbose:
                         warn(
                             f"Element of type {e.hardware_type} not supported for CSRTrack"
                         )
@@ -656,6 +665,7 @@ class SectionLatticeTranslator(SectionLattice):
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
+            verbose=self.verbose,
         )
         beamline = []
         for element in elem_dict.values():
@@ -688,6 +698,7 @@ class SectionLatticeTranslator(SectionLattice):
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
+            verbose=self.verbose,
         )
         elements = []
         if any(

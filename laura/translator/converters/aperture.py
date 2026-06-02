@@ -243,9 +243,10 @@ class ApertureTranslator(BaseElementTranslator):
         import inspect
 
         def get_bdsim_drift(name) -> object:
-            warn(
-                f"Aperture type not defined for {name} or not provided for BDSIM; setting as drift"
-            )
+            if self.verbose:
+                warn(
+                    f"Aperture type not defined for {name} or not provided for BDSIM; setting as drift"
+                )
             from pybdsim.Builder import Drift as Drift_BDSIM
 
             return Drift_BDSIM

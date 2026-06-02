@@ -56,6 +56,9 @@ class BaseElementTranslator(PhysicalBaseElement):
     ccs: gpt_ccs = None
     """Co-ordinate system for GPT elements."""
 
+    verbose: bool = True
+    """Print debug messages and warnings"""
+
     def model_post_init(self, __context):
         self.type_conversion_rules = type_conversion_rules
         self.conversion_rules["elegant"] = keyword_conversion_rules_elegant["general"]
@@ -292,10 +295,11 @@ class BaseElementTranslator(PhysicalBaseElement):
         if self.hardware_type in type_conversion_rules_Xsuite:
             obj = type_conversion_rules_Xsuite[self.hardware_type]
         else:
-            warn(
-                f"Could not find hardware type {self.hardware_type} in xsuite conversion rules "
-                f"for element {self.name}; setting as drift"
-            )
+            if self.verbose:
+                warn(
+                    f"Could not find hardware type {self.hardware_type} in xsuite conversion rules "
+                    f"for element {self.name}; setting as drift"
+                )
             obj = type_conversion_rules_Xsuite["Drift"]
         properties = {}
         from xtrack.monitors import ParticlesMonitor
@@ -402,7 +406,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         if self.hardware_type in type_conversion_rules_Wake_T:
             obj = type_conversion_rules_Wake_T[self.hardware_type]()
         else:
-            if "drift" not in self.hardware_type.lower():
+            if "drift" not in self.hardware_type.lower() and self.verbose:
                 warn(
                     f"Element type {self.hardware_type} not in Wake-T; setting as drift"
                 )
@@ -488,7 +492,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         if self.hardware_type in type_conversion_rules_BDSIM:
             obj = type_conversion_rules_BDSIM[self.hardware_type]
         else:
-            if "drift" not in self.hardware_type.lower():
+            if "drift" not in self.hardware_type.lower() and self.verbose:
                 warn(
                     f"Element type {self.hardware_type} not in BDSIM; setting as drift"
                 )
@@ -505,7 +509,8 @@ class BaseElementTranslator(PhysicalBaseElement):
                 key = self._convertKeyword_BDSIM(key)
                 elem_dict.update({self._convertKeyword_BDSIM(key): value})
         if "corrector" in self.hardware_type.lower():
-            warn(f"WARNING! Corrector {self.name} being converted to BDSIM with zero kick; please check the output.")
+            if self.verbose:
+                warn(f"WARNING! Corrector {self.name} being converted to BDSIM with zero kick; please check the output.")
             elem_dict.update({"hkick": 0})
             elem_dict.update({"vkick": 0})
         elem_dict.update({"name": self.name.replace("-", "_")})
@@ -1018,11 +1023,12 @@ class BaseElementTranslator(PhysicalBaseElement):
                     )
                 )
             except AttributeError:
-                warn(
-                    "field_reference_position should be (start/middle/end) not"
-                    + self.simulation.field_reference_position
-                    + "; returning start"
-                )
+                if self.verbose:
+                    warn(
+                        "field_reference_position should be (start/middle/end) not"
+                        + self.simulation.field_reference_position
+                        + "; returning start"
+                    )
         return np.array(list(self.physical.start.model_dump().values()))
 
     def update_field_definition(self) -> None:
@@ -1109,7 +1115,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 param.write_field_file(code=code, location=efield_basename)
             )
         else:
-            if param:
+            if param and self.verbose:
                 warn(
                     f"param associated with {self.name} does not have a filename: {param}, it must be a `field` object"
                 )
