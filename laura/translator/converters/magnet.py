@@ -972,7 +972,7 @@ class DipoleTranslator(BaseElementTranslator):
         import inspect
 
         type_conversion_rules_BDSIM = bdsim_conversion.bdsim_conversion_rules
-        if np.isclose(self.e1, self.e2) and self.e1 != 0:
+        if np.isclose(self.e1, self.e2) and self.e1 != 0 and self.e2 != 0:
             from pybdsim.Builder import RBend
 
             obj = RBend

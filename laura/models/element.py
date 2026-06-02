@@ -26,6 +26,7 @@ from .magnetic import (
     Quadrupole_Magnet,
     Sextupole_Magnet,
     Octupole_Magnet,
+    Decapole_Magnet,
     Solenoid_Magnet,
     NonLinearLens_Magnet,
     Wiggler_Magnet,
@@ -675,6 +676,22 @@ class Octupole(Magnet):
     """Magnetic attributes of the octupole."""
 
 
+class Decapole(Magnet):
+    """
+    Decapole element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the decapole.
+        magnetic (:class:`~laura.models.magnetic.Decapole_Magnet`): The magnetic attributes of the decapole.
+    """
+
+    hardware_type: str = Field(default="Octupole", frozen=True)
+    """Decapole hardware type."""
+
+    magnetic: Decapole_Magnet = Field(default_factory=Decapole_Magnet)
+    """Magnetic attributes of the decapole."""
+
+
 class Horizontal_Corrector(Dipole):
     """
     Horizontal corrector element.
@@ -784,7 +801,7 @@ class TwissMatch(PhysicalBaseElement):
     hardware_type: str = Field(default="TwissMatch", frozen=True)
     """Twiss match hardware type."""
 
-    hardware_class: str = Field(default="TwissMatch", frozen=True)
+    hardware_class: str = Field(default="Simulation", frozen=True)
     """Twiss match hardware class."""
 
     simulation: TwissMatchSimulationElement = Field(

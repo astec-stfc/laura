@@ -5,7 +5,12 @@ general:
   vertical_size: ysize
   hangle: hkick
   vangle: vkick
+  entrance_edge_angle: e1
+  exit_edge_angle: e2
   length: l
+kicker:
+  horizontal_kick: hkick
+  vertical_kick: vkick
 solenoid:
   field_amplitude: ks
 rfcavity:

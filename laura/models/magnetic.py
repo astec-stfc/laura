@@ -659,6 +659,23 @@ class Octupole_Magnet(MagneticElement):
         self.kl = value
 
 
+class Decapole_Magnet(MagneticElement):
+    """
+    Decapole magnet with magnetic order 4.
+    """
+
+    order: int = Field(repr=False, default=4, frozen=True)
+    """Magnetic order of the decapole."""
+
+    @property
+    def k4l(self) -> float:
+        return self.kl
+
+    @k4l.setter
+    def k4l(self, value: float) -> None:
+        self.kl = value
+
+
 solenoidFields = {
     "S" + str(no) + "L": (float, Field(default=0, repr=False)) for no in range(0, 13)
 }
