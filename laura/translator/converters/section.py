@@ -677,7 +677,7 @@ class SectionLatticeTranslator(SectionLattice):
                 #     print('Wake-T writeElements error:', element.name, e)
         return Beamline(beamline)
 
-    def to_bdsim(self, save=False) -> "Machine":
+    def to_bdsim(self, save=False, beam=None) -> "Machine":
         """
         Create a BDSIM-compatible Machine object based on the lattice information.
 
@@ -685,6 +685,8 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         save: bool
             Flag to indicate whether to save the lattice to a file.
+        beam: Beam | None
+            BDSIM `Beam` object.
 
         Returns
         -------
@@ -692,6 +694,8 @@ class SectionLatticeTranslator(SectionLattice):
             A BDSIM `Machine` object.
         """
         from pybdsim.Builder import Machine
+        from pybdsim.Builder import Marker as Marker_bds
+        from pybdsim.Beam import Beam
 
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
@@ -720,10 +724,15 @@ class SectionLatticeTranslator(SectionLattice):
         for d in elem_dict.values():
             elements.append(d.to_bdsim(section_aperture=section_aperture))
 
+
         machine = Machine()
         sanitized_name = self.name.replace("-", "_")
         for be in elements:
             machine.Append(be)
+            if isinstance(be, Marker_bds):
+                machine.AddSampler(be.name)
+        if isinstance(beam, Beam):
+            machine.AddBeam(beam)
         if save:
             machine.Write(f"{self.directory}/{sanitized_name}.gmad")
 
