@@ -94,7 +94,10 @@ def translate_elements(
             translator = TwissMatchTranslator
         else:
             translator = BaseElementTranslator
-        elem_dict.update({elem.name: translator.model_validate(elem.model_dump())})
+        try:
+            elem_dict.update({elem.name: translator.model_validate(elem.model_dump())})
+        except Exception as exc:
+            raise Exception(f"Element {elem.name} failed validation: {elem.model_dump().keys()}")
         elem_dict[elem.name].master_lattice = master_lattice
         elem_dict[elem.name].directory = directory
     return elem_dict

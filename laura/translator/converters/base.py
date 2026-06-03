@@ -46,13 +46,13 @@ class BaseElementTranslator(PhysicalBaseElement):
     #TODO was needed for ASTRA/CSRTrack; may be deprecated.
     """
 
-    master_lattice: str = None
+    master_lattice: str | None = None
     """Location of the directory containing lattice/data/simulation files."""
 
     directory: str = "./"
     """Directory to which lattice/element files will be written."""
 
-    ccs: gpt_ccs = None
+    ccs: gpt_ccs | None = None
     """Co-ordinate system for GPT elements."""
 
     def model_post_init(self, __context):
@@ -882,7 +882,7 @@ class BaseElementTranslator(PhysicalBaseElement):
     def dz_rot(self) -> float:
         return self.physical.error.rotation.psi
 
-    def get_field_reference_position(self) -> np.ndarray:
+    def get_field_reference_position(self, if_none: str = 'start') -> np.ndarray:
         """
         Returns the position of the field reference point based on the `field_reference_position` attribute.
 
@@ -908,6 +908,13 @@ class BaseElementTranslator(PhysicalBaseElement):
                     + self.simulation.field_reference_position
                     + "; returning start"
                 )
+        else:
+            try:
+                return np.array(list(getattr(
+                    self.physical, if_none.lower()
+                ).model_dump().values()))
+            except AttributeError:
+                return np.array(list(self.physical.start.model_dump().values()))
         return np.array(list(self.physical.start.model_dump().values()))
 
     def update_field_definition(self) -> None:
@@ -934,7 +941,10 @@ class BaseElementTranslator(PhysicalBaseElement):
                             "n_cells": self.cavity.n_cells,
                         }
                     )
-                self.simulation.field_definition = field(**field_kwargs)
+                try:
+                    self.simulation.field_definition = field(**field_kwargs)
+                except Exception as exc:
+                    raise Exception(f"Setting field definition on {self.name} failed: {field_kwargs}")
             if (
                 hasattr(self.simulation, "wakefield_definition")
                 and self.simulation.wakefield_definition is not None

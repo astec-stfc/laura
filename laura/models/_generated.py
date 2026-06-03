@@ -243,6 +243,10 @@ class HardwareClassEnum(str, Enum):
     """
     Beam monitor element.
     """
+    Simulation = "Simulation"
+    """
+    Simulation element.
+    """
 
 
 class LaserPolarizationEnum(str, Enum):
@@ -413,10 +417,7 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:RFCavitySimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation',
-         'slot_usage': {'field_amplitude': {'description': 'Cavity field amplitude.',
-                                            'ifabsent': 'float(0)',
-                                            'name': 'field_amplitude'},
-                        'lsc_bins': {'description': 'Number of longitudinal '
+         'slot_usage': {'lsc_bins': {'description': 'Number of longitudinal '
                                                     'space-charge bins.',
                                      'ifabsent': 'int(100)',
                                      'name': 'lsc_bins'},
@@ -433,8 +434,6 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
          'ifabsent': 'int(0)'} })
     lsc_bins: Optional[int] = Field(default=100, description="""Number of longitudinal space-charge bins.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'DriftSimulationElement'],
          'ifabsent': 'int(100)'} })
-    field_amplitude: Optional[float] = Field(default=0, description="""Cavity field amplitude.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
-         'ifabsent': 'float(0)'} })
     change_p0: int = Field(default=1, description="""Flag indicating whether the cavity changes reference momentum.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
     end1_focus: int = Field(default=1, description="""Apply entrance focusing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
     end2_focus: int = Field(default=1, description="""Apply exit focusing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
@@ -450,6 +449,7 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
     wakefile: Optional[str] = Field(default=None, description="""Wake file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
     zwakefile: Optional[str] = Field(default=None, description="""Longitudinal wake file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
     trwakefile: Optional[str] = Field(default=None, description="""Transverse wake file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
+    field_amplitude: float = Field(default=..., description="""Cavity field amplitude.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement']} })
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -2664,7 +2664,7 @@ class _ApertureElementBase(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ApertureElement',
          'from_schema': 'https://w3id.org/laura/schema'})
 
-    number_of_elements: Optional[int] = Field(default=None, description="""Number of aperture sub-elements (e.g., for multi-leaf collimators).""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
+    number_of_elements: int = Field(default=0, description="""Number of aperture sub-elements (e.g., for multi-leaf collimators).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'], 'ifabsent': 'int(0)'} })
     horizontal_size: float = Field(default=0.0, description="""Full horizontal aperture [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })

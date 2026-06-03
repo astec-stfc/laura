@@ -90,6 +90,8 @@ enums:
         description: Generic element.
       Monitor:
         description: Beam monitor element.
+      Simulation:
+        description: Simulation element.
 
   LaserPolarizationEnum:
     description: Polarization state of a laser beam.
@@ -783,7 +785,8 @@ classes:
       number_of_elements:
         range: integer
         description: Number of aperture sub-elements (e.g., for multi-leaf collimators).
-        minimum_value: 1
+        minimum_value: 0
+        ifabsent: int(0)
       horizontal_size:
         range: float
         description: Full horizontal aperture [m].

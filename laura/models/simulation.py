@@ -12,6 +12,7 @@ from ._generated import (
     _PlasmaSimulationElementBase,
     _TwissMatchSimulationElementBase,
 )
+from ..translator.utils.fields import field
 
 
 class ApertureElement(_ApertureElementBase):
@@ -33,7 +34,9 @@ class MagnetSimulationElement(_MagnetSimulationElementBase):
     Magnet simulation element model.
     """
 
-    pass
+    field_definition: str | field | None = None
+    # Schema declares `smooth` as boolean but ASTRA uses an integer smoothing count (Q_smooth / S_smooth).
+    smooth: int | None = None
 
 
 class DriftSimulationElement(_DriftSimulationElementBase):
@@ -75,6 +78,9 @@ class RFCavitySimulationElement(_RFCavitySimulationElementBase):
     RF cavity simulation element model.
     """
 
+    field_definition: str | field | None = None
+    wakefield_definition: str | field | None = None
+
     pass
 
 
@@ -82,6 +88,8 @@ class WakefieldSimulationElement(_WakefieldSimulationElementBase):
     """
     Wakefield simulation element model.
     """
+
+    wakefield_definition: str | field | None = None
 
     pass
 

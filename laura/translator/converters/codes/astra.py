@@ -56,6 +56,16 @@ class astra_header(BaseModel):
 
     astradict: Dict = {}
 
+    @staticmethod
+    def _astra_str(v) -> str:
+        if isinstance(v, bool):
+            return "T" if v else "F"
+        if isinstance(v, str):
+            if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
+                return v
+            return f"'{v}'"
+        return str(v)
+
     def write_ASTRA(self) -> str:
         """
         Write the text for the ASTRA namelist based on its attributes.
@@ -69,9 +79,9 @@ class astra_header(BaseModel):
         for key, val in self.model_dump().items():
             if key not in self.exclude and val is not None:
                 if key in self.astradict:
-                    output += f"{self.astradict[key]} = {val},\n"
+                    output += f"{self.astradict[key]} = {self._astra_str(val)},\n"
                 else:
-                    output += f"{key} = {val},\n"
+                    output += f"{key} = {self._astra_str(val)},\n"
         output = output[:-2] + "\n"
         output += "/\n"
         return output
@@ -250,9 +260,9 @@ class astra_output(astra_header):
         for key, val in self.model_dump().items():
             if key not in self.exclude and val is not None:
                 if key in self.astradict:
-                    output += f"{self.astradict[key]} = {val},\n"
+                    output += f"{self.astradict[key]} = {self._astra_str(val)},\n"
                 else:
-                    output += f"{key} = {val},\n"
+                    output += f"{key} = {self._astra_str(val)},\n"
         for i, element in enumerate(self.screens, 1):
             output += f"Screen({i}) = {element.physical.middle.z},\n"
         output = output[:-2] + "\n"
@@ -349,9 +359,9 @@ class astra_charge(astra_header):
         for key, val in self.model_dump().items():
             if key not in self.exclude and val is not None:
                 if key in self.astradict:
-                    output += f"{self.astradict[key]} = {val},\n"
+                    output += f"{self.astradict[key]} = {self._astra_str(val)},\n"
                 else:
-                    output += f"{key} = {val},\n"
+                    output += f"{key} = {self._astra_str(val)},\n"
         if self.space_charge_2D:
             output += f"nrad = {self.grid_size},\n"
             output += f"nlong_in = {self.grid_size},\n"

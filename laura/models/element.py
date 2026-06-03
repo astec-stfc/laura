@@ -247,7 +247,11 @@ class Element(baseElement, _ElementBase):
     def model_post_init(self, __context: Any) -> None:
         # Preserve prior convenience behavior while keeping declarations schema-first.
         super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", SimulationElement)
+        try:
+            _ensure_nested_default(self, "simulation", SimulationElement)
+        except Exception:
+            # Subclass has a more specific simulation type; let it handle initialisation.
+            pass
         _ensure_nested_default(self, "electrical", ElectricalElement)
         _ensure_nested_default(self, "manufacturer", ManufacturerElement)
 
@@ -317,6 +321,9 @@ class Magnet(PhysicalBaseElement, _MagnetBase):
 
     hardware_class: str = Field(default="Magnet", frozen=True)
     """Magnet hardware class."""
+
+    simulation: Optional[MagnetSimulationElement] = None
+    """Magnet simulation attributes."""
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
@@ -512,6 +519,9 @@ class TwissMatch(PhysicalBaseElement, _TwissMatchBase):
     hardware_class: str = Field(default="TwissMatch", frozen=True)
     """Twiss match hardware class."""
 
+    simulation: Optional[TwissMatchSimulationElement] = None
+    """TwissMatch simulation attributes."""
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "simulation", TwissMatchSimulationElement)
@@ -533,6 +543,9 @@ class Diagnostic(PhysicalBaseElement, _DiagnosticBase):
 
     hardware_class: str = Field(default="Diagnostic", frozen=True)
     """Diagnostic hardware class."""
+
+    simulation: Optional[DiagnosticSimulationElement] = None
+    """Diagnostic simulation attributes."""
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
@@ -882,6 +895,9 @@ class Plasma(PhysicalBaseElement, _PlasmaBase):
     hardware_type: str = Field(default="Plasma", frozen=True)
     """Plasma hardware type."""
 
+    simulation: Optional[PlasmaSimulationElement] = None
+    """Plasma simulation attributes."""
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "simulation", PlasmaSimulationElement)
@@ -985,19 +1001,21 @@ class RFCavity(PhysicalBaseElement, _RFCavityBase):
         attributes of the RF cavity.
     """
 
-    hardware_class: str = Field(default="RFCavity", frozen=True, alias="Cavity")
+    hardware_class: str = Field(default="RF", frozen=True)
     """RF cavity hardware class."""
 
-    hardware_type: str = Field(default="RFCavity", frozen=True, alias="Cavity")
+    hardware_type: str = Field(default="RFCavity", frozen=True)
     """RF cavity hardware type."""
 
     hardware_model: str = Field(default="SBand", frozen=True)
     """RF cavity hardware model."""
 
+    simulation: Optional[RFCavitySimulationElement] = None
+    """RF cavity simulation attributes."""
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "cavity", RFCavityElement)
-        _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
 
 
 class Wakefield(PhysicalBaseElement, _WakefieldBase):
@@ -1020,6 +1038,9 @@ class Wakefield(PhysicalBaseElement, _WakefieldBase):
 
     hardware_model: str = Field(default="Dielectric", frozen=True)
     """Wakefield hardware model."""
+
+    simulation: Optional[WakefieldSimulationElement] = None
+    """Wakefield simulation attributes."""
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
@@ -1182,6 +1203,9 @@ class Marker(PhysicalBaseElement, _MarkerBase):
     hardware_model: str = Field(default="Simulation", frozen=True)
     """Marker hardware model."""
 
+    simulation: Optional[DiagnosticSimulationElement] = None
+    """Marker simulation attributes."""
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "simulation", DiagnosticSimulationElement)
@@ -1240,6 +1264,9 @@ class Drift(PhysicalBaseElement, _DriftBase):
 
     hardware_type: str = Field(default="Drift", frozen=True)
     """Drift hardware type."""
+
+    simulation: Optional[DriftSimulationElement] = None
+    """Drift simulation attributes."""
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)

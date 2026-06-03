@@ -23,13 +23,13 @@ class RFCavityTranslator(BaseElementTranslator):
     simulation: RFCavitySimulationElement
     """Cavity simulation element"""
 
-    wakefile: str = None
+    wakefile: str | None = None
     """Name of wakefile associated with the cavity."""
 
-    trwakefile: str = None
+    trwakefile: str | None = None
     """Name of transverse wakefile associated with the cavity."""
 
-    zwakefile: str = None
+    zwakefile: str | None = None
     """Name of longitudinal wakefile associated with the cavity."""
 
     @computed_field
@@ -304,6 +304,7 @@ class RFCavityTranslator(BaseElementTranslator):
             "FILE_EFieLD",
             {"value": "'" + field_file_name + "'", "default": ""},
         ]
+        print(f"to_astra {self.name} field_amplitude {self.simulation.field_amplitude}")
         return self._write_ASTRA_dictionary(
             dict(
                 [

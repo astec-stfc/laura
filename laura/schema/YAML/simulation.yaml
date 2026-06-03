@@ -70,8 +70,8 @@ classes:
         ifabsent: int(4)
         minimum_value: 1
       smooth:
-        range: boolean
-        description: Use a smoothed field profile.
+        range: integer
+        description: Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).
       edge_field_integral:
         range: float
         description: Fringe-field integral for edge focussing.
@@ -136,7 +136,6 @@ classes:
       - wz_column
       - n_kicks
       - lsc_bins
-      - field_amplitude
     slot_usage:
       n_kicks:
         description: Number of cavity kicks to apply.
@@ -144,9 +143,6 @@ classes:
       lsc_bins:
         description: Number of longitudinal space-charge bins.
         ifabsent: int(100)
-      field_amplitude:
-        description: Cavity field amplitude.
-        ifabsent: float(0)
     attributes:
       change_p0:
         range: integer
@@ -194,6 +190,10 @@ classes:
       trwakefile:
         range: string
         description: Transverse wake file name.
+      field_amplitude:
+        range: float
+        required: true
+        description: Cavity field amplitude.
 
   WakefieldSimulationElement:
     is_a: SimulationElement

@@ -248,7 +248,7 @@ class MagnetTranslator(BaseElementTranslator):
         str
             String representation of the element for ASTRA
         """
-        field_ref_pos = self.get_field_reference_position()
+        field_ref_pos = self.get_field_reference_position(if_none="middle")
         astradict = dict(
             [
                 ["Q_pos", {"value": field_ref_pos[2] + self.dz, "default": 0}],
@@ -293,7 +293,7 @@ class MagnetTranslator(BaseElementTranslator):
                     "Q_bore",
                     {"value": self.magnetic.bore, "default": 0.037, "type": "not_zero"},
                 ],
-                ["Q_noscale", {"value": self.simulation.scale_field}],
+                ["Q_noscale", {"value": bool(self.simulation.scale_field)}],
                 # TODO figure out multipoles
                 # ["Q_mult_a", {"type": "list", "value": self.multipoles}],
             ]
@@ -1042,7 +1042,7 @@ class SolenoidTranslator(BaseElementTranslator):
                     [
                         "MaxB",
                         {
-                            "value": self.get_field_amplitude / self.magnetic.length,
+                            "value": self.magnetic.field_amplitude,
                             "default": 0,
                         },
                     ],
