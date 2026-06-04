@@ -110,12 +110,15 @@ def get_all_subclasses(cls):
         subclasses.update(get_all_subclasses(sub))
     return subclasses
 
-ALL_MODELS = get_all_subclasses(BaseModel)
+_MODEL_REGISTRY = None
 
-MODEL_REGISTRY = {
-    cls.__name__: cls
-    for cls in ALL_MODELS
-}
+def get_model_registry():
+    global _MODEL_REGISTRY
+    if _MODEL_REGISTRY is None:
+        ALL_MODELS = get_all_subclasses(BaseModel)
+        _MODEL_REGISTRY = {cls.__name__: cls for cls in ALL_MODELS}
+    return _MODEL_REGISTRY
+
 
 class LazyAdapterDict(dict):
     """
@@ -123,7 +126,7 @@ class LazyAdapterDict(dict):
     """
     def get(self, key, default=None):
         if key not in self:
-            model = MODEL_REGISTRY.get(key)
+            model = get_model_registry().get(key)  # <-- use lazy getter
             if model is None:
                 return default
             self[key] = TypeAdapter(model)
