@@ -2,6 +2,7 @@ import re
 import json
 import yaml
 import os
+from warnings import warn
 from yaml import CSafeLoader as Loader
 from pydantic import TypeAdapter, BaseModel
 
@@ -139,10 +140,12 @@ def filter_top_level(elem: dict, exclude_keys: List[str] | None = None) -> dict:
 def interpret_YAML_Element(elem: dict, exclude_set=None):
     hw_type = elem.get("hardware_type")
     if not hw_type:
+        warn(f"hardware_type not found in element {elem.get('name', 'unknown')}; returning None")
         return None
 
     adapter = ADAPTERS.get(hw_type)
     if adapter is None:
+        warn(f"adapter not found in element {elem.get('name', 'unknown')}; returning None")
         return None
 
     if exclude_set:
@@ -150,7 +153,8 @@ def interpret_YAML_Element(elem: dict, exclude_set=None):
 
     try:
         return adapter.validate_python(elem)
-    except Exception:
+    except Exception as e:
+        warn(f"Could not interpret {elem.get('name', 'unknown')}; {e}; returning None")
         return None
 
 

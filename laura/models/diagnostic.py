@@ -237,7 +237,7 @@ class Camera_Diagnostic(DiagnosticElement):
     Camera Diagnostic model.
     """
 
-    type: str = Field(alias="CAM_TYPE")
+    type: str = Field(alias="CAM_TYPE", default="Unknown")
     """Camera type."""
 
     pixel_results_indices: Camera_Pixel_Results_Indices = Camera_Pixel_Results_Indices()
@@ -356,5 +356,5 @@ class Charge_Diagnostic(DiagnosticElement):
     Charge Diagnostic model.
     """
 
-    type: str = Field(alias="charge_type")
+    type: str = Field(alias="charge_type", default="Unknown")
     """Charge diagnostic type."""
