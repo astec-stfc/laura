@@ -1,4 +1,5 @@
 import re
+from typing import List
 import json
 from pprint import pprint
 from warnings import warn
@@ -6,7 +7,7 @@ from yaml import CSafeLoader as Loader
 from pydantic import TypeAdapter, ValidationError
 
 # Import elements before building registry
-from ..models.element import *  # noqa
+from ..models.element import ELEMENT_REGISTRY
 
 # Fast metadata extraction regex
 _NAME_RE = re.compile(r'^\s*name:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE)
@@ -121,12 +122,9 @@ def get_model_registry():
 
 
 class LazyAdapterDict(dict):
-    """
-    Lazy lookup of TypeAdapters to avoid initializing all 100+ adapters on import.
-    """
     def get(self, key, default=None):
         if key not in self:
-            model = get_model_registry().get(key)  # <-- use lazy getter
+            model = ELEMENT_REGISTRY.get(key)
             if model is None:
                 return default
             self[key] = TypeAdapter(model)
