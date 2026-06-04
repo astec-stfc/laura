@@ -1524,7 +1524,7 @@ class Drift(PhysicalBaseElement):
 
 # bottom of element.py
 ELEMENT_REGISTRY: dict[str, type] = {
-    cls.model_fields.get("hardware_type", {}).get("default"): cls
+    cls.model_fields["hardware_type"].default: cls
     for cls in [
         Dipole, Quadrupole, Sextupole, Octupole,
         Horizontal_Corrector, Vertical_Corrector, Combined_Corrector,
