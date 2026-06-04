@@ -1,10 +1,9 @@
 import re
 import json
-import yaml
-import os
+from pprint import pprint
 from warnings import warn
 from yaml import CSafeLoader as Loader
-from pydantic import TypeAdapter, BaseModel
+from pydantic import TypeAdapter, ValidationError
 
 # Import elements before building registry
 from ..models.element import *  # noqa
@@ -153,9 +152,10 @@ def interpret_YAML_Element(elem: dict, exclude_set=None):
 
     try:
         return adapter.validate_python(elem)
-    except Exception as e:
-        warn(f"Could not interpret {elem.get('name', 'unknown')}; {e}; returning None")
-        return None
+    except ValidationError as e:
+        pprint(e.errors(), width=200)
+    warn(f"Could not interpret {elem.get('name', 'unknown')}; returning None")
+    return None
 
 
 def read_YAML_Element_File(filename: str, exclude_keys: List[str] | None = None):
