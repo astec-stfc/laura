@@ -1,105 +1,101 @@
 import os
 import yaml
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/types/type_conversion_rules.yaml",
-    "r",
-) as infile:
-    type_conversion_rules = yaml.safe_load(infile)
-    type_conversion_rules_Elegant = type_conversion_rules["elegant"]
-    type_conversion_rules_Genesis = type_conversion_rules["genesis"]
-    type_conversion_rules_Opal = type_conversion_rules["opal"]
-    type_conversion_rules_Names = type_conversion_rules["name"]
-    type_conversion_rules_aliases = type_conversion_rules["aliases"]["elegant"]
+try:
+    _FastLoader = yaml.CSafeLoader
+except AttributeError:
+    _FastLoader = yaml.SafeLoader
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/keywords/keyword_conversion_rules_elegant.yaml",
-    "r",
-) as infile:
-    keyword_conversion_rules_elegant = yaml.safe_load(infile)
+class LazyDict(dict):
+    """A dictionary that loads its content from a loader function on the first access."""
+    def __init__(self, loader):
+        self._loader = loader
+        self._loaded = False
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/elements/elements_elegant.yaml",
-    "r",
-) as infile:
-    elements_Elegant = yaml.safe_load(infile)
+    def _ensure_loaded(self):
+        if not self._loaded:
+            data = self._loader()
+            if data:
+                self.update(data)
+            self._loaded = True
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/keywords/keyword_conversion_rules_ocelot.yaml",
-    "r",
-) as infile:
-    keyword_conversion_rules_ocelot = yaml.safe_load(infile)
+    def __getitem__(self, key):
+        self._ensure_loaded()
+        return super().__getitem__(key)
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/elements/elements_ocelot.yaml",
-    "r",
-) as infile:
-    elements_Ocelot = yaml.safe_load(infile)
+    def __setitem__(self, key, value):
+        self._ensure_loaded()
+        super().__setitem__(key, value)
+    
+    def __contains__(self, key):
+        self._ensure_loaded()
+        return super().__contains__(key)
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/keywords/keyword_conversion_rules_cheetah.yaml",
-    "r",
-) as infile:
-    keyword_conversion_rules_cheetah = yaml.safe_load(infile)
+    def __len__(self):
+        self._ensure_loaded()
+        return super().__len__()
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/elements/elements_cheetah.yaml",
-    "r",
-) as infile:
-    elements_Cheetah = yaml.safe_load(infile)
+    def __iter__(self):
+        self._ensure_loaded()
+        return super().__iter__()
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/elements/elements_opal.yaml",
-    "r",
-) as infile:
-    elements_Opal = yaml.safe_load(infile)
+    def items(self):
+        self._ensure_loaded()
+        return super().items()
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/keywords/keyword_conversion_rules_opal.yaml",
-    "r",
-) as infile:
-    keyword_conversion_rules_opal = yaml.safe_load(infile)
+    def values(self):
+        self._ensure_loaded()
+        return super().values()
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml",
-    "r",
-) as infile:
-    keyword_conversion_rules_xsuite = yaml.safe_load(infile)
+    def keys(self):
+        self._ensure_loaded()
+        return super().keys()
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/keywords/keyword_conversion_rules_wake_t.yaml",
-    "r",
-) as infile:
-    keyword_conversion_rules_wake_t = yaml.safe_load(infile)
+    def get(self, key, default=None):
+        self._ensure_loaded()
+        return super().get(key, default)
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/keywords/keyword_conversion_rules_genesis.yaml",
-    "r",
-) as infile:
-    keyword_conversion_rules_genesis = yaml.safe_load(infile)
+    def __or__(self, other):
+        self._ensure_loaded()
+        if isinstance(other, LazyDict):
+            other._ensure_loaded()
+        return super().__or__(other)
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/elements/elements_genesis.yaml",
-    "r",
-) as infile:
-    elements_Genesis = yaml.safe_load(infile)
+    def __ror__(self, other):
+        self._ensure_loaded()
+        return super().__ror__(other)
 
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../conversion_rules/elements/element_keywords.yaml",
-    "r",
-) as infile:
-    element_keywords = yaml.safe_load(infile)
+    def __repr__(self):
+        if not self._loaded:
+            return f"LazyDict(loaded=False, loader={self._loader})"
+        return super().__repr__()
+
+def _load_yaml_file(filename):
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+    with open(path, "r") as f:
+        return yaml.load(f, Loader=_FastLoader)
+
+type_conversion_rules = LazyDict(lambda: _load_yaml_file("../conversion_rules/types/type_conversion_rules.yaml"))
+type_conversion_rules_Elegant = LazyDict(lambda: type_conversion_rules["elegant"])
+type_conversion_rules_Genesis = LazyDict(lambda: type_conversion_rules["genesis"])
+type_conversion_rules_Opal = LazyDict(lambda: type_conversion_rules["opal"])
+type_conversion_rules_Names = LazyDict(lambda: type_conversion_rules["name"])
+type_conversion_rules_aliases = LazyDict(lambda: type_conversion_rules["aliases"]["elegant"])
+
+keyword_conversion_rules_elegant = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_elegant.yaml"))
+elements_Elegant = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_elegant.yaml"))
+
+keyword_conversion_rules_ocelot = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_ocelot.yaml"))
+elements_Ocelot = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_ocelot.yaml"))
+
+keyword_conversion_rules_cheetah = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_cheetah.yaml"))
+elements_Cheetah = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_cheetah.yaml"))
+
+elements_Opal = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_opal.yaml"))
+keyword_conversion_rules_opal = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_opal.yaml"))
+
+keyword_conversion_rules_xsuite = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml"))
+keyword_conversion_rules_wake_t = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_wake_t.yaml"))
+keyword_conversion_rules_genesis = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_genesis.yaml"))
+elements_Genesis = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_genesis.yaml"))
+element_keywords = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/element_keywords.yaml"))

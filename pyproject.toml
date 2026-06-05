@@ -22,7 +22,13 @@ dependencies = [
     "pyyaml>=6", 
     "numpy>=1.26",
     "scipy>=1.15",
-    "munch>=4"
+    "munch>=4",
+    "xsuite>=0.40.0",
+    "ocelot-desy>=25.06.0",
+    "pydantic-core>=2.41.5",
+    "pytao>=0.5.5",
+    "cheetah-accelerator>=0.7.5",
+    "wake_t>=0.8.0",
 ]
 
 requires-python = ">= 3.10"
@@ -55,3 +61,8 @@ docs = [
 Homepage = "https://github.com/astec-stfc/laura"
 Repository = "https://github.com/astec-stfc/laura.git"
 Issues = "https://github.com/astec-stfc/laura/-/issues/"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:Pydantic serializer warnings:UserWarning",
+]

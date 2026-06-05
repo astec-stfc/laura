@@ -4,7 +4,7 @@ import easygdf
 from warnings import warn
 from .FieldParameter import FieldParameter
 from ..units import UnitValue
-from scipy.constants import speed_of_light
+from laura.models.constants import speed_of_light
 
 
 def write_gdf_field_file(self) -> str:

@@ -8,4 +8,5 @@ This section describes the architecture of accelerator components and lattices.
 
    Element
    Lattice
+   internals
 

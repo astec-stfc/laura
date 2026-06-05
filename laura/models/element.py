@@ -459,10 +459,10 @@ class Element(baseElement):
     simulation: SimulationElement = Field(default_factory=SimulationElement)
     """Simulation attributes of the element."""
 
-    electrical: ElectricalElement | None = None
+    electrical: ElectricalElement = Field(default_factory=ElectricalElement)
     """Electrical attributes of the element."""
 
-    manufacturer: ManufacturerElement | None = None
+    manufacturer: ManufacturerElement = Field(default_factory=ManufacturerElement)
     """Manufacturer attributes of the element."""
 
     controls: ControlsInformation | None = None
@@ -473,12 +473,6 @@ class Element(baseElement):
 
     def to_CATAP(self):
         catap_dict = super().to_CATAP()
-        catap_dict.update(
-            {
-                "manufacturer": self.manufacturer.manufacturer,
-                "serial_number": self.manufacturer.serial_number,
-            }
-        )
         return catap_dict
 
     def update_from_controls(self):
@@ -564,7 +558,9 @@ class Magnet(PhysicalBaseElement):
         """
         Rotation of the magnet based on its bending angle.
         """
-        return Rotation.from_list([0, 0, self.magnetic.angle])
+        if self.magnetic is not None and hasattr(self.magnetic, 'angle'):
+            return Rotation.from_list([0, 0, self.magnetic.angle])
+        return Rotation.from_list([0, 0, 0])
 
     @property
     def end_angle(self) -> float:
@@ -1028,15 +1024,18 @@ class Stage(PhysicalBaseElement):
     Moveable stage element.
 
     Attributes:
-        hardware_type (str): The hardware type of the gauge.
-        hardware_model (str): The hardware model of the gauge.
+        hardware_type (str): The hardware type of the stage.
+        hardware_model (str): The hardware model of the stage.
     """
 
+    hardware_class: str = Field(default="Stage", frozen=True)
+    """Moveable stage hardware class."""
+
     hardware_type: str = Field(default="Stage", frozen=True)
-    """Moveable hardware type."""
+    """Moveable stage hardware type."""
 
     hardware_model: str = Field(default="Stage", frozen=True)
-    """Moveable hardware model."""
+    """Moveable stage hardware model."""
 
 
 class VacuumGauge(PhysicalBaseElement):
@@ -1047,6 +1046,9 @@ class VacuumGauge(PhysicalBaseElement):
         hardware_type (str): The hardware type of the gauge.
         hardware_model (str): The hardware model of the gauge.
     """
+
+    hardware_class: str = Field(default="Vacuum", frozen=True)
+    """Vacuum gauge hardware class."""
 
     hardware_type: str = Field(default="VacuumGauge", frozen=True)
     """Vacuum gauge hardware type."""
@@ -1064,6 +1066,9 @@ class Laser(PhysicalBaseElement):
         hardware_model (str): The hardware model of the laser.
         laser (:class:`~laura.models.laser.LaserElement`): The laser attributes of the laser.
     """
+
+    hardware_class: str = Field(default="Laser", frozen=True)
+    """Laser hardware type."""
 
     hardware_type: str = Field(default="Laser", frozen=True)
     """Laser hardware type."""
@@ -1085,6 +1090,9 @@ class LaserEnergyMeter(Element):
         laser (:class:`~laura.models.laser.LaserEnergyMeterElement`): The laser-related attributes of the
         energy meter.
     """
+
+    hardware_class: str = Field(default="Laser", frozen=True)
+    """Laser energy meter hardware class."""
 
     hardware_type: str = Field(default="LaserEnergyMeter", frozen=True)
     """Laser energy meter hardware type."""
@@ -1108,6 +1116,9 @@ class LaserHalfWavePlate(Element):
         HWP.
     """
 
+    hardware_class: str = Field(default="Laser", frozen=True)
+    """Laser half-wave plate hardware class."""
+
     hardware_type: str = Field(default="LaserHalfWavePlate", frozen=True)
     """Laser half-wave plate element type."""
 
@@ -1130,6 +1141,9 @@ class LaserMirror(Element):
         mirror.
     """
 
+    hardware_class: str = Field(default="Laser", frozen=True)
+    """Laser mirror hardware class."""
+
     hardware_type: str = Field(default="LaserMirror", frozen=True)
     """Laser mirror hardware type."""
 
@@ -1147,6 +1161,9 @@ class LaserAttenuator(Element):
     Attributes:
         hardware_type (str): The hardware type of the attenuator.
     """
+
+    hardware_class: str = Field(default="Laser", frozen=True)
+    """Laser attenuator hardware class."""
 
     hardware_type: str = Field(default="LaserAttenuator", frozen=True)
     """Laser attenuator hardware type."""
@@ -1169,6 +1186,9 @@ class Plasma(PhysicalBaseElement):
         plasma (:class:`~laura.models.plasma.PlasmaElement`): The plasma attributes of the plasma.
         laser (:class:`~laura.models.laser.LaserElement` or None): The laser assosicated with the plasma
     """
+
+    hardware_class: str = Field(default="Plasma", frozen=True)
+    """Plasma hardware class."""
 
     hardware_type: str = Field(default="Plasma", frozen=True)
     """Plasma hardware type."""
@@ -1193,6 +1213,9 @@ class Lighting(Element):
         lights (:class:`~laura.models.lighting.LightingElement`): The lighting element.
     """
 
+    hardware_class: str = Field(default="Lighting", frozen=True)
+    """Lighting hardware class."""
+
     hardware_type: str = Field(default="Lighting", frozen=True)
     """Lighting hardware type."""
 
@@ -1213,6 +1236,9 @@ class PID(Element):
         PID (:class:`~laura.models.RF.PIDElement`): The PID element.
     """
 
+    hardware_class: str = Field(default="Feedback", frozen=True)
+    """PID hardware class."""
+
     hardware_type: str = Field(default="PID", frozen=True)
     """PID hardware type."""
 
@@ -1232,6 +1258,9 @@ class Low_Level_RF(Element):
         hardware_model (str): The hardware model of the element.
         LLRF (:class:`~laura.models.RF.Low_Level_RF_Element`): The LLRF element.
     """
+
+    hardware_class: str = Field(default="RF", frozen=True)
+    """LLRF hardware class."""
 
     hardware_type: str = Field(default="Low_Level_RF", frozen=True)
     """LLRF hardware type."""
@@ -1254,6 +1283,9 @@ class RFCavity(PhysicalBaseElement):
         simulation: (:class:`~laura.models.simulation.RFCavitySimulationElement`): The simulation
         attributes of the RF cavity.
     """
+
+    hardware_class: str = Field(default="RFCavity", frozen=True, alias="Cavity")
+    """RF cavity hardware class."""
 
     hardware_type: str = Field(default="RFCavity", frozen=True, alias="Cavity")
     """RF cavity hardware type."""
@@ -1281,6 +1313,9 @@ class Wakefield(PhysicalBaseElement):
         simulation: (:class:`~laura.models.simulation.WakefieldSimulationElement`): The simulation
         attributes of the wakefield cavity.
     """
+
+    hardware_class: str = Field(default="Wakefield", frozen=True)
+    """Wakefield hardware class."""
 
     hardware_type: str = Field(default="Wakefield", frozen=True)
     """Wakefield hardware type."""
@@ -1334,6 +1369,9 @@ class RFModulator(Element):
         modulator (:class:`~laura.models.RF.RFModulatorElement`): The RF modulator attributes of the element.
     """
 
+    hardware_class: str = Field(default="RF", frozen=True)
+    """RF modulator hardware class."""
+
     hardware_type: str = Field(default="RFModulator", frozen=True)
     """RF modulator hardware type."""
 
@@ -1355,6 +1393,9 @@ class RFProtection(Element):
         modulator (:class:`~laura.models.RF.RFProtectionElement`): The RF protection attributes of the element.
     """
 
+    hardware_class: str = Field(default="RF", frozen=True)
+    """RF protection hardware class."""
+
     hardware_type: str = Field(default="RFProtection", frozen=True)
     """RF protection hardware type."""
 
@@ -1374,6 +1415,9 @@ class RFHeartbeat(Element):
         heartbeat (:class:`~laura.models.RF.RFHeartbeatElement`): The RF heartbeat attributes of the element.
     """
 
+    hardware_class: str = Field(default="RF", frozen=True)
+    """RF heartbeat hardware class."""
+
     hardware_type: str = Field(default="RFHeartbeat", frozen=True)
     """RF heartbeat hardware type."""
 
@@ -1389,6 +1433,9 @@ class Shutter(PhysicalBaseElement):
         hardware_type (str): The hardware type of the shutter.
         shutter (:class:`~laura.models.shutter.ShutterElement`): The shutter attributes of the element.
     """
+
+    hardware_class: str = Field(default="Shutter", frozen=True)
+    """Shutter hardware class"""
 
     hardware_type: str = Field(default="Shutter", frozen=True)
     """Shutter hardware type"""
@@ -1409,6 +1456,9 @@ class Valve(PhysicalBaseElement):
         valve (:class:`~laura.models.shutter.ValveElement`): The valve attributes of the element.
     """
 
+    hardware_class: str = Field(default="Vacuum", frozen=True)
+    """Valve hardware class."""
+
     hardware_type: str = Field(default="Valve", frozen=True)
     """Valve hardware type."""
 
@@ -1426,6 +1476,9 @@ class Marker(PhysicalBaseElement):
         simulation (:class:`~laura.models.simulation.DiagnosticSimulationElement`): The simulation
         attributes of the marker.
     """
+
+    hardware_class: str = Field(default="Marker", frozen=True)
+    """Marker hardware type."""
 
     hardware_type: str = Field(default="Marker", frozen=True)
     """Marker hardware type."""
@@ -1449,6 +1502,9 @@ class Aperture(PhysicalBaseElement):
         aperture (:class:`~laura.models.simulation.ApertureElement`): The simulation
         attributes of the aperture.
     """
+
+    hardware_class: str = Field(default="Aperture", frozen=True)
+    """Aperture hardware class."""
 
     hardware_type: str = Field(default="Aperture", frozen=True)
     """Aperture hardware type."""
