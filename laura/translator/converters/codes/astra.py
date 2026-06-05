@@ -226,6 +226,13 @@ class astra_output(astra_header):
 
     zemit: int = None
 
+    model_config = ConfigDict(
+        extra="ignore",
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+        populate_by_name=True,
+    )
+
     # section: SectionLatticeTranslator
 
     def model_post_init(self, context: Any, /) -> None:
@@ -328,6 +335,13 @@ class astra_charge(astra_header):
 
     objecttype: str = "astra_charge"
     """Type of object"""
+
+    model_config = ConfigDict(
+        extra="ignore",
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+        populate_by_name=True,
+    )
 
     def model_post_init(self, context: Any, /) -> None:
         self.grids = getGrids()

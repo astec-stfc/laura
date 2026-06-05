@@ -95,7 +95,7 @@ def translate_elements(
         else:
             translator = BaseElementTranslator
         try:
-            elem_dict.update({elem.name: translator.model_validate(elem.model_dump())})
+            elem_dict.update({elem.name: translator.model_validate(elem.model_dump(by_alias=False))})
         except Exception as exc:
             raise Exception(f"Element {elem.name} failed validation: {elem.model_dump().keys()}")
         elem_dict[elem.name].master_lattice = master_lattice

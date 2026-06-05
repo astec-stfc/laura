@@ -1335,6 +1335,7 @@ class MachineModel(ModelBase):
                     for name in elem_names
                     if name in by_name
                 ]
+                _log.debug("Section %s elements=(%s)", area, [elem.name for elem in new_elements])
                 self.sections[area] = SectionLattice(
                     name=area,
                     elements=new_elements,
@@ -1357,6 +1358,7 @@ class MachineModel(ModelBase):
                             for name in elem_names
                             if name in by_name
                         ]
+                        _log.debug("Section %s elements=(%s)", area, [elem.name for elem in new_elements])
                         self.sections[area] = SectionLattice(
                             name=area,
                             elements=new_elements,

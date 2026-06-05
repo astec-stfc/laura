@@ -304,7 +304,6 @@ class RFCavityTranslator(BaseElementTranslator):
             "FILE_EFieLD",
             {"value": "'" + field_file_name + "'", "default": ""},
         ]
-        print(f"to_astra {self.name} field_amplitude {self.simulation.field_amplitude}")
         return self._write_ASTRA_dictionary(
             dict(
                 [

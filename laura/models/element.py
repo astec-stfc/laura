@@ -241,6 +241,11 @@ class Element(baseElement, _ElementBase):
         reference: :class:`~laura.models.reference.ReferenceElement` | None: Reference information for the element.
     """
 
+    # Override the generated base-class type so that dicts are validated as
+    # ManufacturerElement (which coerces int serial_number → str) rather than the
+    # bare _ManufacturerElementBase which only accepts strings.
+    manufacturer: Optional[ManufacturerElement] = Field(default=None)
+
     controls: ControlsInformation | None = None
     """Control-system process-variable definitions."""
 

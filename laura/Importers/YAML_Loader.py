@@ -6,6 +6,7 @@ import os
 import pathlib
 from yaml import CSafeLoader as Loader
 from pydantic import TypeAdapter, BaseModel
+from typing import List
 
 # Import elements before building registry
 from ..models.element import *  # noqa
@@ -34,6 +35,7 @@ def fast_get_element_metadata(filename: str) -> dict:
     if not metadata["name"]:
         metadata["name"] = os.path.basename(filename).replace('.yaml', '').replace('.yml', '')
     return metadata
+
 
 class LazyElementDict(dict):
     """
@@ -121,6 +123,7 @@ MODEL_REGISTRY = {
     for cls in ALL_MODELS
 }
 
+
 class LazyAdapterDict(dict):
     """
     Lazy lookup of TypeAdapters to avoid initializing all 100+ adapters on import.
@@ -132,6 +135,7 @@ class LazyAdapterDict(dict):
                 return default
             self[key] = TypeAdapter(model)
         return super().get(key)
+
 
 ADAPTERS = LazyAdapterDict()
 

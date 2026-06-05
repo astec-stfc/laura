@@ -675,8 +675,6 @@ class Solenoid_Magnet(IgnoreExtra):
     #TODO move to electrical?
     """
 
-    field_amplitude: float = 0.0
-
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)
         if "ks" in data:

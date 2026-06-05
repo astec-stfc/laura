@@ -344,9 +344,11 @@ class PhysicalElement(_PhysicalElementBase):
     Physical info model.
     """
 
-    # Override the generated base-class type so dicts are validated as
-    # ReferencePlacement (which has list/dict coercers) rather than the
-    # bare _ReferencePlacementBase which only accepts dicts or model instances.
+    # Override generated base-class types so list inputs are coerced correctly.
+    # The bare generated bases (_ElementPositionErrorBase etc.) only accept dicts
+    # or model instances; the concrete subclasses add the list/array coercers.
+    error: Optional[ElementError] = Field(default=None)
+    survey: Optional[ElementSurvey] = Field(default=None)
     reference_placement: Optional[ReferencePlacement] = Field(default=None)
 
     # s and s_point are input / query fields only — excluded from the default
@@ -392,10 +394,7 @@ class PhysicalElement(_PhysicalElementBase):
         if self.error is None:
             self.error = ElementError()
         if self.survey is None:
-            self.survey = _ElementSurveyBase(
-                position=Position(x=0, y=0, z=0),
-                rotation=Rotation(theta=0, phi=0, psi=0),
-            )
+            self.survey = ElementSurvey()
         # Mark construction complete so the exclusivity validator is not
         # re-triggered by lattice-assembly code that sets both s and middle.
         object.__setattr__(self, "_constructed", True)
