@@ -51,7 +51,7 @@ class MagnetTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(1) / self.magnetic.length
         except ZeroDivisionError:
-            warn(f"Magnet {self.name} has zero length; returning k1 = k1l")
+            # warn(f"Magnet {self.name} has zero length; returning k1 = k1l")
             return self.magnetic.KnL(1)
 
     @computed_field
@@ -68,7 +68,7 @@ class MagnetTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(2) / self.magnetic.length
         except ZeroDivisionError:
-            warn(f"Magnet {self.name} has zero length; returning k2 = k2l")
+            # warn(f"Magnet {self.name} has zero length; returning k2 = k2l")
             return self.magnetic.KnL(2)
 
     @computed_field
@@ -85,7 +85,7 @@ class MagnetTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(3) / self.magnetic.length
         except ZeroDivisionError:
-            warn(f"Magnet {self.name} has zero length; returning k3 = k3l")
+            # warn(f"Magnet {self.name} has zero length; returning k3 = k3l")
             return self.magnetic.KnL(3)
 
     @property
