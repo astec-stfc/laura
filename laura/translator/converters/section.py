@@ -424,9 +424,9 @@ class SectionLatticeTranslator(SectionLattice):
             directory=self.directory,
         )
         string = ""
+        starts = []
+        ends = []
         if isinstance(chicanes, dict):
-            starts = []
-            ends = []
             for chic in chicanes.values():
                 self.check_chicane(chic)
                 starts.append(chic["start"])

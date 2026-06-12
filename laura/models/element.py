@@ -757,7 +757,7 @@ class Wiggler(Magnet):
         laser (:class:`~laura.models.laser.Laser_Magnet` or None): The laser associated with the wiggler.
     """
 
-    hardware_type: str = Field(default="Undulator", frozen=True)
+    hardware_type: str = Field(default="Wiggler", frozen=True)
     """Wiggler hardware type."""
 
     magnetic: Wiggler_Magnet = Field(default_factory=Wiggler_Magnet)
