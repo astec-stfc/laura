@@ -1547,3 +1547,21 @@ class Drift(PhysicalBaseElement):
 
     simulation: DriftSimulationElement = Field(default_factory=DriftSimulationElement)
     """Simulation attributes of the drift."""
+
+# bottom of element.py
+ELEMENT_REGISTRY: dict[str, type] = {
+    cls.model_fields["hardware_type"].default: cls
+    for cls in [
+        Dipole, Quadrupole, Sextupole, Octupole,
+        Horizontal_Corrector, Vertical_Corrector, Combined_Corrector,
+        Solenoid, NonLinearLens, Wiggler,
+        Beam_Position_Monitor, Beam_Arrival_Monitor, Bunch_Length_Monitor,
+        Camera, Screen, ChargeDiagnostic,
+        Wall_Current_Monitor, Faraday_Cup_Monitor, Integrated_Current_Transformer,
+        RFCavity, RFDeflectingCavity, RFModulator, RFProtection, RFHeartbeat,
+        Plasma, Laser, LaserEnergyMeter, LaserMirror, LaserAttenuator,
+        Shutter, Valve, Stage, VacuumGauge,
+        Marker, Aperture, Collimator, Drift, TwissMatch,
+        Lighting, PID, Low_Level_RF, Wakefield,
+    ]
+}

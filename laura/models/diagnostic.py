@@ -248,19 +248,19 @@ class Camera_Diagnostic(DiagnosticElement):
     Camera Diagnostic model.
     """
 
-    type: str = Field(alias="CAM_TYPE")
+    type: str = Field(alias="CAM_TYPE", default="Unknown")
     """Camera type."""
 
-    pixel_results_indices: Camera_Pixel_Results_Indices = Camera_Pixel_Results_Indices()
+    pixel_results_indices: Camera_Pixel_Results_Indices | None = None
     """Pixel results indices."""
 
-    pixel_results_names: Camera_Pixel_Results_Names = Camera_Pixel_Results_Names()
+    pixel_results_names: Camera_Pixel_Results_Names | None = None
     """Pixel results names."""
 
-    mask: Camera_Mask = Camera_Mask()
+    mask: Camera_Mask | None = None
     """Camera analysis mask."""
 
-    sensor: Camera_Sensor = Camera_Sensor()
+    sensor: Camera_Sensor | None = None
     """Camera sensor information."""
 
     x_pixels: int = Field(
@@ -367,5 +367,5 @@ class Charge_Diagnostic(DiagnosticElement):
     Charge Diagnostic model.
     """
 
-    type: str = Field(alias="charge_type")
+    type: str = Field(alias="charge_type", default="Unknown")
     """Charge diagnostic type."""
