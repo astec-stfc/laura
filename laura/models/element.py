@@ -1563,5 +1563,6 @@ ELEMENT_REGISTRY: dict[str, type] = {
         Shutter, Valve, Stage, VacuumGauge,
         Marker, Aperture, Collimator, Drift, TwissMatch,
         Lighting, PID, Low_Level_RF, Wakefield,
+        Photon_Monitor,
     ]
 }
