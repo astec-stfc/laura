@@ -139,7 +139,7 @@ class WakefieldTranslator(BaseElementTranslator):
             output += "\n"
         return output
 
-    def to_gpt(self, Brho: float = 0.0, ccs: str = "wcs", *args, **kwargs) -> str:
+    def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:
         """
         Write a string representation of the wakefield for GPT.
 
@@ -147,8 +147,6 @@ class WakefieldTranslator(BaseElementTranslator):
         ----------
         Brho: float
             Magnetic rigidity.
-        ccs: str
-            Name of co-ordinate system of the wakefield.
 
         Returns
         -------
@@ -184,7 +182,7 @@ class WakefieldTranslator(BaseElementTranslator):
                         + self.cavity.coupling_cell_length
                         + n * self.cavity.cell_length,
                     ],
-                    self.physical.rotation.model_dump(),
+                    list(self.physical.rotation.model_dump().values()),
                 )
                 output += (
                     "wakefield"
