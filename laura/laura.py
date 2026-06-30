@@ -116,7 +116,7 @@ class LAURA(MachineModel):
             candidate = os.path.join(self.master_lattice, el_list)
             if os.path.exists(candidate):
                 el_list = candidate
-        
+
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
                 elems = read_YAML_Combined_File(el_list)
@@ -139,7 +139,7 @@ class LAURA(MachineModel):
         elif el_list:
             values = {y.name: y for y in el_list if hasattr(y, 'name')}
             self.elements.update(values)
-        
+
         # Call super after populating elements so _build_layouts can work
         super().model_post_init(__context)
 

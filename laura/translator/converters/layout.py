@@ -62,8 +62,8 @@ class MachineLayoutTranslator(MachineLayout):
                 directory=self.directory,
             )
 
-            for d in elem_dict.values():
-                string += d.to_genesis()
+            for i, d in enumerate(elem_dict.values()):
+                string += d.to_genesis(index=i)
 
             string += f"\n{section.name}: LINE = " + "{"
             for elem in section_with_drifts.keys():

@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from pydantic import computed_field
 from warnings import warn
 from .base import BaseElementTranslator
@@ -51,7 +53,7 @@ class MagnetTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(1) / self.magnetic.length
         except ZeroDivisionError:
-            warn(f"Magnet {self.name} has zero length; returning k1 = k1l")
+            # warn(f"Magnet {self.name} has zero length; returning k1 = k1l")
             return self.magnetic.KnL(1)
 
     @computed_field
@@ -68,7 +70,7 @@ class MagnetTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(2) / self.magnetic.length
         except ZeroDivisionError:
-            warn(f"Magnet {self.name} has zero length; returning k2 = k2l")
+            # warn(f"Magnet {self.name} has zero length; returning k2 = k2l")
             return self.magnetic.KnL(2)
 
     @computed_field
@@ -85,7 +87,7 @@ class MagnetTranslator(BaseElementTranslator):
         try:
             return self.magnetic.KnL(3) / self.magnetic.length
         except ZeroDivisionError:
-            warn(f"Magnet {self.name} has zero length; returning k3 = k3l")
+            # warn(f"Magnet {self.name} has zero length; returning k3 = k3l")
             return self.magnetic.KnL(3)
 
     @property
@@ -365,7 +367,7 @@ class MagnetTranslator(BaseElementTranslator):
             + """b}\n}\n"""
         )
 
-    def to_gpt(self, Brho: float = 0, ccs: str = "wcs", *args, **kwargs) -> str:
+    def to_gpt(self, Brho: float = 0, charge_sign: int = -1, *args, **kwargs) -> str:
         """
         Write a string representation of the magnet for GPT
 
@@ -375,8 +377,8 @@ class MagnetTranslator(BaseElementTranslator):
         ----------
         Brho: float
             Magnetic rigidity.
-        ccs: str
-            Name of co-ordinate system of the magnet.
+        charge_sign: int
+            Sign of particle charge
 
         Returns
         -------
@@ -387,8 +389,8 @@ class MagnetTranslator(BaseElementTranslator):
         if "corrector" in self.hardware_type.lower():
             return ""
         ccs_label, value_text = self.ccs.ccs_text(
-            self.physical.middle.model_dump(),
-            self.physical.rotation.model_dump(),
+            list(self.physical.middle.model_dump().values()),
+            list(self.physical.rotation.model_dump().values()),
         )
         knl = self.magnetic.KnL()
         if self.hardware_type.lower() == "sextupole":
@@ -396,7 +398,7 @@ class MagnetTranslator(BaseElementTranslator):
         output = (
             str(self.hardware_type.lower())
             + '("'
-            + ccs
+            + self.ccs.name
             + '", '
             + ccs_label
             + ", "
@@ -404,7 +406,7 @@ class MagnetTranslator(BaseElementTranslator):
             + ", "
             + str(self.magnetic.length)
             + ", "
-            + str(-Brho * knl)
+            + str(charge_sign * Brho * knl)
             + ");\n"
         )
         return output
@@ -790,7 +792,7 @@ class DipoleTranslator(BaseElementTranslator):
             + """b}\n}\n"""
         )
 
-    def to_gpt(self, Brho: float = 0.0, ccs: str = "wcs", *args, **kwargs) -> str:
+    def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:
         """
         Write a string representation of the magnet for GPT
 
@@ -810,16 +812,20 @@ class DipoleTranslator(BaseElementTranslator):
         field = 1.0 * self.magnetic.angle * Brho / self.magnetic.length
         if abs(field) > 0 and abs(self.rho) < 100:
             relpos, relrot = self.ccs.relative_position(
-                self.physical.middle.model_dump(),
-                self.physical.global_rotation.model_dump(),
+                list(self.physical.start.model_dump().values()),
+                list(self.physical.global_rotation.model_dump().values()),
             )
-            coord = self.ccs.gpt_coordinates(relpos, relrot)
+            coord = self.ccs.gpt_coordinates(
+                relpos,
+                angle=self.magnetic.angle,
+                tilt=self.magnetic.tilt
+            )
             new_ccs = self.new_ccs(self.ccs)
             b1 = np.round(
                 (
                     1.0
                     / (2 * self.magnetic.half_gap * self.magnetic.edge_field_integral)
-                    if self.half_gap > 0
+                    if self.magnetic.half_gap > 0
                     else 10000
                 ),
                 2,
@@ -834,14 +840,14 @@ class DipoleTranslator(BaseElementTranslator):
             sectormagnet( "wcs", "bend1", rho, field, e1, e2, 0., 100., 0 ) ;
             """
             output = (
-                "ccs( " + self.ccs.name + ", " + coord + ", " + new_ccs.name + ");\n"
+                "ccs( \"" + self.ccs.name + "\", " + coord + ", \"" + new_ccs.name + "\");\n"
             )
             output += (
                 'sectormagnet("'
                 + self.ccs.name
-                + '", '
+                + '", \"'
                 + new_ccs.name
-                + ", "
+                + "\", "
                 + str(abs(self.magnetic.rho))
                 + ", "
                 + str(abs(field))
@@ -855,7 +861,7 @@ class DipoleTranslator(BaseElementTranslator):
                 + str(b1)
                 + ", 0);\n"
             )
-            self.ccs = new_ccs
+            self.ccs = deepcopy(new_ccs)
         else:
             output = ""
         return output
@@ -883,9 +889,9 @@ class DipoleTranslator(BaseElementTranslator):
             # print('middle position = ', self.start, self.middle)
             return gpt_ccs(
                 name=name,
-                position=self.physical.middle.model_dump(),
+                position=list(self.physical.middle.model_dump().values()),
                 rotation=list(
-                    self.physical.global_rotation.model_dump()
+                    list(self.physical.global_rotation.model_dump().values())
                     + np.array([0, 0, -self.magnetic.angle])
                 ),
                 intersect=0 * abs(self.intersect),
@@ -1056,7 +1062,7 @@ class SolenoidTranslator(BaseElementTranslator):
             n,
         )
 
-    def to_gpt(self, Brho: float = 0.0, ccs: str = "wcs", *args, **kwargs) -> str:
+    def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:
         """
         Write a string representation of the solenoid for GPT. Note that only solenoids with
         field maps are currently supported.
@@ -1067,8 +1073,6 @@ class SolenoidTranslator(BaseElementTranslator):
         ----------
         Brho: float
             Magnetic rigidity.
-        ccs: str
-            Name of co-ordinate system of the magnet.
 
         Returns
         -------
@@ -1081,7 +1085,7 @@ class SolenoidTranslator(BaseElementTranslator):
             self.simulation.field_definition, code="gpt"
         )
         ccs_label, value_text = self.ccs.ccs_text(
-            field_ref_pos, self.physical.rotation.model_dump()
+            field_ref_pos, list(self.physical.rotation.model_dump().values())
         )
         if self.simulation.field_definition.field_type.lower() == "1dmagnetostatic":
             array_names = ["z", "Bz"]
@@ -1092,7 +1096,7 @@ class SolenoidTranslator(BaseElementTranslator):
             output = (
                 "map1D_B"
                 + '("'
-                + ccs
+                + self.ccs.name
                 + '", '
                 + ccs_label
                 + ", "
@@ -1207,7 +1211,7 @@ class WigglerTranslator(BaseElementTranslator):
     simulation: MagnetSimulationElement
     """Wiggler simulation element."""
 
-    def to_genesis(self) -> str:
+    def to_genesis(self, index: int) -> str:
         """
         Generates a string representation of the object's properties in the Genesis format.
 
@@ -1220,15 +1224,15 @@ class WigglerTranslator(BaseElementTranslator):
         wholestring = ""
         etype = self._convertType_Genesis(self.hardware_type)
         if "mark" in etype.lower():
-            return f"{self.name}: {etype} = " + "{};\n"
-        string = f"{self.name}: {etype} = " + "{"
+            return f"{index}{self.name}: {etype} = " + "{};\n"
+        string = f"{index}{self.name}: {etype} = " + "{"
         keys = []
         for key, value in self.full_dump().items():
             if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convertKeyword_Genesis(key) in elements_Genesis[etype]
+                    not key == "name"
+                    and not key == "type"
+                    and not key == "commandtype"
+                    and self._convertKeyword_Genesis(key) in elements_Genesis[etype]
             ):
                 if value is not None:
                     key = self._convertKeyword_Genesis(key)
@@ -1237,10 +1241,11 @@ class WigglerTranslator(BaseElementTranslator):
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
-                        string += key + " = " + str(value) + ", "
+                        string += key + " = " + str(value) + ', '
                     keys.append(key)
         wholestring += string[:-2] + "};\n"
         return wholestring
+
 
 
 class NonLinearLensTranslator(BaseElementTranslator):

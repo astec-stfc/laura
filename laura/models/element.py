@@ -38,6 +38,7 @@ from .diagnostic import (
     Camera_Diagnostic,
     Screen_Diagnostic,
     Charge_Diagnostic,
+    Photon_Intensity_Monitor_Diagnostic,
 )
 from .laser import (
     LaserElement,
@@ -756,7 +757,7 @@ class Wiggler(Magnet):
         laser (:class:`~laura.models.laser.Laser_Magnet` or None): The laser associated with the wiggler.
     """
 
-    hardware_type: str = Field(default="Undulator", frozen=True)
+    hardware_type: str = Field(default="Wiggler", frozen=True)
     """Wiggler hardware type."""
 
     magnetic: Wiggler_Magnet = Field(default_factory=Wiggler_Magnet)
@@ -880,6 +881,31 @@ class Bunch_Length_Monitor(Diagnostic):
         default_factory=Bunch_Length_Monitor_Diagnostic
     )
     """Diagnostic attributes of the BLM."""
+
+
+class Photon_Monitor(Diagnostic):
+    """
+    Photon monitor element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the diagnostic.
+        hardware_model (str): The specific hardware model of the diagnostic.
+        intensity: (:class:`~laura.models.diagnostic.Photon_Intensity_Monitor_Diagnostic`): The diagnostic
+        attributes of the intensity monitor.
+    """
+
+    hardware_type: str = Field(
+        default="Photon_Monitor", frozen=True,
+    )
+    """Photon monitor hardware type."""
+
+    hardware_model: str = Field(default="Photon_Monitor", frozen=True)
+    """Photon monitor hardware model."""
+
+    intensity: Photon_Intensity_Monitor_Diagnostic = Field(
+        default_factory=Photon_Intensity_Monitor_Diagnostic
+    )
+    """Diagnostic attributes of the intensity monitor."""
 
 
 class Camera(Diagnostic):
@@ -1521,3 +1547,22 @@ class Drift(PhysicalBaseElement):
 
     simulation: DriftSimulationElement = Field(default_factory=DriftSimulationElement)
     """Simulation attributes of the drift."""
+
+# bottom of element.py
+ELEMENT_REGISTRY: dict[str, type] = {
+    cls.model_fields["hardware_type"].default: cls
+    for cls in [
+        Dipole, Quadrupole, Sextupole, Octupole,
+        Horizontal_Corrector, Vertical_Corrector, Combined_Corrector,
+        Solenoid, NonLinearLens, Wiggler,
+        Beam_Position_Monitor, Beam_Arrival_Monitor, Bunch_Length_Monitor,
+        Camera, Screen, ChargeDiagnostic,
+        Wall_Current_Monitor, Faraday_Cup_Monitor, Integrated_Current_Transformer,
+        RFCavity, RFDeflectingCavity, RFModulator, RFProtection, RFHeartbeat,
+        Plasma, Laser, LaserEnergyMeter, LaserMirror, LaserAttenuator,
+        Shutter, Valve, Stage, VacuumGauge,
+        Marker, Aperture, Collimator, Drift, TwissMatch,
+        Lighting, PID, Low_Level_RF, Wakefield,
+        Photon_Monitor,
+    ]
+}

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict, Any
 from warnings import warn
 from textwrap import wrap
@@ -165,7 +166,12 @@ class SectionLatticeTranslator(SectionLattice):
         return astrastr
 
     def to_gpt(
-        self, startz: float, endz: float, Brho: float = 0.0, dtmin: float | None = None
+            self,
+            startz: float,
+            endz: float,
+            Brho: float = 0.0,
+            dtmin: float | None = None,
+            charge_sign: int = -1,
     ) -> str:
         """
         Create a GPT-compatible input file based on the lattice information and
@@ -184,6 +190,8 @@ class SectionLatticeTranslator(SectionLattice):
             Magnetic rigidity.
         dtmin: float, optional
             Minimum time step size for integration
+        charge_sign: int, optional
+            Particle charge sign
 
         Returns
         -------
@@ -198,14 +206,16 @@ class SectionLatticeTranslator(SectionLattice):
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
                 ccs = gpt_ccs(
                     name="wcs",
-                    position=element.physical.start.model_dump(),
-                    rotation=element.physical.global_rotation.model_dump(),
+                    position=list(element.physical.start.model_dump().values()),
+                    rotation=list(element.physical.global_rotation.model_dump().values()),
                 )
-            fulltext += element.to_gpt(Brho, ccs=ccs.name)
+            element.ccs = ccs
+            fulltext += element.to_gpt(Brho, **kwargs)
             if element.hardware_type.lower() == "rfcavity" and isinstance(
                 element.simulation.wakefield_definition, field
             ):
@@ -224,19 +234,19 @@ class SectionLatticeTranslator(SectionLattice):
                     ),
                     directory=element.directory,
                 )
-                fulltext += w.to_gpt(Brho, ccs=ccs.name)
-            new_ccs = element.ccs
+                fulltext += w.to_gpt(Brho, **kwargs)
+            new_ccs = deepcopy(element.ccs)
             if not new_ccs.name == ccs.name:
                 relpos, relrot = ccs.relative_position(
-                    element.physical.middle.model_dump(),
-                    element.physical.global_rotation.model_dump(),
+                    list(element.physical.middle.model_dump().values()),
+                    list(element.physical.global_rotation.model_dump().values()),
                 )
             else:
-                relpos = element.physical.middle.model_dump()
+                relpos = list(element.physical.middle.model_dump().values())
             screen0pos = 0
-            ccs = new_ccs
-            if element.hardware_class.lower() == "diagnostic":
-                fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2])}, {ccs.name_as_str});\n'
+            ccs = deepcopy(new_ccs)
+            if element.hardware_class.lower() == "diagnostic" or element.hardware_type.lower() == "marker":
+                fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2]+0.001)}, {ccs.name_as_str});\n'
                 # if self.gpt_headers["setfile"].particle_definition == "laser":
         lastelem = list(elem_dict.values())[-1]
         lastscreen = DiagnosticTranslator(
@@ -249,13 +259,13 @@ class SectionLatticeTranslator(SectionLattice):
             ),
             physical=lastelem.physical,
         )
-        fulltext += lastscreen.to_gpt(Brho, ccs=ccs.name, output_ccs="wcs")
+        fulltext += lastscreen.to_gpt(Brho, output_ccs="wcs")
         relpos, relrot = ccs.relative_position(
-            lastelem.physical.end.model_dump(),
-            lastelem.physical.global_rotation.model_dump(),
+            list(lastelem.physical.end.model_dump().values()),
+            list(lastelem.physical.global_rotation.model_dump().values()),
         )
         fulltext += (
-            f'screen({ccs.name_as_str}, "I", {str(relpos[2])}, {ccs.name_as_str});\n'
+            f'screen("wcs", "I", {lastelem.physical.end.z}, "wcs");\n'
         )
         zminmax = gpt_Zminmax(
             ECS='"wcs", "I"',
@@ -388,9 +398,19 @@ class SectionLatticeTranslator(SectionLattice):
         lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
         return string + lstring
 
-    def to_genesis(self) -> str:
+    def to_genesis(self, split_element: str | None = None, chicanes: Dict | None = None) -> str:
         """
         Create a Genesis-compatible input file based on the lattice information.
+
+        Parameters
+        ----------
+        split_element: str, optional
+            Name of the element at which to split the lattice into two sections for Genesis
+            (e.g., for simulating a two-stage FEL). If `None`, no split is performed.
+        chicanes: Dict, optional
+            Dictionary defining chicane parameters to be added to the lattice.
+            Keys are chicane element names, and values contain `start`, `end`, `r56`, `dipole_length`, `drift_length`,
+            with the last of these being the drift length between the first and second dipoles.
 
         Returns
         -------
@@ -404,15 +424,77 @@ class SectionLatticeTranslator(SectionLattice):
             directory=self.directory,
         )
         string = ""
+        starts = []
+        ends = []
+        if isinstance(chicanes, dict):
+            for chic in chicanes.values():
+                self.check_chicane(chic)
+                starts.append(chic["start"])
+                ends.append(chic["end"])
+            elem_dict_upd = deepcopy(elem_dict)
+            chicane = False
+            chicane_index = 1
+            chicane_done = False
+            for k, v in elem_dict.items():
+                if k in starts:
+                    chicane = True
+                    chicane_done = False
+                if not chicane:
+                    elem_dict_upd.update({k: v})
+                else:
+                    if not chicane_done:
+                        cstr = f"{chicane_index}{starts[chicane_index-1]}: CHICANE = " + "{"
+                        chicname = list(chicanes.keys())[chicane_index - 1]
+                        cstr += f"l = {chicanes[chicname]['length']}, "
+                        cstr += f"delay = {2 * chicanes[chicname]['r56']}, "
+                        cstr += f"lb = {chicanes[chicname]['dipole_length']}, "
+                        cstr += f"ld = {chicanes[chicname]['drift_length']}" + "};\n"
+                        elem_dict_upd.update({f"{starts[chicane_index-1]}": cstr})
+                        chicane_index += 1
+                        chicane_done = True
+                if k in ends:
+                    chicane = False
+            elem_dict = elem_dict_upd
 
-        for d in elem_dict.values():
-            string += d.to_genesis()
-
+        for i, d in enumerate(elem_dict.values()):
+            if isinstance(d , str):
+                string += d
+            else:
+                string += d.to_genesis(index=i)
         string += f"{self.name}: LINE = " + "{"
-        for elem in section_with_drifts.keys():
-            string += f"{elem}, "
+        for i, elem in enumerate(elem_dict.keys()):
+            if elem in starts:
+                string += f"{elem_dict[starts[starts.index(elem)]][0]}{starts[starts.index(elem)]}, "
+            else:
+                string += f"{i}{elem}, "
         string = f"{string[:-2]}" + "};\n"
+        if isinstance(split_element, str):
+            if split_element in elem_dict.keys():
+                string += f"{self.name}_SPLIT_1: LINE = " + "{"
+                for i, elem in enumerate(elem_dict.keys()):
+                    if elem == split_element:
+                        break
+                    else:
+                        if elem in starts:
+                            string += f"{elem_dict[starts[starts.index(elem)]][0]}{starts[starts.index(elem)]}, "
+                        else:
+                            string += f"{i}{elem}, "
+                string = f"{string[:-2]}" + "};\n"
+                string += f"{self.name}_SPLIT_2: LINE = " + "{"
+                add = False
+                for i, elem in enumerate(elem_dict.keys()):
+                    if elem == split_element:
+                        add = True
+                    if add:
+                        if elem in starts:
+                            string += f"{elem_dict[starts[starts.index(elem)]][0]}{starts[starts.index(elem)]}, "
+                        else:
+                            string += f"{i}{elem}, "
+                string = f"{string[:-2]}" + "};\n"
+            else:
+                warn(f"Element {split_element} not found in section {self.name} for GENESIS split.")
         return string
+
 
     def to_ocelot(self, save=False) -> "MagneticLattice":
         """
