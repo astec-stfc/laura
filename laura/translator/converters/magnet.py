@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Union
 
 from pydantic import computed_field
 from warnings import warn
@@ -359,7 +360,7 @@ class MagnetTranslator(BaseElementTranslator):
             + """, psi=0.0, marker=quad"""
             + str(n)
             + """a}\nproperties{strength="""
-            + str(self.magnetic.k1l)
+            + str(self.magnetic.KnL(1))
             + """, alpha=0, horizontal_offset=0,vertical_offset=0}\nposition{rho="""
             + str(z + self.physical.length)
             + """, psi=0.0, marker=quad"""
@@ -667,7 +668,7 @@ class DipoleTranslator(BaseElementTranslator):
                 )
             )
         )
-        theta = self.magnetic.angle - self.e2 + rotation
+        theta = self.magnetic.KnL(0) - self.e2 + rotation
         corners[1] = np.array(
             list(
                 map(
@@ -698,65 +699,47 @@ class DipoleTranslator(BaseElementTranslator):
         )
         return corners
 
+    def _resolve_edge_angle(self, value):
+        """
+        Resolve a (possibly symbolic) edge angle to a number.
+
+        A string may either reference the bend angle — any expression containing
+        the reserved token ``angle`` (e.g. ``"angle"`` or ``"angle/2"``) — or name
+        a functional definition. The resolved bend angle (``KnL(0)``) is used for
+        the former.
+        """
+        if not isinstance(value, str):
+            return value
+        if "angle" in value:
+            try:
+                return eval(value, {}, {"angle": self.magnetic.KnL(0)})
+            except Exception:
+                warn(
+                    f"Could not evaluate edge angle '{value}' for {self.name}; returning 0"
+                )
+                return 0
+        return self.resolve(value)
+
     @computed_field
     @property
     def e1(self) -> float:
         """
-        Get the dipole entrance edge angle.
-
-        If `magnet.magnetic.entrance_edge_angle` is a string, it can only be understood if it is
-        in terms of `angle`, i.e. 'angle' or 'angle/2'.
-
-        Returns
-        -------
-        float
-            The dipole entrance edge angle.
+        Get the dipole entrance edge angle; see :meth:`_resolve_edge_angle`.
         """
-        if isinstance(self.magnetic.entrance_edge_angle, str):
-            if "angle" in self.magnetic.entrance_edge_angle:
-                return eval(
-                    self.magnetic.entrance_edge_angle,
-                    {},
-                    {"angle": self.magnetic.angle},
-                )
-            warn(
-                f"Could not determine the value of entrance_edge_angle for {self.name}; returning 0"
-            )
-            return 0
-        return self.magnetic.entrance_edge_angle
+        return self._resolve_edge_angle(self.magnetic.entrance_edge_angle)
 
     @computed_field
     @property
     def e2(self) -> float:
         """
-        Get the dipole exit edge angle.
-
-        If `magnet.magnetic.entrance_edge_angle` is a string, it can only be understood if it is
-        in terms of `angle`, i.e. 'angle' or 'angle/2'.
-
-        Returns
-        -------
-        float
-            The dipole exit edge angle.
+        Get the dipole exit edge angle; see :meth:`_resolve_edge_angle`.
         """
-        if isinstance(self.magnetic.exit_edge_angle, str):
-            if "angle" in self.magnetic.exit_edge_angle:
-                return eval(
-                    self.magnetic.exit_edge_angle, {}, {"angle": self.magnetic.angle}
-                )
-            warn(
-                f"Could not determine the value of exit_edge_angle for {self.name}; returning 0"
-            )
-            return 0
-        return self.magnetic.exit_edge_angle
+        return self._resolve_edge_angle(self.magnetic.exit_edge_angle)
 
     @property
     def intersect(self) -> float:
-        return (
-            self.magnetic.length
-            * np.tan(0.5 * self.magnetic.angle)
-            / self.magnetic.angle
-        )
+        angle = self.magnetic.KnL(0)
+        return self.magnetic.length * np.tan(0.5 * angle) / angle
 
     def to_csrtrack(self, n: int = 0, **kwargs) -> str:
         """
@@ -809,7 +792,7 @@ class DipoleTranslator(BaseElementTranslator):
             String representation of the magnet for GPT.
         """
         self.start_write()
-        field = 1.0 * self.magnetic.angle * Brho / self.magnetic.length
+        field = 1.0 * self.magnetic.KnL(0) * Brho / self.magnetic.length
         if abs(field) > 0 and abs(self.rho) < 100:
             relpos, relrot = self.ccs.relative_position(
                 list(self.physical.start.model_dump().values()),
@@ -817,7 +800,7 @@ class DipoleTranslator(BaseElementTranslator):
             )
             coord = self.ccs.gpt_coordinates(
                 relpos,
-                angle=self.magnetic.angle,
+                angle=self.magnetic.KnL(0),
                 tilt=self.magnetic.tilt
             )
             new_ccs = self.new_ccs(self.ccs)
@@ -831,8 +814,10 @@ class DipoleTranslator(BaseElementTranslator):
                 2,
             )
             dl = self.simulation.deltaL
-            e1 = self.magnetic.entrance_edge_angle
-            e2 = self.magnetic.exit_edge_angle
+            # Use the resolved edge angles (handles "angle"/"angle/2" and
+            # functional definitions) rather than the raw stored values.
+            e1 = self.e1
+            e2 = self.e2
             # print(self.objectname, ' - deltaL = ', dl)
             # b1 = 0.
             """
@@ -882,7 +867,7 @@ class DipoleTranslator(BaseElementTranslator):
         :class:`~laura.translator.converters.codes.gpt.gpt_ccs`
             New GPT co-ordinate system.
         """
-        if abs(self.magnetic.angle) > 0 and abs(self.magnetic.rho) < 100:
+        if abs(self.magnetic.KnL(0)) > 0 and abs(self.magnetic.rho) < 100:
             # print('Creating new CCS')
             number = str(int(ccs.name.split("_")[1]) + 1) if ccs.name != "wcs" else "1"
             name = "ccs_" + number if ccs.name != "wcs" else "ccs_1"
@@ -892,7 +877,7 @@ class DipoleTranslator(BaseElementTranslator):
                 position=list(self.physical.middle.model_dump().values()),
                 rotation=list(
                     list(self.physical.global_rotation.model_dump().values())
-                    + np.array([0, 0, -self.magnetic.angle])
+                    + np.array([0, 0, -self.magnetic.KnL(0)])
                 ),
                 intersect=0 * abs(self.intersect),
             )
@@ -918,13 +903,13 @@ class DipoleTranslator(BaseElementTranslator):
         # wholestring = ""
         self.start_write()
         etype = self._convertType_Opal(self.hardware_type)
-        if self.entrance_edge_angle == self.exit_edge_angle:
+        if self.e1 == self.e2:
             etype = "sbend"
         wholestring = self.name.replace("-", "_") + ": " + etype
         if (
             etype.lower() == "drift"
             or self.physical.length == 0
-            or self.magnetic.angle == 0
+            or self.magnetic.KnL(0) == 0
         ):
             return ""
         keys = []
@@ -938,9 +923,9 @@ class DipoleTranslator(BaseElementTranslator):
                 if value is not None:
                     key = self._convertKeyword_Opal(key)
                     if value == "angle":
-                        value = self.magnetic.angle
+                        value = self.magnetic.KnL(0)
                     elif value == "angle/2":
-                        value = self.magnetic.angle / 2
+                        value = self.magnetic.KnL(0) / 2
                     elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
                         value = getattr(self, f"{key}l")
                     val = 1 if value is True else value
@@ -990,7 +975,10 @@ class SolenoidTranslator(BaseElementTranslator):
 
     @computed_field
     @property
-    def ks(self) -> float:
+    def ks(self) -> Union[float, str]:
+        # Follows the global resolution mode: a resolved number, or the functional
+        # name (passed through symbolically to codes that support it, e.g. the
+        # ELEGANT ``ks`` keyword / Xsuite Environment variable).
         return self.magnetic.ks
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:

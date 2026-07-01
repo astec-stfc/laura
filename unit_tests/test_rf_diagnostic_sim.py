@@ -36,6 +36,45 @@ from laura.models.electrical import ElectricalElement
 from laura.models.laser import LaserElement
 from laura.models.plasma import PlasmaElement
 from laura.models.control import ControlVariable, ControlsInformation
+from laura.models.baseModels import set_functional_definitions
+
+
+# ---------------------------------------------------------------------------
+# Functional parameters (RF / simulation)
+# ---------------------------------------------------------------------------
+
+class TestFunctionalParametersRF:
+    @pytest.fixture(autouse=True)
+    def _defs(self):
+        set_functional_definitions(
+            {"cav1_phase": 90.0, "famp": 5e6}, merge=False
+        )
+        yield
+        set_functional_definitions({}, merge=False)
+
+    def test_cavity_phase_string(self):
+        cav = RFCavityElement(phase="cav1_phase")
+        assert cav.phase == "cav1_phase"
+        assert cav.resolved("phase") == pytest.approx(90.0)
+
+    def test_cavity_phase_float_still_works(self):
+        cav = RFCavityElement(phase=12.5)
+        assert cav.resolved("phase") == pytest.approx(12.5)
+
+    def test_deflecting_cavity_phase_string(self):
+        cav = RFDeflectingCavityElement(phase="cav1_phase")
+        assert cav.phase == "cav1_phase"
+        assert cav.resolved("phase") == pytest.approx(90.0)
+
+    def test_sim_field_amplitude_string(self):
+        sim = RFCavitySimulationElement(field_amplitude="famp")
+        assert sim.field_amplitude == "famp"
+        assert sim.resolved("field_amplitude") == pytest.approx(5e6)
+
+    def test_undefined_raises(self):
+        cav = RFCavityElement(phase="missing")
+        with pytest.raises(KeyError):
+            cav.resolved("phase")
 
 
 # ---------------------------------------------------------------------------
