@@ -1,11 +1,11 @@
 laura.models package
-===================
+====================
 
 Submodules
 ----------
 
 laura.models.RF module
----------------------
+----------------------
 
 .. automodule:: laura.models.RF
    :members:
@@ -14,7 +14,7 @@ laura.models.RF module
    :undoc-members:
 
 laura.models.\_functions module
-------------------------------
+-------------------------------
 
 .. automodule:: laura.models._functions
    :members:
@@ -23,7 +23,7 @@ laura.models.\_functions module
    :undoc-members:
 
 laura.models.baseModels module
------------------------------
+------------------------------
 
 .. automodule:: laura.models.baseModels
    :members:
@@ -32,7 +32,7 @@ laura.models.baseModels module
    :undoc-members:
 
 laura.models.control module
---------------------------
+---------------------------
 
 .. automodule:: laura.models.control
    :members:
@@ -41,7 +41,7 @@ laura.models.control module
    :undoc-members:
 
 laura.models.degauss module
---------------------------
+---------------------------
 
 .. automodule:: laura.models.degauss
    :members:
@@ -50,7 +50,7 @@ laura.models.degauss module
    :undoc-members:
 
 laura.models.diagnostic module
------------------------------
+------------------------------
 
 .. automodule:: laura.models.diagnostic
    :members:
@@ -59,7 +59,7 @@ laura.models.diagnostic module
    :undoc-members:
 
 laura.models.electrical module
------------------------------
+------------------------------
 
 .. automodule:: laura.models.electrical
    :members:
@@ -68,7 +68,7 @@ laura.models.electrical module
    :undoc-members:
 
 laura.models.element module
---------------------------
+---------------------------
 
 .. automodule:: laura.models.element
    :members:
@@ -77,7 +77,7 @@ laura.models.element module
    :undoc-members:
 
 laura.models.elementList module
-------------------------------
+-------------------------------
 
 .. automodule:: laura.models.elementList
    :members:
@@ -86,7 +86,7 @@ laura.models.elementList module
    :undoc-members:
 
 laura.models.exceptions module
------------------------------
+------------------------------
 
 .. automodule:: laura.models.exceptions
    :members:
@@ -95,7 +95,7 @@ laura.models.exceptions module
    :undoc-members:
 
 laura.models.laser module
-------------------------
+-------------------------
 
 .. automodule:: laura.models.laser
    :members:
@@ -104,7 +104,7 @@ laura.models.laser module
    :undoc-members:
 
 laura.models.lighting module
----------------------------
+----------------------------
 
 .. automodule:: laura.models.lighting
    :members:
@@ -113,7 +113,7 @@ laura.models.lighting module
    :undoc-members:
 
 laura.models.magnetic module
----------------------------
+----------------------------
 
 .. automodule:: laura.models.magnetic
    :members:
@@ -122,7 +122,7 @@ laura.models.magnetic module
    :undoc-members:
 
 laura.models.manufacturer module
--------------------------------
+--------------------------------
 
 .. automodule:: laura.models.manufacturer
    :members:
@@ -131,7 +131,7 @@ laura.models.manufacturer module
    :undoc-members:
 
 laura.models.physical module
----------------------------
+----------------------------
 
 .. automodule:: laura.models.physical
    :members:
@@ -140,7 +140,7 @@ laura.models.physical module
    :undoc-members:
 
 laura.models.shutter module
---------------------------
+---------------------------
 
 .. automodule:: laura.models.shutter
    :members:
@@ -149,18 +149,9 @@ laura.models.shutter module
    :undoc-members:
 
 laura.models.simulation module
------------------------------
+------------------------------
 
 .. automodule:: laura.models.simulation
-   :members:
-   :private-members:
-   :show-inheritance:
-   :undoc-members:
-
-Module contents
----------------
-
-.. automodule:: laura.models
    :members:
    :private-members:
    :show-inheritance:

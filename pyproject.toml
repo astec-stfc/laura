@@ -18,10 +18,11 @@ maintainers = [
 ]
 
 dependencies = [
-    "pydantic>=2", 
-    "pyyaml>=6", 
+    "pydantic>=2",
+    "pyyaml>=6",
     "numpy>=1.26",
     "scipy>=1.15",
+    "pandas>=2.2.2",
     "munch>=4",
     "xsuite>=0.40.0",
     "ocelot-desy>=25.06.0",
@@ -29,6 +30,7 @@ dependencies = [
     "pytao>=0.5.5",
     "cheetah-accelerator>=0.7.5",
     "wake_t>=0.8.0",
+    "cpymad>=1.16.0",
 ]
 
 requires-python = ">= 3.10"

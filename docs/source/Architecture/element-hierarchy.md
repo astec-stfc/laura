@@ -29,9 +29,9 @@ baseElement (IgnoreExtra)
     │   │   ├── Solenoid            (hardware_type = "Solenoid")
     │   │   ├── NonLinearLens       (hardware_type = "NonLinearLens")
     │   │   ├── Wiggler             (hardware_type = "Wiggler")
-    │   │   ├── Horizontal_Corrector (extends Dipole)
-    │   │   ├── Vertical_Corrector   (extends Dipole)
-    │   │   └── Combined_Corrector   (extends Dipole)
+    │   │   ├── Horizontal_Corrector (extends Dipole; magnetic: Corrector_Magnet, not Dipole_Magnet)
+    │   │   ├── Vertical_Corrector   (extends Dipole; magnetic: Corrector_Magnet, not Dipole_Magnet)
+    │   │   └── Combined_Corrector   (extends Dipole; magnetic: Corrector_Magnet, not Dipole_Magnet)
     │   │
     │   ├── Diagnostic
     │   │   │   Adds: diagnostic

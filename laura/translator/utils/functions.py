@@ -41,6 +41,40 @@ def elegant_functional_definitions(definitions: Dict | None = None) -> str:
     )
 
 
+def madx_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the MAD-X variable-declaration header assigning every functional
+    definition for the lattice, e.g.::
+
+        quad1_k1l = -2;
+        cav1_phase = 90;
+
+    Element keywords that reference a functional parameter are written as
+    infix expressions (e.g. ``k1 := quad1_k1l / 0.1``), which MAD-X resolves
+    against these variable assignments (and keeps updated as deferred
+    expressions, ``:=``, wherever a symbolic value is used).
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        A ``<name> = <value>;`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no header needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(
+        f"{name} = {value};\n" for name, value in definitions.items()
+    )
+
+
 class Counter(dict):
     def __init__(self, sub={}):
         super().__init__()

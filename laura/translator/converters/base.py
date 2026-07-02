@@ -13,9 +13,11 @@ from ..converters import (
     type_conversion_rules_Elegant,
     type_conversion_rules_Genesis,
     type_conversion_rules_Opal,
+    type_conversion_rules_Madx,
     elements_Elegant,
     elements_Genesis,
     elements_Opal,
+    elements_Madx,
     keyword_conversion_rules_elegant,
     keyword_conversion_rules_genesis,
     keyword_conversion_rules_ocelot,
@@ -23,6 +25,7 @@ from ..converters import (
     keyword_conversion_rules_xsuite,
     keyword_conversion_rules_wake_t,
     keyword_conversion_rules_opal,
+    keyword_conversion_rules_madx,
 )
 from ..utils.fields import field
 from ..utils.functions import expand_substitution, checkValue
@@ -99,6 +102,12 @@ class BaseElementTranslator(PhysicalBaseElement):
             self.conversion_rules["opal"] = (
                 keyword_conversion_rules_opal[self.hardware_type.lower()]
                 | keyword_conversion_rules_opal["general"]
+            )
+        self.conversion_rules["madx"] = keyword_conversion_rules_madx["general"]
+        if self.hardware_type.lower() in keyword_conversion_rules_madx:
+            self.conversion_rules["madx"] = (
+                keyword_conversion_rules_madx[self.hardware_type.lower()]
+                | keyword_conversion_rules_madx["general"]
             )
         self.ccs = gpt_ccs(name="wcs", position=[0, 0, 0], rotation=[0, 0, 0])
         super().model_post_init(__context)
@@ -587,6 +596,81 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
+    def to_madx(self, at: float = None) -> str:
+        """
+        Generates a string representation of the object's properties in the MAD-X
+        format (see the `MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html>`_),
+        suitable for :meth:`cpymad.madx.Madx.input`.
+
+        Symbolic/functional parameters are emitted as deferred expressions
+        (``key := name`` or ``key := name / length``), which MAD-X keeps live
+        against the ``<name> = <value>;`` declarations produced by
+        :func:`~laura.translator.utils.functions.madx_functional_definitions`.
+
+        Parameters
+        ----------
+        at: float, optional
+            S-position (measured from the start of the sequence, to the entry
+            edge of the element) at which to place the element inside a MAD-X
+            ``SEQUENCE``. If given, an ``at = <at>`` clause is appended to the
+            element definition; if omitted, only the bare element definition
+            (as used e.g. to pre-declare an element type) is returned.
+
+        Returns
+        -------
+        str
+            A formatted string representing the object's properties in MAD-X format.
+        """
+        self.start_write()
+        etype = self._convertType_Madx(self.hardware_type)
+        string = self.name + ": " + etype
+        keys = []
+        for key, value in self.full_dump(resolve=self._resolve_functional).items():
+            if (
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convertKeyword_Madx(key) in elements_Madx[etype]
+            ):
+                if value is not None:
+                    key = self._convertKeyword_Madx(key)
+                    deferred = False
+                    if value == "angle":
+                        value = self.magnetic.KnL(0)
+                    elif value == "angle/2":
+                        value = self.magnetic.KnL(0) / 2
+                    elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
+                        expr = (
+                            None
+                            if self._resolve_functional
+                            else self._functional_strength_expr(int(key[1]), "madx")
+                        )
+                        if expr is not None:
+                            value = expr
+                            deferred = True
+                        else:
+                            value = getattr(self, key)
+                    elif key == "angle":
+                        raw = (
+                            None
+                            if self._resolve_functional
+                            else self._raw_multipole_strength(0)
+                        )
+                        if raw is not None:
+                            value = raw
+                            deferred = True
+                    elif not self._resolve_functional and self.is_functional(value):
+                        deferred = True
+                    value = 1 if value is True else value
+                    value = 0 if value is False else value
+                    if key not in keys:
+                        op = ":=" if deferred else "="
+                        string += f", {key} {op} {value}"
+                    keys.append(key)
+        if at is not None:
+            string += f", at = {at}"
+        return string + ";\n"
+
     def _convertType_Elegant(self, etype: str) -> str:
         """
         Converts the element type to the corresponding Elegant type using predefined rules.
@@ -872,6 +956,58 @@ class BaseElementTranslator(PhysicalBaseElement):
         else:
             conversion_rules = self.conversion_rules["opal"]
             element = elements_Opal[self._convertType_Opal(self.hardware_type)]
+        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
+            stripped = keyword.replace(strip, "")
+            if stripped in conversion_rules:
+                return conversion_rules[stripped]
+            elif stripped in element.keys():
+                return stripped
+        return keyword
+
+    def _convertType_Madx(self, etype: str) -> str:
+        """
+        Converts the element type to the corresponding MAD-X type using predefined rules.
+
+        Parameters
+        ----------
+        etype: str
+            The type of the element to be converted.
+
+        Returns
+        -------
+        str
+            The converted type of the element, or the original type if no conversion rule exists.
+        """
+        return (
+            type_conversion_rules_Madx[etype]
+            if etype in type_conversion_rules_Madx
+            else etype
+        )
+
+    def _convertKeyword_Madx(self, keyword: str, updated_type: str = "") -> str:
+        """
+        Converts a keyword to its corresponding MAD-X keyword using predefined rules.
+
+        Parameters
+        ----------
+        keyword: str:
+            The keyword to be converted.
+
+        Returns
+        -------
+        str
+            The converted keyword for MAD-X, or the original keyword if no conversion rule exists.
+
+        """
+        if updated_type.lower() in keyword_conversion_rules_madx:
+            conversion_rules = (
+                keyword_conversion_rules_madx[updated_type.lower()]
+                | keyword_conversion_rules_madx["general"]
+            )
+            element = elements_Madx[self._convertType_Madx(updated_type).lower()]
+        else:
+            conversion_rules = self.conversion_rules["madx"]
+            element = elements_Madx[self._convertType_Madx(self.hardware_type).lower()]
         for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:

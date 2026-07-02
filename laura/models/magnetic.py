@@ -871,6 +871,41 @@ class NonLinearLens_Magnet(IgnoreExtra):
         super().__init__(**data)
 
 
+class Corrector_Magnet(IgnoreExtra):
+    """
+    Corrector (steering) magnet.
+
+    Unlike :class:`Dipole_Magnet` -- whose single ``K0L`` multipole's ``normal``/
+    ``skew`` components denote the magnetic field's orientation, not a beam
+    plane -- a corrector's kick is stored as two explicitly-named, independent
+    kick angles, so a :class:`~laura.models.element.Horizontal_Corrector` or
+    :class:`~laura.models.element.Vertical_Corrector` populates only its own
+    plane, while a :class:`~laura.models.element.Combined_Corrector` can carry
+    both simultaneously.
+    """
+
+    length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
+    """Magnetic length [m]."""
+
+    order: int = Field(repr=False, default=0, frozen=True)
+    """Corrector multipole order (0 = dipole-like kick)."""
+
+    tilt: float = Field(default=0.0)
+    """Tilt angle of the corrector [degrees]."""
+
+    horizontal_kick: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Horizontal kick angle [rad]. Stored verbatim: a number, or the name of a
+    functional definition."""
+
+    vertical_kick: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Vertical kick angle [rad]. Stored verbatim: a number, or the name of a
+    functional definition."""
+
+
 class Wiggler_Magnet(IgnoreExtra):
     """
     Undulator magnet.

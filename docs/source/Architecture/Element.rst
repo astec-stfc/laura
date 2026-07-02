@@ -352,7 +352,7 @@ TANGO Attribute, organised as follows:
 .. _electrical-and-manufacturer:
 
 Electrical, Manufacturer and Reference Information
----------------------------------------
+----------------------------------------------------
 
 Other useful sets of information about an :py:class:`Element <laura.models.element.Element>` include electrical,
 manufacturer and reference information, stored in
@@ -395,7 +395,7 @@ Magnet Class
 Magnet elements in :mod:`LAURA` contain, in addition to the auxiliary information associated with the
 :ref:`element-class` (see :ref:`auxiliary`), detailed descriptions of the object's magnetic fields.
 Various magnet types are currently supported, including :ref:`multipole`, :ref:`solenoid`, :ref:`wiggler`,
-and :ref:`non-linear-lens`.
+:ref:`non-linear-lens`, and :ref:`corrector-magnet`.
 Every :py:class:`Magnet <laura.models.element.Magnet>` object has a ``magnetic`` attribute, described by a
 :py:class:`MagneticElement <laura.models.magnetic.MagneticElement>` instance, with various examples given below.
 
@@ -496,6 +496,39 @@ is followed, and only the quadrupole component is included:
 
 Both may be defined functionally (see :ref:`functional-parameters`).
 
+.. _corrector-magnet:
+
+Corrector Magnet
+----------------
+
+:py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>`,
+:py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>`, and
+:py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` are steering
+(kicker) magnets. Although they extend :py:class:`Dipole <laura.models.element.Dipole>`
+at the element level, they do **not** use :py:class:`Dipole_Magnet <laura.models.magnetic.Dipole_Magnet>`
+for their ``magnetic`` attribute -- a dipole's ``normal``/``skew`` multipole components denote the
+magnetic field's *orientation*, not a beam plane, and reusing them to mean "horizontal" and "vertical"
+would be opaque. Instead, correctors use
+:py:class:`Corrector_Magnet <laura.models.magnetic.Corrector_Magnet>`, which stores the two planes as
+two independent, explicitly-named fields:
+
+* ``horizontal_kick: float`` -- horizontal kick angle [rad].
+* ``vertical_kick: float`` -- vertical kick angle [rad].
+
+A :py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>` or
+:py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>` is expected to populate only its
+own plane; a :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` may set both
+simultaneously. Both fields may be defined functionally (see :ref:`functional-parameters`).
+
+.. note::
+
+   :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` also has
+   ``Horizontal_Corrector``/``Vertical_Corrector`` string fields. These are **not** where the kick
+   strength lives -- they are name cross-references to separately-defined sibling elements, used for
+   hardware/power-supply bookkeeping (see e.g. ``LAURA.get_correctors``). A
+   :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>`'s own kick strength always
+   comes from its own ``magnetic.horizontal_kick``/``magnetic.vertical_kick``.
+
 .. _functional-parameters:
 
 Functional Parameters
@@ -514,6 +547,7 @@ The attributes that currently accept a functional definition are:
 * :py:class:`SolenoidFields <laura.models.magnetic.SolenoidFields>` ``SnL`` (and hence the solenoid ``ks`` / ``field_amplitude``);
 * :py:class:`MagneticElement <laura.models.magnetic.MagneticElement>` ``entrance_edge_angle`` and ``exit_edge_angle`` (see the note below on the reserved ``angle`` token);
 * :py:class:`NonLinearLens_Magnet <laura.models.magnetic.NonLinearLens_Magnet>` ``integrated_strength`` and ``dimensional_parameter``;
+* :py:class:`Corrector_Magnet <laura.models.magnetic.Corrector_Magnet>` ``horizontal_kick`` and ``vertical_kick``;
 * :py:class:`Wiggler_Magnet <laura.models.magnetic.Wiggler_Magnet>` ``strength``;
 * :py:class:`RFCavityElement <laura.models.RF.RFCavityElement>` and :py:class:`RFDeflectingCavityElement <laura.models.RF.RFDeflectingCavityElement>` ``phase``;
 * :py:class:`RFCavitySimulationElement <laura.models.simulation.RFCavitySimulationElement>` ``field_amplitude``;

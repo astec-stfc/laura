@@ -8,6 +8,7 @@ from laura.translator.utils.fields import field
 from ..converters import (
     elements_Elegant,
     elements_Opal,
+    elements_Madx,
 )
 
 
@@ -443,6 +444,74 @@ class RFCavityTranslator(BaseElementTranslator):
                     value = 3 * self.get_cells()
                 properties.update({key: value})
         return self.name, obj, properties
+
+    def to_madx(self, at: float = None) -> str:
+        """
+        Writes the cavity element string for MAD-X.
+
+        MAD-X ``VOLT`` is in MV and ``FREQ`` in MHz (LAURA stores volts and Hz),
+        and ``LAG`` is the phase lag in fractions of a full RF cycle with the
+        crest at ``LAG = 0.25`` (a sine convention), so LAURA's
+        off-crest-is-zero ``phase`` [deg] is converted via
+        ``lag = (90 - phase) / 360`` -- the same +90 degree convention used for
+        ELEGANT, expressed as a fraction of 360 degrees rather than degrees.
+
+        Parameters
+        ----------
+        at: float, optional
+            S-position at which to place the element inside a MAD-X ``SEQUENCE``;
+            see :meth:`~laura.translator.converters.base.BaseElementTranslator.to_madx`.
+
+        Returns
+        -------
+        str
+            String representation of the element for MAD-X
+        """
+        self.start_write()
+        etype = self._convertType_Madx(self.hardware_type)
+        string = self.name + ": " + etype
+        for key, value in self.full_dump(resolve=self._resolve_functional).items():
+            if (
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convertKeyword_Madx(key, updated_type=self.hardware_type)
+                in elements_Madx[etype]
+            ):
+                if value is not None:
+                    key = self._convertKeyword_Madx(
+                        key, updated_type=self.hardware_type
+                    )
+                    functional = self.is_functional(value) and not self._resolve_functional
+                    deferred = functional
+                    if key == "lag":
+                        value = (
+                            f"(90 - ({value})) / 360"
+                            if functional
+                            else (90 - value) / 360.0
+                        )
+                    if key == "volt":
+                        if self.structure_type == "TravellingWave":
+                            factor = abs(
+                                (self.get_cells() + 3.8)
+                                * self.cavity.cell_length
+                                * (1 / np.sqrt(2))
+                            )
+                        else:
+                            factor = 1.0
+                        value = (
+                            f"({value}) * {factor / 1e6}"
+                            if functional
+                            else factor * value / 1e6
+                        )
+                    if key == "freq" and not functional:
+                        value = value / 1e6
+                    value = 1 if value is True else value
+                    value = 0 if value is False else value
+                    string += f", {key} {':=' if deferred else '='} {value}"
+        if at is not None:
+            string += f", at = {at}"
+        return string + ";\n"
 
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
         """

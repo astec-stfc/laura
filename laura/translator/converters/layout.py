@@ -116,3 +116,15 @@ class MachineLayoutTranslator(MachineLayout):
                 }
             )
         return lattices
+
+    def to_madx(self) -> Dict[str, str]:
+        lattices = {}
+        for section in self.sections.values():
+            lattices.update(
+                {
+                    section.name: SectionLatticeTranslator.from_section(
+                        section
+                    ).to_madx()
+                }
+            )
+        return lattices

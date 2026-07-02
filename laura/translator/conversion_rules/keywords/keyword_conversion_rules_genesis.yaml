@@ -18,9 +18,13 @@ fel_modulator:
   strength: aw
 quadrupole:
   k1l: k1
-kicker:
-  horizontal_kick: cx
-  vertical_kick: cy
+horizontal_corrector:
+  hangle: cx
+vertical_corrector:
+  vangle: cy
+combined_corrector:
+  hangle: cx
+  vangle: cy
 marker:
   {}
 chicane:

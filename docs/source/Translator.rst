@@ -15,6 +15,7 @@ simulation codes including:
 * `Xsuite <https://github.com/xsuite>`_ :cite:`Xsuite`
 * `Wake-T <https://github.com/AngelFP/Wake-T/>`_ :cite:`WakeT`
 * `Genesis <https://github.com/svenreiche/Genesis-1.3-Version4>`_ :cite:`Genesis`
+* `MAD-X <https://cern.ch/madx>`_ :cite:`MADX`, via `cpymad <https://hibtc.github.io/cpymad/index.html>`_
 
 The translator module uses a hierarchical approach: individual elements are translated first, then combined into
 sections that can be exported as complete input files or objects for each simulation code.
@@ -56,6 +57,7 @@ Translation methods for each supported code:
 * ``to_gpt(Brho, ccs)``: Produces GPT element definitions.
 * ``to_wake_t()``: Creates Wake-T beamline objects.
 * ``to_opal(sval, designenergy)``: Generates OPAL lattice format.
+* ``to_madx(at)``: Generates a MAD-X element-definition string, for use with :py:meth:`cpymad.madx.Madx.input`.
 
 Utility methods for field and file management:
 
@@ -75,6 +77,44 @@ Example usage:
 
     elegant_string = translator.to_elegant()
     ocelot_obj = translator.to_ocelot()
+
+.. _corrector-translation:
+
+Corrector Translation
+~~~~~~~~~~~~~~~~~~~~~
+
+:py:class:`CorrectorTranslator <laura.translator.converters.magnet.CorrectorTranslator>` handles
+:py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>`,
+:py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>`, and
+:py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` (see :ref:`corrector-magnet`
+for the underlying model). It does **not** extend
+:py:class:`MagnetTranslator <laura.translator.converters.magnet.MagnetTranslator>`, since that class's
+``k1``/``k2``/``k3`` etc. and its ASTRA/CSRTrack/GPT writers all assume a multipole-based magnetic model
+that a corrector no longer uses.
+
+Most codes' native kicker elements (Elegant's ``HKICK``/``VKICK``/``KICKER``, MAD-X's
+``HKICKER``/``VKICKER``/``KICKER``, Genesis's ``corrector``) support both planes directly, so a
+:py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` translates as a single element
+there. Two codes need special handling because their native elements are single-plane only:
+
+* **Ocelot** has no combined-plane corrector, so a
+  :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` is *split* into an ``Hcor``
+  immediately followed by a ``Vcor``, each given half the original element's length (so the pair has the
+  same total length as the original single element).
+  :py:meth:`to_ocelot <laura.translator.converters.magnet.CorrectorTranslator.to_ocelot>` therefore
+  returns a two-element list rather than a single object in this one case, and
+  :py:meth:`SectionLatticeTranslator.to_ocelot <laura.translator.converters.section.SectionLatticeTranslator.to_ocelot>`
+  expands it into the lattice sequence accordingly.
+* **Cheetah** *does* have a combined-plane class (``CombinedCorrector``, with independent
+  ``horizontal_angle``/``vertical_angle`` buffers), so no split is needed there.
+* **Xsuite** has no dedicated corrector element at all; a corrector is represented as an
+  ``xtrack.Multipole`` with the horizontal kick as ``knl[0]`` and the vertical kick as ``ksl[0]``, which
+  naturally carries both planes of a
+  :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` in one element. Xtrack's
+  normal-multipole sign convention deflects toward *negative* x for a positive ``knl`` -- the opposite of
+  the "positive kick deflects toward positive x/y" convention used by MAD-X/Ocelot/Cheetah (verified
+  against each by direct particle tracking) -- so ``knl[0]`` is written as the *negated* horizontal kick;
+  the skew component (``ksl[0]``) needs no such negation.
 
 .. _element-translation:
 
@@ -148,10 +188,13 @@ Translation methods for complete lattice sections:
 * ``to_xsuite(beam_length, env, particle_ref, save)``: Generates Xsuite :py:class:`Line` objects.
 * ``to_csrtrack()``: Creates CSRTrack input files.
 * ``to_wake_t()``: Produces Wake-T :py:class:`Beamline` objects.
+* ``to_madx()``: Creates a MAD-X ``SEQUENCE`` definition string; see :ref:`madx-translator`.
 
 The translator automatically:
 
-* Inserts drift spaces between elements using ``createDrifts()``
+* Inserts drift spaces between elements using ``createDrifts()`` (except for :py:meth:`to_opal`,
+  which places elements at absolute positions and relies on the target code to fill the gaps
+  between them with implicit drifts)
 * Handles sub-elements and overlapping components
 * Manages field file references and wakefield definitions
 * Updates energy/rigidity for sections with acceleration
@@ -206,6 +249,55 @@ and geometry defined in the LAURA lattice model. Field maps, wakefields, and oth
 are automatically referenced and managed during the translation process -- provided they are in the correct
 format.
 
+.. _madx-translator:
+
+MAD-X Translator
+-----------------
+
+Unlike Elegant/Genesis (which build a ``LINE``) or OPAL (which uses ``ELEMEDGE`` positions),
+:py:meth:`SectionLatticeTranslator.to_madx <laura.translator.converters.section.SectionLatticeTranslator.to_madx>`
+generates a MAD-X ``SEQUENCE`` :cite:`MADX`, with each element placed at its absolute entrance s-position
+(``refer=entry``). Explicit ``drift`` elements are inserted between elements via ``createDrifts()`` and
+written into the sequence like any other element -- the standard way of constructing a MAD-X lattice --
+rather than relying on MAD-X's implicit gap-filling between elements placed without a contiguous ``at=``.
+
+The returned string is plain MAD-X input, intended to be passed directly to
+`cpymad <https://hibtc.github.io/cpymad/index.html>`_:
+
+.. code-block:: python
+
+    from cpymad.madx import Madx
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    translator = SectionLatticeTranslator.from_section(section)
+    sequence_string = translator.to_madx()
+
+    madx = Madx()
+    madx.input(sequence_string)
+    madx.beam(particle="electron", energy=1.0)
+    madx.use(sequence=section.name)
+    twiss = madx.twiss(betx=1, bety=1)
+
+As with the other codes, a :ref:`functional parameter <functional-parameters>` is carried through
+symbolically rather than being resolved to a number: the header (produced by
+:py:func:`madx_functional_definitions <laura.translator.utils.functions.madx_functional_definitions>`)
+declares each definition as a MAD-X variable (``name = value;``), and any element attribute referencing
+one is written as a *deferred expression* (``key := name`` / ``key := name / length``, using MAD-X's
+``:=`` operator) rather than a plain assignment -- so, as with Xsuite's ``Environment`` variables, changing
+the MAD-X global afterwards (``madx.globals["name"] = ...``) updates every element that references it.
+
+.. note::
+
+   Correctors (:py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>`,
+   :py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>`,
+   :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>`) translate to native
+   ``HKICKER``/``VKICKER``/``KICKER`` elements, with the ``KICK``/``HKICK``/``VKICK`` attributes set
+   directly from :py:class:`Corrector_Magnet <laura.models.magnetic.Corrector_Magnet>`'s
+   ``horizontal_kick``/``vertical_kick`` (see :ref:`corrector-magnet`) -- MAD-X's ``KICK`` sign
+   convention agrees with LAURA's (a positive kick deflects toward positive x/y), so no sign
+   adjustment is needed, unlike for Xsuite (see
+   :py:meth:`CorrectorTranslator.to_xsuite <laura.translator.converters.magnet.CorrectorTranslator.to_xsuite>`).
+
 .. _machine-layout-translator:
 
 Machine Layout Translator
@@ -231,6 +323,7 @@ Translation methods produce complete beamline definitions:
 * ``to_ocelot(save)``: Returns a dictionary of Ocelot :py:class:`MagneticLattice` objects.
 * ``to_cheetah(save)``: Produces a dictionary of Cheetah :py:class:`Segment` objects.
 * ``to_xsuite(beam_length, env, particle_ref, save)``: Generates a dictionary of Xsuite :py:class:`Line` objects.
+* ``to_madx()``: Returns a dictionary of MAD-X ``SEQUENCE`` definition strings, keyed by section name.
 
 The translator automatically:
 
@@ -286,6 +379,7 @@ Translation methods handle the full machine hierarchy:
 * ``to_ocelot(save)``: Returns nested dictionaries of :py:class:`MagneticLattice` objects.
 * ``to_cheetah(save)``: Produces nested dictionaries of :py:class:`Segment` objects.
 * ``to_xsuite(beam_length, env, particle_ref, save)``: Generates nested dictionaries of :py:class:`Line` objects.
+* ``to_madx()``: Returns nested dictionaries of MAD-X ``SEQUENCE`` definition strings (by layout, then section).
 
 The translator provides:
 
@@ -332,6 +426,7 @@ Output structure for nested translations:
 * Ocelot: ``Dict[layout_name, Dict[section_name, MagneticLattice]]``
 * Cheetah: ``Dict[layout_name, Dict[section_name, Segment]]``
 * Xsuite: ``Dict[layout_name, Dict[section_name, Line]]``
+* MAD-X: ``Dict[layout_name, Dict[section_name, str]]``
 
 For string-based formats (Elegant, Genesis), the translator generates:
 
@@ -351,6 +446,7 @@ For string-based formats (Elegant, Genesis), the translator generates:
    * Ocelot (object dictionaries)
    * Cheetah (object dictionaries)
    * Xsuite (object dictionaries)
+   * MAD-X (dictionary of strings; see :ref:`madx-translator`)
 
    For GPT, OPAL, CSRTrack, and Wake-T translations, use the
    :py:class:`SectionLatticeTranslator <laura.translator.converters.section.SectionLatticeTranslator>` directly.
@@ -358,3 +454,8 @@ For string-based formats (Elegant, Genesis), the translator generates:
 The hierarchical translation system ensures that complex machine models with multiple beam paths
 can be efficiently exported while maintaining the relationships between elements, sections, and layouts
 defined in the LAURA model.
+
+.. toctree::
+   :maxdepth: 1
+
+   Translator/Fields

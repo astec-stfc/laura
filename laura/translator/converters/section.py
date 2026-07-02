@@ -13,7 +13,11 @@ from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
 from .wake import WakefieldTranslator
 from .codes.gpt import gpt_ccs, gpt_Zminmax, gpt_dtmint
-from ..utils.functions import tw_cavity_energy_gain, elegant_functional_definitions
+from ..utils.functions import (
+    tw_cavity_energy_gain,
+    elegant_functional_definitions,
+    madx_functional_definitions,
+)
 from ..utils.fields import field
 from ...models.baseModels import IgnoreExtra
 
@@ -529,7 +533,12 @@ class SectionLatticeTranslator(SectionLattice):
         elements = []
 
         for d in elem_dict.values():
-            elements.append(d.to_ocelot())
+            obj = d.to_ocelot()
+            if isinstance(obj, (list, tuple)):
+                # e.g. a Combined_Corrector split into an Hcor + Vcor pair.
+                elements.extend(obj)
+            else:
+                elements.append(obj)
 
         maglat = MagneticLattice(elements, method=method)
         if save:
@@ -620,11 +629,18 @@ class SectionLatticeTranslator(SectionLattice):
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        def _is_symbolic(value: Any) -> bool:
+            if isinstance(value, str):
+                return True
+            if isinstance(value, (list, tuple)):
+                return any(isinstance(v, str) for v in value)
+            return False
+
         line = env.new_line()
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
                 name, component, properties = element.to_xsuite(beam_length=beam_length)
-                if any(isinstance(v, str) for v in properties.values()):
+                if any(_is_symbolic(v) for v in properties.values()):
                     # Symbolic/functional parameters (e.g. k1="kquad"): build the
                     # element through the Environment so the references are bound
                     # as deferred expressions, then append it to the line by name.
@@ -685,6 +701,46 @@ class SectionLatticeTranslator(SectionLattice):
         for h in self.csrtrack_headers.values():
             csrtrackstr += h.write_CSRTrack()
         return csrtrackstr
+
+    def to_madx(self) -> str:
+        """
+        Create a MAD-X-compatible ``SEQUENCE`` definition based on the lattice
+        information, suitable for :meth:`cpymad.madx.Madx.input` (see the
+        `MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html>`_).
+
+        Elements are placed with ``refer=entry`` at their entrance s-position.
+        Explicit ``drift`` elements are inserted between elements via
+        :meth:`createDrifts` and written into the sequence like any other
+        element, which is the standard way of constructing a MAD-X lattice
+        (rather than relying on MAD-X's implicit gap-filling between elements
+        placed without a contiguous ``at=``).
+
+        Returns
+        -------
+        str
+            A MAD-X-compatible ``SEQUENCE`` definition, prefixed with variable
+            declarations for any functional definitions used symbolically by
+            the lattice's elements.
+        """
+        section_with_drifts = self.createDrifts()
+        elem_dict = translate_elements(
+            section_with_drifts.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        svals = self.get_s_values(as_dict=True, at_entrance=True)
+        exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
+        length = max(exit_svals.values()) if exit_svals else 0.0
+        fulltext = ""
+        for d in elem_dict.values():
+            at = d.physical.start.z if d.subelement else svals[d.name]
+            fulltext += d.to_madx(at=at)
+
+        seqstring = madx_functional_definitions(self.functional_definitions)
+        seqstring += f"{self.name}: SEQUENCE, refer=entry, l = {length};\n"
+        seqstring += fulltext
+        seqstring += "ENDSEQUENCE;\n"
+        return seqstring
 
     def to_wake_t(self) -> "Beamline":
         """

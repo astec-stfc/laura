@@ -125,3 +125,9 @@ class MachineModelTranslator(MachineModel):
                 }
             )
         return model
+
+    def to_madx(self) -> Dict[str, Dict[str, str]]:
+        model = {}
+        for name, latt in self.lattices.items():
+            model.update({name: MachineLayoutTranslator.from_layout(latt).to_madx()})
+        return model
