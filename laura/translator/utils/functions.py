@@ -74,6 +74,22 @@ def madx_functional_definitions(definitions: Dict | None = None) -> str:
         f"{name} = {value};\n" for name, value in definitions.items()
     )
 
+def sanitize_string(string: str) -> str:
+    """
+    Replaces hyphens in a string with underscores.
+
+    Parameters
+    ----------
+    string: str
+        Any string
+
+    Returns
+    -------
+    str
+        A string with hyphens replaced with underscores
+    """
+    return string.replace("-", "_")
+
 
 class Counter(dict):
     def __init__(self, sub={}):

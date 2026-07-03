@@ -3,7 +3,7 @@ from textwrap import wrap
 from laura.models.elementList import MachineLayout
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
-from ..utils.functions import elegant_functional_definitions
+from ..utils.functions import elegant_functional_definitions, sanitize_string
 
 
 class MachineLayoutTranslator(MachineLayout):
@@ -122,7 +122,7 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
+                    sanitize_string(section.name): SectionLatticeTranslator.from_section(
                         section
                     ).to_madx()
                 }

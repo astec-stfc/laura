@@ -3,7 +3,7 @@ from textwrap import wrap
 from laura.models.elementList import MachineModel
 from .converter import translate_elements
 from .layout import MachineLayoutTranslator
-from ..utils.functions import elegant_functional_definitions
+from ..utils.functions import elegant_functional_definitions, sanitize_string
 
 
 class MachineModelTranslator(MachineModel):
@@ -129,5 +129,5 @@ class MachineModelTranslator(MachineModel):
     def to_madx(self) -> Dict[str, Dict[str, str]]:
         model = {}
         for name, latt in self.lattices.items():
-            model.update({name: MachineLayoutTranslator.from_layout(latt).to_madx()})
+            model.update({sanitize_string(name): MachineLayoutTranslator.from_layout(latt).to_madx()})
         return model

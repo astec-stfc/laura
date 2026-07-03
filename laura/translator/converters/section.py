@@ -20,6 +20,7 @@ from ..utils.functions import (
 )
 from ..utils.fields import field
 from ...models.baseModels import IgnoreExtra
+from ..utils.functions import sanitize_string
 
 
 class SectionLatticeTranslator(SectionLattice):
@@ -737,7 +738,7 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += d.to_madx(at=at)
 
         seqstring = madx_functional_definitions(self.functional_definitions)
-        seqstring += f"{self.name}: SEQUENCE, refer=entry, l = {length};\n"
+        seqstring += f"{sanitize_string(self.name)}: SEQUENCE, refer=entry, l = {length};\n"
         seqstring += fulltext
         seqstring += "ENDSEQUENCE;\n"
         return seqstring

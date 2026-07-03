@@ -10,6 +10,7 @@ from ..converters import (
     elements_Opal,
     elements_Madx,
 )
+from ..utils.functions import sanitize_string
 
 
 class RFCavityTranslator(BaseElementTranslator):
@@ -469,7 +470,7 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convertType_Madx(self.hardware_type)
-        string = self.name + ": " + etype
+        string = sanitize_string(self.name) + ": " + etype
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (
                 not key == "name"

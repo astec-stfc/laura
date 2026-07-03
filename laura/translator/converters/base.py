@@ -28,7 +28,7 @@ from ..converters import (
     keyword_conversion_rules_madx,
 )
 from ..utils.fields import field
-from ..utils.functions import expand_substitution, checkValue
+from ..utils.functions import expand_substitution, checkValue, sanitize_string
 from ..converters.codes.gpt import gpt_ccs
 
 
@@ -623,7 +623,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         self.start_write()
         etype = self._convertType_Madx(self.hardware_type)
-        string = self.name + ": " + etype
+        string = sanitize_string(self.name) + ": " + etype
         keys = []
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (
