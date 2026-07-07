@@ -125,6 +125,10 @@ Issues = "https://github.com/astec-stfc/laura/-/issues/"
 "laura.schema.generated" = ["*.owl", "*.graphql", "*.json", "*.ttl", "*.ts", "*.sql"]
 
 [tool.pytest.ini_options]
+addopts = "-m 'not slow'"
+markers = [
+    "slow: slow tests excluded by default (run with -m slow or --no-header -o addopts='')",
+]
 filterwarnings = [
     "ignore:Pydantic serializer warnings:UserWarning",
 ]

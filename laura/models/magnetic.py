@@ -389,6 +389,10 @@ class MagneticElement(_MagneticElementBase):
                         f"K{i}L",
                         Multipole(normal=data[f"k{i}l"], order=i),
                     )
+        # `angle` is only meaningful for dipoles (order 0); keep it mirroring
+        # the K0L multipole strength regardless of how it was set (k0l=, kl=, angle=).
+        if self.order == 0:
+            self.angle = self.KnL(order=0)
 
     @field_validator("plane", mode="before")
     @classmethod

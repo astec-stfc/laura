@@ -12,6 +12,8 @@ from laura import LAURA
 from laura.models.element import Marker, Quadrupole, Dipole, Solenoid
 from laura.models.elementList import MachineModel, SectionLattice
 
+pytestmark = pytest.mark.slow
+
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -341,7 +341,7 @@ class Magnet(PhysicalBaseElement, _MagnetBase):
         """
         Rotation of the magnet based on its bending angle.
         """
-        if self.magnetic is not None and hasattr(self.magnetic, 'angle'):
+        if self.magnetic is not None and getattr(self.magnetic, 'angle', None) is not None:
             return Rotation.from_list([0, 0, self.magnetic.angle])
         return Rotation.from_list([0, 0, 0])
 
@@ -360,10 +360,10 @@ class Dipole(Magnet, _DipoleBase):
         magnetic (:class:`~laura.models.magnetic.Dipole_Magnet`): The magnetic attributes of the dipole.
     """
 
-    # hardware_type: str = Field(default="Dipole", frozen=True)
-    # """Dipole hardware type."""
+    hardware_type: str = Field(default="Dipole", frozen=True)
+    """Dipole hardware type."""
 
-    # magnetic: Dipole_Magnet = Field(default_factory=Dipole_Magnet)
+    magnetic: Dipole_Magnet = Field(default_factory=Dipole_Magnet)
 
 
 class Quadrupole(Magnet, _QuadrupoleBase):
@@ -375,11 +375,11 @@ class Quadrupole(Magnet, _QuadrupoleBase):
         magnetic (:class:`~laura.models.magnetic.Quadrupole_Magnet`): The magnetic attributes of the quadrupole.
     """
 
-    # hardware_type: str = Field(default="Quadrupole", frozen=True)
-    # """Quadrupole hardware type."""
+    hardware_type: str = Field(default="Quadrupole", frozen=True)
+    """Quadrupole hardware type."""
 
-    # magnetic: Quadrupole_Magnet = Field(default_factory=Quadrupole_Magnet)
-    # """Magnetic attributes of the quadrupole."""
+    magnetic: Quadrupole_Magnet = Field(default_factory=Quadrupole_Magnet)
+    """Magnetic attributes of the quadrupole."""
 
 
 class Sextupole(Magnet):
