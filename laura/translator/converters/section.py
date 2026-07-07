@@ -128,7 +128,10 @@ class SectionLatticeTranslator(SectionLattice):
                         ] += f"{section_header_text_ASTRA[key]} = True\n"
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
-                    counter[key] += 1
+                    if key == "&APERTURE":
+                        counter[key] += e.aperture.number_of_elements
+                    else:
+                        counter[key] += 1
                     if hasattr(e.simulation, "wakefield_definition") and isinstance(
                         e.simulation.wakefield_definition, (str, field)
                     ):

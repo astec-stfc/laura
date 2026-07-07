@@ -8,7 +8,9 @@
       "PowerShell(Get-Command py 2>$null)",
       "PowerShell(py --version 2>&1)",
       "Bash(python laura/schema/generate_pydantic.py)",
-      "Bash(conda run *)"
+      "Bash(conda run *)",
+      "Bash(grep -n \"class frameworkGroup\\\\|class chicane\\\\|update_groups\\\\|groups\" \"C:/Users/jkj62/Documents/GitHub/simba/simba/Framework_objects.py\" | head -20)",
+      "Read(//c/Users/jkj62.CLRC/Documents/GitHub/simba/simba/**)"
     ]
   }
 }

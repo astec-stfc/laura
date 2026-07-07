@@ -1,0 +1,61 @@
+id: https://w3id.org/laura/schema/magnetic
+name: laura_magnet_schema
+title: LAURA Magnet Model Chunk
+description: >-
+  Magnet classes.
+version: "0.1.0"
+license: Apache Software License 2.0
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+imports:
+  - linkml:types
+  - magnetic
+
+classes:
+
+  # -- Magnet Objects -----------------------------------------------------------------
+
+  Dipole_Magnet:
+    is_a: MagneticElement
+    slot_usage:
+      order:
+        ifabsent: 0
+        equals_number: 0
+
+  Dipole:
+    is_a: Magnet
+    slot_usage:
+      magnetic:
+        range: Dipole_Magnet
+      hardware_type:
+        equals_string: Dipole
+        ifabsent: Dipole
+
+  Quadrupole_Magnet:
+    is_a: MagneticElement
+    slot_usage:
+      order:
+        ifabsent: 1
+        equals_number: 1
+
+  Quadrupole:
+    is_a: Magnet
+    slot_usage:
+      magnetic:
+        range: Quadrupole_Magnet
+      hardware_type:
+        equals_string: Quadrupole
+        ifabsent: Quadrupole

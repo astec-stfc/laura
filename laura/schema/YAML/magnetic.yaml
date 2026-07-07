@@ -211,12 +211,16 @@ classes:
         unit:
           ucum_code: s
       entrance_edge_angle:
-        range: float
+        any_of:
+          - range: float
+          - range: string
         description: Fringe-field entrance edge angle [rad].
         unit:
           ucum_code: rad
       exit_edge_angle:
-        range: float
+        any_of:
+          - range: float
+          - range: string
         description: Fringe-field exit edge angle [rad].
         unit:
           ucum_code: rad
@@ -263,6 +267,11 @@ classes:
         description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
         unit:
           ucum_code: T.m-1
+      angle:
+        range: float
+        description: Integrated bending angle [rad]. Dipoles only; read/write via the Python property on MagneticElement.
+        unit:
+          ucum_code: rad
 
   # -- Degauss sub-model ------------------------------------------------------
 

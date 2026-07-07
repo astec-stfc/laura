@@ -3,6 +3,7 @@ from .constants import speed_of_light, pi
 from pydantic import (
     BaseModel,
     model_serializer,
+    model_validator,
     Field,
     field_validator,
     NonNegativeInt,
@@ -63,6 +64,8 @@ class Multipoles(MultipolesData):
 
     @field_validator("*", mode="before")
     def validate_Multipole(cls, v: Union[List, dict]) -> Multipole:
+        if v is None:
+            return Multipole()
         if isinstance(v, (list, tuple)):
             if len(v) == 2:
                 return Multipole(order=v[0], normal=v[1])
@@ -331,10 +334,10 @@ class MagneticElement(_MagneticElementBase):
     Magnetic info model.
     """
 
-    entrance_edge_angle: float | str = 0.0
+    entrance_edge_angle: float | str | None = 0.0
     """Entrance edge angle"""
 
-    exit_edge_angle: float | str = 0.0
+    exit_edge_angle: float | str | None = 0.0
     """Exit edge angle"""
 
     multipoles: Multipoles | None = Multipoles()
@@ -472,6 +475,13 @@ class MagneticElement(_MagneticElementBase):
     def KLToCurrent(self, *args, **kwargs):
         return self.linear_saturation_coefficients.KLToCurrent(*args, **kwargs)
 
+    def currentToAngle(self, current: float, momentum: float) -> float:
+        """Convert current to bend angle in degrees."""
+        output_dict = self.linear_saturation_coefficients.currentToK(
+            current=current, momentum=momentum
+        )
+        return output_dict["KL"] * 360 / (2.0 * np.pi) / 1000
+
 
 class Dipole_Magnet(MagneticElement):
     """
@@ -481,15 +491,14 @@ class Dipole_Magnet(MagneticElement):
     order: int = Field(repr=False, default=0)
     """Magnetic order of the dipole."""
 
-    @property
-    def angle(self) -> float:
-        return self.KnL(order=0)
-
-    @angle.setter
-    def angle(self, value: float) -> None:
-        if self.multipoles is None:
-            object.__setattr__(self, "multipoles", Multipoles())
-        self.multipoles.K0L.normal = value
+    @model_validator(mode='after')
+    def _sync_angle_to_multipoles(self):
+        """Keep multipoles.K0L.normal in sync whenever angle is assigned."""
+        if self.angle is not None:
+            if self.multipoles is None:
+                object.__setattr__(self, "multipoles", Multipoles())
+            self.multipoles.K0L.normal = self.angle
+        return self
 
     def currentToAngle(self, current: float, momentum: float) -> float:
         """Convert current to bend angle in degrees."""

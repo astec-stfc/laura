@@ -29,6 +29,7 @@ imports:
   - rf
   - diagnostics
   - laser_plasma
+  - magnets
 
 subsets:
 
@@ -569,6 +570,8 @@ classes:
     attributes:
       variables:
         multivalued: true
+        inlined: true
+        inlined_as_list: false
         range: ControlVariable
         description: Named control variables keyed by logical name.
 

@@ -72,13 +72,15 @@ _HEADER = """\
 def _run_gen_pydantic(schema_path: str) -> str:
     """Invoke gen-pydantic and return its stdout as a string."""
     # Locate gen-pydantic next to the active Python interpreter.
+    # On Windows/conda, scripts live in a Scripts/ subdirectory.
     python_dir = Path(sys.executable).parent
-    gen_pydantic = python_dir / "gen-pydantic"
-    if not gen_pydantic.exists():
-        gen_pydantic = python_dir / "gen-pydantic.exe"
-    if not gen_pydantic.exists():
-        # Fallback: rely on PATH
-        gen_pydantic = "gen-pydantic"
+    candidates = [
+        python_dir / "gen-pydantic",
+        python_dir / "gen-pydantic.exe",
+        python_dir / "Scripts" / "gen-pydantic",
+        python_dir / "Scripts" / "gen-pydantic.exe",
+    ]
+    gen_pydantic = next((p for p in candidates if p.exists()), "gen-pydantic")
 
     result = subprocess.run(
         [str(gen_pydantic), schema_path, "--extra-fields", "ignore"],
@@ -220,15 +222,19 @@ def _parse_ifabsent(value: str) -> str | None:
 
 def _parse_schema_info(
     schema_path: str,
-) -> tuple[dict[str, str], set[str], dict[str, list[str]], dict[str, dict[str, list[str]]]]:
+) -> tuple[dict[str, str], set[str], set[str], dict[str, list[str]], dict[str, dict[str, list[str]]]]:
     """Read the schema YAML and extract field-level metadata.
 
-    Returns a four-tuple:
+    Returns a five-tuple:
 
     * ``defaults``       – ``{field_name: python_literal_str}`` for slots with
                             ``ifabsent``.  First definition wins (class order in
                             YAML).
     * ``multivalued``    – set of field names marked ``multivalued: true``.
+    * ``dict_valued``    – set of field names marked ``multivalued: true``,
+                            ``inlined: true``, and ``inlined_as_list: false``.
+                            These are emitted as ``dict[str, T]`` rather than
+                            ``list[T]``.
     * ``global_aliases`` – ``{field_name: [alias1, …]}`` for slots with
                             ``aliases:``, using *first-wins* semantics.  Used as
                             a fallback when the class-specific mapping has no
@@ -241,6 +247,7 @@ def _parse_schema_info(
     """
     defaults: dict[str, str] = {}
     multivalued: set[str] = set()
+    dict_valued: set[str] = set()
     global_aliases: dict[str, list[str]] = {}
     class_aliases: dict[str, dict[str, list[str]]] = {}
 
@@ -280,6 +287,8 @@ def _parse_schema_info(
                         defaults[slot_name] = parsed
                 if slot_def.get("multivalued"):
                     multivalued.add(slot_name)
+                    if slot_def.get("inlined") and slot_def.get("inlined_as_list") is False:
+                        dict_valued.add(slot_name)
                 slot_aliases = slot_def.get("aliases")
                 if slot_aliases:
                     aliases_list = list(slot_aliases)
@@ -296,7 +305,7 @@ def _parse_schema_info(
 
     _visit(Path(schema_path))
 
-    return defaults, multivalued, global_aliases, class_aliases
+    return defaults, multivalued, dict_valued, global_aliases, class_aliases
 
 
 def _apply_schema_fixes(content: str, schema_path: str) -> str:
@@ -323,7 +332,7 @@ def _apply_schema_fixes(content: str, schema_path: str) -> str:
     An ``AliasChoices`` import is spliced into the pydantic import block if
     any field requires it.
     """
-    defaults, multivalued, global_aliases, class_aliases = _parse_schema_info(schema_path)
+    defaults, multivalued, dict_valued, global_aliases, class_aliases = _parse_schema_info(schema_path)
 
     needs_alias_choices = False
 
@@ -350,7 +359,7 @@ def _apply_schema_fixes(content: str, schema_path: str) -> str:
         per_class = class_aliases.get(current_class_orig, {}) if current_class_orig else {}
         merged_aliases = {**global_aliases, **per_class}
 
-        line = _fix_field_line(line, defaults, multivalued, merged_aliases)
+        line = _fix_field_line(line, defaults, multivalued, dict_valued, merged_aliases)
         if "AliasChoices(" in line:
             needs_alias_choices = True
         result.append(line)
@@ -376,6 +385,7 @@ def _fix_field_line(
     line: str,
     defaults: dict[str, str],
     multivalued: set[str],
+    dict_valued: set[str],
     aliases: dict[str, list[str]],
 ) -> str:
     """Apply schema-driven fixes to a single field-declaration line."""
@@ -395,7 +405,11 @@ def _fix_field_line(
     )
     if optlist_m:
         field_name = optlist_m.group(2)
-        if field_name in multivalued:
+        if field_name in dict_valued:
+            inner = optlist_m.group(3)
+            line = re.sub(r"Optional\[list\[(\w+)\]\]", f"dict[str, {inner}]", line, count=1)
+            line = line.replace("default=None,", "default_factory=dict,", 1)
+        elif field_name in multivalued:
             line = re.sub(r"Optional\[list\[(\w+)\]\]", r"list[\1]", line, count=1)
             line = line.replace("default=None,", "default_factory=list,", 1)
         line = _inject_alias_choices(line, field_name, aliases)
@@ -423,6 +437,10 @@ def _fix_field_line(
     )
     if list_m:
         field_name = list_m.group(2)
+        if field_name in dict_valued:
+            inner = list_m.group(3)
+            line = re.sub(r"list\[(\w+)\]", f"dict[str, {inner}]", line, count=1)
+            line = line.replace("default_factory=list,", "default_factory=dict,", 1)
         line = _inject_alias_choices(line, field_name, aliases)
         return line
 
