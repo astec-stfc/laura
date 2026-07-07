@@ -487,9 +487,9 @@ class RFCavityTranslator(BaseElementTranslator):
                     deferred = functional
                     if key == "lag":
                         value = (
-                            f"(90 - ({value})) / 360"
+                            f"(90 + ({value})) / 180"
                             if functional
-                            else (90 - value) / 360.0
+                            else (90 + value) / 360.0
                         )
                     if key == "volt":
                         if self.structure_type == "TravellingWave":

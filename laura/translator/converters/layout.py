@@ -117,14 +117,15 @@ class MachineLayoutTranslator(MachineLayout):
             )
         return lattices
 
-    def to_madx(self) -> Dict[str, str]:
+    def to_madx(self, beam: Dict[str, Dict[str, Any]] | None = None) -> Dict[str, str]:
         lattices = {}
         for section in self.sections.values():
+            b = beam[section.name] if isinstance(beam, Dict) and section.name in beam.keys() else None
             lattices.update(
                 {
                     sanitize_string(section.name): SectionLatticeTranslator.from_section(
                         section
-                    ).to_madx()
+                    ).to_madx(beam=b)
                 }
             )
         return lattices

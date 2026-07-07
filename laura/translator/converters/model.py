@@ -126,8 +126,9 @@ class MachineModelTranslator(MachineModel):
             )
         return model
 
-    def to_madx(self) -> Dict[str, Dict[str, str]]:
+    def to_madx(self, beam: Dict[str, Dict[str, Dict[str, Any]]]) -> Dict[str, Dict[str, str]]:
         model = {}
         for name, latt in self.lattices.items():
-            model.update({sanitize_string(name): MachineLayoutTranslator.from_layout(latt).to_madx()})
+            b = beam[name] if name in beam else None
+            model.update({sanitize_string(name): MachineLayoutTranslator.from_layout(latt).to_madx(beam=b)})
         return model

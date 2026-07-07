@@ -703,18 +703,28 @@ class SectionLatticeTranslator(SectionLattice):
             csrtrackstr += h.write_CSRTrack()
         return csrtrackstr
 
-    def to_madx(self) -> str:
+    def to_madx(
+        self, beam: Dict[str, Any] | None = None, refer: str = "entry"
+    ) -> str:
         """
         Create a MAD-X-compatible ``SEQUENCE`` definition based on the lattice
         information, suitable for :meth:`cpymad.madx.Madx.input` (see the
         `MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html>`_).
 
-        Elements are placed with ``refer=entry`` at their entrance s-position.
+        Elements are placed at their entrance s-position (``refer=entry``, the
+        default) or, when ``refer`` is ``"centre"``/``"center"``, at their centre
+        (required before a MAD-X ``MAKETHIN``/``TRACK``).
         Explicit ``drift`` elements are inserted between elements via
         :meth:`createDrifts` and written into the sequence like any other
         element, which is the standard way of constructing a MAD-X lattice
         (rather than relying on MAD-X's implicit gap-filling between elements
         placed without a contiguous ``at=``).
+
+        Parameters
+        ----------
+        beam: dict
+            A dictionary describing a beam distribution with the keys as defined in the
+            `Beam Section of the MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html#Ch7.S1>`_
 
         Returns
         -------
@@ -732,15 +742,30 @@ class SectionLatticeTranslator(SectionLattice):
         svals = self.get_s_values(as_dict=True, at_entrance=True)
         exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
         length = max(exit_svals.values()) if exit_svals else 0.0
+        # ``refer=centre`` places each element at its centre (rather than its
+        # entrance). This is required for MAD-X ``MAKETHIN`` (it silently
+        # ignores sequences that use ``refer=entry``), which in turn is needed to
+        # ``TRACK`` through thick special elements such as crab cavities.
+        centre = str(refer).lower() in ("centre", "center")
+        refer = "centre" if centre else "entry"
         fulltext = ""
         for d in elem_dict.values():
             at = d.physical.start.z if d.subelement else svals[d.name]
+            if centre:
+                at += d.physical.length / 2
             fulltext += d.to_madx(at=at)
 
         seqstring = madx_functional_definitions(self.functional_definitions)
-        seqstring += f"{sanitize_string(self.name)}: SEQUENCE, refer=entry, l = {length};\n"
+        if isinstance(beam, Dict):
+            beamstr = "BEAM"
+            for k, v in beam.items():
+                beamstr += f", {k.upper()}={v}"
+            beamstr += f", SEQUENCE = {sanitize_string(self.name)};\n"
+            seqstring += beamstr
+        seqstring += f"{sanitize_string(self.name)}: SEQUENCE, refer={refer}, l = {length};\n"
         seqstring += fulltext
         seqstring += "ENDSEQUENCE;\n"
+        seqstring += f"USE, PERIOD={sanitize_string(self.name)};"
         return seqstring
 
     def to_wake_t(self) -> "Beamline":
