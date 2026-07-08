@@ -65,6 +65,8 @@ URI: [laura:hardware_type](https://w3id.org/laura/hardware_type)
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | Half-wave plate for laser polarisation rotation |  yes  |
 | [LaserMirror](LaserMirror.md) | Laser steering or focusing mirror |  yes  |
 | [LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |  yes  |
+| [Dipole](Dipole.md) |  |  yes  |
+| [Quadrupole](Quadrupole.md) |  |  yes  |
 
 
 

@@ -26,6 +26,8 @@ URI: [laura:entrance_edge_angle](https://w3id.org/laura/entrance_edge_angle)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
+| [DipoleMagnet](DipoleMagnet.md) |  |  no  |
+| [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
 
 
 
@@ -38,7 +40,7 @@ URI: [laura:entrance_edge_angle](https://w3id.org/laura/entrance_edge_angle)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md) |
 | Domain Of | [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
@@ -59,6 +61,16 @@ URI: [laura:entrance_edge_angle](https://w3id.org/laura/entrance_edge_angle)
 | Property | Value |
 | --- | --- |
 | ucum_code | rad |
+
+</details>
+
+<details>
+<summary>Expressions & Logic</summary>
+#### Any Of
+
+Value must satisfy at least one of:
+- AnonymousSlotExpression({'range': 'float'})
+- AnonymousSlotExpression({'range': 'string'})
 
 </details>
 
@@ -107,9 +119,12 @@ rank: 1000
 owner: MagneticElement
 domain_of:
 - MagneticElement
-range: float
+range: string
 unit:
   ucum_code: rad
+any_of:
+- range: float
+- range: string
 
 ```
 </details></div>

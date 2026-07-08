@@ -37,6 +37,7 @@ URI: [laura:HardwareClassEnum](https://w3id.org/laura/HardwareClassEnum)
 | Drift | None | Drift element |
 | Generic | None | Generic element |
 | Monitor | None | Beam monitor element |
+| Simulation | None | Simulation element |
 
 
 
@@ -133,6 +134,9 @@ permissible_values:
   Monitor:
     text: Monitor
     description: Beam monitor element.
+  Simulation:
+    text: Simulation
+    description: Simulation element.
 
 ```
 </details>

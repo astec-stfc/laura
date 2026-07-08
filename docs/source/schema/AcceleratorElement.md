@@ -222,6 +222,10 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [LaserMirror](LaserMirror.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [LaserAttenuator](LaserAttenuator.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [LaserAttenuator](LaserAttenuator.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Dipole](Dipole.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Dipole](Dipole.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Quadrupole](Quadrupole.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Quadrupole](Quadrupole.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 
 
 

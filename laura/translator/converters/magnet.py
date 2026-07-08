@@ -351,8 +351,10 @@ class MagnetTranslator(BaseElementTranslator):
             String representation of the element for CSRTrack
         """
         z = self.physical.middle.z
+        s_comment = f"! quad{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
         return (
-            """quadrupole{\nposition{rho="""
+            s_comment
+            + """quadrupole{\nposition{rho="""
             + str(z)
             + """, psi=0.0, marker=quad"""
             + str(n)
@@ -772,8 +774,10 @@ class DipoleTranslator(BaseElementTranslator):
         """
         z1 = self.physical.start.z
         z2 = self.physical.end.z
+        s_comment = f"! dipole{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
         return (
-            """dipole{\nposition{rho="""
+            s_comment
+            + """dipole{\nposition{rho="""
             + str(z1)
             + """, psi="""
             + str(chop(self.physical.rotation.theta + self.e1))

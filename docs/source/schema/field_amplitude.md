@@ -26,7 +26,7 @@ URI: [laura:field_amplitude](https://w3id.org/laura/field_amplitude)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  yes  |
-| [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  yes  |
+| [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  no  |
 
 
 

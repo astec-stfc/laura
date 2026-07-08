@@ -27,6 +27,13 @@ URI: [laura:Magnet](https://w3id.org/laura/Magnet)
       PhysicalAcceleratorElement <|-- Magnet
         click PhysicalAcceleratorElement href "../PhysicalAcceleratorElement/"
       
+
+      Magnet <|-- Dipole
+        click Dipole href "../Dipole/"
+      Magnet <|-- Quadrupole
+        click Quadrupole href "../Quadrupole/"
+      
+
       Magnet : alias
         
       Magnet : controls
@@ -197,6 +204,8 @@ URI: [laura:Magnet](https://w3id.org/laura/Magnet)
         * [Element](Element.md)
             * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
                 * **Magnet**
+                    * [Dipole](Dipole.md)
+                    * [Quadrupole](Quadrupole.md)
 
 
 ## Class Properties

@@ -49,6 +49,7 @@ URI: [laura:number_of_elements](https://w3id.org/laura/number_of_elements)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `int(0)` |
 | Owner | [ApertureElement](ApertureElement.md) |
 
 
@@ -56,7 +57,7 @@ URI: [laura:number_of_elements](https://w3id.org/laura/number_of_elements)
 
 | Property | Value |
 | --- | --- |
-| Minimum Value | 1 |
+| Minimum Value | 0 |
 
 
 
@@ -101,11 +102,12 @@ name: number_of_elements
 description: Number of aperture sub-elements (e.g., for multi-leaf collimators).
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: int(0)
 owner: ApertureElement
 domain_of:
 - ApertureElement
 range: integer
-minimum_value: 1
+minimum_value: 0
 
 ```
 </details></div>

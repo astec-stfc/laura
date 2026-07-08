@@ -28,6 +28,15 @@ def _clean_export_data(data: dict, ele: PhysicalElement) -> dict:
     # --- Computed fields on PhysicalElement ---
     if "physical" in data and isinstance(data["physical"], dict):
         data["physical"].pop("_physical_angle", None)
+        # exclude_defaults=True can silently drop 'middle' when it equals the
+        # all-zero Position() default (e.g. an element sitting at the global
+        # origin). If 's' is present, 'middle' must be too — otherwise this
+        # element alone round-trips as s-only and conflicts with sibling
+        # elements that do have 'middle', tripping the mixed-coordinate-
+        # system check on reload.
+        phys_dict = data["physical"]
+        if "s" in phys_dict and "middle" not in phys_dict and ele.physical.middle is not None:
+            phys_dict["middle"] = ele.physical.middle.model_dump(exclude_defaults=True)
 
     # --- Computed fields on MagneticElement / Dipole_Magnet ---
     if "magnetic" in data and isinstance(data["magnetic"], dict):

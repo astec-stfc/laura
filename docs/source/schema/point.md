@@ -3,10 +3,10 @@ search:
   boost: 5.0
 ---
 
-# Slot: element 
+# Slot: point 
 
 
-_Name of the reference element._
+_Which point on the reference element to use as the origin frame: 'start', 'middle', or 'end'._
 
 
 
@@ -14,7 +14,7 @@ _Name of the reference element._
 
 
 
-URI: [laura:element](https://w3id.org/laura/element)
+URI: [laura:point](https://w3id.org/laura/point)
 <!-- no inheritance hierarchy -->
 
 
@@ -45,11 +45,11 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 | Property | Value |
 | --- | --- |
-| Required | Yes |
 ### Slot Characteristics
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string(end)` |
 | Owner | [ReferencePlacement](ReferencePlacement.md) |
 
 
@@ -81,8 +81,8 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:element |
-| native | laura:element |
+| self | laura:point |
+| native | laura:point |
 
 
 
@@ -91,15 +91,16 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 <details>
 ```yaml
-name: element
-description: Name of the reference element.
+name: point
+description: 'Which point on the reference element to use as the origin frame: ''start'',
+  ''middle'', or ''end''.'
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: string(end)
 owner: ReferencePlacement
 domain_of:
 - ReferencePlacement
 range: string
-required: true
 
 ```
 </details></div>

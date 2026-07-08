@@ -100,6 +100,8 @@ domain_of:
 - ControlsInformation
 range: ControlVariable
 multivalued: true
+inlined: true
+inlined_as_list: false
 
 ```
 </details></div>

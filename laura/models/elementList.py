@@ -358,6 +358,63 @@ class SectionLattice(BaseLatticeModel):
             return dict(zip([e.name for e in elems.values()], s))
         return list(s)
 
+    def get_resolved_s_values(
+        self, as_dict: bool = False, at_entrance: bool = False
+    ) -> list | dict:
+        """
+        Get true arc-length S values for the elements in the lattice, sourced
+        from the resolved :class:`~laura.models.trajectory.Trajectory` built by
+        :meth:`resolve_positions` (bend-aware, ``reference_placement``-aware).
+
+        Unlike :meth:`get_s_values` (a naive cumulative sum of element lengths),
+        this reads each element's already-resolved ``physical.s`` directly, and
+        projects synthetic drift elements (created by :meth:`createDrifts`,
+        which never get ``physical.s`` set) onto the nearest sibling's
+        trajectory via :meth:`~laura.models.trajectory.Trajectory.s_at_xyz`.
+
+        Falls back to :meth:`get_s_values` if no element in the section carries
+        a resolved trajectory (i.e. ``resolve_positions`` was never run).
+
+        Parameters
+        ----------
+        as_dict: bool, optional
+            If True, returns a dictionary with element names as keys and their
+            S values as values.
+        at_entrance: bool, optional
+            If True, returns each element's S value at its start rather than
+            its middle.
+
+        Returns
+        -------
+        list | dict
+            A list or dictionary of resolved S values for the elements in the
+            lattice, in the same order as :meth:`createDrifts`.
+        """
+        elems = self.createDrifts()
+
+        traj = None
+        for e in elems.values():
+            phys = getattr(e, "physical", None)
+            t = getattr(phys, "_trajectory", None) if phys is not None else None
+            if t is not None:
+                traj = t
+                break
+        if traj is None:
+            return self.get_s_values(as_dict=as_dict, at_entrance=at_entrance)
+
+        svals = []
+        for e in elems.values():
+            phys = e.physical
+            if phys.s is not None:
+                s_mid = phys.s
+            else:
+                s_mid = traj.s_at_xyz(phys.middle)
+            svals.append(s_mid - phys.length / 2.0 if at_entrance else s_mid)
+
+        if as_dict:
+            return dict(zip([e.name for e in elems.values()], svals))
+        return svals
+
     # ── s-coordinate support ───────────────────────────────────────────────────
 
     def _detect_coordinate_system(self, element_registry: dict) -> str:

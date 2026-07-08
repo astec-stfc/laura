@@ -95,7 +95,7 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | [n_kicks](n_kicks.md) | 0..1 <br/> [Integer](Integer.md) | Number of integration kicks | direct |
 | [field_amplitude](field_amplitude.md) | 0..1 <br/> [Float](Float.md) | Field amplitude scaling for magnet tracking | direct |
 | [n_slices](n_slices.md) | 0..1 <br/> [Integer](Integer.md) | Number of longitudinal slices for thick-lens tracking | direct |
-| [smooth](smooth.md) | 0..1 <br/> [Boolean](Boolean.md) | Use a smoothed field profile | direct |
+| [smooth](smooth.md) | 0..1 <br/> [Integer](Integer.md) | Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smoot... | direct |
 | [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for edge focussing | direct |
 | [edge1_effects](edge1_effects.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable entrance-edge focussing effects | direct |
 | [edge2_effects](edge2_effects.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable exit-edge focussing effects | direct |
@@ -123,6 +123,8 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [Magnet](Magnet.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| [Dipole](Dipole.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| [Quadrupole](Quadrupole.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
 
@@ -200,14 +202,15 @@ attributes:
     minimum_value: 1
   smooth:
     name: smooth
-    description: Use a smoothed field profile.
+    description: Number of smoothing passes applied to the field map (ASTRA Q_smooth
+      / S_smooth).
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
     - MagnetSimulationElement
     - RFCavitySimulationElement
     - WakefieldSimulationElement
-    range: boolean
+    range: integer
   edge_field_integral:
     name: edge_field_integral
     description: Fringe-field integral for edge focussing.
@@ -364,7 +367,8 @@ attributes:
     minimum_value: 1
   smooth:
     name: smooth
-    description: Use a smoothed field profile.
+    description: Number of smoothing passes applied to the field map (ASTRA Q_smooth
+      / S_smooth).
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: MagnetSimulationElement
@@ -372,7 +376,7 @@ attributes:
     - MagnetSimulationElement
     - RFCavitySimulationElement
     - WakefieldSimulationElement
-    range: boolean
+    range: integer
   edge_field_integral:
     name: edge_field_integral
     description: Fringe-field integral for edge focussing.

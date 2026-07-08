@@ -3,10 +3,10 @@ search:
   boost: 5.0
 ---
 
-# Slot: minimum_position 
+# Slot: s 
 
 
-_Minimum upstream s-coordinate [m]._
+_Arc-length position [m] along the design trajectory (s=0 at the global origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``) and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly._
 
 
 
@@ -14,7 +14,7 @@ _Minimum upstream s-coordinate [m]._
 
 
 
-URI: [laura:minimum_position](https://w3id.org/laura/minimum_position)
+URI: [laura:s](https://w3id.org/laura/s)
 <!-- no inheritance hierarchy -->
 
 
@@ -90,8 +90,8 @@ URI: [laura:minimum_position](https://w3id.org/laura/minimum_position)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:minimum_position |
-| native | laura:minimum_position |
+| self | laura:s |
+| native | laura:s |
 
 
 
@@ -100,8 +100,10 @@ URI: [laura:minimum_position](https://w3id.org/laura/minimum_position)
 
 <details>
 ```yaml
-name: minimum_position
-description: Minimum upstream s-coordinate [m].
+name: s
+description: Arc-length position [m] along the design trajectory (s=0 at the global
+  origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``)
+  and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: PhysicalElement

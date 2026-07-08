@@ -271,6 +271,8 @@ class astra_output(astra_header):
                 else:
                     output += f"{key} = {self._astra_str(val)},\n"
         for i, element in enumerate(self.screens, 1):
+            if element.physical.s is not None:
+                output += f"! Screen({i}) s={element.physical.s:.6f}\n"
             output += f"Screen({i}) = {element.physical.middle.z},\n"
         output = output[:-2] + "\n"
         output += "/\n"

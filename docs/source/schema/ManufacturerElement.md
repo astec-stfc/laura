@@ -97,6 +97,8 @@ URI: [laura:ManufacturerElement](https://w3id.org/laura/ManufacturerElement)
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [LaserMirror](LaserMirror.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [LaserAttenuator](LaserAttenuator.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [Dipole](Dipole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [Quadrupole](Quadrupole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 
 
 

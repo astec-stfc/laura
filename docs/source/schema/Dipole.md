@@ -5,11 +5,6 @@ search:
 
 # Class: Dipole 
 
-
-_Dipole bending magnet._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -24,18 +19,9 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
  classDiagram
     class Dipole
     click Dipole href "../Dipole/"
-      MagnetBaseElement <|-- Dipole
-        click MagnetBaseElement href "../MagnetBaseElement/"
+      Magnet <|-- Dipole
+        click Magnet href "../Magnet/"
       
-
-      Dipole <|-- HorizontalCorrector
-        click HorizontalCorrector href "../HorizontalCorrector/"
-      Dipole <|-- VerticalCorrector
-        click VerticalCorrector href "../VerticalCorrector/"
-      Dipole <|-- CombinedCorrector
-        click CombinedCorrector href "../CombinedCorrector/"
-      
-
       Dipole : alias
         
       Dipole : controls
@@ -60,6 +46,17 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
     
 
         
+      Dipole : downstream
+        
+          
+    
+        
+        
+        Dipole --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       Dipole : electrical
         
           
@@ -77,7 +74,7 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
     
         
         
-        Dipole --> "0..1" HardwareClassEnum : hardware_class
+        Dipole --> "1" HardwareClassEnum : hardware_class
         click HardwareClassEnum href "../HardwareClassEnum/"
     
 
@@ -85,6 +82,17 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
       Dipole : hardware_model
         
       Dipole : hardware_type
+        
+      Dipole : inputs
+        
+          
+    
+        
+        
+        Dipole --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       Dipole : machine_area
         
@@ -94,8 +102,8 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
     
         
         
-        Dipole --> "0..1" MagneticElement : magnetic
-        click MagneticElement href "../MagneticElement/"
+        Dipole --> "0..1" DipoleMagnet : magnetic
+        click DipoleMagnet href "../DipoleMagnet/"
     
 
         
@@ -111,6 +119,17 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
 
         
       Dipole : name
+        
+      Dipole : outputs
+        
+          
+    
+        
+        
+        Dipole --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       Dipole : physical
         
@@ -147,6 +166,17 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
         
       Dipole : subelement
         
+      Dipole : upstream
+        
+          
+    
+        
+        
+        Dipole --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       Dipole : virtual_name
         
       
@@ -159,27 +189,18 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
 ## Inheritance
 * [AcceleratorElement](AcceleratorElement.md)
     * [StandardElement](StandardElement.md)
-        * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
-            * [MagnetBaseElement](MagnetBaseElement.md)
-                * **Dipole**
-                    * [HorizontalCorrector](HorizontalCorrector.md)
-                    * [VerticalCorrector](VerticalCorrector.md)
-                    * [CombinedCorrector](CombinedCorrector.md)
-
-
-## Class Properties
-
-| Property | Value |
-| --- | --- |
-| Class URI | [laura:Dipole](https://w3id.org/laura/Dipole) |
+        * [Element](Element.md)
+            * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
+                * [Magnet](Magnet.md)
+                    * **Dipole**
 
 
 ## Slots
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [magnetic](magnetic.md) | 0..1 <br/> [MagneticElement](MagneticElement.md) | Magnetic field parameters | [MagnetBaseElement](MagnetBaseElement.md) |
-| [degauss](degauss.md) | 0..1 <br/> [DegaussableElement](DegaussableElement.md) | Degaussing-cycle parameters | [MagnetBaseElement](MagnetBaseElement.md) |
+| [magnetic](magnetic.md) | 0..1 <br/> [DipoleMagnet](DipoleMagnet.md) | Magnetic field parameters | [Magnet](Magnet.md) |
+| [degauss](degauss.md) | 0..1 <br/> [DegaussableElement](DegaussableElement.md) | Degaussing-cycle parameters | [Magnet](Magnet.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
@@ -187,13 +208,17 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
 | [controls](controls.md) | 0..1 <br/> [ControlsInformation](ControlsInformation.md) | Control-system process-variable definitions | [StandardElement](StandardElement.md) |
 | [reference](reference.md) | 0..1 <br/> [ReferenceElement](ReferenceElement.md) | Links to design drawings and files | [StandardElement](StandardElement.md) |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique element name within the machine | [AcceleratorElement](AcceleratorElement.md) |
-| [hardware_class](hardware_class.md) | 0..1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
+| [hardware_class](hardware_class.md) | 1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for MODEL_REGISTRY dispatch | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | [AcceleratorElement](AcceleratorElement.md) |
 | [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | [AcceleratorElement](AcceleratorElement.md) |
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -244,14 +269,16 @@ URI: [laura:Dipole](https://w3id.org/laura/Dipole)
 <details>
 ```yaml
 name: Dipole
-description: Dipole bending magnet.
 from_schema: https://w3id.org/laura/schema
-is_a: MagnetBaseElement
+is_a: Magnet
 slot_usage:
+  magnetic:
+    name: magnetic
+    range: Dipole_Magnet
   hardware_type:
     name: hardware_type
+    ifabsent: Dipole
     equals_string: Dipole
-class_uri: laura:Dipole
 
 ```
 </details>
@@ -261,12 +288,15 @@ class_uri: laura:Dipole
 <details>
 ```yaml
 name: Dipole
-description: Dipole bending magnet.
 from_schema: https://w3id.org/laura/schema
-is_a: MagnetBaseElement
+is_a: Magnet
 slot_usage:
+  magnetic:
+    name: magnetic
+    range: Dipole_Magnet
   hardware_type:
     name: hardware_type
+    ifabsent: Dipole
     equals_string: Dipole
 attributes:
   magnetic:
@@ -274,20 +304,20 @@ attributes:
     description: Magnetic field parameters.
     in_subset:
     - magnetic_properties
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: Dipole
     domain_of:
-    - MagnetBaseElement
-    range: MagneticElement
+    - Magnet
+    range: Dipole_Magnet
   degauss:
     name: degauss
     description: Degaussing-cycle parameters.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: Dipole
     domain_of:
-    - MagnetBaseElement
+    - Magnet
     range: DegaussableElement
   physical:
     name: physical
@@ -367,13 +397,14 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: HardwareClassEnum
+    required: true
   hardware_type:
     name: hardware_type
     description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the
       concrete subclass to instantiate when loading from YAML.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    designates_type: true
+    ifabsent: Dipole
     owner: Dipole
     domain_of:
     - AcceleratorElement
@@ -433,7 +464,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
-class_uri: laura:Dipole
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Dipole
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Dipole
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Dipole
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Dipole
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 
 ```
 </details></div>

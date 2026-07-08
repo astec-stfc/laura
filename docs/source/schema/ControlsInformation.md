@@ -103,6 +103,8 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [LaserMirror](LaserMirror.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [LaserAttenuator](LaserAttenuator.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [Dipole](Dipole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [Quadrupole](Quadrupole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 
 
 
@@ -162,6 +164,8 @@ attributes:
     - ControlsInformation
     range: ControlVariable
     multivalued: true
+    inlined: true
+    inlined_as_list: false
 class_uri: laura:ControlsInformation
 
 ```
@@ -185,6 +189,8 @@ attributes:
     - ControlsInformation
     range: ControlVariable
     multivalued: true
+    inlined: true
+    inlined_as_list: false
 class_uri: laura:ControlsInformation
 
 ```

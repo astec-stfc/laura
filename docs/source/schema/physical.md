@@ -51,6 +51,8 @@ URI: [laura:physical](https://w3id.org/laura/physical)
 | [FaradayCupMonitor](FaradayCupMonitor.md) | Faraday cup for destructive charge measurement |  no  |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | Integrated current transformer (ICT) for non-destructive single-shot charge m... |  no  |
 | [Plasma](Plasma.md) | Laser-driven plasma-accelerator stage |  no  |
+| [Dipole](Dipole.md) |  |  no  |
+| [Quadrupole](Quadrupole.md) |  |  no  |
 
 
 

@@ -3,10 +3,10 @@ search:
   boost: 5.0
 ---
 
-# Slot: element 
+# Slot: s_point 
 
 
-_Name of the reference element._
+_Which point of the element the ``s`` value refers to: ``start``, ``middle``, or ``end``.  Defaults to ``middle``._
 
 
 
@@ -14,7 +14,7 @@ _Name of the reference element._
 
 
 
-URI: [laura:element](https://w3id.org/laura/element)
+URI: [laura:s_point](https://w3id.org/laura/s_point)
 <!-- no inheritance hierarchy -->
 
 
@@ -25,7 +25,7 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [ReferencePlacement](ReferencePlacement.md) | Positions an element relative to a named reference element's local frame |  no  |
+| [PhysicalElement](PhysicalElement.md) | Physical placement data: position, rotation, length, and associated survey / ... |  no  |
 
 
 
@@ -39,18 +39,18 @@ URI: [laura:element](https://w3id.org/laura/element)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [ReferencePlacement](ReferencePlacement.md) |
+| Domain Of | [PhysicalElement](PhysicalElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-| Required | Yes |
 ### Slot Characteristics
 
 | Property | Value |
 | --- | --- |
-| Owner | [ReferencePlacement](ReferencePlacement.md) |
+| If Absent | `string(middle)` |
+| Owner | [PhysicalElement](PhysicalElement.md) |
 
 
 
@@ -81,8 +81,8 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:element |
-| native | laura:element |
+| self | laura:s_point |
+| native | laura:s_point |
 
 
 
@@ -91,15 +91,16 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 <details>
 ```yaml
-name: element
-description: Name of the reference element.
+name: s_point
+description: 'Which point of the element the ``s`` value refers to: ``start``, ``middle``,
+  or ``end``.  Defaults to ``middle``.'
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-owner: ReferencePlacement
+ifabsent: string(middle)
+owner: PhysicalElement
 domain_of:
-- ReferencePlacement
+- PhysicalElement
 range: string
-required: true
 
 ```
 </details></div>

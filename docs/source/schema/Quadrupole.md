@@ -5,11 +5,6 @@ search:
 
 # Class: Quadrupole 
 
-
-_Quadrupole focusing magnet._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -24,8 +19,8 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
  classDiagram
     class Quadrupole
     click Quadrupole href "../Quadrupole/"
-      MagnetBaseElement <|-- Quadrupole
-        click MagnetBaseElement href "../MagnetBaseElement/"
+      Magnet <|-- Quadrupole
+        click Magnet href "../Magnet/"
       
       Quadrupole : alias
         
@@ -51,6 +46,17 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
     
 
         
+      Quadrupole : downstream
+        
+          
+    
+        
+        
+        Quadrupole --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       Quadrupole : electrical
         
           
@@ -68,7 +74,7 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
     
         
         
-        Quadrupole --> "0..1" HardwareClassEnum : hardware_class
+        Quadrupole --> "1" HardwareClassEnum : hardware_class
         click HardwareClassEnum href "../HardwareClassEnum/"
     
 
@@ -76,6 +82,17 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
       Quadrupole : hardware_model
         
       Quadrupole : hardware_type
+        
+      Quadrupole : inputs
+        
+          
+    
+        
+        
+        Quadrupole --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       Quadrupole : machine_area
         
@@ -85,8 +102,8 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
     
         
         
-        Quadrupole --> "0..1" MagneticElement : magnetic
-        click MagneticElement href "../MagneticElement/"
+        Quadrupole --> "0..1" QuadrupoleMagnet : magnetic
+        click QuadrupoleMagnet href "../QuadrupoleMagnet/"
     
 
         
@@ -102,6 +119,17 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
 
         
       Quadrupole : name
+        
+      Quadrupole : outputs
+        
+          
+    
+        
+        
+        Quadrupole --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       Quadrupole : physical
         
@@ -138,6 +166,17 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
         
       Quadrupole : subelement
         
+      Quadrupole : upstream
+        
+          
+    
+        
+        
+        Quadrupole --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       Quadrupole : virtual_name
         
       
@@ -150,24 +189,18 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
 ## Inheritance
 * [AcceleratorElement](AcceleratorElement.md)
     * [StandardElement](StandardElement.md)
-        * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
-            * [MagnetBaseElement](MagnetBaseElement.md)
-                * **Quadrupole**
-
-
-## Class Properties
-
-| Property | Value |
-| --- | --- |
-| Class URI | [laura:Quadrupole](https://w3id.org/laura/Quadrupole) |
+        * [Element](Element.md)
+            * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
+                * [Magnet](Magnet.md)
+                    * **Quadrupole**
 
 
 ## Slots
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [magnetic](magnetic.md) | 0..1 <br/> [MagneticElement](MagneticElement.md) | Magnetic field parameters | [MagnetBaseElement](MagnetBaseElement.md) |
-| [degauss](degauss.md) | 0..1 <br/> [DegaussableElement](DegaussableElement.md) | Degaussing-cycle parameters | [MagnetBaseElement](MagnetBaseElement.md) |
+| [magnetic](magnetic.md) | 0..1 <br/> [QuadrupoleMagnet](QuadrupoleMagnet.md) | Magnetic field parameters | [Magnet](Magnet.md) |
+| [degauss](degauss.md) | 0..1 <br/> [DegaussableElement](DegaussableElement.md) | Degaussing-cycle parameters | [Magnet](Magnet.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
@@ -175,13 +208,17 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
 | [controls](controls.md) | 0..1 <br/> [ControlsInformation](ControlsInformation.md) | Control-system process-variable definitions | [StandardElement](StandardElement.md) |
 | [reference](reference.md) | 0..1 <br/> [ReferenceElement](ReferenceElement.md) | Links to design drawings and files | [StandardElement](StandardElement.md) |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique element name within the machine | [AcceleratorElement](AcceleratorElement.md) |
-| [hardware_class](hardware_class.md) | 0..1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
+| [hardware_class](hardware_class.md) | 1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for MODEL_REGISTRY dispatch | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | [AcceleratorElement](AcceleratorElement.md) |
 | [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | [AcceleratorElement](AcceleratorElement.md) |
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -232,14 +269,16 @@ URI: [laura:Quadrupole](https://w3id.org/laura/Quadrupole)
 <details>
 ```yaml
 name: Quadrupole
-description: Quadrupole focusing magnet.
 from_schema: https://w3id.org/laura/schema
-is_a: MagnetBaseElement
+is_a: Magnet
 slot_usage:
+  magnetic:
+    name: magnetic
+    range: Quadrupole_Magnet
   hardware_type:
     name: hardware_type
+    ifabsent: Quadrupole
     equals_string: Quadrupole
-class_uri: laura:Quadrupole
 
 ```
 </details>
@@ -249,12 +288,15 @@ class_uri: laura:Quadrupole
 <details>
 ```yaml
 name: Quadrupole
-description: Quadrupole focusing magnet.
 from_schema: https://w3id.org/laura/schema
-is_a: MagnetBaseElement
+is_a: Magnet
 slot_usage:
+  magnetic:
+    name: magnetic
+    range: Quadrupole_Magnet
   hardware_type:
     name: hardware_type
+    ifabsent: Quadrupole
     equals_string: Quadrupole
 attributes:
   magnetic:
@@ -262,20 +304,20 @@ attributes:
     description: Magnetic field parameters.
     in_subset:
     - magnetic_properties
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: Quadrupole
     domain_of:
-    - MagnetBaseElement
-    range: MagneticElement
+    - Magnet
+    range: Quadrupole_Magnet
   degauss:
     name: degauss
     description: Degaussing-cycle parameters.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: Quadrupole
     domain_of:
-    - MagnetBaseElement
+    - Magnet
     range: DegaussableElement
   physical:
     name: physical
@@ -355,13 +397,14 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: HardwareClassEnum
+    required: true
   hardware_type:
     name: hardware_type
     description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the
       concrete subclass to instantiate when loading from YAML.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    designates_type: true
+    ifabsent: Quadrupole
     owner: Quadrupole
     domain_of:
     - AcceleratorElement
@@ -421,7 +464,46 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
-class_uri: laura:Quadrupole
+  inputs:
+    name: inputs
+    description: (List) of input types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Quadrupole
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: (List) of output types
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Quadrupole
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Quadrupole
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: (List) of upstream elements.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Quadrupole
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 
 ```
 </details></div>

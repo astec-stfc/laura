@@ -3,10 +3,10 @@ search:
   boost: 5.0
 ---
 
-# Slot: maximum_position 
+# Slot: s_offset 
 
 
-_Maximum downstream s-coordinate [m]._
+_Scalar offset [m] along the local beam direction (s-axis) from the reference point.  Equivalent to ``offset: [0, 0, s_offset]`` but expressed as a single number.  Mutually exclusive with ``offset`` and ``world_offset``._
 
 
 
@@ -14,7 +14,7 @@ _Maximum downstream s-coordinate [m]._
 
 
 
-URI: [laura:maximum_position](https://w3id.org/laura/maximum_position)
+URI: [laura:s_offset](https://w3id.org/laura/s_offset)
 <!-- no inheritance hierarchy -->
 
 
@@ -25,7 +25,7 @@ URI: [laura:maximum_position](https://w3id.org/laura/maximum_position)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [PhysicalElement](PhysicalElement.md) | Physical placement data: position, rotation, length, and associated survey / ... |  no  |
+| [ReferencePlacement](ReferencePlacement.md) | Positions an element relative to a named reference element's local frame |  no  |
 
 
 
@@ -39,7 +39,7 @@ URI: [laura:maximum_position](https://w3id.org/laura/maximum_position)
 | Property | Value |
 | --- | --- |
 | Range | [Float](Float.md) |
-| Domain Of | [PhysicalElement](PhysicalElement.md) |
+| Domain Of | [ReferencePlacement](ReferencePlacement.md) |
 
 ### Cardinality and Requirements
 
@@ -49,7 +49,7 @@ URI: [laura:maximum_position](https://w3id.org/laura/maximum_position)
 
 | Property | Value |
 | --- | --- |
-| Owner | [PhysicalElement](PhysicalElement.md) |
+| Owner | [ReferencePlacement](ReferencePlacement.md) |
 
 
 <details>
@@ -90,8 +90,8 @@ URI: [laura:maximum_position](https://w3id.org/laura/maximum_position)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:maximum_position |
-| native | laura:maximum_position |
+| self | laura:s_offset |
+| native | laura:s_offset |
 
 
 
@@ -100,13 +100,15 @@ URI: [laura:maximum_position](https://w3id.org/laura/maximum_position)
 
 <details>
 ```yaml
-name: maximum_position
-description: Maximum downstream s-coordinate [m].
+name: s_offset
+description: 'Scalar offset [m] along the local beam direction (s-axis) from the reference
+  point.  Equivalent to ``offset: [0, 0, s_offset]`` but expressed as a single number.  Mutually
+  exclusive with ``offset`` and ``world_offset``.'
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-owner: PhysicalElement
+owner: ReferencePlacement
 domain_of:
-- PhysicalElement
+- ReferencePlacement
 range: float
 unit:
   ucum_code: m

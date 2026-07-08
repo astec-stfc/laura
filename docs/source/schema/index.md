@@ -31,6 +31,8 @@ Name: laura_schema
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Drift](Drift.md) | Field-free drift space between elements |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Laser](Laser.md) | Laser system element (full laser setup including beam parameters) |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Magnet](Magnet.md) | Base class for all magnetic focusing and bending elements |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Dipole](Dipole.md) |  |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Quadrupole](Quadrupole.md) |  |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Marker](Marker.md) | Virtual survey marker -- a zero-length reference point used for alignment |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Plasma](Plasma.md) | Laser-driven plasma-accelerator stage |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFCavity](RFCavity.md) | Accelerating RF cavity |
@@ -85,6 +87,8 @@ Name: laura_schema
 | [MachineLayout](MachineLayout.md) | An ordered list of section names defining a beamline layout (a contiguous seq... |
 | [MachineModel](MachineModel.md) | Top-level container for a complete accelerator lattice: elements, sections, l... |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[DipoleMagnet](DipoleMagnet.md) |  |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[QuadrupoleMagnet](QuadrupoleMagnet.md) |  |
 | [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number metadata |
 | [Multipole](Multipole.md) | Individual multipole field component, characterised by order and integrated n... |
 | [Multipoles](Multipoles.md) | Complete set of integrated multipole strengths up to decapole order, as named... |
@@ -95,6 +99,7 @@ Name: laura_schema
 | [PlasmaElement](PlasmaElement.md) | Plasma channel parameters for a laser-driven plasma-accelerator stage |
 | [Position](Position.md) | Cartesian position in the global accelerator coordinate system |
 | [ReferenceElement](ReferenceElement.md) | Links to engineering drawings and design files |
+| [ReferencePlacement](ReferencePlacement.md) | Positions an element relative to a named reference element's local frame |
 | [RFCavityElement](RFCavityElement.md) | RF cavity accelerating-structure parameters |
 | [RFDeflectingCavityElement](RFDeflectingCavityElement.md) | Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for... |
 | [RFHeartbeatElement](RFHeartbeatElement.md) | RF heartbeat / timing-monitor element parameters |
@@ -126,6 +131,7 @@ Name: laura_schema
 | [allow_long_beam](allow_long_beam.md) | Allow beams longer than the wakefield |
 | [alpha_x](alpha_x.md) | Horizontal alpha |
 | [alpha_y](alpha_y.md) | Vertical alpha |
+| [angle](angle.md) | Integrated bending angle [rad] |
 | [aperture](aperture.md) | Aperture geometry parameters |
 | [attenuation_constant](attenuation_constant.md) | Attenuation constant ? of a travelling-wave structure [Np/m] |
 | [beam_pixel_average](beam_pixel_average.md) | Average pixel value for beam detection |
@@ -191,6 +197,7 @@ Name: laura_schema
 | [edge_field_integral](edge_field_integral.md) | Fringe-field integral for edge focussing |
 | [edge_order](edge_order.md) | Polynomial order of the edge-field expansion |
 | [electrical](electrical.md) | Power-supply electrical limits |
+| [element](element.md) | Name of the reference element |
 | [elements](elements.md) | Ordered list of element names in this section |
 | [enable](enable.md) | Enable command/value |
 | [end](end.md) | End time |
@@ -282,14 +289,12 @@ Name: laura_schema
 | [max_i](max_i.md) | Maximum current [A] |
 | [max_longitudinal_position](max_longitudinal_position.md) | Maximum longitudinal position [m] |
 | [maximum](maximum.md) | Maximum mask radius in pixels [x, y] |
-| [maximum_position](maximum_position.md) | Maximum downstream s-coordinate [m] |
 | [mechanical_middle](mechanical_middle.md) | Mechanical center of the camera in pixels [x, y] |
 | [middle](middle.md) | Longitudinal midpoint (centre) of the element |
 | [min](min.md) | Minimum value |
 | [min_i](min_i.md) | Minimum current [A] |
 | [min_longitudinal_position](min_longitudinal_position.md) | Minimum longitudinal position [m] |
 | [minimum](minimum.md) | Minimum pixel positions [x, y] |
-| [minimum_position](minimum_position.md) | Minimum upstream s-coordinate [m] |
 | [mode_denominator](mode_denominator.md) | Mode fraction denominator |
 | [mode_numerator](mode_numerator.md) | Mode fraction numerator |
 | [modulator](modulator.md) | Modulator parameters |
@@ -306,6 +311,7 @@ Name: laura_schema
 | [normal](normal.md) | Integrated normal (upright) multipole strength [T |
 | [number_of_elements](number_of_elements.md) | Number of aperture sub-elements (e |
 | [number_of_start_zeros](number_of_start_zeros.md) | Number of leading zeros in a trace |
+| [offset](offset.md) | Offset expressed in the reference element's local frame at the chosen point |
 | [operating_middle](operating_middle.md) | Operating center positions in pixels [x, y] |
 | [order](order.md) | Multipole order (0 = dipole, 1 = quadrupole, ?) |
 | [output_filename](output_filename.md) | Output filename for diagnostic data |
@@ -325,6 +331,7 @@ Name: laura_schema
 | [plasma_particles_per_cell](plasma_particles_per_cell.md) | Number of plasma particles per cell |
 | [plasma_pusher](plasma_pusher.md) | Pusher used to evolve the plasma in time |
 | [plateau](plateau.md) | Flat-top plateau length [m] |
+| [point](point.md) | Which point on the reference element to use as the origin frame: 'start', 'mi... |
 | [polarization](polarization.md) | Laser polarization state |
 | [position](position.md) | Positional misalignment error [m] |
 | [positive_extent](positive_extent.md) | Downstream / outer extent [m] |
@@ -347,8 +354,12 @@ Name: laura_schema
 | [read_only](read_only.md) | Whether the variable is read-only |
 | [read_tolerance](read_tolerance.md) | Read-back vs |
 | [reference](reference.md) | Links to design drawings and files |
+| [reference_placement](reference_placement.md) | Place this element relative to another element's frame instead of using absol... |
 | [right](right.md) | Right sense value |
 | [rotation](rotation.md) | Angular misalignment error [rad] |
+| [s](s.md) | Arc-length position [m] along the design trajectory (s=0 at the global origin... |
+| [s_offset](s_offset.md) | Scalar offset [m] along the local beam direction (s-axis) from the reference ... |
+| [s_point](s_point.md) | Which point of the element the ``s`` value refers to: ``start``, ``middle``, ... |
 | [scale_field](scale_field.md) | Multiplicative scale factor applied to the field map |
 | [scale_field_ex](scale_field_ex.md) | x-component of the longitudinal direction vector |
 | [scale_field_ey](scale_field_ey.md) | y-component of the longitudinal direction vector |
@@ -368,7 +379,7 @@ Name: laura_schema
 | [shutter](shutter.md) | Shutter interlock configuration |
 | [simulation](simulation.md) | Simulation / tracking attributes |
 | [skew](skew.md) | Integrated skew (rotated) multipole strength [T |
-| [smooth](smooth.md) | Use a smoothed field profile |
+| [smooth](smooth.md) | Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smoot... |
 | [smooth_current_bins](smooth_current_bins.md) | Flag indicating current-bin smoothing |
 | [smooth_points](smooth_points.md) | Number of points used to smooth the field map [ASTRA] |
 | [smoothing_half_width](smoothing_half_width.md) | Half-width of the current-profile smoothing kernel |
@@ -409,6 +420,7 @@ Name: laura_schema
 | [wakefile](wakefile.md) | Wake file name |
 | [wavelength](wavelength.md) | Laser wavelength [m] |
 | [width](width.md) | Physical width of the magnet in the bending plane [m] |
+| [world_offset](world_offset.md) | Offset already expressed in global world coordinates |
 | [wx_column](wx_column.md) | Horizontal wake column in the wake file |
 | [wy_column](wy_column.md) | Vertical wake column in the wake file |
 | [wz_column](wz_column.md) | Longitudinal wake column in the wake file |

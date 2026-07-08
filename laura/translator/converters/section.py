@@ -319,14 +319,19 @@ class SectionLatticeTranslator(SectionLattice):
             directory=self.directory,
         )
         written = []
-        svals = self.get_s_values(as_dict=True, at_entrance=True)
+        svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
         for d in elem_dict.values():
             if isinstance(d, RFCavityTranslator):
                 if d.structure_type.lower() == "travellingwave":
                     energy += tw_cavity_energy_gain(d)
                 else:
                     energy += d.field_amplitude * np.cos(np.pi * d.phase / 180)
-            sval = d.physical.start.z if d.subelement else svals[d.name]
+            if d.subelement:
+                phys = d.physical
+                traj = getattr(phys, "_trajectory", None)
+                sval = traj.s_at_xyz(phys.start) if traj is not None else phys.start.z
+            else:
+                sval = svals[d.name]
             stnew = d.to_opal(sval=sval, designenergy=energy)
             if len(stnew) > 0:
                 written.append(d.name)

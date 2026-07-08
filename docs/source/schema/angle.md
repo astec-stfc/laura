@@ -3,10 +3,10 @@ search:
   boost: 5.0
 ---
 
-# Slot: plane 
+# Slot: angle 
 
 
-_Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)._
+_Integrated bending angle [rad]. Dipoles only; read/write via the Python property on MagneticElement._
 
 
 
@@ -14,7 +14,7 @@ _Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined
 
 
 
-URI: [laura:plane](https://w3id.org/laura/plane)
+URI: [laura:angle](https://w3id.org/laura/angle)
 <!-- no inheritance hierarchy -->
 
 
@@ -40,7 +40,7 @@ URI: [laura:plane](https://w3id.org/laura/plane)
 
 | Property | Value |
 | --- | --- |
-| Range | [BendingPlaneEnum](BendingPlaneEnum.md) |
+| Range | [Float](Float.md) |
 | Domain Of | [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
@@ -51,9 +51,18 @@ URI: [laura:plane](https://w3id.org/laura/plane)
 
 | Property | Value |
 | --- | --- |
-| If Absent | `string(Horizontal)` |
 | Owner | [MagneticElement](MagneticElement.md) |
 
+
+<details>
+<summary>Additional Constraints</summary>
+**Unit:**
+
+| Property | Value |
+| --- | --- |
+| ucum_code | rad |
+
+</details>
 
 
 
@@ -83,8 +92,8 @@ URI: [laura:plane](https://w3id.org/laura/plane)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:plane |
-| native | laura:plane |
+| self | laura:angle |
+| native | laura:angle |
 
 
 
@@ -93,16 +102,17 @@ URI: [laura:plane](https://w3id.org/laura/plane)
 
 <details>
 ```yaml
-name: plane
-description: Principal bending / focusing plane (``Horizontal``, ``Vertical``, or
-  ``Combined``).
+name: angle
+description: Integrated bending angle [rad]. Dipoles only; read/write via the Python
+  property on MagneticElement.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: string(Horizontal)
 owner: MagneticElement
 domain_of:
 - MagneticElement
-range: BendingPlaneEnum
+range: float
+unit:
+  ucum_code: rad
 
 ```
 </details></div>

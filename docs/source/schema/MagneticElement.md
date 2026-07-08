@@ -24,6 +24,13 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
  classDiagram
     class MagneticElement
     click MagneticElement href "../MagneticElement/"
+      MagneticElement <|-- DipoleMagnet
+        click DipoleMagnet href "../DipoleMagnet/"
+      MagneticElement <|-- QuadrupoleMagnet
+        click QuadrupoleMagnet href "../QuadrupoleMagnet/"
+      
+      MagneticElement : angle
+        
       MagneticElement : bore
         
       MagneticElement : edge_field_integral
@@ -122,7 +129,12 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 
 
 
-<!-- no inheritance hierarchy -->
+
+## Inheritance
+* **MagneticElement**
+    * [DipoleMagnet](DipoleMagnet.md)
+    * [QuadrupoleMagnet](QuadrupoleMagnet.md)
+
 
 ## Class Properties
 
@@ -144,8 +156,8 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 | [field_integral_coefficients](field_integral_coefficients.md) | 0..1 <br/> [FieldIntegral](FieldIntegral.md) | Polynomial calibration of integrated field vs | direct |
 | [linear_saturation_coefficients](linear_saturation_coefficients.md) | 0..1 <br/> [LinearSaturationFit](LinearSaturationFit.md) | Bi-linear saturation calibration | direct |
 | [settle_time](settle_time.md) | 0..1 <br/> [Float](Float.md) | Power-supply settle time after a change [s] | direct |
-| [entrance_edge_angle](entrance_edge_angle.md) | 0..1 <br/> [Float](Float.md) | Fringe-field entrance edge angle [rad] | direct |
-| [exit_edge_angle](exit_edge_angle.md) | 0..1 <br/> [Float](Float.md) | Fringe-field exit edge angle [rad] | direct |
+| [entrance_edge_angle](entrance_edge_angle.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md) | Fringe-field entrance edge angle [rad] | direct |
+| [exit_edge_angle](exit_edge_angle.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md) | Fringe-field exit edge angle [rad] | direct |
 | [gap](gap.md) | 0..1 <br/> [Float](Float.md) | Full gap between pole faces [m] | direct |
 | [bore](bore.md) | 0..1 <br/> [Float](Float.md) | Magnet bore radius [m] | direct |
 | [plane](plane.md) | 0..1 <br/> [BendingPlaneEnum](BendingPlaneEnum.md) | Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combin... | direct |
@@ -154,6 +166,7 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 | [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless) | direct |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | 0..1 <br/> [Float](Float.md) | Coefficient controlling the fringe-field roll-off rate | direct |
 | [gradient](gradient.md) | 0..1 <br/> [Float](Float.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) | direct |
+| [angle](angle.md) | 0..1 <br/> [Float](Float.md) | Integrated bending angle [rad] | direct |
 
 
 
@@ -312,9 +325,11 @@ attributes:
     rank: 1000
     domain_of:
     - MagneticElement
-    range: float
     unit:
       ucum_code: rad
+    any_of:
+    - range: float
+    - range: string
   exit_edge_angle:
     name: exit_edge_angle
     description: Fringe-field exit edge angle [rad].
@@ -322,9 +337,11 @@ attributes:
     rank: 1000
     domain_of:
     - MagneticElement
-    range: float
     unit:
       ucum_code: rad
+    any_of:
+    - range: float
+    - range: string
   gap:
     name: gap
     description: Full gap between pole faces [m].
@@ -409,6 +426,17 @@ attributes:
     range: float
     unit:
       ucum_code: T.m-1
+  angle:
+    name: angle
+    description: Integrated bending angle [rad]. Dipoles only; read/write via the
+      Python property on MagneticElement.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    domain_of:
+    - MagneticElement
+    range: float
+    unit:
+      ucum_code: rad
 class_uri: laura:MagneticElement
 
 ```
@@ -524,9 +552,12 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
-    range: float
+    range: string
     unit:
       ucum_code: rad
+    any_of:
+    - range: float
+    - range: string
   exit_edge_angle:
     name: exit_edge_angle
     description: Fringe-field exit edge angle [rad].
@@ -535,9 +566,12 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
-    range: float
+    range: string
     unit:
       ucum_code: rad
+    any_of:
+    - range: float
+    - range: string
   gap:
     name: gap
     description: Full gap between pole faces [m].
@@ -630,6 +664,18 @@ attributes:
     range: float
     unit:
       ucum_code: T.m-1
+  angle:
+    name: angle
+    description: Integrated bending angle [rad]. Dipoles only; read/write via the
+      Python property on MagneticElement.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: MagneticElement
+    domain_of:
+    - MagneticElement
+    range: float
+    unit:
+      ucum_code: rad
 class_uri: laura:MagneticElement
 
 ```

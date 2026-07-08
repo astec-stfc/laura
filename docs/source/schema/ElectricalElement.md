@@ -100,6 +100,8 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [LaserMirror](LaserMirror.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [LaserAttenuator](LaserAttenuator.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [Dipole](Dipole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [Quadrupole](Quadrupole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 
 
 

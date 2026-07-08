@@ -59,8 +59,6 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
         
       PhysicalElement : length
         
-      PhysicalElement : maximum_position
-        
       PhysicalElement : middle
         
           
@@ -72,9 +70,18 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
     
 
         
-      PhysicalElement : minimum_position
-        
       PhysicalElement : physical_angle
+        
+      PhysicalElement : reference_placement
+        
+          
+    
+        
+        
+        PhysicalElement --> "0..1" ReferencePlacement : reference_placement
+        click ReferencePlacement href "../ReferencePlacement/"
+    
+
         
       PhysicalElement : rotation
         
@@ -86,6 +93,10 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
         click Rotation href "../Rotation/"
     
 
+        
+      PhysicalElement : s
+        
+      PhysicalElement : s_point
         
       PhysicalElement : survey
         
@@ -124,9 +135,10 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | [error](error.md) | 0..1 <br/> [ElementPositionError](ElementPositionError.md) | Alignment errors | direct |
 | [survey](survey.md) | 0..1 <br/> [ElementSurvey](ElementSurvey.md) | Survey-measured position and rotation | direct |
 | [length](length.md) | 0..1 <br/> [Float](Float.md) | Effective length along the beam axis [m] | direct |
-| [maximum_position](maximum_position.md) | 0..1 <br/> [Float](Float.md) | Maximum downstream s-coordinate [m] | direct |
-| [minimum_position](minimum_position.md) | 0..1 <br/> [Float](Float.md) | Minimum upstream s-coordinate [m] | direct |
 | [physical_angle](physical_angle.md) | 0..1 <br/> [Float](Float.md) | Bending angle in the horizontal plane [rad] | direct |
+| [reference_placement](reference_placement.md) | 0..1 <br/> [ReferencePlacement](ReferencePlacement.md) | Place this element relative to another element's frame instead of using absol... | direct |
+| [s](s.md) | 0..1 <br/> [Float](Float.md) | Arc-length position [m] along the design trajectory (s=0 at the global origin... | direct |
+| [s_point](s_point.md) | 0..1 <br/> [String](String.md) | Which point of the element the ``s`` value refers to: ``start``, ``middle``, ... | direct |
 
 
 
@@ -162,6 +174,8 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Plasma](Plasma.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Dipole](Dipole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Quadrupole](Quadrupole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 
 
 
@@ -289,26 +303,6 @@ attributes:
     minimum_value: 0.0
     unit:
       ucum_code: m
-  maximum_position:
-    name: maximum_position
-    description: Maximum downstream s-coordinate [m].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    domain_of:
-    - PhysicalElement
-    range: float
-    unit:
-      ucum_code: m
-  minimum_position:
-    name: minimum_position
-    description: Minimum upstream s-coordinate [m].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    domain_of:
-    - PhysicalElement
-    range: float
-    unit:
-      ucum_code: m
   physical_angle:
     name: physical_angle
     description: Bending angle in the horizontal plane [rad]. Derived from ``magnetic.angle``
@@ -321,6 +315,40 @@ attributes:
     range: float
     unit:
       ucum_code: rad
+  reference_placement:
+    name: reference_placement
+    description: Place this element relative to another element's frame instead of
+      using absolute world coordinates.  Mutually exclusive with ``middle``/``position``/``centre``
+      and ``s``.
+    in_subset:
+    - physical_properties
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - PhysicalElement
+    range: ReferencePlacement
+  s:
+    name: s
+    description: Arc-length position [m] along the design trajectory (s=0 at the global
+      origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``)
+      and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - PhysicalElement
+    range: float
+    unit:
+      ucum_code: m
+  s_point:
+    name: s_point
+    description: 'Which point of the element the ``s`` value refers to: ``start``,
+      ``middle``, or ``end``.  Defaults to ``middle``.'
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: string(middle)
+    domain_of:
+    - PhysicalElement
+    range: string
 class_uri: laura:PhysicalElement
 
 ```
@@ -412,28 +440,6 @@ attributes:
     minimum_value: 0.0
     unit:
       ucum_code: m
-  maximum_position:
-    name: maximum_position
-    description: Maximum downstream s-coordinate [m].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    owner: PhysicalElement
-    domain_of:
-    - PhysicalElement
-    range: float
-    unit:
-      ucum_code: m
-  minimum_position:
-    name: minimum_position
-    description: Minimum upstream s-coordinate [m].
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    owner: PhysicalElement
-    domain_of:
-    - PhysicalElement
-    range: float
-    unit:
-      ucum_code: m
   physical_angle:
     name: physical_angle
     description: Bending angle in the horizontal plane [rad]. Derived from ``magnetic.angle``
@@ -447,6 +453,43 @@ attributes:
     range: float
     unit:
       ucum_code: rad
+  reference_placement:
+    name: reference_placement
+    description: Place this element relative to another element's frame instead of
+      using absolute world coordinates.  Mutually exclusive with ``middle``/``position``/``centre``
+      and ``s``.
+    in_subset:
+    - physical_properties
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: PhysicalElement
+    domain_of:
+    - PhysicalElement
+    range: ReferencePlacement
+  s:
+    name: s
+    description: Arc-length position [m] along the design trajectory (s=0 at the global
+      origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``)
+      and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: PhysicalElement
+    domain_of:
+    - PhysicalElement
+    range: float
+    unit:
+      ucum_code: m
+  s_point:
+    name: s_point
+    description: 'Which point of the element the ``s`` value refers to: ``start``,
+      ``middle``, or ``end``.  Defaults to ``middle``.'
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: string(middle)
+    owner: PhysicalElement
+    domain_of:
+    - PhysicalElement
+    range: string
 class_uri: laura:PhysicalElement
 
 ```

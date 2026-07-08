@@ -26,6 +26,8 @@ URI: [laura:magnetic](https://w3id.org/laura/magnetic)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [Magnet](Magnet.md) | Base class for all magnetic focusing and bending elements |  no  |
+| [Dipole](Dipole.md) |  |  yes  |
+| [Quadrupole](Quadrupole.md) |  |  yes  |
 
 
 

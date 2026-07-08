@@ -3,10 +3,10 @@ search:
   boost: 5.0
 ---
 
-# Slot: element 
+# Slot: world_offset 
 
 
-_Name of the reference element._
+_Offset already expressed in global world coordinates._
 
 
 
@@ -14,7 +14,7 @@ _Name of the reference element._
 
 
 
-URI: [laura:element](https://w3id.org/laura/element)
+URI: [laura:world_offset](https://w3id.org/laura/world_offset)
 <!-- no inheritance hierarchy -->
 
 
@@ -38,14 +38,13 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [Position](Position.md) |
 | Domain Of | [ReferencePlacement](ReferencePlacement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-| Required | Yes |
 ### Slot Characteristics
 
 | Property | Value |
@@ -81,8 +80,8 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:element |
-| native | laura:element |
+| self | laura:world_offset |
+| native | laura:world_offset |
 
 
 
@@ -91,15 +90,14 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 <details>
 ```yaml
-name: element
-description: Name of the reference element.
+name: world_offset
+description: Offset already expressed in global world coordinates.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ReferencePlacement
 domain_of:
 - ReferencePlacement
-range: string
-required: true
+range: Position
 
 ```
 </details></div>

@@ -26,6 +26,8 @@ URI: [laura:degauss](https://w3id.org/laura/degauss)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [Magnet](Magnet.md) | Base class for all magnetic focusing and bending elements |  no  |
+| [Dipole](Dipole.md) |  |  no  |
+| [Quadrupole](Quadrupole.md) |  |  no  |
 
 
 

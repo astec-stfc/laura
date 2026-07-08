@@ -74,6 +74,8 @@ URI: [laura:LinearSaturationFit](https://w3id.org/laura/LinearSaturationFit)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [MagneticElement](MagneticElement.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
+| [DipoleMagnet](DipoleMagnet.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
+| [QuadrupoleMagnet](QuadrupoleMagnet.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
 
 
 

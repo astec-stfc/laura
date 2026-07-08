@@ -139,10 +139,11 @@ attributes:
     description: Number of aperture sub-elements (e.g., for multi-leaf collimators).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(0)
     domain_of:
     - ApertureElement
     range: integer
-    minimum_value: 1
+    minimum_value: 0
   horizontal_size:
     name: horizontal_size
     description: Full horizontal aperture [m].
@@ -226,11 +227,12 @@ attributes:
     description: Number of aperture sub-elements (e.g., for multi-leaf collimators).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
+    ifabsent: int(0)
     owner: ApertureElement
     domain_of:
     - ApertureElement
     range: integer
-    minimum_value: 1
+    minimum_value: 0
   horizontal_size:
     name: horizontal_size
     description: Full horizontal aperture [m].

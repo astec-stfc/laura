@@ -22,6 +22,8 @@ URI: [laura:edge_field_integral](https://w3id.org/laura/edge_field_integral)
 | --- | --- | --- |
 | [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  no  |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
+| [DipoleMagnet](DipoleMagnet.md) |  |  no  |
+| [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
 
 
 

@@ -22,6 +22,8 @@ URI: [laura:order](https://w3id.org/laura/order)
 | --- | --- | --- |
 | [Multipole](Multipole.md) | Individual multipole field component, characterised by order and integrated n... |  no  |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
+| [DipoleMagnet](DipoleMagnet.md) |  |  yes  |
+| [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  yes  |
 
 
 

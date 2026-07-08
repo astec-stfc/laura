@@ -3,10 +3,10 @@ search:
   boost: 5.0
 ---
 
-# Slot: element 
+# Slot: offset 
 
 
-_Name of the reference element._
+_Offset expressed in the reference element's local frame at the chosen point._
 
 
 
@@ -14,7 +14,7 @@ _Name of the reference element._
 
 
 
-URI: [laura:element](https://w3id.org/laura/element)
+URI: [laura:offset](https://w3id.org/laura/offset)
 <!-- no inheritance hierarchy -->
 
 
@@ -38,14 +38,13 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [Position](Position.md) |
 | Domain Of | [ReferencePlacement](ReferencePlacement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-| Required | Yes |
 ### Slot Characteristics
 
 | Property | Value |
@@ -81,8 +80,8 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:element |
-| native | laura:element |
+| self | laura:offset |
+| native | laura:offset |
 
 
 
@@ -91,15 +90,15 @@ URI: [laura:element](https://w3id.org/laura/element)
 
 <details>
 ```yaml
-name: element
-description: Name of the reference element.
+name: offset
+description: Offset expressed in the reference element's local frame at the chosen
+  point.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ReferencePlacement
 domain_of:
 - ReferencePlacement
-range: string
-required: true
+range: Position
 
 ```
 </details></div>

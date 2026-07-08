@@ -351,10 +351,12 @@ class PhysicalElement(_PhysicalElementBase):
     survey: Optional[ElementSurvey] = Field(default=None)
     reference_placement: Optional[ReferencePlacement] = Field(default=None)
 
-    # s and s_point are input / query fields only — excluded from the default
-    # serialisation so that round-tripped YAML stays in global-coordinate form.
-    # Use model_dump_s() to serialise in s-coordinate form.
-    s: Optional[float] = Field(default=None, exclude=True)
+    # s is included in default serialisation (once resolved) as an
+    # informational reference value alongside the authoritative 'middle'
+    # (Z), for backwards-compatible file output. s_point stays excluded by
+    # default — it only matters for the explicit s-coordinate export modes
+    # (model_dump_s() / position_mode="s"/"reference"), which set it directly.
+    s: Optional[float] = Field(default=None)
     s_point: Literal["start", "middle", "end"] = Field(default="middle", exclude=True)
 
     _parent: Any = PrivateAttr(default=None)
@@ -368,16 +370,18 @@ class PhysicalElement(_PhysicalElementBase):
         # enforce mutual-exclusion during initial construction.
         if getattr(self, "_constructed", False):
             return self
-        sources = [
-            "middle" in self.model_fields_set,
-            self.reference_placement is not None,
-            "s" in self.model_fields_set,
-        ]
-        if sum(sources) > 1:
+        # 'middle' + 's' together is allowed: 'middle' remains authoritative
+        # and 's' is treated as an informational/redundant reference value
+        # (e.g. round-tripped from a default YAML export that now records
+        # both for backwards compatibility). Only reject an ambiguous mix
+        # involving 'reference_placement'.
+        has_middle = "middle" in self.model_fields_set
+        has_reference = self.reference_placement is not None
+        has_s = "s" in self.model_fields_set
+        if has_reference and (has_middle or has_s):
             raise ValueError(
-                "Cannot specify both a world position ('middle'/'position'/'centre') "
-                "and another positioning source ('reference_placement' or 's') — "
-                "use only one."
+                "Cannot specify both a world position ('middle'/'position'/'centre'/'s') "
+                "and 'reference_placement' — use only one."
             )
         return self
 

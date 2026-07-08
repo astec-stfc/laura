@@ -26,6 +26,8 @@ URI: [laura:gap](https://w3id.org/laura/gap)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
+| [DipoleMagnet](DipoleMagnet.md) |  |  no  |
+| [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
 
 
 

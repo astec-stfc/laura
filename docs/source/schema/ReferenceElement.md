@@ -97,6 +97,8 @@ URI: [laura:ReferenceElement](https://w3id.org/laura/ReferenceElement)
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [LaserMirror](LaserMirror.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [LaserAttenuator](LaserAttenuator.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [Dipole](Dipole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [Quadrupole](Quadrupole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 
 
 
