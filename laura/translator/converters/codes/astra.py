@@ -376,7 +376,7 @@ class astra_charge(astra_header):
                     output += f"{self.astradict[key]} = {self._astra_str(val)},\n"
                 else:
                     output += f"{key} = {self._astra_str(val)},\n"
-        if self.space_charge_2D:
+        if self.space_charge_2D and not self.space_charge_3D:
             output += f"nrad = {self.grid_size},\n"
             output += f"nlong_in = {self.grid_size},\n"
         elif self.space_charge_3D:

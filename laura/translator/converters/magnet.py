@@ -288,7 +288,7 @@ class MagnetTranslator(BaseElementTranslator):
                         "type": "not_zero",
                     },
                 ],
-                ["Q_smooth", {"value": self.simulation.smooth, "default": None}],
+                ["Q_smooth", {"value": self.simulation.smooth, "default": 2}],
                 [
                     "Q_bore",
                     {"value": self.magnetic.bore, "default": 0.037, "type": "not_zero"},

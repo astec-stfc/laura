@@ -36,7 +36,7 @@ class MagnetSimulationElement(_MagnetSimulationElementBase):
 
     field_definition: str | field | None = None
     # Schema declares `smooth` as boolean but ASTRA uses an integer smoothing count (Q_smooth / S_smooth).
-    smooth: int | None = None
+    smooth: int | None = 2
 
 
 class DriftSimulationElement(_DriftSimulationElementBase):

@@ -60,6 +60,10 @@ bmad = [
     "pytao>=0.5.5",
 ]
 
+# RF-Track (laura.translator.conversion_rules.codes.rftrack_conversion) is not
+# distributed on PyPI, so it has no extras entry here — install the wheel
+# manually from the RF-Track page (CERN, A. Latina) into this environment.
+
 # All lattice-conversion backends in one go
 # Install with: pip install "laura-accelerator[conversion]"
 conversion = [

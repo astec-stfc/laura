@@ -380,6 +380,148 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         return ""
 
+    def to_rftrack(self, P_Q: float = float("nan")) -> object:
+        """
+        Generates an RF-Track element object based on the element's properties and type.
+
+        Dispatches on ``hardware_type`` via
+        :data:`~laura.translator.conversion_rules.codes.rftrack_conversion.rftrack_conversion_rules`,
+        unlike ``to_ocelot``/``to_cheetah``/``to_xsuite`` this is a single generic
+        implementation — no per-element-category override is needed because RF-Track
+        builder functions receive the fully-typed translator instance (e.g. a
+        ``DipoleTranslator`` has ``e1``/``e2`` available) directly.
+
+        Parameters
+        ----------
+        P_Q: float
+            Beam reference momentum-over-charge [MV/c] at this point in the
+            lattice. Only used by dipole (``SBend``) conversion — RF-Track's
+            ``SBend``, unlike ``Quadrupole``/``Multipole``, does not support
+            deferring this to ``autophase()`` (verified: an unset/NaN value
+            silently produces zero transmission). Mirrors how
+            ``to_gpt(Brho=...)`` threads the equivalent rigidity value down
+            from ``SectionLatticeTranslator.to_gpt(Brho=...)``.
+
+        Returns
+        -------
+        object
+            An RF-Track element object (e.g. ``RF_Track.Quadrupole``), with its name
+            and aperture (if any) applied.
+        """
+        from ..conversion_rules.codes.rftrack_conversion import (
+            rftrack_conversion_rules,
+            build_drift,
+        )
+
+        self.start_write()
+        builder = rftrack_conversion_rules.get(self.hardware_type, None)
+        if builder is None:
+            warn(
+                f"Element type {self.hardware_type} of {self.name} not supported by "
+                f"RF-Track; using a Drift"
+            )
+            builder = build_drift
+        obj = builder(self, P_Q=P_Q)
+        obj.set_name(self.name)
+        self._apply_rftrack_aperture(obj)
+        return obj
+
+    def to_rftrack_repr(self, varname: str, P_Q: float = float("nan")) -> list:
+        """
+        Generates the Python source lines that (re)construct this element as a
+        standalone ``RF_Track`` object, mirroring what :func:`to_rftrack`
+        builds in memory. Used by ``SectionLatticeTranslator.to_rftrack(save=
+        True)`` to export a self-contained lattice script (RF-Track has no
+        built-in equivalent of Ocelot's ``MagneticLattice.save_as_py_file()``).
+
+        Parameters
+        ----------
+        varname: str
+            Python variable name to assign the constructed object to.
+        P_Q: float
+            Beam reference momentum-over-charge [MV/c]; see :func:`to_rftrack`.
+
+        Returns
+        -------
+        list
+            Python source lines (assumes ``import RF_Track as rft`` and
+            ``import numpy as np`` at the top of the generated file).
+        """
+        from ..conversion_rules.codes.rftrack_conversion import (
+            rftrack_repr_rules,
+            repr_drift,
+        )
+
+        self.start_write()
+        repr_fn = rftrack_repr_rules.get(self.hardware_type, None)
+        if repr_fn is None:
+            repr_fn = repr_drift
+        ctor_expr, post_stmts = repr_fn(self, P_Q=P_Q)
+        lines = [
+            f"{varname} = rft.{ctor_expr}",
+            f"{varname}.set_name({self.name!r})",
+        ]
+        lines += self._rftrack_aperture_repr(varname)
+        lines += [s.format(var=varname) for s in post_stmts]
+        return lines
+
+    def _rftrack_aperture_params(self):
+        """
+        Resolve this element's aperture (if any) into the ``(Rx, Ry, shape)``
+        arguments used by RF-Track's universal ``set_aperture(Rx, Ry, SHAPE)``
+        method (RF-Track has no standalone aperture element -- aperture is a
+        property of every element instead). Shared by :func:`_apply_rftrack_aperture`
+        and :func:`_rftrack_aperture_repr` so both apply the exact same rule.
+
+        Returns
+        -------
+        tuple or None
+            ``(Rx, Ry, shape)`` or ``None`` if there is no aperture to apply.
+        """
+        aperture = getattr(self, "aperture", None)
+        if aperture is None or not getattr(aperture, "shape", None):
+            return None
+        shape = aperture.shape
+        if shape in ("circular", "elliptical"):
+            if aperture.radius is not None:
+                rx = ry = aperture.radius
+            else:
+                rx = (aperture.horizontal_size or 0.0) / 2
+                ry = (aperture.vertical_size or 0.0) / 2 or rx
+            if rx > 0 or ry > 0:
+                return (rx, ry, "circular")
+        elif shape in ("planar", "rectangular", "scraper"):
+            rx = (aperture.horizontal_size or 0.0) / 2
+            ry = (aperture.vertical_size or 0.0) / 2
+            if rx > 0 or ry > 0:
+                return (rx, ry, "rectangular")
+        return None
+
+    def _apply_rftrack_aperture(self, obj: object) -> None:
+        """
+        Apply this element's aperture (if any) to an already-built RF-Track object,
+        via the universal ``set_aperture(Rx, Ry, SHAPE)`` method every RF-Track
+        element supports (RF-Track has no standalone aperture element — aperture is
+        a property of every element instead).
+
+        Parameters
+        ----------
+        obj: object
+            The RF-Track element object to apply the aperture to.
+        """
+        params = self._rftrack_aperture_params()
+        if params is not None:
+            obj.set_aperture(*params)
+
+    def _rftrack_aperture_repr(self, varname: str) -> list:
+        """Text-rendering counterpart of :func:`_apply_rftrack_aperture`, for
+        :func:`to_rftrack_repr`."""
+        params = self._rftrack_aperture_params()
+        if params is None:
+            return []
+        rx, ry, shape = params
+        return [f"{varname}.set_aperture({rx!r}, {ry!r}, {shape!r})"]
+
     def to_wake_t(self) -> object:
         """
         Generates a Wake-T object based on the element's properties and type.

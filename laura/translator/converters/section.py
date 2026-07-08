@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 from ...models.elementList import SectionLattice
 from ...models.RF import WakefieldElement
 from ...models.simulation import WakefieldSimulationElement, DiagnosticSimulationElement
+from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
@@ -118,7 +119,7 @@ class SectionLatticeTranslator(SectionLattice):
             astrastr += h.write_ASTRA()
         for e in elem_dict.values():
             for key, count in counter.items():
-                if (
+                if (key == "&APERTURE" and isinstance(e, ApertureTranslator)) or (
                     "&" + e.hardware_type.upper().replace("RF", "").replace("FIELD", "")
                     == key
                 ):
@@ -460,6 +461,76 @@ class SectionLatticeTranslator(SectionLattice):
             maglat.save_as_py_file(f"{self.directory}/{self.name}.py")
 
         return maglat
+
+    def to_rftrack(self, P_Q: float = float("nan"), save: bool = False) -> object:
+        """
+        Create an RF-Track ``Lattice`` object based on the lattice information.
+
+        Parameters
+        ----------
+        P_Q: float
+            Beam reference momentum-over-charge [MV/c], forwarded to every
+            element's ``to_rftrack(P_Q=...)`` — required for correct dipole
+            (``SBend``) bending; see ``BaseElementTranslator.to_rftrack``.
+            Mirrors ``to_gpt(Brho=...)``.
+        save: bool
+            If ``True``, also write a standalone Python script reconstructing
+            this lattice to ``{self.directory}/{self.name}.py`` -- mirrors
+            ``to_ocelot(save=True)``'s ``MagneticLattice.save_as_py_file()``,
+            which RF-Track has no built-in equivalent of (see
+            :func:`_save_rftrack_py_file`).
+
+        Returns
+        -------
+        RF_Track.Lattice
+            An RF-Track ``Lattice`` object, built by appending each translated
+            element in section order (elements are added by value, per RF-Track's
+            default ``append()`` semantics).
+        """
+        from ..conversion_rules.codes.rftrack_conversion import get_rftrack
+
+        rft = get_rftrack()
+        section_with_drifts = self.createDrifts()
+        elem_dict = translate_elements(
+            section_with_drifts.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        lattice = rft.Lattice()
+        for d in elem_dict.values():
+            lattice.append(d.to_rftrack(P_Q=P_Q))
+        if save:
+            self._save_rftrack_py_file(elem_dict, P_Q)
+        return lattice
+
+    def _save_rftrack_py_file(self, elem_dict: dict, P_Q: float) -> None:
+        """
+        Write a standalone Python script to ``{self.directory}/{self.name}.py``
+        that reconstructs this lattice using only ``RF_Track``/``numpy`` --
+        no LAURA/SIMBA import required to reload it, matching the
+        self-contained nature of Ocelot's ``save_as_py_file()`` output.
+
+        Parameters
+        ----------
+        elem_dict: dict
+            Element-name -> translator instance, in section order (as built
+            by :func:`to_rftrack`).
+        P_Q: float
+            Beam reference momentum-over-charge [MV/c]; see :func:`to_rftrack`.
+        """
+        import re
+
+        lines = ["import numpy as np", "import RF_Track as rft", ""]
+        varnames = {}
+        for name, d in elem_dict.items():
+            varnames[name] = varname = "el_" + re.sub(r"\W", "_", name)
+            lines += d.to_rftrack_repr(varname, P_Q=P_Q)
+            lines.append("")
+        lines.append("lattice = rft.Lattice()")
+        for name in elem_dict:
+            lines.append(f"lattice.append({varnames[name]})")
+        with open(f"{self.directory}/{self.name}.py", "w") as f:
+            f.write("\n".join(lines) + "\n")
 
     def to_cheetah(self, save=False) -> "Segment":
         """

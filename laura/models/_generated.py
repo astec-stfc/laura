@@ -386,7 +386,7 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     field_amplitude: Optional[float] = Field(default=0.0, description="""Field amplitude scaling for magnet tracking.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
          'ifabsent': 'float(0.0)'} })
     n_slices: int = Field(default=4, description="""Number of longitudinal slices for thick-lens tracking.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(4)'} })
-    smooth: Optional[int] = Field(default=None, description="""Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
+    smooth: Optional[int] = Field(default=2, description="""Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
                        'RFCavitySimulationElement',
                        'WakefieldSimulationElement']} })
     edge_field_integral: float = Field(default=0.5, description="""Fringe-field integral for edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
