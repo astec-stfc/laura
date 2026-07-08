@@ -3,6 +3,7 @@ from laura.models.simulation import MatrixTransformSimulationElement
 from torch import tensor, float64
 import numpy as np
 from warnings import warn
+from ..utils.functions import sanitize_string
 
 
 class MatrixTransformTranslator(BaseElementTranslator):
@@ -28,29 +29,74 @@ class MatrixTransformTranslator(BaseElementTranslator):
         etype = self._convertType_Elegant(self.hardware_type)
         string = self.name + ": " + etype
 
-        def split_lines(fullstr: str, linestr: str) -> str:
-            if len(fullstr + linestr) > 76:
-                fullstr += fullstr + ",&\n"
-                fullstr = ""
-                fullstr += linestr[2::]
+        def split_lines(fullstr: str, string: str, linestr: str) -> tuple:
+            if len(string + linestr) > 76:
+                fullstr += string + ",&\n"
+                string = linestr[2::]
             else:
-                fullstr += linestr
-            return fullstr
+                string += linestr
+            return fullstr, string
 
         if not np.array_equal(self.simulation.c_matrix, np.zeros(6)):
-            for i, row in enumerate(self.simulation.c_matrix):
-                wholestring = split_lines(wholestring, f", C{i + 1} = {row}")
+            for i, val in enumerate(self.simulation.c_matrix):
+                if val != 0:
+                    wholestring, string = split_lines(wholestring, string, f", C{i + 1} = {val}")
         if not np.array_equal(self.simulation.r_matrix, np.eye(6)):
             for i, row in enumerate(self.simulation.r_matrix):
-                for j, col in enumerate(row):
-                    wholestring = split_lines(wholestring, f", R{i + 1}{j + 1} = {row[j]}")
+                for j, val in enumerate(row):
+                    if val != (1.0 if i == j else 0.0):
+                        wholestring, string = split_lines(wholestring, string, f", R{i + 1}{j + 1} = {val}")
         if not np.array_equal(self.simulation.t_matrix, np.zeros((6, 6, 6))):
-            for i, row in enumerate(self.simulation.t_matrix):
-                for j, col in enumerate(row):
-                    for k, val in enumerate(col):
-                        wholestring = split_lines(wholestring, f", T{i + 1}{j + 1}{k + 1} = {val[k]}")
+            for i, plane in enumerate(self.simulation.t_matrix):
+                for j, row in enumerate(plane):
+                    for k, val in enumerate(row):
+                        if val != 0:
+                            wholestring, string = split_lines(
+                                wholestring, string, f", T{i + 1}{j + 1}{k + 1} = {val}"
+                            )
         wholestring += string + ";\n"
         return wholestring
+
+    def to_madx(self, at: float = None) -> str:
+        """
+        Generates a string representation of the object's properties in the MAD-X
+        format, as a MAD-X ``MATRIX`` element (an explicit, arbitrary transfer
+        matrix). Only the entries that differ from the identity/zero default are
+        written (MAD-X's ``matrix`` element has hundreds of individual
+        ``kick{i}``/``rm{i}{j}``/``tm{i}{j}{k}`` attributes).
+
+        Parameters
+        ----------
+        at: float, optional
+            S-position at which to place the element inside a MAD-X ``SEQUENCE``;
+            see :meth:`~laura.translator.converters.base.BaseElementTranslator.to_madx`.
+
+        Returns
+        -------
+        str
+            String representation of the element for MAD-X
+        """
+        self.start_write()
+        etype = self._convertType_Madx(self.hardware_type)
+        string = sanitize_string(self.name) + ": " + etype + f", l = {self.length}"
+        if not np.array_equal(self.simulation.c_matrix, np.zeros(6)):
+            for i, val in enumerate(self.simulation.c_matrix):
+                if val != 0:
+                    string += f", kick{i + 1} = {val}"
+        if not np.array_equal(self.simulation.r_matrix, np.eye(6)):
+            for i, row in enumerate(self.simulation.r_matrix):
+                for j, val in enumerate(row):
+                    if val != (1.0 if i == j else 0.0):
+                        string += f", rm{i + 1}{j + 1} = {val}"
+        if not np.array_equal(self.simulation.t_matrix, np.zeros((6, 6, 6))):
+            for i, plane in enumerate(self.simulation.t_matrix):
+                for j, row in enumerate(plane):
+                    for k, val in enumerate(row):
+                        if val != 0:
+                            string += f", tm{i + 1}{j + 1}{k + 1} = {val}"
+        if at is not None:
+            string += f", at = {at}"
+        return string + ";\n"
 
     def to_xsuite(self, beam_length: int) -> tuple:
         """

@@ -6,7 +6,7 @@ from pydantic import (
     field_validator,
     Field
 )
-from typing import Literal, Any, Dict
+from typing import Literal, Any, Dict, List, Union
 from .baseModels import IgnoreExtra
 import numpy as np
 import re
@@ -107,7 +107,11 @@ class MagnetSimulationElement(SimulationElement):
     isr_enable: bool = True
     """Flag to indicate whether ISR is enabled"""
 
-    field_amplitude: float = 0.0
+    field_amplitude: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Field amplitude for the magnet simulation. Stored verbatim: a number or a
+    string naming a functional definition (resolve via ``resolved("field_amplitude")``)."""
 
 
 class DriftSimulationElement(SimulationElement):
@@ -240,8 +244,11 @@ class RFCavitySimulationElement(SimulationElement):
     RF cavity simulation element model.
     """
 
-    field_amplitude: float = 0
-    """Cavity field amplitude"""
+    field_amplitude: Union[float, str] = Field(
+        default=0, json_schema_extra={"functional": True}
+    )
+    """Cavity field amplitude. Stored verbatim: a number or a string naming a
+    functional definition (resolve via ``resolved("field_amplitude")``)."""
 
     t_column: str | None = None
     """t column in wake file"""
@@ -565,3 +572,151 @@ class MatrixTransformSimulationElement(IgnoreExtra):
         B[:n, :n] = self.r_matrix
         B[n, n] = 1
         return B
+
+
+class ElectrostaticSeparatorSimulationElement(IgnoreExtra):
+    """
+    Electrostatic separator simulation element model.
+
+    See the MAD-X ``ELSEPARATOR`` element (no equivalent element exists in
+    ELEGANT or Xsuite).
+    """
+
+    horizontal_field: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Horizontal deflecting electric field [V/m]. Stored verbatim: a number, or
+    the name of a functional definition."""
+
+    vertical_field: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Vertical deflecting electric field [V/m]. Stored verbatim: a number, or
+    the name of a functional definition."""
+
+    tilt: float = 0.0
+    """Rotation of the separator about the beam axis [rad]."""
+
+
+class ACDipoleSimulationElement(IgnoreExtra):
+    """
+    AC dipole / tune-exciter simulation element model.
+
+    See the MAD-X ``HACDIPOLE``/``VACDIPOLE`` elements and the Xsuite
+    ``ACDipole`` element.
+    """
+
+    field_amplitude: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Peak kick voltage/amplitude of the exciter. Stored verbatim: a number, or
+    the name of a functional definition."""
+
+    frequency: float = 0.0
+    """Drive frequency [Hz]."""
+
+    phase: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Phase lag [deg]. Stored verbatim: a number, or the name of a functional
+    definition."""
+
+    ramp: List[int] = Field(default_factory=lambda: [0, 0, 0, 0])
+    """Turn numbers ``[ramp1, ramp2, ramp3, ramp4]`` defining the ramp-up start,
+    flat-top start, flat-top end and ramp-down end (see the MAD-X ``RAMP1..4``
+    parameters and the Xsuite ``ACDipole.ramp``)."""
+
+
+class WireSimulationElement(IgnoreExtra):
+    """
+    Compensating wire simulation element model.
+
+    See the MAD-X ``WIRE`` element and the Xsuite ``Wire`` element. The
+    physical length of the wire is the element's own ``physical.length``
+    (MAD-X ``L``/Xsuite ``L_phy``).
+    """
+
+    current: float = 0.0
+    """Current carried by the wire [A]."""
+
+    interaction_length: float = 0.0
+    """Interaction (effective) length of the wire [m] (MAD-X ``L_INT``, Xsuite
+    ``L_int``)."""
+
+    horizontal_offset: float = 0.0
+    """Horizontal offset of the wire from the reference orbit [m] (``XMA``)."""
+
+    vertical_offset: float = 0.0
+    """Vertical offset of the wire from the reference orbit [m] (``YMA``)."""
+
+
+class BeamBeamSimulationElement(IgnoreExtra):
+    """
+    Beam-beam interaction simulation element model.
+
+    See the MAD-X ``BEAMBEAM`` element (weak-strong kick from an opposing
+    bunch).
+    """
+
+    charge: float = 1.0
+    """Charge of a single particle in the opposing beam, in units of the
+    elementary charge (e.g. ``+1`` for protons/positrons, ``-1`` for
+    electrons) -- matches Xsuite's ``other_beam_q0``. MAD-X's ``CHARGE`` and
+    ELEGANT's ``CHARGE`` (in Coulombs, ``= n_particles * charge * e``) are
+    both derived from this."""
+
+    n_particles: float = 0.0
+    """Number of particles in the opposing (strong) bunch (MAD-X ``NPART``)."""
+
+    horizontal_offset: float = 0.0
+    """Horizontal offset of the opposing bunch centroid [m] (``XMA``)."""
+
+    vertical_offset: float = 0.0
+    """Vertical offset of the opposing bunch centroid [m] (``YMA``)."""
+
+    horizontal_sigma: float = 0.0
+    """Horizontal RMS beam size of the opposing bunch [m] (``SIGX``)."""
+
+    vertical_sigma: float = 0.0
+    """Vertical RMS beam size of the opposing bunch [m] (``SIGY``)."""
+
+    width: float = 0.0
+    """Bunch length of the opposing bunch [m], for the 3D weak-strong model
+    (``WIDTH``)."""
+
+
+class RFMultipoleSimulationElement(IgnoreExtra):
+    """
+    Thin RF multipole simulation element model.
+
+    See the MAD-X ``RFMULTIPOLE`` element and the Xsuite ``RFMultipole``
+    element -- a zero-length multipole kick whose strength oscillates at an RF
+    frequency, up to 5th order (dipole through decapole).
+    """
+
+    frequency: float = 0.0
+    """RF frequency [Hz]."""
+
+    phase: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Overall phase lag [deg]. Stored verbatim: a number, or the name of a
+    functional definition."""
+
+    field_amplitude: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Longitudinal voltage [V] (MAD-X ``VOLT``). Stored verbatim: a number, or
+    the name of a functional definition."""
+
+    knl: List[float] = Field(default_factory=lambda: [0.0] * 5)
+    """Integrated normal multipole strengths, order 0 (dipole) to 4 (decapole)."""
+
+    ksl: List[float] = Field(default_factory=lambda: [0.0] * 5)
+    """Integrated skew multipole strengths, order 0 (dipole) to 4 (decapole)."""
+
+    pnl: List[float] = Field(default_factory=lambda: [0.0] * 5)
+    """Phase of the normal multipole components [deg], order 0 to 4."""
+
+    psl: List[float] = Field(default_factory=lambda: [0.0] * 5)
+    """Phase of the skew multipole components [deg], order 0 to 4."""

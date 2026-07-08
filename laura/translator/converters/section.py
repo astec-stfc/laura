@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict, Any
 from warnings import warn
 from textwrap import wrap
@@ -11,9 +12,16 @@ from .cavity import RFCavityTranslator
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
 from .wake import WakefieldTranslator
+from .ac_dipole import ACDipoleTranslator
 from .codes.gpt import gpt_ccs, gpt_Zminmax, gpt_dtmint
-from ..utils.functions import tw_cavity_energy_gain
+from ..utils.functions import (
+    tw_cavity_energy_gain,
+    elegant_functional_definitions,
+    madx_functional_definitions,
+)
 from ..utils.fields import field
+from ...models.baseModels import IgnoreExtra
+from ..utils.functions import sanitize_string
 from .codes import (
     astra_unsupported,
     cheetah_unsupported,
@@ -104,6 +112,9 @@ class SectionLatticeTranslator(SectionLattice):
                 "order": section.model_copy().order,
                 "elements": section.model_copy().elements,
                 "master_lattice": section.model_copy().master_lattice,
+                "functional_definitions": section.functional_definitions,
+                "resolve_functional": section.resolve_functional,
+                "revolution_frequency": section.revolution_frequency,
             }
         )
 
@@ -206,7 +217,12 @@ class SectionLatticeTranslator(SectionLattice):
         return astrastr
 
     def to_gpt(
-        self, startz: float, endz: float, Brho: float = 0.0, dtmin: float | None = None
+            self,
+            startz: float,
+            endz: float,
+            Brho: float = 0.0,
+            dtmin: float | None = None,
+            charge_sign: int = -1,
     ) -> str:
         """
         Create a GPT-compatible input file based on the lattice information and
@@ -225,6 +241,8 @@ class SectionLatticeTranslator(SectionLattice):
             Magnetic rigidity.
         dtmin: float, optional
             Minimum time step size for integration
+        charge_sign: int, optional
+            Particle charge sign
 
         Returns
         -------
@@ -240,14 +258,16 @@ class SectionLatticeTranslator(SectionLattice):
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
                 ccs = gpt_ccs(
                     name="wcs",
-                    position=element.physical.start.model_dump(),
-                    rotation=element.physical.global_rotation.model_dump(),
+                    position=list(element.physical.start.model_dump().values()),
+                    rotation=list(element.physical.global_rotation.model_dump().values()),
                 )
-            fulltext += element.to_gpt(Brho, ccs=ccs.name)
+            element.ccs = ccs
+            fulltext += element.to_gpt(Brho, **kwargs)
             if element.hardware_type.lower() == "rfcavity" and isinstance(
                 element.simulation.wakefield_definition, field
             ):
@@ -266,19 +286,19 @@ class SectionLatticeTranslator(SectionLattice):
                     ),
                     directory=element.directory,
                 )
-                fulltext += w.to_gpt(Brho, ccs=ccs.name)
-            new_ccs = element.ccs
+                fulltext += w.to_gpt(Brho, **kwargs)
+            new_ccs = deepcopy(element.ccs)
             if not new_ccs.name == ccs.name:
                 relpos, relrot = ccs.relative_position(
-                    element.physical.middle.model_dump(),
-                    element.physical.global_rotation.model_dump(),
+                    list(element.physical.middle.model_dump().values()),
+                    list(element.physical.global_rotation.model_dump().values()),
                 )
             else:
-                relpos = element.physical.middle.model_dump()
+                relpos = list(element.physical.middle.model_dump().values())
             screen0pos = 0
-            ccs = new_ccs
-            if element.hardware_class.lower() == "diagnostic":
-                fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2])}, {ccs.name_as_str});\n'
+            ccs = deepcopy(new_ccs)
+            if element.hardware_class.lower() == "diagnostic" or element.hardware_type.lower() == "marker":
+                fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2]+0.001)}, {ccs.name_as_str});\n'
                 # if self.gpt_headers["setfile"].particle_definition == "laser":
         lastelem = list(elem_dict.values())[-1]
         lastscreen = DiagnosticTranslator(
@@ -291,13 +311,13 @@ class SectionLatticeTranslator(SectionLattice):
             ),
             physical=lastelem.physical,
         )
-        fulltext += lastscreen.to_gpt(Brho, ccs=ccs.name, output_ccs="wcs")
+        fulltext += lastscreen.to_gpt(Brho, output_ccs="wcs")
         relpos, relrot = ccs.relative_position(
-            lastelem.physical.end.model_dump(),
-            lastelem.physical.global_rotation.model_dump(),
+            list(lastelem.physical.end.model_dump().values()),
+            list(lastelem.physical.global_rotation.model_dump().values()),
         )
         fulltext += (
-            f'screen({ccs.name_as_str}, "I", {str(relpos[2])}, {ccs.name_as_str});\n'
+            f'screen("wcs", "I", {lastelem.physical.end.z}, "wcs");\n'
         )
         zminmax = gpt_Zminmax(
             ECS='"wcs", "I"',
@@ -391,7 +411,7 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += s + ", "
         return fulltext[:-2] + "\n"
 
-    def to_elegant(self, charge: float = None) -> str:
+    def to_elegant(self, charge: float | None = None) -> str:
         """
         Create an ELEGANT-compatible input file based on the lattice information.
 
@@ -430,11 +450,21 @@ class SectionLatticeTranslator(SectionLattice):
             lstring += f"{elem}, "
         lstring = f"{lstring[:-2]})" + "\n"
         lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return string + lstring
+        return elegant_functional_definitions(self.functional_definitions) + string + lstring
 
-    def to_genesis(self) -> str:
+    def to_genesis(self, split_element: str | None = None, chicanes: Dict | None = None) -> str:
         """
         Create a Genesis-compatible input file based on the lattice information.
+
+        Parameters
+        ----------
+        split_element: str, optional
+            Name of the element at which to split the lattice into two sections for Genesis
+            (e.g., for simulating a two-stage FEL). If `None`, no split is performed.
+        chicanes: Dict, optional
+            Dictionary defining chicane parameters to be added to the lattice.
+            Keys are chicane element names, and values contain `start`, `end`, `r56`, `dipole_length`, `drift_length`,
+            with the last of these being the drift length between the first and second dipoles.
 
         Returns
         -------
@@ -449,15 +479,77 @@ class SectionLatticeTranslator(SectionLattice):
             directory=self.directory,
         )
         string = ""
+        starts = []
+        ends = []
+        if isinstance(chicanes, dict):
+            for chic in chicanes.values():
+                self.check_chicane(chic)
+                starts.append(chic["start"])
+                ends.append(chic["end"])
+            elem_dict_upd = deepcopy(elem_dict)
+            chicane = False
+            chicane_index = 1
+            chicane_done = False
+            for k, v in elem_dict.items():
+                if k in starts:
+                    chicane = True
+                    chicane_done = False
+                if not chicane:
+                    elem_dict_upd.update({k: v})
+                else:
+                    if not chicane_done:
+                        cstr = f"{chicane_index}{starts[chicane_index-1]}: CHICANE = " + "{"
+                        chicname = list(chicanes.keys())[chicane_index - 1]
+                        cstr += f"l = {chicanes[chicname]['length']}, "
+                        cstr += f"delay = {2 * chicanes[chicname]['r56']}, "
+                        cstr += f"lb = {chicanes[chicname]['dipole_length']}, "
+                        cstr += f"ld = {chicanes[chicname]['drift_length']}" + "};\n"
+                        elem_dict_upd.update({f"{starts[chicane_index-1]}": cstr})
+                        chicane_index += 1
+                        chicane_done = True
+                if k in ends:
+                    chicane = False
+            elem_dict = elem_dict_upd
 
-        for d in elem_dict.values():
-            string += d.to_genesis()
-
+        for i, d in enumerate(elem_dict.values()):
+            if isinstance(d , str):
+                string += d
+            else:
+                string += d.to_genesis(index=i)
         string += f"{self.name}: LINE = " + "{"
-        for elem in section_with_drifts.keys():
-            string += f"{elem}, "
+        for i, elem in enumerate(elem_dict.keys()):
+            if elem in starts:
+                string += f"{elem_dict[starts[starts.index(elem)]][0]}{starts[starts.index(elem)]}, "
+            else:
+                string += f"{i}{elem}, "
         string = f"{string[:-2]}" + "};\n"
+        if isinstance(split_element, str):
+            if split_element in elem_dict.keys():
+                string += f"{self.name}_SPLIT_1: LINE = " + "{"
+                for i, elem in enumerate(elem_dict.keys()):
+                    if elem == split_element:
+                        break
+                    else:
+                        if elem in starts:
+                            string += f"{elem_dict[starts[starts.index(elem)]][0]}{starts[starts.index(elem)]}, "
+                        else:
+                            string += f"{i}{elem}, "
+                string = f"{string[:-2]}" + "};\n"
+                string += f"{self.name}_SPLIT_2: LINE = " + "{"
+                add = False
+                for i, elem in enumerate(elem_dict.keys()):
+                    if elem == split_element:
+                        add = True
+                    if add:
+                        if elem in starts:
+                            string += f"{elem_dict[starts[starts.index(elem)]][0]}{starts[starts.index(elem)]}, "
+                        else:
+                            string += f"{i}{elem}, "
+                string = f"{string[:-2]}" + "};\n"
+            else:
+                warn(f"Element {split_element} not found in section {self.name} for GENESIS split.")
         return string
+
 
     def to_ocelot(self, save=False) -> "MagneticLattice":
         """
@@ -477,7 +569,7 @@ class SectionLatticeTranslator(SectionLattice):
         from ocelot.cpbd.transformations.second_order import SecondTM
         from ocelot.cpbd.transformations.kick import KickTM
         from ocelot.cpbd.transformations.runge_kutta import RungeKuttaTM
-        from ocelot.cpbd.elements import Octupole, Undulator, Marker
+        from ocelot.cpbd.elements import Octupole, Undulator
         self._check_elements_supported("ocelot")
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
@@ -490,7 +582,12 @@ class SectionLatticeTranslator(SectionLattice):
         elements = []
 
         for d in elem_dict.values():
-            elements.append(d.to_ocelot())
+            obj = d.to_ocelot()
+            if isinstance(obj, (list, tuple)):
+                # e.g. a Combined_Corrector split into an Hcor + Vcor pair.
+                elements.extend(obj)
+            else:
+                elements.append(obj)
 
         maglat = MagneticLattice(elements, method=method)
         if save:
@@ -566,17 +663,57 @@ class SectionLatticeTranslator(SectionLattice):
 
         if not isinstance(env, xt.Environment):
             env = xt.Environment()
+        # Register this lattice's functional definitions (cascaded from the
+        # SectionLattice/MachineModel, and loaded from a YAML file if specified)
+        # as Environment variables, so elements can reference them symbolically
+        # (e.g. k1="kquad"). Fall back to the shared registry if the section was
+        # built without its own definitions. Skipped in resolution mode, where the
+        # values are baked in as numbers instead.
+        if not IgnoreExtra.resolve_functional:
+            for name, value in (
+                self.functional_definitions or IgnoreExtra.functional_definitions
+            ).items():
+                env[name] = value
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        def _is_symbolic(val: Any) -> bool:
+            # A plain categorical/string parameter (e.g. ACDipole's `plane`)
+            # is not symbolic -- only a string that names an actual functional
+            # definition (or an expression referencing one, e.g. "-(name)" /
+            # "name / length") should route through the deferred-expression
+            # `env.new()` path; other strings must go through direct
+            # construction instead, since `env.new()` only supports a limited
+            # allow-list of element classes.
+            if isinstance(val, str):
+                return any(
+                    nam in val for nam in IgnoreExtra.functional_definitions
+                )
+            if isinstance(val, (list, tuple)):
+                return any(_is_symbolic(v) for v in val)
+            return False
+
         line = env.new_line()
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
-                name, component, properties = element.to_xsuite(beam_length=beam_length)
-                line.append(element.name, component(**properties))
+                if isinstance(element, ACDipoleTranslator):
+                    name, component, properties = element.to_xsuite(
+                        beam_length=beam_length,
+                        revolution_frequency=self.revolution_frequency,
+                    )
+                else:
+                    name, component, properties = element.to_xsuite(beam_length=beam_length)
+                if any(_is_symbolic(v) for v in properties.values()):
+                    # Symbolic/functional parameters (e.g. k1="kquad"): build the
+                    # element through the Environment so the references are bound
+                    # as deferred expressions, then append it to the line by name.
+                    env.new(element.name, component, **properties)
+                    line.append(element.name)
+                else:
+                    line.append(element.name, component(**properties))
         if isinstance(particle_ref, xt.Particles):
             line.particle_ref = particle_ref
         if save:
@@ -631,6 +768,46 @@ class SectionLatticeTranslator(SectionLattice):
         for h in self.csrtrack_headers.values():
             csrtrackstr += h.write_CSRTrack()
         return csrtrackstr
+
+    def to_madx(self) -> str:
+        """
+        Create a MAD-X-compatible ``SEQUENCE`` definition based on the lattice
+        information, suitable for :meth:`cpymad.madx.Madx.input` (see the
+        `MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html>`_).
+
+        Elements are placed with ``refer=entry`` at their entrance s-position.
+        Explicit ``drift`` elements are inserted between elements via
+        :meth:`createDrifts` and written into the sequence like any other
+        element, which is the standard way of constructing a MAD-X lattice
+        (rather than relying on MAD-X's implicit gap-filling between elements
+        placed without a contiguous ``at=``).
+
+        Returns
+        -------
+        str
+            A MAD-X-compatible ``SEQUENCE`` definition, prefixed with variable
+            declarations for any functional definitions used symbolically by
+            the lattice's elements.
+        """
+        section_with_drifts = self.createDrifts()
+        elem_dict = translate_elements(
+            section_with_drifts.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        svals = self.get_s_values(as_dict=True, at_entrance=True)
+        exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
+        length = max(exit_svals.values()) if exit_svals else 0.0
+        fulltext = ""
+        for d in elem_dict.values():
+            at = d.physical.start.z if d.subelement else svals[d.name]
+            fulltext += d.to_madx(at=at)
+
+        seqstring = madx_functional_definitions(self.functional_definitions)
+        seqstring += f"{sanitize_string(self.name)}: SEQUENCE, refer=entry, l = {length};\n"
+        seqstring += fulltext
+        seqstring += "ENDSEQUENCE;\n"
+        return seqstring
 
     def to_wake_t(self) -> "Beamline":
         """

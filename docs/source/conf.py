@@ -149,11 +149,6 @@ autodoc_pydantic_model_show_validator_members = (
 autodoc_pydantic_field_doc_policy = "both"  # shows docstrings and Field descriptions
 # autodoc_typehints = "none"
 
-autodoc_mock_imports = [
-    # "laura.models.elementList",  # or whichever module fails
-    "pydantic",  # mock dependencies if needed
-]
-
 numfig = True
 
 

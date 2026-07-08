@@ -46,8 +46,8 @@ We are also happy to help with installation and setting up your accelerator latt
 .. toctree::
    :maxdepth: 2
    :caption: API
-   
-   laura.models
+
+   laura
 
 Indices and tables
 ==================

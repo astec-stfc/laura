@@ -96,6 +96,8 @@ A section lattice must define:
 * ``order: List[str]``: An ordered list of element names defining the sequence along the beam path.
 * ``elements: ElementList``: A container holding the actual element objects.
 * ``master_lattice: str | None``: Optional top-level directory containing lattice files.
+* ``functional_definitions: str | dict``: Optional functional definitions (a mapping or YAML file path); see :ref:`functional-definitions`.
+* ``resolve_functional: bool``: Optional global resolution mode (default ``False``); see :ref:`functional-definitions`.
 
 Key methods and properties include:
 
@@ -130,6 +132,8 @@ A machine layout defines:
 * ``name: str``: The name of the layout/beam path.
 * ``sections: Dict[str, SectionLattice]``: Dictionary of lattice sections, keyed by section name.
 * ``master_lattice: str | None``: Directory containing lattice files.
+* ``functional_definitions: str | dict``: Optional functional definitions (a mapping or YAML file path); see :ref:`functional-definitions`.
+* ``resolve_functional: bool``: Optional global resolution mode (default ``False``); see :ref:`functional-definitions`.
 
 Important methods include:
 
@@ -168,6 +172,8 @@ The machine model includes:
 * ``lattices: Dict[str, MachineLayout]``: All machine layouts (beam paths) defined.
 * ``master_lattice: str | None``: Directory containing lattice YAML files.
 * ``default_path: str``: The default beam path to use when not explicitly specified.
+* ``functional_definitions: str | dict``: Functional definitions for the whole machine (a mapping or YAML file path); see :ref:`functional-definitions`.
+* ``resolve_functional: bool``: Global resolution mode (default ``False``); see :ref:`functional-definitions`.
 
 Key functionality:
 
@@ -206,3 +212,55 @@ section definition is provided:
 The machine model automatically manages the relationships between elements, sections, and layouts, ensuring
 consistency across the entire lattice definition. It provides both dictionary-style access (``model["element_name"]``)
 and method-based queries for flexible interaction with the lattice data.
+
+.. _functional-definitions:
+
+Functional Definitions
+----------------------
+
+Every lattice container — :ref:`section-lattice`, :ref:`machine-layout`, and
+:ref:`machine-model` (and therefore the top-level
+:py:class:`LAURA <laura.laura.LAURA>` class) — accepts two related options that
+govern :ref:`functional parameters <functional-parameters>`, i.e. element
+attributes that are defined symbolically by name rather than as numbers:
+
+* ``functional_definitions: str | dict``: a mapping of functional-parameter names
+  to numeric values (e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``), or a path to a
+  YAML file holding such a mapping (optionally nested under a top-level
+  ``functional_definitions`` key).
+* ``resolve_functional: bool``: the global resolution mode (default ``False``);
+  see :ref:`functional-parameters`.
+
+When provided to a :py:class:`MachineModel <laura.models.elementList.MachineModel>`,
+both are cascaded into the sections and layouts that it builds — and on into the
+translators — so that a single declaration at the top level applies to the whole
+machine.
+
+Loading from a file and validation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    from laura.models.elementList import MachineModel
+
+    model = MachineModel(
+        layout="layouts.yaml",
+        section="sections.yaml",
+        elements=all_elements,
+        functional_definitions="functional_definitions.yaml",
+    )
+
+As the model is built, every functional reference used by an element is validated
+against the available definitions. If an element references a name that is not
+defined, a ``ValueError`` is raised that names the missing parameter, the
+element(s) that use it, and the source (the YAML file path, or the supplied
+dictionary).
+
+Export behaviour
+~~~~~~~~~~~~~~~~
+
+When exporting with the :ref:`translator`, codes that do not support symbolic
+parameters always receive resolved numbers. Codes that do — ELEGANT (via a
+``% <value> sto <name>`` rpn store at the top of the file) and Xsuite (via
+variables on the ``xt.Environment``) — render the symbolic references by default,
+or resolved numbers when ``resolve_functional`` is ``True``.

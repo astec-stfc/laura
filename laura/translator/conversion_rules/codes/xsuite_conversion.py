@@ -1,5 +1,6 @@
 from xtrack.beam_elements import Solenoid as Solenoid_xs
 from xtrack.beam_elements import Bend as Bend_xs
+from xtrack.beam_elements import RBend as RBend_xs
 from xtrack.beam_elements import DipoleEdge as DipoleEdge_xs
 from xtrack.beam_elements import Quadrupole as Quadrupole_xs
 from xtrack.beam_elements import Sextupole as Sextupole_xs
@@ -31,6 +32,7 @@ from laura.models.element import (
 
 xsuite_conversion_rules_reverse = {
     Bend_xs: Dipole,
+    RBend_xs: Dipole,
     DipoleEdge_xs: Marker,
     Solenoid_xs: Solenoid,
     Quadrupole_xs: Quadrupole,
@@ -73,9 +75,9 @@ xsuite_conversion_rules = {
     "Cleaner": Drift_xs,
     "Drift": Drift_xs,
     "NonLinearLens": NonLinearLens_xs,
-    "Combined_Corrector": Bend_xs,
-    "Horizontal_Corrector": Bend_xs,
-    "Vertical_Corrector": Bend_xs,
+    "Combined_Corrector": Multipole_xs,
+    "Horizontal_Corrector": Multipole_xs,
+    "Vertical_Corrector": Multipole_xs,
     "Scatter": Marker_xs,
     "APContour": Marker_xs,
     "Center": Marker_xs,

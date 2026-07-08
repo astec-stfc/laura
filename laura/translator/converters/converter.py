@@ -7,6 +7,7 @@ from laura.models.element import (
     Dipole,
     RFCavity,
     RFDeflectingCavity,
+    CrabCavity,
     Drift,
     Aperture,
     Diagnostic,
@@ -21,6 +22,11 @@ from laura.models.element import (
     TwissMatch,
     Screen,
     MatrixTransform,
+    ElectrostaticSeparator,
+    ACDipole,
+    Wire,
+    BeamBeam,
+    RFMultipole,
 )
 
 from .base import BaseElementTranslator
@@ -30,6 +36,7 @@ from .magnet import (
     DipoleTranslator,
     WigglerTranslator,
     NonLinearLensTranslator,
+    CorrectorTranslator,
 )
 from .cavity import RFCavityTranslator
 from .drift import DriftTranslator
@@ -39,6 +46,11 @@ from .plasma import PlasmaTranslator
 from .laser import LaserTranslator
 from .twiss import TwissMatchTranslator
 from .matrix import MatrixTransformTranslator
+from .electrostatic_separator import ElectrostaticSeparatorTranslator
+from .ac_dipole import ACDipoleTranslator
+from .wire import WireTranslator
+from .beam_beam import BeamBeamTranslator
+from .rf_multipole import RFMultipoleTranslator
 
 
 def translate_elements(
@@ -69,11 +81,13 @@ def translate_elements(
         if isinstance(elem, Magnet):
             if isinstance(elem, Solenoid):
                 translator = SolenoidTranslator
-            elif isinstance(elem, Dipole) and not type(elem) in [
+            elif type(elem) in [
                 Combined_Corrector,
                 Horizontal_Corrector,
                 Vertical_Corrector,
             ]:
+                translator = CorrectorTranslator
+            elif isinstance(elem, Dipole):
                 translator = DipoleTranslator
             elif isinstance(elem, Wiggler):
                 translator = WigglerTranslator
@@ -81,7 +95,7 @@ def translate_elements(
                 translator = NonLinearLensTranslator
             else:
                 translator = MagnetTranslator
-        elif type(elem) in [RFCavity, RFDeflectingCavity]:
+        elif type(elem) in [RFCavity, RFDeflectingCavity, CrabCavity]:
             translator = RFCavityTranslator
         elif isinstance(elem, Drift):
             translator = DriftTranslator
@@ -95,6 +109,18 @@ def translate_elements(
             translator = LaserTranslator
         elif isinstance(elem, TwissMatch):
             translator = TwissMatchTranslator
+        elif isinstance(elem, MatrixTransform):
+            translator = MatrixTransformTranslator
+        elif isinstance(elem, ElectrostaticSeparator):
+            translator = ElectrostaticSeparatorTranslator
+        elif isinstance(elem, ACDipole):
+            translator = ACDipoleTranslator
+        elif isinstance(elem, Wire):
+            translator = WireTranslator
+        elif isinstance(elem, BeamBeam):
+            translator = BeamBeamTranslator
+        elif isinstance(elem, RFMultipole):
+            translator = RFMultipoleTranslator
         else:
             translator = BaseElementTranslator
         elem_dict.update({elem.name: translator.model_validate(elem.model_dump())})

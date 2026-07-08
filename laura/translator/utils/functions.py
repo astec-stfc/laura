@@ -3,8 +3,94 @@ import os
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
+
 from laura.models.element import Magnet
+from laura.models.baseModels import IgnoreExtra
 from typing import Any, Dict, Type, get_args, get_origin, Union, Literal
+from .fields import field
+
+
+def elegant_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the ELEGANT rpn-store header declaring every functional definition for
+    the lattice, e.g.::
+
+        % -2 sto quad1_k1l
+        % 90 sto cav1_phase
+
+    Element keywords that reference a functional parameter are written as quoted
+    rpn variable references (e.g. ``VOLT="V_L02.01"``), which ELEGANT resolves
+    against these stored values.
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        The ``% <value> sto <name>`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no rpn store needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(
+        f"% {value} sto {name}\n" for name, value in definitions.items()
+    )
+
+
+def madx_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the MAD-X variable-declaration header assigning every functional
+    definition for the lattice, e.g.::
+
+        quad1_k1l = -2;
+        cav1_phase = 90;
+
+    Element keywords that reference a functional parameter are written as
+    infix expressions (e.g. ``k1 := quad1_k1l / 0.1``), which MAD-X resolves
+    against these variable assignments (and keeps updated as deferred
+    expressions, ``:=``, wherever a symbolic value is used).
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        A ``<name> = <value>;`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no header needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(
+        f"{name} = {value};\n" for name, value in definitions.items()
+    )
+
+def sanitize_string(string: str) -> str:
+    """
+    Replaces hyphens in a string with underscores.
+
+    Parameters
+    ----------
+    string: str
+        Any string
+
+    Returns
+    -------
+    str
+        A string with hyphens replaced with underscores
+    """
+    return string.replace("-", "_")
 
 
 class Counter(dict):
@@ -12,25 +98,25 @@ class Counter(dict):
         super().__init__()
         self.sub = sub
 
-    def counter(self, type):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
+    def counter(self, typ):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
             return 1
-        return self[type] + 1
+        return self[typ] + 1
 
-    def value(self, type):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
+    def value(self, typ):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
             return 1
-        return self[type]
+        return self[typ]
 
-    def add(self, type, n=1):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
-            self[type] = n
+    def add(self, typ, n=1):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
+            self[typ] = n
         else:
-            self[type] += n
-        return self[type]
+            self[typ] += n
+        return self[typ]
 
 
 def convert_numpy_types(v):
@@ -113,7 +199,7 @@ def lattice_to_cartesian(elements):
         cond1 = elem.hardware_type.lower() != "dipole"
         cond2 = False
         if isinstance(elem, Magnet):
-            if abs(elem.magnetic.angle) > 1e-9:
+            if abs(elem.magnetic.KnL(0)) > 1e-9:
                 cond2 = True
         if cond1 and cond2:
             L = elem.physical.length
@@ -123,7 +209,7 @@ def lattice_to_cartesian(elements):
             x, y, z = x + dx, y + dy, z + dz
             positions.append((x, y, z))
         else:  # horizontal bend in x-z plane
-            L, phi, tilt = elem.physical.length, elem.magnetic.angle, elem.magnetic.tilt
+            L, phi, tilt = elem.physical.length, elem.magnetic.KnL(0), elem.magnetic.tilt
             if np.isclose(tilt, 0):
                 R = L / phi
                 cx = x - R * np.sin(theta_h)
@@ -148,9 +234,9 @@ def lattice_to_cartesian(elements):
 
 def sanitize_kwargs(model_cls: type[BaseModel], data: dict[str, Any]) -> dict[str, Any]:
     sanitized = {}
-    for field_name, field in model_cls.model_fields.items():
+    for field_name, fiel in model_cls.model_fields.items():
         value = data.get(field_name, None)
-        annotation = field.annotation
+        annotation = fiel.annotation
         origin = get_origin(annotation)
         args = get_args(annotation)
 
@@ -187,15 +273,15 @@ def _is_valid_type(value: Any, annotation: Any) -> bool:
     return isinstance(value, annotation)
 
 
-def get_field_default(field: FieldInfo) -> Any:
+def get_field_default(fiel: FieldInfo) -> Any:
     """Get the default value or instance from a field definition."""
-    if callable(field.default_factory):
+    if callable(fiel.default_factory):
         try:
-            return field.default_factory()
+            return fiel.default_factory()
         except Exception:
             return "FACTORY_ERROR"
-    if field.default is not None:
-        return field.default
+    if fiel.default is not None:
+        return fiel.default
     return None
 
 
@@ -208,8 +294,8 @@ def introspect_model_defaults(
     """Recursively introspect a Pydantic model class, extracting default values (including nested)."""
     result = {}
 
-    for field_name, field in model_cls.model_fields.items():
-        default_value = get_field_default(field)
+    for field_name, fiel in model_cls.model_fields.items():
+        default_value = get_field_default(fiel)
 
         # If the default value is a BaseModel (e.g., from default_factory), recurse
         if isinstance(default_value, BaseModel):
@@ -236,7 +322,7 @@ def introspect_model_defaults(
     return result
 
 
-def isevaluable(self, s):
+def isevaluable(s):
     try:
         eval(s)
         return True
@@ -262,7 +348,7 @@ def expand_substitution(self, param, master_lattice="./", subs=None, elements=No
         regex = re.compile(r"\$(.*?)\$")
         s = re.search(regex, param)
         if s:
-            if isevaluable(self, s.group(1)) is True:
+            if isevaluable(s.group(1)):
                 replaced_str = str(eval(re.sub(regex, str(eval(s.group(1))), param)))
             else:
                 replaced_str = re.sub(regex, s.group(1), param)
@@ -308,7 +394,7 @@ def checkValue(self, d, default=None):
         )
 
 
-def tw_cavity_energy_gain(cavity):
+def tw_cavity_energy_gain(cavity: "laura.translator.converters.cavity.RFCavityTranslator"):
     """
     Estimate energy gain in a travelling-wave RF cavity.
 

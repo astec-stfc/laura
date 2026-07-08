@@ -1,12 +1,15 @@
 import re
+from typing import List
 import json
 import yaml
 import os
+from pprint import pprint
+from warnings import warn
 from yaml import CSafeLoader as Loader
-from pydantic import TypeAdapter, BaseModel
+from pydantic import TypeAdapter, ValidationError, BaseModel
 
 # Import elements before building registry
-from ..models.element import *  # noqa
+from ..models.element import ELEMENT_REGISTRY
 
 # Fast metadata extraction regex
 _NAME_RE = re.compile(r'^\s*name:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE)
@@ -110,20 +113,20 @@ def get_all_subclasses(cls):
         subclasses.update(get_all_subclasses(sub))
     return subclasses
 
-ALL_MODELS = get_all_subclasses(BaseModel)
+_MODEL_REGISTRY = None
 
-MODEL_REGISTRY = {
-    cls.__name__: cls
-    for cls in ALL_MODELS
-}
+def get_model_registry():
+    global _MODEL_REGISTRY
+    if _MODEL_REGISTRY is None:
+        ALL_MODELS = get_all_subclasses(BaseModel)
+        _MODEL_REGISTRY = {cls.__name__: cls for cls in ALL_MODELS}
+    return _MODEL_REGISTRY
+
 
 class LazyAdapterDict(dict):
-    """
-    Lazy lookup of TypeAdapters to avoid initializing all 100+ adapters on import.
-    """
     def get(self, key, default=None):
         if key not in self:
-            model = MODEL_REGISTRY.get(key)
+            model = ELEMENT_REGISTRY.get(key)
             if model is None:
                 return default
             self[key] = TypeAdapter(model)
@@ -139,10 +142,12 @@ def filter_top_level(elem: dict, exclude_keys: List[str] | None = None) -> dict:
 def interpret_YAML_Element(elem: dict, exclude_set=None):
     hw_type = elem.get("hardware_type")
     if not hw_type:
+        warn(f"hardware_type not found in element {elem.get('name', 'unknown')}; returning None")
         return None
 
     adapter = ADAPTERS.get(hw_type)
     if adapter is None:
+        warn(f"adapter not found in element {elem.get('name', 'unknown')}; returning None")
         return None
 
     if exclude_set:
@@ -150,8 +155,10 @@ def interpret_YAML_Element(elem: dict, exclude_set=None):
 
     try:
         return adapter.validate_python(elem)
-    except Exception:
-        return None
+    except ValidationError as e:
+        pprint(e.errors(), width=200)
+    warn(f"Could not interpret {elem.get('name', 'unknown')}; returning None")
+    return None
 
 
 def read_YAML_Element_File(filename: str, exclude_keys: List[str] | None = None):
