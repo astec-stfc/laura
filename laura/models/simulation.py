@@ -245,7 +245,7 @@ class RFCavitySimulationElement(SimulationElement):
     """
 
     field_amplitude: Union[float, str] = Field(
-        default=0, json_schema_extra={"functional": True}
+        default=0.0, json_schema_extra={"functional": True}
     )
     """Cavity field amplitude. Stored verbatim: a number or a string naming a
     functional definition (resolve via ``resolved("field_amplitude")``)."""
