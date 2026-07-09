@@ -55,6 +55,39 @@ def get_rftrack():
     return _rft
 
 
+def space_charge_engine(npart, sample_interval: int = 1, mirror_z=None):
+    """
+    Build an ``RF_Track.SpaceCharge_PIC_FreeSpace`` engine (manual §5.1.3), with
+    an ``Nx=Ny=Nz`` mesh computed exactly as ASTRA sizes its space-charge grid:
+    the nearest power of two to the cube root of the (down-sampled) particle
+    count, minimum 4 (``laura.translator.utils.classes.getGrids``).
+
+    Parameters
+    ----------
+    npart: int
+        Number of macro-particles in the bunch.
+    sample_interval: int
+        Particle down-sampling factor, as ASTRA's ``&CHARGE`` uses (grid is
+        sized from ``npart / sample_interval``).
+    mirror_z: float or None
+        If not ``None``, activate cathode mirror charges (manual §7.5) with the
+        cathode plane at longitudinal position ``mirror_z`` [m] via
+        ``SpaceCharge.set_mirror``.
+
+    Returns
+    -------
+    RF_Track.SpaceCharge_PIC_FreeSpace
+    """
+    from ...utils.classes import getGrids
+
+    rft = get_rftrack()
+    n = int(getGrids().getGridSizes(npart / max(1, sample_interval)))
+    sc = rft.SpaceCharge_PIC_FreeSpace(n, n, n)
+    if mirror_z is not None:
+        sc.set_mirror(mirror_z)
+    return sc
+
+
 def _format_args(args) -> str:
     """Render a tuple of constructor arguments as Python source text (used by
     every ``repr_*`` function below)."""
