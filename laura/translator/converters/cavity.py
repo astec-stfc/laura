@@ -486,10 +486,16 @@ class RFCavityTranslator(BaseElementTranslator):
                     functional = self.is_functional(value) and not self._resolve_functional
                     deferred = functional
                     if key == "lag":
+                        # LAURA phase is off-crest-is-zero [deg]; MAD-X LAG is a
+                        # fraction of a full RF cycle with the crest at 0.25 (sine
+                        # convention), so lag = (90 - phase) / 360. The phase enters
+                        # with a MINUS sign (as for ELEGANT `90 - phase` and OPAL
+                        # `-phase`); a `+` here matches the synchronous energy gain
+                        # (cos is even) but flips the sign of the chirp.
                         value = (
-                            f"(90 + ({value})) / 180"
+                            f"(90 - ({value})) / 360"
                             if functional
-                            else (90 + value) / 360.0
+                            else (90 - value) / 360.0
                         )
                     if key == "volt":
                         if self.structure_type == "TravellingWave":
