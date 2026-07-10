@@ -430,8 +430,8 @@ class RFCavityTranslator(BaseElementTranslator):
                 # transforms below are keyed on the converted Xsuite names
                 # (phase -> lag, field_amplitude -> voltage).
                 functional = self.is_functional(value)
-                if key == "lag" and not functional:
-                    value = 90 - value
+                if key == "phase" and not functional:
+                    value = np.radians(90 - value)
                 if key == "voltage" and not functional:
                     if self.structure_type == "TravellingWave":
                         value = value * abs(
