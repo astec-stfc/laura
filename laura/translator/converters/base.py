@@ -499,12 +499,12 @@ class BaseElementTranslator(PhysicalBaseElement):
                 keyword_conversion_rules_elegant[updated_type.lower()]
                 | keyword_conversion_rules_elegant["general"]
             )
-            element = elements_Elegant[self._convertType_Elegant(updated_type).lower()]
+            element = elements_Elegant.get(self._convertType_Elegant(updated_type).lower(), "drift")
         else:
             conversion_rules = self.conversion_rules["elegant"]
-            element = elements_Elegant[
-                self._convertType_Elegant(self.hardware_type).lower()
-            ]
+            element = elements_Elegant.get(
+                self._convertType_Elegant(self.hardware_type).lower(), "drift"
+            )
         for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
@@ -553,10 +553,10 @@ class BaseElementTranslator(PhysicalBaseElement):
                 keyword_conversion_rules_genesis[updated_type.lower()]
                 | keyword_conversion_rules_genesis["general"]
             )
-            element = elements_Genesis[self._convertType_Genesis(updated_type)]
+            element = elements_Genesis.get(self._convertType_Genesis(updated_type), "drift")
         else:
             conversion_rules = self.conversion_rules["genesis"]
-            element = elements_Genesis[self._convertType_Genesis(self.hardware_type)]
+            element = elements_Genesis.get(self._convertType_Genesis(self.hardware_type), "drift")
         for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
@@ -582,12 +582,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         from ..conversion_rules.codes import ocelot_conversion
         from ocelot.cpbd.elements.drift import Drift as Drift_Oce
 
-        type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
-        return (
-            type_conversion_rules_Ocelot[etype]
-            if etype in type_conversion_rules_Ocelot
-            else Drift_Oce
-        )
+        return ocelot_conversion.ocelot_conversion_rules.get(etype, Drift_Oce)
 
     def _convertKeyword_Ocelot(self, keyword: str, updated_type: str = "") -> str:
         """
@@ -628,12 +623,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         from ..conversion_rules.codes import cheetah_conversion
         from cheetah.accelerator import Drift as Drift_Che
 
-        type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
-        return (
-            type_conversion_rules_Cheetah[etype]
-            if etype in type_conversion_rules_Cheetah
-            else Drift_Che
-        )
+        return cheetah_conversion.cheetah_conversion_rules.get(etype, Drift_Che)
 
     def _convertKeyword_Cheetah(self, keyword: str) -> str:
         """
