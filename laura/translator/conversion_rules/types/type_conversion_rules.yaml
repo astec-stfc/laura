@@ -102,6 +102,7 @@ opal:
   Aperture: monitor
   Marker: monitor
   Photon_Monitor: monitor
+  Shutter: drift
 madx:
   Dipole: sbend
   Quadrupole: quadrupole
