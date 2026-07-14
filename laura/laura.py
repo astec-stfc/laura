@@ -106,7 +106,13 @@ class LAURA(MachineModel):
             elif os.path.isdir(os.path.abspath(os.path.dirname(__file__) + "/" + v)):
                 return os.path.abspath(os.path.dirname(__file__) + "/" + v)
             else:
-                raise ValueError(f"Directory {v} does not exist")
+                # Not resolvable relative to the cwd or the laura package;
+                # defer to model_post_init, which resolves the path relative
+                # to master_lattice (the environment-independent anchor the
+                # framework always supplies). Raising here would break any
+                # environment where laura is not installed beside the lattice
+                # files (e.g. laura in site-packages during testing).
+                return v
         else:
             return v
 
