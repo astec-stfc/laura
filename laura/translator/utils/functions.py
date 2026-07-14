@@ -37,7 +37,7 @@ def elegant_functional_definitions(definitions: Dict | None = None) -> str:
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
     return "".join(
-        f"% {value} sto {name}\n" for name, value in definitions.items()
+        f"% {value} sto {name}\n" for name, value in definitions.items() if value
     )
 
 
@@ -71,7 +71,7 @@ def madx_functional_definitions(definitions: Dict | None = None) -> str:
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
     return "".join(
-        f"{name} = {value};\n" for name, value in definitions.items()
+        f"{name} = {value};\n" for name, value in definitions.items() if value
     )
 
 def sanitize_string(string: str) -> str:
