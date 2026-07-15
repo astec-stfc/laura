@@ -1,31 +1,16 @@
 from pydantic import BaseModel, model_serializer, ConfigDict
 from typing import TypeVar, Any, Type, List, Union
-import yaml
 import numpy as np
 from pydantic_core.core_schema import SerializationInfo
 
+from ..utils.dict_utils import (
+    StringWithQuotes as string_with_quotes,
+    FlowList as flow_list,
+    numpy_scalar_to_python,
+)
+
 # Create a generic variable that can be 'Parent', or any subclass.
 T = TypeVar("T", bound="BaseModel")
-
-
-class string_with_quotes(str):
-    pass
-
-
-class flow_list(list):
-    pass
-
-
-def flow_list_rep(dumper, data):
-    return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
-
-
-def quoted_presenter(dumper, data):
-    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
-
-
-yaml.add_representer(string_with_quotes, quoted_presenter)
-yaml.add_representer(flow_list, flow_list_rep)
 
 
 def convert_numpy_types(v: Any) -> Any:
@@ -42,27 +27,7 @@ def convert_numpy_types(v: Any) -> Any:
         return {k: convert_numpy_types(l) for k, l in v.items()}
     if isinstance(v, (np.ndarray, list, tuple)):
         return flow_list([convert_numpy_types(arr) for arr in v])
-    elif isinstance(v, (np.float64, np.float32, np.float16)):
-        return float(v)
-    elif isinstance(
-        v,
-        (
-            np.int_,
-            np.intc,
-            np.intp,
-            np.int8,
-            np.int16,
-            np.int32,
-            np.int64,
-            np.uint8,
-            np.uint16,
-            np.uint32,
-            np.uint64,
-        ),
-    ):
-        return int(v)
-    else:
-        return v
+    return numpy_scalar_to_python(v)
 
 
 class ModelBase(BaseModel):

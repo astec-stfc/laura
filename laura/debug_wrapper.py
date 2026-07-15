@@ -24,18 +24,9 @@ Sub-loggers
     validation failures.
 ``laura.model``
     Model construction events (layout / section building, etc.).
-
-Decorator
----------
-:func:`log_call` can be applied to any function for verbose entry/exit
-tracing at DEBUG level — useful while chasing down loading bugs.
 """
 
 import logging
-import functools
-from typing import Callable, TypeVar, Any
-
-_F = TypeVar("_F", bound=Callable[..., Any])
 
 # ── Library-wide logger (no handlers attached — callers configure these) ──────
 _logger = logging.getLogger("laura")
@@ -71,43 +62,3 @@ def _add_default_handler() -> None:
                           datefmt="%H:%M:%S")
     )
     _logger.addHandler(handler)
-
-
-def log_call(fn: _F) -> _F:
-    """Decorator: log entry, exit, and any exception for *fn* at DEBUG level.
-
-    Usage::
-
-        from laura.debug_wrapper import log_call
-
-        @log_call
-        def my_function(x, y):
-            ...
-
-    The decorated function is otherwise unchanged (return value and
-    exceptions are propagated normally).
-    """
-    logger = logging.getLogger(f"laura.{fn.__module__}.{fn.__qualname__}")
-
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-        if logger.isEnabledFor(logging.DEBUG):
-            arg_summary = ", ".join(
-                [repr(a)[:80] for a in args] +
-                [f"{k}={repr(v)[:80]}" for k, v in kwargs.items()]
-            )
-            logger.debug("→ %s(%s)", fn.__name__, arg_summary)
-        try:
-            result = fn(*args, **kwargs)
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("← %s → %s", fn.__name__, repr(result)[:120])
-            return result
-        except Exception as exc:
-            logger.debug("✗ %s raised %s: %s", fn.__name__, type(exc).__name__, exc)
-            raise
-
-    return wrapper  # type: ignore[return-value]
-
-
-# Legacy alias so existing ``from .debug_wrapper import debug`` still works.
-debug = log_call

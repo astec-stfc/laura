@@ -47,28 +47,7 @@ allowed_fields = [
     "1DQuadrupole",
 ]
 
-allowed_formats = [
-    "astra",
-    "sdds",
-    "opal",
-    "gdf",
-]
-
-fieldtype = Literal[
-    "1DElectroStatic",
-    "1DMagnetoStatic",
-    "1DElectroDynamic",
-    "2DElectroStatic",
-    "2DMagnetoStatic",
-    "2DElectroDynamic",
-    "3DElectroStatic",
-    "3DMagnetoStatic",
-    "3DElectroDynamic",
-    "LongitudinalWake",
-    "TransverseWake",
-    "3DWake",
-    "1DQuadrupole",
-]
+fieldtype = Literal[tuple(allowed_fields)]
 
 cavitytype = Literal[
     "StandingWave",
@@ -419,22 +398,9 @@ class field(BaseModel):
                 "Field file not read in. Use read_field_file to load in an hdf5 field file."
             )
             return
-        # try:
         if code.lower() in ["astra", "ocelot"]:
             return astra.generate_astra_field_data(self)
         return None
-        # elif code.lower() in ["sdds", "elegant"]:
-        #     return sdds.write_SDDS_field_file(self)
-        # elif code.lower() in ["gdf", "gpt"]:
-        #     return gdf.write_gdf_field_file(self)
-        # elif code.lower() == "opal":
-        #     return opal.write_opal_field_file(
-        #         self,
-        #         frequency=self.frequency,
-        #         radius=self.radius,
-        #         fourier=self.fourier,
-        #         orientation=self.orientation,
-        #     )
 
     def write_field_file(self, code: str, location: str | None = None) -> str | None:
         """
@@ -462,7 +428,6 @@ class field(BaseModel):
                 "Field file not read in. Use read_field_file to load in an hdf5 field file."
             )
             return
-        # try:
         if location is not None:
             self._output_location = os.path.dirname(os.path.abspath(location))
         else:
@@ -483,5 +448,3 @@ class field(BaseModel):
             )
         elif code.lower() == "hdf5":
             return hdf5.write_HDF5_field_file(self)
-        # except NotImplementedError:
-        #     print("Supported formats are [astra, sdds, opal, gdf]")

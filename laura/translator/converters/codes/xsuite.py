@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import os
 import numpy as np
-import yaml
 from pydantic import BaseModel, ConfigDict
 from pydantic_core import PydanticUndefinedType
 from typing import Any, Dict, List, TYPE_CHECKING
@@ -24,6 +22,7 @@ from laura.models.elementList import (
     ElementList,
 )
 from . import magnetic_orders
+from .. import keyword_conversion_rules_xsuite as keyword_conversion_rules
 from ...utils.functions import introspect_model_defaults
 from ...conversion_rules.codes import xsuite_conversion
 from warnings import warn
@@ -31,19 +30,6 @@ from warnings import warn
 type_conversion_rules_xsuite_reversed = (
     xsuite_conversion.xsuite_conversion_rules_reverse
 )
-
-
-try:
-    _FastLoader = yaml.CSafeLoader
-except AttributeError:
-    _FastLoader = yaml.SafeLoader
-
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml",
-    "r",
-) as infile:
-    keyword_conversion_rules = yaml.load(infile, Loader=_FastLoader)
 
 
 class XsuiteLatticeConverter(BaseModel):

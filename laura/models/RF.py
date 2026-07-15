@@ -123,10 +123,6 @@ class LLRFChannelIndex(ModelBase):
 class LLRFChannelsBase(ModelBase):
     labels: List[str] = []
 
-    @property
-    def phases(self):
-        pass
-
 
 class LLRFTiming(_LLRFTimingBase):
     pass

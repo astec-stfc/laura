@@ -4,6 +4,7 @@ import logging
 import yaml
 import os
 import pathlib
+import functools
 from yaml import CSafeLoader as Loader
 from pydantic import TypeAdapter, BaseModel
 from typing import List
@@ -141,7 +142,6 @@ ADAPTERS = LazyAdapterDict()
 
 # ── Optional JSON Schema validation ──────────────────────────────────────────
 
-_SCHEMA_CACHE: dict | None = None
 _SCHEMA_PATH = (
     pathlib.Path(__file__).resolve().parent.parent
     / "schema"
@@ -150,19 +150,17 @@ _SCHEMA_PATH = (
 )
 
 
+@functools.cache
 def _get_json_schema() -> dict:
     """Load and cache the generated LAURA JSON Schema."""
-    global _SCHEMA_CACHE
-    if _SCHEMA_CACHE is None:
-        if not _SCHEMA_PATH.exists():
-            raise FileNotFoundError(
-                f"LAURA JSON Schema not found at '{_SCHEMA_PATH}'.  "
-                "Generate it with: gen-json-schema laura/schema/laura_schema.yaml "
-                "--output laura/schema/generated/laura_element.schema.json"
-            )
-        with open(_SCHEMA_PATH, "r") as fh:
-            _SCHEMA_CACHE = json.load(fh)
-    return _SCHEMA_CACHE
+    if not _SCHEMA_PATH.exists():
+        raise FileNotFoundError(
+            f"LAURA JSON Schema not found at '{_SCHEMA_PATH}'.  "
+            "Generate it with: gen-json-schema laura/schema/laura_schema.yaml "
+            "--output laura/schema/generated/laura_element.schema.json"
+        )
+    with open(_SCHEMA_PATH, "r") as fh:
+        return json.load(fh)
 
 
 def validate_element_dict(elem: dict) -> None:

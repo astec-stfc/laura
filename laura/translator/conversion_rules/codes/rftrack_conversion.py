@@ -60,7 +60,7 @@ def space_charge_engine(npart, sample_interval: int = 1, mirror_z=None):
     Build an ``RF_Track.SpaceCharge_PIC_FreeSpace`` engine (manual §5.1.3), with
     an ``Nx=Ny=Nz`` mesh computed exactly as ASTRA sizes its space-charge grid:
     the nearest power of two to the cube root of the (down-sampled) particle
-    count, minimum 4 (``laura.translator.utils.classes.getGrids``).
+    count, minimum 4 (``laura.translator.utils.classes.get_grid_size``).
 
     Parameters
     ----------
@@ -78,10 +78,10 @@ def space_charge_engine(npart, sample_interval: int = 1, mirror_z=None):
     -------
     RF_Track.SpaceCharge_PIC_FreeSpace
     """
-    from ...utils.classes import getGrids
+    from ...utils.classes import get_grid_size
 
     rft = get_rftrack()
-    n = int(getGrids().getGridSizes(npart / max(1, sample_interval)))
+    n = int(get_grid_size(npart / max(1, sample_interval)))
     sc = rft.SpaceCharge_PIC_FreeSpace(n, n, n)
     if mirror_z is not None:
         sc.set_mirror(mirror_z)

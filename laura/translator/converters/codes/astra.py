@@ -6,7 +6,7 @@ ASTRA namelist generator.
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, List, Any
 import numpy as np
-from ...utils.classes import getGrids
+from ...utils.classes import get_grid_size
 
 section_header_text_ASTRA = {
     "&APERTURE": "LApert",
@@ -329,9 +329,6 @@ class astra_charge(astra_header):
     smooth_z: int = 2
     """Smoothing parameter for z-direction. Only for 3D FFT algorithm."""
 
-    grids: getGrids | None = None
-    """Space charge grids"""
-
     objectname: str = "charge"
     """Name of object"""
 
@@ -346,14 +343,13 @@ class astra_charge(astra_header):
     )
 
     def model_post_init(self, context: Any, /) -> None:
-        self.grids = getGrids()
         self.astradict = {
             "cathode": "Lmirror",
             "space_charge_2D": "LSPCH",
             "space_charge_3D": "LSPCH3D",
         }
         self.exclude.extend(
-            ["grids", "npart", "sample_interval", "space_charge_mode", "mirror_charge"]
+            ["npart", "sample_interval", "space_charge_mode", "mirror_charge"]
         )
 
     def write_ASTRA(self) -> str:
@@ -421,16 +417,14 @@ class astra_charge(astra_header):
     @property
     def grid_size(self) -> int:
         """
-        Get the number of space charge bins, see
-        :func:`~SimulationFramework.Framework_objects.getGrids.getGridSizes`.
+        Get the number of space charge bins.
 
         Returns
         -------
         int
             The number of space charge bins based on the number of particles
         """
-        # print('asking for grid sizes n = ', self.npart, ' is ', self.grids.getGridSizes(self.npart))
-        return self.grids.getGridSizes(self.npart / self.sample_interval)
+        return get_grid_size(self.npart / self.sample_interval)
 
 
 class astra_errors(astra_header):

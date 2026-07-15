@@ -3,7 +3,8 @@ import numpy as np
 from pydantic import computed_field, Field
 
 from laura.models.physical import PhysicalElement, Position  # noqa E402
-from laura.models.element import flatten, PhysicalBaseElement
+from laura.models.element import PhysicalBaseElement
+from laura.utils import flatten_dict
 from typing import Dict, Any
 from warnings import warn
 
@@ -57,47 +58,21 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def model_post_init(self, __context):
         self.type_conversion_rules = type_conversion_rules
-        self.conversion_rules["elegant"] = keyword_conversion_rules_elegant["general"]
-        self.conversion_rules["ocelot"] = keyword_conversion_rules_ocelot["general"]
-        self.conversion_rules["cheetah"] = keyword_conversion_rules_cheetah["general"]
-        self.conversion_rules["xsuite"] = keyword_conversion_rules_xsuite["general"]
-        self.conversion_rules["wake_t"] = keyword_conversion_rules_wake_t["general"]
-        self.conversion_rules["genesis"] = keyword_conversion_rules_genesis["general"]
-        self.conversion_rules["opal"] = keyword_conversion_rules_opal["general"]
-        if self.hardware_type.lower() in keyword_conversion_rules_elegant:
-            self.conversion_rules["elegant"] = (
-                keyword_conversion_rules_elegant[self.hardware_type.lower()]
-                | keyword_conversion_rules_elegant["general"]
-            )
-        if self.hardware_type.lower() in keyword_conversion_rules_ocelot:
-            self.conversion_rules["ocelot"] = (
-                keyword_conversion_rules_ocelot[self.hardware_type.lower()]
-                | keyword_conversion_rules_ocelot["general"]
-            )
-        if self.hardware_type.lower() in keyword_conversion_rules_cheetah:
-            self.conversion_rules["cheetah"] = (
-                keyword_conversion_rules_cheetah[self.hardware_type.lower()]
-                | keyword_conversion_rules_cheetah["general"]
-            )
-        if self.hardware_type.lower() in keyword_conversion_rules_xsuite:
-            self.conversion_rules["xsuite"] = (
-                keyword_conversion_rules_xsuite[self.hardware_type.lower()]
-                | keyword_conversion_rules_xsuite["general"]
-            )
-        if self.hardware_type.lower() in keyword_conversion_rules_wake_t:
-            self.conversion_rules["wake_t"] = (
-                keyword_conversion_rules_wake_t[self.hardware_type.lower()]
-                | keyword_conversion_rules_wake_t["general"]
-            )
-        if self.hardware_type.lower() in keyword_conversion_rules_genesis:
-            self.conversion_rules["genesis"] = (
-                keyword_conversion_rules_genesis[self.hardware_type.lower()]
-                | keyword_conversion_rules_genesis["general"]
-            )
-        if self.hardware_type.lower() in keyword_conversion_rules_opal:
-            self.conversion_rules["opal"] = (
-                keyword_conversion_rules_opal[self.hardware_type.lower()]
-                | keyword_conversion_rules_opal["general"]
+        hardware_type = self.hardware_type.lower()
+        rules_by_code = {
+            "elegant": keyword_conversion_rules_elegant,
+            "ocelot": keyword_conversion_rules_ocelot,
+            "cheetah": keyword_conversion_rules_cheetah,
+            "xsuite": keyword_conversion_rules_xsuite,
+            "wake_t": keyword_conversion_rules_wake_t,
+            "genesis": keyword_conversion_rules_genesis,
+            "opal": keyword_conversion_rules_opal,
+        }
+        for code, rules in rules_by_code.items():
+            self.conversion_rules[code] = (
+                rules[hardware_type] | rules["general"]
+                if hardware_type in rules
+                else rules["general"]
             )
         self.ccs = gpt_ccs(name="wcs", position=[0, 0, 0], rotation=[0, 0, 0])
         super().model_post_init(__context)
@@ -112,7 +87,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         Dict[str, Any]
             A flattened dictionary containing the attributes of the element.
         """
-        return flatten({**self.model_dump()}, parent_key="", separator="_")
+        return flatten_dict({**self.model_dump()}, parent_key="", separator="_")
 
     def start_write(self) -> None:
         """
@@ -623,41 +598,40 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
+    _KEYWORD_STRIP_PREFIXES = ["", "simulation_", "cavity_", "magnetic_", "aperture_"]
+    _KEYWORD_STRIP_PREFIXES_WAKE_T = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
+
+    @staticmethod
+    def _convert_type(etype: str, rules: dict, default):
+        """Look up `etype` in a type-conversion rules dict, falling back to `default`."""
+        return rules[etype] if etype in rules else default
+
+    def _convert_keyword(
+        self,
+        keyword: str,
+        conversion_rules: dict,
+        element: dict | None = None,
+        strip_prefixes=_KEYWORD_STRIP_PREFIXES,
+    ) -> str:
+        """
+        Strip known field-group prefixes from `keyword` and look up each candidate in
+        `conversion_rules`; if `element` is given, also accept a candidate that matches
+        one of its keys directly. Falls back to the original keyword.
+        """
+        for strip in strip_prefixes:
+            stripped = keyword.replace(strip, "")
+            if stripped in conversion_rules:
+                return conversion_rules[stripped]
+            elif element is not None and stripped in element.keys():
+                return stripped
+        return keyword
+
     def _convertType_Elegant(self, etype: str) -> str:
-        """
-        Converts the element type to the corresponding Elegant type using predefined rules.
-
-        Parameters
-        ----------
-        etype: str
-            The type of the element to be converted.
-
-        Returns
-        -------
-        str
-            The converted type of the element, or the original type if no conversion rule exists.
-        """
-        return (
-            type_conversion_rules_Elegant[etype]
-            if etype in type_conversion_rules_Elegant
-            else etype
-        )
+        """Converts the element type to the corresponding Elegant type using predefined rules."""
+        return self._convert_type(etype, type_conversion_rules_Elegant, etype)
 
     def _convertKeyword_Elegant(self, keyword: str, updated_type: str = "") -> str:
-        """
-        Converts a keyword to its corresponding Elegant keyword using predefined rules.
-
-        Parameters
-        ----------
-        keyword: str:
-            The keyword to be converted.
-
-        Returns
-        -------
-        str
-            The converted keyword for Elegant, or the original keyword if no conversion rule exists.
-
-        """
+        """Converts a keyword to its corresponding Elegant keyword using predefined rules."""
         if updated_type.lower() in keyword_conversion_rules_elegant:
             conversion_rules = (
                 keyword_conversion_rules_elegant[updated_type.lower()]
@@ -669,49 +643,14 @@ class BaseElementTranslator(PhysicalBaseElement):
             element = elements_Elegant[
                 self._convertType_Elegant(self.hardware_type).lower()
             ]
-        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
-            stripped = keyword.replace(strip, "")
-            if stripped in conversion_rules:
-                return conversion_rules[stripped]
-            elif stripped in element.keys():
-                return stripped
-        return keyword
+        return self._convert_keyword(keyword, conversion_rules, element)
 
     def _convertType_Genesis(self, etype: str) -> str:
-        """
-        Converts the element type to the corresponding Genesis type using predefined rules.
-
-        Parameters
-        ----------
-        etype: str
-            The type of the element to be converted.
-
-        Returns
-        -------
-        str
-            The converted type of the element, or the original type if no conversion rule exists.
-        """
-        return (
-            type_conversion_rules_Genesis[etype]
-            if etype in type_conversion_rules_Genesis
-            else etype
-        )
+        """Converts the element type to the corresponding Genesis type using predefined rules."""
+        return self._convert_type(etype, type_conversion_rules_Genesis, etype)
 
     def _convertKeyword_Genesis(self, keyword: str, updated_type: str = "") -> str:
-        """
-        Converts a keyword to its corresponding Genesis keyword using predefined rules.
-
-        Parameters
-        ----------
-        keyword: str:
-            The keyword to be converted.
-
-        Returns
-        -------
-        str
-            The converted keyword for Genesis, or the original keyword if no conversion rule exists.
-
-        """
+        """Converts a keyword to its corresponding Genesis keyword using predefined rules."""
         if updated_type.lower() in keyword_conversion_rules_genesis:
             conversion_rules = (
                 keyword_conversion_rules_genesis[updated_type.lower()]
@@ -721,184 +660,52 @@ class BaseElementTranslator(PhysicalBaseElement):
         else:
             conversion_rules = self.conversion_rules["genesis"]
             element = elements_Genesis[self._convertType_Genesis(self.hardware_type)]
-        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
-            stripped = keyword.replace(strip, "")
-            if stripped in conversion_rules:
-                return conversion_rules[stripped]
-            elif stripped in element.keys():
-                return stripped
-        return keyword
+        return self._convert_keyword(keyword, conversion_rules, element)
 
     def _convertType_Ocelot(self, etype: str) -> object:
-        """
-        Converts the element type to the corresponding Ocelot type using predefined rules.
-
-        Parameters
-        ----------
-        etype: str
-            The type of the element to be converted.
-
-        Returns
-        -------
-        object
-            The Ocelot element, or the original type if no conversion rule exists.
-        """
+        """Converts the element type to the corresponding Ocelot type using predefined rules."""
         from ..conversion_rules.codes import ocelot_conversion
         from ocelot.cpbd.elements.drift import Drift as Drift_Oce
 
-        type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
-        return (
-            type_conversion_rules_Ocelot[etype]
-            if etype in type_conversion_rules_Ocelot
-            else Drift_Oce
+        return self._convert_type(
+            etype, ocelot_conversion.ocelot_conversion_rules, Drift_Oce
         )
 
     def _convertKeyword_Ocelot(self, keyword: str, updated_type: str = "") -> str:
-        """
-        Converts a keyword to its corresponding Ocelot keyword using predefined rules.
-
-        Parameters
-        ----------
-        keyword: str:
-            The keyword to be converted.
-
-        Returns
-        -------
-        str
-            The converted keyword for Ocelot, or the original keyword if no conversion rule exists.
-
-        """
-        conversion_rules = self.conversion_rules["ocelot"]
-        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
-            stripped = keyword.replace(strip, "")
-            if stripped in conversion_rules:
-                return conversion_rules[stripped]
-        return keyword
+        """Converts a keyword to its corresponding Ocelot keyword using predefined rules."""
+        return self._convert_keyword(keyword, self.conversion_rules["ocelot"])
 
     def _convertType_Cheetah(self, etype: str) -> object:
-        """
-        Converts the element type to the corresponding Cheetah type using predefined rules.
-
-        Parameters
-        ----------
-        etype: str
-            The type of the element to be converted.
-
-        Returns
-        -------
-        object
-            The Cheetah element, or the original type if no conversion rule exists.
-        """
+        """Converts the element type to the corresponding Cheetah type using predefined rules."""
         from ..conversion_rules.codes import cheetah_conversion
         from cheetah.accelerator import Drift as Drift_Che
 
-        type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
-        return (
-            type_conversion_rules_Cheetah[etype]
-            if etype in type_conversion_rules_Cheetah
-            else Drift_Che
+        return self._convert_type(
+            etype, cheetah_conversion.cheetah_conversion_rules, Drift_Che
         )
 
     def _convertKeyword_Cheetah(self, keyword: str) -> str:
-        """
-        Converts a keyword to its corresponding Cheetah keyword using predefined rules.
-
-        Parameters
-        ----------
-        keyword: str
-            The keyword to be converted.
-
-        Returns
-        -------
-        str
-            The converted keyword for Cheetah, or the original keyword if no conversion rule exists.
-        """
-        conversion_rules = self.conversion_rules["cheetah"]
-        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
-            stripped = keyword.replace(strip, "")
-            if stripped in conversion_rules:
-                return conversion_rules[stripped]
-        return keyword
+        """Converts a keyword to its corresponding Cheetah keyword using predefined rules."""
+        return self._convert_keyword(keyword, self.conversion_rules["cheetah"])
 
     def _convertKeyword_Xsuite(self, keyword: str) -> str:
-        """
-        Converts a keyword to its corresponding Xsuite keyword using predefined rules.
-
-        Parameters
-        ----------
-        keyword: str:
-            The keyword to be converted.
-
-        Returns
-        -------
-        str
-            The converted keyword for Xsuite, or the original keyword if no conversion rule exists.
-
-        """
-        conversion_rules = self.conversion_rules["xsuite"]
-        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
-            stripped = keyword.replace(strip, "")
-            if stripped in conversion_rules:
-                return conversion_rules[stripped]
-        return keyword
+        """Converts a keyword to its corresponding Xsuite keyword using predefined rules."""
+        return self._convert_keyword(keyword, self.conversion_rules["xsuite"])
 
     def _convertKeyword_WakeT(self, keyword: str) -> str:
-        """
-        Converts a keyword to its corresponding Wake-T keyword using predefined rules.
-
-        Parameters
-        ----------
-        keyword: str:
-            The keyword to be converted.
-
-        Returns
-        -------
-        str
-            The converted keyword for Wake-T, or the original keyword if no conversion rule exists.
-
-        """
-        conversion_rules = self.conversion_rules["wake_t"]
-        for strip in ["", "simulation_", "cavity_", "magnetic_", "plasma_", "laser_", "aperture_"]:
-            stripped = keyword.replace(strip, "")
-            if stripped in conversion_rules:
-                return conversion_rules[stripped]
-        return keyword
-
-    def _convertType_Opal(self, etype: str) -> str:
-        """
-        Converts the element type to the corresponding Opal type using predefined rules.
-
-        Parameters
-        ----------
-        etype: str
-            The type of the element to be converted.
-
-        Returns
-        -------
-        str
-            The converted type of the element, or the original type if no conversion rule exists.
-        """
-        return (
-            type_conversion_rules_Opal[etype]
-            if etype in type_conversion_rules_Opal
-            else etype
+        """Converts a keyword to its corresponding Wake-T keyword using predefined rules."""
+        return self._convert_keyword(
+            keyword,
+            self.conversion_rules["wake_t"],
+            strip_prefixes=self._KEYWORD_STRIP_PREFIXES_WAKE_T,
         )
 
+    def _convertType_Opal(self, etype: str) -> str:
+        """Converts the element type to the corresponding Opal type using predefined rules."""
+        return self._convert_type(etype, type_conversion_rules_Opal, etype)
+
     def _convertKeyword_Opal(self, keyword: str, updated_type: str = "") -> str:
-        """
-        Converts a keyword to its corresponding Opal keyword using predefined rules.
-
-        Parameters
-        ----------
-        keyword: str:
-            The keyword to be converted.
-
-        Returns
-        -------
-        str
-            The converted keyword for Opal, or the original keyword if no conversion rule exists.
-
-        """
+        """Converts a keyword to its corresponding Opal keyword using predefined rules."""
         if updated_type.lower() in keyword_conversion_rules_opal:
             conversion_rules = (
                 keyword_conversion_rules_opal[updated_type.lower()]
@@ -908,13 +715,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         else:
             conversion_rules = self.conversion_rules["opal"]
             element = elements_Opal[self._convertType_Opal(self.hardware_type)]
-        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
-            stripped = keyword.replace(strip, "")
-            if stripped in conversion_rules:
-                return conversion_rules[stripped]
-            elif stripped in element.keys():
-                return stripped
-        return keyword
+        return self._convert_keyword(keyword, conversion_rules, element)
 
     def _write_ASTRA_dictionary(self, d: dict, n: int | None = 1) -> str:
         """

@@ -343,16 +343,15 @@ class TestValidateElementDict:
 
     def test_missing_schema_file_raises_file_not_found(self, tmp_path):
         from laura.Importers import YAML_Loader as loader_mod
-        original = loader_mod._SCHEMA_CACHE
         original_path = loader_mod._SCHEMA_PATH
+        loader_mod._get_json_schema.cache_clear()
         try:
-            loader_mod._SCHEMA_CACHE = None
             loader_mod._SCHEMA_PATH = tmp_path / "does_not_exist.json"
             with pytest.raises(FileNotFoundError, match="LAURA JSON Schema"):
                 loader_mod._get_json_schema()
         finally:
-            loader_mod._SCHEMA_CACHE = original
             loader_mod._SCHEMA_PATH = original_path
+            loader_mod._get_json_schema.cache_clear()
 
     def test_schema_is_cached_after_first_load(self):
         from laura.Importers.YAML_Loader import _get_json_schema

@@ -111,12 +111,7 @@ from .simulation import (
     TwissMatchSimulationElement,
 )
 # Re-export from utils for backwards compatibility
-def flatten(dictionary: Dict, parent_key: str = "", separator: str = "_") -> Dict:
-    """Deprecated: Use laura.utils.flatten_dict instead."""
-    return flatten_dict(dictionary, parent_key, separator)
-
-
-# Re-export YAML classes for backwards compatibility
+flatten = flatten_dict
 string_with_quotes = StringWithQuotes
 flow_list = FlowList
 

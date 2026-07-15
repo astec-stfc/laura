@@ -17,7 +17,7 @@ from yaml.constructor import Constructor
 _log = logging.getLogger("laura.machine")
 
 from .models.physical import PhysicalElement, Position
-from .models.elementList import MachineModel, baseElement
+from .models.elementList import MachineModel, baseElement, dot, chunks
 from .models.element import Drift
 from .Importers.YAML_Loader import (
     read_YAML_Combined_File,
@@ -38,16 +38,6 @@ def add_bool(self, node):
 
 
 Constructor.add_constructor("tag:yaml.org,2002:bool", add_bool)
-
-
-def dot(a, b) -> float:
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-
-
-def chunks(li, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(li), n):
-        yield li[i : i + n]
 
 
 class LAURA(MachineModel):

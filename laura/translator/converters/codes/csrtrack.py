@@ -71,16 +71,6 @@ class csrtrack_element(BaseModel):
         return output
 
 
-# class csrtrack_online_monitor(csrtrack_element):
-#
-#     def __init__(self, marker="", **kwargs):
-#         super(csrtrack_online_monitor, self).__init__(
-#             "online_monitor", "csrtrack_online_monitor", **kwargs
-#         )
-#         self.header = "online_monitor"
-#         self.end_time_marker = marker + "b"
-
-
 class csrtrack_forces(csrtrack_element):
     """
     Class for CSRTrack forces.
