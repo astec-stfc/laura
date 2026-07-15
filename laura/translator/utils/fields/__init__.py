@@ -29,6 +29,7 @@ from . import gdf  # noqa E402
 from . import hdf5  # noqa E402
 from . import sdds  # noqa E402
 from . import opal  # noqa E402
+from . import rftrack  # noqa E402
 
 allowed_fields = [
     "1DElectroStatic",

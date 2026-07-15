@@ -5,6 +5,7 @@ testYAML/
 YAML_OLD/
 Basefiles/
 to_CATAP/
+RFTrack/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

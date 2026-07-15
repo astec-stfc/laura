@@ -374,3 +374,40 @@ which would have been caught by code review alone. Remaining open items are
 in PROGRESS.md's checklist (mainly: `Modules/Fields/rftrack.py` not started,
 per the YAGNI note; the two known cavity-physics simplifications; and the two
 pre-existing, unrelated `simba` test failures noted there).
+
+## Cathode Volume tracking + Lattice/Volume switch (3 more real gotchas)
+
+Added a photocathode/space-charge path: a cathode section auto-tracks through
+an RF-Track `Volume` (time integration, `Bunch6dT`) so mirror-charge space
+charge works like ASTRA's `Lmirror`, reverting to `Lattice` (`Bunch6d`) for
+downstream sections; a `tracking_type` switch (attribute or `charge.tracking`)
+forces either environment for any section. New pieces: `beam_to_bunch6dt`
+(full `[X Px Y Py Z Pz MASS Q N T0]` matrix, carries emission time),
+`section.to_rftrack_volume` (wraps the Lattice in a Volume), `space_charge_engine`
+(ASTRA-sized `SpaceCharge_PIC_FreeSpace`). Real-package (RF_Track 2.6.3, WSL)
+testing surfaced three more gotchas the manual doesn't warn about:
+
+1. **The SC engine settings singleton is `RF_Track.cvar`, not `cvars`.** The
+   manual (§5.1.3) prints `RF_Track.cvars.SC_engine = SC`; the real SWIG module
+   only has `cvar` (singular). Setting the wrong name silently no-ops space
+   charge.
+2. **`RF_Track.cvar.SC_engine = engine` does NOT keep the Python object alive.**
+   SWIG stores only the C pointer, so a locally-scoped engine is garbage-
+   collected the moment the setup function returns and `track()` then segfaults
+   on the dangling pointer. This is subtle: it looked exactly like an
+   import-order / FFTW-OpenMP clash (scipy/torch-before-RF_Track "reproduced" it)
+   because every minimal repro that "crashed" happened to assign a *temporary*
+   `cvar.SC_engine = SpaceCharge_PIC_FreeSpace(...)`, while every one that
+   "worked" held a named variable. Import order is irrelevant. **Fix**:
+   `rftrackLattice` holds the engine on `self.sc_engine` for the tracking
+   lifetime.
+3. **A `Volume` needs different transport-table identifiers than a `Lattice`**
+   (manual Table 4.2 vs 4.1): `%mean_Z` not `%S`, capitalised `%mean_X`/
+   `%sigma_X`. Requesting Lattice identifiers from a Volume raises
+   `unknown identifier '%S'`. Also, a Volume that *wraps* a Lattice returns its
+   end bunch as `Bunch6dT` but the wrapped Lattice's `Screen` snapshots come
+   back as `Bunch6d` — so `_bunch_to_beam` dispatches on the actual bunch type,
+   not the tracking mode. Both handled in `RFTrack.py`.
+
+Integration tests (`test_rftrack.py::TestRealRFTrack`, RF_Track-gated) now cover
+the cathode Volume path, the round-trip beam recovery, and the switch both ways.

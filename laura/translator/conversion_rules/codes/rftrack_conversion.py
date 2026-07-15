@@ -233,13 +233,64 @@ def _solenoid_args(t) -> tuple:
     return (t.physical.length, t.magnetic.field_amplitude, 0.0)
 
 
+def _magnetic_fieldmap_available(t) -> bool:
+    """
+    True if this element's ``simulation.field_definition`` has already
+    resolved (via ``start_write()`` -> ``update_field_definition()``, always
+    run before any builder here) to a real on-axis static-magnetic field map
+    that :func:`_solenoid_fieldmap_args` can hand straight to RF-Track's
+    ``Static_Magnetic_FieldMap_1d`` (manual §4.4.4) -- see
+    ``utils.fields.rftrack.static_magnetic_fieldmap_1d_args``. Elements
+    without a configured/resolved field map fall back to the idealized
+    analytic ``Solenoid`` model.
+    """
+    field_def = getattr(t.simulation, "field_definition", None)
+    if not getattr(field_def, "read", False):
+        return False
+    field_type = getattr(field_def, "field_type", None)
+    if isinstance(field_type, bytes):
+        field_type = field_type.decode("utf-8")
+    return field_type == "1DMagnetoStatic"
+
+
+def _solenoid_fieldmap_args(t) -> tuple:
+    from ...utils.fields import rftrack as fields_rftrack
+
+    return fields_rftrack.static_magnetic_fieldmap_1d_args(
+        t.simulation.field_definition, amplitude=t.magnetic.field_amplitude
+    )
+
+
+def build_solenoid_fieldmap(t, **kwargs) -> "object":
+    """Build a real ``RF_Track.Static_Magnetic_FieldMap_1d`` (manual §4.4.4)
+    from this solenoid's own on-axis field map -- e.g. a measured or
+    FEM-simulated profile with realistic fringe fields -- in preference to the
+    idealized analytic :func:`build_solenoid` model."""
+    rft = get_rftrack()
+    return rft.Static_Magnetic_FieldMap_1d(*_solenoid_fieldmap_args(t))
+
+
+def repr_solenoid_fieldmap(t, **kwargs) -> tuple:
+    return (
+        f"Static_Magnetic_FieldMap_1d({_format_args(_solenoid_fieldmap_args(t))})",
+        [],
+    )
+
+
 def build_solenoid(t, **kwargs) -> "object":
-    """Build an ``RF_Track.Solenoid`` from length [m] and peak on-axis field [T]."""
+    """Build an ``RF_Track.Solenoid`` from length [m] and peak on-axis field
+    [T], or a real ``Static_Magnetic_FieldMap_1d`` (manual §4.4.4) when this
+    solenoid carries a resolved on-axis field map -- see
+    :func:`_magnetic_fieldmap_available`."""
+    if _magnetic_fieldmap_available(t):
+        return build_solenoid_fieldmap(t, **kwargs)
     rft = get_rftrack()
     return rft.Solenoid(*_solenoid_args(t))
 
 
 def repr_solenoid(t, **kwargs) -> tuple:
+    if _magnetic_fieldmap_available(t):
+        return repr_solenoid_fieldmap(t, **kwargs)
     return f"Solenoid({_format_args(_solenoid_args(t))})", []
 
 
@@ -453,17 +504,202 @@ def repr_tw_structure(t, **kwargs) -> tuple:
     return f"TW_Structure({_format_args(args)})", [f"{{var}}.set_phid({phase!r})"]
 
 
+def _cavity_fieldmap_available(t) -> bool:
+    """
+    True if this cavity's ``simulation.field_definition`` has already resolved
+    (via ``start_write()`` -> ``update_field_definition()``, always run before
+    any builder here) to a real on-axis standing-wave field map that
+    :func:`_cavity_fieldmap_args` can hand straight to RF-Track's
+    ``RF_FieldMap_1d`` (manual §4.4.1) -- see
+    ``utils.fields.rftrack.rf_fieldmap_1d_args``. Travelling-wave and
+    unresolved/missing field definitions fall back to
+    :func:`build_tw_structure`/:func:`build_pillbox_cavity`.
+    """
+    field_def = getattr(t.simulation, "field_definition", None)
+    if not getattr(field_def, "read", False):
+        return False
+    field_type = getattr(field_def, "field_type", None)
+    cavity_type = getattr(field_def, "cavity_type", None)
+    if isinstance(field_type, bytes):
+        field_type = field_type.decode("utf-8")
+    if isinstance(cavity_type, bytes):
+        cavity_type = cavity_type.decode("utf-8")
+    return field_type == "1DElectroDynamic" and cavity_type == "StandingWave"
+
+
+def _cavity_fieldmap_args(t) -> tuple:
+    from ...utils.fields import rftrack as fields_rftrack
+
+    cav = t.cavity
+    # Same "collapse n_cells into one effective object, scale amplitude up by
+    # n_cells" convention as `_cavity_args`/`build_pillbox_cavity` -- except
+    # here the field map already carries the real per-cell on-axis shape, so
+    # this only needs to make the *total* peak amplitude match the cavity's
+    # real physical length, not approximate a multi-cell structure.
+    amplitude = t.simulation.field_amplitude * (cav.n_cells or 1)
+    args = fields_rftrack.rf_fieldmap_1d_args(
+        t.simulation.field_definition, amplitude=amplitude, frequency=float(cav.frequency)
+    )
+    return args, cav.phase
+
+
+def build_cavity_fieldmap(t, **kwargs) -> "object":
+    """
+    Build a real ``RF_Track.RF_FieldMap_1d`` (manual §4.4.1) from this
+    cavity's own on-axis field map, in preference to the single-Fourier-
+    coefficient :func:`build_pillbox_cavity` approximation -- resolves the
+    ``ponytail`` gap flagged there and in PLAN.md ("RF-Track's real
+    ``SW_Structure`` needs per-cell Fourier coefficients fitted from a real 1D
+    field map, which LAURA does not currently store"): LAURA does store it
+    (``simulation.field_definition``), and RF-Track's field-map element
+    doesn't need it fitted to Fourier coefficients at all --
+    ``RF_FieldMap_1d`` takes the on-axis samples directly and reconstructs the
+    off-axis field itself, exactly like ASTRA's own on-axis ``FILE_EFieLD``
+    convention. See :func:`_cavity_fieldmap_available` for when this applies.
+    """
+    rft = get_rftrack()
+    args, phase = _cavity_fieldmap_args(t)
+    obj = rft.RF_FieldMap_1d(*args)
+    obj.set_phid(phase)
+    return obj
+
+
+def repr_cavity_fieldmap(t, **kwargs) -> tuple:
+    args, phase = _cavity_fieldmap_args(t)
+    return f"RF_FieldMap_1d({_format_args(args)})", [f"{{var}}.set_phid({phase!r})"]
+
+
+def _tw_fieldmap_available(t) -> bool:
+    """
+    True if this travelling-wave cavity's ``simulation.field_definition`` has
+    already resolved to a real ASTRA-TWS-style on-axis field map with all four
+    header values (``start_cell_z``/``end_cell_z``/``mode_numerator``/
+    ``mode_denominator``) present -- everything
+    :func:`_tw_fieldmap_args`/``utils.fields.rftrack.
+    rf_fieldmap_1d_travelling_wave_args_list`` needs to build the coupler +
+    core + coupler field maps. Missing any of these (or no field map at all) falls
+    back to :func:`build_tw_structure`'s analytic model, which has its own,
+    more lenient fallback (``_resolve_ph_advance``, defaults with a warning).
+    """
+    field_def = getattr(t.simulation, "field_definition", None)
+    if not getattr(field_def, "read", False):
+        return False
+    field_type = getattr(field_def, "field_type", None)
+    cavity_type = getattr(field_def, "cavity_type", None)
+    if isinstance(field_type, bytes):
+        field_type = field_type.decode("utf-8")
+    if isinstance(cavity_type, bytes):
+        cavity_type = cavity_type.decode("utf-8")
+    if field_type != "1DElectroDynamic" or cavity_type != "TravellingWave":
+        return False
+    return all(
+        getattr(field_def, attr, None) is not None
+        for attr in ("start_cell_z", "end_cell_z", "mode_numerator", "mode_denominator")
+    )
+
+
+def _tw_fieldmap_args(t) -> tuple:
+    from ...utils.fields import rftrack as fields_rftrack
+
+    cav = t.cavity
+    # Unlike `_cavity_args`'s Pillbox_Cavity collapse-to-one-cell convention,
+    # the stitched field map genuinely replicates every cell, so the
+    # amplitude is the real per-cell field -- same convention
+    # `_tw_structure_args` already uses for the analytic TW_Structure model.
+    amplitude = t.simulation.field_amplitude
+    args_list = fields_rftrack.rf_fieldmap_1d_travelling_wave_args_list(
+        t.simulation.field_definition,
+        amplitude=amplitude,
+        frequency=float(cav.frequency),
+        # Same cell count ASTRA's own `C_numb` gets (`to_astra()`'s
+        # `self.get_cells()`), so a field-map RF-Track cavity tracks the same
+        # physical structure length as its ASTRA equivalent.
+        n_cells=t.get_cells(),
+    )
+    return args_list, cav.phase
+
+
+def build_tw_fieldmap(t, **kwargs) -> "object":
+    """
+    Build a real input coupler, a complex travelling-wave core, and a real
+    output coupler -- all ``RF_Track.RF_FieldMap_1d`` (manual §4.4.1) built
+    from this cavity's own ASTRA-TWS-style on-axis field map via
+    ``utils.fields.rftrack.rf_fieldmap_1d_travelling_wave_args_list`` -- in
+    preference to the single-harmonic analytic :func:`build_tw_structure`
+    approximation. See :func:`_tw_fieldmap_available` for when this applies.
+
+    Returns a **list** of RF-Track objects rather than wrapping them in their
+    own sub-``Lattice``. ``BaseElementTranslator.to_rftrack()``/
+    ``SectionLatticeTranslator.to_rftrack()`` flatten a list return directly
+    into the section's own top-level ``Lattice`` as siblings. This avoids
+    nesting a ``Lattice`` inside a ``Lattice`` inside a ``Volume`` -- verified
+    against real RF_Track 2.6.3 that ``Volume.autophase()`` does not descend
+    two ``Lattice`` levels deep (it silently fails to set ``t0`` for anything
+    nested inside an appended sub-``Lattice``'s own sub-``Lattice``), so a
+    cathode/``Volume``-tracked section containing a TW field-map cavity kept
+    printing "reference time t0 not set" warnings on every ``track()`` call
+    even after an explicit ``autophase()`` (harmless -- the tracked energy
+    gain is verified identical either way, since RF-Track's own per-element
+    auto-set-t0 fallback still runs during ``track()`` -- but noisy). Flat
+    siblings of the same top-level ``Lattice`` are reached correctly by
+    ``Volume.autophase()`` instead.
+
+    Every element gets the same ``set_phid`` (empirically verified against
+    real CLARA L01 data -- not the manual's own +90 degree core-vs-coupler
+    offset, which is specific to the analytic ``SW_Structure``/
+    ``TW_Structure`` element pair).
+    """
+    rft = get_rftrack()
+    args_list, phase = _tw_fieldmap_args(t)
+    elems = []
+    for args in args_list:
+        elem = rft.RF_FieldMap_1d(*args)
+        elem.set_phid(phase)
+        elems.append(elem)
+    return elems
+
+
+def repr_tw_fieldmap(t, **kwargs) -> list:
+    """
+    Returns a **list** of ``(ctor_expr, post_stmts)`` tuples, one per element
+    -- see :func:`build_tw_fieldmap`. ``BaseElementTranslator.to_rftrack_repr``
+    renders each list entry as its own uniquely-suffixed
+    ``{varname}_N = rft.RF_FieldMap_1d(...)`` block (instead of the single
+    ``{varname} = rft.Ctor(...)`` every other, single-object builder here
+    produces), and reports every resulting variable name back to
+    ``SectionLatticeTranslator._save_rftrack_py_file`` so each is appended to
+    the exported script's ``lattice`` individually, matching :func:`build_tw_fieldmap`.
+    """
+    args_list, phase = _tw_fieldmap_args(t)
+    return [
+        (f"RF_FieldMap_1d({_format_args(args)})", [f"{{var}}.set_phid({phase!r})"])
+        for args in args_list
+    ]
+
+
 def build_rf_cavity(t, **kwargs) -> "object":
-    """Dispatch to :func:`build_tw_structure` for travelling-wave cavities,
-    :func:`build_pillbox_cavity` (standing-wave approximation) otherwise."""
+    """Dispatch, in priority order: :func:`build_tw_fieldmap` (real stitched
+    on-axis field map) for a travelling-wave cavity with a resolved ASTRA-TWS
+    field map, else :func:`build_tw_structure` (single-harmonic analytic
+    approximation) for travelling-wave; :func:`build_cavity_fieldmap` (real
+    on-axis field map) for a standing-wave cavity with one resolved, else
+    :func:`build_pillbox_cavity` (single-coefficient approximation)."""
     if t.cavity.structure_type == "TravellingWave":
+        if _tw_fieldmap_available(t):
+            return build_tw_fieldmap(t, **kwargs)
         return build_tw_structure(t, **kwargs)
+    if _cavity_fieldmap_available(t):
+        return build_cavity_fieldmap(t, **kwargs)
     return build_pillbox_cavity(t, **kwargs)
 
 
 def repr_rf_cavity(t, **kwargs) -> tuple:
     if t.cavity.structure_type == "TravellingWave":
+        if _tw_fieldmap_available(t):
+            return repr_tw_fieldmap(t, **kwargs)
         return repr_tw_structure(t, **kwargs)
+    if _cavity_fieldmap_available(t):
+        return repr_cavity_fieldmap(t, **kwargs)
     return repr_pillbox_cavity(t, **kwargs)
 
 

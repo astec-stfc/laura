@@ -404,9 +404,17 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         Returns
         -------
-        object
-            An RF-Track element object (e.g. ``RF_Track.Quadrupole``), with its name
-            and aperture (if any) applied.
+        object or list of object
+            An RF-Track element object (e.g. ``RF_Track.Quadrupole``), with its
+            name and aperture (if any) applied. A handful of builders (e.g.
+            :func:`~laura.translator.conversion_rules.codes.rftrack_conversion.
+            build_tw_fieldmap`) instead return a **list** of RF-Track objects
+            meant to be flattened as siblings into the caller's own Lattice
+            rather than wrapped in a nested sub-Lattice (see that function's
+            docstring for why) -- name/aperture are applied to every item in
+            that case, and :func:`~laura.translator.converters.section.
+            SectionLatticeTranslator.to_rftrack` flattens the list when
+            appending.
         """
         from ..conversion_rules.codes.rftrack_conversion import (
             rftrack_conversion_rules,
@@ -422,11 +430,12 @@ class BaseElementTranslator(PhysicalBaseElement):
             )
             builder = build_drift
         obj = builder(self, P_Q=P_Q)
-        obj.set_name(self.name)
-        self._apply_rftrack_aperture(obj)
+        for o in (obj if isinstance(obj, list) else [obj]):
+            o.set_name(self.name)
+            self._apply_rftrack_aperture(o)
         return obj
 
-    def to_rftrack_repr(self, varname: str, P_Q: float = float("nan")) -> list:
+    def to_rftrack_repr(self, varname: str, P_Q: float = float("nan")) -> tuple:
         """
         Generates the Python source lines that (re)construct this element as a
         standalone ``RF_Track`` object, mirroring what :func:`to_rftrack`
@@ -443,9 +452,19 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         Returns
         -------
-        list
-            Python source lines (assumes ``import RF_Track as rft`` and
-            ``import numpy as np`` at the top of the generated file).
+        tuple
+            ``(lines, varnames)``. ``lines`` are the Python source lines
+            (assumes ``import RF_Track as rft``/``import numpy as np`` at the
+            top of the generated file). Most elements produce exactly one
+            object (``varnames == [varname]``), but a builder whose
+            ``repr_*`` counterpart returns a **list** of ``(ctor_expr,
+            post_stmts)`` (e.g. ``repr_tw_fieldmap``, matching
+            :func:`to_rftrack`'s list-returning ``build_tw_fieldmap``)
+            produces one block per list entry, uniquely suffixed
+            (``{varname}_0``, ``{varname}_1``, ...); ``varnames`` lists every
+            object actually created, so the caller can append each one into
+            its own Lattice individually (see
+            ``SectionLatticeTranslator._save_rftrack_py_file``).
         """
         from ..conversion_rules.codes.rftrack_conversion import (
             rftrack_repr_rules,
@@ -456,14 +475,18 @@ class BaseElementTranslator(PhysicalBaseElement):
         repr_fn = rftrack_repr_rules.get(self.hardware_type, None)
         if repr_fn is None:
             repr_fn = repr_drift
-        ctor_expr, post_stmts = repr_fn(self, P_Q=P_Q)
-        lines = [
-            f"{varname} = rft.{ctor_expr}",
-            f"{varname}.set_name({self.name!r})",
-        ]
-        lines += self._rftrack_aperture_repr(varname)
-        lines += [s.format(var=varname) for s in post_stmts]
-        return lines
+        result = repr_fn(self, P_Q=P_Q)
+        entries = result if isinstance(result, list) else [result]
+        lines = []
+        varnames = []
+        for i, (ctor_expr, post_stmts) in enumerate(entries):
+            vn = varname if len(entries) == 1 else f"{varname}_{i}"
+            varnames.append(vn)
+            lines.append(f"{vn} = rft.{ctor_expr}")
+            lines.append(f"{vn}.set_name({self.name!r})")
+            lines += self._rftrack_aperture_repr(vn)
+            lines += [s.format(var=vn) for s in post_stmts]
+        return lines, varnames
 
     def _rftrack_aperture_params(self):
         """

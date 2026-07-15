@@ -168,6 +168,11 @@ class LAURA(MachineModel):
 
         for name in elements:
             elem = self.elements[name]
+            if elem.is_subelement():
+                # Co-located with another element (e.g. a solenoid wrapped
+                # around a cavity) -- excluded from s/drift calculations,
+                # matching MachineLayout.createDrifts in elementList.py.
+                continue
             originalelements[name] = elem
             pos = elem.physical.start.array
             positions.append(pos)
@@ -199,7 +204,7 @@ class LAURA(MachineModel):
                         machine_area=newelements[e[0]].machine_area,
                         hardware_class="Drift",
                         physical=PhysicalElement(
-                            length=round(copysign(length, vector), 6),
+                            length=abs(round(copysign(length, vector), 6)),
                             middle=Position(x=x, y=y, z=z),
                             datum=Position(x=x, y=y, z=z),
                         ),
@@ -247,6 +252,18 @@ class LAURA(MachineModel):
             s_pos += l
             if not drift:
                 elem_s[elem] = round(s_pos, 6)
+                # A combined corrector is placed as a single physical element,
+                # but get_horizontal_correctors()/get_vertical_correctors()
+                # hand back the names of its individual H/V sub-elements
+                # (separate control PVs at the same location) instead of the
+                # combined corrector's own name. Those sub-names never appear
+                # in the path's element list, so give them the parent's
+                # s-position too.
+                original = self.elements.get(elem)
+                for sub_attr in ("Horizontal_Corrector", "Vertical_Corrector"):
+                    sub_name = getattr(original, sub_attr, None)
+                    if sub_name:
+                        elem_s[sub_name] = elem_s[elem]
         return elem_s
 
     def get_rf_cavities(
