@@ -522,7 +522,7 @@ class SectionLatticeTranslator(SectionLattice):
         from ocelot.cpbd.transformations.second_order import SecondTM
         from ocelot.cpbd.transformations.kick import KickTM
         from ocelot.cpbd.transformations.runge_kutta import RungeKuttaTM
-        from ocelot.cpbd.elements import Octupole, Undulator, Marker
+        from ocelot.cpbd.elements import Octupole, Undulator, Marker, Drift
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
         section_with_drifts = self.createDrifts()
@@ -535,11 +535,19 @@ class SectionLatticeTranslator(SectionLattice):
 
         for d in elem_dict.values():
             obj = d.to_ocelot()
-            if isinstance(obj, (list, tuple)):
-                # e.g. a Combined_Corrector split into an Hcor + Vcor pair.
-                elements.extend(obj)
-            else:
-                elements.append(obj)
+            objs = list(obj) if isinstance(obj, (list, tuple)) else [obj]
+            # e.g. a Combined_Corrector split into an Hcor + Vcor pair.
+            elements.extend(objs)
+            # Some finite-length elements (e.g. collimators) map to zero-length
+            # Ocelot elements (Aperture takes no length). Ocelot builds the
+            # lattice by concatenating element lengths, so without compensation
+            # the line would be shorter than in MAD-X/ELEGANT and every
+            # downstream element would be mis-positioned. Pad the difference
+            # with a drift so the total length is preserved.
+            oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
+            gap = d.physical.length - oce_len
+            if gap > 1e-9:
+                elements.append(Drift(l=gap, eid=f"{d.name}_len"))
 
         maglat = MagneticLattice(elements, method=method)
         if save:
