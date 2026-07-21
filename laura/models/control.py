@@ -6,8 +6,12 @@ from pydantic import (
     model_serializer,
     ConfigDict, Field,
 )
-from typing import Dict, Type, Literal
+from pydantic import ValidationInfo
+from typing import Any, Dict, Type, Literal
 import operator
+from dataclasses import fields, MISSING, is_dataclass
+from laura.utils.signals import SIGNALS
+from warnings import warn
 
 OPS = {
     "add": operator.add,
@@ -108,13 +112,27 @@ class ControlVariable(BaseModel):
     expression: dict | None = None  # expression graph
     """Expression defining how to compute the value to set at the target."""
 
-    type: Literal["scalar", "binary", "state", "string", "waveform", "statistical"] = (
-        "statistical"
+    control_type: Literal["scalar", "binary", "state", "string", "waveform", "statistical"] = Field(
+        default="statistical", alias="type",
     )
     """Type of control variable."""
 
     states: Dict | None = None
     """Possible state mapping enums."""
+
+    readback: str | None = None
+    """Connects a setpoint to a readback"""
+
+    update: Dict | None = None
+    """
+    Defines the update function for the variable; see `laura.utils.signals` for examples.
+
+    Accepts a dict with a "function" key naming a signal class plus its keyword
+    arguments (``{"function": "Sinusoid", "period": 1.0, "amplitude": 2.0}``), a
+    signal class (only if it has no required arguments), or a signal instance
+    (``Sinusoid(period=1.0, amplitude=2.0)``). It is always normalised to the dict
+    form; use `build_update` to get a callable back.
+    """
 
     model_config = ConfigDict(
         arbitrary_types_allowed=False,
@@ -124,6 +142,90 @@ class ControlVariable(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
+
+    @field_validator("update", mode="before")
+    @classmethod
+    def validate_update(cls, v: Any, info: ValidationInfo) -> Dict | None:
+        """Checks that the `update` function is defined in `laura.utils.signals` and that the
+        keyword arguments supplied for it match that class' fields.
+
+        Accepts a signal class, a signal instance, or a dict of the form
+        ``{"function": <name>, **kwargs}``; all are normalised to the dict form.
+        Anything invalid warns and returns None, leaving the variable without an
+        update function.
+        """
+        # `identifier` is declared before `update`, so it is already validated here.
+        who = info.data.get("identifier", "<unknown>")
+
+        if v is None:
+            return None
+
+        # A signal instance, e.g. Sinusoid(period=1.0, amplitude=2.0)
+        if is_dataclass(v) and not isinstance(v, type):
+            if type(v).__name__ not in SIGNALS:
+                warn(
+                    f"Unknown signal '{type(v).__name__}' for {who}; "
+                    f"expected one of {sorted(SIGNALS)}."
+                )
+                return None
+            return {
+                "function": type(v).__name__,
+                **{f.name: getattr(v, f.name) for f in fields(v)},
+            }
+
+        # A signal class, e.g. RandomWalk
+        if isinstance(v, type):
+            v = {"function": v.__name__}
+
+        if not isinstance(v, dict):
+            warn(f"`update` for {who} must be a signal class, instance or dict, got {type(v).__name__}")
+            return None
+
+        if "function" not in v:
+            warn(f"`update` for {who} requires a 'function' key")
+            return None
+
+        function_name = v["function"]
+        signal_cls = SIGNALS.get(function_name)
+        if signal_cls is None:
+            warn(
+                f"Unknown signal '{function_name}' for {who}; "
+                f"expected one of {sorted(SIGNALS)}."
+            )
+            return None
+
+        signal_fields = {f.name for f in fields(signal_cls)}
+        required_fields = {
+            f.name
+            for f in fields(signal_cls)
+            if f.default is MISSING and f.default_factory is MISSING
+        }
+        supplied_fields = set(v) - {"function"}
+
+        unknown = supplied_fields - signal_fields
+        if unknown:
+            warn(
+                f"Signal '{function_name}' for {who} got unknown "
+                f"attributes: {sorted(unknown)}; expected {sorted(signal_fields)}."
+            )
+            return None
+
+        missing = required_fields - supplied_fields
+        if missing:
+            warn(
+                f"Signal '{function_name}' for {who} missing required "
+                f"attributes: {sorted(missing)}"
+            )
+            return None
+
+        return v
+
+    def build_update(self):
+        """Instantiate the signal described by `update`, or None if unset."""
+        if self.update is None:
+            return None
+        kwargs = {k: val for k, val in self.update.items() if k != "function"}
+        return SIGNALS[self.update["function"]](**kwargs)
 
     @field_validator("dtype", mode="before")
     def validate_dtype(cls, v) -> Type:

@@ -1,5 +1,6 @@
 import unittest
 from laura.models.control import ControlVariable, ControlsInformation
+from laura.utils.signals import RandomWalk, Sinusoid
 
 
 class TestControlVariable(unittest.TestCase):
@@ -46,6 +47,113 @@ class TestControlVariable(unittest.TestCase):
                 dtype="unknown_type",
                 protocol="PVA",
             )
+
+
+class TestControlVariableUpdate(unittest.TestCase):
+    def make(self, **kwargs):
+        return ControlVariable(identifier="var1", protocol="CA", **kwargs)
+
+    def test_update_defaults_to_none(self):
+        self.assertIsNone(self.make().update)
+
+    def test_update_from_dict(self):
+        cv = self.make(
+            update={"function": "Sinusoid", "period": 1.0, "amplitude": 2.0}
+        )
+        self.assertEqual(
+            cv.update, {"function": "Sinusoid", "period": 1.0, "amplitude": 2.0}
+        )
+
+    def test_update_from_instance_flattens_fields(self):
+        cv = self.make(update=Sinusoid(period=1.0, amplitude=2.0))
+        self.assertEqual(
+            cv.update,
+            {
+                "function": "Sinusoid",
+                "period": 1.0,
+                "amplitude": 2.0,
+                "noise": 0.0,
+                "phase": 0.0,
+            },
+        )
+
+    def test_update_from_class_without_required_fields_warns(self):
+        # RandomWalk requires `noise`, so the bare class is not enough.
+        with self.assertWarns(UserWarning):
+            cv = self.make(update=RandomWalk)
+        self.assertIsNone(cv.update)
+
+    def test_update_with_unknown_signal_warns(self):
+        with self.assertWarns(UserWarning):
+            cv = self.make(update={"function": "NotASignal"})
+        self.assertIsNone(cv.update)
+
+    def test_update_with_non_dataclass_module_member_warns(self):
+        # `np` is importable from laura.utils.signals but is not a signal.
+        with self.assertWarns(UserWarning):
+            cv = self.make(update={"function": "np"})
+        self.assertIsNone(cv.update)
+
+    def test_update_without_function_key_warns(self):
+        with self.assertWarns(UserWarning):
+            cv = self.make(update={"period": 1.0})
+        self.assertIsNone(cv.update)
+
+    def test_update_with_missing_required_attribute_warns(self):
+        with self.assertWarns(UserWarning):
+            cv = self.make(update={"function": "Sinusoid", "period": 1.0})
+        self.assertIsNone(cv.update)
+
+    def test_update_with_unknown_attribute_warns(self):
+        with self.assertWarns(UserWarning) as ctx:
+            cv = self.make(
+                update={
+                    "function": "Sinusoid",
+                    "period": 1.0,
+                    "amplitude": 2.0,
+                    "amplitud": 3.0,
+                }
+            )
+        self.assertIsNone(cv.update)
+        self.assertIn("amplitud", str(ctx.warning))
+
+    def test_update_with_invalid_type_warns(self):
+        with self.assertWarns(UserWarning):
+            cv = self.make(update=5)
+        self.assertIsNone(cv.update)
+
+    def test_warning_names_the_variable(self):
+        with self.assertWarns(UserWarning) as ctx:
+            ControlVariable(
+                identifier="k1l_control",
+                protocol="CA",
+                update={"function": "NotASignal"},
+            )
+        self.assertIn("k1l_control", str(ctx.warning))
+
+    def test_build_update_returns_none_when_unset(self):
+        self.assertIsNone(self.make().build_update())
+
+    def test_build_update_instantiates_signal(self):
+        cv = self.make(
+            update={"function": "Sinusoid", "period": 4.0, "amplitude": 2.0}
+        )
+        signal = cv.build_update()
+        self.assertIsInstance(signal, Sinusoid)
+        self.assertAlmostEqual(signal(1.0), 2.0)  # quarter period -> peak
+
+    def test_build_update_from_instance(self):
+        cv = self.make(update=RandomWalk(noise=0.0))
+        signal = cv.build_update()
+        self.assertIsInstance(signal, RandomWalk)
+        self.assertAlmostEqual(signal(3.0), 3.0)  # no noise -> value unchanged
+
+    def test_update_survives_round_trip(self):
+        cv = self.make(
+            update={"function": "Sinusoid", "period": 1.0, "amplitude": 2.0}
+        )
+        restored = ControlVariable(**cv.model_dump())
+        self.assertEqual(restored.update, cv.update)
 
 
 class TestControlsInformation(unittest.TestCase):
