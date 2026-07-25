@@ -184,6 +184,18 @@ class TestControlVariableUpdate(unittest.TestCase):
         self.assertIsNone(cv.update)
         self.assertIn("amplitud", str(ctx.warning))
 
+    def test_update_with_wrong_attribute_type_warns(self):
+        with self.assertWarns(UserWarning) as ctx:
+            cv = self.make(
+                update={"function": SINUSOID_PATH, "period": "slow", "amplitude": 2.0}
+            )
+        self.assertIsNone(cv.update)
+        self.assertIn("period", str(ctx.warning))
+
+    def test_update_accepts_int_where_float_expected(self):
+        cv = self.make(update={"function": SINUSOID_PATH, "period": 1, "amplitude": 2})
+        self.assertEqual(cv.build_update()(0.25), 2.0)
+
     def test_update_with_invalid_type_warns(self):
         with self.assertWarns(UserWarning):
             cv = self.make(update=5)
@@ -274,6 +286,19 @@ class TestControlVariableDynamics(unittest.TestCase):
         self.assertIsNone(cv.dynamics)
         self.assertIn("value", str(ctx.warning))
 
+    def test_dynamics_with_wrong_attribute_type_warns(self):
+        with self.assertWarns(UserWarning) as ctx:
+            cv = self.make(dynamics={"model": "first_order", "tau": "slow"})
+        self.assertIsNone(cv.dynamics)
+        self.assertIn("tau", str(ctx.warning))
+
+    def test_dynamics_with_invalid_domain_warns(self):
+        # tau <= 0 raises ValueError from __post_init__, which the validator
+        # catches like any other construction failure.
+        with self.assertWarns(UserWarning):
+            cv = self.make(dynamics={"model": "first_order", "tau": -1.0})
+        self.assertIsNone(cv.dynamics)
+
     def test_dynamics_survives_round_trip(self):
         cv = self.make(dynamics={"model": "first_order", "tau": 0.5})
         restored = ControlVariable(**cv.model_dump())
@@ -321,6 +346,36 @@ class TestCallSignal(unittest.TestCase):
     def test_missing_required_argument_still_raises(self):
         with self.assertRaises(TypeError):
             call_signal(Sinusoid(period=1.0, amplitude=1.0), value=3.0)
+
+
+class TestTypeChecked(unittest.TestCase):
+    """`type_checked` makes a dataclass validate its own argument types on
+    construction, so the callable-spec validator can lean on the constructor."""
+
+    def test_wrong_type_raises_type_error(self):
+        with self.assertRaises(TypeError) as ctx:
+            Sinusoid(period="slow", amplitude=1.0)
+        self.assertIn("period", str(ctx.exception))
+
+    def test_int_accepted_where_float_expected(self):
+        signal = Sinusoid(period=2, amplitude=1)
+        self.assertAlmostEqual(signal(0.5), 1.0)  # quarter period -> peak
+
+    def test_bool_rejected_where_float_expected(self):
+        with self.assertRaises(TypeError):
+            FirstOrderResponse(tau=True)
+
+    def test_own_post_init_still_runs(self):
+        # FirstOrderResponse validates tau > 0 in its own __post_init__, which
+        # type_checked must not displace.
+        with self.assertRaises(ValueError):
+            FirstOrderResponse(tau=-1.0)
+
+    def test_type_check_precedes_own_post_init(self):
+        # A non-numeric tau is a TypeError (from the type check), not whatever
+        # the `tau <= 0` comparison would raise.
+        with self.assertRaises(TypeError):
+            FirstOrderResponse(tau="oops")
 
 
 class TestResponseModels(unittest.TestCase):

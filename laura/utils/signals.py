@@ -1,16 +1,18 @@
 from dataclasses import dataclass, is_dataclass
 import inspect
-from laura.utils.resolution import object_path, resolve_callable_dataclass
+from laura.utils.resolution import object_path, resolve_callable_dataclass, type_checked
 import numpy as np
 
-@dataclass
+@dataclass(kw_only=True)
+@type_checked
 class RandomWalk:
     noise: float
 
     def __call__(self, value: float = 0.0):
         return value + np.random.normal(scale=self.noise)
 
-@dataclass
+@dataclass(kw_only=True)
+@type_checked
 class Sinusoid:
     period: float
     amplitude: float

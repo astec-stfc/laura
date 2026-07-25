@@ -9,7 +9,7 @@ from pydantic import (
 from pydantic import ValidationInfo
 from typing import Any, Callable, Dict, Type, Literal
 import operator
-from dataclasses import fields, MISSING, is_dataclass
+from dataclasses import fields, is_dataclass
 from laura.utils.dynamics import resolve_response, response_path
 from laura.utils.signals import resolve_signal, signal_path
 from warnings import warn
@@ -99,36 +99,21 @@ def validate_callable_spec(
         warn(f"Cannot resolve `{field}` for {who}: {exc}")
         return None
 
+    # Construct the class to validate the supplied arguments: a kw_only dataclass
+    # rejects unknown keys, missing required ones, and -- for the built-ins,
+    # which are `type_checked` -- wrong types. Reproducing those checks here
+    # would only duplicate what the constructor already enforces. Fields with
+    # init=False (runtime state) are likewise rejected, since they are not
+    # constructor arguments.
+    kwargs = {k: val for k, val in v.items() if k != key}
+    try:
+        obj_cls(**kwargs)
+    except (TypeError, ValueError) as exc:
+        warn(f"Invalid {label} '{name}' for {who}: {exc}")
+        return None
+
     # Store the fully qualified path, so a short name is upgraded on the way in.
-    v = {**v, key: path(obj_cls)}
-
-    # Fields with init=False hold runtime state rather than configuration, so
-    # they are neither required nor accepted here.
-    known_fields = {f.name for f in fields(obj_cls) if f.init}
-    required_fields = {
-        f.name
-        for f in fields(obj_cls)
-        if f.init and f.default is MISSING and f.default_factory is MISSING
-    }
-    supplied_fields = set(v) - {key}
-
-    unknown = supplied_fields - known_fields
-    if unknown:
-        warn(
-            f"{label.capitalize()} '{name}' for {who} got unknown "
-            f"attributes: {sorted(unknown)}; expected {sorted(known_fields)}."
-        )
-        return None
-
-    missing = required_fields - supplied_fields
-    if missing:
-        warn(
-            f"{label.capitalize()} '{name}' for {who} missing required "
-            f"attributes: {sorted(missing)}"
-        )
-        return None
-
-    return v
+    return {**v, key: path(obj_cls)}
 
 
 class ControlVariable(BaseModel):

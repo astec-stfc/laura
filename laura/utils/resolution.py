@@ -3,9 +3,63 @@
 signals in `laura.utils.signals` and the response models in
 `laura.utils.dynamics`."""
 
-from dataclasses import is_dataclass
+from dataclasses import fields, is_dataclass
 from importlib import import_module
 from typing import Dict
+
+
+def check_field_types(instance) -> None:
+    """Raise `TypeError` for any init field whose value does not match its annotation.
+
+    Only plain class annotations are enforced; anything more elaborate (``Union``,
+    ``Optional``, parameterised generics) is left unchecked rather than risk a
+    false rejection, as is a field whose annotation is a string (from
+    ``from __future__ import annotations``). `int` is accepted where `float` is
+    annotated, following the usual numeric convention.
+
+    Meant to be applied through `type_checked`, which calls it from a dataclass'
+    ``__post_init__`` so that construction validates its own arguments.
+    """
+    for f in fields(instance):
+        if not f.init:
+            continue
+        annotation = f.type
+        if not isinstance(annotation, type):
+            continue
+        value = getattr(instance, f.name)
+        if annotation is float and isinstance(value, int) and not isinstance(value, bool):
+            continue
+        if not isinstance(value, annotation):
+            raise TypeError(
+                f"{type(instance).__name__}.{f.name} must be "
+                f"{annotation.__name__}, got {type(value).__name__}"
+            )
+
+
+def type_checked(cls):
+    """Class decorator adding argument type-checking to a dataclass.
+
+    Apply it *below* ``@dataclass`` so that the ``__post_init__`` it installs
+    exists when the dataclass generates its ``__init__``::
+
+        @dataclass(kw_only=True)
+        @type_checked
+        class Sinusoid:
+            period: float
+            ...
+
+    Any ``__post_init__`` already defined on the class still runs, after the type
+    check, so a class can add its own validation on top.
+    """
+    original = cls.__dict__.get("__post_init__")
+
+    def __post_init__(self, *args, **kwargs):
+        check_field_types(self)
+        if original is not None:
+            original(self, *args, **kwargs)
+
+    cls.__post_init__ = __post_init__
+    return cls
 
 
 def object_path(obj_cls: type) -> str:

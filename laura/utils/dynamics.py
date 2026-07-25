@@ -12,11 +12,12 @@ needed per readback, and it must be kept between calls rather than rebuilt.
 """
 
 from dataclasses import dataclass, field
-from laura.utils.resolution import object_path, resolve_callable_dataclass
+from laura.utils.resolution import object_path, resolve_callable_dataclass, type_checked
 from typing import Dict
 
 
-@dataclass
+@dataclass(kw_only=True)
+@type_checked
 class ImmediateResponse:
     """A readback that follows its setpoint with no lag."""
 
@@ -27,7 +28,8 @@ class ImmediateResponse:
         return self.value
 
 
-@dataclass
+@dataclass(kw_only=True)
+@type_checked
 class FirstOrderResponse:
     """Exponential approach to the setpoint with time constant `tau`.
 
@@ -51,7 +53,8 @@ class FirstOrderResponse:
         return self.value
 
 
-@dataclass
+@dataclass(kw_only=True)
+@type_checked
 class DelayedResponse:
     """A readback that jumps to the setpoint after a fixed dead time."""
 
