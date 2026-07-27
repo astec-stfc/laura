@@ -10,6 +10,7 @@ from xtrack.beam_elements import NonLinearLens as NonLinearLens_xs
 from xtrack.beam_elements import Cavity as Cavity_xs
 from xtrack.beam_elements import UniformSolenoid as UniformSolenoid_xs
 from xtrack.beam_elements import Multipole as Multipole_xs
+from xtrack.beam_elements import Magnet as Magnet_xs
 from xtrack.beam_elements import Marker as Marker_xs
 from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
 
@@ -40,6 +41,7 @@ xsuite_conversion_rules_reverse = {
     UniformSolenoid_xs: Solenoid,
     NonLinearLens_xs: NonLinearLens,
     Multipole_xs: Magnet,
+    Magnet_xs: Magnet,
     Marker_xs: Marker,
 }
 
@@ -69,9 +71,9 @@ xsuite_conversion_rules = {
     "Cleaner": Drift_xs,
     "Drift": Drift_xs,
     "NonLinearLens": NonLinearLens_xs,
-    "Combined_Corrector": Multipole_xs,
-    "Horizontal_Corrector": Multipole_xs,
-    "Vertical_Corrector": Multipole_xs,
+    "Combined_Corrector": Magnet_xs,
+    "Horizontal_Corrector": Magnet_xs,
+    "Vertical_Corrector": Magnet_xs,
     "Scatter": Marker_xs,
     "APContour": Marker_xs,
     "Center": Marker_xs,

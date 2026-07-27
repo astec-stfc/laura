@@ -57,6 +57,9 @@ class SectionLatticeTranslator(SectionLattice):
     lsc_enable: bool = True
     """Flag to enable calculation of LSC in drifts."""
 
+    wakefield_enable: bool = True
+    """Flag to enable structure wakefields on accelerating cavities."""
+
     lsc_bins: PositiveInt = 20
     """Number of LSC bins for drifts."""
 
@@ -366,6 +369,28 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += s + ", "
         return fulltext[:-2] + "\n"
 
+    def _apply_wakefield_enable(self, elem_dict: dict) -> None:
+        """
+        Switch structure wakefields off on the translated elements when
+        :attr:`~wakefield_enable` is False.
+
+        Only ever turns wakefields off, so a per-element
+        ``simulation.wakefield_enable`` set by the caller is still respected
+        when the section-level flag is left on. The translated elements are
+        throwaway copies, so the underlying lattice definition is unchanged.
+
+        Parameters
+        ----------
+        elem_dict: dict
+            The translated elements about to be written
+        """
+        if self.wakefield_enable:
+            return
+        for d in elem_dict.values():
+            sim = getattr(d, "simulation", None)
+            if sim is not None and hasattr(sim, "wakefield_enable"):
+                sim.wakefield_enable = False
+
     def to_elegant(self, charge: float = None) -> str:
         """
         Create an ELEGANT-compatible input file based on the lattice information.
@@ -385,11 +410,13 @@ class SectionLatticeTranslator(SectionLattice):
             lsc_enable=self.lsc_enable,
             lsc_bins=self.lsc_bins,
         )
+        # (wakefields are applied to the translated elements below)
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        self._apply_wakefield_enable(elem_dict)
         string = ""
         if charge:
             string += f"{self.name}_Q: CHARGE, TOTAL = {charge};\n"
@@ -764,7 +791,8 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += d.to_madx(at=at)
 
         seqstring = madx_functional_definitions(self.functional_definitions)
-        if isinstance(beam, Dict):
+        has_beam = isinstance(beam, Dict)
+        if has_beam:
             beamstr = "BEAM"
             for k, v in beam.items():
                 beamstr += f", {k.upper()}={v}"
@@ -773,7 +801,12 @@ class SectionLatticeTranslator(SectionLattice):
         seqstring += f"{sanitize_string(self.name)}: SEQUENCE, refer={refer}, l = {length};\n"
         seqstring += fulltext
         seqstring += "ENDSEQUENCE;\n"
-        seqstring += f"USE, PERIOD={sanitize_string(self.name)};"
+        if has_beam:
+            # USE is only meaningful once a BEAM has been declared for the
+            # sequence -- MAD-X aborts with "USE - sequence without beam"
+            # otherwise. Without a beam this is a plain sequence definition,
+            # to be USEd by the caller after it issues its own BEAM.
+            seqstring += f"USE, PERIOD={sanitize_string(self.name)};"
         return seqstring
 
     def to_wake_t(self) -> "Beamline":

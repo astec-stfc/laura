@@ -309,6 +309,8 @@ class BaseElementTranslator(PhysicalBaseElement):
                         value = self.magnetic.KnL(0)
                     if key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
                         value = getattr(self, f"{key}l") / self.magnetic.length
+                    if key == "gap":
+                        value = 2 * value
                     setattr(obj, self._convertKeyword_Ocelot(key), value)
         return obj
 
@@ -363,8 +365,8 @@ class BaseElementTranslator(PhysicalBaseElement):
                 and self._convertKeyword_Cheetah(key) in buffers
             ):
                 key = self._convertKeyword_Cheetah(key)
-                if key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                    value = getattr(self, f"{key}l")
+                if key == "gap":
+                    value = 2 * value
                 if isinstance(value, float):
                     dt = float64
                     setattr(
@@ -380,6 +382,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                     # else:
                     #     from torch import get_default_dtype
                     #     dt = get_default_dtype()
+        for bufname, buf in obj._buffers.items():
+            if buf is not None and buf.is_floating_point() and buf.dtype != float64:
+                obj._buffers[bufname] = buf.to(float64)
         if isinstance(obj, Screen_Cheetah):
             obj.is_active = True
         return obj

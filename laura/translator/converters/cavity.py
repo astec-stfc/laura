@@ -97,6 +97,32 @@ class RFCavityTranslator(BaseElementTranslator):
             self.trwakefile = '"' + wakefield_file_name + '"'
             return
 
+    def _wakefield_active(self) -> bool:
+        """
+        Whether this cavity should be written with its wakefield applied.
+
+        False if wakefields have been switched off for the element, if no
+        wakefield definition is set, or if the definition carries no usable
+        data.
+
+        Returns
+        -------
+        bool
+            True if a usable wakefield is defined and enabled
+        """
+        if not getattr(self.simulation, "wakefield_enable", True):
+            return False
+        wake = self.simulation.wakefield_definition
+        if wake is None or wake == "":
+            return False
+        if not isinstance(wake, str):
+            # a field object: only usable if it has a longitudinal coordinate
+            try:
+                wake.z_values
+            except Exception:
+                return False
+        return True
+
     def to_elegant(self) -> str:
         """
         Writes the cavity element string for ELEGANT.
@@ -109,10 +135,7 @@ class RFCavityTranslator(BaseElementTranslator):
         self.start_write()
         wholestring = ""
         etype = self._convertType_Elegant(self.hardware_type)
-        if (
-            self.simulation.wakefield_definition is None
-            or self.simulation.wakefield_definition == ""
-        ):
+        if not self._wakefield_active():
             etype = "rfca"
             # if self.simulation.field_definition is not None:
             # etype = "rftmez0"
@@ -286,7 +309,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 if key == "voltage":
                     if self.structure_type == "TravellingWave":
                         value = value * abs(
-                            (self.get_cells() + 5.5)
+                            (self.get_cells() + 3.8)
                             * self.cavity.cell_length
                             * (1 / np.sqrt(2))
                         )
@@ -304,6 +327,15 @@ class RFCavityTranslator(BaseElementTranslator):
                     setattr(
                         obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
                     )
+        # Cheetah selects between two cavity transfer maps via `cavity_type`.
+        # Its "traveling_wave" branch is a pure travelling-wave map (edge
+        # focusing plus adiabatic damping, no ponderomotive/RF focusing),
+        # whereas ELEGANT (body_focus_model=SRS), Ocelot (CavityAtom) and the
+        # MAD-X backend (rsmatrix) all apply *standing-wave*
+        # Rosenzweig-Serafini focusing even to travelling-wave structures.
+        # Pinned to "standing_wave" so Cheetah stays consistent with them.
+        if hasattr(obj, "cavity_type"):
+            obj.cavity_type = "standing_wave"
         return obj
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:

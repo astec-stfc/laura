@@ -41,6 +41,11 @@ class SimulationElement(IgnoreExtra):
     wakefield_definition: SerializeAsAny[Any] = None
     """String pointing to wakefield definition"""
 
+    wakefield_enable: bool = True
+    """Flag to indicate whether the wakefield defined by
+    :attr:`~wakefield_definition` is applied. Set to False to track the element
+    without its wakefield, without discarding the definition itself."""
+
     field_reference_position: Literal["start", "middle", "end"] | None = None
     """Reference position for field file"""
 

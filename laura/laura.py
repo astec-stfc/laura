@@ -123,6 +123,16 @@ class LAURA(MachineModel):
             if os.path.exists(candidate):
                 el_list = candidate
 
+        if isinstance(el_list, str) and el_list and not os.path.exists(el_list):
+            raise ValueError(
+                f"element_list '{self.element_list}' does not exist"
+                + (
+                    f" (also tried relative to master_lattice '{self.master_lattice}')"
+                    if self.master_lattice
+                    else ""
+                )
+            )
+
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
                 elems = read_YAML_Combined_File(el_list)

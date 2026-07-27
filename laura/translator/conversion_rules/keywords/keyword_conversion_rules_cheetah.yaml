@@ -25,7 +25,7 @@ dipole:
   lsc_low_frequency_cutoff_start: low_frequency_cutoff0
   lsc_low_frequency_cutoff_end: low_frequency_cutoff1
   n_kicks: n_slices
-  half_gap: hgap
+  half_gap: gap
   angle: angle
 quadrupole:
   isr_enable: isr

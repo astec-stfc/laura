@@ -3,14 +3,70 @@ import numpy as np
 from typing import List, Dict, Any, Union
 from pydantic import field_validator, BaseModel, ValidationInfo, Field, PositiveInt
 from warnings import warn
+from yaml import safe_load
 from ._functions import read_yaml, merge_two_dicts
 from .element import baseElement, Drift, PhysicalBaseElement, Diagnostic
 from .physical import PhysicalElement, Position
-from .baseModels import ModelBase
+from .baseModels import (
+    ModelBase,
+    set_functional_definitions,
+    set_resolve_functional,
+    validate_functional_references,
+)
 from .exceptions import LatticeError
 import warnings
 
 from .simulation import DriftSimulationElement
+
+
+def load_functional_definitions(
+    value: Union[str, Dict, None], master_lattice: str | None = None
+) -> Dict[str, Union[int, float]]:
+    """
+    Resolve a ``functional_definitions`` specification into a plain dict.
+
+    The specification may be given directly as a mapping of names to numbers
+    (e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``), or as a path to a YAML file
+    holding such a mapping. The YAML may either be a flat mapping or nest the
+    mapping under a top-level ``functional_definitions`` key. Paths are resolved
+    relative to the working directory, then ``master_lattice``, then the package
+    directory (mirroring how :class:`MachineModel` resolves its layout/section
+    files).
+
+    Parameters
+    ----------
+    value: str | dict | None
+        The specification to resolve.
+    master_lattice: str | None
+        Optional base directory used to resolve a relative path.
+
+    Returns
+    -------
+    Dict[str, Union[int, float]]
+        The resolved functional definitions (empty if ``value`` is None/empty).
+    """
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        path = value
+        if not os.path.exists(path) and master_lattice:
+            candidate = os.path.join(master_lattice, value)
+            if os.path.exists(candidate):
+                path = candidate
+        if not os.path.exists(path):
+            candidate = os.path.abspath(os.path.dirname(__file__) + "/../" + value)
+            if os.path.exists(candidate):
+                path = candidate
+        if not os.path.exists(path):
+            raise ValueError(f"functional_definitions file {value} does not exist")
+        with open(path, "r") as f:
+            data = safe_load(f)
+        if isinstance(data, dict) and "functional_definitions" in data:
+            data = data["functional_definitions"]
+        return data or {}
+    raise ValueError("functional_definitions must be a path, dict, or None")
 
 
 def dot(a, b) -> float:
@@ -38,6 +94,39 @@ class BaseLatticeModel(ModelBase):
 
     master_lattice: str | None = None
     """Top-level directory containing lattice files."""
+
+    functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
+    """Mapping of functional-parameter names to their numeric values, or a path
+    to a YAML file holding such a mapping (resolved by
+    :func:`load_functional_definitions` at construction)."""
+
+    resolve_functional: bool = False
+    """Whether functional parameters are rendered as resolved numbers rather
+    than as their definition names."""
+
+    _functional_source: str | None = None
+
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        self._functional_source = (
+            self.functional_definitions
+            if isinstance(self.functional_definitions, str)
+            else None
+        )
+        self.functional_definitions = load_functional_definitions(
+            self.functional_definitions, self.master_lattice
+        )
+        # also publish to the shared registry, so that deeply nested element
+        # models can resolve their symbolic parameters
+        set_functional_definitions(self.functional_definitions)
+        set_resolve_functional(self.resolve_functional)
+        elements = getattr(self, "elements", None)
+        if isinstance(elements, ElementList):
+            validate_functional_references(
+                [e for e in elements.list() if isinstance(e, baseElement)],
+                self.functional_definitions,
+                self._functional_source,
+            )
 
     def __add__(self, other: dict) -> dict:
         copy = getattr(self, self._basename).copy()
@@ -338,6 +427,7 @@ class MachineLayout(BaseLatticeModel):
     _basename: str = "sections"
 
     def model_post_init(self, __context):
+        super().model_post_init(__context)
         matrix = [v.elements.elements.values() for v in self.sections.values()]
         all_elems = [item for row in matrix for item in row]
         if len(all_elems) > 0:
@@ -601,6 +691,17 @@ class MachineModel(ModelBase):
     master_lattice: str | None = None
     """Directory containing lattice YAML files."""
 
+    functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
+    """Mapping of functional-parameter names to their numeric values, or a path
+    to a YAML file holding such a mapping. Resolved at construction and shared
+    with every section, layout and element in the machine."""
+
+    resolve_functional: bool = False
+    """Whether functional parameters are rendered as resolved numbers rather
+    than as their definition names."""
+
+    _functional_source: str | None = None
+
     _layouts: List[str] = None
 
     _section_definitions: Dict = {}
@@ -662,6 +763,16 @@ class MachineModel(ModelBase):
             )
 
     def model_post_init(self, __context):
+        self._functional_source = (
+            self.functional_definitions
+            if isinstance(self.functional_definitions, str)
+            else None
+        )
+        self.functional_definitions = load_functional_definitions(
+            self.functional_definitions, self.master_lattice
+        )
+        set_functional_definitions(self.functional_definitions)
+        set_resolve_functional(self.resolve_functional)
         if isinstance(self.layout, str):
             layout_file = self.layout
             if not os.path.exists(layout_file) and self.master_lattice:
@@ -701,6 +812,14 @@ class MachineModel(ModelBase):
                 raise KeyError("section must specify sections with a list of sections")
             self._section_definitions = self.section["sections"]
         if len(self.elements) > 0:
+            # Validate functional references up-front (so the error names the
+            # source file), skipping lazy element stores to avoid forcing a load.
+            if not hasattr(self.elements, "get_metadata"):
+                validate_functional_references(
+                    [e for e in self.elements.values() if isinstance(e, baseElement)],
+                    self.functional_definitions,
+                    self._functional_source,
+                )
             if self.section:
                 self._build_layouts(self.elements)
             else:
@@ -812,6 +931,8 @@ class MachineModel(ModelBase):
                 elements=new_elements,
                 order=order,
                 master_lattice=self.master_lattice,
+                functional_definitions=self.functional_definitions,
+                resolve_functional=self.resolve_functional,
             )
 
             if not self._section_definitions or area not in self._section_definitions:
@@ -838,6 +959,8 @@ class MachineModel(ModelBase):
                     elements=new_elements,
                     order=elem_names,
                     master_lattice=self.master_lattice,
+                    functional_definitions=self.functional_definitions,
+                    resolve_functional=self.resolve_functional,
                 )
             return
 
@@ -858,6 +981,8 @@ class MachineModel(ModelBase):
                             elements=new_elements,
                             order=elem_names,
                             master_lattice=self.master_lattice,
+                            functional_definitions=self.functional_definitions,
+                            resolve_functional=self.resolve_functional,
                         )
 
                 if path not in self.lattices:
@@ -869,6 +994,8 @@ class MachineModel(ModelBase):
                             if area in self.sections
                         },
                         master_lattice=self.master_lattice,
+                        functional_definitions=self.functional_definitions,
+                        resolve_functional=self.resolve_functional,
                     )
 
             if len(self.lattices) == 1 and self._default_path is None:

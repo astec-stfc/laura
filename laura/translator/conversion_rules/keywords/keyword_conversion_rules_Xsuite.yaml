@@ -7,6 +7,7 @@ general:
   isr_enable: radiation_flag
 rfcavity:
   phase: phase
+  frequency: frequency
   n_kicks: num_kicks
   field_amplitude: voltage
 solenoid:
