@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, List, Any, Literal
+from warnings import warn
 from ...utils.classes import getGrids
 
 
@@ -300,10 +301,48 @@ class opal_distribution(opal_header):
 
     input_particle_definition: str
 
+    emitted: bool = None
+    """If True, the distribution is emitted from a cathode: the longitudinal
+    column of the input file is read as an emission *time* rather than a
+    position, and particles are released over the emission window. SIMBA's
+    :func:`~simba.Modules.Beams.opal.write_opal_beam_file` already writes times
+    in that column when emitting from a cathode, so this must be set to match --
+    otherwise OPAL reads the times (of order 1e-12) as metres and the bunch
+    collapses to a point."""
+
+    emission_model: str = None
+    """Emission model used at the cathode (e.g. ``ASTRA``, ``NONE``,
+    ``NONEQUIL``). Only meaningful when :attr:`~emitted` is True."""
+
+    emission_steps: int = None
+    """Number of steps used to emit the bunch from the cathode."""
+
+    n_bins: int = None
+    """Number of energy bins used while the bunch is being emitted."""
+
+    emission_time: float = None
+    """Length of the emission window in seconds. Only meaningful when
+    :attr:`~emitted` is True."""
+
     def model_post_init(self, context: Any, /) -> None:
-        self.opaldict = {"input_particle_definition": "FNAME"}
+        self.opaldict = {
+            "input_particle_definition": "FNAME",
+            "emitted": "EMITTED",
+            "emission_model": "EMISSIONMODEL",
+            "emission_steps": "EMISSIONSTEPS",
+            "n_bins": "NBIN",
+            "emission_time": "TEMISSION",
+        }
+
+    raw_block: str | None = None
+    """A complete, pre-rendered ``DISTRIBUTION`` block to emit verbatim instead
+    of the ``FROMFILE`` form. Used when the bunch is generated natively by OPAL
+    from the cathode, where the distribution is described by the generator's own
+    parameters rather than an imported particle file."""
 
     def write_Opal(self) -> str:
+        if self.raw_block:
+            return f"{self.breakstr}\n{self.raw_block}"
         if not self.input_particle_definition:
             raise ValueError(
                 "input_particle_definition must be defined for opal_distribution"
@@ -393,6 +432,30 @@ class opal_fieldsolver(opal_header):
         self.MX = self.grid_size
         self.MY = self.grid_size
         self.MT = self.grid_size
+        self.apply_space_charge_mode()
+
+    def apply_space_charge_mode(self) -> None:
+        """
+        Translate the requested space-charge mode into an OPAL ``FSTYPE``.
+
+        OPAL's solvers are all three-dimensional (``FFT``, ``FFTBOX``, ``SAAMG``,
+        ``P3M``, ...) -- there is no cylindrical/2D solver of the kind ASTRA
+        uses, so a ``2D`` request is honoured with the 3D FFT solver and a
+        warning, rather than being silently dropped as it was before.
+        An explicitly disabled mode selects ``FSTYPE = NONE``.
+        """
+        mode = str(self.space_charge_mode or "").strip().lower()
+        if mode in ("false", "off", "0", "no", "none_"):
+            self.FSTYPE = "NONE"
+        elif mode == "2d":
+            warn(
+                "OPAL has no 2D/cylindrical space-charge solver; the 2D request "
+                "is being run with the 3D FFT solver, which will not reproduce "
+                "a 2D code (e.g. ASTRA) exactly."
+            )
+            self.FSTYPE = "FFT"
+        elif mode == "3d":
+            self.FSTYPE = "FFT"
         if self.space_charge:
             self.FSTYPE = "FFT"
         else:

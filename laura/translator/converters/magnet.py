@@ -1136,6 +1136,55 @@ class SolenoidTranslator(BaseElementTranslator):
             )
         return output
 
+    def is_opalx(self) -> bool:
+        """
+        Whether :attr:`~opal_version` refers to OPAL-X rather than classic OPAL.
+
+        Classic OPAL releases are dated (``202210``); anything that does not
+        parse as such a date is treated as OPAL-X.
+        """
+        version = str(self.opal_version or "").strip().lower()
+        if version.startswith("x") or "opalx" in version or "opal-x" in version:
+            return True
+        return not version.isdigit()
+
+    def opal_ks(self, designenergy: float | None = None) -> float:
+        """
+        The solenoid ``KS`` attribute, in the convention of the target OPAL.
+
+        The field map supplied via ``FMAPFN`` is normalised to unit peak, and
+        the two OPAL generations scale it differently:
+
+        - **classic OPAL**: ``KS`` multiplies the normalised map, so it is the
+          peak longitudinal field in Tesla -- the same quantity ASTRA takes as
+          ``MaxB``.
+        - **OPAL-X**: ``KS`` is a rigidity-normalised strength in m^-1, i.e.
+          ``B / (B*rho)`` with ``B*rho = pc / c``.
+
+        Parameters
+        ----------
+        designenergy: float, optional
+            Reference momentum at the element in MeV, used for the OPAL-X
+            normalisation. Ignored for classic OPAL.
+
+        Returns
+        -------
+        float
+            Value to write for ``KS``
+        """
+        field = self.magnetic.field_amplitude
+        if not self.is_opalx():
+            return field
+        if not designenergy:
+            warn(
+                f"No reference momentum for {self.name}; cannot normalise the "
+                "solenoid KS for OPAL-X, writing the peak field instead"
+            )
+            return field
+        # B*rho [T m] = pc [eV] / c
+        brho = (designenergy * 1e6) / 299792458.0
+        return field / brho
+
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
         """
         Generates a string representation of the object's properties in the OPAL format.
@@ -1171,7 +1220,7 @@ class SolenoidTranslator(BaseElementTranslator):
                     val = 1 if value is True else value
                     val = 0 if value is False else val
                     if key == "ks":
-                        val = self.magnetic.field_amplitude  # / self.magnetic.length
+                        val = self.opal_ks(designenergy)
                     if val is not None and key not in keys:
                         tmpstring = ", " + key + " = " + str(val)
                         wholestring += tmpstring

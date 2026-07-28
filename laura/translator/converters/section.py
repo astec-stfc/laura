@@ -60,6 +60,10 @@ class SectionLatticeTranslator(SectionLattice):
     wakefield_enable: bool = True
     """Flag to enable structure wakefields on accelerating cavities."""
 
+    opal_version: str = "202210"
+    """Version of OPAL to write for; propagated to the elements, which use it
+    where classic OPAL and OPAL-X take different conventions."""
+
     lsc_bins: PositiveInt = 20
     """Number of LSC bins for drifts."""
 
@@ -330,14 +334,16 @@ class SectionLatticeTranslator(SectionLattice):
             directory=self.directory,
         )
         written = []
-        svals = self.get_s_values(as_dict=True, at_entrance=True)
+        order = [n for n in self.order if n in elem_dict]
+        start_z = elem_dict[order[0]].physical.start.z if order else 0.0
         for d in elem_dict.values():
+            d.opal_version = self.opal_version
             if isinstance(d, RFCavityTranslator):
                 if d.structure_type.lower() == "travellingwave":
                     energy += tw_cavity_energy_gain(d)
                 else:
                     energy += d.field_amplitude * np.cos(np.pi * d.phase / 180)
-            sval = d.physical.start.z if d.subelement else svals[d.name]
+            sval = d.physical.start.z - start_z
             stnew = d.to_opal(sval=sval, designenergy=energy)
             if len(stnew) > 0:
                 written.append(d.name)

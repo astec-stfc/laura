@@ -59,6 +59,11 @@ class BaseElementTranslator(PhysicalBaseElement):
     ccs: gpt_ccs = None
     """Co-ordinate system for GPT elements."""
 
+    opal_version: str = "202210"
+    """Version of OPAL being written for. Classic OPAL and OPAL-X disagree on
+    some attribute conventions -- notably the solenoid ``KS``; see
+    :func:`~laura.translator.converters.magnet.SolenoidTranslator.opal_ks`."""
+
     def model_post_init(self, __context):
         self.type_conversion_rules = type_conversion_rules
         self.conversion_rules["elegant"] = keyword_conversion_rules_elegant["general"]
