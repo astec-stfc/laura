@@ -164,13 +164,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     # rftmez0 uses frequency instead of freq
                     if etype == "rftmez0" and key == "freq":
                         key = "frequency"
-
-                    # Functional parameters are passed to ELEGANT as rpn
-                    # expressions referencing the `% <value> sto <name>` variables
-                    # declared at the top of the file. Any numeric scaling that
-                    # would otherwise be applied is folded into the rpn expression.
                     functional = self.is_functional(value)
-
                     if self.hardware_type in ["RFCavity", "RFDeflectingCavity"]:
                         if key == "phase":
                             if etype == "rftmez0":
@@ -457,10 +451,6 @@ class RFCavityTranslator(BaseElementTranslator):
                 self._convertKeyword_Xsuite(key) in list(obj.__dict__.keys())
             ):
                 key = self._convertKeyword_Xsuite(key)
-                # Functional parameters are passed through as the symbolic name;
-                # Xsuite resolves them via the matching Environment variable. The
-                # transforms below are keyed on the converted Xsuite names
-                # (phase -> lag, field_amplitude -> voltage).
                 functional = self.is_functional(value)
                 if key == "phase" and not functional:
                     value = np.radians(90 - value)
@@ -518,12 +508,6 @@ class RFCavityTranslator(BaseElementTranslator):
                     functional = self.is_functional(value) and not self._resolve_functional
                     deferred = functional
                     if key == "lag":
-                        # LAURA phase is off-crest-is-zero [deg]; MAD-X LAG is a
-                        # fraction of a full RF cycle with the crest at 0.25 (sine
-                        # convention), so lag = (90 - phase) / 360. The phase enters
-                        # with a MINUS sign (as for ELEGANT `90 - phase` and OPAL
-                        # `-phase`); a `+` here matches the synchronous energy gain
-                        # (cos is even) but flips the sign of the chirp.
                         value = (
                             f"(90 - ({value})) / 360"
                             if functional

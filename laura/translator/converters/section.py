@@ -566,11 +566,8 @@ class SectionLatticeTranslator(SectionLattice):
             # e.g. a Combined_Corrector split into an Hcor + Vcor pair.
             elements.extend(objs)
             # Some finite-length elements (e.g. collimators) map to zero-length
-            # Ocelot elements (Aperture takes no length). Ocelot builds the
-            # lattice by concatenating element lengths, so without compensation
-            # the line would be shorter than in MAD-X/ELEGANT and every
-            # downstream element would be mis-positioned. Pad the difference
-            # with a drift so the total length is preserved.
+            # Ocelot elements (Aperture takes no length).
+            # Pad the difference with a drift so the total length is preserved.
             oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
             gap = d.physical.length - oce_len
             if gap > 1e-9:
@@ -648,12 +645,6 @@ class SectionLatticeTranslator(SectionLattice):
 
         if not isinstance(env, xt.Environment):
             env = xt.Environment()
-        # Register this lattice's functional definitions (cascaded from the
-        # SectionLattice/MachineModel, and loaded from a YAML file if specified)
-        # as Environment variables, so elements can reference them symbolically
-        # (e.g. k1="kquad"). Fall back to the shared registry if the section was
-        # built without its own definitions. Skipped in resolution mode, where the
-        # values are baked in as numbers instead.
         if not IgnoreExtra.resolve_functional:
             for name, value in (
                 self.functional_definitions or IgnoreExtra.functional_definitions
@@ -677,9 +668,6 @@ class SectionLatticeTranslator(SectionLattice):
             if not element.subelement:
                 name, component, properties = element.to_xsuite(beam_length=beam_length)
                 if any(_is_symbolic(v) for v in properties.values()):
-                    # Symbolic/functional parameters (e.g. k1="kquad"): build the
-                    # element through the Environment so the references are bound
-                    # as deferred expressions, then append it to the line by name.
                     env.new(element.name, component, **properties)
                     line.append(element.name)
                 else:
@@ -760,6 +748,8 @@ class SectionLatticeTranslator(SectionLattice):
         beam: dict
             A dictionary describing a beam distribution with the keys as defined in the
             `Beam Section of the MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html#Ch7.S1>`_
+        refer: str
+            Gives a reference position for element placement, related to the ``at=`` parameter.
 
         Returns
         -------
@@ -777,10 +767,6 @@ class SectionLatticeTranslator(SectionLattice):
         svals = self.get_s_values(as_dict=True, at_entrance=True)
         exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
         length = max(exit_svals.values()) if exit_svals else 0.0
-        # ``refer=centre`` places each element at its centre (rather than its
-        # entrance). This is required for MAD-X ``MAKETHIN`` (it silently
-        # ignores sequences that use ``refer=entry``), which in turn is needed to
-        # ``TRACK`` through thick special elements such as crab cavities.
         centre = str(refer).lower() in ("centre", "center")
         refer = "centre" if centre else "entry"
         fulltext = ""
