@@ -77,6 +77,12 @@ conversion = [
 test = [
     "pytest",
     "pytest-cov",
+    # The suite guards these with pytest.importorskip, so they are not hard
+    # requirements -- but without them ~35 tests silently skip, which is worse
+    # than useless in CI.
+    "rdflib>=7.0",
+    "sqlalchemy>=2.0",
+    "jsonschema>=4.0",
 ]
 
 docs = [
