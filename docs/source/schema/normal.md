@@ -38,7 +38,7 @@ URI: [laura:normal](https://w3id.org/laura/normal)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) |
 | Domain Of | [Multipole](Multipole.md) |
 
 ### Cardinality and Requirements
@@ -53,10 +53,26 @@ URI: [laura:normal](https://w3id.org/laura/normal)
 | Owner | [Multipole](Multipole.md) |
 
 
+<details>
+<summary>Expressions & Logic</summary>
+#### Any Of
+
+Value must satisfy at least one of:
+- AnonymousSlotExpression({'range': 'float'})
+- AnonymousSlotExpression({'range': 'string'})
+
+</details>
 
 
 
 
+
+
+
+## In Subsets
+
+
+* [FunctionalParameters](FunctionalParameters.md)
 
 
 
@@ -93,6 +109,8 @@ URI: [laura:normal](https://w3id.org/laura/normal)
 ```yaml
 name: normal
 description: Integrated normal (upright) multipole strength [T.m^{1-n}].
+in_subset:
+- functional_parameters
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: float(0)
@@ -100,6 +118,9 @@ owner: Multipole
 domain_of:
 - Multipole
 range: float
+any_of:
+- range: float
+- range: string
 
 ```
 </details></div>

@@ -52,8 +52,8 @@ URI: [laura:Multipole](https://w3id.org/laura/Multipole)
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [order](order.md) | 0..1 <br/> [Integer](Integer.md) | Multipole order (0 = dipole, 1 = quadrupole, ?) | direct |
-| [normal](normal.md) | 0..1 <br/> [Float](Float.md) | Integrated normal (upright) multipole strength [T | direct |
-| [skew](skew.md) | 0..1 <br/> [Float](Float.md) | Integrated skew (rotated) multipole strength [T | direct |
+| [normal](normal.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Integrated normal (upright) multipole strength [T | direct |
+| [skew](skew.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Integrated skew (rotated) multipole strength [T | direct |
 | [radius](radius.md) | 0..1 <br/> [Float](Float.md) | Reference radius for multipole normalisation [m] | direct |
 
 
@@ -134,15 +134,22 @@ attributes:
   normal:
     name: normal
     description: Integrated normal (upright) multipole strength [T.m^{1-n}].
+    in_subset:
+    - functional_parameters
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
     domain_of:
     - Multipole
     range: float
+    any_of:
+    - range: float
+    - range: string
   skew:
     name: skew
     description: Integrated skew (rotated) multipole strength [T.m^{1-n}].
+    in_subset:
+    - functional_parameters
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
@@ -150,6 +157,9 @@ attributes:
     - Multipole
     - MagneticElement
     range: float
+    any_of:
+    - range: float
+    - range: string
   radius:
     name: radius
     description: Reference radius for multipole normalisation [m].
@@ -191,6 +201,8 @@ attributes:
   normal:
     name: normal
     description: Integrated normal (upright) multipole strength [T.m^{1-n}].
+    in_subset:
+    - functional_parameters
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
@@ -198,9 +210,14 @@ attributes:
     domain_of:
     - Multipole
     range: float
+    any_of:
+    - range: float
+    - range: string
   skew:
     name: skew
     description: Integrated skew (rotated) multipole strength [T.m^{1-n}].
+    in_subset:
+    - functional_parameters
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0)
@@ -209,6 +226,9 @@ attributes:
     - Multipole
     - MagneticElement
     range: float
+    any_of:
+    - range: float
+    - range: string
   radius:
     name: radius
     description: Reference radius for multipole normalisation [m].

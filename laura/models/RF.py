@@ -40,13 +40,6 @@ class RFCavityElement(_RFCavityElementBase, FunctionalMixin):
     RF Cavity model.
     """
 
-    # Everything PR #4 declared inline here now comes from the generated schema
-    # base; only `phase` needs widening, because the schema types it as a plain
-    # float and functional_references() needs the marker to discover it.
-    phase: Union[float, str] = Field(default=0.0, json_schema_extra={"functional": True})
-    """Off-crest phase [deg]. Stored verbatim: a number or a string naming a
-    functional definition (resolve via ``resolved("phase")``)."""
-
     def model_post_init(self, __context):
         if self.structure_type.lower() == "travellingwave" and any(
             [self.mode_numerator is None and self.mode_denominator is None]
@@ -68,13 +61,6 @@ class RFDeflectingCavityElement(_RFDeflectingCavityElementBase, FunctionalMixin)
     """
     RF deflecting cavity model.
     """
-
-    # Everything PR #4 declared inline here now comes from the generated schema
-    # base; only `phase` needs widening, because the schema types it as a plain
-    # float and functional_references() needs the marker to discover it.
-    phase: Union[float, str] = Field(default=0.0, json_schema_extra={"functional": True})
-    """Off-crest phase [deg]. Stored verbatim: a number or a string naming a
-    functional definition (resolve via ``resolved("phase")``)."""
 
 
 class PIDPhaseRange(_PIDPhaseRangeBase):

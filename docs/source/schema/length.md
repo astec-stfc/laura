@@ -5,11 +5,6 @@ search:
 
 # Slot: length 
 
-
-_Effective length along the beam axis [m]._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -26,6 +21,9 @@ URI: [laura:length](https://w3id.org/laura/length)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [PhysicalElement](PhysicalElement.md) | Physical placement data: position, rotation, length, and associated survey / ... |  no  |
+| [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
+| [DipoleMagnet](DipoleMagnet.md) |  |  no  |
+| [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
 
 
 
@@ -38,38 +36,13 @@ URI: [laura:length](https://w3id.org/laura/length)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
-| Domain Of | [PhysicalElement](PhysicalElement.md) |
+| Range | [String](String.md) |
+| Domain Of | [PhysicalElement](PhysicalElement.md), [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| If Absent | `float(0)` |
-| Owner | [PhysicalElement](PhysicalElement.md) |
-
-
-### Value Constraints
-
-| Property | Value |
-| --- | --- |
-| Minimum Value | 0 |
-
-
-<details>
-<summary>Additional Constraints</summary>
-**Unit:**
-
-| Property | Value |
-| --- | --- |
-| ucum_code | m |
-
-</details>
-
 
 
 
@@ -83,13 +56,6 @@ URI: [laura:length](https://w3id.org/laura/length)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -109,17 +75,10 @@ URI: [laura:length](https://w3id.org/laura/length)
 <details>
 ```yaml
 name: length
-description: Effective length along the beam axis [m].
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-ifabsent: float(0)
-owner: PhysicalElement
 domain_of:
 - PhysicalElement
-range: float
-minimum_value: 0.0
-unit:
-  ucum_code: m
+- MagneticElement
+range: string
 
 ```
 </details></div>

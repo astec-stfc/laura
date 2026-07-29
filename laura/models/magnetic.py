@@ -53,20 +53,13 @@ def _is_set(value: Any) -> bool:
 class Multipole(_MultipoleBase, FunctionalMixin):
     """
     Single order magnetic multipole model.
+
+    ``normal``/``skew`` accept the name of a functional definition as well as a
+    number; that widening and the ``functional`` marker both come from the
+    schema slot, so nothing needs restating here.
     """
 
-    # order and radius come from _MultipoleBase. normal/skew are widened here
-    # because the schema types them as plain floats, and marked functional so
-    # functional_references() can discover them.
-    normal: Union[float, str] = Field(default=0.0, json_schema_extra={"functional": True})
-    """Normal component of the multipole strength. Stored verbatim: a number, or
-    a string naming a functional definition. The numeric value is only produced
-    on demand, via :meth:`MagneticElement.KnL`."""
-
-    skew: Union[float, str] = Field(default=0.0, json_schema_extra={"functional": True})
-    """Skew component of the multipole strength. Stored verbatim: a number, or
-    a string naming a functional definition. The numeric value is only produced
-    on demand, via :meth:`MagneticElement.KnL`."""
+    pass
 
 
 multipoles = {
@@ -441,9 +434,7 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
         # `angle` is only meaningful for dipoles (order 0); keep it mirroring
         # the K0L multipole strength regardless of how it was set (k0l=, kl=, angle=).
         if self.order == 0:
-            # kl_raw, not KnL: keep a symbolic functional name verbatim rather
-            # than baking in its resolved number at construction time.
-            self.angle = self.kl_raw(order=0)
+            pass  # angle is derived from K0L; nothing to mirror.
 
     @field_validator("plane", mode="before")
     @classmethod
@@ -561,19 +552,22 @@ class Dipole_Magnet(MagneticElement):
     order: int = Field(repr=False, default=0)
     """Magnetic order of the dipole."""
 
-    # The generated base declares `length` without an alias, but lattice YAML and
-    # the Solenoid/Undulator subclasses below both use `magnetic_length`. Declare
-    # the alias here so it is accepted on every magnet, not just those subclasses.
-    length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
-    """Magnetic length [m]."""
+    # `angle` is deliberately not a schema slot (see magnetic.yaml): it is
+    # derived from multipoles.K0L here, so a symbolic bend angle survives
+    # round-tripping and reads follow the global resolution mode.
+    @property
+    def angle(self) -> Union[int, float, str]:
+        """Bend angle as configured. By default (global resolution mode off) this
+        is the value as stored -- a number, or the name of a functional
+        definition; with resolution mode on it is the resolved number. Use
+        ``KnL(0)`` for the resolved number regardless of mode."""
+        return resolve_functional_parameter(self.kl_raw(0))
 
-    # _MagneticElementBase types `angle` as a plain float; widen it so a
-    # symbolic (functional) bend angle can be stored verbatim and survive a
-    # model_dump/validate round-trip. See the order-0 sync in model_post_init,
-    # which mirrors the raw K0L value here. Use KnL(0) for a resolved number.
-    angle: Union[float, str, None] = None
-    """Bend angle as configured -- a number, or the name of a functional
-    definition. Dipoles (order 0) only; mirrors ``multipoles.K0L``."""
+    @angle.setter
+    def angle(self, value: float) -> None:
+        if self.multipoles is None:
+            object.__setattr__(self, "multipoles", Multipoles())
+        self.multipoles.K0L.normal = value
 
     def currentToAngle(self, current: float, momentum: float) -> float:
         """Convert current to bend angle in degrees."""

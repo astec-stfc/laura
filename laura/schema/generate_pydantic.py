@@ -524,6 +524,66 @@ def _add_attribute_docstrings(content: str) -> str:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+# ── Step 6: drop slots the hand-written wrappers implement as properties ─────
+
+#: ``{generated class name: {slot, ...}}`` to omit from the generated bases.
+#:
+#: These slots stay in the schema — they are part of the data model and lattice
+#: YAML may set them — but a wrapper in ``laura/models/`` implements them as a
+#: Python property instead of storing them. Pydantic cannot have both: a
+#: subclass property shadowing an inherited field makes the property object
+#: itself the field default, which then fails validation.
+_PYDANTIC_EXCLUDED_SLOTS: dict[str, frozenset[str]] = {
+    # MagneticElement.angle is derived from multipoles.K0L so that a symbolic
+    # (functional) bend angle survives round-tripping and reads follow the
+    # global resolution mode. The Dipole/Quadrupole magnet bases repeat the slot
+    # and are excluded too, so the property stays usable if a wrapper is ever
+    # pointed at them.
+    "_MagneticElementBase": frozenset({"angle"}),
+    "_DipoleMagnetBase": frozenset({"angle"}),
+    "_QuadrupoleMagnetBase": frozenset({"angle"}),
+}
+
+
+def _drop_excluded_slots(content: str) -> str:
+    """Remove ``_PYDANTIC_EXCLUDED_SLOTS`` field definitions from *content*.
+
+    Fields are matched with ``ast`` rather than by line, because ``Field(...)``
+    calls span multiple lines; the trailing attribute docstring, if any, goes
+    with them.
+    """
+    tree = ast.parse(content)
+    lines = content.split("\n")
+    drop: set[int] = set()  # 0-based line indices
+    for node in tree.body:
+        if not isinstance(node, ast.ClassDef):
+            continue
+        excluded = _PYDANTIC_EXCLUDED_SLOTS.get(node.name)
+        if not excluded:
+            continue
+        body = node.body
+        for i, stmt in enumerate(body):
+            if not (
+                isinstance(stmt, ast.AnnAssign)
+                and isinstance(stmt.target, ast.Name)
+                and stmt.target.id in excluded
+            ):
+                continue
+            end = stmt.end_lineno
+            # Swallow the PEP 224 attribute docstring that follows, if present.
+            nxt = body[i + 1] if i + 1 < len(body) else None
+            if (
+                isinstance(nxt, ast.Expr)
+                and isinstance(nxt.value, ast.Constant)
+                and isinstance(nxt.value.value, str)
+            ):
+                end = nxt.end_lineno
+            drop.update(range(stmt.lineno - 1, end))
+    if not drop:
+        return content
+    return "\n".join(line for i, line in enumerate(lines) if i not in drop)
+
+
 def generate(
     schema_path: str = "laura/schema/YAML/laura_schema.yaml",
 ) -> str:
@@ -533,7 +593,8 @@ def generate(
     renamed = _rename_classes(raw, model_names)
     fixed = _apply_schema_fixes(renamed, schema_path)
     documented = _add_attribute_docstrings(fixed)
-    return _HEADER + documented
+    trimmed = _drop_excluded_slots(documented)
+    return _HEADER + trimmed
 
 
 # ── CLI entry point ───────────────────────────────────────────────────────────

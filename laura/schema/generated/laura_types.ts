@@ -22,6 +22,8 @@ export type LaserEnergyMeterName = string;
 export type LaserHalfWavePlateName = string;
 export type LaserMirrorName = string;
 export type LaserAttenuatorName = string;
+export type DipoleName = string;
+export type QuadrupoleName = string;
 export type AcceleratorElementName = string;
 export type StandardElementName = string;
 export type ElementName = string;
@@ -91,6 +93,8 @@ export enum HardwareClassEnum {
     Generic = "Generic",
     /** Beam monitor element. */
     Monitor = "Monitor",
+    /** Simulation element. */
+    Simulation = "Simulation",
 };
 /**
 * Polarization state of a laser beam.
@@ -170,6 +174,8 @@ export interface SimulationElement {
     field_definition?: string,
     /** Path to the wakefield impedance file. */
     wakefield_definition?: string,
+    /** Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself. */
+    wakefield_enable?: boolean,
     /** Longitudinal origin of the field map [m]. */
     field_reference_position?: string,
     /** Multiplicative scale factor applied to the field map. */
@@ -187,8 +193,8 @@ export interface MagnetSimulationElement extends SimulationElement {
     field_amplitude?: number,
     /** Number of longitudinal slices for thick-lens tracking. */
     n_slices?: number,
-    /** Use a smoothed field profile. */
-    smooth?: boolean,
+    /** Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth). */
+    smooth?: number,
     /** Fringe-field integral for edge focussing. */
     edge_field_integral?: number,
     /** Enable entrance-edge focussing effects. */
@@ -236,8 +242,6 @@ export interface RFCavitySimulationElement extends SimulationElement {
     n_kicks?: number,
     /** Number of longitudinal space-charge bins. */
     lsc_bins?: number,
-    /** Cavity field amplitude. */
-    field_amplitude?: number,
     /** Flag indicating whether the cavity changes reference momentum. */
     change_p0?: number,
     /** Apply entrance focusing. */
@@ -264,6 +268,8 @@ export interface RFCavitySimulationElement extends SimulationElement {
     zwakefile?: string,
     /** Transverse wake file name. */
     trwakefile?: string,
+    /** Cavity field amplitude. */
+    field_amplitude: number,
 }
 
 
@@ -506,9 +512,9 @@ export interface MagneticElement {
     /** Power-supply settle time after a change [s]. */
     settle_time?: number,
     /** Fringe-field entrance edge angle [rad]. */
-    entrance_edge_angle?: number,
+    entrance_edge_angle?: string,
     /** Fringe-field exit edge angle [rad]. */
-    exit_edge_angle?: number,
+    exit_edge_angle?: string,
     /** Full gap between pole faces [m]. */
     gap?: number,
     /** Magnet bore radius [m]. */
@@ -525,6 +531,8 @@ export interface MagneticElement {
     fringe_field_coefficient?: number,
     /** Peak field gradient [T/m] (quads) or peak field [T] (dipoles). */
     gradient?: number,
+    /** Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default. */
+    angle?: number,
 }
 
 
@@ -1233,6 +1241,26 @@ export interface PlasmaElement {
 }
 
 
+
+export interface DipoleMagnet extends MagneticElement {
+}
+
+
+
+export interface Dipole extends Magnet {
+}
+
+
+
+export interface QuadrupoleMagnet extends MagneticElement {
+}
+
+
+
+export interface Quadrupole extends Magnet {
+}
+
+
 /**
  * Cartesian position in the global accelerator coordinate system. All components are in metres.
  */
@@ -1282,6 +1310,23 @@ export interface ElementSurvey {
 
 
 /**
+ * Positions an element relative to a named reference element's local frame. The ``offset`` field is expressed in the reference element's local frame at the chosen ``point`` (start / middle / end).  Use ``world_offset`` instead to supply an offset already in global world coordinates.
+ */
+export interface ReferencePlacement {
+    /** Name of the reference element. */
+    element: string,
+    /** Which point on the reference element to use as the origin frame: 'start', 'middle', or 'end'. */
+    point?: string,
+    /** Offset expressed in the reference element's local frame at the chosen point. */
+    offset?: Position,
+    /** Offset already expressed in global world coordinates. */
+    world_offset?: Position,
+    /** Scalar offset [m] along the local beam direction (s-axis) from the reference point.  Equivalent to ``offset: [0, 0, s_offset]`` but expressed as a single number.  Mutually exclusive with ``offset`` and ``world_offset``. */
+    s_offset?: number,
+}
+
+
+/**
  * Physical placement data: position, rotation, length, and associated survey / alignment-error information.
  */
 export interface PhysicalElement {
@@ -1299,12 +1344,14 @@ export interface PhysicalElement {
     survey?: ElementSurvey,
     /** Effective length along the beam axis [m]. */
     length?: number,
-    /** Maximum downstream s-coordinate [m]. */
-    maximum_position?: number,
-    /** Minimum upstream s-coordinate [m]. */
-    minimum_position?: number,
     /** Bending angle in the horizontal plane [rad]. Derived from ``magnetic.angle`` when available. */
     physical_angle?: number,
+    /** Place this element relative to another element's frame instead of using absolute world coordinates.  Mutually exclusive with ``middle``/``position``/``centre`` and ``s``. */
+    reference_placement?: ReferencePlacement,
+    /** Arc-length position [m] along the design trajectory (s=0 at the global origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``) and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly. */
+    s?: number,
+    /** Which point of the element the ``s`` value refers to: ``start``, ``middle``, or ``end``.  Defaults to ``middle``. */
+    s_point?: string,
 }
 
 

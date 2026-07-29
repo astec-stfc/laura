@@ -69,6 +69,8 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
         
       MagnetSimulationElement : wakefield_definition
         
+      MagnetSimulationElement : wakefield_enable
+        
       
 ```
 
@@ -93,7 +95,7 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [n_kicks](n_kicks.md) | 0..1 <br/> [Integer](Integer.md) | Number of integration kicks | direct |
-| [field_amplitude](field_amplitude.md) | 0..1 <br/> [Float](Float.md) | Field amplitude scaling for magnet tracking | direct |
+| [field_amplitude](field_amplitude.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Field amplitude scaling for magnet tracking | direct |
 | [n_slices](n_slices.md) | 0..1 <br/> [Integer](Integer.md) | Number of longitudinal slices for thick-lens tracking | direct |
 | [smooth](smooth.md) | 0..1 <br/> [Integer](Integer.md) | Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smoot... | direct |
 | [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for edge focussing | direct |
@@ -111,6 +113,7 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | [smooth_points](smooth_points.md) | 0..1 <br/> [Float](Float.md) | Number of points used to smooth the field map [ASTRA] | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
+| [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
 | [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
@@ -523,6 +526,8 @@ attributes:
   field_amplitude:
     name: field_amplitude
     description: Field amplitude scaling for magnet tracking.
+    in_subset:
+    - functional_parameters
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: float(0.0)
@@ -531,6 +536,9 @@ attributes:
     - MagnetSimulationElement
     - RFCavitySimulationElement
     range: float
+    any_of:
+    - range: float
+    - range: string
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.
@@ -549,6 +557,18 @@ attributes:
     domain_of:
     - SimulationElement
     range: string
+  wakefield_enable:
+    name: wakefield_enable
+    description: Whether the wakefield named by wakefield_definition is applied. Set
+      false to track the element without its wakefield while keeping the definition
+      itself.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: 'true'
+    owner: MagnetSimulationElement
+    domain_of:
+    - SimulationElement
+    range: boolean
   field_reference_position:
     name: field_reference_position
     description: Longitudinal origin of the field map [m].

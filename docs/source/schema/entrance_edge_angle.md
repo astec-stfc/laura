@@ -80,6 +80,13 @@ Value must satisfy at least one of:
 
 
 
+## In Subsets
+
+
+* [FunctionalParameters](FunctionalParameters.md)
+* [BendAngleReference](BendAngleReference.md)
+
+
 
 
 
@@ -114,6 +121,9 @@ Value must satisfy at least one of:
 ```yaml
 name: entrance_edge_angle
 description: Fringe-field entrance edge angle [rad].
+in_subset:
+- functional_parameters
+- bend_angle_reference
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: MagneticElement

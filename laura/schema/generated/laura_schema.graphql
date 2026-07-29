@@ -33,6 +33,7 @@ enum HardwareClassEnum
     Drift
     Generic
     Monitor
+    Simulation
   }
 
 enum IOTypeEnum
@@ -400,12 +401,14 @@ type Diagnostic
 
 type DiagnosticElement
   {
-    _placeholder: Boolean`n  }
+    _placeholder: Boolean
+  }
 
 type DiagnosticSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
+    wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
     outputFilename: String
@@ -437,6 +440,7 @@ type DriftSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
+    wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
     lscBins: Int
@@ -627,7 +631,8 @@ type LaserEnergyMeter
 
 type LaserEnergyMeterElement
   {
-    _placeholder: Boolean`n  }
+    _placeholder: Boolean
+  }
 
 type LaserHalfWavePlate
   {
@@ -653,7 +658,8 @@ type LaserHalfWavePlate
 
 type LaserHalfWavePlateElement
   {
-    _placeholder: Boolean`n  }
+    _placeholder: Boolean
+  }
 
 type LaserMirror
   {
@@ -717,7 +723,8 @@ type Lighting
 
 type LightingElement
   {
-    _placeholder: Boolean`n  }
+    _placeholder: Boolean
+  }
 
 type LinearSaturationFit
   {
@@ -825,8 +832,8 @@ type MagneticElement
     fieldIntegralCoefficients: FieldIntegral
     linearSaturationCoefficients: LinearSaturationFit
     settleTime: Float
-    entranceEdgeAngle: Float
-    exitEdgeAngle: Float
+    entranceEdgeAngle: String
+    exitEdgeAngle: String
     gap: Float
     bore: Float
     plane: BendingPlaneEnum
@@ -835,18 +842,20 @@ type MagneticElement
     edgeFieldIntegral: Float
     fringeFieldCoefficient: Float
     gradient: Float
+    angle: Float
   }
 
 type MagnetSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
+    wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
     nKicks: Int
     fieldAmplitude: Float
     nSlices: Int
-    smooth: Boolean
+    smooth: Int
     edgeFieldIntegral: Float
     edge1Effects: Boolean
     edge2Effects: Boolean
@@ -938,9 +947,10 @@ type PhysicalElement
     error: ElementPositionError
     survey: ElementSurvey
     length: Float
-    maximumPosition: Float
-    minimumPosition: Float
     physicalAngle: Float
+    referencePlacement: ReferencePlacement
+    s: Float
+    sPoint: String
   }
 
 type PID
@@ -1030,6 +1040,7 @@ type PlasmaSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
+    wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
     wakefieldModel: String
@@ -1081,6 +1092,15 @@ type ReferenceElement
     designFiles: [String]
   }
 
+type ReferencePlacement
+  {
+    element: String!
+    point: String
+    offset: Position
+    worldOffset: Position
+    sOffset: Float
+  }
+
 type RFCavity
   {
     name: String!
@@ -1127,6 +1147,7 @@ type RFCavitySimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
+    wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
     tColumn: String
@@ -1136,7 +1157,6 @@ type RFCavitySimulationElement
     wzColumn: String
     nKicks: Int
     lscBins: Int
-    fieldAmplitude: Float
     changeP0: Int
     end1Focus: Int
     end2Focus: Int
@@ -1150,6 +1170,7 @@ type RFCavitySimulationElement
     wakefile: String
     zwakefile: String
     trwakefile: String
+    fieldAmplitude: Float!
   }
 
 type RFDeflectingCavity
@@ -1214,7 +1235,8 @@ type RFHeartbeat
 
 type RFHeartbeatElement
   {
-    _placeholder: Boolean`n  }
+    _placeholder: Boolean
+  }
 
 type RFModulator
   {
@@ -1240,7 +1262,8 @@ type RFModulator
 
 type RFModulatorElement
   {
-    _placeholder: Boolean`n  }
+    _placeholder: Boolean
+  }
 
 type RFProtection
   {
@@ -1346,6 +1369,7 @@ type SimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
+    wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
   }
@@ -1427,6 +1451,7 @@ type TwissMatchSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
+    wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
     betaX: Float
@@ -1487,7 +1512,8 @@ type Valve
 
 type ValveElement
   {
-    _placeholder: Boolean`n  }
+    _placeholder: Boolean
+  }
 
 type Wakefield
   {
@@ -1523,6 +1549,7 @@ type WakefieldSimulationElement
   {
     fieldDefinition: String
     wakefieldDefinition: String
+    wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
     tColumn: String
@@ -1570,5 +1597,4 @@ type WallCurrentMonitor
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
   }
-
 

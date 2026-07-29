@@ -73,12 +73,46 @@ def set_resolve_functional(value: bool) -> None:
     IgnoreExtra.resolve_functional = bool(value)
 
 
+#: Schema subset marking a slot whose value may be a functional-definition name.
+FUNCTIONAL_SUBSET = "functional_parameters"
+#: Schema subset marking a slot that may instead reference the dipole bend angle.
+BEND_ANGLE_SUBSET = "bend_angle_reference"
+
+
+def functional_annotations(field_info: Any) -> Dict[str, Any]:
+    """
+    Read a field's functional markers, flattened to ``{tag: value}``.
+
+    Schema slots declare these as subset membership (``in_subset:
+    [functional_parameters]`` in ``laura_schema.yaml``), which gen-pydantic
+    surfaces as ``json_schema_extra["linkml_meta"]["in_subset"]``. Hand-written
+    wrapper classes that are not schema-generated may instead set them flat, as
+    ``Field(json_schema_extra={"functional": True})``. Both forms are accepted.
+
+    Subsets are used rather than LinkML ``annotations`` because gen-yaml -- which
+    the SHACL step in ``laura/schema/generate.sh`` pipes through -- cannot
+    serialise ``Annotation`` objects.
+    """
+    extra = getattr(field_info, "json_schema_extra", None)
+    if not isinstance(extra, dict):
+        return {}
+    if "functional" in extra:
+        return extra
+    subsets = (extra.get("linkml_meta") or {}).get("in_subset") or ()
+    if FUNCTIONAL_SUBSET not in subsets:
+        return {}
+    meta: Dict[str, Any] = {"functional": True}
+    if BEND_ANGLE_SUBSET in subsets:
+        meta["reserved_contains"] = "angle"
+    return meta
+
+
 def functional_references(model: Any) -> set:
     """
     Recursively collect the names of functional definitions referenced by a
     model — i.e. the string values stored in fields flagged as functional-enabled
-    (``Field(json_schema_extra={"functional": True})``). Nested models are walked
-    so that, for example, a magnet's multipole strengths are discovered.
+    (``annotations: {functional: true}`` on the schema slot). Nested models are
+    walked so that, for example, a magnet's multipole strengths are discovered.
 
     Args:
         model (Any): A pydantic model (typically an element); non-models yield
@@ -95,16 +129,12 @@ def functional_references(model: Any) -> set:
             value = getattr(model, name)
         except Exception:
             continue
-        extra = field_info.json_schema_extra
-        if (
-            isinstance(extra, dict)
-            and extra.get("functional")
-            and isinstance(value, str)
-        ):
+        meta = functional_annotations(field_info)
+        if meta.get("functional") and isinstance(value, str):
             # A field may reserve some literal string values that are not
             # functional-definition names (e.g. edge angles use "angle"/"angle/2"
             # to reference the bend angle); those are skipped.
-            reserved = extra.get("reserved_contains")
+            reserved = meta.get("reserved_contains")
             if not (reserved and reserved in value):
                 refs.add(value)
         if isinstance(value, BaseModel):

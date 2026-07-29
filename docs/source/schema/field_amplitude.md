@@ -39,17 +39,33 @@ URI: [laura:field_amplitude](https://w3id.org/laura/field_amplitude)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) |
 | Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md), [RFCavitySimulationElement](RFCavitySimulationElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+<details>
+<summary>Expressions & Logic</summary>
+#### Any Of
+
+Value must satisfy at least one of:
+- AnonymousSlotExpression({'range': 'float'})
+- AnonymousSlotExpression({'range': 'string'})
+
+</details>
 
 
 
 
+
+
+
+## In Subsets
+
+
+* [FunctionalParameters](FunctionalParameters.md)
 
 
 
@@ -86,12 +102,17 @@ URI: [laura:field_amplitude](https://w3id.org/laura/field_amplitude)
 ```yaml
 name: field_amplitude
 description: Field amplitude scaling.
+in_subset:
+- functional_parameters
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 domain_of:
 - MagnetSimulationElement
 - RFCavitySimulationElement
 range: float
+any_of:
+- range: float
+- range: string
 
 ```
 </details></div>

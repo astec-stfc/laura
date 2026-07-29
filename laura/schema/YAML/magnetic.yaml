@@ -74,10 +74,20 @@ classes:
         minimum_value: 0
       normal:
         range: float
+        any_of:
+          - range: float
+          - range: string
+        in_subset:
+          - functional_parameters
         description: "Integrated normal (upright) multipole strength [T.m^{1-n}]."
         ifabsent: float(0)
       skew:
         range: float
+        any_of:
+          - range: float
+          - range: string
+        in_subset:
+          - functional_parameters
         description: "Integrated skew (rotated) multipole strength [T.m^{1-n}]."
         ifabsent: float(0)
       radius:
@@ -182,8 +192,9 @@ classes:
         description: >-
           Whether the magnet is rotated 45? to produce a skew field
           component.
-      magnetic_length:
-        alias: length
+      length:
+        aliases:
+          - magnetic_length
         range: float
         ifabsent: float(0)
         description: Magnetic (effective) length [m].
@@ -214,6 +225,9 @@ classes:
         any_of:
           - range: float
           - range: string
+        in_subset:
+          - functional_parameters
+          - bend_angle_reference
         description: Fringe-field entrance edge angle [rad].
         unit:
           ucum_code: rad
@@ -221,6 +235,9 @@ classes:
         any_of:
           - range: float
           - range: string
+        in_subset:
+          - functional_parameters
+          - bend_angle_reference
         description: Fringe-field exit edge angle [rad].
         unit:
           ucum_code: rad
@@ -269,7 +286,15 @@ classes:
           ucum_code: T.m-1
       angle:
         range: float
-        description: Integrated bending angle [rad]. Dipoles only; read/write via the Python property on MagneticElement.
+        description: >-
+          Integrated bending angle [rad]. Dipoles only. Part of the data model
+          (lattice YAML may set it), but derived from multipoles.K0L rather than
+          stored: the MagneticElement wrapper implements it as a read/write
+          property so a symbolic bend angle survives round-tripping and reads
+          follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS
+          in generate_pydantic.py so the generated base does not also declare it
+          as a field, which would make pydantic treat the property object as the
+          field default.
         unit:
           ucum_code: rad
 

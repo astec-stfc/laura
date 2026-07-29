@@ -48,6 +48,20 @@ subsets:
   laser_properties:
     description: Slots specific to laser-related elements.
 
+  functional_parameters:
+    description: >-
+      Slots whose value may be the name of a functional definition (a symbolic
+      parameter resolved against the lattice's functional_definitions) as well
+      as a plain number. Membership is what functional_references() looks for
+      when collecting the symbols an element refers to.
+
+  bend_angle_reference:
+    description: >-
+      Slots that additionally accept an expression referencing the dipole bend
+      angle -- any string containing the reserved token "angle", e.g. "angle" or
+      "angle/2". Such values are not functional-definition names and are skipped
+      when collecting references.
+
 # --- Enumerations -------------------------------------------------------------
 
 enums:
@@ -212,6 +226,11 @@ slots:
 
   phase:
     range: float
+    any_of:
+      - range: float
+      - range: string
+    in_subset:
+      - functional_parameters
     description: Operating phase offset [deg].
     ifabsent: float(0.0)
     unit:
@@ -261,6 +280,11 @@ slots:
 
   field_amplitude:
     range: float
+    any_of:
+      - range: float
+      - range: string
+    in_subset:
+      - functional_parameters
     description: Field amplitude scaling.
 
 # --- Classes ------------------------------------------------------------------

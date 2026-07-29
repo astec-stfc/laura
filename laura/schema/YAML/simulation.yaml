@@ -38,6 +38,13 @@ classes:
       wakefield_definition:
         range: string
         description: Path to the wakefield impedance file.
+      wakefield_enable:
+        range: boolean
+        ifabsent: "true"
+        description: >-
+          Whether the wakefield named by wakefield_definition is applied. Set
+          false to track the element without its wakefield while keeping the
+          definition itself.
       field_reference_position:
         range: string
         description: Longitudinal origin of the field map [m].
@@ -192,6 +199,11 @@ classes:
         description: Transverse wake file name.
       field_amplitude:
         range: float
+        any_of:
+          - range: float
+          - range: string
+        in_subset:
+          - functional_parameters
         required: true
         description: Cavity field amplitude.
 

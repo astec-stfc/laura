@@ -55,6 +55,8 @@ URI: [laura:DriftSimulationElement](https://w3id.org/laura/DriftSimulationElemen
         
       DriftSimulationElement : wakefield_definition
         
+      DriftSimulationElement : wakefield_enable
+        
       
 ```
 
@@ -90,6 +92,7 @@ URI: [laura:DriftSimulationElement](https://w3id.org/laura/DriftSimulationElemen
 | [lsc_low_frequency_cutoff_end](lsc_low_frequency_cutoff_end.md) | 0..1 <br/> [Float](Float.md) | Low-frequency cutoff end for LSC | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
+| [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
 | [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
@@ -371,6 +374,18 @@ attributes:
     domain_of:
     - SimulationElement
     range: string
+  wakefield_enable:
+    name: wakefield_enable
+    description: Whether the wakefield named by wakefield_definition is applied. Set
+      false to track the element without its wakefield while keeping the definition
+      itself.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: 'true'
+    owner: DriftSimulationElement
+    domain_of:
+    - SimulationElement
+    range: boolean
   field_reference_position:
     name: field_reference_position
     description: Longitudinal origin of the field map [m].

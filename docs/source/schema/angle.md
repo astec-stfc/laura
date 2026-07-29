@@ -6,7 +6,7 @@ search:
 # Slot: angle 
 
 
-_Integrated bending angle [rad]. Dipoles only; read/write via the Python property on MagneticElement._
+_Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default._
 
 
 
@@ -103,8 +103,13 @@ URI: [laura:angle](https://w3id.org/laura/angle)
 <details>
 ```yaml
 name: angle
-description: Integrated bending angle [rad]. Dipoles only; read/write via the Python
-  property on MagneticElement.
+description: 'Integrated bending angle [rad]. Dipoles only. Part of the data model
+  (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the
+  MagneticElement wrapper implements it as a read/write property so a symbolic bend
+  angle survives round-tripping and reads follow the global resolution mode. Listed
+  in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not
+  also declare it as a field, which would make pydantic treat the property object
+  as the field default.'
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: MagneticElement

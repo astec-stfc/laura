@@ -39,7 +39,7 @@ URI: [laura:phase](https://w3id.org/laura/phase)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -63,10 +63,26 @@ URI: [laura:phase](https://w3id.org/laura/phase)
 
 </details>
 
+<details>
+<summary>Expressions & Logic</summary>
+#### Any Of
+
+Value must satisfy at least one of:
+- AnonymousSlotExpression({'range': 'float'})
+- AnonymousSlotExpression({'range': 'string'})
+
+</details>
 
 
 
 
+
+
+
+## In Subsets
+
+
+* [FunctionalParameters](FunctionalParameters.md)
 
 
 
@@ -103,6 +119,8 @@ URI: [laura:phase](https://w3id.org/laura/phase)
 ```yaml
 name: phase
 description: Operating phase offset [deg].
+in_subset:
+- functional_parameters
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: float(0.0)
@@ -112,6 +130,9 @@ domain_of:
 range: float
 unit:
   ucum_code: deg
+any_of:
+- range: float
+- range: string
 
 ```
 </details></div>

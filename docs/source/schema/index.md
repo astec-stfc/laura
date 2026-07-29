@@ -280,7 +280,6 @@ Name: laura_schema
 | [m](m.md) | Linear slope of the unsaturated region |
 | [machine_area](machine_area.md) | Machine area label grouping related elements (e |
 | [magnetic](magnetic.md) | Magnetic field parameters |
-| [magnetic_length](magnetic_length.md) | Magnetic (effective) length [m] |
 | [manufacturer](manufacturer.md) | Name of the manufacturer |
 | [mask](mask.md) | Camera analysis mask configuration |
 | [master_lattice](master_lattice.md) | Name of the master lattice this section belongs to |
@@ -416,6 +415,7 @@ Name: laura_schema
 | [virtual_name](virtual_name.md) | Alternative internal name used by the control system when the physical name i... |
 | [waist](waist.md) | Laser beam waist (1/e^2 radius) [m] |
 | [wakefield_definition](wakefield_definition.md) | Path to the wakefield impedance file |
+| [wakefield_enable](wakefield_enable.md) | Whether the wakefield named by wakefield_definition is applied |
 | [wakefield_model](wakefield_model.md) | Wakefield model identifier |
 | [wakefile](wakefile.md) | Wake file name |
 | [wavelength](wavelength.md) | Laser wavelength [m] |
@@ -480,7 +480,9 @@ Name: laura_schema
 
 | Subset | Description |
 | --- | --- |
+| [BendAngleReference](BendAngleReference.md) | Slots that additionally accept an expression referencing the dipole bend angl... |
 | [DiagnosticProperties](DiagnosticProperties.md) | Slots specific to beam-diagnostic instruments |
+| [FunctionalParameters](FunctionalParameters.md) | Slots whose value may be the name of a functional definition (a symbolic para... |
 | [LaserProperties](LaserProperties.md) | Slots specific to laser-related elements |
 | [MagneticProperties](MagneticProperties.md) | Slots specific to magnetic elements |
 | [PhysicalProperties](PhysicalProperties.md) | Slots relevant to the physical placement or geometry of an element |

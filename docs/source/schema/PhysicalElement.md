@@ -299,6 +299,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - PhysicalElement
+    - MagneticElement
     range: float
     minimum_value: 0.0
     unit:
@@ -436,6 +437,7 @@ attributes:
     owner: PhysicalElement
     domain_of:
     - PhysicalElement
+    - MagneticElement
     range: float
     minimum_value: 0.0
     unit:

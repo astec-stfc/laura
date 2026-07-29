@@ -130,11 +130,41 @@ linkml_meta = LinkMLMeta({'default_prefix': 'laura',
                   'xsd': {'prefix_prefix': 'xsd',
                           'prefix_reference': 'http://www.w3.org/2001/XMLSchema#'}},
      'source_file': 'laura/schema/YAML/laura_schema.yaml',
-     'subsets': {'diagnostic_properties': {'description': 'Slots specific to '
+     'subsets': {'bend_angle_reference': {'description': 'Slots that additionally '
+                                                         'accept an expression '
+                                                         'referencing the dipole '
+                                                         'bend angle -- any string '
+                                                         'containing the reserved '
+                                                         'token "angle", e.g. '
+                                                         '"angle" or "angle/2". '
+                                                         'Such values are not '
+                                                         'functional-definition '
+                                                         'names and are skipped '
+                                                         'when collecting '
+                                                         'references.',
+                                          'from_schema': 'https://w3id.org/laura/schema',
+                                          'name': 'bend_angle_reference'},
+                 'diagnostic_properties': {'description': 'Slots specific to '
                                                           'beam-diagnostic '
                                                           'instruments.',
                                            'from_schema': 'https://w3id.org/laura/schema',
                                            'name': 'diagnostic_properties'},
+                 'functional_parameters': {'description': 'Slots whose value may '
+                                                          'be the name of a '
+                                                          'functional definition '
+                                                          '(a symbolic parameter '
+                                                          'resolved against the '
+                                                          "lattice's "
+                                                          'functional_definitions) '
+                                                          'as well as a plain '
+                                                          'number. Membership is '
+                                                          'what '
+                                                          'functional_references() '
+                                                          'looks for when '
+                                                          'collecting the symbols '
+                                                          'an element refers to.',
+                                           'from_schema': 'https://w3id.org/laura/schema',
+                                           'name': 'functional_parameters'},
                  'laser_properties': {'description': 'Slots specific to '
                                                      'laser-related elements.',
                                       'from_schema': 'https://w3id.org/laura/schema',
@@ -364,6 +394,8 @@ class _SimulationElementBase(ConfiguredBaseModel):
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
+    wakefield_enable: Optional[bool] = Field(default=True, description="""Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself."""
     field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Longitudinal origin of the field map [m]."""
     scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
@@ -388,8 +420,10 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     n_kicks: Optional[int] = Field(default=4, description="""Number of integration kicks.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
          'ifabsent': 'int(4)'} })
     """Number of integration kicks."""
-    field_amplitude: Optional[float] = Field(default=0.0, description="""Field amplitude scaling for magnet tracking.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
-         'ifabsent': 'float(0.0)'} })
+    field_amplitude: Optional[Union[float, str]] = Field(default=0.0, description="""Field amplitude scaling for magnet tracking.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
+         'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'in_subset': ['functional_parameters']} })
     """Field amplitude scaling for magnet tracking."""
     n_slices: int = Field(default=4, description="""Number of longitudinal slices for thick-lens tracking.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(4)'} })
     """Number of longitudinal slices for thick-lens tracking."""
@@ -431,6 +465,8 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
+    wakefield_enable: Optional[bool] = Field(default=True, description="""Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself."""
     field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Longitudinal origin of the field map [m]."""
     scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
@@ -495,12 +531,16 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
     """Longitudinal wake file name."""
     trwakefile: Optional[str] = Field(default=None, description="""Transverse wake file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
     """Transverse wake file name."""
-    field_amplitude: float = Field(default=..., description="""Cavity field amplitude.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement']} })
+    field_amplitude: Union[float, str] = Field(default=..., description="""Cavity field amplitude.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
+         'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
+         'in_subset': ['functional_parameters']} })
     """Cavity field amplitude."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
+    wakefield_enable: Optional[bool] = Field(default=True, description="""Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself."""
     field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Longitudinal origin of the field map [m]."""
     scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
@@ -563,6 +603,8 @@ class _WakefieldSimulationElementBase(_SimulationElementBase):
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
+    wakefield_enable: Optional[bool] = Field(default=True, description="""Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself."""
     field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Longitudinal origin of the field map [m]."""
     scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
@@ -606,6 +648,8 @@ class _DriftSimulationElementBase(_SimulationElementBase):
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
+    wakefield_enable: Optional[bool] = Field(default=True, description="""Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself."""
     field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Longitudinal origin of the field map [m]."""
     scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
@@ -625,6 +669,8 @@ class _DiagnosticSimulationElementBase(_SimulationElementBase):
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
+    wakefield_enable: Optional[bool] = Field(default=True, description="""Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself."""
     field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Longitudinal origin of the field map [m]."""
     scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
@@ -668,6 +714,8 @@ class _PlasmaSimulationElementBase(_SimulationElementBase):
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
+    wakefield_enable: Optional[bool] = Field(default=True, description="""Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself."""
     field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Longitudinal origin of the field map [m]."""
     scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
@@ -703,6 +751,8 @@ class _TwissMatchSimulationElementBase(_SimulationElementBase):
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the wakefield impedance file."""
+    wakefield_enable: Optional[bool] = Field(default=True, description="""Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself."""
     field_reference_position: Optional[str] = Field(default=None, description="""Longitudinal origin of the field map [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Longitudinal origin of the field map [m]."""
     scale_field: float = Field(default=1, description="""Multiplicative scale factor applied to the field map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'float(1)'} })
@@ -718,9 +768,15 @@ class _MultipoleBase(ConfiguredBaseModel):
 
     order: int = Field(default=0, description="""Multipole order (0 = dipole, 1 = quadrupole, ?).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'int(0)'} })
     """Multipole order (0 = dipole, 1 = quadrupole, ?)."""
-    normal: float = Field(default=0, description="""Integrated normal (upright) multipole strength [T.m^{1-n}].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole'], 'ifabsent': 'float(0)'} })
+    normal: Optional[Union[float, str]] = Field(default=0, description="""Integrated normal (upright) multipole strength [T.m^{1-n}].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
+         'domain_of': ['Multipole'],
+         'ifabsent': 'float(0)',
+         'in_subset': ['functional_parameters']} })
     """Integrated normal (upright) multipole strength [T.m^{1-n}]."""
-    skew: float = Field(default=0, description="""Integrated skew (rotated) multipole strength [T.m^{1-n}].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'float(0)'} })
+    skew: Optional[Union[float, str]] = Field(default=0, description="""Integrated skew (rotated) multipole strength [T.m^{1-n}].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
+         'domain_of': ['Multipole', 'MagneticElement'],
+         'ifabsent': 'float(0)',
+         'in_subset': ['functional_parameters']} })
     """Integrated skew (rotated) multipole strength [T.m^{1-n}]."""
     radius: float = Field(default=0, description="""Reference radius for multipole normalisation [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'CameraMask', 'ApertureElement'],
          'ifabsent': 'float(0)',
@@ -799,7 +855,8 @@ class _MagneticElementBase(ConfiguredBaseModel):
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""
-    length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+    length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'aliases': ['magnetic_length'],
+         'domain_of': ['MagneticElement', 'PhysicalElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     """Magnetic (effective) length [m]."""
@@ -817,10 +874,12 @@ class _MagneticElementBase(ConfiguredBaseModel):
     """Power-supply settle time after a change [s]."""
     entrance_edge_angle: Optional[Union[float, str]] = Field(default=None, description="""Fringe-field entrance edge angle [rad].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
          'domain_of': ['MagneticElement'],
+         'in_subset': ['functional_parameters', 'bend_angle_reference'],
          'unit': {'ucum_code': 'rad'}} })
     """Fringe-field entrance edge angle [rad]."""
     exit_edge_angle: Optional[Union[float, str]] = Field(default=None, description="""Fringe-field exit edge angle [rad].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
          'domain_of': ['MagneticElement'],
+         'in_subset': ['functional_parameters', 'bend_angle_reference'],
          'unit': {'ucum_code': 'rad'}} })
     """Fringe-field exit edge angle [rad]."""
     gap: float = Field(default=0.032, description="""Full gap between pole faces [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
@@ -848,8 +907,6 @@ class _MagneticElementBase(ConfiguredBaseModel):
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
-    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only; read/write via the Python property on MagneticElement.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    """Integrated bending angle [rad]. Dipoles only; read/write via the Python property on MagneticElement."""
 
 
 class _DegaussableElementBase(ConfiguredBaseModel):
@@ -914,8 +971,10 @@ class _RFCavityElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'deg'}} })
     """On-crest phase offset providing maximum energy gain [deg]."""
-    phase: Optional[float] = Field(default=0.0, description="""Operating phase offset [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+    phase: Optional[Union[float, str]] = Field(default=0.0, description="""Operating phase offset [deg].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
+         'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
          'ifabsent': 'float(0.0)',
+         'in_subset': ['functional_parameters'],
          'unit': {'ucum_code': 'deg'}} })
     """Operating phase offset [deg]."""
     shunt_impedance: Optional[float] = Field(default=None, description="""Shunt impedance [M?/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
@@ -1002,8 +1061,10 @@ class _RFDeflectingCavityElementBase(ConfiguredBaseModel):
                        'RFDeflectingCavityElement'],
          'ifabsent': 'float(1)'} })
     """Number of cells."""
-    phase: Optional[float] = Field(default=0.0, description="""Operating phase offset [deg].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+    phase: Optional[Union[float, str]] = Field(default=0.0, description="""Operating phase offset [deg].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
+         'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
          'ifabsent': 'float(0.0)',
+         'in_subset': ['functional_parameters'],
          'unit': {'ucum_code': 'deg'}} })
     """Operating phase offset [deg]."""
     shunt_impedance: Optional[float] = Field(default=None, description="""Shunt impedance [M?/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
@@ -1612,7 +1673,8 @@ class _DipoleMagnetBase(_MagneticElementBase):
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""
-    length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+    length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'aliases': ['magnetic_length'],
+         'domain_of': ['MagneticElement', 'PhysicalElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     """Magnetic (effective) length [m]."""
@@ -1630,10 +1692,12 @@ class _DipoleMagnetBase(_MagneticElementBase):
     """Power-supply settle time after a change [s]."""
     entrance_edge_angle: Optional[Union[float, str]] = Field(default=None, description="""Fringe-field entrance edge angle [rad].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
          'domain_of': ['MagneticElement'],
+         'in_subset': ['functional_parameters', 'bend_angle_reference'],
          'unit': {'ucum_code': 'rad'}} })
     """Fringe-field entrance edge angle [rad]."""
     exit_edge_angle: Optional[Union[float, str]] = Field(default=None, description="""Fringe-field exit edge angle [rad].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
          'domain_of': ['MagneticElement'],
+         'in_subset': ['functional_parameters', 'bend_angle_reference'],
          'unit': {'ucum_code': 'rad'}} })
     """Fringe-field exit edge angle [rad]."""
     gap: float = Field(default=0.032, description="""Full gap between pole faces [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
@@ -1661,8 +1725,6 @@ class _DipoleMagnetBase(_MagneticElementBase):
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
-    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only; read/write via the Python property on MagneticElement.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    """Integrated bending angle [rad]. Dipoles only; read/write via the Python property on MagneticElement."""
 
 
 class _QuadrupoleMagnetBase(_MagneticElementBase):
@@ -1675,7 +1737,8 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""
-    length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+    length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'aliases': ['magnetic_length'],
+         'domain_of': ['MagneticElement', 'PhysicalElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     """Magnetic (effective) length [m]."""
@@ -1693,10 +1756,12 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
     """Power-supply settle time after a change [s]."""
     entrance_edge_angle: Optional[Union[float, str]] = Field(default=None, description="""Fringe-field entrance edge angle [rad].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
          'domain_of': ['MagneticElement'],
+         'in_subset': ['functional_parameters', 'bend_angle_reference'],
          'unit': {'ucum_code': 'rad'}} })
     """Fringe-field entrance edge angle [rad]."""
     exit_edge_angle: Optional[Union[float, str]] = Field(default=None, description="""Fringe-field exit edge angle [rad].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
          'domain_of': ['MagneticElement'],
+         'in_subset': ['functional_parameters', 'bend_angle_reference'],
          'unit': {'ucum_code': 'rad'}} })
     """Fringe-field exit edge angle [rad]."""
     gap: float = Field(default=0.032, description="""Full gap between pole faces [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
@@ -1724,8 +1789,6 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
-    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only; read/write via the Python property on MagneticElement.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    """Integrated bending angle [rad]. Dipoles only; read/write via the Python property on MagneticElement."""
 
 
 class _PositionBase(ConfiguredBaseModel):
@@ -1850,7 +1913,7 @@ class _PhysicalElementBase(ConfiguredBaseModel):
     """Alignment errors."""
     survey: Optional[_ElementSurveyBase] = Field(default=None, description="""Survey-measured position and rotation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement']} })
     """Survey-measured position and rotation."""
-    length: float = Field(default=0, description="""Effective length along the beam axis [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement'],
+    length: float = Field(default=0, description="""Effective length along the beam axis [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement', 'PhysicalElement'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     """Effective length along the beam axis [m]."""

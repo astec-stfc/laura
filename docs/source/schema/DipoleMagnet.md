@@ -49,6 +49,8 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
         
       DipoleMagnet : gradient
         
+      DipoleMagnet : length
+        
       DipoleMagnet : linear_saturation_coefficients
         
           
@@ -59,8 +61,6 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
         click LinearSaturationFit href "../LinearSaturationFit/"
     
 
-        
-      DipoleMagnet : magnetic_length
         
       DipoleMagnet : multipoles
         
@@ -134,7 +134,7 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
 | ---  | --- | --- | --- |
 | [order](order.md) | 0..1 <br/> [Integer](Integer.md) | Principal multipole order (0 = dipole, 1 = quad, ?) | [MagneticElement](MagneticElement.md) |
 | [skew](skew.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the magnet is rotated 45? to produce a skew field component | [MagneticElement](MagneticElement.md) |
-| [magnetic_length](magnetic_length.md) | 0..1 <br/> [Float](Float.md) | Magnetic (effective) length [m] | [MagneticElement](MagneticElement.md) |
+| [length](length.md) | 0..1 <br/> [Float](Float.md) | Magnetic (effective) length [m] | [MagneticElement](MagneticElement.md) |
 | [multipoles](multipoles.md) | 0..1 <br/> [Multipoles](Multipoles.md) | Integrated multipole field components | [MagneticElement](MagneticElement.md) |
 | [systematic_multipoles](systematic_multipoles.md) | 0..1 <br/> [Multipoles](Multipoles.md) | Systematic (design) multipole errors at the reference radius | [MagneticElement](MagneticElement.md) |
 | [random_multipoles](random_multipoles.md) | 0..1 <br/> [Multipoles](Multipoles.md) | Random multipole errors at the reference radius | [MagneticElement](MagneticElement.md) |
@@ -255,15 +255,16 @@ attributes:
     - Multipole
     - MagneticElement
     range: boolean
-  magnetic_length:
-    name: magnetic_length
+  length:
+    name: length
     description: Magnetic (effective) length [m].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
+    aliases:
+    - magnetic_length
     ifabsent: float(0)
-    alias: length
     owner: Dipole_Magnet
     domain_of:
+    - PhysicalElement
     - MagneticElement
     range: float
     minimum_value: 0.0
@@ -328,6 +329,9 @@ attributes:
   entrance_edge_angle:
     name: entrance_edge_angle
     description: Fringe-field entrance edge angle [rad].
+    in_subset:
+    - functional_parameters
+    - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: Dipole_Magnet
@@ -342,6 +346,9 @@ attributes:
   exit_edge_angle:
     name: exit_edge_angle
     description: Fringe-field exit edge angle [rad].
+    in_subset:
+    - functional_parameters
+    - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: Dipole_Magnet
@@ -447,8 +454,13 @@ attributes:
       ucum_code: T.m-1
   angle:
     name: angle
-    description: Integrated bending angle [rad]. Dipoles only; read/write via the
-      Python property on MagneticElement.
+    description: 'Integrated bending angle [rad]. Dipoles only. Part of the data model
+      (lattice YAML may set it), but derived from multipoles.K0L rather than stored:
+      the MagneticElement wrapper implements it as a read/write property so a symbolic
+      bend angle survives round-tripping and reads follow the global resolution mode.
+      Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated
+      base does not also declare it as a field, which would make pydantic treat the
+      property object as the field default.'
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: Dipole_Magnet

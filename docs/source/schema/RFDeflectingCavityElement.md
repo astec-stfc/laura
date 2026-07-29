@@ -72,7 +72,7 @@ URI: [laura:RFDeflectingCavityElement](https://w3id.org/laura/RFDeflectingCavity
 | [design_power](design_power.md) | 0..1 <br/> [Float](Float.md) | Design peak power [W] | direct |
 | [frequency](frequency.md) | 0..1 <br/> [Float](Float.md) | Operating frequency [Hz] | direct |
 | [n_cells](n_cells.md) | 0..1 <br/> [Float](Float.md) | Number of cells | direct |
-| [phase](phase.md) | 0..1 <br/> [Float](Float.md) | Operating phase offset [deg] | direct |
+| [phase](phase.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Operating phase offset [deg] | direct |
 | [shunt_impedance](shunt_impedance.md) | 0..1 <br/> [Float](Float.md) | Shunt impedance [M?/m] | direct |
 | [mode_numerator](mode_numerator.md) | 0..1 <br/> [Float](Float.md) | Mode fraction numerator | direct |
 | [mode_denominator](mode_denominator.md) | 0..1 <br/> [Integer](Integer.md) | Mode fraction denominator | direct |
@@ -270,6 +270,8 @@ attributes:
   phase:
     name: phase
     description: Operating phase offset [deg].
+    in_subset:
+    - functional_parameters
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: float(0.0)
@@ -280,6 +282,9 @@ attributes:
     range: float
     unit:
       ucum_code: deg
+    any_of:
+    - range: float
+    - range: string
   shunt_impedance:
     name: shunt_impedance
     description: Shunt impedance [M?/m].

@@ -47,6 +47,8 @@ URI: [laura:SimulationElement](https://w3id.org/laura/SimulationElement)
         
       SimulationElement : wakefield_definition
         
+      SimulationElement : wakefield_enable
+        
       
 ```
 
@@ -78,6 +80,7 @@ URI: [laura:SimulationElement](https://w3id.org/laura/SimulationElement)
 | ---  | --- | --- | --- |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | direct |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | direct |
+| [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | direct |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | direct |
 | [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | direct |
 
@@ -178,6 +181,17 @@ attributes:
     domain_of:
     - SimulationElement
     range: string
+  wakefield_enable:
+    name: wakefield_enable
+    description: Whether the wakefield named by wakefield_definition is applied. Set
+      false to track the element without its wakefield while keeping the definition
+      itself.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: 'true'
+    domain_of:
+    - SimulationElement
+    range: boolean
   field_reference_position:
     name: field_reference_position
     description: Longitudinal origin of the field map [m].
@@ -227,6 +241,18 @@ attributes:
     domain_of:
     - SimulationElement
     range: string
+  wakefield_enable:
+    name: wakefield_enable
+    description: Whether the wakefield named by wakefield_definition is applied. Set
+      false to track the element without its wakefield while keeping the definition
+      itself.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: 'true'
+    owner: SimulationElement
+    domain_of:
+    - SimulationElement
+    range: boolean
   field_reference_position:
     name: field_reference_position
     description: Longitudinal origin of the field map [m].

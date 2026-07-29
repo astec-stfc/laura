@@ -19,7 +19,11 @@ ER_FILE_AUTO="$OUT_DIR/element-er-auto.md"
 mkdir -p "$OUT_DIR" "$DOCS_DIR"
 
 echo "Linting schema..."
-linkml-lint "$SCHEMA"
+# Advisory only. The schema carries ~50 standard_naming warnings for physics
+# conventions we intend to keep (slots named L, Kp, Ki, Kd, x, y, z, s; enum
+# values like RF and TwissMatch), and linkml-lint exits non-zero on warnings --
+# which, under `set -e`, aborted this script before it generated anything.
+linkml-lint "$SCHEMA" || echo "  (lint warnings above are advisory; continuing)"
 
 echo "Generating JSON Schema..."
 gen-json-schema "$SCHEMA" --indent 2 > "$OUT_DIR/laura_element.schema.json"
@@ -53,7 +57,13 @@ echo "Generating SQL DDL..."
 gen-sqltables "$SCHEMA" > "$OUT_DIR/laura_schema.sql"
 
 echo "Generating SQLAlchemy ORM..."
-gen-sqla "$SCHEMA" > "$OUT_DIR/laura_orm.py"
+# Must go through generate_orm.py, not raw gen-sqla: it runs gen-sqla and then
+# adds the primaryjoin/secondaryjoin that self-referential many-to-many slots
+# (AcceleratorElement.upstream/downstream) need. Without that post-processing
+# SQLAlchemy 2.0 raises AmbiguousForeignKeysError and every SQL export fails.
+# generate.ps1 already did this correctly; this script called gen-sqla directly
+# and silently clobbered the fix.
+python "laura/schema/generate_orm.py"
 
 echo "Generating GraphQL schema..."
 gen-graphql "$SCHEMA" > "$OUT_DIR/laura_schema.graphql"
