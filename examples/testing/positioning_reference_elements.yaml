@@ -22,9 +22,7 @@
 
 GUN_CAVITY:
   name: GUN_CAVITY
-  hardware_class: RF
   hardware_type: RFCavity
-  hardware_model: SBand
   machine_area: INJ
   physical:
     middle: {x: 0.0, y: 0.0, z: 0.10}   # anchor — absolute global position
@@ -32,9 +30,7 @@ GUN_CAVITY:
 
 INJ_SOL_01:
   name: INJ_SOL_01
-  hardware_class: Magnet
   hardware_type: Solenoid
-  hardware_model: Generic
   machine_area: INJ
   physical:
     # s_offset: place this element's middle 0.25 m downstream of GUN_CAVITY's exit.
@@ -46,9 +42,7 @@ INJ_SOL_01:
 
 INJ_QUAD_01:
   name: INJ_QUAD_01
-  hardware_class: Magnet
   hardware_type: Quadrupole
-  hardware_model: Generic
   machine_area: INJ
   magnetic:
     length: 0.12
@@ -63,9 +57,7 @@ INJ_QUAD_01:
 
 INJ_QUAD_02:
   name: INJ_QUAD_02
-  hardware_class: Magnet
   hardware_type: Quadrupole
-  hardware_model: Generic
   machine_area: INJ
   magnetic:
     length: 0.12
@@ -82,9 +74,7 @@ INJ_QUAD_02:
 
 INJ_QUAD_03:
   name: INJ_QUAD_03
-  hardware_class: Magnet
   hardware_type: Quadrupole
-  hardware_model: Generic
   machine_area: INJ
   magnetic:
     length: 0.12
@@ -99,9 +89,7 @@ INJ_QUAD_03:
 
 INJ_BPM_01:
   name: INJ_BPM_01
-  hardware_class: Diagnostic
   hardware_type: Beam_Position_Monitor
-  hardware_model: Stripline
   machine_area: INJ
   physical:
     # s_offset from QUAD_03 exit (1.42 m) → 1.42 + 0.18 = 1.60 m ✓

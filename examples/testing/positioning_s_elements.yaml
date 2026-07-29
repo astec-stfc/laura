@@ -17,9 +17,7 @@
 
 GUN_CAVITY:
   name: GUN_CAVITY
-  hardware_class: RF
   hardware_type: RFCavity
-  hardware_model: SBand
   machine_area: INJ
   physical:
     s: 0.10          # middle of cavity at 0.10 m from the origin
@@ -27,9 +25,7 @@ GUN_CAVITY:
 
 INJ_SOL_01:
   name: INJ_SOL_01
-  hardware_class: Magnet
   hardware_type: Solenoid
-  hardware_model: Generic
   machine_area: INJ
   physical:
     s: 0.45          # middle at 0.45 m
@@ -37,9 +33,7 @@ INJ_SOL_01:
 
 INJ_QUAD_01:
   name: INJ_QUAD_01
-  hardware_class: Magnet
   hardware_type: Quadrupole
-  hardware_model: Generic
   machine_area: INJ
   magnetic:
     length: 0.12
@@ -50,9 +44,7 @@ INJ_QUAD_01:
 
 INJ_QUAD_02:
   name: INJ_QUAD_02
-  hardware_class: Magnet
   hardware_type: Quadrupole
-  hardware_model: Generic
   machine_area: INJ
   magnetic:
     length: 0.12
@@ -63,9 +55,7 @@ INJ_QUAD_02:
 
 INJ_QUAD_03:
   name: INJ_QUAD_03
-  hardware_class: Magnet
   hardware_type: Quadrupole
-  hardware_model: Generic
   machine_area: INJ
   magnetic:
     length: 0.12
@@ -76,9 +66,7 @@ INJ_QUAD_03:
 
 INJ_BPM_01:
   name: INJ_BPM_01
-  hardware_class: Diagnostic
   hardware_type: Beam_Position_Monitor
-  hardware_model: Stripline
   machine_area: INJ
   physical:
     s: 1.60          # middle at 1.60 m  (s_point defaults to "middle")
