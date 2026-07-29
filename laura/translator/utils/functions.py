@@ -4,7 +4,41 @@ import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from laura.models.element import Magnet
+from laura.models.baseModels import IgnoreExtra
 from typing import Any, Dict, Type, get_args, get_origin, Union, Literal
+
+
+def elegant_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the ELEGANT rpn-store header declaring every functional definition for
+    the lattice, e.g.::
+
+        % -2 sto quad1_k1l
+        % 90 sto cav1_phase
+
+    Element keywords that reference a functional parameter are written as quoted
+    rpn variable references (e.g. ``VOLT="V_L02.01"``), which ELEGANT resolves
+    against these stored values.
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        The ``% <value> sto <name>`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no rpn store needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(
+        f"% {value} sto {name}\n" for name, value in definitions.items() if value
+    )
 
 
 class Counter(dict):
@@ -113,7 +147,7 @@ def lattice_to_cartesian(elements):
         cond1 = elem.hardware_type.lower() != "dipole"
         cond2 = False
         if isinstance(elem, Magnet):
-            if abs(elem.magnetic.angle) > 1e-9:
+            if abs(elem.magnetic.KnL(0)) > 1e-9:
                 cond2 = True
         if cond1 and cond2:
             L = elem.physical.length
@@ -123,7 +157,7 @@ def lattice_to_cartesian(elements):
             x, y, z = x + dx, y + dy, z + dz
             positions.append((x, y, z))
         else:  # horizontal bend in x-z plane
-            L, phi, tilt = elem.physical.length, elem.magnetic.angle, elem.magnetic.tilt
+            L, phi, tilt = elem.physical.length, elem.magnetic.KnL(0), elem.magnetic.tilt
             if np.isclose(tilt, 0):
                 R = L / phi
                 cx = x - R * np.sin(theta_h)

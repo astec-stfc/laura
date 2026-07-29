@@ -559,7 +559,8 @@ class Magnet(PhysicalBaseElement):
         Rotation of the magnet based on its bending angle.
         """
         if self.magnetic is not None and hasattr(self.magnetic, 'angle'):
-            return Rotation.from_list([0, 0, self.magnetic.angle])
+            # Use the resolved bend angle (geometry needs a number).
+            return Rotation.from_list([0, 0, self.magnetic.KnL(0)])
         return Rotation.from_list([0, 0, 0])
 
     @property

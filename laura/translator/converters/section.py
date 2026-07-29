@@ -13,8 +13,9 @@ from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
 from .wake import WakefieldTranslator
 from .codes.gpt import gpt_ccs, gpt_Zminmax, gpt_dtmint
-from ..utils.functions import tw_cavity_energy_gain
+from ..utils.functions import tw_cavity_energy_gain, elegant_functional_definitions
 from ..utils.fields import field
+from ...models.baseModels import IgnoreExtra
 
 
 class SectionLatticeTranslator(SectionLattice):
@@ -77,6 +78,8 @@ class SectionLatticeTranslator(SectionLattice):
                 "order": section.model_copy().order,
                 "elements": section.model_copy().elements,
                 "master_lattice": section.model_copy().master_lattice,
+                "functional_definitions": section.functional_definitions,
+                "resolve_functional": section.resolve_functional,
             }
         )
 
@@ -396,7 +399,7 @@ class SectionLatticeTranslator(SectionLattice):
             lstring += f"{elem}, "
         lstring = f"{lstring[:-2]})" + "\n"
         lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return string + lstring
+        return elegant_functional_definitions(self.functional_definitions) + string + lstring
 
     def to_genesis(self, split_element: str | None = None, chicanes: Dict | None = None) -> str:
         """
@@ -600,6 +603,17 @@ class SectionLatticeTranslator(SectionLattice):
 
         if not isinstance(env, xt.Environment):
             env = xt.Environment()
+        # Register this lattice's functional definitions (cascaded from the
+        # SectionLattice/MachineModel, and loaded from a YAML file if specified)
+        # as Environment variables, so elements can reference them symbolically
+        # (e.g. k1="kquad"). Fall back to the shared registry if the section was
+        # built without its own definitions. Skipped in resolution mode, where the
+        # values are baked in as numbers instead.
+        if not IgnoreExtra.resolve_functional:
+            for name, value in (
+                self.functional_definitions or IgnoreExtra.functional_definitions
+            ).items():
+                env[name] = value
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
@@ -610,7 +624,14 @@ class SectionLatticeTranslator(SectionLattice):
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
                 name, component, properties = element.to_xsuite(beam_length=beam_length)
-                line.append(element.name, component(**properties))
+                if any(isinstance(v, str) for v in properties.values()):
+                    # Symbolic/functional parameters (e.g. k1="kquad"): build the
+                    # element through the Environment so the references are bound
+                    # as deferred expressions, then append it to the line by name.
+                    env.new(element.name, component, **properties)
+                    line.append(element.name)
+                else:
+                    line.append(element.name, component(**properties))
         if isinstance(particle_ref, xt.Particles):
             line.particle_ref = particle_ref
         if save:

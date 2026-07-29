@@ -3,6 +3,7 @@ from textwrap import wrap
 from laura.models.elementList import MachineLayout
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
+from ..utils.functions import elegant_functional_definitions
 
 
 class MachineLayoutTranslator(MachineLayout):
@@ -15,6 +16,8 @@ class MachineLayoutTranslator(MachineLayout):
                 "name": layout.model_copy().name,
                 "sections": layout.model_copy().sections,
                 "master_lattice": layout.model_copy().master_lattice,
+                "functional_definitions": layout.functional_definitions,
+                "resolve_functional": layout.resolve_functional,
             }
         )
 
@@ -51,7 +54,7 @@ class MachineLayoutTranslator(MachineLayout):
                 lstring += f"{elem}, "
             lstring = f"{lstring[:-2]})" + "\n\n\n"
         lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return string + lstring
+        return elegant_functional_definitions(self.functional_definitions) + string + lstring
 
     def to_genesis(self, string: str = "") -> str:
         for section in self.sections.values():

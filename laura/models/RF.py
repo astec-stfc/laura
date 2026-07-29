@@ -41,8 +41,9 @@ class RFCavityElement(IgnoreExtra):
     crest: float = 0
     """Crest phase [deg] -- crest is zero."""
 
-    phase: float = 0.0
-    """Off-crest phase [deg]."""
+    phase: Union[float, str] = Field(default=0.0, json_schema_extra={"functional": True})
+    """Off-crest phase [deg]. Stored verbatim: a number or a string naming a
+    functional definition (resolve via ``resolved("phase")``)."""
 
     shunt_impedance: Union[float, None] = None
     """Shunt impedance."""
@@ -109,8 +110,9 @@ class RFDeflectingCavityElement(IgnoreExtra):
     crest: float = 0
     """Crest phase [deg] -- crest is zero."""
 
-    phase: float = 0.0
-    """Off-crest phase [deg]."""
+    phase: Union[float, str] = Field(default=0.0, json_schema_extra={"functional": True})
+    """Off-crest phase [deg]. Stored verbatim: a number or a string naming a
+    functional definition (resolve via ``resolved("phase")``)."""
 
     n_cells: Union[int, float] = 1
     """Number of cavity cells."""
