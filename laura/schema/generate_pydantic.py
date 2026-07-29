@@ -17,6 +17,7 @@ Or via the generate.ps1 / generate.sh scripts::
     .\\laura\\schema\\generate.ps1
 """
 
+import ast
 import re
 import subprocess
 import sys
@@ -479,6 +480,48 @@ def _inject_alias_choices_import(content: str) -> str:
     return content
 
 
+# ── Step 5: mirror field descriptions as attribute docstrings ────────────────
+
+def _add_attribute_docstrings(content: str) -> str:
+    """Repeat each field's ``description`` as a PEP 224 attribute docstring.
+
+    LinkML ``description:`` already reaches the generated code in two places:
+    class descriptions become class docstrings, and slot descriptions become
+    ``Field(description=...)``.  Plain ``sphinx.ext.autodoc`` does not render
+    the latter, but it does pick up a string literal placed directly after an
+    annotated assignment — so we emit one.
+
+    The module is parsed with ``ast`` rather than matched line-by-line because
+    the ``Field(...)`` calls span many lines and contain nested parentheses.
+    """
+    lines = content.split("\n")
+    # 1-based line number to insert after → docstring line
+    inserts: dict[int, str] = {}
+
+    for cls in ast.parse(content).body:
+        if not isinstance(cls, ast.ClassDef):
+            continue
+        for node in cls.body:
+            if not isinstance(node, ast.AnnAssign) or not isinstance(node.value, ast.Call):
+                continue
+            desc = next(
+                (
+                    kw.value.value
+                    for kw in node.value.keywords
+                    if kw.arg == "description" and isinstance(kw.value, ast.Constant)
+                ),
+                None,
+            )
+            if isinstance(desc, str) and desc.strip():
+                body = "\n    ".join(desc.strip().split("\n"))
+                inserts[node.end_lineno] = f'    """{body}"""'
+
+    for lineno in sorted(inserts, reverse=True):
+        lines.insert(lineno, inserts[lineno])
+
+    return "\n".join(lines)
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def generate(
@@ -489,7 +532,8 @@ def generate(
     _enum_names, model_names = _collect_schema_classes(raw)
     renamed = _rename_classes(raw, model_names)
     fixed = _apply_schema_fixes(renamed, schema_path)
-    return _HEADER + fixed
+    documented = _add_attribute_docstrings(fixed)
+    return _HEADER + documented
 
 
 # ── CLI entry point ───────────────────────────────────────────────────────────
