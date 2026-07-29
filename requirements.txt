@@ -1,8 +1,9 @@
-munch>=2.5.0
-numpy>=2.1.1
-pydantic>=2.8.2
-PyYAML>=6.0.2
-vg>=2.0.0
+pydantic>=2
+pyyaml>=6
+numpy>=1.26
+scipy>=1.15
+pandas>=2.2.2
+munch>=4
 pydantic-core>=2.41.5
 # Lattice conversion backends — install individually or all at once:
 # pip install "laura-accelerator[conversion]"
@@ -11,3 +12,4 @@ pydantic-core>=2.41.5
 # pip install "laura-accelerator[cheetah]"
 # pip install "laura-accelerator[wake_t]"
 # pip install "laura-accelerator[bmad]"
+# pip install "laura-accelerator[madx]"

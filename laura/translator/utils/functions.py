@@ -4,7 +4,92 @@ import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from laura.utils.dict_utils import numpy_scalar_to_python
+from laura.models.baseModels import IgnoreExtra
 from typing import Any, Dict, Type
+
+
+def elegant_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the ELEGANT rpn-store header declaring every functional definition for
+    the lattice, e.g.::
+
+        % -2 sto quad1_k1l
+        % 90 sto cav1_phase
+
+    Element keywords that reference a functional parameter are written as quoted
+    rpn variable references (e.g. ``VOLT="V_L02.01"``), which ELEGANT resolves
+    against these stored values.
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        The ``% <value> sto <name>`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no rpn store needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(
+        f"% {value} sto {name}\n" for name, value in definitions.items() if value
+    )
+
+
+def madx_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the MAD-X variable-declaration header assigning every functional
+    definition for the lattice, e.g.::
+
+        quad1_k1l = -2;
+        cav1_phase = 90;
+
+    Element keywords that reference a functional parameter are written as
+    infix expressions (e.g. ``k1 := quad1_k1l / 0.1``), which MAD-X resolves
+    against these variable assignments (and keeps updated as deferred
+    expressions, ``:=``, wherever a symbolic value is used).
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        A ``<name> = <value>;`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no header needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(
+        f"{name} = {value};\n" for name, value in definitions.items() if value
+    )
+
+
+def sanitize_string(string: str) -> str:
+    """
+    Replaces hyphens in a string with underscores.
+
+    Parameters
+    ----------
+    string: str
+        Any string
+
+    Returns
+    -------
+    str
+        A string with hyphens replaced with underscores
+    """
+    return string.replace("-", "_")
 
 
 class Counter(dict):

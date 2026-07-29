@@ -1,8 +1,0 @@
-# python packages needed to build sphinx documentation
-sphinx
-sphinx-rtd-theme
-sphinx-autodoc-typehints
-autodoc-pydantic
-sphinx-automodapi
-sphinx-substitution-extensions
-myst-parser

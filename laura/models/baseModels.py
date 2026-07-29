@@ -1,5 +1,5 @@
 from pydantic import BaseModel, model_serializer, ConfigDict
-from typing import TypeVar, Any, Type, List, Union
+from typing import TypeVar, Any, Type, List, Union, Dict, ClassVar
 import numpy as np
 from pydantic_core.core_schema import SerializationInfo
 
@@ -11,6 +11,160 @@ from ..utils.dict_utils import (
 
 # Create a generic variable that can be 'Parent', or any subclass.
 T = TypeVar("T", bound="BaseModel")
+
+
+def resolve_functional_parameter(
+    value: Any,
+    definitions: Union[Dict[str, Union[int, float]], None] = None,
+    *,
+    force: Union[bool, None] = None,
+) -> Any:
+    """
+    Resolve a (possibly functional) parameter to its numeric value.
+
+    Many element attributes (e.g. multipole strengths, cavity phases) may be
+    defined either directly as a number or symbolically as a string that names
+    an entry in the lattice's functional definitions (for example
+    ``{"quad1_k1l": -2, "cav1_phase": 90}``). The string is stored verbatim on
+    the element; whether it is resolved to a number here depends on ``force``:
+
+    * ``force=True`` — always resolve (used by computations that need a number);
+    * ``force=False`` — never resolve (return the string verbatim);
+    * ``force=None`` (default) — follow the global resolution mode flag
+      :attr:`IgnoreExtra.resolve_functional` (off by default, i.e. leave as a
+      string), set from the top level via :func:`set_resolve_functional`.
+
+    Args:
+        value (Any): Either a numeric value (returned unchanged) or a string
+            naming a functional definition.
+        definitions (dict, optional): The functional definitions to resolve
+            against. Defaults to the shared registry on
+            :class:`IgnoreExtra` (``IgnoreExtra.functional_definitions``).
+        force (bool, optional): Override the global resolution mode.
+
+    Returns:
+        Any: The numeric value when resolving, otherwise the value unchanged.
+
+    Raises:
+        KeyError: If resolving and ``value`` is a string that is not present in
+            the available functional definitions.
+    """
+    if not isinstance(value, str):
+        return value
+    resolve = IgnoreExtra.resolve_functional if force is None else force
+    if not resolve:
+        return value
+    defs = IgnoreExtra.functional_definitions if definitions is None else definitions
+    if value not in defs:
+        raise KeyError(
+            f"Functional parameter '{value}' is not defined in the available "
+            f"functional definitions {sorted(defs.keys())}"
+        )
+    return defs[value]
+
+
+def set_resolve_functional(value: bool) -> None:
+    """
+    Set the global resolution-mode flag: when True, functional attributes are
+    presented as their resolved numeric values; when False (the default), they
+    are rendered as the functional-definition name (a string). Computations that
+    require a number always resolve regardless of this flag.
+    """
+    IgnoreExtra.resolve_functional = bool(value)
+
+
+def functional_references(model: Any) -> set:
+    """
+    Recursively collect the names of functional definitions referenced by a
+    model — i.e. the string values stored in fields flagged as functional-enabled
+    (``Field(json_schema_extra={"functional": True})``). Nested models are walked
+    so that, for example, a magnet's multipole strengths are discovered.
+
+    Args:
+        model (Any): A pydantic model (typically an element); non-models yield
+            an empty set.
+
+    Returns:
+        set: The set of referenced functional-definition names.
+    """
+    refs: set = set()
+    if not isinstance(model, BaseModel):
+        return refs
+    for name, field_info in type(model).model_fields.items():
+        try:
+            value = getattr(model, name)
+        except Exception:
+            continue
+        extra = field_info.json_schema_extra
+        if (
+            isinstance(extra, dict)
+            and extra.get("functional")
+            and isinstance(value, str)
+        ):
+            # A field may reserve some literal string values that are not
+            # functional-definition names (e.g. edge angles use "angle"/"angle/2"
+            # to reference the bend angle); those are skipped.
+            reserved = extra.get("reserved_contains")
+            if not (reserved and reserved in value):
+                refs.add(value)
+        if isinstance(value, BaseModel):
+            refs |= functional_references(value)
+    return refs
+
+
+def validate_functional_references(
+    elements: Any,
+    definitions: Union[Dict[str, Union[int, float]], None],
+    source: Union[str, None] = None,
+) -> None:
+    """
+    Raise if any element references a functional definition that is not present
+    in ``definitions``, naming the missing reference(s), the element(s) that use
+    them, and where the definitions were provided.
+
+    Args:
+        elements: Iterable of element models to check.
+        definitions: The available functional definitions.
+        source (str, optional): Where the definitions came from (e.g. a YAML file
+            path), surfaced in the error message.
+
+    Raises:
+        ValueError: If one or more referenced functional definitions are missing.
+    """
+    available = set(definitions or {})
+    missing: Dict[str, set] = {}
+    for elem in elements:
+        for ref in functional_references(elem):
+            if ref not in available:
+                missing.setdefault(ref, set()).add(getattr(elem, "name", "?"))
+    if missing:
+        where = f" provided in {source}" if source else " provided to the lattice"
+        details = "; ".join(
+            f"'{ref}' (used by {', '.join(sorted(names))})"
+            for ref, names in sorted(missing.items())
+        )
+        raise ValueError(
+            f"Undefined functional parameter(s): {details}. "
+            f"Available functional_definitions{where}: {sorted(available)}. "
+            f"Add the missing definition(s) to the functional_definitions{where}."
+        )
+
+
+def set_functional_definitions(
+    definitions: Union[Dict[str, Union[int, float]], None], merge: bool = True
+) -> None:
+    """
+    Populate the shared registry of functional definitions for the lattice.
+
+    Args:
+        definitions (dict | None): Mapping of functional-parameter names to
+            their numeric values, e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``.
+        merge (bool, optional): If True (default), merge into the existing
+            registry; if False, replace it entirely.
+    """
+    if not merge:
+        IgnoreExtra.functional_definitions.clear()
+    IgnoreExtra.functional_definitions.update(definitions or {})
 
 
 def convert_numpy_types(v: Any) -> Any:
@@ -53,7 +207,45 @@ class ModelBase(BaseModel):
         )
 
 
-class IgnoreExtra(ModelBase):
+class FunctionalMixin:
+    """
+    Provides :meth:`resolve` / :meth:`resolved` to any model holding functional
+    parameters.
+
+    This is a plain mixin rather than methods on :class:`IgnoreExtra` because the
+    schema-generated element bases in ``laura/models/_generated.py`` descend from
+    their own ``ConfiguredBaseModel`` root, not from ``IgnoreExtra``. That file is
+    regenerated from ``laura_schema.yaml`` and must not be hand-edited, so wrapper
+    classes that declare functional fields mix this in alongside their generated
+    base instead.
+    """
+
+    def resolve(self, value: Any) -> Any:
+        """
+        Resolve a single (possibly functional) value to its number, regardless of
+        the global resolution mode (this is an explicit request to resolve).
+
+        See :func:`resolve_functional_parameter`.
+        """
+        return resolve_functional_parameter(
+            value, IgnoreExtra.functional_definitions, force=True
+        )
+
+    def resolved(self, field_name: str) -> Any:
+        """
+        Return the numeric value of a field, resolving it against the functional
+        definitions if it is stored symbolically as a string.
+
+        Args:
+            field_name (str): Name of the attribute to resolve.
+
+        Returns:
+            Any: The resolved numeric value.
+        """
+        return self.resolve(getattr(self, field_name))
+
+
+class IgnoreExtra(ModelBase, FunctionalMixin):
     """Base Model that ignores extra fields."""
 
     model_config = ConfigDict(
@@ -61,6 +253,21 @@ class IgnoreExtra(ModelBase):
         extra="ignore",
         populate_by_name=True,
     )
+
+    # Shared registry of functional definitions for the accelerator lattice,
+    # e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``. This is a class variable so
+    # that a single set of definitions, provided to a high-level container such
+    # as ``SectionLattice``/``MachineModel``/``LAURA``, is visible to every
+    # (deeply nested) element model when it needs to resolve a string-valued
+    # functional parameter to a number. Populate it via
+    # :func:`set_functional_definitions`.
+    functional_definitions: ClassVar[Dict[str, Union[int, float]]] = {}
+
+    # Global resolution mode (see :func:`set_resolve_functional`). When False
+    # (default), functional attributes render as their definition name (string);
+    # when True, the "configured value" accessors and the codes that support
+    # functional parameters present resolved numbers instead.
+    resolve_functional: ClassVar[bool] = False
 
     def _create_field_class(
         self, fields: dict, fieldname: str, fieldclass: List[str]

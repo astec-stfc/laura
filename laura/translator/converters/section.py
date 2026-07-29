@@ -20,8 +20,14 @@ from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
 from .wake import WakefieldTranslator
 from .codes.gpt import gpt_ccs, gpt_Zminmax, gpt_dtmint
-from ..utils.functions import tw_cavity_energy_gain
+from ..utils.functions import (
+    tw_cavity_energy_gain,
+    elegant_functional_definitions,
+    madx_functional_definitions,
+)
 from ..utils.fields import field
+from ...models.baseModels import IgnoreExtra
+from ..utils.functions import sanitize_string
 
 
 class SectionLatticeTranslator(SectionLattice):
@@ -58,6 +64,9 @@ class SectionLatticeTranslator(SectionLattice):
     lsc_enable: bool = True
     """Flag to enable calculation of LSC in drifts."""
 
+    wakefield_enable: bool = True
+    """Flag to enable structure wakefields on accelerating cavities."""
+
     lsc_bins: PositiveInt = 20
     """Number of LSC bins for drifts."""
 
@@ -84,6 +93,8 @@ class SectionLatticeTranslator(SectionLattice):
                 "order": section.model_copy().order,
                 "elements": section.model_copy().elements,
                 "master_lattice": section.model_copy().master_lattice,
+                "functional_definitions": section.functional_definitions,
+                "resolve_functional": section.resolve_functional,
             }
         )
 
@@ -373,6 +384,28 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += s + ", "
         return fulltext[:-2] + "\n"
 
+    def _apply_wakefield_enable(self, elem_dict: dict) -> None:
+        """
+        Switch structure wakefields off on the translated elements when
+        :attr:`~wakefield_enable` is False.
+
+        Only ever turns wakefields off, so a per-element
+        ``simulation.wakefield_enable`` set by the caller is still respected
+        when the section-level flag is left on. The translated elements are
+        throwaway copies, so the underlying lattice definition is unchanged.
+
+        Parameters
+        ----------
+        elem_dict: dict
+            The translated elements about to be written
+        """
+        if self.wakefield_enable:
+            return
+        for d in elem_dict.values():
+            sim = getattr(d, "simulation", None)
+            if sim is not None and hasattr(sim, "wakefield_enable"):
+                sim.wakefield_enable = False
+
     def to_elegant(self, charge: float = None) -> str:
         """
         Create an ELEGANT-compatible input file based on the lattice information.
@@ -392,11 +425,13 @@ class SectionLatticeTranslator(SectionLattice):
             lsc_enable=self.lsc_enable,
             lsc_bins=self.lsc_bins,
         )
+        # (wakefields are applied to the translated elements below)
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        self._apply_wakefield_enable(elem_dict)
         string = ""
         if charge:
             string += f"{self.name}_Q: CHARGE, TOTAL = {charge};\n"
@@ -411,7 +446,7 @@ class SectionLatticeTranslator(SectionLattice):
             lstring += f"{elem}, "
         lstring = f"{lstring[:-2]})" + "\n"
         lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return string + lstring
+        return elegant_functional_definitions(self.functional_definitions) + string + lstring
 
     def to_genesis(self, split_element: str | None = None, chicanes: Dict | None = None) -> str:
         """
@@ -529,7 +564,7 @@ class SectionLatticeTranslator(SectionLattice):
         from ocelot.cpbd.transformations.second_order import SecondTM
         from ocelot.cpbd.transformations.kick import KickTM
         from ocelot.cpbd.transformations.runge_kutta import RungeKuttaTM
-        from ocelot.cpbd.elements import Octupole, Undulator, Marker
+        from ocelot.cpbd.elements import Octupole, Undulator, Marker, Drift
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
         section_with_drifts = self.createDrifts()
@@ -541,7 +576,17 @@ class SectionLatticeTranslator(SectionLattice):
         elements = []
 
         for d in elem_dict.values():
-            elements.append(d.to_ocelot())
+            obj = d.to_ocelot()
+            objs = list(obj) if isinstance(obj, (list, tuple)) else [obj]
+            # e.g. a Combined_Corrector split into an Hcor + Vcor pair.
+            elements.extend(objs)
+            # Some finite-length elements (e.g. collimators) map to zero-length
+            # Ocelot elements (Aperture takes no length).
+            # Pad the difference with a drift so the total length is preserved.
+            oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
+            gap = d.physical.length - oce_len
+            if gap > 1e-9:
+                elements.append(Drift(l=gap, eid=f"{d.name}_len"))
 
         maglat = MagneticLattice(elements, method=method)
         if save:
@@ -745,17 +790,33 @@ class SectionLatticeTranslator(SectionLattice):
 
         if not isinstance(env, xt.Environment):
             env = xt.Environment()
+        if not IgnoreExtra.resolve_functional:
+            for name, value in (
+                self.functional_definitions or IgnoreExtra.functional_definitions
+            ).items():
+                env[name] = value
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        def _is_symbolic(value: Any) -> bool:
+            if isinstance(value, str):
+                return True
+            if isinstance(value, (list, tuple)):
+                return any(isinstance(v, str) for v in value)
+            return False
+
         line = env.new_line()
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
                 name, component, properties = element.to_xsuite(beam_length=beam_length)
-                line.append(element.name, component(**properties))
+                if any(_is_symbolic(v) for v in properties.values()):
+                    env.new(element.name, component, **properties)
+                    line.append(element.name)
+                else:
+                    line.append(element.name, component(**properties))
         if isinstance(particle_ref, xt.Particles):
             line.particle_ref = particle_ref
         if save:
@@ -809,6 +870,75 @@ class SectionLatticeTranslator(SectionLattice):
         for h in self.csrtrack_headers.values():
             csrtrackstr += h.write_CSRTrack()
         return csrtrackstr
+
+    def to_madx(
+        self, beam: Dict[str, Any] | None = None, refer: str = "entry"
+    ) -> str:
+        """
+        Create a MAD-X-compatible ``SEQUENCE`` definition based on the lattice
+        information, suitable for :meth:`cpymad.madx.Madx.input` (see the
+        `MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html>`_).
+
+        Elements are placed at their entrance s-position (``refer=entry``, the
+        default) or, when ``refer`` is ``"centre"``/``"center"``, at their centre
+        (required before a MAD-X ``MAKETHIN``/``TRACK``).
+        Explicit ``drift`` elements are inserted between elements via
+        :meth:`createDrifts` and written into the sequence like any other
+        element, which is the standard way of constructing a MAD-X lattice
+        (rather than relying on MAD-X's implicit gap-filling between elements
+        placed without a contiguous ``at=``).
+
+        Parameters
+        ----------
+        beam: dict
+            A dictionary describing a beam distribution with the keys as defined in the
+            `Beam Section of the MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html#Ch7.S1>`_
+        refer: str
+            Gives a reference position for element placement, related to the ``at=`` parameter.
+
+        Returns
+        -------
+        str
+            A MAD-X-compatible ``SEQUENCE`` definition, prefixed with variable
+            declarations for any functional definitions used symbolically by
+            the lattice's elements.
+        """
+        section_with_drifts = self.createDrifts()
+        elem_dict = translate_elements(
+            section_with_drifts.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        svals = self.get_s_values(as_dict=True, at_entrance=True)
+        exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
+        length = max(exit_svals.values()) if exit_svals else 0.0
+        centre = str(refer).lower() in ("centre", "center")
+        refer = "centre" if centre else "entry"
+        fulltext = ""
+        for d in elem_dict.values():
+            at = d.physical.start.z if d.subelement else svals[d.name]
+            if centre:
+                at += d.physical.length / 2
+            fulltext += d.to_madx(at=at)
+
+        seqstring = madx_functional_definitions(self.functional_definitions)
+        has_beam = isinstance(beam, Dict)
+        if has_beam:
+            beamstr = "BEAM"
+            for k, v in beam.items():
+                beamstr += f", {k.upper()}={v}"
+            beamstr += f", SEQUENCE = {sanitize_string(self.name)};\n"
+            seqstring += beamstr
+        seqstring += f"{sanitize_string(self.name)}: SEQUENCE, refer={refer}, l = {length};\n"
+        seqstring += fulltext
+        seqstring += "ENDSEQUENCE;\n"
+        if has_beam:
+            # USE is only meaningful once a BEAM has been declared for the
+            # sequence -- MAD-X aborts with "USE - sequence without beam"
+            # otherwise. Without a beam this is a plain sequence definition,
+            # to be USEd by the caller after it issues its own BEAM.
+            seqstring += f"USE, PERIOD={sanitize_string(self.name)};"
+        return seqstring
 
     def to_wake_t(self) -> "Beamline":
         """

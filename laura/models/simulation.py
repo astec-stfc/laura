@@ -1,6 +1,6 @@
-from pydantic import SerializeAsAny
-from typing import Literal, Any, ClassVar
-from .baseModels import IgnoreExtra
+from pydantic import SerializeAsAny, Field
+from typing import Literal, Any, ClassVar, Union
+from .baseModels import IgnoreExtra, FunctionalMixin
 from ._generated import (
     _ApertureElementBase,
     _SimulationElementBase,
@@ -21,15 +21,22 @@ class ApertureElement(_ApertureElementBase):
     pass
 
 
-class SimulationElement(_SimulationElementBase):
+class SimulationElement(_SimulationElementBase, FunctionalMixin):
     """
     Simulation element model.
     """
 
-    pass
+    # Everything else PR #4 declared here (field_definition, wakefield_definition,
+    # field_reference_position, scale_field) now comes from the generated schema
+    # base. wakefield_enable does not yet exist in the schema, so it stays an
+    # explicit override until it is added to laura_schema.yaml.
+    wakefield_enable: bool = True
+    """Flag to indicate whether the wakefield defined by
+    :attr:`~wakefield_definition` is applied. Set to False to track the element
+    without its wakefield, without discarding the definition itself."""
 
 
-class MagnetSimulationElement(_MagnetSimulationElementBase):
+class MagnetSimulationElement(_MagnetSimulationElementBase, FunctionalMixin):
     """
     Magnet simulation element model.
     """
@@ -37,6 +44,18 @@ class MagnetSimulationElement(_MagnetSimulationElementBase):
     field_definition: str | field | None = None
     # Schema declares `smooth` as boolean but ASTRA uses an integer smoothing count (Q_smooth / S_smooth).
     smooth: int | None = 2
+
+    # Schema types this as plain float; widened to accept the name of a
+    # functional definition, and marked so functional_references() finds it.
+    field_amplitude: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Field amplitude for the magnet simulation. Stored verbatim: a number or a
+    string naming a functional definition (resolve via ``resolved("field_amplitude")``)."""
+
+    # n_kicks, n_slices, edge_*, sr_enable, integration_order, nonlinear,
+    # smoothing_half_width, csr_*, isr_enable and deltaL were declared inline by
+    # PR #4; they now come from _MagnetSimulationElementBase.
 
 
 class DriftSimulationElement(_DriftSimulationElementBase):
@@ -73,7 +92,7 @@ class PlasmaSimulationElement(_PlasmaSimulationElementBase):
     pass
 
 
-class RFCavitySimulationElement(_RFCavitySimulationElementBase):
+class RFCavitySimulationElement(_RFCavitySimulationElementBase, FunctionalMixin):
     """
     RF cavity simulation element model.
     """
@@ -81,7 +100,13 @@ class RFCavitySimulationElement(_RFCavitySimulationElementBase):
     field_definition: str | field | None = None
     wakefield_definition: str | field | None = None
 
-    pass
+    # Schema types this as plain float; widened to accept the name of a
+    # functional definition, and marked so functional_references() finds it.
+    field_amplitude: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Cavity field amplitude. Stored verbatim: a number or a string naming a
+    functional definition (resolve via ``resolved("field_amplitude")``)."""
 
 
 class WakefieldSimulationElement(_WakefieldSimulationElementBase):

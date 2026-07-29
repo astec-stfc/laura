@@ -1,11 +1,6 @@
 laura.translator.utils package
 ==============================
 
-.. automodule:: laura.translator.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Subpackages
 -----------
 
@@ -22,37 +17,42 @@ laura.translator.utils.SDDSFile module
 
 .. automodule:: laura.translator.utils.SDDSFile
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
+   :undoc-members:
 
 laura.translator.utils.classes module
 -------------------------------------
 
 .. automodule:: laura.translator.utils.classes
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
+   :undoc-members:
 
 laura.translator.utils.functions module
 ---------------------------------------
 
 .. automodule:: laura.translator.utils.functions
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
+   :undoc-members:
 
 laura.translator.utils.pmd\_units module
 ----------------------------------------
 
 .. automodule:: laura.translator.utils.pmd_units
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
+   :undoc-members:
 
 laura.translator.utils.units module
 -----------------------------------
 
 .. automodule:: laura.translator.utils.units
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
+   :undoc-members:

@@ -71,6 +71,7 @@ from .magnetic import (
     Solenoid_Magnet,
     NonLinearLens_Magnet,
     Wiggler_Magnet,
+    Corrector_Magnet,
 )
 from .plasma import PlasmaElement
 from .diagnostic import (
@@ -338,7 +339,9 @@ class Magnet(PhysicalBaseElement, _MagnetBase):
         Rotation of the magnet based on its bending angle.
         """
         if self.magnetic is not None and getattr(self.magnetic, 'angle', None) is not None:
-            return Rotation.from_list([0, 0, self.magnetic.angle])
+            # angle may be stored symbolically as a functional-definition name;
+            # geometry needs a number, and KnL() always resolves.
+            return Rotation.from_list([0, 0, self.magnetic.KnL(0)])
         return Rotation.from_list([0, 0, 0])
 
     @property
@@ -416,10 +419,16 @@ class Horizontal_Corrector(Dipole):
 
     Attributes:
         hardware_type (str): The hardware type of the corrector.
+        magnetic (:class:`~laura.models.magnetic.Corrector_Magnet`): The magnetic
+        attributes of the corrector -- only ``horizontal_kick`` is expected to be
+        set.
     """
 
     hardware_type: str = Field(default="Horizontal_Corrector", frozen=True)
     """Horizontal corrector hardware type."""
+
+    magnetic: Corrector_Magnet = Field(default_factory=Corrector_Magnet)
+    """Corrector magnetic attributes."""
 
 
 class Vertical_Corrector(Dipole):
@@ -428,24 +437,40 @@ class Vertical_Corrector(Dipole):
 
     Attributes:
         hardware_type (str): The hardware type of the corrector.
+        magnetic (:class:`~laura.models.magnetic.Corrector_Magnet`): The magnetic
+        attributes of the corrector -- only ``vertical_kick`` is expected to be
+        set.
     """
 
     hardware_type: str = Field(default="Vertical_Corrector", frozen=True)
     """Vertical corrector hardware type."""
 
+    magnetic: Corrector_Magnet = Field(default_factory=Corrector_Magnet)
+    """Corrector magnetic attributes."""
+
 
 class Combined_Corrector(Dipole):
     """
-    Horizontal corrector element.
+    Combined (horizontal + vertical) corrector element.
 
     Attributes:
         hardware_type (str): The hardware type of the corrector.
-        Horizontal_Corrector (str): The horizontal corrector.
-        Vertical_Corrector (str): The vertical corrector.
+        magnetic (:class:`~laura.models.magnetic.Corrector_Magnet`): The magnetic
+        attributes of the corrector; both ``horizontal_kick`` and ``vertical_kick``
+        may be set independently.
+        Horizontal_Corrector (str): Name of a separately-defined
+        :class:`Horizontal_Corrector` element this combined corrector is paired
+        with, for hardware/PS bookkeeping (see e.g. ``LAURA.get_correctors``) --
+        this is a cross-reference, not where the horizontal kick strength lives.
+        Vertical_Corrector (str): As ``Horizontal_Corrector``, for the paired
+        :class:`Vertical_Corrector` element.
     """
 
     hardware_type: str = Field(default="Combined_Corrector", frozen=True)
     """Combined corrector hardware type."""
+
+    magnetic: Corrector_Magnet = Field(default_factory=Corrector_Magnet)
+    """Corrector magnetic attributes."""
 
     Horizontal_Corrector: str | None = Field(default=None, frozen=True)
     """Name of horizontal corrector."""

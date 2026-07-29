@@ -106,7 +106,7 @@ print(list(model.sections.keys()))  # ["LINAC-1"]
 ## Translator Module
 
 LAURA includes a translator system for exporting accelerator models to various simulation codes, 
-such as ASTRA, GPT, Elegant, CSRTrack, Ocelot, Xsuite, Wake-T, and Genesis.
+such as ASTRA, GPT, Elegant, CSRTrack, Ocelot, Cheetah, Xsuite, Wake-T, Genesis, and MAD-X (via `cpymad`).
 
 - Translate individual elements, sections, layouts, or full machine models.
 - Export to code-specific formats and objects.

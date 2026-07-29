@@ -3,6 +3,7 @@ from textwrap import wrap
 from laura.models.elementList import MachineModel
 from .converter import translate_elements
 from .layout import MachineLayoutTranslator
+from ..utils.functions import elegant_functional_definitions, sanitize_string
 
 if TYPE_CHECKING:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
@@ -22,6 +23,8 @@ class MachineModelTranslator(MachineModel):
                 "sections": machine.model_copy().sections,
                 "lattices": machine.model_copy().lattices,
                 "master_lattice": machine.model_copy().master_lattice,
+                "functional_definitions": machine.functional_definitions,
+                "resolve_functional": machine.resolve_functional,
             }
         )
 
@@ -90,7 +93,7 @@ class MachineModelTranslator(MachineModel):
                 lstring += f"{l}, "
             lstring = f"{lstring[:-2]})" + "\n\n"
         lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return string + lstring
+        return elegant_functional_definitions(self.functional_definitions) + string + lstring
 
     def to_genesis(self, string: str = "") -> str:
         for latt in self.lattices.values():
@@ -148,4 +151,11 @@ class MachineModelTranslator(MachineModel):
                     )
                 }
             )
+        return model
+
+    def to_madx(self, beam: Dict[str, Dict[str, Dict[str, Any]]]) -> Dict[str, Dict[str, str]]:
+        model = {}
+        for name, latt in self.lattices.items():
+            b = beam[name] if name in beam else None
+            model.update({sanitize_string(name): MachineLayoutTranslator.from_layout(latt).to_madx(beam=b)})
         return model

@@ -4,6 +4,7 @@ from pydantic import computed_field, Field
 
 from laura.models.physical import PhysicalElement, Position  # noqa E402
 from laura.models.element import PhysicalBaseElement
+from laura.models.baseModels import IgnoreExtra
 from laura.utils import flatten_dict
 from typing import Dict, Any
 from warnings import warn
@@ -13,9 +14,11 @@ from ..converters import (
     type_conversion_rules_Elegant,
     type_conversion_rules_Genesis,
     type_conversion_rules_Opal,
+    type_conversion_rules_Madx,
     elements_Elegant,
     elements_Genesis,
     elements_Opal,
+    elements_Madx,
     keyword_conversion_rules_elegant,
     keyword_conversion_rules_genesis,
     keyword_conversion_rules_ocelot,
@@ -23,9 +26,10 @@ from ..converters import (
     keyword_conversion_rules_xsuite,
     keyword_conversion_rules_wake_t,
     keyword_conversion_rules_opal,
+    keyword_conversion_rules_madx,
 )
 from ..utils.fields import field
-from ..utils.functions import expand_substitution, checkValue
+from ..utils.functions import expand_substitution, checkValue, sanitize_string
 from ..converters.codes.gpt import gpt_ccs
 
 
@@ -74,20 +78,116 @@ class BaseElementTranslator(PhysicalBaseElement):
                 if hardware_type in rules
                 else rules["general"]
             )
+        self.conversion_rules["madx"] = keyword_conversion_rules_madx["general"]
+        if self.hardware_type.lower() in keyword_conversion_rules_madx:
+            self.conversion_rules["madx"] = (
+                keyword_conversion_rules_madx[self.hardware_type.lower()]
+                | keyword_conversion_rules_madx["general"]
+            )
         self.ccs = gpt_ccs(name="wcs", position=[0, 0, 0], rotation=[0, 0, 0])
         super().model_post_init(__context)
 
-    def full_dump(self) -> Dict[str, Any]:
+    def full_dump(self, resolve: bool = True) -> Dict[str, Any]:
         """
         Dump the full lattice model as a single-layer dictionary. For attributes within nested models,
         keys will be separated by "_".
+
+        Parameters
+        ----------
+        resolve: bool
+            If True (default), any value that is a string naming a functional
+            definition is resolved to its numeric value. Codes that natively
+            support symbolic/functional parameters (e.g. Xsuite, ELEGANT) pass
+            ``resolve=False`` to keep the symbolic name.
 
         Returns
         -------
         Dict[str, Any]
             A flattened dictionary containing the attributes of the element.
         """
-        return flatten_dict({**self.model_dump()}, parent_key="", separator="_")
+        data = flatten_dict({**self.model_dump()}, parent_key="", separator="_")
+        if resolve:
+            defs = IgnoreExtra.functional_definitions
+            data = {
+                key: (defs[value] if self.is_functional(value) else value)
+                for key, value in data.items()
+            }
+        return data
+
+    @staticmethod
+    def is_functional(value: Any) -> bool:
+        """
+        True if ``value`` is a string naming an entry in the lattice's functional
+        definitions (i.e. it should be resolved to a number, or passed through
+        symbolically to codes that support it).
+        """
+        return isinstance(value, str) and value in IgnoreExtra.functional_definitions
+
+    @property
+    def _resolve_functional(self) -> bool:
+        """The global resolution mode. When True, functional attributes are
+        baked in as resolved numbers even for codes that support symbolic
+        parameters; when False (default) they are rendered symbolically."""
+        return IgnoreExtra.resolve_functional
+
+    def _raw_multipole_strength(self, order: int) -> str | None:
+        """
+        Return the stored multipole strength for a given order if it is defined
+        symbolically (as a functional-parameter name), otherwise None. Used by
+        codes that support functional parameters to emit the symbolic reference
+        rather than the resolved number.
+        """
+        magnetic = getattr(self, "magnetic", None)
+        multipoles = getattr(magnetic, "multipoles", None) if magnetic else None
+        if multipoles is None:
+            return None
+        multipole = getattr(multipoles, f"K{order}L", None)
+        if multipole is None:
+            return None
+        raw = multipole.skew if getattr(magnetic, "skew", False) else multipole.normal
+        return raw if self.is_functional(raw) else None
+
+    def _functional_strength_expr(self, order: int, code: str) -> str | None:
+        """
+        Build a code-specific expression for the *normalized* magnet strength
+        ``k = KnL(order) / length`` when that strength is defined symbolically;
+        return None otherwise.
+
+        ELEGANT and Xsuite require the normalized k-value, whereas the functional
+        definition is stored on the multipole as the integrated kl-value, so the
+        division by length is folded into the symbolic expression (rpn for
+        ELEGANT, an infix string for Xsuite). For zero-length magnets the
+        normalized strength equals the integrated value (mirroring the numeric
+        ``KnL / length`` fall-back).
+        """
+        raw = self._raw_multipole_strength(order)
+        if raw is None:
+            return None
+        length = getattr(self.magnetic, "length", 0)
+        if not length:
+            return self._rpn(raw) if code == "elegant" else raw
+        if code == "elegant":
+            return self._rpn(raw, length, "/")
+        return f"{raw} / {length}"
+
+    def _elegant_value(self, value: Any) -> Any:
+        """
+        Render a value for an ELEGANT keyword. A functional parameter is emitted
+        as an rpn variable reference (the quoted name, resolved by the matching
+        ``% <value> sto <name>`` line at the top of the file); anything else is
+        returned unchanged.
+        """
+        if self.is_functional(value):
+            return f'"{value}"'
+        return value
+
+    @staticmethod
+    def _rpn(*tokens: Any) -> str:
+        """
+        Build a quoted ELEGANT rpn expression from ``tokens`` (operands and
+        operators in postfix order), e.g. ``_rpn(90, "phi", "-")`` -> ``"90 phi -"``.
+        """
+        return '"' + " ".join(str(token) for token in tokens) + '"'
 
     def start_write(self) -> None:
         """
@@ -109,7 +209,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         etype = self._convertType_Elegant(self.hardware_type)
         string = self.name + ": " + etype
         keys = []
-        for key, value in self.full_dump().items():
+        for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (
                 not key == "name"
                 and not key == "type"
@@ -119,14 +219,34 @@ class BaseElementTranslator(PhysicalBaseElement):
                 if value is not None:
                     key = self._convertKeyword_Elegant(key)
                     if value == "angle":
-                        value = self.magnetic.angle
+                        value = self.magnetic.KnL(0)
                     elif value == "angle/2":
-                        value = self.magnetic.angle / 2
+                        value = self.magnetic.KnL(0) / 2
                     elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                        value = getattr(self, f"{key}")
+                        # When rendering symbolically, carry a functional strength
+                        # through to ELEGANT as the normalized k = KnL/length (an
+                        # rpn expression); otherwise use the computed numeric value.
+                        expr = (
+                            None
+                            if self._resolve_functional
+                            else self._functional_strength_expr(int(key[1]), "elegant")
+                        )
+                        value = expr if expr is not None else getattr(self, f"{key}")
+                    elif key == "angle":
+                        # Dipole bend angle: carry a functional definition through
+                        # symbolically (ELEGANT ANGLE is the integrated KnL(0)); it
+                        # is quoted by _elegant_value below.
+                        raw = (
+                            None
+                            if self._resolve_functional
+                            else self._raw_multipole_strength(0)
+                        )
+                        if raw is not None:
+                            value = raw
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
+                        value = self._elegant_value(value)
                         tmpstring = ", " + key + " = " + str(value)
                         if len(string + tmpstring) > 76:
                             wholestring += string + ",&\n"
@@ -161,9 +281,11 @@ class BaseElementTranslator(PhysicalBaseElement):
                 if value is not None:
                     key = self._convertKeyword_Ocelot(key)
                     if value == "angle":
-                        value = self.magnetic.angle
+                        value = self.magnetic.KnL(0)
                     if key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
                         value = getattr(self, f"{key}l") / self.magnetic.length
+                    if key == "gap":
+                        value = 2 * value
                     setattr(obj, self._convertKeyword_Ocelot(key), value)
         return obj
 
@@ -218,8 +340,8 @@ class BaseElementTranslator(PhysicalBaseElement):
                 and self._convertKeyword_Cheetah(key) in buffers
             ):
                 key = self._convertKeyword_Cheetah(key)
-                if key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                    value = getattr(self, f"{key}l")
+                if key == "gap":
+                    value = 2 * value
                 if isinstance(value, float):
                     dt = float64
                     setattr(
@@ -235,6 +357,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                     # else:
                     #     from torch import get_default_dtype
                     #     dt = get_default_dtype()
+        for bufname, buf in obj._buffers.items():
+            if buf is not None and buf.is_floating_point() and buf.dtype != float64:
+                obj._buffers[bufname] = buf.to(float64)
         if isinstance(obj, Screen_Cheetah):
             obj.is_active = True
         return obj
@@ -276,23 +401,40 @@ class BaseElementTranslator(PhysicalBaseElement):
                 # "store_particles": True,
             }
             return self.name, obj, properties
-        for key, value in self.full_dump().items():
+        for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (key not in ["name", "type", "commandtype"]) and (
                 self._convertKeyword_Xsuite(key) in list(obj.__dict__.keys())
             ):
                 key = self._convertKeyword_Xsuite(key)
-                # if key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                #     value = getattr(self, f"{key}l")
+                if key in ["k1", "k2", "k3", "k4", "k5", "k6"] and not self._resolve_functional:
+                    # Carry a symbolic functional strength through to Xsuite as the
+                    # normalized k = KnL/length, referencing the Environment
+                    # variable; else use the number.
+                    expr = self._functional_strength_expr(int(key[1]), "xsuite")
+                    if expr is not None:
+                        value = expr
                 if key == "angle":
                     if self.length > 0:
-                        properties.update({"k0": self.magnetic.angle / self.length})
+                        # Xsuite dipole uses k0 = angle / length; carry a functional
+                        # bend angle through symbolically as an Environment expression.
+                        raw = (
+                            None
+                            if self._resolve_functional
+                            else self._raw_multipole_strength(0)
+                        )
+                        if raw is not None:
+                            properties.update({"k0": f"{raw} / {self.length}"})
+                        else:
+                            properties.update(
+                                {"k0": self.magnetic.KnL(0) / self.length}
+                            )
                 if self.hardware_type.lower() == "dipole":
                     properties.update({"num_multipole_kicks": 10})
-                if "edge" in key and isinstance(value, str):
+                if "edge" in key and isinstance(value, str) and not self.is_functional(value):
                     if value == "angle":
-                        value = self.magnetic.angle
+                        value = self.magnetic.KnL(0)
                     elif value == "angle/2":
-                        value = self.magnetic.angle / 2
+                        value = self.magnetic.KnL(0) / 2
                 properties.update({key: value})
         return self.name, obj, properties
 
@@ -583,9 +725,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                 if value is not None:
                     key = self._convertKeyword_Opal(key)
                     if value == "angle":
-                        value = self.magnetic.angle
+                        value = self.magnetic.KnL(0)
                     elif value == "angle/2":
-                        value = self.magnetic.angle / 2
+                        value = self.magnetic.KnL(0) / 2
                     # elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
                     #     value = getattr(self, f"{key}l")
                     val = 1 if value is True else value
@@ -626,6 +768,81 @@ class BaseElementTranslator(PhysicalBaseElement):
             elif element is not None and stripped in element.keys():
                 return stripped
         return keyword
+
+    def to_madx(self, at: float = None) -> str:
+        """
+        Generates a string representation of the object's properties in the MAD-X
+        format (see the `MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html>`_),
+        suitable for :meth:`cpymad.madx.Madx.input`.
+
+        Symbolic/functional parameters are emitted as deferred expressions
+        (``key := name`` or ``key := name / length``), which MAD-X keeps live
+        against the ``<name> = <value>;`` declarations produced by
+        :func:`~laura.translator.utils.functions.madx_functional_definitions`.
+
+        Parameters
+        ----------
+        at: float, optional
+            S-position (measured from the start of the sequence, to the entry
+            edge of the element) at which to place the element inside a MAD-X
+            ``SEQUENCE``. If given, an ``at = <at>`` clause is appended to the
+            element definition; if omitted, only the bare element definition
+            (as used e.g. to pre-declare an element type) is returned.
+
+        Returns
+        -------
+        str
+            A formatted string representing the object's properties in MAD-X format.
+        """
+        self.start_write()
+        etype = self._convertType_Madx(self.hardware_type)
+        string = sanitize_string(self.name) + ": " + etype
+        keys = []
+        for key, value in self.full_dump(resolve=self._resolve_functional).items():
+            if (
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convertKeyword_Madx(key) in elements_Madx[etype]
+            ):
+                if value is not None:
+                    key = self._convertKeyword_Madx(key)
+                    deferred = False
+                    if value == "angle":
+                        value = self.magnetic.KnL(0)
+                    elif value == "angle/2":
+                        value = self.magnetic.KnL(0) / 2
+                    elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
+                        expr = (
+                            None
+                            if self._resolve_functional
+                            else self._functional_strength_expr(int(key[1]), "madx")
+                        )
+                        if expr is not None:
+                            value = expr
+                            deferred = True
+                        else:
+                            value = getattr(self, key)
+                    elif key == "angle":
+                        raw = (
+                            None
+                            if self._resolve_functional
+                            else self._raw_multipole_strength(0)
+                        )
+                        if raw is not None:
+                            value = raw
+                            deferred = True
+                    elif not self._resolve_functional and self.is_functional(value):
+                        deferred = True
+                    value = 1 if value is True else value
+                    value = 0 if value is False else value
+                    if key not in keys:
+                        op = ":=" if deferred else "="
+                        string += f", {key} {op} {value}"
+                    keys.append(key)
+        if at is not None:
+            string += f", at = {at}"
+        return string + ";\n"
 
     def _convertType_Elegant(self, etype: str) -> str:
         """Converts the element type to the corresponding Elegant type using predefined rules."""
@@ -725,6 +942,58 @@ class BaseElementTranslator(PhysicalBaseElement):
             conversion_rules = self.conversion_rules["opal"]
             element = elements_Opal[self._convertType_Opal(self.hardware_type)]
         return self._convert_keyword(keyword, conversion_rules, element)
+
+    def _convertType_Madx(self, etype: str) -> str:
+        """
+        Converts the element type to the corresponding MAD-X type using predefined rules.
+
+        Parameters
+        ----------
+        etype: str
+            The type of the element to be converted.
+
+        Returns
+        -------
+        str
+            The converted type of the element, or the original type if no conversion rule exists.
+        """
+        return (
+            type_conversion_rules_Madx[etype]
+            if etype in type_conversion_rules_Madx
+            else etype
+        )
+
+    def _convertKeyword_Madx(self, keyword: str, updated_type: str = "") -> str:
+        """
+        Converts a keyword to its corresponding MAD-X keyword using predefined rules.
+
+        Parameters
+        ----------
+        keyword: str:
+            The keyword to be converted.
+
+        Returns
+        -------
+        str
+            The converted keyword for MAD-X, or the original keyword if no conversion rule exists.
+
+        """
+        if updated_type.lower() in keyword_conversion_rules_madx:
+            conversion_rules = (
+                keyword_conversion_rules_madx[updated_type.lower()]
+                | keyword_conversion_rules_madx["general"]
+            )
+            element = elements_Madx[self._convertType_Madx(updated_type).lower()]
+        else:
+            conversion_rules = self.conversion_rules["madx"]
+            element = elements_Madx[self._convertType_Madx(self.hardware_type).lower()]
+        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
+            stripped = keyword.replace(strip, "")
+            if stripped in conversion_rules:
+                return conversion_rules[stripped]
+            elif stripped in element.keys():
+                return stripped
+        return keyword
 
     def _write_ASTRA_dictionary(self, d: dict, n: int | None = 1) -> str:
         """
@@ -1001,13 +1270,15 @@ class BaseElementTranslator(PhysicalBaseElement):
         if hasattr(self, "magnetic"):
             if hasattr(self.magnetic, "fields"):
                 if hasattr(self.magnetic.fields, "S0L"):
+                    # Resolve a functional definition to its number before substitution.
+                    s0l = self.resolve(self.magnetic.fields.S0L)
                     if type(self.simulation.scale_field) in [int, float]:
                         return float(self.scale_field) * float(
-                            expand_substitution(self, self.magnetic.fields.S0L, self.master_lattice)
+                            expand_substitution(self, s0l, self.master_lattice)
                         )
                     else:
                         return float(
-                            expand_substitution(self, self.magnetic.fields.S0L, self.master_lattice)
+                            expand_substitution(self, s0l, self.master_lattice)
                         )
                 return 0.0
             return 0.0

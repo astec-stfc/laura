@@ -465,9 +465,16 @@ class PhysicalElement(_PhysicalElementBase):
     def _physical_angle(self) -> float:
         if self._parent is not None:
             magnetic = getattr(self._parent, "magnetic", None)
-            if magnetic is not None and getattr(magnetic, "angle", None) is not None:
-                self.physical_angle = magnetic.angle
-                return magnetic.angle
+            # Only dipoles expose an `angle`; use the resolved bend angle
+            # (KnL(0), always numeric) and degrade to 0 if a functional
+            # definition is not yet available.
+            if magnetic is not None and hasattr(type(magnetic), "angle"):
+                try:
+                    angle = magnetic.KnL(0)
+                except KeyError:
+                    angle = 0.0
+                self.physical_angle = angle
+                return angle
         self.physical_angle = 0.0
         return 0.0
 

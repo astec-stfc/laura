@@ -1,11 +1,6 @@
 laura.translator package
 ========================
 
-.. automodule:: laura.translator
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Subpackages
 -----------
 

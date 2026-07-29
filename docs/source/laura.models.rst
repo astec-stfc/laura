@@ -1,11 +1,6 @@
 laura.models package
 ====================
 
-.. automodule:: laura.models
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Submodules
 ----------
 
@@ -14,168 +9,150 @@ laura.models.RF module
 
 .. automodule:: laura.models.RF
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
+
+laura.models.\_functions module
+-------------------------------
+
+.. automodule:: laura.models._functions
+   :members:
+   :private-members:
+   :show-inheritance:
+   :undoc-members:
 
 laura.models.baseModels module
 ------------------------------
 
 .. automodule:: laura.models.baseModels
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
-
-laura.models.constants module
------------------------------
-
-.. automodule:: laura.models.constants
-   :members:
    :undoc-members:
-   :show-inheritance:
-   :no-index:
 
 laura.models.control module
 ---------------------------
 
 .. automodule:: laura.models.control
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.degauss module
 ---------------------------
 
 .. automodule:: laura.models.degauss
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.diagnostic module
 ------------------------------
 
 .. automodule:: laura.models.diagnostic
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.electrical module
 ------------------------------
 
 .. automodule:: laura.models.electrical
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.element module
 ---------------------------
 
 .. automodule:: laura.models.element
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.elementList module
 -------------------------------
 
 .. automodule:: laura.models.elementList
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.exceptions module
 ------------------------------
 
 .. automodule:: laura.models.exceptions
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.laser module
 -------------------------
 
 .. automodule:: laura.models.laser
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.lighting module
 ----------------------------
 
 .. automodule:: laura.models.lighting
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.magnetic module
 ----------------------------
 
 .. automodule:: laura.models.magnetic
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.manufacturer module
 --------------------------------
 
 .. automodule:: laura.models.manufacturer
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.physical module
 ----------------------------
 
 .. automodule:: laura.models.physical
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
-
-laura.models.plasma module
---------------------------
-
-.. automodule:: laura.models.plasma
-   :members:
    :undoc-members:
-   :show-inheritance:
-   :no-index:
-
-laura.models.reference module
------------------------------
-
-.. automodule:: laura.models.reference
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :no-index:
 
 laura.models.shutter module
 ---------------------------
 
 .. automodule:: laura.models.shutter
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:
 
 laura.models.simulation module
 ------------------------------
 
 .. automodule:: laura.models.simulation
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
-   :no-index:
+   :undoc-members:

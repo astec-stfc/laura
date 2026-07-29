@@ -1,7 +1,7 @@
 from pydantic import Field, field_validator, create_model
 from typing import List, Type, Union
 
-from .baseModels import IgnoreExtra, T, ModelBase
+from .baseModels import IgnoreExtra, T, ModelBase, FunctionalMixin
 from ._generated import (
     _RFCavityElementBase,
     _WakefieldElementBase,
@@ -35,10 +35,17 @@ def _coerce_pid_range(v: Union[str, List, None], range_type):
     raise ValueError("range should be a string or a list of numbers")
 
 
-class RFCavityElement(_RFCavityElementBase):
+class RFCavityElement(_RFCavityElementBase, FunctionalMixin):
     """
     RF Cavity model.
     """
+
+    # Everything PR #4 declared inline here now comes from the generated schema
+    # base; only `phase` needs widening, because the schema types it as a plain
+    # float and functional_references() needs the marker to discover it.
+    phase: Union[float, str] = Field(default=0.0, json_schema_extra={"functional": True})
+    """Off-crest phase [deg]. Stored verbatim: a number or a string naming a
+    functional definition (resolve via ``resolved("phase")``)."""
 
     def model_post_init(self, __context):
         if self.structure_type.lower() == "travellingwave" and any(
@@ -57,12 +64,17 @@ class WakefieldElement(_WakefieldElementBase):
     pass
 
 
-class RFDeflectingCavityElement(_RFDeflectingCavityElementBase):
+class RFDeflectingCavityElement(_RFDeflectingCavityElementBase, FunctionalMixin):
     """
     RF deflecting cavity model.
     """
 
-    pass
+    # Everything PR #4 declared inline here now comes from the generated schema
+    # base; only `phase` needs widening, because the schema types it as a plain
+    # float and functional_references() needs the marker to discover it.
+    phase: Union[float, str] = Field(default=0.0, json_schema_extra={"functional": True})
+    """Off-crest phase [deg]. Stored verbatim: a number or a string naming a
+    functional definition (resolve via ``resolved("phase")``)."""
 
 
 class PIDPhaseRange(_PIDPhaseRangeBase):
@@ -130,6 +142,7 @@ class LLRFTiming(_LLRFTimingBase):
 
 class LLRFTimings(_LLRFTimingsBase):
     pass
+
 
 class Low_Level_RF_Element(_LowLevelRFElementBase, IgnoreExtra):
     # one_record remains dynamic because CATAP payload keys depend on

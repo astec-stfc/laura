@@ -28,6 +28,7 @@ from .magnet import (
     DipoleTranslator,
     WigglerTranslator,
     NonLinearLensTranslator,
+    CorrectorTranslator,
 )
 from .cavity import RFCavityTranslator
 from .drift import DriftTranslator
@@ -66,11 +67,13 @@ def translate_elements(
         if isinstance(elem, Magnet):
             if isinstance(elem, Solenoid):
                 translator = SolenoidTranslator
-            elif isinstance(elem, Dipole) and not type(elem) in [
+            elif type(elem) in [
                 Combined_Corrector,
                 Horizontal_Corrector,
                 Vertical_Corrector,
             ]:
+                translator = CorrectorTranslator
+            elif isinstance(elem, Dipole):
                 translator = DipoleTranslator
             elif isinstance(elem, Wiggler):
                 translator = WigglerTranslator
