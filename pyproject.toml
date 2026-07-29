@@ -101,6 +101,12 @@ rdf = [
     "rdflib>=7.0",
 ]
 
+# SQL export support (laura.Exporters.SQL + laura/schema/generated/laura_orm.py)
+# Install with: pip install "laura-accelerator[sql]"
+sql = [
+    "sqlalchemy>=2.0",
+]
+
 # Everything — conversion backends, docs, schema tooling, and RDF support
 # Install with: pip install "laura-accelerator[full]"
 full = [
@@ -118,6 +124,7 @@ full = [
     "linkml-runtime>=1.8",
     "jsonschema>=4.0",
     "rdflib>=7.0",
+    "sqlalchemy>=2.0",
 ]
 
 [project.urls]
