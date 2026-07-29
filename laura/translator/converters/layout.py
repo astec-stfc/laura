@@ -3,7 +3,7 @@ from textwrap import wrap
 from laura.models.elementList import MachineLayout
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
-from ..utils.functions import elegant_functional_definitions
+from ..utils.functions import elegant_functional_definitions, sanitize_string
 
 
 class MachineLayoutTranslator(MachineLayout):
@@ -113,6 +113,19 @@ class MachineLayoutTranslator(MachineLayout):
                         particle_ref=particle_ref,
                         save=save,
                     )
+                }
+            )
+        return lattices
+
+    def to_madx(self, beam: Dict[str, Dict[str, Any]] | None = None) -> Dict[str, str]:
+        lattices = {}
+        for section in self.sections.values():
+            b = beam[section.name] if isinstance(beam, Dict) and section.name in beam.keys() else None
+            lattices.update(
+                {
+                    sanitize_string(section.name): SectionLatticeTranslator.from_section(
+                        section
+                    ).to_madx(beam=b)
                 }
             )
         return lattices

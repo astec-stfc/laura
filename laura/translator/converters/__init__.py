@@ -79,6 +79,7 @@ type_conversion_rules = LazyDict(lambda: _load_yaml_file("../conversion_rules/ty
 type_conversion_rules_Elegant = LazyDict(lambda: type_conversion_rules["elegant"])
 type_conversion_rules_Genesis = LazyDict(lambda: type_conversion_rules["genesis"])
 type_conversion_rules_Opal = LazyDict(lambda: type_conversion_rules["opal"])
+type_conversion_rules_Madx = LazyDict(lambda: type_conversion_rules["madx"])
 type_conversion_rules_Names = LazyDict(lambda: type_conversion_rules["name"])
 type_conversion_rules_aliases = LazyDict(lambda: type_conversion_rules["aliases"]["elegant"])
 
@@ -99,3 +100,6 @@ keyword_conversion_rules_wake_t = LazyDict(lambda: _load_yaml_file("../conversio
 keyword_conversion_rules_genesis = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_genesis.yaml"))
 elements_Genesis = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_genesis.yaml"))
 element_keywords = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/element_keywords.yaml"))
+
+keyword_conversion_rules_madx = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_madx.yaml"))
+elements_Madx = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_madx.yaml"))

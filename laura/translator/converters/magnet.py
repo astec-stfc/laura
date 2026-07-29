@@ -10,6 +10,7 @@ from laura.models.magnetic import (
     Dipole_Magnet,
     Wiggler_Magnet,
     NonLinearLens_Magnet,
+    Corrector_Magnet,
 )
 from laura.models.simulation import MagnetSimulationElement
 from ..utils.functions import _rotation_matrix, chop, expand_substitution
@@ -1234,6 +1235,114 @@ class WigglerTranslator(BaseElementTranslator):
         wholestring += string[:-2] + "};\n"
         return wholestring
 
+
+
+class CorrectorTranslator(BaseElementTranslator):
+    """
+    Translator class for converting a :class:`~laura.models.element.Horizontal_Corrector`,
+    :class:`~laura.models.element.Vertical_Corrector`, or
+    :class:`~laura.models.element.Combined_Corrector` element instance into a string or
+    object that can be understood by various simulation codes.
+
+    Correctors use :class:`~laura.models.magnetic.Corrector_Magnet`, which stores
+    the horizontal and vertical kick angles as two independent, explicitly-named
+    fields (unlike :class:`Dipole_Magnet`, whose multipole ``normal``/``skew``
+    components denote field orientation, not beam plane) -- so this does *not*
+    subclass :class:`MagnetTranslator`, whose ``k1``/``k2``/``k3`` etc. and
+    ASTRA/CSRTrack/GPT writers assume a multipole-based magnetic model.
+    A :class:`~laura.models.element.Horizontal_Corrector`/
+    :class:`~laura.models.element.Vertical_Corrector` is expected to populate only
+    its own plane; a :class:`~laura.models.element.Combined_Corrector` can carry
+    both simultaneously.
+    """
+
+    magnetic: Corrector_Magnet
+    """Corrector magnetic element."""
+
+    simulation: MagnetSimulationElement
+    """Magnet simulation class."""
+
+    @computed_field
+    @property
+    def hangle(self) -> Union[float, str]:
+        """Horizontal kick angle [rad] (`magnetic.horizontal_kick`)."""
+        return self.magnetic.horizontal_kick
+
+    @computed_field
+    @property
+    def vangle(self) -> Union[float, str]:
+        """Vertical kick angle [rad] (`magnetic.vertical_kick`)."""
+        return self.magnetic.vertical_kick
+
+    def to_ocelot(self) -> object:
+        """
+        Generates an Ocelot object (or, for a :class:`~laura.models.element.Combined_Corrector`,
+        a pair of objects) for the corrector.
+
+        Ocelot's ``Hcor``/``Vcor`` are single-plane elements with no combined
+        horizontal+vertical equivalent, so a `Combined_Corrector` is represented
+        as an ``Hcor`` immediately followed by a ``Vcor``, each given half this
+        element's length -- so the pair has the same total length as the
+        original single element -- and its own plane's kick. Ocelot has no
+        symbolic/deferred-expression support, so a functional kick is resolved
+        to a number here regardless of the global resolution mode.
+
+        Returns
+        -------
+        object or list[object]
+            A single Ocelot ``Hcor``/``Vcor``, or (for a `Combined_Corrector`) a
+            two-element list ``[Hcor, Vcor]``.
+        """
+        self.start_write()
+        if self.hardware_type == "Combined_Corrector":
+            from ocelot.cpbd.elements import Hcor, Vcor
+
+            half_length = self.length / 2
+            hcor = Hcor(
+                eid=f"{self.name}_H",
+                l=half_length,
+                angle=self.resolve(self.magnetic.horizontal_kick),
+            )
+            vcor = Vcor(
+                eid=f"{self.name}_V",
+                l=half_length,
+                angle=self.resolve(self.magnetic.vertical_kick),
+            )
+            return [hcor, vcor]
+        return super().to_ocelot()
+
+    def to_xsuite(self, beam_length: int) -> tuple:
+        """
+        Generates an Xsuite object for the corrector.
+
+        Represented as an ``xtrack.Multipole`` with the horizontal kick as
+        ``knl[0]`` and the vertical kick as ``ksl[0]``, so a
+        :class:`~laura.models.element.Combined_Corrector` carries both planes
+        simultaneously in a single element (unlike Ocelot, which has no
+        combined-plane element and must be split -- see :meth:`to_ocelot`).
+
+        Xtrack's normal-multipole convention deflects toward *negative* x for a
+        positive ``knl`` -- the opposite of the "positive kick deflects toward
+        positive x/y" convention used by MAD-X/Ocelot/Cheetah (verified against
+        each by direct particle tracking) -- so ``knl[0]`` is the *negated*
+        horizontal kick; the skew component (``ksl[0]``) needs no such negation.
+
+        Returns
+        -------
+        tuple
+            (objectname, Xsuite object, properties[dict])
+        """
+        name, obj, properties = super().to_xsuite(beam_length=beam_length)
+
+        def _term(value: Union[float, str], negate: bool) -> Union[float, str]:
+            if not self._resolve_functional and self.is_functional(value):
+                return f"-({value})" if negate else f"{value}"
+            resolved = self.resolve(value)
+            return -resolved if negate else resolved
+
+        properties["knl"] = [_term(self.magnetic.horizontal_kick, negate=True)]
+        properties["ksl"] = [_term(self.magnetic.vertical_kick, negate=False)]
+        return name, obj, properties
 
 
 class NonLinearLensTranslator(BaseElementTranslator):

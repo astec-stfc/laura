@@ -60,9 +60,7 @@ def load_functional_definitions(
             if os.path.exists(candidate):
                 path = candidate
         if not os.path.exists(path):
-            raise ValueError(
-                f"functional_definitions file {value} does not exist"
-            )
+            raise ValueError(f"functional_definitions file {value} does not exist")
         with open(path, "r") as f:
             data = safe_load(f)
         if isinstance(data, dict) and "functional_definitions" in data:
@@ -428,6 +426,7 @@ class MachineLayout(BaseLatticeModel):
     _basename: str = "sections"
 
     def model_post_init(self, __context):
+        super().model_post_init(__context)
         self.functional_definitions = load_functional_definitions(
             self.functional_definitions, self.master_lattice
         )
@@ -697,15 +696,15 @@ class MachineModel(ModelBase):
     """Directory containing lattice YAML files."""
 
     functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
-    """Functional definitions for the whole machine, e.g. ``{"quad1_k1l": -2,
-    "cav1_phase": 90}``, or a path to a YAML file holding such a mapping.
-    Registered into the shared registry so that string-valued element parameters
-    can be resolved to numbers on demand."""
+    """Mapping of functional-parameter names to their numeric values, or a path
+    to a YAML file holding such a mapping. Resolved at construction and shared
+    with every section, layout and element in the machine."""
 
     resolve_functional: bool = False
-    """Global resolution mode. When False (default), functional attributes are
-    rendered as their definition name (a string); when True they are presented as
-    resolved numbers. See :func:`~laura.models.baseModels.set_resolve_functional`."""
+    """Whether functional parameters are rendered as resolved numbers rather
+    than as their definition names."""
+
+    _functional_source: str | None = None
 
     _layouts: List[str] = None
 
@@ -726,7 +725,13 @@ class MachineModel(ModelBase):
             ):
                 return os.path.abspath(os.path.dirname(__file__) + "/../" + v)
             else:
-                raise ValueError(f"Directory {v} does not exist")
+                # Not resolvable relative to the cwd or the laura package;
+                # defer to model_post_init, which resolves the path relative
+                # to master_lattice (the environment-independent anchor the
+                # framework always supplies). Raising here would break any
+                # environment where laura is not installed beside the lattice
+                # files (e.g. laura in site-packages during testing).
+                return v
         elif isinstance(v, dict):
             if "layouts" not in v:
                 raise KeyError("layout must specify lines each with a list of sections")
@@ -745,7 +750,13 @@ class MachineModel(ModelBase):
             ):
                 return os.path.abspath(os.path.dirname(__file__) + "/../" + v)
             else:
-                raise ValueError(f"Directory {v} does not exist")
+                # Not resolvable relative to the cwd or the laura package;
+                # defer to model_post_init, which resolves the path relative
+                # to master_lattice (the environment-independent anchor the
+                # framework always supplies). Raising here would break any
+                # environment where laura is not installed beside the lattice
+                # files (e.g. laura in site-packages during testing).
+                return v
         elif isinstance(v, dict):
             if "sections" not in v:
                 raise KeyError(

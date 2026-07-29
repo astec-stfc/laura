@@ -27,6 +27,8 @@ elegant:
   Watch_Point: watch
   Marker: watch
   Wakefield: wake
+  Horizontal_Corrector: hkick
+  Vertical_Corrector: vkick
   Combined_Corrector: kicker
   Wiggler: wiggler
   Laser: drift
@@ -101,6 +103,45 @@ opal:
   Marker: monitor
   Photon_Monitor: monitor
   Shutter: drift
+madx:
+  Dipole: sbend
+  Quadrupole: quadrupole
+  Sextupole: sextupole
+  Octupole: octupole
+  Beam_Position_Monitor: monitor
+  Beam_Arrival_Monitor: monitor
+  Bunch_Length_Monitor: monitor
+  Screen: monitor
+  RCollimator: rcollimator
+  Collimator: rcollimator
+  Monitor: monitor
+  Solenoid: solenoid
+  Drift: drift
+  Wall_Current_Monitor: monitor
+  Integrated_Current_Transformer: monitor
+  Faraday_Cup_Monitor: monitor
+  RFCavity: rfcavity
+  RFDeflectingCavity: crabcavity
+  Wakefield: drift
+  Horizontal_Corrector: hkicker
+  Vertical_Corrector: vkicker
+  Combined_Corrector: kicker
+  NonLinearLens: nllens
+  Wiggler: drift
+  Plasma: drift
+  TwissMatch: marker
+  Laser: drift
+  Aperture: rcollimator
+  Marker: marker
+  Photon_Monitor: monitor
+  Shutter: drift
+  Valve: drift
+  Bellows: drift
+  Cleaner: drift
+  Scatter: marker
+  APContour: marker
+  Watch_Point: monitor
+  FEL_Modulator: drift
 name:
   dia-bpm: beam_position_monitor
   dia-bam: beam_arrival_monitor

@@ -7,8 +7,6 @@ general:
   vertical_size: y_max
   output_filename: filename
   csr_bins: bins
-  hangle: hkick
-  vangle: vkick
   csrdz: dz
   change_momentum: change_p0
   bunched_beam: bunched_beam_mode
@@ -27,7 +25,7 @@ dipole:
   lsc_low_frequency_cutoff_start: low_frequency_cutoff0
   lsc_low_frequency_cutoff_end: low_frequency_cutoff1
   n_kicks: n_slices
-  half_gap: hgap
+  half_gap: gap
   angle: angle
 quadrupole:
   isr_enable: isr
@@ -77,9 +75,13 @@ fel_modulator:
   vertical_mode_number: laser_n
 wiggler:
   peak_field: B
-kicker:
-  horizontal_kick: angle
-  vertical_kick: angle
+horizontal_corrector:
+  hangle: angle
+vertical_corrector:
+  vangle: angle
+combined_corrector:
+  hangle: horizontal_angle
+  vangle: vertical_angle
 rcollimator:
   horizontal_size: x_max
   vertical_size: y_max

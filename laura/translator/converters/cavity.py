@@ -8,7 +8,9 @@ from laura.translator.utils.fields import field
 from ..converters import (
     elements_Elegant,
     elements_Opal,
+    elements_Madx,
 )
+from ..utils.functions import sanitize_string
 
 
 class RFCavityTranslator(BaseElementTranslator):
@@ -95,6 +97,32 @@ class RFCavityTranslator(BaseElementTranslator):
             self.trwakefile = '"' + wakefield_file_name + '"'
             return
 
+    def _wakefield_active(self) -> bool:
+        """
+        Whether this cavity should be written with its wakefield applied.
+
+        False if wakefields have been switched off for the element, if no
+        wakefield definition is set, or if the definition carries no usable
+        data.
+
+        Returns
+        -------
+        bool
+            True if a usable wakefield is defined and enabled
+        """
+        if not getattr(self.simulation, "wakefield_enable", True):
+            return False
+        wake = self.simulation.wakefield_definition
+        if wake is None or wake == "":
+            return False
+        if not isinstance(wake, str):
+            # a field object: only usable if it has a longitudinal coordinate
+            try:
+                wake.z_values
+            except Exception:
+                return False
+        return True
+
     def to_elegant(self) -> str:
         """
         Writes the cavity element string for ELEGANT.
@@ -107,10 +135,7 @@ class RFCavityTranslator(BaseElementTranslator):
         self.start_write()
         wholestring = ""
         etype = self._convertType_Elegant(self.hardware_type)
-        if (
-            self.simulation.wakefield_definition is None
-            or self.simulation.wakefield_definition == ""
-        ):
+        if not self._wakefield_active():
             etype = "rfca"
             # if self.simulation.field_definition is not None:
             # etype = "rftmez0"
@@ -139,13 +164,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     # rftmez0 uses frequency instead of freq
                     if etype == "rftmez0" and key == "freq":
                         key = "frequency"
-
-                    # Functional parameters are passed to ELEGANT as rpn
-                    # expressions referencing the `% <value> sto <name>` variables
-                    # declared at the top of the file. Any numeric scaling that
-                    # would otherwise be applied is folded into the rpn expression.
                     functional = self.is_functional(value)
-
                     if self.hardware_type in ["RFCavity", "RFDeflectingCavity"]:
                         if key == "phase":
                             if etype == "rftmez0":
@@ -284,7 +303,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 if key == "voltage":
                     if self.structure_type == "TravellingWave":
                         value = value * abs(
-                            (self.get_cells() + 5.5)
+                            (self.get_cells() + 3.8)
                             * self.cavity.cell_length
                             * (1 / np.sqrt(2))
                         )
@@ -302,6 +321,15 @@ class RFCavityTranslator(BaseElementTranslator):
                     setattr(
                         obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
                     )
+        # Cheetah selects between two cavity transfer maps via `cavity_type`.
+        # Its "traveling_wave" branch is a pure travelling-wave map (edge
+        # focusing plus adiabatic damping, no ponderomotive/RF focusing),
+        # whereas ELEGANT (body_focus_model=SRS), Ocelot (CavityAtom) and the
+        # MAD-X backend (rsmatrix) all apply *standing-wave*
+        # Rosenzweig-Serafini focusing even to travelling-wave structures.
+        # Pinned to "standing_wave" so Cheetah stays consistent with them.
+        if hasattr(obj, "cavity_type"):
+            obj.cavity_type = "standing_wave"
         return obj
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
@@ -423,13 +451,9 @@ class RFCavityTranslator(BaseElementTranslator):
                 self._convertKeyword_Xsuite(key) in list(obj.__dict__.keys())
             ):
                 key = self._convertKeyword_Xsuite(key)
-                # Functional parameters are passed through as the symbolic name;
-                # Xsuite resolves them via the matching Environment variable. The
-                # transforms below are keyed on the converted Xsuite names
-                # (phase -> lag, field_amplitude -> voltage).
                 functional = self.is_functional(value)
-                if key == "lag" and not functional:
-                    value = 90 - value
+                if key == "phase" and not functional:
+                    value = np.radians(90 - value)
                 if key == "voltage" and not functional:
                     if self.structure_type == "TravellingWave":
                         value = value * abs(
@@ -443,6 +467,74 @@ class RFCavityTranslator(BaseElementTranslator):
                     value = 3 * self.get_cells()
                 properties.update({key: value})
         return self.name, obj, properties
+
+    def to_madx(self, at: float = None) -> str:
+        """
+        Writes the cavity element string for MAD-X.
+
+        MAD-X ``VOLT`` is in MV and ``FREQ`` in MHz (LAURA stores volts and Hz),
+        and ``LAG`` is the phase lag in fractions of a full RF cycle with the
+        crest at ``LAG = 0.25`` (a sine convention), so LAURA's
+        off-crest-is-zero ``phase`` [deg] is converted via
+        ``lag = (90 - phase) / 360`` -- the same +90 degree convention used for
+        ELEGANT, expressed as a fraction of 360 degrees rather than degrees.
+
+        Parameters
+        ----------
+        at: float, optional
+            S-position at which to place the element inside a MAD-X ``SEQUENCE``;
+            see :meth:`~laura.translator.converters.base.BaseElementTranslator.to_madx`.
+
+        Returns
+        -------
+        str
+            String representation of the element for MAD-X
+        """
+        self.start_write()
+        etype = self._convertType_Madx(self.hardware_type)
+        string = sanitize_string(self.name) + ": " + etype
+        for key, value in self.full_dump(resolve=self._resolve_functional).items():
+            if (
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convertKeyword_Madx(key, updated_type=self.hardware_type)
+                in elements_Madx[etype]
+            ):
+                if value is not None:
+                    key = self._convertKeyword_Madx(
+                        key, updated_type=self.hardware_type
+                    )
+                    functional = self.is_functional(value) and not self._resolve_functional
+                    deferred = functional
+                    if key == "lag":
+                        value = (
+                            f"(90 - ({value})) / 360"
+                            if functional
+                            else (90 - value) / 360.0
+                        )
+                    if key == "volt":
+                        if self.structure_type == "TravellingWave":
+                            factor = abs(
+                                (self.get_cells() + 3.8)
+                                * self.cavity.cell_length
+                                * (1 / np.sqrt(2))
+                            )
+                        else:
+                            factor = 1.0
+                        value = (
+                            f"({value}) * {factor / 1e6}"
+                            if functional
+                            else factor * value / 1e6
+                        )
+                    if key == "freq" and not functional:
+                        value = value / 1e6
+                    value = 1 if value is True else value
+                    value = 0 if value is False else value
+                    string += f", {key} {':=' if deferred else '='} {value}"
+        if at is not None:
+            string += f", at = {at}"
+        return string + ";\n"
 
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
         """

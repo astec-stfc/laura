@@ -211,25 +211,22 @@ class BmadLatticeImporter(BaseModel):
                     horizontal = nam + "_H"
                     vertical = nam + "_V"
                     hcor = {
-                        "magnetic": {
-                            "order": 0,
-                            "length": self.lengths[universe][b][i],
-                            "kl": parameters["HKICK"],
-                        }
+                        "length": self.lengths[universe][b][i],
+                        "horizontal_kick": parameters["HKICK"],
                     }
                     vcor = {
-                        "magnetic": {
-                            "order": 0,
-                            "length": float(self.lengths[universe][b][i]),
-                            "kl": parameters["VKICK"],
-                        }
+                        "length": float(self.lengths[universe][b][i]),
+                        "vertical_kick": parameters["VKICK"],
                     }
                     elem_data = {
                         "hardware_type": hardware_type,
                         "Horizontal_Corrector": horizontal,
                         "Vertical_Corrector": vertical,
-                        "hcor": hcor,
-                        "vcor": vcor,
+                        "magnetic": {
+                            "length": self.lengths[universe][b][i],
+                            "horizontal_kick": parameters["HKICK"],
+                            "vertical_kick": parameters["VKICK"],
+                        },
                     }
                 elif self.types[universe][b][i] in magnetic_orders:
                     hardware_type = self.types[universe][b][i]
@@ -312,7 +309,7 @@ class BmadLatticeImporter(BaseModel):
                     }
                     elems[nam].update(**elem_data)
                     if self.types[universe][b][i] == "Kicker":
-                        helem = elems.copy()
+                        helem = elems[nam].copy()
                         helem.update(
                             {
                                 "name": horizontal,
@@ -320,7 +317,7 @@ class BmadLatticeImporter(BaseModel):
                                 "magnetic": hcor,
                             }
                         )
-                        velem = elems.copy()
+                        velem = elems[nam].copy()
                         velem.update(
                             {
                                 "name": vertical,
@@ -329,8 +326,8 @@ class BmadLatticeImporter(BaseModel):
                             }
                         )
                         comb = Combined_Corrector(**elems[nam])
-                        hori = Horizontal_Corrector(**elems[nam])
-                        vert = Vertical_Corrector(**elems[nam])
+                        hori = Horizontal_Corrector(**helem)
+                        vert = Vertical_Corrector(**velem)
                         self.laura_elems[universe][b].update(
                             {
                                 nam: comb,
