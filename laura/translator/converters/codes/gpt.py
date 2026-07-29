@@ -499,8 +499,33 @@ class gpt_spacecharge(gpt_element):
         self.grids = getGrids()
         self.exclude.extend(["cathode", "grids", "ngrids", "space_charge_mode"])
 
+    def space_charge_enabled(self) -> bool:
+        """
+        Whether space charge should be written at all.
+
+        ``space_charge_mode`` arrives as a string, so the *word* "None" is
+        truthy and a plain isinstance check would switch space charge on when
+        the caller had asked for it off. The falsy spellings are treated the
+        same way ASTRA's converter treats them.
+
+        Returns
+        -------
+        bool
+            True if space charge is requested.
+        """
+        mode = self.space_charge_mode
+        if mode is None or mode is False:
+            return False
+        if isinstance(mode, str) and mode.strip().lower() in (
+            "", "none", "false", "off", "0",
+        ):
+            return False
+        return True
+
     def write_GPT(self, *args, **kwargs) -> str:
         output = ""
+        if not self.space_charge_enabled():
+            return output
         if isinstance(self.space_charge_mode, str) and self.cathode:
             if self.ngrids is None:
                 self.ngrids = self.grids.getGridSizes(

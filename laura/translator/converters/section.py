@@ -139,8 +139,10 @@ class SectionLatticeTranslator(SectionLattice):
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     counter[key] += 1
-                    if hasattr(e.simulation, "wakefield_definition") and isinstance(
-                        e.simulation.wakefield_definition, (str, field)
+                    if (
+                        hasattr(e.simulation, "wakefield_definition")
+                        and isinstance(e.simulation.wakefield_definition, (str, field))
+                        and getattr(e.simulation, "wakefield_enable", True)
                     ):
                         w = WakefieldTranslator(
                             name=e.name + "_wake",
@@ -221,6 +223,7 @@ class SectionLatticeTranslator(SectionLattice):
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        self._apply_wakefield_enable(elem_dict)
         kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
@@ -231,8 +234,13 @@ class SectionLatticeTranslator(SectionLattice):
                 )
             element.ccs = ccs
             fulltext += element.to_gpt(Brho, **kwargs)
-            if element.hardware_type.lower() == "rfcavity" and isinstance(
-                element.simulation.wakefield_definition, field
+            # The wakefield translator is built fresh here, so it does not
+            # inherit the cavity's wakefield_enable -- gate on the cavity's own
+            # flag instead, which _apply_wakefield_enable has already set.
+            if (
+                element.hardware_type.lower() == "rfcavity"
+                and isinstance(element.simulation.wakefield_definition, field)
+                and getattr(element.simulation, "wakefield_enable", True)
             ):
                 w = WakefieldTranslator(
                     name=element.name + "_wake",

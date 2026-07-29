@@ -125,8 +125,17 @@ class astra_newrun(astra_header):
     h_max: float = 0.07
     """Maximum time step for the Runge-Kutta integration."""
 
-    h_min: float = 0.07
-    """Minimum time step for the Runge-Kutta integration."""
+    h_min: float = 0.0
+    """Minimum time step for the Runge-Kutta integration [ns], and the minimum
+    step for the space-charge calculation.
+
+    Zero is ASTRA's own default and hands the choice to the code: "during the
+    emission process from a cathode the time step is forced to H_min. If zero
+    H_min is set automatically based on the parameter N_min", i.e. sized so that
+    ~30 particles are emitted per step. Pinning it instead forces the whole bunch
+    out in one step whenever the bunch is shorter than that value -- for a 3 ps
+    photoinjector bunch against the previous 0.07 ns, the entire emission
+    happened in a single step."""
 
     objectname: str = "newrun"
     """Name of object"""
@@ -280,12 +289,23 @@ class astra_charge(astra_header):
     cathode: bool = False
     """Flag to indicate whether the bunch was emitted from a cathode."""
 
-    min_grid: float = 3.424657e-13
-    """Minimum grid length during emission."""
+    min_grid: float = 0.0
+    """Minimum longitudinal grid length during emission [m].
 
-    max_scale: float = 0.1
+    Zero is ASTRA's own default and means "work it out from H_min" -- the manual
+    says "if min_grid is zero it is set automatically according to Eq. (4.2)
+    based on the parameter H_min". A tiny but non-zero value silently disables
+    that."""
+
+    max_scale: float = 0.05
     """If one of the space charge scaling factors exceeds the limit 1± max_scale a new
-    space charge calculation is initiated."""
+    space charge calculation is initiated. ASTRA rescales the space-charge field
+    rather than recomputing it every step, so this sets how far the field is
+    allowed to drift before it is solved again; 0.05 is ASTRA's own default."""
+
+    max_count: int | None = None
+    """Number of times the space-charge field may be rescaled before it is
+    recomputed. None leaves ASTRA's default of 40; lower values solve more often."""
 
     cell_var: float = 2
     """Variation of the cell height in radial direction."""
@@ -296,14 +316,17 @@ class astra_charge(astra_header):
     nlong_in: int | None = None
     """Maximum number of grid cells in longitudinal direction within the bunch length."""
 
-    smooth_x: int = 2
-    """Smoothing parameter for x-direction. Only for 3D FFT algorithm."""
+    smooth_x: int = 0
+    """Smoothing parameter for x-direction. Only for 3D FFT algorithm; ASTRA's
+    own default is 0, and it has no effect on the cylindrical solver."""
 
-    smooth_y: int = 2
-    """Smoothing parameter for y-direction. Only for 3D FFT algorithm."""
+    smooth_y: int = 0
+    """Smoothing parameter for y-direction. Only for 3D FFT algorithm; ASTRA's
+    own default is 0, and it has no effect on the cylindrical solver."""
 
-    smooth_z: int = 2
-    """Smoothing parameter for z-direction. Only for 3D FFT algorithm."""
+    smooth_z: int = 0
+    """Smoothing parameter for z-direction. Only for 3D FFT algorithm; ASTRA's
+    own default is 0, and it has no effect on the cylindrical solver."""
 
     grids: getGrids | None = None
     """Space charge grids"""
@@ -347,13 +370,13 @@ class astra_charge(astra_header):
                     output += f"{self.astradict[key]} = {val},\n"
                 else:
                     output += f"{key} = {val},\n"
-        if self.space_charge_2D:
-            output += f"nrad = {self.grid_size},\n"
-            output += f"nlong_in = {self.grid_size},\n"
-        elif self.space_charge_3D:
+        if self.space_charge_3D:
             output += f"nxf = {self.grid_size},\n"
             output += f"nyf = {self.grid_size},\n"
             output += f"nzf = {self.grid_size},\n"
+        elif self.space_charge_2D:
+            output += f"nrad = {self.grid_size},\n"
+            output += f"nlong_in = {self.grid_size},\n"
         elif self.space_charge():
             output += f"nxf = {self.grid_size},\n"
             output += f"nyf = {self.grid_size},\n"
@@ -377,6 +400,9 @@ class astra_charge(astra_header):
             or self.space_charge_mode is None
             or self.space_charge_mode == "None"
         ):
+            # space_charge_2D maps to LSPCH, which is ASTRA's master switch for
+            # the space-charge calculation rather than a choice of algorithm, so
+            # it stays True here; LSPCH3D selects the 3D solver on top of it.
             self.space_charge_3D = True
             if isinstance(self.space_charge_mode, str):
                 if "2d" in self.space_charge_mode.lower():

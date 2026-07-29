@@ -378,6 +378,13 @@ class opal_fieldsolver(opal_header):
     sample_interval: int = 1
     """Downsampling interval calculated as 2 ** (3 * sample_interval)"""
 
+    grid_size_override: int | tuple[int, int, int] | list | None = None
+    """Explicit space-charge mesh size, replacing the automatic particle-count
+    heuristic in :func:`~grid_size`. A single value is applied to all three
+    dimensions; a ``(MX, MY, MT)`` triple sets them independently, which is
+    what a bunch with a strong aspect ratio needs -- near the cathode it is a
+    thin pancake, so the longitudinal mesh is the one that has to be fine."""
+
     FSTYPE: Literal["FFT", "FFTPERIODIC", "SAAMG", "P3M", "NONE"] = "FFT"
     """Specify the type of field solver: FFT, FFTPERIODIC, SAAMG, P3M and NONE. 
     Further arguments are enabled with the AMR solver (cf. Adaptive Mesh Refinement (AMR) Solver)."""
@@ -391,13 +398,13 @@ class opal_fieldsolver(opal_header):
     PARFFTT: bool = True
     """If TRUE, the dimension t is distributed among the processors"""
 
-    MX: int = None
+    MX: int | None = None
     """Number of grid points in x specifying rectangular grid"""
 
-    MY: int = None
+    MY: int | None = None
     """Number of grid points in y specifying rectangular grid"""
 
-    MT: int = None
+    MT: int | None = None
     """Number of grid points in t specifying rectangular grid"""
 
     BCFFTX: str = "open"
@@ -412,26 +419,30 @@ class opal_fieldsolver(opal_header):
     GREENSF: str = "Integrated"
     """Defines the Greens function for the FFT-based solvers (FFT + P3M only)."""
 
-    BBOXINCR: float = None
+    BBOXINCR: float | None = None
     """Enlargement of the bounding box in %."""
 
-    ITSOLVER: str = None
+    ITSOLVER: str | None = None
     """Type of iterative solver (SAAMG + AMR_MG only)."""
 
-    RC: float = None
+    RC: float | None = None
     """Defines the cut-off radius in the boosted frame for the P3M solver (P3M only)."""
 
-    ALPHA: float = None
+    ALPHA: float | None = None
     """Defines the interaction splitting parameter for the P3M solver with standard Green’s function 
     (P3M + GREENSF=STANDARD only)."""
 
     def model_post_init(self, context: Any, /) -> None:
         self.grids = getGrids()
         self.opaldict = {"input_particle_definition": "FNAME"}
-        self.exclude.extend(["npart", "space_charge_mode", "grids", "sample_interval"])
-        self.MX = self.grid_size
-        self.MY = self.grid_size
-        self.MT = self.grid_size
+        self.exclude.extend(
+            ["npart", "space_charge_mode", "grids", "sample_interval",
+             "grid_size_override"]
+        )
+        if isinstance(self.grid_size_override, (tuple, list)):
+            self.MX, self.MY, self.MT = (int(v) for v in self.grid_size_override)
+        else:
+            self.MX = self.MY = self.MT = self.grid_size
         self.apply_space_charge_mode()
 
     def apply_space_charge_mode(self) -> None:
@@ -486,13 +497,21 @@ class opal_fieldsolver(opal_header):
     @property
     def grid_size(self) -> int:
         """
-        Get the number of space charge bins.
+        Get the space-charge mesh size for one dimension.
+
+        Uses :attr:`~grid_size_override` when set, otherwise the automatic
+        heuristic based on the particle count. The heuristic returns roughly the
+        cube root of the particle count, i.e. about one gridpoint per particle,
+        which is the coarsest mesh OPAL accepts -- it rejects any run where
+        ``npart < grid**3``.
 
         Returns
         -------
         int
-            The number of space charge bins based on the number of particles
+            The number of mesh points per dimension
         """
+        if self.grid_size_override:
+            return int(self.grid_size_override)
         # print('asking for grid sizes n = ', self.npart, ' is ', self.grids.getGridSizes(self.npart))
         return self.grids.getGridSizes(self.npart / self.sample_interval)
 
@@ -557,8 +576,11 @@ class opal_track(opal_header):
     T0: float = None
     """The initial time [s] of the simulation, its default value is 0."""
 
-    DT: float | str = 1e-12
-    """Array of time step sizes for tracking, default length of the array is 1 and its only value is 1 ps."""
+    DT: float | str | list | tuple = 1e-12
+    """Array of time step sizes for tracking, default length of the array is 1 and its only value is 1 ps.
+    A sequence gives OPAL one step size per stage, paired elementwise with
+    :attr:`~ZSTOP`, which is how a run can take fine steps through the cathode
+    region and coarse ones afterwards."""
 
     MAXSTEPS: int = None
     """Array of maximal number of time steps, default length of the array is 1 and its only value is 10."""
@@ -566,18 +588,34 @@ class opal_track(opal_header):
     ZSTART: float = None
     """Initial position of the reference particle along the reference trajectory, default position is 0.0 m."""
 
-    ZSTOP: float | str
-    """Array of z-locations [m], default length of the array is 1 and its only value is 1E61E6 [m]. 
+    ZSTOP: float | str | list | tuple
+    """Array of z-locations [m], default length of the array is 1 and its only value is 1E61E6 [m].
     The simulation switches to the next set, i+1i+1, of DT, MAXSTEPS and ZSTOP if either it has been t
-    racking with the current set for more than MAXSTEPS steps or the mean position has reached a z-position 
+    racking with the current set for more than MAXSTEPS steps or the mean position has reached a z-position
     larger than ZSTOP. If set i is the last set of the array then the simulation stops."""
 
     TIMEINTEGRATOR: Literal["RK4", "LF2", "MTS"] = None
     """Define the time integrator. Currently only available in OPAL-cycl. The valid options are RK4, LF2 and MTS"""
 
+    ZSTOP_STAGES: list | tuple | None = None
+    """Intermediate z-positions [m] at which :attr:`~DT` moves to its next value,
+    held separately from :attr:`~ZSTOP` because the section translator resets
+    that to the end of the line once the element positions are known. Not written
+    out on its own -- it is folded into the ``ZSTOP`` array."""
+
+    def model_post_init(self, context: Any, /) -> None:
+        self.exclude.append("ZSTOP_STAGES")
+
     def write_Opal(self) -> str:
-        self.DT = str(self.DT)
-        self.ZSTOP = "{" + str(self.ZSTOP + 1e-1) + "}"
+        # OPAL takes DT/ZSTOP as arrays; a scalar is just the one-stage case. The
+        # final ZSTOP is nudged past the end of the line so the last element is
+        # tracked through rather than stopped on.
+        if isinstance(self.DT, (list, tuple)):
+            self.DT = "{" + ", ".join(str(dt) for dt in self.DT) + "}"
+        else:
+            self.DT = str(self.DT)
+        stops = list(self.ZSTOP_STAGES or []) + [self.ZSTOP + 1e-1]
+        self.ZSTOP = "{" + ", ".join(str(z) for z in stops) + "}"
         return super().write_Opal()
 
 
