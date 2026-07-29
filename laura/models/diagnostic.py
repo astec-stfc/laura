@@ -1,4 +1,6 @@
 from pydantic import (
+    AliasChoices,
+    Field,
     field_validator,
 )
 from typing import List, Type, Union
@@ -48,6 +50,20 @@ class Bunch_Length_Monitor_Diagnostic(_BLMDiagnosticElementBase):
     """
 
     pass
+
+
+class Photon_Intensity_Monitor_Diagnostic(DiagnosticElement):
+    """
+    Photon Intensity Monitor Diagnostic model.
+    """
+
+    type: str = Field(
+        default="I0",
+        validation_alias=AliasChoices("type", "intensity_monitor_type"),
+    )
+    """Photon Intensity Monitor type"""
+
+    intensity: float = 0.0
 
 
 class Camera_Pixel_Results_Indices(_CameraPixelResultsIndicesBase):

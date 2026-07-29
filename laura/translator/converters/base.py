@@ -296,7 +296,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 properties.update({key: value})
         return self.name, obj, properties
 
-    def to_genesis(self) -> str:
+    def to_genesis(self, index: int) -> str:
         """
         Generates a string representation of the object's properties in the Genesis format.
 
@@ -309,8 +309,9 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring = ""
         etype = self._convertType_Genesis(self.hardware_type)
         if "mark" in etype.lower():
-            return f"{self.name}: {etype} = " + "{dumpbeam = 1};\n"
-        string = f"{self.name}: {etype} = " + "{"
+            fld = ", dumpfield = 1" if "photon" in self.hardware_type.lower() else ""
+            return f"{index}{self.name}: {etype} = " + "{dumpbeam = 1" + fld + "};\n"
+        string = f"{index}{self.name}: {etype} = " + "{"
         keys = []
         for key, value in self.full_dump().items():
             if (
@@ -347,7 +348,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         return ""
 
-    def to_gpt(self, Brho: float = 0.0, ccs: str = "wcs", *args, **kwargs) -> str:
+    def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:
         """
         Base function for writing to GPT; this is empty since only certain elements are supported.
 

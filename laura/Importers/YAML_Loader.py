@@ -1,4 +1,5 @@
 import re
+from typing import List
 import json
 import logging
 import yaml
@@ -10,7 +11,7 @@ from pydantic import TypeAdapter, BaseModel
 from typing import List
 
 # Import elements before building registry
-from ..models.element import *  # noqa
+from ..models.element import ELEMENT_REGISTRY
 
 _log = logging.getLogger("laura.loader")
 
@@ -117,21 +118,21 @@ def get_all_subclasses(cls):
         subclasses.update(get_all_subclasses(sub))
     return subclasses
 
-ALL_MODELS = get_all_subclasses(BaseModel)
+_MODEL_REGISTRY = None
 
-MODEL_REGISTRY = {
-    cls.__name__: cls
-    for cls in ALL_MODELS
-}
+def get_model_registry():
+    global _MODEL_REGISTRY
+    if _MODEL_REGISTRY is None:
+        ALL_MODELS = get_all_subclasses(BaseModel)
+        _MODEL_REGISTRY = {cls.__name__: cls for cls in ALL_MODELS}
+    return _MODEL_REGISTRY
+
 
 
 class LazyAdapterDict(dict):
-    """
-    Lazy lookup of TypeAdapters to avoid initializing all 100+ adapters on import.
-    """
     def get(self, key, default=None):
         if key not in self:
-            model = MODEL_REGISTRY.get(key)
+            model = ELEMENT_REGISTRY.get(key)
             if model is None:
                 return default
             self[key] = TypeAdapter(model)

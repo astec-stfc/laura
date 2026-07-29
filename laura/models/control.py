@@ -4,7 +4,7 @@ from pydantic import (
     ValidationError,
     field_validator,
     model_serializer,
-    ConfigDict,
+    ConfigDict, Field,
 )
 from typing import Dict, Type, Literal
 import operator
@@ -258,10 +258,10 @@ class ScreenControlsInformation(ControlsInformation):
     Model representing a collection of control variables pertaining to screens.
     """
 
-    movement_type: str
+    movement_type: str = Field(default="Unknown")
     """Screen motion type"""
 
-    devices: dict
+    devices: dict = Field(default={})
     """List of screen device enums"""
 
     horizontal_devices: dict | None = None
@@ -300,5 +300,5 @@ class ShutterControlsInformation(ControlsInformation):
     Model representing a collection of control variables pertaining to shutters.
     """
 
-    shutter_type: str
+    shutter_type: str = Field(default="Unknown")
     """Type of shutter, i.e. 'LASER', 'BEAM'"""

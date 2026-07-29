@@ -23,3 +23,6 @@ kicker:
   vertical_kick: cy
 marker:
   {}
+chicane:
+  dipole_length: lb
+  drift_length: ld

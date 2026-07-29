@@ -500,7 +500,7 @@ class RFCavityTranslator(BaseElementTranslator):
             cells = 0
         return cells
 
-    def to_gpt(self, Brho: float = 0.0, ccs: str = "wcs", *args, **kwargs) -> str:
+    def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:
         """
         Write a string representation of the cavity for GPT
 
@@ -510,8 +510,6 @@ class RFCavityTranslator(BaseElementTranslator):
         ----------
         Brho: float
             Magnetic rigidity; not used
-        ccs: str
-            Name of co-ordinate system of the cavity
 
         Returns
         -------
@@ -521,10 +519,10 @@ class RFCavityTranslator(BaseElementTranslator):
         self.start_write()
         field_ref_pos = self.get_field_reference_position()
         ccs_label, value_text = self.ccs.ccs_text(
-            field_ref_pos, self.physical.rotation.model_dump()
+            field_ref_pos, list(self.physical.rotation.model_dump().values())
         )
         relpos, _ = self.ccs.relative_position(
-            field_ref_pos, self.physical.global_rotation.model_dump()
+            field_ref_pos, list(self.physical.global_rotation.model_dump().values())
         )
         field_file_name = self.generate_field_file_name(
             self.simulation.field_definition, code="gpt"

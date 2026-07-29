@@ -80,6 +80,7 @@ from .diagnostic import (
     Camera_Diagnostic,
     Screen_Diagnostic,
     Charge_Diagnostic,
+    Photon_Intensity_Monitor_Diagnostic,
 )
 from .laser import (
     LaserElement,
@@ -495,7 +496,7 @@ class Wiggler(Magnet):
         laser (:class:`~laura.models.laser.Laser_Magnet` or None): The laser associated with the wiggler.
     """
 
-    hardware_type: str = Field(default="Undulator", frozen=True)
+    hardware_type: str = Field(default="Wiggler", frozen=True)
     """Wiggler hardware type."""
 
     magnetic: Wiggler_Magnet = Field(default_factory=Wiggler_Magnet)
@@ -620,6 +621,31 @@ class Bunch_Length_Monitor(Diagnostic, _BunchLengthMonitorBase):
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "diagnostic", Bunch_Length_Monitor_Diagnostic)
+
+
+class Photon_Monitor(Diagnostic):
+    """
+    Photon monitor element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the diagnostic.
+        hardware_model (str): The specific hardware model of the diagnostic.
+        intensity: (:class:`~laura.models.diagnostic.Photon_Intensity_Monitor_Diagnostic`): The diagnostic
+        attributes of the intensity monitor.
+    """
+
+    hardware_type: str = Field(
+        default="Photon_Monitor", frozen=True,
+    )
+    """Photon monitor hardware type."""
+
+    hardware_model: str = Field(default="Photon_Monitor", frozen=True)
+    """Photon monitor hardware model."""
+
+    intensity: Photon_Intensity_Monitor_Diagnostic = Field(
+        default_factory=Photon_Intensity_Monitor_Diagnostic
+    )
+    """Diagnostic attributes of the intensity monitor."""
 
 
 class Camera(Diagnostic, _CameraBase):
@@ -1273,3 +1299,17 @@ class Drift(PhysicalBaseElement, _DriftBase):
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "simulation", DriftSimulationElement)
+
+
+
+# ponytail: derived from this module's own classes rather than a hand-kept list,
+# which silently dropped PowerSupply/LaserHalfWavePlate when new elements landed.
+ELEMENT_REGISTRY: dict[str, type] = {
+    _field.default: _cls
+    for _cls in list(vars().values())
+    if isinstance(_cls, type)
+    and issubclass(_cls, Element)
+    and (_field := _cls.model_fields.get("hardware_type")) is not None
+    and isinstance(_field.default, str)
+    and _field.default != "Generic"
+}

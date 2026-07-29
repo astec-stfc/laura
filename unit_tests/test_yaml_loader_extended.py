@@ -18,13 +18,12 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from laura.models.element import Quadrupole, Marker, Dipole
+from laura.models.element import Quadrupole, Marker, Dipole, ELEMENT_REGISTRY
 from laura.Exporters.YAML import export_as_yaml, export_machine_combined_file
 from laura.Importers.YAML_Loader import (
     fast_get_element_metadata,
     LazyElementDict,
     LazyAdapterDict,
-    MODEL_REGISTRY,
     filter_top_level,
     interpret_YAML_Element,
     read_YAML_Element_File,
@@ -262,9 +261,9 @@ class TestLazyAdapterDict:
         assert result is sentinel
 
     def test_all_registered_models_have_adapters(self):
-        """Every entry in MODEL_REGISTRY should be resolvable."""
+        """Every entry in ELEMENT_REGISTRY should be resolvable."""
         d = LazyAdapterDict()
-        for name in list(MODEL_REGISTRY.keys())[:5]:  # sample first 5 to keep test fast
+        for name in list(ELEMENT_REGISTRY.keys())[:5]:  # sample first 5 to keep test fast
             adapter = d.get(name)
             assert adapter is not None, f"Missing adapter for {name}"
 
