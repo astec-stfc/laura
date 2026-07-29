@@ -470,6 +470,156 @@ TANGO Attribute, organised as follows:
 * ``units: str`` -- unit of measurement for the control variable.
 * ``description: str`` -- description of the control variable.
 * ``read_only: bool`` -- indicates if the variable is read-only.
+* ``value: float | int | str | list`` -- current value of the control variable.
+* ``type: str`` -- kind of control variable; one of ``scalar``, ``binary``, ``state``, ``string``, ``waveform``, ``statistical``.
+* ``states: dict`` -- possible state mapping enums, for variables of ``type='state'``.
+* ``target: str`` -- attribute path on the element to which the variable is applied, e.g. ``magnetic.k1l``.
+* ``expression: dict`` -- expression graph defining how to compute the value set at the ``target``.
+* ``readback: str`` -- connects a setpoint to a readback.
+* ``setpoint: str`` -- connects a readback to a setpoint.
+* ``update: dict`` -- function used to update the variable's value; see :ref:`update-functions`.
+* ``dynamics: dict`` -- response model relating a readback to its setpoint; see :ref:`response-dynamics`.
+
+.. _update-functions:
+
+Update Functions
+~~~~~~~~~~~~~~~~
+
+A :py:class:`ControlVariable <laura.models.control.ControlVariable>` can define an ``update``
+function, describing how its value evolves; this is primarily useful for driving virtual or
+simulated accelerators, where no real control system is supplying values.
+The available functions are the signal classes in :py:mod:`laura.utils.signals`, such as
+:py:class:`Sinusoid <laura.utils.signals.Sinusoid>` and
+:py:class:`RandomWalk <laura.utils.signals.RandomWalk>`; each is a callable dataclass whose fields
+are the parameters of the signal.
+
+An ``update`` can be given as a signal instance, as a signal class, or as a dictionary with a
+``function`` key naming the signal alongside its parameters:
+
+.. code-block:: python
+
+    from laura.models.control import ControlVariable
+    from laura.utils.signals import Sinusoid
+
+    # As an instance
+    cv = ControlVariable(
+        identifier="BPM:01:X",
+        protocol="CA",
+        units="mm",
+        update=Sinusoid(period=10.0, amplitude=0.5),
+    )
+
+    # Equivalently, as a dictionary
+    cv = ControlVariable(
+        identifier="BPM:01:X",
+        protocol="CA",
+        units="mm",
+        update={"function": "Sinusoid", "period": 10.0, "amplitude": 0.5},
+    )
+
+The definition is validated when the :py:class:`ControlVariable <laura.models.control.ControlVariable>`
+is created: the named signal must exist, and the parameters supplied must match its fields, with all
+required parameters present. An invalid definition raises a warning and leaves ``update`` unset,
+rather than raising an error, so that a single bad entry does not prevent a machine definition from
+loading.
+
+Whichever form is used, ``update`` is stored as a dictionary in which ``function`` is a fully
+qualified import path. A definition serialised to YAML is therefore self-contained, and can be
+resolved by tools that do not depend on :mod:`LAURA`:
+
+.. code-block:: yaml
+
+    update:
+      function: laura.utils.signals.Sinusoid
+      period: 10.0
+      amplitude: 0.5
+
+For the same reason, signals are not restricted to those defined by :mod:`LAURA`: any callable
+dataclass can be used, provided it is named by its import path.
+
+.. code-block:: yaml
+
+    update:
+      function: mypackage.signals.MyCustomSignal
+      gain: 2.0
+
+.. warning::
+
+    Resolving an ``update`` imports the module named in ``function``. Only load machine definitions
+    from sources you trust.
+
+To obtain the callable itself, use
+:py:meth:`build_update <laura.models.control.ControlVariable.build_update>`, which instantiates the
+signal with the stored parameters and returns ``None`` if no ``update`` is defined:
+
+.. code-block:: python
+
+    signal = cv.build_update()   # Sinusoid(period=10.0, amplitude=0.5, noise=0.0, phase=0.0)
+    signal(2.5)                  # 0.5, a quarter period in
+
+Signals differ in what they need: a sinusoid is a function of time ``t``, while a random walk
+steps on from the current ``value``. A caller driving many signals at once cannot know which is
+which, so :py:func:`call_signal <laura.utils.signals.call_signal>` offers everything it knows about
+and passes on only the arguments a given signal declares:
+
+.. code-block:: python
+
+    from laura.utils.signals import call_signal
+
+    call_signal(signal, t=elapsed, value=current, dt=timestep)
+
+A signal defined outside :mod:`LAURA` may therefore declare any subset of ``t``, ``value`` and
+``dt`` as its arguments.
+
+.. _response-dynamics:
+
+Response Dynamics
+~~~~~~~~~~~~~~~~~
+
+A :py:class:`ControlVariable <laura.models.control.ControlVariable>` may be linked to its
+counterpart through the ``setpoint`` and ``readback`` fields. In a real machine, a readback does
+not reach a newly written setpoint instantly: the magnet current ramps, the cavity field settles,
+and the measured value follows some time later. The ``dynamics`` field describes that lag, so a
+simulated control system can reproduce it rather than having readbacks track setpoints exactly.
+
+The available response models are the classes in :py:mod:`laura.utils.dynamics`:
+
+* :py:class:`ImmediateResponse <laura.utils.dynamics.ImmediateResponse>` (``immediate``) -- the readback follows the setpoint with no lag.
+* :py:class:`FirstOrderResponse <laura.utils.dynamics.FirstOrderResponse>` (``first_order``) -- exponential approach with time constant ``tau``.
+* :py:class:`DelayedResponse <laura.utils.dynamics.DelayedResponse>` (``delayed``) -- the readback jumps to the setpoint after a dead time ``delay``.
+
+A response model is a callable taking the target value and a timestep, and returning the value the
+readback should now report. It is defined as for :ref:`update-functions`, except that the naming key
+is ``model`` rather than ``function``:
+
+.. code-block:: yaml
+
+    - setpoint: LINAC:QUAD01:K1:CMD
+      readback: LINAC:QUAD01:K1:MEAS
+      dynamics:
+        model: first_order
+        tau: 0.5
+
+As with ``update``, short names are accepted on the way in and stored as fully qualified import
+paths (``laura.utils.dynamics.FirstOrderResponse``), and response models defined outside
+:mod:`LAURA` may be used by naming them by import path.
+
+:py:meth:`build_dynamics <laura.models.control.ControlVariable.build_dynamics>` instantiates the
+model, for use in the readback's setter:
+
+.. code-block:: python
+
+    response = cv.build_dynamics()          # FirstOrderResponse(tau=0.5, initial=0.0)
+    await readback.write(response(setpoint, dt))
+
+.. note::
+
+    Response models are stateful: each call advances an internal value towards the target, so the
+    lag depends on the history of the variable. Build one instance per readback and keep it for the
+    lifetime of that readback, rather than calling
+    :py:meth:`build_dynamics <laura.models.control.ControlVariable.build_dynamics>` on each update.
+    Runtime state is held in fields excluded from the definition, so it is neither configurable in
+    the lattice nor serialised with it.
 
 .. _electrical-and-manufacturer:
 

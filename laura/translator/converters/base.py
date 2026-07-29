@@ -638,12 +638,16 @@ class BaseElementTranslator(PhysicalBaseElement):
                 keyword_conversion_rules_elegant[updated_type.lower()]
                 | keyword_conversion_rules_elegant["general"]
             )
-            element = elements_Elegant[self._convertType_Elegant(updated_type).lower()]
+            element = elements_Elegant.get(
+                self._convertType_Elegant(updated_type).lower(),
+                elements_Elegant["drift"],
+            )
         else:
             conversion_rules = self.conversion_rules["elegant"]
-            element = elements_Elegant[
-                self._convertType_Elegant(self.hardware_type).lower()
-            ]
+            element = elements_Elegant.get(
+                self._convertType_Elegant(self.hardware_type).lower(),
+                elements_Elegant["drift"],
+            )
         return self._convert_keyword(keyword, conversion_rules, element)
 
     def _convertType_Genesis(self, etype: str) -> str:
@@ -657,10 +661,14 @@ class BaseElementTranslator(PhysicalBaseElement):
                 keyword_conversion_rules_genesis[updated_type.lower()]
                 | keyword_conversion_rules_genesis["general"]
             )
-            element = elements_Genesis[self._convertType_Genesis(updated_type)]
+            element = elements_Genesis.get(
+                self._convertType_Genesis(updated_type), elements_Genesis["drift"]
+            )
         else:
             conversion_rules = self.conversion_rules["genesis"]
-            element = elements_Genesis[self._convertType_Genesis(self.hardware_type)]
+            element = elements_Genesis.get(
+                self._convertType_Genesis(self.hardware_type), elements_Genesis["drift"]
+            )
         return self._convert_keyword(keyword, conversion_rules, element)
 
     def _convertType_Ocelot(self, etype: str) -> object:

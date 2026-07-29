@@ -100,6 +100,7 @@ opal:
   Aperture: monitor
   Marker: monitor
   Photon_Monitor: monitor
+  Shutter: drift
 name:
   dia-bpm: beam_position_monitor
   dia-bam: beam_arrival_monitor

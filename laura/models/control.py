@@ -6,8 +6,13 @@ from pydantic import (
     model_serializer,
     ConfigDict, Field,
 )
-from typing import Dict, Type, Literal
+from pydantic import ValidationInfo
+from typing import Any, Callable, Dict, Type, Literal
 import operator
+from dataclasses import fields, is_dataclass
+from laura.utils.dynamics import resolve_response, response_path
+from laura.utils.signals import resolve_signal, signal_path
+from warnings import warn
 
 OPS = {
     "add": operator.add,
@@ -46,6 +51,69 @@ def set_attr_by_path(obj, path: str, value):
     for part in parents:
         obj = getattr(obj, part)
     setattr(obj, attr, value)
+
+
+def validate_callable_spec(
+    v: Any,
+    field: str,
+    key: str,
+    resolve: Callable[[str], type],
+    path: Callable[[type], str],
+    label: str,
+    who: str,
+) -> Dict | None:
+    """Normalise and check a callable-dataclass definition, as used by the `update`
+    and `dynamics` fields of `ControlVariable`.
+
+    Accepts a class, an instance, or a dict of the form ``{key: <name>, **kwargs}``;
+    all are normalised to the dict form, with the name rewritten to a fully
+    qualified import path so that a serialised definition can be resolved without
+    LAURA. Anything invalid warns and returns None, leaving the field unset.
+    """
+    if v is None:
+        return None
+
+    # An instance, e.g. Sinusoid(period=1.0, amplitude=2.0)
+    if is_dataclass(v) and not isinstance(v, type):
+        v = {
+            key: path(type(v)),
+            **{f.name: getattr(v, f.name) for f in fields(v) if f.init},
+        }
+
+    # A class, e.g. RandomWalk
+    elif isinstance(v, type):
+        v = {key: path(v)}
+
+    if not isinstance(v, dict):
+        warn(f"`{field}` for {who} must be a {label} class, instance or dict, got {type(v).__name__}")
+        return None
+
+    if key not in v:
+        warn(f"`{field}` for {who} requires a '{key}' key")
+        return None
+
+    name = v[key]
+    try:
+        obj_cls = resolve(name)
+    except LookupError as exc:
+        warn(f"Cannot resolve `{field}` for {who}: {exc}")
+        return None
+
+    # Construct the class to validate the supplied arguments: a kw_only dataclass
+    # rejects unknown keys, missing required ones, and -- for the built-ins,
+    # which are `type_checked` -- wrong types. Reproducing those checks here
+    # would only duplicate what the constructor already enforces. Fields with
+    # init=False (runtime state) are likewise rejected, since they are not
+    # constructor arguments.
+    kwargs = {k: val for k, val in v.items() if k != key}
+    try:
+        obj_cls(**kwargs)
+    except (TypeError, ValueError) as exc:
+        warn(f"Invalid {label} '{name}' for {who}: {exc}")
+        return None
+
+    # Store the fully qualified path, so a short name is upgraded on the way in.
+    return {**v, key: path(obj_cls)}
 
 
 class ControlVariable(BaseModel):
@@ -109,13 +177,48 @@ class ControlVariable(BaseModel):
     expression: dict | None = None  # expression graph
     """Expression defining how to compute the value to set at the target."""
 
-    type: Literal["scalar", "binary", "state", "string", "waveform", "statistical"] = (
-        "statistical"
+    control_type: Literal["scalar", "binary", "state", "string", "waveform", "statistical"] = Field(
+        default="statistical", alias="type",
     )
     """Type of control variable."""
 
     states: Dict | None = None
     """Possible state mapping enums."""
+
+    readback: str | None = None
+    """Connects a setpoint to a readback."""
+
+    setpoint: str | None = None
+    """Connects a readback to a setpoint."""
+
+    update: Dict | None = None
+    """
+    Defines the update function for the variable; see `laura.utils.signals` for examples.
+
+    Accepts a dict with a "function" key naming a signal class plus its keyword
+    arguments (``{"function": "Sinusoid", "period": 1.0, "amplitude": 2.0}``), a
+    signal class (only if it has no required arguments), or a signal instance
+    (``Sinusoid(period=1.0, amplitude=2.0)``).
+
+    It is always normalised to the dict form, with "function" stored as a fully
+    qualified import path (``laura.utils.signals.Sinusoid``) so a serialised
+    definition can be resolved without LAURA. Signals defined outside LAURA are
+    allowed, provided they are callable dataclasses named by import path. Use
+    `build_update` to get a callable back.
+    """
+
+    dynamics: Dict | None = None
+    """
+    Response model describing how this variable's readback follows its setpoint;
+    see `laura.utils.dynamics` for examples. Only meaningful alongside `readback`
+    or `setpoint`, and intended for simulated control systems, where a readback
+    should lag its setpoint rather than track it instantly.
+
+    Defined as for `update`, except that the naming key is "model" rather than
+    "function" (``{"model": "first_order", "tau": 0.5}``). Use `build_dynamics`
+    to get a callable back; response models are stateful, so each readback needs
+    its own instance.
+    """
 
     model_config = ConfigDict(
         arbitrary_types_allowed=False,
@@ -125,6 +228,63 @@ class ControlVariable(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
+
+    @field_validator("update", mode="before")
+    @classmethod
+    def validate_update(cls, v: Any, info: ValidationInfo) -> Dict | None:
+        """Checks that the `update` function resolves to a signal dataclass and that the
+        keyword arguments supplied for it match that class' fields.
+
+        Accepts a signal class, a signal instance, or a dict of the form
+        ``{"function": <name>, **kwargs}``; all are normalised to the dict form,
+        with "function" rewritten to a fully qualified import path
+        (``laura.utils.signals.Sinusoid``) so that a serialised definition can be
+        resolved without LAURA. Anything invalid warns and returns None, leaving
+        the variable without an update function.
+        """
+        # `identifier` is declared before `update`, so it is already validated here.
+        return validate_callable_spec(
+            v,
+            field="update",
+            key="function",
+            resolve=resolve_signal,
+            path=signal_path,
+            label="signal",
+            who=info.data.get("identifier", "<unknown>"),
+        )
+
+    @field_validator("dynamics", mode="before")
+    @classmethod
+    def validate_dynamics(cls, v: Any, info: ValidationInfo) -> Dict | None:
+        """As `validate_update`, for the response model relating a readback to its
+        setpoint; the naming key is "model" rather than "function"."""
+        return validate_callable_spec(
+            v,
+            field="dynamics",
+            key="model",
+            resolve=resolve_response,
+            path=response_path,
+            label="response model",
+            who=info.data.get("identifier", "<unknown>"),
+        )
+
+    def build_update(self):
+        """Instantiate the signal described by `update`, or None if unset."""
+        if self.update is None:
+            return None
+        kwargs = {k: val for k, val in self.update.items() if k != "function"}
+        return resolve_signal(self.update["function"])(**kwargs)
+
+    def build_dynamics(self):
+        """Instantiate the response model described by `dynamics`, or None if unset.
+
+        Response models are stateful, so the returned object should be kept for
+        the lifetime of the readback rather than rebuilt on each update.
+        """
+        if self.dynamics is None:
+            return None
+        kwargs = {k: val for k, val in self.dynamics.items() if k != "model"}
+        return resolve_response(self.dynamics["model"])(**kwargs)
 
     @field_validator("dtype", mode="before")
     def validate_dtype(cls, v) -> Type:
