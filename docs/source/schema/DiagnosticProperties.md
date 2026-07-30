@@ -118,6 +118,16 @@ URI: [DiagnosticProperties](DiagnosticProperties.md)
 
 
 
+        
+
+
+
+
+
+
+
+
+
 
 
 
@@ -217,6 +227,15 @@ URI: [DiagnosticProperties](DiagnosticProperties.md)
 
 
 
+
+
+
+
+
+
+
+
+
         
 
 
@@ -249,6 +268,45 @@ URI: [DiagnosticProperties](DiagnosticProperties.md)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
 
 
@@ -490,7 +548,9 @@ URI: [DiagnosticProperties](DiagnosticProperties.md)
 | [BPMDiagnosticElement](BPMDiagnosticElement.md) | Beam-position monitor (BPM) diagnostic data |
 | [CameraDiagnosticElement](CameraDiagnosticElement.md) | Camera diagnostic data, including sensor parameters, analysis mask, and pixel... |
 | [ChargeDiagnosticElement](ChargeDiagnosticElement.md) | Charge-measurement diagnostic data (base for ICT, FCM, WCM) |
+| [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md) | Photon intensity monitor diagnostic data |
 | [ScreenDiagnosticElement](ScreenDiagnosticElement.md) | Scintillator or OTR screen diagnostic data |
+
 
 
 
@@ -507,6 +567,7 @@ URI: [DiagnosticProperties](DiagnosticProperties.md)
 | Slot | Description |
 | --- | --- |
 | [diagnostic](diagnostic.md) | Instrument-specific diagnostic parameters |
+| [intensity](intensity.md) | Instrument-specific diagnostic parameters |
 
 
 

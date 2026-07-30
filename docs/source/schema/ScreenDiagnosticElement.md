@@ -141,6 +141,7 @@ attributes:
     domain_of:
     - BPMDiagnosticElement
     - BAMDiagnosticElement
+    - PhotonIntensityMonitorDiagnostic
     - BLMDiagnosticElement
     - ScreenDiagnosticElement
     - ChargeDiagnosticElement
@@ -200,6 +201,7 @@ attributes:
     domain_of:
     - BPMDiagnosticElement
     - BAMDiagnosticElement
+    - PhotonIntensityMonitorDiagnostic
     - BLMDiagnosticElement
     - ScreenDiagnosticElement
     - ChargeDiagnosticElement

@@ -6,7 +6,7 @@ search:
 # Slot: dtype 
 
 
-_Data type (e.g., ``float``, ``int``)._
+_Data type, held as a Python type and serialised by name (e.g., ``float``, ``int``, ``str``)._
 
 
 
@@ -49,6 +49,7 @@ URI: [laura:dtype](https://w3id.org/laura/dtype)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string(float)` |
 | Owner | [ControlVariable](ControlVariable.md) |
 
 
@@ -91,9 +92,11 @@ URI: [laura:dtype](https://w3id.org/laura/dtype)
 <details>
 ```yaml
 name: dtype
-description: Data type (e.g., ``float``, ``int``).
+description: Data type, held as a Python type and serialised by name (e.g., ``float``,
+  ``int``, ``str``).
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: string(float)
 owner: ControlVariable
 domain_of:
 - ControlVariable

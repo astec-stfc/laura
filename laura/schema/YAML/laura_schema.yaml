@@ -24,6 +24,10 @@ default_range: string
 
 imports:
   - linkml:types
+  - geometry
+  - controls
+  - elements
+  - machine
   - simulation
   - magnetic
   - rf
@@ -122,52 +126,6 @@ enums:
       laguerre-gaussian:  {}
       flattened-gaussian: {}
       file:               {}
-
-  ApertureShapeEnum:
-    description: Cross-sectional shape of a beam-pipe aperture.
-    permissible_values:
-      circular:    {}
-      rectangular: {}
-      elliptical:  {}
-
-  IOTypeEnum:
-    description: Input types for accelerator elements.
-    permissible_values:
-      current:
-        description: Electrical current.
-      voltage:
-        description: Electrical voltage.
-      phase:
-        description: Phase in radians.
-      setpoint:
-        description: Control setpoint.
-      on_off_state:
-        description: On/Off state.
-      open_closed_state:
-        description: Open/Closed state.
-      position:
-        description: Physical position.
-      rotation:
-        description: Physical rotation.
-      power:
-        description: Electrical power.
-      pressure:
-        description: Gas pressure.
-      charge:
-        description: Electrical charge.
-      absolute_time:
-        description: Absolute timing.
-      relative_time:
-        description: Relative timing.
-      shot_number:
-        description: Shot number.
-      value:
-        description: Single value.
-      waveform:
-        description: Multivalued waveform.
-      magnetic_field:
-        description: Magnetic field.
-
 
 # --- Reusable Slots ----------------------------------------------------------
 
@@ -291,203 +249,6 @@ slots:
 
 classes:
 
-  # -- Position & Rotation ----------------------------------------------------
-
-  Position:
-    description: >-
-      Cartesian position in the global accelerator coordinate system.
-      All components are in metres.
-    class_uri: laura:Position
-    in_subset:
-      - physical_properties
-    attributes:
-      x:
-        range: float
-        ifabsent: float(0)
-        description: Horizontal component [m].
-        unit:
-          ucum_code: m
-      y:
-        range: float
-        ifabsent: float(0)
-        description: Vertical component [m].
-        unit:
-          ucum_code: m
-      z:
-        range: float
-        ifabsent: float(0)
-        description: Longitudinal (beam-direction) component [m].
-        unit:
-          ucum_code: m
-
-  Rotation:
-    description: >-
-      Euler-angle rotation relative to the global coordinate system.
-      All angles are in radians, bounded to [-pi, pi].
-    class_uri: laura:Rotation
-    in_subset:
-      - physical_properties
-    attributes:
-      phi:
-        range: float
-        ifabsent: float(0)
-        description: Rotation about the horizontal (x) axis [rad].
-        minimum_value: -3.141592653589793
-        maximum_value:  3.141592653589793
-        unit:
-          ucum_code: rad
-      psi:
-        range: float
-        ifabsent: float(0)
-        description: Rotation about the vertical (y) axis [rad].
-        minimum_value: -3.141592653589793
-        maximum_value:  3.141592653589793
-        unit:
-          ucum_code: rad
-      theta:
-        range: float
-        ifabsent: float(0)
-        description: Rotation about the longitudinal (z) axis [rad].
-        minimum_value: -3.141592653589793
-        maximum_value:  3.141592653589793
-        unit:
-          ucum_code: rad
-
-  # -- Physical placement -----------------------------------------------------
-
-  ElementPositionError:
-    description: Alignment position and rotation errors for a physically-located element.
-    class_uri: laura:ElementPositionError
-    attributes:
-      position:
-        range: Position
-        description: Positional misalignment error [m].
-      rotation:
-        range: Rotation
-        description: Angular misalignment error [rad].
-
-  ElementSurvey:
-    description: >-
-      Survey-measured position and rotation of an element.
-      Structure is identical to ElementPositionError.
-    class_uri: laura:ElementSurvey
-    attributes:
-      position:
-        range: Position
-        description: Surveyed position.
-      rotation:
-        range: Rotation
-        description: Surveyed rotation.
-
-  ReferencePlacement:
-    description: >-
-      Positions an element relative to a named reference element's local frame.
-      The ``offset`` field is expressed in the reference element's local frame
-      at the chosen ``point`` (start / middle / end).  Use ``world_offset``
-      instead to supply an offset already in global world coordinates.
-    class_uri: laura:ReferencePlacement
-    in_subset:
-      - physical_properties
-    attributes:
-      element:
-        range: string
-        required: true
-        description: Name of the reference element.
-      point:
-        range: string
-        ifabsent: string(end)
-        description: >-
-          Which point on the reference element to use as the origin frame:
-          'start', 'middle', or 'end'.
-      offset:
-        range: Position
-        description: >-
-          Offset expressed in the reference element's local frame at the
-          chosen point.
-      world_offset:
-        range: Position
-        description: >-
-          Offset already expressed in global world coordinates.
-      s_offset:
-        range: float
-        description: >-
-          Scalar offset [m] along the local beam direction (s-axis) from the
-          reference point.  Equivalent to ``offset: [0, 0, s_offset]`` but
-          expressed as a single number.  Mutually exclusive with ``offset``
-          and ``world_offset``.
-        unit:
-          ucum_code: m
-
-  PhysicalElement:
-    description: >-
-      Physical placement data: position, rotation, length, and associated
-      survey / alignment-error information.
-    class_uri: laura:PhysicalElement
-    in_subset:
-      - physical_properties
-    attributes:
-      middle:
-        range: Position
-        description: >-
-          Longitudinal midpoint (centre) of the element.
-          Also accepted as ``position`` or ``centre`` in YAML.
-        aliases:
-          - position
-          - centre
-      datum:
-        range: Position
-        description: Datum reference position.
-      rotation:
-        range: Rotation
-        description: Local rotation in the global frame.
-      global_rotation:
-        range: Rotation
-        description: Accumulated global rotation including parent-frame contributions.
-      error:
-        range: ElementPositionError
-        description: Alignment errors.
-      survey:
-        range: ElementSurvey
-        description: Survey-measured position and rotation.
-      length:
-        range: float
-        ifabsent: float(0)
-        description: Effective length along the beam axis [m].
-        minimum_value: 0.0
-        unit:
-          ucum_code: m
-      physical_angle:
-        range: float
-        ifabsent: float(0)
-        description: >-
-          Bending angle in the horizontal plane [rad].
-          Derived from ``magnetic.angle`` when available.
-        unit:
-          ucum_code: rad
-      reference_placement:
-        range: ReferencePlacement
-        description: >-
-          Place this element relative to another element's frame instead of
-          using absolute world coordinates.  Mutually exclusive with
-          ``middle``/``position``/``centre`` and ``s``.
-        in_subset:
-          - physical_properties
-      s:
-        range: float
-        description: >-
-          Arc-length position [m] along the design trajectory (s=0 at the
-          global origin along +Z).  Alternative to absolute world coordinates
-          (``middle``/``position``/``centre``) and ``reference_placement``.
-          Converted to {x,y,z} by LAURA during lattice assembly.
-        unit:
-          ucum_code: m
-      s_point:
-        range: string
-        ifabsent: string(middle)
-        description: >-
-          Which point of the element the ``s`` value refers to:
-          ``start``, ``middle``, or ``end``.  Defaults to ``middle``.
-
   # -- Electrical -------------------------------------------------------------
 
   ElectricalElement:
@@ -550,78 +311,6 @@ classes:
         range: string
         description: Design-file paths or URIs.
 
-  # -- Control system ---------------------------------------------------------
-
-  ControlVariable:
-    description: >-
-      A single process-variable entry mapping a logical name to a
-      control-system PV identifier.
-    class_uri: laura:ControlVariable
-    attributes:
-      identifier:
-        range: string
-        description: Protocol-specific PV name (e.g., EPICS PV address).
-      dtype:
-        range: string
-        description: Data type (e.g., ``float``, ``int``).
-      protocol:
-        range: string
-        description: Control-system protocol (e.g., ``EPICS``, ``Tango``).
-      units:
-        range: string
-        description: Physical units string (e.g., ``A``, ``T/m``).
-      description:
-        range: string
-        description: Human-readable description.
-      read_only:
-        range: boolean
-        description: Whether the variable is read-only.
-      value:
-        range: float
-        description: Last-read value.
-      target:
-        range: float
-        description: Set-point target value.
-      expression:
-        range: string
-        description: Optional expression string for derived values.
-
-  ControlsInformation:
-    description: >-
-      Collection of process-variable definitions for an element's control
-      interface.
-    class_uri: laura:ControlsInformation
-    attributes:
-      variables:
-        multivalued: true
-        inlined: true
-        inlined_as_list: false
-        range: ControlVariable
-        description: Named control variables keyed by logical name.
-
-  # -- Shutter / Valve sub-models ---------------------------------------------
-
-  ShutterElement:
-    description: Shutter interlock configuration.
-    class_uri: laura:ShutterElement
-    attributes:
-      interlocks:
-        multivalued: true
-        range: string
-        description: Names of the interlocks guarding this shutter.
-        aliases:
-          - shutter_interlock_names
-
-  ValveElement:
-    description: Vacuum valve configuration (no additional fields).
-    class_uri: laura:ValveElement
-
-  # -- Lighting sub-model -----------------------------------------------------
-
-  LightingElement:
-    description: Lighting element (no additional fields currently defined).
-    class_uri: laura:LightingElement
-
 # ===============================================================================
 # Element class hierarchy
 # ===============================================================================
@@ -650,7 +339,7 @@ classes:
         range: string
         ifabsent: string(Generic)
         description: >-
-          Python class name used for MODEL_REGISTRY dispatch.  Identifies
+          Python class name used for ELEMENT_REGISTRY dispatch.  Identifies
           the concrete subclass to instantiate when loading from YAML.
       hardware_model:
         range: string
@@ -682,21 +371,32 @@ classes:
         description: >-
           If set, this element is a logical sub-component of the named
           parent element.
+      # These four describe the control/signal graph, which is separate from
+      # beam-path ordering (that comes from the layout and s-position). The
+      # graph is directed, may contain feedback cycles, and its two directions
+      # are stored rather than derived -- symmetry is a convention, not a
+      # constraint. See examples/testing/sample_rf_control_elements.yaml for a
+      # worked example and signal_graph_example.py for traversal code.
       inputs:
         range: IOTypeEnum
-        description: (List) of input types
+        description: >-
+          Signal types this element consumes (e.g. ``[current, voltage]``).
         multivalued: true
       outputs:
         range: IOTypeEnum
-        description: (List) of output types
+        description: >-
+          Signal types this element produces (e.g. ``[power, phase]``).
         multivalued: true
       upstream:
         range: AcceleratorElement
-        description: (List) of upstream elements.
+        description: >-
+          Names of elements feeding this one, whose ``outputs`` supply its
+          ``inputs``.
         multivalued: true
       downstream:
         range: AcceleratorElement
-        description: (List) of upstream elements.
+        description: >-
+          Names of elements this one feeds; the inverse of ``upstream``.
         multivalued: true
 
   # -- Standard element -------------------------------------------------------
@@ -745,240 +445,3 @@ classes:
         description: Position, rotation, and length data.
         in_subset:
           - physical_properties
-
-  
-  # -- Other physically-located elements --------------------------------------
-
-  TwissMatch:
-    is_a: PhysicalAcceleratorElement
-    description: >-
-      Virtual Twiss-parameter matching point -- a zero-length marker that
-      defines the desired optical functions at a location in the lattice.
-    class_uri: laura:TwissMatch
-    slot_usage:
-      hardware_type:
-        equals_string: TwissMatch
-      simulation:
-        range: TwissMatchSimulationElement
-
-  Stage:
-    is_a: PhysicalAcceleratorElement
-    description: Motorised positioning stage.
-    class_uri: laura:Stage
-    slot_usage:
-      hardware_type:
-        equals_string: Stage
-
-  VacuumGauge:
-    is_a: PhysicalAcceleratorElement
-    description: Vacuum-pressure gauge.
-    class_uri: laura:VacuumGauge
-    slot_usage:
-      hardware_type:
-        equals_string: VacuumGauge
-
-  Laser:
-    is_a: PhysicalAcceleratorElement
-    description: Laser system element (full laser setup including beam parameters).
-    class_uri: laura:Laser
-    in_subset:
-      - laser_properties
-    slot_usage:
-      hardware_type:
-        equals_string: Laser
-    attributes:
-      laser:
-        range: LaserElement
-        description: Laser-beam parameters.
-
-  Shutter:
-    is_a: PhysicalAcceleratorElement
-    description: Beam or laser shutter with interlock logic.
-    class_uri: laura:Shutter
-    slot_usage:
-      hardware_type:
-        equals_string: Shutter
-    attributes:
-      shutter:
-        range: ShutterElement
-        description: Shutter interlock configuration.
-
-  # -- Aperture ---------------------------------------------------------------
-
-  ApertureElement:
-    description: Transverse aperture geometry for drift-space checks and collimators.
-    class_uri: laura:ApertureElement
-    attributes:
-      number_of_elements:
-        range: integer
-        description: Number of aperture sub-elements (e.g., for multi-leaf collimators).
-        minimum_value: 0
-        ifabsent: int(0)
-      horizontal_size:
-        range: float
-        description: Full horizontal aperture [m].
-        ifabsent: float(0.0)
-        minimum_value: 0.0
-        unit:
-          ucum_code: m
-      vertical_size:
-        range: float
-        description: Full vertical aperture [m].
-        ifabsent: float(0.0)
-        minimum_value: 0.0
-        unit:
-          ucum_code: m
-      shape:
-        range: ApertureShapeEnum
-        description: Cross-sectional aperture shape.
-      radius:
-        range: float
-        description: Radius for circular apertures [m].
-        minimum_value: 0.0
-        unit:
-          ucum_code: m
-      negative_extent:
-        range: float
-        description: Upstream / inner extent [m].
-        unit:
-          ucum_code: m
-      positive_extent:
-        range: float
-        description: Downstream / outer extent [m].
-        unit:
-          ucum_code: m
-
-  Valve:
-    is_a: PhysicalAcceleratorElement
-    description: Vacuum gate valve.
-    class_uri: laura:Valve
-    slot_usage:
-      hardware_type:
-        equals_string: Valve
-    attributes:
-      valve:
-        range: ValveElement
-        description: Valve configuration.
-
-  Marker:
-    is_a: PhysicalAcceleratorElement
-    description: >-
-      Virtual survey marker -- a zero-length reference point used for
-      alignment.
-    class_uri: laura:Marker
-    slot_usage:
-      hardware_type:
-        equals_string: Marker
-
-  Aperture:
-    is_a: PhysicalAcceleratorElement
-    description: Mechanical aperture restriction in the beam pipe.
-    class_uri: laura:Aperture
-    slot_usage:
-      hardware_type:
-        equals_string: Aperture
-    attributes:
-      aperture:
-        range: ApertureElement
-        description: Aperture geometry parameters.
-
-  Collimator:
-    is_a: Aperture
-    description: Movable collimator jaw (extends Aperture).
-    class_uri: laura:Collimator
-    slot_usage:
-      hardware_type:
-        equals_string: Collimator
-
-  Drift:
-    is_a: PhysicalAcceleratorElement
-    description: Field-free drift space between elements.
-    class_uri: laura:Drift
-    slot_usage:
-      hardware_type:
-        equals_string: Drift
-      simulation:
-        range: DriftSimulationElement
-
-
-
-  # -- Non-physical (no position) elements -----------------------------------
-
-  Lighting:
-    is_a: StandardElement
-    description: Experimental-hall lighting element.
-    class_uri: laura:Lighting
-    slot_usage:
-      hardware_type:
-        equals_string: Lighting
-    attributes:
-      lights:
-        range: LightingElement
-        description: Lighting configuration.
-
-  PowerSupply:
-    is_a: StandardElement
-    description: >-
-      Generic power-supply unit providing control/setpoint-driven outputs
-      (for example current/voltage) to other accelerator components.
-    class_uri: laura:PowerSupply
-    slot_usage:
-      hardware_type:
-        equals_string: PowerSupply
-
-  # -- Machine structure ------------------------------------------------------
-
-  SectionLattice:
-    description: >-
-      An ordered list of element names defining a contiguous beamline
-      section.
-    class_uri: laura:SectionLattice
-    attributes:
-      name:
-        identifier: true
-        range: string
-        description: Unique section name.
-      master_lattice:
-        range: string
-        description: Name of the master lattice this section belongs to.
-      elements:
-        multivalued: true
-        range: string
-        description: Ordered list of element names in this section.
-
-  MachineLayout:
-    description: >-
-      An ordered list of section names defining a beamline layout
-      (a contiguous sequence of sections).
-    class_uri: laura:MachineLayout
-    attributes:
-      name:
-        identifier: true
-        range: string
-        description: Unique layout name.
-      master_lattice:
-        range: string
-        description: Name of the master lattice this layout belongs to.
-      sections:
-        multivalued: true
-        range: string
-        description: Ordered list of section names.
-
-  MachineModel:
-    description: >-
-      Top-level container for a complete accelerator lattice: elements,
-      sections, layouts, and named lattice configurations.
-    class_uri: laura:MachineModel
-    attributes:
-      elements:
-        multivalued: true
-        range: AcceleratorElement
-        description: All elements in the machine, keyed by name.
-      sections:
-        multivalued: true
-        range: SectionLattice
-        description: All named beamline sections.
-      layouts:
-        multivalued: true
-        range: MachineLayout
-        description: All named beamline layouts.

@@ -24,6 +24,8 @@ URI: [laura:skew](https://w3id.org/laura/skew)
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
 | [DipoleMagnet](DipoleMagnet.md) |  |  no  |
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
+| [SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |  no  |
+| [OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |  no  |
 
 
 

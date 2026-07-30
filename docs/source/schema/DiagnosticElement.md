@@ -28,6 +28,8 @@ URI: [laura:DiagnosticElement](https://w3id.org/laura/DiagnosticElement)
         click BPMDiagnosticElement href "../BPMDiagnosticElement/"
       DiagnosticElement <|-- BAMDiagnosticElement
         click BAMDiagnosticElement href "../BAMDiagnosticElement/"
+      DiagnosticElement <|-- PhotonIntensityMonitorDiagnostic
+        click PhotonIntensityMonitorDiagnostic href "../PhotonIntensityMonitorDiagnostic/"
       DiagnosticElement <|-- BLMDiagnosticElement
         click BLMDiagnosticElement href "../BLMDiagnosticElement/"
       DiagnosticElement <|-- ScreenDiagnosticElement
@@ -48,6 +50,7 @@ URI: [laura:DiagnosticElement](https://w3id.org/laura/DiagnosticElement)
 * **DiagnosticElement**
     * [BPMDiagnosticElement](BPMDiagnosticElement.md)
     * [BAMDiagnosticElement](BAMDiagnosticElement.md)
+    * [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md)
     * [BLMDiagnosticElement](BLMDiagnosticElement.md)
     * [ScreenDiagnosticElement](ScreenDiagnosticElement.md)
     * [ChargeDiagnosticElement](ChargeDiagnosticElement.md)
@@ -75,6 +78,7 @@ URI: [laura:DiagnosticElement](https://w3id.org/laura/DiagnosticElement)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [Diagnostic](Diagnostic.md) | [diagnostic](diagnostic.md) | range | [DiagnosticElement](DiagnosticElement.md) |
+| [PhotonMonitor](PhotonMonitor.md) | [diagnostic](diagnostic.md) | range | [DiagnosticElement](DiagnosticElement.md) |
 
 
 

@@ -116,7 +116,7 @@ attributes:
   name:
     name: name
     description: Unique layout name.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     identifier: true
     domain_of:
     - AcceleratorElement
@@ -126,7 +126,7 @@ attributes:
   master_lattice:
     name: master_lattice
     description: Name of the master lattice this layout belongs to.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     domain_of:
     - SectionLattice
     - MachineLayout
@@ -134,7 +134,7 @@ attributes:
   sections:
     name: sections
     description: Ordered list of section names.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     rank: 1000
     domain_of:
     - MachineLayout
@@ -158,7 +158,7 @@ attributes:
   name:
     name: name
     description: Unique layout name.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     identifier: true
     owner: MachineLayout
     domain_of:
@@ -170,7 +170,7 @@ attributes:
   master_lattice:
     name: master_lattice
     description: Name of the master lattice this layout belongs to.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     owner: MachineLayout
     domain_of:
     - SectionLattice
@@ -179,7 +179,7 @@ attributes:
   sections:
     name: sections
     description: Ordered list of section names.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     rank: 1000
     owner: MachineLayout
     domain_of:

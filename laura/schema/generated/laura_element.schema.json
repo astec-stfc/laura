@@ -15,7 +15,7 @@
           ]
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -36,14 +36,14 @@
           ]
         },
         "hardware_type": {
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -64,7 +64,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -81,7 +81,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -142,7 +142,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -175,14 +175,14 @@
         },
         "hardware_type": {
           "const": "Aperture",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -214,7 +214,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -264,7 +264,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -438,7 +438,7 @@
           "description": "Instrument-specific diagnostic parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -471,14 +471,14 @@
         },
         "hardware_type": {
           "const": "Beam_Arrival_Monitor",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -510,7 +510,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -560,7 +560,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -621,7 +621,7 @@
           "description": "Instrument-specific diagnostic parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -654,14 +654,14 @@
         },
         "hardware_type": {
           "const": "Beam_Position_Monitor",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -693,7 +693,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -743,7 +743,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -814,7 +814,7 @@
           "description": "Instrument-specific diagnostic parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -847,14 +847,14 @@
         },
         "hardware_type": {
           "const": "Bunch_Length_Monitor",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -886,7 +886,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -936,7 +936,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -997,7 +997,7 @@
           "description": "Instrument-specific diagnostic parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -1030,14 +1030,14 @@
         },
         "hardware_type": {
           "const": "Camera",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -1069,7 +1069,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -1119,7 +1119,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -1589,7 +1589,7 @@
           "description": "Instrument-specific diagnostic parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -1622,14 +1622,14 @@
         },
         "hardware_type": {
           "const": "ChargeDiagnostic",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -1661,7 +1661,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -1711,7 +1711,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -1787,7 +1787,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -1820,14 +1820,14 @@
         },
         "hardware_type": {
           "const": "Collimator",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -1859,7 +1859,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -1909,7 +1909,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -1933,10 +1933,235 @@
       "title": "Collimator",
       "type": "object"
     },
+    "CombinedCorrector": {
+      "additionalProperties": false,
+      "description": "Combined horizontal/vertical steering corrector, naming the two single-plane correctors it stands in for.",
+      "properties": {
+        "Horizontal_Corrector": {
+          "description": "Name of the horizontal-plane corrector element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "Vertical_Corrector": {
+          "description": "Name of the vertical-plane corrector element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "degauss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DegaussableElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Degaussing-cycle parameters."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Combined_Corrector",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "magnetic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrectorMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Magnetic field parameters."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MagnetSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "CombinedCorrector",
+      "type": "object"
+    },
+    "ControlTypeEnum": {
+      "description": "Kind of quantity a control variable carries.",
+      "enum": [
+        "scalar",
+        "binary",
+        "state",
+        "string",
+        "waveform",
+        "statistical"
+      ],
+      "title": "ControlTypeEnum",
+      "type": "string"
+    },
     "ControlVariable": {
       "additionalProperties": false,
       "description": "A single process-variable entry mapping a logical name to a control-system PV identifier.",
       "properties": {
+        "control_type": {
+          "$ref": "#/$defs/ControlTypeEnum",
+          "description": "Kind of quantity this variable carries. Accepted in YAML as ``type``."
+        },
         "description": {
           "description": "Human-readable description.",
           "type": [
@@ -1945,14 +2170,21 @@
           ]
         },
         "dtype": {
-          "description": "Data type (e.g., ``float``, ``int``).",
+          "description": "Data type, held as a Python type and serialised by name (e.g., ``float``, ``int``, ``str``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dynamics": {
+          "description": "Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``.",
           "type": [
             "string",
             "null"
           ]
         },
         "expression": {
-          "description": "Optional expression string for derived values.",
+          "description": "Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.",
           "type": [
             "string",
             "null"
@@ -1979,10 +2211,31 @@
             "null"
           ]
         },
-        "target": {
-          "description": "Set-point target value.",
+        "readback": {
+          "description": "Name of the readback variable this set-point drives.",
           "type": [
-            "number",
+            "string",
+            "null"
+          ]
+        },
+        "setpoint": {
+          "description": "Name of the set-point variable this readback follows.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "states": {
+          "description": "Mapping of state name to underlying control-system value, for ``control_type: state``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target": {
+          "description": "Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -1993,12 +2246,30 @@
             "null"
           ]
         },
-        "value": {
-          "description": "Last-read value.",
+        "update": {
+          "description": "Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA.",
           "type": [
-            "number",
+            "string",
             "null"
           ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Last-read value. Scalar for most control types; a list for ``waveform``.",
+          "type": "string"
         }
       },
       "title": "ControlVariable",
@@ -2020,6 +2291,50 @@
         }
       },
       "title": "ControlsInformation",
+      "type": "object"
+    },
+    "CorrectorMagnet": {
+      "additionalProperties": false,
+      "description": "Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.",
+      "properties": {
+        "horizontal_kick": {
+          "description": "Horizontal deflection [rad]. May be a functional expression.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "length": {
+          "description": "Magnetic length [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "order": {
+          "description": "Multipole order (0, a dipole field).",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "tilt": {
+          "description": "Roll of the corrector about the beam axis [rad].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "vertical_kick": {
+          "description": "Vertical deflection [rad]. May be a functional expression.",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "CorrectorMagnet",
       "type": "object"
     },
     "DegaussableElement": {
@@ -2092,7 +2407,7 @@
           "description": "Instrument-specific diagnostic parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -2124,14 +2439,14 @@
           ]
         },
         "hardware_type": {
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -2163,7 +2478,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -2213,7 +2528,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -2330,7 +2645,7 @@
           "description": "Degaussing-cycle parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -2363,14 +2678,14 @@
         },
         "hardware_type": {
           "const": "Dipole",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -2413,7 +2728,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -2463,7 +2778,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -2699,7 +3014,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -2732,14 +3047,14 @@
         },
         "hardware_type": {
           "const": "Drift",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -2771,7 +3086,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -2821,7 +3136,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -3013,7 +3328,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -3045,14 +3360,14 @@
           ]
         },
         "hardware_type": {
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -3084,7 +3399,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -3123,7 +3438,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -3244,7 +3559,7 @@
           "description": "Instrument-specific diagnostic parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -3277,14 +3592,14 @@
         },
         "hardware_type": {
           "const": "Faraday_Cup_Monitor",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -3316,7 +3631,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -3366,7 +3681,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -3433,6 +3748,200 @@
       "title": "HardwareClassEnum",
       "type": "string"
     },
+    "HorizontalCorrector": {
+      "additionalProperties": false,
+      "description": "Horizontal steering corrector.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "degauss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DegaussableElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Degaussing-cycle parameters."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Horizontal_Corrector",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "magnetic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrectorMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Magnetic field parameters."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MagnetSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "HorizontalCorrector",
+      "type": "object"
+    },
     "IOTypeEnum": {
       "description": "Input types for accelerator elements.",
       "enum": [
@@ -3494,7 +4003,7 @@
           "description": "Instrument-specific diagnostic parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -3527,14 +4036,14 @@
         },
         "hardware_type": {
           "const": "Integrated_Current_Transformer",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -3566,7 +4075,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -3616,7 +4125,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -3751,7 +4260,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -3784,14 +4293,14 @@
         },
         "hardware_type": {
           "const": "Laser",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -3834,7 +4343,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -3884,7 +4393,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -3934,7 +4443,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -3967,14 +4476,14 @@
         },
         "hardware_type": {
           "const": "LaserAttenuator",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -4020,7 +4529,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -4059,7 +4568,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -4194,7 +4703,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -4227,14 +4736,14 @@
         },
         "hardware_type": {
           "const": "LaserEnergyMeter",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -4277,7 +4786,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -4316,7 +4825,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -4372,7 +4881,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -4405,14 +4914,14 @@
         },
         "hardware_type": {
           "const": "LaserHalfWavePlate",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -4455,7 +4964,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -4494,7 +5003,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -4550,7 +5059,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -4583,14 +5092,14 @@
         },
         "hardware_type": {
           "const": "LaserMirror",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -4633,7 +5142,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -4672,7 +5181,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -4819,7 +5328,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -4852,14 +5361,14 @@
         },
         "hardware_type": {
           "const": "Lighting",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -4902,7 +5411,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -4941,7 +5450,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -5054,7 +5563,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -5087,14 +5596,14 @@
         },
         "hardware_type": {
           "const": "Low_Level_RF",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -5137,7 +5646,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -5176,7 +5685,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -5362,7 +5871,7 @@
           "description": "Degaussing-cycle parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -5394,14 +5903,14 @@
           ]
         },
         "hardware_type": {
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -5444,7 +5953,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -5494,7 +6003,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -5923,7 +6432,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -5956,14 +6465,14 @@
         },
         "hardware_type": {
           "const": "Marker",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -5995,7 +6504,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -6045,7 +6554,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -6185,6 +6694,611 @@
       "title": "Multipoles",
       "type": "object"
     },
+    "NonLinearLens": {
+      "additionalProperties": false,
+      "description": "Non-linear integrable-optics lens.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "degauss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DegaussableElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Degaussing-cycle parameters."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "NonLinearLens",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "magnetic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonLinearLensMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Magnetic field parameters."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MagnetSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "NonLinearLens",
+      "type": "object"
+    },
+    "NonLinearLensMagnet": {
+      "additionalProperties": false,
+      "description": "Integrable-optics non-linear lens field.  See the MAD-X manual and Danilov/Nagaitsev, PAC2011 WEP070.",
+      "properties": {
+        "dimensional_parameter": {
+          "description": "Dimensional parameter setting the transverse scale (MAD-X ``cnll``). May be a functional expression.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integrated_strength": {
+          "description": "Integrated lens strength (MAD-X ``knll``). May be a functional expression.",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "length": {
+          "description": "Magnetic length [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "NonLinearLensMagnet",
+      "type": "object"
+    },
+    "Octupole": {
+      "additionalProperties": false,
+      "description": "Octupole magnet.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "degauss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DegaussableElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Degaussing-cycle parameters."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Octupole",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "magnetic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OctupoleMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Magnetic field parameters."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MagnetSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Octupole",
+      "type": "object"
+    },
+    "OctupoleMagnet": {
+      "additionalProperties": false,
+      "description": "Octupole magnet field, principal multipole order 3.",
+      "properties": {
+        "angle": {
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "bore": {
+          "description": "Magnet bore radius [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral": {
+          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "entrance_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field entrance edge angle [rad].",
+          "type": "string"
+        },
+        "exit_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field exit edge angle [rad].",
+          "type": "string"
+        },
+        "field_integral_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldIntegral"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Polynomial calibration of integrated field vs. current."
+        },
+        "fringe_field_coefficient": {
+          "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gap": {
+          "description": "Full gap between pole faces [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gradient": {
+          "description": "Peak field gradient [T/m] (quads) or peak field [T] (dipoles).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "length": {
+          "description": "Magnetic (effective) length [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "linear_saturation_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LinearSaturationFit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Bi-linear saturation calibration."
+        },
+        "multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Integrated multipole field components."
+        },
+        "order": {
+          "const": 3,
+          "description": "Principal multipole order (0 = dipole, 1 = quad, ?).",
+          "minimum": -1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "plane": {
+          "$ref": "#/$defs/BendingPlaneEnum",
+          "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
+        },
+        "random_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Random multipole errors at the reference radius."
+        },
+        "settle_time": {
+          "description": "Power-supply settle time after a change [s].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "skew": {
+          "description": "Whether the magnet is rotated 45? to produce a skew field component.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "systematic_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Systematic (design) multipole errors at the reference radius."
+        },
+        "tilt": {
+          "description": "Global tilt about the beam axis [rad].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "width": {
+          "description": "Physical width of the magnet in the bending plane [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "OctupoleMagnet",
+      "type": "object"
+    },
     "PID": {
       "additionalProperties": false,
       "description": "Proportional-integral-derivative (PID) feedback controller.",
@@ -6211,7 +7325,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -6244,14 +7358,14 @@
         },
         "hardware_type": {
           "const": "PID",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -6283,7 +7397,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -6333,7 +7447,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -6480,9 +7594,31 @@
       "title": "PIDWeightRange",
       "type": "object"
     },
-    "PhysicalAcceleratorElement": {
+    "PhotonIntensityMonitorDiagnostic": {
       "additionalProperties": false,
-      "description": "Accelerator element with a well-defined physical position and orientation in the beamline.",
+      "description": "Photon intensity monitor diagnostic data.",
+      "properties": {
+        "intensity": {
+          "description": "Measured photon intensity.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "type": {
+          "description": "Photon intensity monitor type. Accepted in YAML as ``intensity_monitor_type``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "PhotonIntensityMonitorDiagnostic",
+      "type": "object"
+    },
+    "PhotonMonitor": {
+      "additionalProperties": false,
+      "description": "Photon intensity monitor.",
       "properties": {
         "alias": {
           "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
@@ -6505,8 +7641,19 @@
           ],
           "description": "Control-system process-variable definitions."
         },
+        "diagnostic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DiagnosticElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Instrument-specific diagnostic parameters."
+        },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -6538,14 +7685,197 @@
           ]
         },
         "hardware_type": {
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "const": "Photon_Monitor",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "intensity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhotonIntensityMonitorDiagnostic"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Instrument-specific diagnostic parameters."
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DiagnosticSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "PhotonMonitor",
+      "type": "object"
+    },
+    "PhysicalAcceleratorElement": {
+      "additionalProperties": false,
+      "description": "Accelerator element with a well-defined physical position and orientation in the beamline.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -6577,7 +7907,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -6627,7 +7957,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -6791,7 +8121,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -6824,14 +8154,14 @@
         },
         "hardware_type": {
           "const": "Plasma",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -6874,7 +8204,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -6935,7 +8265,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -7217,7 +8547,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -7250,14 +8580,14 @@
         },
         "hardware_type": {
           "const": "PowerSupply",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -7289,7 +8619,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -7328,7 +8658,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -7389,7 +8719,7 @@
           "description": "Degaussing-cycle parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -7422,14 +8752,14 @@
         },
         "hardware_type": {
           "const": "Quadrupole",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -7472,7 +8802,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -7522,7 +8852,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -7769,7 +9099,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -7802,14 +9132,14 @@
         },
         "hardware_type": {
           "const": "RFCavity",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -7841,7 +9171,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -7891,7 +9221,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -8283,7 +9613,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -8316,14 +9646,14 @@
         },
         "hardware_type": {
           "const": "RFDeflectingCavity",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -8355,7 +9685,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -8405,7 +9735,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -8554,7 +9884,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -8587,7 +9917,7 @@
         },
         "hardware_type": {
           "const": "RFHeartbeat",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
@@ -8605,7 +9935,7 @@
           "description": "RF heartbeat parameters."
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -8637,7 +9967,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -8676,7 +10006,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -8732,7 +10062,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -8765,14 +10095,14 @@
         },
         "hardware_type": {
           "const": "RFModulator",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -8815,7 +10145,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -8854,7 +10184,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -8910,7 +10240,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -8943,14 +10273,14 @@
         },
         "hardware_type": {
           "const": "RFProtection",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -8982,7 +10312,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -9032,7 +10362,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -9222,7 +10552,7 @@
           "description": "Instrument-specific diagnostic parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -9255,14 +10585,14 @@
         },
         "hardware_type": {
           "const": "Screen",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -9294,7 +10624,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -9344,7 +10674,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -9439,6 +10769,386 @@
       "title": "SectionLattice",
       "type": "object"
     },
+    "Sextupole": {
+      "additionalProperties": false,
+      "description": "Sextupole chromaticity-correction magnet.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "degauss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DegaussableElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Degaussing-cycle parameters."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Sextupole",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "magnetic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SextupoleMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Magnetic field parameters."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MagnetSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Sextupole",
+      "type": "object"
+    },
+    "SextupoleMagnet": {
+      "additionalProperties": false,
+      "description": "Sextupole magnet field, principal multipole order 2.",
+      "properties": {
+        "angle": {
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "bore": {
+          "description": "Magnet bore radius [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral": {
+          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "entrance_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field entrance edge angle [rad].",
+          "type": "string"
+        },
+        "exit_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field exit edge angle [rad].",
+          "type": "string"
+        },
+        "field_integral_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldIntegral"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Polynomial calibration of integrated field vs. current."
+        },
+        "fringe_field_coefficient": {
+          "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gap": {
+          "description": "Full gap between pole faces [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gradient": {
+          "description": "Peak field gradient [T/m] (quads) or peak field [T] (dipoles).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "length": {
+          "description": "Magnetic (effective) length [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "linear_saturation_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LinearSaturationFit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Bi-linear saturation calibration."
+        },
+        "multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Integrated multipole field components."
+        },
+        "order": {
+          "const": 2,
+          "description": "Principal multipole order (0 = dipole, 1 = quad, ?).",
+          "minimum": -1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "plane": {
+          "$ref": "#/$defs/BendingPlaneEnum",
+          "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
+        },
+        "random_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Random multipole errors at the reference radius."
+        },
+        "settle_time": {
+          "description": "Power-supply settle time after a change [s].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "skew": {
+          "description": "Whether the magnet is rotated 45? to produce a skew field component.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "systematic_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Systematic (design) multipole errors at the reference radius."
+        },
+        "tilt": {
+          "description": "Global tilt about the beam axis [rad].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "width": {
+          "description": "Physical width of the magnet in the bending plane [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "SextupoleMagnet",
+      "type": "object"
+    },
     "Shutter": {
       "additionalProperties": false,
       "description": "Beam or laser shutter with interlock logic.",
@@ -9465,7 +11175,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -9498,14 +11208,14 @@
         },
         "hardware_type": {
           "const": "Shutter",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -9537,7 +11247,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -9598,7 +11308,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -9683,6 +11393,385 @@
       "title": "SimulationElement",
       "type": "object"
     },
+    "Solenoid": {
+      "additionalProperties": false,
+      "description": "Solenoid focusing magnet.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "degauss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DegaussableElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Degaussing-cycle parameters."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Solenoid",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "magnetic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolenoidMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Magnetic field parameters."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MagnetSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Solenoid",
+      "type": "object"
+    },
+    "SolenoidFields": {
+      "additionalProperties": false,
+      "description": "Solenoid integrated axial field components ``S0L``\u2013``S12L`` [T.m].",
+      "properties": {
+        "S0L": {
+          "description": "Integrated solenoid field, order 0 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S10L": {
+          "description": "Integrated solenoid field, order 10 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S11L": {
+          "description": "Integrated solenoid field, order 11 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S12L": {
+          "description": "Integrated solenoid field, order 12 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S1L": {
+          "description": "Integrated solenoid field, order 1 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S2L": {
+          "description": "Integrated solenoid field, order 2 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S3L": {
+          "description": "Integrated solenoid field, order 3 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S4L": {
+          "description": "Integrated solenoid field, order 4 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S5L": {
+          "description": "Integrated solenoid field, order 5 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S6L": {
+          "description": "Integrated solenoid field, order 6 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S7L": {
+          "description": "Integrated solenoid field, order 7 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S8L": {
+          "description": "Integrated solenoid field, order 8 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "S9L": {
+          "description": "Integrated solenoid field, order 9 [T.m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "SolenoidFields",
+      "type": "object"
+    },
+    "SolenoidMagnet": {
+      "additionalProperties": false,
+      "description": "Solenoid field model, including systematic and random field errors and the current-to-field calibration.",
+      "properties": {
+        "field_integral_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldIntegral"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Polynomial current-to-integrated-field coefficients."
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolenoidFields"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Nominal integrated axial field components."
+        },
+        "length": {
+          "description": "Magnetic length [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "linear_saturation_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LinearSaturationFit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Linear-plus-saturation fit of field against current."
+        },
+        "order": {
+          "description": "Principal solenoid multipole order.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "random_fields": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolenoidFields"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Random field errors."
+        },
+        "settle_time": {
+          "description": "Time to wait after a set before the field is stable [s].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "systematic_fields": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolenoidFields"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Systematic field errors."
+        }
+      },
+      "title": "SolenoidMagnet",
+      "type": "object"
+    },
     "Stage": {
       "additionalProperties": false,
       "description": "Motorised positioning stage.",
@@ -9709,7 +11798,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -9742,14 +11831,14 @@
         },
         "hardware_type": {
           "const": "Stage",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -9781,7 +11870,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -9831,7 +11920,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -9881,7 +11970,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -9913,14 +12002,14 @@
           ]
         },
         "hardware_type": {
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -9952,7 +12041,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -9991,7 +12080,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -10077,7 +12166,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -10110,14 +12199,14 @@
         },
         "hardware_type": {
           "const": "TwissMatch",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -10149,7 +12238,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -10199,7 +12288,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -10355,7 +12444,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -10388,14 +12477,14 @@
         },
         "hardware_type": {
           "const": "VacuumGauge",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -10427,7 +12516,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -10477,7 +12566,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -10527,7 +12616,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -10560,14 +12649,14 @@
         },
         "hardware_type": {
           "const": "Valve",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -10599,7 +12688,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -10649,7 +12738,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -10690,6 +12779,200 @@
       "title": "ValveElement",
       "type": "object"
     },
+    "VerticalCorrector": {
+      "additionalProperties": false,
+      "description": "Vertical steering corrector.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "degauss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DegaussableElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Degaussing-cycle parameters."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Vertical_Corrector",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "magnetic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrectorMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Magnetic field parameters."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MagnetSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "VerticalCorrector",
+      "type": "object"
+    },
     "Wakefield": {
       "additionalProperties": false,
       "description": "Passive wakefield structure (dielectric, corrugated, etc.).",
@@ -10727,7 +13010,7 @@
           "description": "Control-system process-variable definitions."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -10760,14 +13043,14 @@
         },
         "hardware_type": {
           "const": "Wakefield",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -10799,7 +13082,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -10849,7 +13132,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -11132,7 +13415,7 @@
           "description": "Instrument-specific diagnostic parameters."
         },
         "downstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
           "items": {
             "type": "string"
           },
@@ -11165,14 +13448,14 @@
         },
         "hardware_type": {
           "const": "Wall_Current_Monitor",
-          "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
           "type": [
             "string",
             "null"
           ]
         },
         "inputs": {
-          "description": "(List) of input types",
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -11204,7 +13487,7 @@
           "type": "string"
         },
         "outputs": {
-          "description": "(List) of output types",
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
           "items": {
             "$ref": "#/$defs/IOTypeEnum"
           },
@@ -11254,7 +13537,7 @@
           ]
         },
         "upstream": {
-          "description": "(List) of upstream elements.",
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
           "items": {
             "type": "string"
           },
@@ -11277,6 +13560,292 @@
       ],
       "title": "WallCurrentMonitor",
       "type": "object"
+    },
+    "Wiggler": {
+      "additionalProperties": false,
+      "description": "Wiggler / undulator insertion device.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "degauss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DegaussableElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Degaussing-cycle parameters."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Wiggler",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "laser": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LaserElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Drive laser, for laser-undulator (inverse-Compton) configurations."
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "magnetic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WigglerMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Magnetic field parameters."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MagnetSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Wiggler",
+      "type": "object"
+    },
+    "WigglerMagnet": {
+      "additionalProperties": false,
+      "description": "Periodic wiggler/undulator field.",
+      "properties": {
+        "helical": {
+          "description": "True for a helical device, False for planar.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "length": {
+          "description": "Magnetic length [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "num_periods": {
+          "description": "Number of full magnetic periods.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "peak_magnetic_field": {
+          "description": "Peak on-axis field [T].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "period": {
+          "description": "Magnetic period length [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "quadratic_roll_off_x": {
+          "description": "Quadratic field roll-off in x [1/m^2].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "quadratic_roll_off_y": {
+          "description": "Quadratic field roll-off in y [1/m^2].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "strength": {
+          "description": "Deflection parameter K. May be a functional expression.",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "transverse_gradient_x": {
+          "description": "Transverse field gradient in x [1/m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "transverse_gradient_y": {
+          "description": "Transverse field gradient in y [1/m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "WigglerMagnet",
+      "type": "object"
     }
   },
   "$id": "https://w3id.org/laura/schema",
@@ -11296,7 +13865,7 @@
       ]
     },
     "downstream": {
-      "description": "(List) of upstream elements.",
+      "description": "Names of elements this one feeds; the inverse of ``upstream``.",
       "items": {
         "type": "string"
       },
@@ -11317,14 +13886,14 @@
       ]
     },
     "hardware_type": {
-      "description": "Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+      "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
       "type": [
         "string",
         "null"
       ]
     },
     "inputs": {
-      "description": "(List) of input types",
+      "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
       "items": {
         "$ref": "#/$defs/IOTypeEnum"
       },
@@ -11345,7 +13914,7 @@
       "type": "string"
     },
     "outputs": {
-      "description": "(List) of output types",
+      "description": "Signal types this element produces (e.g. ``[power, phase]``).",
       "items": {
         "$ref": "#/$defs/IOTypeEnum"
       },
@@ -11362,7 +13931,7 @@
       ]
     },
     "upstream": {
-      "description": "(List) of upstream elements.",
+      "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
       "items": {
         "type": "string"
       },

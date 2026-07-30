@@ -30,6 +30,7 @@ URI: [laura:diagnostic](https://w3id.org/laura/diagnostic)
 | [WallCurrentMonitor](WallCurrentMonitor.md) | Wall-current monitor (WCM) for non-destructive charge measurement |  no  |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | Faraday cup for destructive charge measurement |  no  |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | Integrated current transformer (ICT) for non-destructive single-shot charge m... |  no  |
+| [PhotonMonitor](PhotonMonitor.md) | Photon intensity monitor |  no  |
 
 
 

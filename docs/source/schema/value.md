@@ -6,7 +6,7 @@ search:
 # Slot: value 
 
 
-_Last-read value._
+_Last-read value. Scalar for most control types; a list for ``waveform``._
 
 
 
@@ -38,7 +38,7 @@ URI: [laura:value](https://w3id.org/laura/value)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[Integer](Integer.md) |
 | Domain Of | [ControlVariable](ControlVariable.md) |
 
 ### Cardinality and Requirements
@@ -51,6 +51,17 @@ URI: [laura:value](https://w3id.org/laura/value)
 | --- | --- |
 | Owner | [ControlVariable](ControlVariable.md) |
 
+
+<details>
+<summary>Expressions & Logic</summary>
+#### Any Of
+
+Value must satisfy at least one of:
+- AnonymousSlotExpression({'range': 'float'})
+- AnonymousSlotExpression({'range': 'integer'})
+- AnonymousSlotExpression({'range': 'string'})
+
+</details>
 
 
 
@@ -91,13 +102,17 @@ URI: [laura:value](https://w3id.org/laura/value)
 <details>
 ```yaml
 name: value
-description: Last-read value.
+description: Last-read value. Scalar for most control types; a list for ``waveform``.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ControlVariable
 domain_of:
 - ControlVariable
-range: float
+range: string
+any_of:
+- range: float
+- range: integer
+- range: string
 
 ```
 </details></div>

@@ -49,6 +49,7 @@ URI: [laura:read_only](https://w3id.org/laura/read_only)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `True` |
 | Owner | [ControlVariable](ControlVariable.md) |
 
 
@@ -94,6 +95,7 @@ name: read_only
 description: Whether the variable is read-only.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: 'True'
 owner: ControlVariable
 domain_of:
 - ControlVariable

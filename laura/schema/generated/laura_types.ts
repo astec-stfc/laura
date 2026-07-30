@@ -1,3 +1,17 @@
+export type TwissMatchName = string;
+export type StageName = string;
+export type VacuumGaugeName = string;
+export type LaserName = string;
+export type ShutterName = string;
+export type ValveName = string;
+export type MarkerName = string;
+export type ApertureName = string;
+export type CollimatorName = string;
+export type DriftName = string;
+export type LightingName = string;
+export type PowerSupplyName = string;
+export type SectionLatticeName = string;
+export type MachineLayoutName = string;
 export type MagnetName = string;
 export type RFCavityName = string;
 export type RFDeflectingCavityName = string;
@@ -17,6 +31,7 @@ export type ChargeDiagnosticName = string;
 export type WallCurrentMonitorName = string;
 export type FaradayCupMonitorName = string;
 export type IntegratedCurrentTransformerName = string;
+export type PhotonMonitorName = string;
 export type PlasmaName = string;
 export type LaserEnergyMeterName = string;
 export type LaserHalfWavePlateName = string;
@@ -24,24 +39,85 @@ export type LaserMirrorName = string;
 export type LaserAttenuatorName = string;
 export type DipoleName = string;
 export type QuadrupoleName = string;
+export type SextupoleName = string;
+export type OctupoleName = string;
+export type HorizontalCorrectorName = string;
+export type VerticalCorrectorName = string;
+export type CombinedCorrectorName = string;
+export type SolenoidName = string;
+export type WigglerName = string;
+export type NonLinearLensName = string;
 export type AcceleratorElementName = string;
 export type StandardElementName = string;
 export type ElementName = string;
 export type PhysicalAcceleratorElementName = string;
-export type TwissMatchName = string;
-export type StageName = string;
-export type VacuumGaugeName = string;
-export type LaserName = string;
-export type ShutterName = string;
-export type ValveName = string;
-export type MarkerName = string;
-export type ApertureName = string;
-export type CollimatorName = string;
-export type DriftName = string;
-export type LightingName = string;
-export type PowerSupplyName = string;
-export type SectionLatticeName = string;
-export type MachineLayoutName = string;
+/**
+* Input types for accelerator elements.
+*/
+export enum IOTypeEnum {
+    
+    /** Electrical current. */
+    current = "current",
+    /** Electrical voltage. */
+    voltage = "voltage",
+    /** Phase in radians. */
+    phase = "phase",
+    /** Control setpoint. */
+    setpoint = "setpoint",
+    /** On/Off state. */
+    on_off_state = "on_off_state",
+    /** Open/Closed state. */
+    open_closed_state = "open_closed_state",
+    /** Physical position. */
+    position = "position",
+    /** Physical rotation. */
+    rotation = "rotation",
+    /** Electrical power. */
+    power = "power",
+    /** Gas pressure. */
+    pressure = "pressure",
+    /** Electrical charge. */
+    charge = "charge",
+    /** Absolute timing. */
+    absolute_time = "absolute_time",
+    /** Relative timing. */
+    relative_time = "relative_time",
+    /** Shot number. */
+    shot_number = "shot_number",
+    /** Single value. */
+    value = "value",
+    /** Multivalued waveform. */
+    waveform = "waveform",
+    /** Magnetic field. */
+    magnetic_field = "magnetic_field",
+};
+/**
+* Kind of quantity a control variable carries.
+*/
+export enum ControlTypeEnum {
+    
+    /** Single numeric value. */
+    scalar = "scalar",
+    /** Two-state value. */
+    binary = "binary",
+    /** Enumerated state, mapped through ``states``. */
+    state = "state",
+    /** Textual value. */
+    string = "string",
+    /** Array-valued trace. */
+    waveform = "waveform",
+    /** Value with associated statistics (the default). */
+    statistical = "statistical",
+};
+/**
+* Cross-sectional shape of a beam-pipe aperture.
+*/
+export enum ApertureShapeEnum {
+    
+    circular = "circular",
+    rectangular = "rectangular",
+    elliptical = "elliptical",
+};
 /**
 * Bending plane enum.
 */
@@ -115,55 +191,323 @@ export enum LaserProfileTypeEnum {
     flattened_gaussian = "flattened-gaussian",
     file = "file",
 };
+
+
 /**
-* Cross-sectional shape of a beam-pipe aperture.
-*/
-export enum ApertureShapeEnum {
-    
-    circular = "circular",
-    rectangular = "rectangular",
-    elliptical = "elliptical",
-};
+ * Cartesian position in the global accelerator coordinate system. All components are in metres.
+ */
+export interface Position {
+    /** Horizontal component [m]. */
+    x?: number,
+    /** Vertical component [m]. */
+    y?: number,
+    /** Longitudinal (beam-direction) component [m]. */
+    z?: number,
+}
+
+
 /**
-* Input types for accelerator elements.
-*/
-export enum IOTypeEnum {
-    
-    /** Electrical current. */
-    current = "current",
-    /** Electrical voltage. */
-    voltage = "voltage",
-    /** Phase in radians. */
-    phase = "phase",
-    /** Control setpoint. */
-    setpoint = "setpoint",
-    /** On/Off state. */
-    on_off_state = "on_off_state",
-    /** Open/Closed state. */
-    open_closed_state = "open_closed_state",
-    /** Physical position. */
-    position = "position",
-    /** Physical rotation. */
-    rotation = "rotation",
-    /** Electrical power. */
-    power = "power",
-    /** Gas pressure. */
-    pressure = "pressure",
-    /** Electrical charge. */
-    charge = "charge",
-    /** Absolute timing. */
-    absolute_time = "absolute_time",
-    /** Relative timing. */
-    relative_time = "relative_time",
-    /** Shot number. */
-    shot_number = "shot_number",
-    /** Single value. */
-    value = "value",
-    /** Multivalued waveform. */
-    waveform = "waveform",
-    /** Magnetic field. */
-    magnetic_field = "magnetic_field",
-};
+ * Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi].
+ */
+export interface Rotation {
+    /** Rotation about the horizontal (x) axis [rad]. */
+    phi?: number,
+    /** Rotation about the vertical (y) axis [rad]. */
+    psi?: number,
+    /** Rotation about the longitudinal (z) axis [rad]. */
+    theta?: number,
+}
+
+
+/**
+ * Alignment position and rotation errors for a physically-located element.
+ */
+export interface ElementPositionError {
+    /** Positional misalignment error [m]. */
+    position?: Position,
+    /** Angular misalignment error [rad]. */
+    rotation?: Rotation,
+}
+
+
+/**
+ * Survey-measured position and rotation of an element. Structure is identical to ElementPositionError.
+ */
+export interface ElementSurvey {
+    /** Surveyed position. */
+    position?: Position,
+    /** Surveyed rotation. */
+    rotation?: Rotation,
+}
+
+
+/**
+ * Positions an element relative to a named reference element's local frame. The ``offset`` field is expressed in the reference element's local frame at the chosen ``point`` (start / middle / end).  Use ``world_offset`` instead to supply an offset already in global world coordinates.
+ */
+export interface ReferencePlacement {
+    /** Name of the reference element. */
+    element: string,
+    /** Which point on the reference element to use as the origin frame: 'start', 'middle', or 'end'. */
+    point?: string,
+    /** Offset expressed in the reference element's local frame at the chosen point. */
+    offset?: Position,
+    /** Offset already expressed in global world coordinates. */
+    world_offset?: Position,
+    /** Scalar offset [m] along the local beam direction (s-axis) from the reference point.  Equivalent to ``offset: [0, 0, s_offset]`` but expressed as a single number.  Mutually exclusive with ``offset`` and ``world_offset``. */
+    s_offset?: number,
+}
+
+
+/**
+ * Physical placement data: position, rotation, length, and associated survey / alignment-error information.
+ */
+export interface PhysicalElement {
+    /** Longitudinal midpoint (centre) of the element. Also accepted as ``position`` or ``centre`` in YAML. */
+    middle?: Position,
+    /** Datum reference position. */
+    datum?: Position,
+    /** Local rotation in the global frame. */
+    rotation?: Rotation,
+    /** Accumulated global rotation including parent-frame contributions. */
+    global_rotation?: Rotation,
+    /** Alignment errors. */
+    error?: ElementPositionError,
+    /** Survey-measured position and rotation. */
+    survey?: ElementSurvey,
+    /** Effective length along the beam axis [m]. */
+    length?: number,
+    /** Bending angle in the horizontal plane [rad]. Derived from ``magnetic.angle`` when available. */
+    physical_angle?: number,
+    /** Place this element relative to another element's frame instead of using absolute world coordinates.  Mutually exclusive with ``middle``/``position``/``centre`` and ``s``. */
+    reference_placement?: ReferencePlacement,
+    /** Arc-length position [m] along the design trajectory (s=0 at the global origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``) and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly. */
+    s?: number,
+    /** Which point of the element the ``s`` value refers to: ``start``, ``middle``, or ``end``.  Defaults to ``middle``. */
+    s_point?: string,
+}
+
+
+/**
+ * A single process-variable entry mapping a logical name to a control-system PV identifier.
+ */
+export interface ControlVariable {
+    /** Protocol-specific PV name (e.g., EPICS PV address). */
+    identifier?: string,
+    /** Data type, held as a Python type and serialised by name (e.g., ``float``, ``int``, ``str``). */
+    dtype?: string,
+    /** Control-system protocol (e.g., ``EPICS``, ``Tango``). */
+    protocol?: string,
+    /** Physical units string (e.g., ``A``, ``T/m``). */
+    units?: string,
+    /** Human-readable description. */
+    description?: string,
+    /** Whether the variable is read-only. */
+    read_only?: boolean,
+    /** Last-read value. Scalar for most control types; a list for ``waveform``. */
+    value?: string,
+    /** Kind of quantity this variable carries. Accepted in YAML as ``type``. */
+    control_type?: string,
+    /** Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value. */
+    target?: string,
+    /** Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``. */
+    expression?: string,
+    /** Mapping of state name to underlying control-system value, for ``control_type: state``. */
+    states?: string,
+    /** Name of the readback variable this set-point drives. */
+    readback?: string,
+    /** Name of the set-point variable this readback follows. */
+    setpoint?: string,
+    /** Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA. */
+    update?: string,
+    /** Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``. */
+    dynamics?: string,
+}
+
+
+/**
+ * Collection of process-variable definitions for an element's control interface.
+ */
+export interface ControlsInformation {
+    /** Named control variables keyed by logical name. */
+    variables?: ControlVariable[],
+}
+
+
+/**
+ * Shutter interlock configuration.
+ */
+export interface ShutterElement {
+    /** Names of the interlocks guarding this shutter. */
+    interlocks?: string[],
+}
+
+
+/**
+ * Vacuum valve configuration (no additional fields).
+ */
+export interface ValveElement {
+}
+
+
+/**
+ * Lighting element (no additional fields currently defined).
+ */
+export interface LightingElement {
+}
+
+
+/**
+ * Virtual Twiss-parameter matching point -- a zero-length marker that defines the desired optical functions at a location in the lattice.
+ */
+export interface TwissMatch extends PhysicalAcceleratorElement {
+}
+
+
+/**
+ * Motorised positioning stage.
+ */
+export interface Stage extends PhysicalAcceleratorElement {
+}
+
+
+/**
+ * Vacuum-pressure gauge.
+ */
+export interface VacuumGauge extends PhysicalAcceleratorElement {
+}
+
+
+/**
+ * Laser system element (full laser setup including beam parameters).
+ */
+export interface Laser extends PhysicalAcceleratorElement {
+    /** Laser-beam parameters. */
+    laser?: LaserElement,
+}
+
+
+/**
+ * Beam or laser shutter with interlock logic.
+ */
+export interface Shutter extends PhysicalAcceleratorElement {
+    /** Shutter interlock configuration. */
+    shutter?: ShutterElement,
+}
+
+
+/**
+ * Transverse aperture geometry for drift-space checks and collimators.
+ */
+export interface ApertureElement {
+    /** Number of aperture sub-elements (e.g., for multi-leaf collimators). */
+    number_of_elements?: number,
+    /** Full horizontal aperture [m]. */
+    horizontal_size?: number,
+    /** Full vertical aperture [m]. */
+    vertical_size?: number,
+    /** Cross-sectional aperture shape. */
+    shape?: string,
+    /** Radius for circular apertures [m]. */
+    radius?: number,
+    /** Upstream / inner extent [m]. */
+    negative_extent?: number,
+    /** Downstream / outer extent [m]. */
+    positive_extent?: number,
+}
+
+
+/**
+ * Vacuum gate valve.
+ */
+export interface Valve extends PhysicalAcceleratorElement {
+    /** Valve configuration. */
+    valve?: ValveElement,
+}
+
+
+/**
+ * Virtual survey marker -- a zero-length reference point used for alignment.
+ */
+export interface Marker extends PhysicalAcceleratorElement {
+}
+
+
+/**
+ * Mechanical aperture restriction in the beam pipe.
+ */
+export interface Aperture extends PhysicalAcceleratorElement {
+    /** Aperture geometry parameters. */
+    aperture?: ApertureElement,
+}
+
+
+/**
+ * Movable collimator jaw (extends Aperture).
+ */
+export interface Collimator extends Aperture {
+}
+
+
+/**
+ * Field-free drift space between elements.
+ */
+export interface Drift extends PhysicalAcceleratorElement {
+}
+
+
+/**
+ * Experimental-hall lighting element.
+ */
+export interface Lighting extends StandardElement {
+    /** Lighting configuration. */
+    lights?: LightingElement,
+}
+
+
+/**
+ * Generic power-supply unit providing control/setpoint-driven outputs (for example current/voltage) to other accelerator components.
+ */
+export interface PowerSupply extends StandardElement {
+}
+
+
+/**
+ * An ordered list of element names defining a contiguous beamline section.
+ */
+export interface SectionLattice {
+    /** Unique section name. */
+    name: string,
+    /** Name of the master lattice this section belongs to. */
+    master_lattice?: string,
+    /** Ordered list of element names in this section. */
+    elements?: string[],
+}
+
+
+/**
+ * An ordered list of section names defining a beamline layout (a contiguous sequence of sections).
+ */
+export interface MachineLayout {
+    /** Unique layout name. */
+    name: string,
+    /** Name of the master lattice this layout belongs to. */
+    master_lattice?: string,
+    /** Ordered list of section names. */
+    sections?: string[],
+}
+
+
+/**
+ * Top-level container for a complete accelerator lattice: elements, sections, layouts, and named lattice configurations.
+ */
+export interface MachineModel {
+    /** All elements in the machine, keyed by name. */
+    elements?: AcceleratorElementName[],
+    /** All named beamline sections. */
+    sections?: SectionLatticeName[],
+    /** All named beamline layouts. */
+    layouts?: MachineLayoutName[],
+}
 
 
 /**
@@ -926,6 +1270,15 @@ export interface IntegratedCurrentTransformer extends ChargeDiagnostic {
 
 
 /**
+ * Photon intensity monitor.
+ */
+export interface PhotonMonitor extends Diagnostic {
+    /** Instrument-specific diagnostic parameters. */
+    intensity?: PhotonIntensityMonitorDiagnostic,
+}
+
+
+/**
  * Base class for diagnostic instrument sub-models.  Concrete sub-models extend this with instrument-specific fields.
  */
 export interface DiagnosticElement {
@@ -947,6 +1300,17 @@ export interface BPMDiagnosticElement extends DiagnosticElement {
 export interface BAMDiagnosticElement extends DiagnosticElement {
     /** BAM type. Accepted in YAML as ``bam_type``. */
     type?: string,
+}
+
+
+/**
+ * Photon intensity monitor diagnostic data.
+ */
+export interface PhotonIntensityMonitorDiagnostic extends DiagnosticElement {
+    /** Photon intensity monitor type. Accepted in YAML as ``intensity_monitor_type``. */
+    type?: string,
+    /** Measured photon intensity. */
+    intensity?: number,
 }
 
 
@@ -1262,96 +1626,191 @@ export interface Quadrupole extends Magnet {
 
 
 /**
- * Cartesian position in the global accelerator coordinate system. All components are in metres.
+ * Sextupole magnet field, principal multipole order 2.
  */
-export interface Position {
-    /** Horizontal component [m]. */
-    x?: number,
-    /** Vertical component [m]. */
-    y?: number,
-    /** Longitudinal (beam-direction) component [m]. */
-    z?: number,
+export interface SextupoleMagnet extends MagneticElement {
 }
 
 
 /**
- * Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi].
+ * Sextupole chromaticity-correction magnet.
  */
-export interface Rotation {
-    /** Rotation about the horizontal (x) axis [rad]. */
-    phi?: number,
-    /** Rotation about the vertical (y) axis [rad]. */
-    psi?: number,
-    /** Rotation about the longitudinal (z) axis [rad]. */
-    theta?: number,
+export interface Sextupole extends Magnet {
 }
 
 
 /**
- * Alignment position and rotation errors for a physically-located element.
+ * Octupole magnet field, principal multipole order 3.
  */
-export interface ElementPositionError {
-    /** Positional misalignment error [m]. */
-    position?: Position,
-    /** Angular misalignment error [rad]. */
-    rotation?: Rotation,
+export interface OctupoleMagnet extends MagneticElement {
 }
 
 
 /**
- * Survey-measured position and rotation of an element. Structure is identical to ElementPositionError.
+ * Octupole magnet.
  */
-export interface ElementSurvey {
-    /** Surveyed position. */
-    position?: Position,
-    /** Surveyed rotation. */
-    rotation?: Rotation,
+export interface Octupole extends Magnet {
 }
 
 
 /**
- * Positions an element relative to a named reference element's local frame. The ``offset`` field is expressed in the reference element's local frame at the chosen ``point`` (start / middle / end).  Use ``world_offset`` instead to supply an offset already in global world coordinates.
+ * Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.
  */
-export interface ReferencePlacement {
-    /** Name of the reference element. */
-    element: string,
-    /** Which point on the reference element to use as the origin frame: 'start', 'middle', or 'end'. */
-    point?: string,
-    /** Offset expressed in the reference element's local frame at the chosen point. */
-    offset?: Position,
-    /** Offset already expressed in global world coordinates. */
-    world_offset?: Position,
-    /** Scalar offset [m] along the local beam direction (s-axis) from the reference point.  Equivalent to ``offset: [0, 0, s_offset]`` but expressed as a single number.  Mutually exclusive with ``offset`` and ``world_offset``. */
-    s_offset?: number,
-}
-
-
-/**
- * Physical placement data: position, rotation, length, and associated survey / alignment-error information.
- */
-export interface PhysicalElement {
-    /** Longitudinal midpoint (centre) of the element. Also accepted as ``position`` or ``centre`` in YAML. */
-    middle?: Position,
-    /** Datum reference position. */
-    datum?: Position,
-    /** Local rotation in the global frame. */
-    rotation?: Rotation,
-    /** Accumulated global rotation including parent-frame contributions. */
-    global_rotation?: Rotation,
-    /** Alignment errors. */
-    error?: ElementPositionError,
-    /** Survey-measured position and rotation. */
-    survey?: ElementSurvey,
-    /** Effective length along the beam axis [m]. */
+export interface CorrectorMagnet {
+    /** Magnetic length [m]. */
     length?: number,
-    /** Bending angle in the horizontal plane [rad]. Derived from ``magnetic.angle`` when available. */
-    physical_angle?: number,
-    /** Place this element relative to another element's frame instead of using absolute world coordinates.  Mutually exclusive with ``middle``/``position``/``centre`` and ``s``. */
-    reference_placement?: ReferencePlacement,
-    /** Arc-length position [m] along the design trajectory (s=0 at the global origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``) and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly. */
-    s?: number,
-    /** Which point of the element the ``s`` value refers to: ``start``, ``middle``, or ``end``.  Defaults to ``middle``. */
-    s_point?: string,
+    /** Multipole order (0, a dipole field). */
+    order?: number,
+    /** Roll of the corrector about the beam axis [rad]. */
+    tilt?: number,
+    /** Horizontal deflection [rad]. May be a functional expression. */
+    horizontal_kick?: number,
+    /** Vertical deflection [rad]. May be a functional expression. */
+    vertical_kick?: number,
+}
+
+
+/**
+ * Horizontal steering corrector.
+ */
+export interface HorizontalCorrector extends Dipole {
+}
+
+
+/**
+ * Vertical steering corrector.
+ */
+export interface VerticalCorrector extends Dipole {
+}
+
+
+/**
+ * Combined horizontal/vertical steering corrector, naming the two single-plane correctors it stands in for.
+ */
+export interface CombinedCorrector extends Dipole {
+    /** Name of the horizontal-plane corrector element. */
+    Horizontal_Corrector?: string,
+    /** Name of the vertical-plane corrector element. */
+    Vertical_Corrector?: string,
+}
+
+
+/**
+ * Solenoid integrated axial field components ``S0L``–``S12L`` [T.m].
+ */
+export interface SolenoidFields {
+    /** Integrated solenoid field, order 0 [T.m]. */
+    S0L?: number,
+    /** Integrated solenoid field, order 1 [T.m]. */
+    S1L?: number,
+    /** Integrated solenoid field, order 2 [T.m]. */
+    S2L?: number,
+    /** Integrated solenoid field, order 3 [T.m]. */
+    S3L?: number,
+    /** Integrated solenoid field, order 4 [T.m]. */
+    S4L?: number,
+    /** Integrated solenoid field, order 5 [T.m]. */
+    S5L?: number,
+    /** Integrated solenoid field, order 6 [T.m]. */
+    S6L?: number,
+    /** Integrated solenoid field, order 7 [T.m]. */
+    S7L?: number,
+    /** Integrated solenoid field, order 8 [T.m]. */
+    S8L?: number,
+    /** Integrated solenoid field, order 9 [T.m]. */
+    S9L?: number,
+    /** Integrated solenoid field, order 10 [T.m]. */
+    S10L?: number,
+    /** Integrated solenoid field, order 11 [T.m]. */
+    S11L?: number,
+    /** Integrated solenoid field, order 12 [T.m]. */
+    S12L?: number,
+}
+
+
+/**
+ * Solenoid field model, including systematic and random field errors and the current-to-field calibration.
+ */
+export interface SolenoidMagnet {
+    /** Magnetic length [m]. */
+    length?: number,
+    /** Principal solenoid multipole order. */
+    order?: number,
+    /** Nominal integrated axial field components. */
+    fields?: SolenoidFields,
+    /** Systematic field errors. */
+    systematic_fields?: SolenoidFields,
+    /** Random field errors. */
+    random_fields?: SolenoidFields,
+    /** Polynomial current-to-integrated-field coefficients. */
+    field_integral_coefficients?: FieldIntegral,
+    /** Linear-plus-saturation fit of field against current. */
+    linear_saturation_coefficients?: LinearSaturationFit,
+    /** Time to wait after a set before the field is stable [s]. */
+    settle_time?: number,
+}
+
+
+/**
+ * Solenoid focusing magnet.
+ */
+export interface Solenoid extends Magnet {
+}
+
+
+/**
+ * Periodic wiggler/undulator field.
+ */
+export interface WigglerMagnet {
+    /** Magnetic length [m]. */
+    length?: number,
+    /** Deflection parameter K. May be a functional expression. */
+    strength?: number,
+    /** Peak on-axis field [T]. */
+    peak_magnetic_field?: number,
+    /** Magnetic period length [m]. */
+    period?: number,
+    /** Number of full magnetic periods. */
+    num_periods?: number,
+    /** True for a helical device, False for planar. */
+    helical?: boolean,
+    /** Quadratic field roll-off in x [1/m^2]. */
+    quadratic_roll_off_x?: number,
+    /** Quadratic field roll-off in y [1/m^2]. */
+    quadratic_roll_off_y?: number,
+    /** Transverse field gradient in x [1/m]. */
+    transverse_gradient_x?: number,
+    /** Transverse field gradient in y [1/m]. */
+    transverse_gradient_y?: number,
+}
+
+
+/**
+ * Wiggler / undulator insertion device.
+ */
+export interface Wiggler extends Magnet {
+    /** Drive laser, for laser-undulator (inverse-Compton) configurations. */
+    laser?: LaserElement,
+}
+
+
+/**
+ * Integrable-optics non-linear lens field.  See the MAD-X manual and Danilov/Nagaitsev, PAC2011 WEP070.
+ */
+export interface NonLinearLensMagnet {
+    /** Magnetic length [m]. */
+    length?: number,
+    /** Integrated lens strength (MAD-X ``knll``). May be a functional expression. */
+    integrated_strength?: number,
+    /** Dimensional parameter setting the transverse scale (MAD-X ``cnll``). May be a functional expression. */
+    dimensional_parameter?: number,
+}
+
+
+/**
+ * Non-linear integrable-optics lens.
+ */
+export interface NonLinearLens extends Magnet {
 }
 
 
@@ -1391,63 +1850,6 @@ export interface ReferenceElement {
 
 
 /**
- * A single process-variable entry mapping a logical name to a control-system PV identifier.
- */
-export interface ControlVariable {
-    /** Protocol-specific PV name (e.g., EPICS PV address). */
-    identifier?: string,
-    /** Data type (e.g., ``float``, ``int``). */
-    dtype?: string,
-    /** Control-system protocol (e.g., ``EPICS``, ``Tango``). */
-    protocol?: string,
-    /** Physical units string (e.g., ``A``, ``T/m``). */
-    units?: string,
-    /** Human-readable description. */
-    description?: string,
-    /** Whether the variable is read-only. */
-    read_only?: boolean,
-    /** Last-read value. */
-    value?: number,
-    /** Set-point target value. */
-    target?: number,
-    /** Optional expression string for derived values. */
-    expression?: string,
-}
-
-
-/**
- * Collection of process-variable definitions for an element's control interface.
- */
-export interface ControlsInformation {
-    /** Named control variables keyed by logical name. */
-    variables?: ControlVariable[],
-}
-
-
-/**
- * Shutter interlock configuration.
- */
-export interface ShutterElement {
-    /** Names of the interlocks guarding this shutter. */
-    interlocks?: string[],
-}
-
-
-/**
- * Vacuum valve configuration (no additional fields).
- */
-export interface ValveElement {
-}
-
-
-/**
- * Lighting element (no additional fields currently defined).
- */
-export interface LightingElement {
-}
-
-
-/**
  * Root base class for all LAURA accelerator elements.  Every lattice element is an instance of a concrete subclass identified by ``hardware_type``.
  */
 export interface AcceleratorElement {
@@ -1455,7 +1857,7 @@ export interface AcceleratorElement {
     name: string,
     /** Functional category (e.g., ``Magnet``, ``Diagnostic``). */
     hardware_class: string,
-    /** Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML. */
+    /** Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML. */
     hardware_type?: string,
     /** Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``). */
     hardware_model?: string,
@@ -1467,13 +1869,13 @@ export interface AcceleratorElement {
     alias?: string[],
     /** If set, this element is a logical sub-component of the named parent element. */
     subelement?: string,
-    /** (List) of input types */
+    /** Signal types this element consumes (e.g. ``[current, voltage]``). */
     inputs?: string,
-    /** (List) of output types */
+    /** Signal types this element produces (e.g. ``[power, phase]``). */
     outputs?: string,
-    /** (List) of upstream elements. */
+    /** Names of elements feeding this one, whose ``outputs`` supply its ``inputs``. */
     upstream?: AcceleratorElementName[],
-    /** (List) of upstream elements. */
+    /** Names of elements this one feeds; the inverse of ``upstream``. */
     downstream?: AcceleratorElementName[],
 }
 
@@ -1508,160 +1910,6 @@ export interface Element extends StandardElement {
 export interface PhysicalAcceleratorElement extends Element {
     /** Position, rotation, and length data. */
     physical?: PhysicalElement,
-}
-
-
-/**
- * Virtual Twiss-parameter matching point -- a zero-length marker that defines the desired optical functions at a location in the lattice.
- */
-export interface TwissMatch extends PhysicalAcceleratorElement {
-}
-
-
-/**
- * Motorised positioning stage.
- */
-export interface Stage extends PhysicalAcceleratorElement {
-}
-
-
-/**
- * Vacuum-pressure gauge.
- */
-export interface VacuumGauge extends PhysicalAcceleratorElement {
-}
-
-
-/**
- * Laser system element (full laser setup including beam parameters).
- */
-export interface Laser extends PhysicalAcceleratorElement {
-    /** Laser-beam parameters. */
-    laser?: LaserElement,
-}
-
-
-/**
- * Beam or laser shutter with interlock logic.
- */
-export interface Shutter extends PhysicalAcceleratorElement {
-    /** Shutter interlock configuration. */
-    shutter?: ShutterElement,
-}
-
-
-/**
- * Transverse aperture geometry for drift-space checks and collimators.
- */
-export interface ApertureElement {
-    /** Number of aperture sub-elements (e.g., for multi-leaf collimators). */
-    number_of_elements?: number,
-    /** Full horizontal aperture [m]. */
-    horizontal_size?: number,
-    /** Full vertical aperture [m]. */
-    vertical_size?: number,
-    /** Cross-sectional aperture shape. */
-    shape?: string,
-    /** Radius for circular apertures [m]. */
-    radius?: number,
-    /** Upstream / inner extent [m]. */
-    negative_extent?: number,
-    /** Downstream / outer extent [m]. */
-    positive_extent?: number,
-}
-
-
-/**
- * Vacuum gate valve.
- */
-export interface Valve extends PhysicalAcceleratorElement {
-    /** Valve configuration. */
-    valve?: ValveElement,
-}
-
-
-/**
- * Virtual survey marker -- a zero-length reference point used for alignment.
- */
-export interface Marker extends PhysicalAcceleratorElement {
-}
-
-
-/**
- * Mechanical aperture restriction in the beam pipe.
- */
-export interface Aperture extends PhysicalAcceleratorElement {
-    /** Aperture geometry parameters. */
-    aperture?: ApertureElement,
-}
-
-
-/**
- * Movable collimator jaw (extends Aperture).
- */
-export interface Collimator extends Aperture {
-}
-
-
-/**
- * Field-free drift space between elements.
- */
-export interface Drift extends PhysicalAcceleratorElement {
-}
-
-
-/**
- * Experimental-hall lighting element.
- */
-export interface Lighting extends StandardElement {
-    /** Lighting configuration. */
-    lights?: LightingElement,
-}
-
-
-/**
- * Generic power-supply unit providing control/setpoint-driven outputs (for example current/voltage) to other accelerator components.
- */
-export interface PowerSupply extends StandardElement {
-}
-
-
-/**
- * An ordered list of element names defining a contiguous beamline section.
- */
-export interface SectionLattice {
-    /** Unique section name. */
-    name: string,
-    /** Name of the master lattice this section belongs to. */
-    master_lattice?: string,
-    /** Ordered list of element names in this section. */
-    elements?: string[],
-}
-
-
-/**
- * An ordered list of section names defining a beamline layout (a contiguous sequence of sections).
- */
-export interface MachineLayout {
-    /** Unique layout name. */
-    name: string,
-    /** Name of the master lattice this layout belongs to. */
-    master_lattice?: string,
-    /** Ordered list of section names. */
-    sections?: string[],
-}
-
-
-/**
- * Top-level container for a complete accelerator lattice: elements, sections, layouts, and named lattice configurations.
- */
-export interface MachineModel {
-    /** All elements in the machine, keyed by name. */
-    elements?: AcceleratorElementName[],
-    /** All named beamline sections. */
-    sections?: SectionLatticeName[],
-    /** All named beamline layouts. */
-    layouts?: MachineLayoutName[],
 }
 
 

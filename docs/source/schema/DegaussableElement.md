@@ -64,6 +64,14 @@ URI: [laura:DegaussableElement](https://w3id.org/laura/DegaussableElement)
 | [Magnet](Magnet.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
 | [Dipole](Dipole.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
 | [Quadrupole](Quadrupole.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
+| [Sextupole](Sextupole.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
+| [Octupole](Octupole.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
+| [HorizontalCorrector](HorizontalCorrector.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
+| [VerticalCorrector](VerticalCorrector.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
+| [CombinedCorrector](CombinedCorrector.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
+| [Solenoid](Solenoid.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
+| [Wiggler](Wiggler.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
+| [NonLinearLens](NonLinearLens.md) | [degauss](degauss.md) | range | [DegaussableElement](DegaussableElement.md) |
 
 
 

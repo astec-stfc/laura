@@ -60,6 +60,7 @@ URI: [laura:virtual_name](https://w3id.org/laura/virtual_name)
 | [WallCurrentMonitor](WallCurrentMonitor.md) | Wall-current monitor (WCM) for non-destructive charge measurement |  no  |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | Faraday cup for destructive charge measurement |  no  |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | Integrated current transformer (ICT) for non-destructive single-shot charge m... |  no  |
+| [PhotonMonitor](PhotonMonitor.md) | Photon intensity monitor |  no  |
 | [Plasma](Plasma.md) | Laser-driven plasma-accelerator stage |  no  |
 | [LaserEnergyMeter](LaserEnergyMeter.md) | Laser pulse-energy diagnostic (photodiode / pyroelectric) |  no  |
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | Half-wave plate for laser polarisation rotation |  no  |
@@ -67,6 +68,14 @@ URI: [laura:virtual_name](https://w3id.org/laura/virtual_name)
 | [LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |  no  |
 | [Dipole](Dipole.md) |  |  no  |
 | [Quadrupole](Quadrupole.md) |  |  no  |
+| [Sextupole](Sextupole.md) | Sextupole chromaticity-correction magnet |  no  |
+| [Octupole](Octupole.md) | Octupole magnet |  no  |
+| [HorizontalCorrector](HorizontalCorrector.md) | Horizontal steering corrector |  no  |
+| [VerticalCorrector](VerticalCorrector.md) | Vertical steering corrector |  no  |
+| [CombinedCorrector](CombinedCorrector.md) | Combined horizontal/vertical steering corrector, naming the two single-plane ... |  no  |
+| [Solenoid](Solenoid.md) | Solenoid focusing magnet |  no  |
+| [Wiggler](Wiggler.md) | Wiggler / undulator insertion device |  no  |
+| [NonLinearLens](NonLinearLens.md) | Non-linear integrable-optics lens |  no  |
 
 
 

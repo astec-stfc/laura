@@ -14,6 +14,16 @@ enum BendingPlaneEnum
     Combined
   }
 
+enum ControlTypeEnum
+  {
+    scalar
+    binary
+    state
+    string
+    waveform
+    statistical
+  }
+
 enum HardwareClassEnum
   {
     Magnet
@@ -364,9 +374,15 @@ type ControlVariable
     units: String
     description: String
     readOnly: Boolean
-    value: Float
-    target: Float
+    value: String
+    controlType: ControlTypeEnum
+    target: String
     expression: String
+    states: String
+    readback: String
+    setpoint: String
+    update: String
+    dynamics: String
   }
 
 type DegaussableElement
@@ -914,6 +930,36 @@ type Multipoles
     k2L: Multipole
     k3L: Multipole
     k4L: Multipole
+  }
+
+type PhotonIntensityMonitorDiagnostic
+  {
+    type: String
+    intensity: Float
+  }
+
+type PhotonMonitor
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    diagnostic: DiagnosticElement
+    simulation: DiagnosticSimulationElement
+    intensity: PhotonIntensityMonitorDiagnostic
+    hardwareType: String
+    hardwareModel: String
   }
 
 type PhysicalAcceleratorElement

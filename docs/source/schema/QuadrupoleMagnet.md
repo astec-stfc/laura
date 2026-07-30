@@ -242,6 +242,8 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
+    - Corrector_Magnet
+    - Solenoid_Magnet
     range: integer
     minimum_value: -1
     equals_number: 1
@@ -266,6 +268,10 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
+    - Corrector_Magnet
+    - Solenoid_Magnet
+    - Wiggler_Magnet
+    - NonLinearLens_Magnet
     range: float
     minimum_value: 0.0
     unit:
@@ -305,6 +311,7 @@ attributes:
     owner: Quadrupole_Magnet
     domain_of:
     - MagneticElement
+    - Solenoid_Magnet
     range: FieldIntegral
   linear_saturation_coefficients:
     name: linear_saturation_coefficients
@@ -314,6 +321,7 @@ attributes:
     owner: Quadrupole_Magnet
     domain_of:
     - MagneticElement
+    - Solenoid_Magnet
     range: LinearSaturationFit
   settle_time:
     name: settle_time
@@ -323,6 +331,7 @@ attributes:
     owner: Quadrupole_Magnet
     domain_of:
     - MagneticElement
+    - Solenoid_Magnet
     range: float
     unit:
       ucum_code: s
@@ -418,6 +427,7 @@ attributes:
     owner: Quadrupole_Magnet
     domain_of:
     - MagneticElement
+    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad

@@ -150,7 +150,7 @@ attributes:
   element:
     name: element
     description: Name of the reference element.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - ReferencePlacement
@@ -160,7 +160,7 @@ attributes:
     name: point
     description: 'Which point on the reference element to use as the origin frame:
       ''start'', ''middle'', or ''end''.'
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: string(end)
     domain_of:
@@ -170,7 +170,7 @@ attributes:
     name: offset
     description: Offset expressed in the reference element's local frame at the chosen
       point.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - ReferencePlacement
@@ -178,7 +178,7 @@ attributes:
   world_offset:
     name: world_offset
     description: Offset already expressed in global world coordinates.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - ReferencePlacement
@@ -188,7 +188,7 @@ attributes:
     description: 'Scalar offset [m] along the local beam direction (s-axis) from the
       reference point.  Equivalent to ``offset: [0, 0, s_offset]`` but expressed as
       a single number.  Mutually exclusive with ``offset`` and ``world_offset``.'
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - ReferencePlacement
@@ -216,7 +216,7 @@ attributes:
   element:
     name: element
     description: Name of the reference element.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: ReferencePlacement
     domain_of:
@@ -227,7 +227,7 @@ attributes:
     name: point
     description: 'Which point on the reference element to use as the origin frame:
       ''start'', ''middle'', or ''end''.'
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: string(end)
     owner: ReferencePlacement
@@ -238,7 +238,7 @@ attributes:
     name: offset
     description: Offset expressed in the reference element's local frame at the chosen
       point.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: ReferencePlacement
     domain_of:
@@ -247,7 +247,7 @@ attributes:
   world_offset:
     name: world_offset
     description: Offset already expressed in global world coordinates.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: ReferencePlacement
     domain_of:
@@ -258,7 +258,7 @@ attributes:
     description: 'Scalar offset [m] along the local beam direction (s-axis) from the
       reference point.  Equivalent to ``offset: [0, 0, s_offset]`` but expressed as
       a single number.  Mutually exclusive with ``offset`` and ``world_offset``.'
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: ReferencePlacement
     domain_of:

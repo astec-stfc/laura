@@ -142,7 +142,7 @@ class LAURAQuery:
         Parameters
         ----------
         hardware_type:
-            Python class name used for MODEL_REGISTRY dispatch
+            Python class name used for ELEMENT_REGISTRY dispatch
             (e.g. ``"Quadrupole"``, ``"Screen"``).
         """
         safe = hardware_type.replace("\\", "\\\\")

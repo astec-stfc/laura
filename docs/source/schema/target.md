@@ -6,7 +6,7 @@ search:
 # Slot: target 
 
 
-_Set-point target value._
+_Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value._
 
 
 
@@ -38,7 +38,7 @@ URI: [laura:target](https://w3id.org/laura/target)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [String](String.md) |
 | Domain Of | [ControlVariable](ControlVariable.md) |
 
 ### Cardinality and Requirements
@@ -91,13 +91,14 @@ URI: [laura:target](https://w3id.org/laura/target)
 <details>
 ```yaml
 name: target
-description: Set-point target value.
+description: Dotted attribute path on the owning element that ``expression`` writes
+  to (e.g., ``magnetic.k1l``). Not a set-point value.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ControlVariable
 domain_of:
 - ControlVariable
-range: float
+range: string
 
 ```
 </details></div>

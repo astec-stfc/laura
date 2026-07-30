@@ -98,6 +98,7 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [PhotonMonitor](PhotonMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Plasma](Plasma.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [LaserEnergyMeter](LaserEnergyMeter.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
@@ -105,6 +106,14 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | [LaserAttenuator](LaserAttenuator.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Dipole](Dipole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Quadrupole](Quadrupole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [Sextupole](Sextupole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [Octupole](Octupole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [HorizontalCorrector](HorizontalCorrector.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [VerticalCorrector](VerticalCorrector.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [CombinedCorrector](CombinedCorrector.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [Solenoid](Solenoid.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [Wiggler](Wiggler.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [NonLinearLens](NonLinearLens.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 
 
 
@@ -158,7 +167,7 @@ attributes:
   variables:
     name: variables
     description: Named control variables keyed by logical name.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/controls
     rank: 1000
     domain_of:
     - ControlsInformation
@@ -182,7 +191,7 @@ attributes:
   variables:
     name: variables
     description: Named control variables keyed by logical name.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/controls
     rank: 1000
     owner: ControlsInformation
     domain_of:

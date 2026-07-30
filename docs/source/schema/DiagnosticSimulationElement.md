@@ -87,6 +87,7 @@ URI: [laura:DiagnosticSimulationElement](https://w3id.org/laura/DiagnosticSimula
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [simulation](simulation.md) | range | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [simulation](simulation.md) | range | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [simulation](simulation.md) | range | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) |
+| [PhotonMonitor](PhotonMonitor.md) | [simulation](simulation.md) | range | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) |
 
 
 

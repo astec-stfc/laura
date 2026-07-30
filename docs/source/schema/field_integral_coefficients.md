@@ -5,11 +5,6 @@ search:
 
 # Slot: field_integral_coefficients 
 
-
-_Polynomial calibration of integrated field vs. current._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -28,6 +23,9 @@ URI: [laura:field_integral_coefficients](https://w3id.org/laura/field_integral_c
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
 | [DipoleMagnet](DipoleMagnet.md) |  |  no  |
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
+| [SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |  no  |
+| [OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |  no  |
+| [SolenoidMagnet](SolenoidMagnet.md) | Solenoid field model, including systematic and random field errors and the cu... |  no  |
 
 
 
@@ -40,20 +38,13 @@ URI: [laura:field_integral_coefficients](https://w3id.org/laura/field_integral_c
 
 | Property | Value |
 | --- | --- |
-| Range | [FieldIntegral](FieldIntegral.md) |
-| Domain Of | [MagneticElement](MagneticElement.md) |
+| Range | [String](String.md) |
+| Domain Of | [MagneticElement](MagneticElement.md), [SolenoidMagnet](SolenoidMagnet.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| Owner | [MagneticElement](MagneticElement.md) |
-
-
 
 
 
@@ -67,13 +58,6 @@ URI: [laura:field_integral_coefficients](https://w3id.org/laura/field_integral_c
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -93,13 +77,10 @@ URI: [laura:field_integral_coefficients](https://w3id.org/laura/field_integral_c
 <details>
 ```yaml
 name: field_integral_coefficients
-description: Polynomial calibration of integrated field vs. current.
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: MagneticElement
 domain_of:
 - MagneticElement
-range: FieldIntegral
+- Solenoid_Magnet
+range: string
 
 ```
 </details></div>

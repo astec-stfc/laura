@@ -13,3 +13,23 @@ pydantic-core>=2.41.5
 # pip install "laura-accelerator[wake_t]"
 # pip install "laura-accelerator[bmad]"
 # pip install "laura-accelerator[madx]"
+
+# ── Schema work only ─────────────────────────────────────────────────────────
+# None of the following are needed to *run* LAURA, so they are deliberately not
+# in the runtime list above. Install them all with:
+#   pip install "laura-accelerator[schema,rdf,sql]"
+#
+# linkml, linkml-runtime  — REGENERATE laura/models/_generated.py and the JSON
+#     Schema / OWL / SHACL / GraphQL artefacts:
+#         python laura/schema/generate_pydantic.py
+#     _generated.py is committed, so LAURA never imports linkml at runtime.
+#     linkml pins its own pydantic/jsonschema versions, so prefer a separate
+#     environment for regeneration rather than your working env.
+# jsonschema  — the optional `validate=True` load path, which checks element
+#     dicts against laura/schema/generated/laura_element.schema.json.
+# rdflib      — RDF / linked-data export (laura.Exporters.RDF).
+# sqlalchemy  — SQL export (laura.Exporters.SQL + schema/generated/laura_orm.py).
+#
+# Without jsonschema / rdflib / sqlalchemy the unit tests still pass, but ~50 of
+# them skip rather than run — see the [test] extra in pyproject.toml.
+# pip install "laura-accelerator[schema]"

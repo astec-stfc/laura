@@ -49,6 +49,7 @@ URI: [laura:description](https://w3id.org/laura/description)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string(Default Description)` |
 | Owner | [ControlVariable](ControlVariable.md) |
 
 
@@ -94,6 +95,7 @@ name: description
 description: Human-readable description.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: string(Default Description)
 owner: ControlVariable
 domain_of:
 - ControlVariable

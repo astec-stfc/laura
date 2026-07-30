@@ -151,6 +151,22 @@ classes:
       hardware_type:
         equals_string: Integrated_Current_Transformer
 
+  PhotonMonitor:
+    is_a: Diagnostic
+    description: Photon intensity monitor.
+    class_uri: laura:PhotonMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Photon_Monitor
+      hardware_model:
+        ifabsent: string(Photon_Monitor)
+    attributes:
+      intensity:
+        range: PhotonIntensityMonitorDiagnostic
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
 # -- Diagnostics Elements ------------------------------------------------------------
 
   DiagnosticElement:
@@ -188,6 +204,26 @@ classes:
         ifabsent: string(DESY)
         aliases:
           - bam_type
+
+  PhotonIntensityMonitorDiagnostic:
+    is_a: DiagnosticElement
+    description: Photon intensity monitor diagnostic data.
+    class_uri: laura:PhotonIntensityMonitorDiagnostic
+    in_subset:
+      - diagnostic_properties
+    attributes:
+      type:
+        range: string
+        description: >-
+          Photon intensity monitor type. Accepted in YAML as
+          ``intensity_monitor_type``.
+        ifabsent: string(I0)
+        aliases:
+          - intensity_monitor_type
+      intensity:
+        range: float
+        ifabsent: float(0.0)
+        description: Measured photon intensity.
 
   BLMDiagnosticElement:
     is_a: DiagnosticElement

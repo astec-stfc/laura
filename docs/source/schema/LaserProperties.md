@@ -80,7 +80,8 @@ URI: [LaserProperties](LaserProperties.md)
 
 
 
-        
+
+
 
         
 
@@ -88,11 +89,66 @@ URI: [LaserProperties](LaserProperties.md)
 
         
 
-
         
 
 
         
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -24,8 +24,8 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
  classDiagram
     class Sextupole
     click Sextupole href "../Sextupole/"
-      MagnetBaseElement <|-- Sextupole
-        click MagnetBaseElement href "../MagnetBaseElement/"
+      Magnet <|-- Sextupole
+        click Magnet href "../Magnet/"
       
       Sextupole : alias
         
@@ -51,6 +51,17 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
     
 
         
+      Sextupole : downstream
+        
+          
+    
+        
+        
+        Sextupole --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       Sextupole : electrical
         
           
@@ -68,7 +79,7 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
     
         
         
-        Sextupole --> "0..1" HardwareClassEnum : hardware_class
+        Sextupole --> "1" HardwareClassEnum : hardware_class
         click HardwareClassEnum href "../HardwareClassEnum/"
     
 
@@ -76,6 +87,17 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
       Sextupole : hardware_model
         
       Sextupole : hardware_type
+        
+      Sextupole : inputs
+        
+          
+    
+        
+        
+        Sextupole --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       Sextupole : machine_area
         
@@ -85,8 +107,8 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
     
         
         
-        Sextupole --> "0..1" MagneticElement : magnetic
-        click MagneticElement href "../MagneticElement/"
+        Sextupole --> "0..1" SextupoleMagnet : magnetic
+        click SextupoleMagnet href "../SextupoleMagnet/"
     
 
         
@@ -102,6 +124,17 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
 
         
       Sextupole : name
+        
+      Sextupole : outputs
+        
+          
+    
+        
+        
+        Sextupole --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
         
       Sextupole : physical
         
@@ -138,6 +171,17 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
         
       Sextupole : subelement
         
+      Sextupole : upstream
+        
+          
+    
+        
+        
+        Sextupole --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
       Sextupole : virtual_name
         
       
@@ -150,9 +194,10 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
 ## Inheritance
 * [AcceleratorElement](AcceleratorElement.md)
     * [StandardElement](StandardElement.md)
-        * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
-            * [MagnetBaseElement](MagnetBaseElement.md)
-                * **Sextupole**
+        * [Element](Element.md)
+            * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
+                * [Magnet](Magnet.md)
+                    * **Sextupole**
 
 
 ## Class Properties
@@ -166,8 +211,8 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [magnetic](magnetic.md) | 0..1 <br/> [MagneticElement](MagneticElement.md) | Magnetic field parameters | [MagnetBaseElement](MagnetBaseElement.md) |
-| [degauss](degauss.md) | 0..1 <br/> [DegaussableElement](DegaussableElement.md) | Degaussing-cycle parameters | [MagnetBaseElement](MagnetBaseElement.md) |
+| [magnetic](magnetic.md) | 0..1 <br/> [SextupoleMagnet](SextupoleMagnet.md) | Magnetic field parameters | [Magnet](Magnet.md) |
+| [degauss](degauss.md) | 0..1 <br/> [DegaussableElement](DegaussableElement.md) | Degaussing-cycle parameters | [Magnet](Magnet.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
@@ -175,13 +220,17 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
 | [controls](controls.md) | 0..1 <br/> [ControlsInformation](ControlsInformation.md) | Control-system process-variable definitions | [StandardElement](StandardElement.md) |
 | [reference](reference.md) | 0..1 <br/> [ReferenceElement](ReferenceElement.md) | Links to design drawings and files | [StandardElement](StandardElement.md) |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique element name within the machine | [AcceleratorElement](AcceleratorElement.md) |
-| [hardware_class](hardware_class.md) | 0..1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
-| [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for MODEL_REGISTRY dispatch | [AcceleratorElement](AcceleratorElement.md) |
+| [hardware_class](hardware_class.md) | 1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
+| [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for ELEMENT_REGISTRY dispatch | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | [AcceleratorElement](AcceleratorElement.md) |
 | [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | [AcceleratorElement](AcceleratorElement.md) |
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element consumes (e | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element produces (e | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements feeding this one, whose ``outputs`` supply its ``inputs`` | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements this one feeds; the inverse of ``upstream`` | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -234,10 +283,14 @@ URI: [laura:Sextupole](https://w3id.org/laura/Sextupole)
 name: Sextupole
 description: Sextupole chromaticity-correction magnet.
 from_schema: https://w3id.org/laura/schema
-is_a: MagnetBaseElement
+is_a: Magnet
 slot_usage:
+  magnetic:
+    name: magnetic
+    range: Sextupole_Magnet
   hardware_type:
     name: hardware_type
+    ifabsent: Sextupole
     equals_string: Sextupole
 class_uri: laura:Sextupole
 
@@ -251,10 +304,14 @@ class_uri: laura:Sextupole
 name: Sextupole
 description: Sextupole chromaticity-correction magnet.
 from_schema: https://w3id.org/laura/schema
-is_a: MagnetBaseElement
+is_a: Magnet
 slot_usage:
+  magnetic:
+    name: magnetic
+    range: Sextupole_Magnet
   hardware_type:
     name: hardware_type
+    ifabsent: Sextupole
     equals_string: Sextupole
 attributes:
   magnetic:
@@ -262,20 +319,20 @@ attributes:
     description: Magnetic field parameters.
     in_subset:
     - magnetic_properties
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: Sextupole
     domain_of:
-    - MagnetBaseElement
-    range: MagneticElement
+    - Magnet
+    range: Sextupole_Magnet
   degauss:
     name: degauss
     description: Degaussing-cycle parameters.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     owner: Sextupole
     domain_of:
-    - MagnetBaseElement
+    - Magnet
     range: DegaussableElement
   physical:
     name: physical
@@ -355,13 +412,14 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: HardwareClassEnum
+    required: true
   hardware_type:
     name: hardware_type
-    description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the
-      concrete subclass to instantiate when loading from YAML.
+    description: Python class name used for ELEMENT_REGISTRY dispatch.  Identifies
+      the concrete subclass to instantiate when loading from YAML.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    designates_type: true
+    ifabsent: Sextupole
     owner: Sextupole
     domain_of:
     - AcceleratorElement
@@ -421,6 +479,47 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inputs:
+    name: inputs
+    description: Signal types this element consumes (e.g. ``[current, voltage]``).
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Sextupole
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: Signal types this element produces (e.g. ``[power, phase]``).
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Sextupole
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: Names of elements feeding this one, whose ``outputs`` supply its
+      ``inputs``.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Sextupole
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: Names of elements this one feeds; the inverse of ``upstream``.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Sextupole
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
 class_uri: laura:Sextupole
 
 ```

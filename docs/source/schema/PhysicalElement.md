@@ -173,9 +173,18 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [PhotonMonitor](PhotonMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Plasma](Plasma.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Dipole](Dipole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Quadrupole](Quadrupole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Sextupole](Sextupole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Octupole](Octupole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [HorizontalCorrector](HorizontalCorrector.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [VerticalCorrector](VerticalCorrector.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [CombinedCorrector](CombinedCorrector.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Solenoid](Solenoid.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [Wiggler](Wiggler.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [NonLinearLens](NonLinearLens.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 
 
 
@@ -239,7 +248,7 @@ attributes:
     name: middle
     description: Longitudinal midpoint (centre) of the element. Also accepted as ``position``
       or ``centre`` in YAML.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     aliases:
     - position
     - centre
@@ -252,7 +261,7 @@ attributes:
   datum:
     name: datum
     description: Datum reference position.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - PhysicalElement
@@ -260,7 +269,7 @@ attributes:
   rotation:
     name: rotation
     description: Local rotation in the global frame.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     domain_of:
     - ElementPositionError
     - ElementSurvey
@@ -270,7 +279,7 @@ attributes:
   global_rotation:
     name: global_rotation
     description: Accumulated global rotation including parent-frame contributions.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - PhysicalElement
@@ -278,7 +287,7 @@ attributes:
   error:
     name: error
     description: Alignment errors.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - PhysicalElement
@@ -286,7 +295,7 @@ attributes:
   survey:
     name: survey
     description: Survey-measured position and rotation.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - PhysicalElement
@@ -294,12 +303,16 @@ attributes:
   length:
     name: length
     description: Effective length along the beam axis [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: float(0)
     domain_of:
     - PhysicalElement
     - MagneticElement
+    - Corrector_Magnet
+    - Solenoid_Magnet
+    - Wiggler_Magnet
+    - NonLinearLens_Magnet
     range: float
     minimum_value: 0.0
     unit:
@@ -308,7 +321,7 @@ attributes:
     name: physical_angle
     description: Bending angle in the horizontal plane [rad]. Derived from ``magnetic.angle``
       when available.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: float(0)
     domain_of:
@@ -323,7 +336,7 @@ attributes:
       and ``s``.
     in_subset:
     - physical_properties
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - PhysicalElement
@@ -333,7 +346,7 @@ attributes:
     description: Arc-length position [m] along the design trajectory (s=0 at the global
       origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``)
       and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - PhysicalElement
@@ -344,7 +357,7 @@ attributes:
     name: s_point
     description: 'Which point of the element the ``s`` value refers to: ``start``,
       ``middle``, or ``end``.  Defaults to ``middle``.'
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: string(middle)
     domain_of:
@@ -370,7 +383,7 @@ attributes:
     name: middle
     description: Longitudinal midpoint (centre) of the element. Also accepted as ``position``
       or ``centre`` in YAML.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     aliases:
     - position
     - centre
@@ -384,7 +397,7 @@ attributes:
   datum:
     name: datum
     description: Datum reference position.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: PhysicalElement
     domain_of:
@@ -393,7 +406,7 @@ attributes:
   rotation:
     name: rotation
     description: Local rotation in the global frame.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     owner: PhysicalElement
     domain_of:
     - ElementPositionError
@@ -404,7 +417,7 @@ attributes:
   global_rotation:
     name: global_rotation
     description: Accumulated global rotation including parent-frame contributions.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: PhysicalElement
     domain_of:
@@ -413,7 +426,7 @@ attributes:
   error:
     name: error
     description: Alignment errors.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: PhysicalElement
     domain_of:
@@ -422,7 +435,7 @@ attributes:
   survey:
     name: survey
     description: Survey-measured position and rotation.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: PhysicalElement
     domain_of:
@@ -431,13 +444,17 @@ attributes:
   length:
     name: length
     description: Effective length along the beam axis [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: float(0)
     owner: PhysicalElement
     domain_of:
     - PhysicalElement
     - MagneticElement
+    - Corrector_Magnet
+    - Solenoid_Magnet
+    - Wiggler_Magnet
+    - NonLinearLens_Magnet
     range: float
     minimum_value: 0.0
     unit:
@@ -446,7 +463,7 @@ attributes:
     name: physical_angle
     description: Bending angle in the horizontal plane [rad]. Derived from ``magnetic.angle``
       when available.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: float(0)
     owner: PhysicalElement
@@ -462,7 +479,7 @@ attributes:
       and ``s``.
     in_subset:
     - physical_properties
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: PhysicalElement
     domain_of:
@@ -473,7 +490,7 @@ attributes:
     description: Arc-length position [m] along the design trajectory (s=0 at the global
       origin along +Z).  Alternative to absolute world coordinates (``middle``/``position``/``centre``)
       and ``reference_placement``. Converted to {x,y,z} by LAURA during lattice assembly.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: PhysicalElement
     domain_of:
@@ -485,7 +502,7 @@ attributes:
     name: s_point
     description: 'Which point of the element the ``s`` value refers to: ``start``,
       ``middle``, or ``end``.  Defaults to ``middle``.'
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: string(middle)
     owner: PhysicalElement

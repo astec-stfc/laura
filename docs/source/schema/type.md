@@ -22,6 +22,7 @@ URI: [laura:type](https://w3id.org/laura/type)
 | --- | --- | --- |
 | [BPMDiagnosticElement](BPMDiagnosticElement.md) | Beam-position monitor (BPM) diagnostic data |  no  |
 | [BAMDiagnosticElement](BAMDiagnosticElement.md) | Beam-arrival monitor (BAM) diagnostic data |  no  |
+| [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md) | Photon intensity monitor diagnostic data |  no  |
 | [BLMDiagnosticElement](BLMDiagnosticElement.md) | Bunch-length monitor (BLM) diagnostic data |  no  |
 | [ScreenDiagnosticElement](ScreenDiagnosticElement.md) | Scintillator or OTR screen diagnostic data |  no  |
 | [ChargeDiagnosticElement](ChargeDiagnosticElement.md) | Charge-measurement diagnostic data (base for ICT, FCM, WCM) |  no  |
@@ -39,7 +40,7 @@ URI: [laura:type](https://w3id.org/laura/type)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [BPMDiagnosticElement](BPMDiagnosticElement.md), [BAMDiagnosticElement](BAMDiagnosticElement.md), [BLMDiagnosticElement](BLMDiagnosticElement.md), [ScreenDiagnosticElement](ScreenDiagnosticElement.md), [ChargeDiagnosticElement](ChargeDiagnosticElement.md), [CameraDiagnosticElement](CameraDiagnosticElement.md) |
+| Domain Of | [BPMDiagnosticElement](BPMDiagnosticElement.md), [BAMDiagnosticElement](BAMDiagnosticElement.md), [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md), [BLMDiagnosticElement](BLMDiagnosticElement.md), [ScreenDiagnosticElement](ScreenDiagnosticElement.md), [ChargeDiagnosticElement](ChargeDiagnosticElement.md), [CameraDiagnosticElement](CameraDiagnosticElement.md) |
 
 ### Cardinality and Requirements
 
@@ -80,6 +81,7 @@ name: type
 domain_of:
 - BPMDiagnosticElement
 - BAMDiagnosticElement
+- PhotonIntensityMonitorDiagnostic
 - BLMDiagnosticElement
 - ScreenDiagnosticElement
 - ChargeDiagnosticElement

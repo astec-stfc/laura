@@ -92,6 +92,7 @@ URI: [laura:ManufacturerElement](https://w3id.org/laura/ManufacturerElement)
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [PhotonMonitor](PhotonMonitor.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [Plasma](Plasma.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [LaserEnergyMeter](LaserEnergyMeter.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
@@ -99,6 +100,14 @@ URI: [laura:ManufacturerElement](https://w3id.org/laura/ManufacturerElement)
 | [LaserAttenuator](LaserAttenuator.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [Dipole](Dipole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [Quadrupole](Quadrupole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [Sextupole](Sextupole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [Octupole](Octupole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [HorizontalCorrector](HorizontalCorrector.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [VerticalCorrector](VerticalCorrector.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [CombinedCorrector](CombinedCorrector.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [Solenoid](Solenoid.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [Wiggler](Wiggler.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [NonLinearLens](NonLinearLens.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 
 
 

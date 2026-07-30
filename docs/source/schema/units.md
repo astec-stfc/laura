@@ -49,6 +49,7 @@ URI: [laura:units](https://w3id.org/laura/units)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `string(Arb. Units)` |
 | Owner | [ControlVariable](ControlVariable.md) |
 
 
@@ -94,6 +95,7 @@ name: units
 description: Physical units string (e.g., ``A``, ``T/m``).
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: string(Arb. Units)
 owner: ControlVariable
 domain_of:
 - ControlVariable

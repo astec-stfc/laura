@@ -6,7 +6,7 @@ search:
 # Slot: hardware_type 
 
 
-_Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML._
+_Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML._
 
 
 
@@ -60,6 +60,7 @@ URI: [laura:hardware_type](https://w3id.org/laura/hardware_type)
 | [WallCurrentMonitor](WallCurrentMonitor.md) | Wall-current monitor (WCM) for non-destructive charge measurement |  yes  |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | Faraday cup for destructive charge measurement |  yes  |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | Integrated current transformer (ICT) for non-destructive single-shot charge m... |  yes  |
+| [PhotonMonitor](PhotonMonitor.md) | Photon intensity monitor |  yes  |
 | [Plasma](Plasma.md) | Laser-driven plasma-accelerator stage |  yes  |
 | [LaserEnergyMeter](LaserEnergyMeter.md) | Laser pulse-energy diagnostic (photodiode / pyroelectric) |  yes  |
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | Half-wave plate for laser polarisation rotation |  yes  |
@@ -67,6 +68,14 @@ URI: [laura:hardware_type](https://w3id.org/laura/hardware_type)
 | [LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |  yes  |
 | [Dipole](Dipole.md) |  |  yes  |
 | [Quadrupole](Quadrupole.md) |  |  yes  |
+| [Sextupole](Sextupole.md) | Sextupole chromaticity-correction magnet |  yes  |
+| [Octupole](Octupole.md) | Octupole magnet |  yes  |
+| [HorizontalCorrector](HorizontalCorrector.md) | Horizontal steering corrector |  yes  |
+| [VerticalCorrector](VerticalCorrector.md) | Vertical steering corrector |  yes  |
+| [CombinedCorrector](CombinedCorrector.md) | Combined horizontal/vertical steering corrector, naming the two single-plane ... |  yes  |
+| [Solenoid](Solenoid.md) | Solenoid focusing magnet |  yes  |
+| [Wiggler](Wiggler.md) | Wiggler / undulator insertion device |  yes  |
+| [NonLinearLens](NonLinearLens.md) | Non-linear integrable-optics lens |  yes  |
 
 
 
@@ -133,8 +142,8 @@ URI: [laura:hardware_type](https://w3id.org/laura/hardware_type)
 <details>
 ```yaml
 name: hardware_type
-description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the concrete
-  subclass to instantiate when loading from YAML.
+description: Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the
+  concrete subclass to instantiate when loading from YAML.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: string(Generic)

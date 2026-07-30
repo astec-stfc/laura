@@ -131,7 +131,7 @@ attributes:
   position:
     name: position
     description: Surveyed position.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     domain_of:
     - ElementPositionError
     - ElementSurvey
@@ -139,7 +139,7 @@ attributes:
   rotation:
     name: rotation
     description: Surveyed rotation.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     domain_of:
     - ElementPositionError
     - ElementSurvey
@@ -163,7 +163,7 @@ attributes:
   position:
     name: position
     description: Surveyed position.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     owner: ElementSurvey
     domain_of:
     - ElementPositionError
@@ -172,7 +172,7 @@ attributes:
   rotation:
     name: rotation
     description: Surveyed rotation.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     owner: ElementSurvey
     domain_of:
     - ElementPositionError

@@ -209,16 +209,16 @@ URI: [laura:RFDeflectingCavity](https://w3id.org/laura/RFDeflectingCavity)
 | [reference](reference.md) | 0..1 <br/> [ReferenceElement](ReferenceElement.md) | Links to design drawings and files | [StandardElement](StandardElement.md) |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique element name within the machine | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_class](hardware_class.md) | 1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
-| [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for MODEL_REGISTRY dispatch | [AcceleratorElement](AcceleratorElement.md) |
+| [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for ELEMENT_REGISTRY dispatch | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | [AcceleratorElement](AcceleratorElement.md) |
 | [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | [AcceleratorElement](AcceleratorElement.md) |
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
-| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | [AcceleratorElement](AcceleratorElement.md) |
-| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | [AcceleratorElement](AcceleratorElement.md) |
-| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
-| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element consumes (e | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element produces (e | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements feeding this one, whose ``outputs`` supply its ``inputs`` | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements this one feeds; the inverse of ``upstream`` | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -399,8 +399,8 @@ attributes:
     required: true
   hardware_type:
     name: hardware_type
-    description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the
-      concrete subclass to instantiate when loading from YAML.
+    description: Python class name used for ELEMENT_REGISTRY dispatch.  Identifies
+      the concrete subclass to instantiate when loading from YAML.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string(Generic)
@@ -465,7 +465,7 @@ attributes:
     range: string
   inputs:
     name: inputs
-    description: (List) of input types
+    description: Signal types this element consumes (e.g. ``[current, voltage]``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: RFDeflectingCavity
@@ -475,7 +475,7 @@ attributes:
     multivalued: true
   outputs:
     name: outputs
-    description: (List) of output types
+    description: Signal types this element produces (e.g. ``[power, phase]``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: RFDeflectingCavity
@@ -485,7 +485,8 @@ attributes:
     multivalued: true
   upstream:
     name: upstream
-    description: (List) of upstream elements.
+    description: Names of elements feeding this one, whose ``outputs`` supply its
+      ``inputs``.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: RFDeflectingCavity
@@ -495,7 +496,7 @@ attributes:
     multivalued: true
   downstream:
     name: downstream
-    description: (List) of upstream elements.
+    description: Names of elements this one feeds; the inverse of ``upstream``.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: RFDeflectingCavity

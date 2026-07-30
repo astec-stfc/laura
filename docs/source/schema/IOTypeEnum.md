@@ -45,8 +45,8 @@ URI: [laura:IOTypeEnum](https://w3id.org/laura/IOTypeEnum)
 
 | Name | Description |
 | ---  | --- |
-| [inputs](inputs.md) | (List) of input types |
-| [outputs](outputs.md) | (List) of output types |
+| [inputs](inputs.md) | Signal types this element consumes (e |
+| [outputs](outputs.md) | Signal types this element produces (e |
 
 
 

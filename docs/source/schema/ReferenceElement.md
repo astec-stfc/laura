@@ -92,6 +92,7 @@ URI: [laura:ReferenceElement](https://w3id.org/laura/ReferenceElement)
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [PhotonMonitor](PhotonMonitor.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [Plasma](Plasma.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [LaserEnergyMeter](LaserEnergyMeter.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
@@ -99,6 +100,14 @@ URI: [laura:ReferenceElement](https://w3id.org/laura/ReferenceElement)
 | [LaserAttenuator](LaserAttenuator.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [Dipole](Dipole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [Quadrupole](Quadrupole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [Sextupole](Sextupole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [Octupole](Octupole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [HorizontalCorrector](HorizontalCorrector.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [VerticalCorrector](VerticalCorrector.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [CombinedCorrector](CombinedCorrector.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [Solenoid](Solenoid.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [Wiggler](Wiggler.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [NonLinearLens](NonLinearLens.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 
 
 

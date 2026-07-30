@@ -109,7 +109,7 @@ attributes:
   interlocks:
     name: interlocks
     description: Names of the interlocks guarding this shutter.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/elements
     aliases:
     - shutter_interlock_names
     rank: 1000
@@ -133,7 +133,7 @@ attributes:
   interlocks:
     name: interlocks
     description: Names of the interlocks guarding this shutter.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/elements
     aliases:
     - shutter_interlock_names
     rank: 1000

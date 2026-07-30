@@ -76,6 +76,9 @@ URI: [laura:LinearSaturationFit](https://w3id.org/laura/LinearSaturationFit)
 | [MagneticElement](MagneticElement.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
 | [DipoleMagnet](DipoleMagnet.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
+| [SextupoleMagnet](SextupoleMagnet.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
+| [OctupoleMagnet](OctupoleMagnet.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
+| [SolenoidMagnet](SolenoidMagnet.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
 
 
 

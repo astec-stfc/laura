@@ -95,6 +95,7 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [PhotonMonitor](PhotonMonitor.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Plasma](Plasma.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [LaserEnergyMeter](LaserEnergyMeter.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
@@ -102,6 +103,14 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
 | [LaserAttenuator](LaserAttenuator.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Dipole](Dipole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Quadrupole](Quadrupole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [Sextupole](Sextupole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [Octupole](Octupole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [HorizontalCorrector](HorizontalCorrector.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [VerticalCorrector](VerticalCorrector.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [CombinedCorrector](CombinedCorrector.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [Solenoid](Solenoid.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [Wiggler](Wiggler.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [NonLinearLens](NonLinearLens.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 
 
 

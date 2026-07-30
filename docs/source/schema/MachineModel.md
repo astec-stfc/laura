@@ -136,7 +136,7 @@ attributes:
   elements:
     name: elements
     description: All elements in the machine, keyed by name.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     domain_of:
     - SectionLattice
     - MachineModel
@@ -145,7 +145,7 @@ attributes:
   sections:
     name: sections
     description: All named beamline sections.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     domain_of:
     - MachineLayout
     - MachineModel
@@ -154,7 +154,7 @@ attributes:
   layouts:
     name: layouts
     description: All named beamline layouts.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     rank: 1000
     domain_of:
     - MachineModel
@@ -177,7 +177,7 @@ attributes:
   elements:
     name: elements
     description: All elements in the machine, keyed by name.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     owner: MachineModel
     domain_of:
     - SectionLattice
@@ -187,7 +187,7 @@ attributes:
   sections:
     name: sections
     description: All named beamline sections.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     owner: MachineModel
     domain_of:
     - MachineLayout
@@ -197,7 +197,7 @@ attributes:
   layouts:
     name: layouts
     description: All named beamline layouts.
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/machine
     rank: 1000
     owner: MachineModel
     domain_of:

@@ -128,6 +128,14 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | [Magnet](Magnet.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
 | [Dipole](Dipole.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
 | [Quadrupole](Quadrupole.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| [Sextupole](Sextupole.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| [Octupole](Octupole.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| [HorizontalCorrector](HorizontalCorrector.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| [VerticalCorrector](VerticalCorrector.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| [CombinedCorrector](CombinedCorrector.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| [Solenoid](Solenoid.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| [Wiggler](Wiggler.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
+| [NonLinearLens](NonLinearLens.md) | [simulation](simulation.md) | range | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 
 

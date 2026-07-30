@@ -28,6 +28,10 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
         click DipoleMagnet href "../DipoleMagnet/"
       MagneticElement <|-- QuadrupoleMagnet
         click QuadrupoleMagnet href "../QuadrupoleMagnet/"
+      MagneticElement <|-- SextupoleMagnet
+        click SextupoleMagnet href "../SextupoleMagnet/"
+      MagneticElement <|-- OctupoleMagnet
+        click OctupoleMagnet href "../OctupoleMagnet/"
       
       MagneticElement : angle
         
@@ -134,6 +138,8 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 * **MagneticElement**
     * [DipoleMagnet](DipoleMagnet.md)
     * [QuadrupoleMagnet](QuadrupoleMagnet.md)
+    * [SextupoleMagnet](SextupoleMagnet.md)
+    * [OctupoleMagnet](OctupoleMagnet.md)
 
 
 ## Class Properties
@@ -244,6 +250,8 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
+    - Corrector_Magnet
+    - Solenoid_Magnet
     range: integer
     minimum_value: -1
   skew:
@@ -265,6 +273,10 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
+    - Corrector_Magnet
+    - Solenoid_Magnet
+    - Wiggler_Magnet
+    - NonLinearLens_Magnet
     range: float
     minimum_value: 0.0
     unit:
@@ -300,6 +312,7 @@ attributes:
     rank: 1000
     domain_of:
     - MagneticElement
+    - Solenoid_Magnet
     range: FieldIntegral
   linear_saturation_coefficients:
     name: linear_saturation_coefficients
@@ -308,6 +321,7 @@ attributes:
     rank: 1000
     domain_of:
     - MagneticElement
+    - Solenoid_Magnet
     range: LinearSaturationFit
   settle_time:
     name: settle_time
@@ -316,6 +330,7 @@ attributes:
     rank: 1000
     domain_of:
     - MagneticElement
+    - Solenoid_Magnet
     range: float
     unit:
       ucum_code: s
@@ -402,6 +417,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - MagneticElement
+    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad
@@ -474,6 +490,8 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
+    - Corrector_Magnet
+    - Solenoid_Magnet
     range: integer
     minimum_value: -1
   skew:
@@ -497,6 +515,10 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
+    - Corrector_Magnet
+    - Solenoid_Magnet
+    - Wiggler_Magnet
+    - NonLinearLens_Magnet
     range: float
     minimum_value: 0.0
     unit:
@@ -536,6 +558,7 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
+    - Solenoid_Magnet
     range: FieldIntegral
   linear_saturation_coefficients:
     name: linear_saturation_coefficients
@@ -545,6 +568,7 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
+    - Solenoid_Magnet
     range: LinearSaturationFit
   settle_time:
     name: settle_time
@@ -554,6 +578,7 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
+    - Solenoid_Magnet
     range: float
     unit:
       ucum_code: s
@@ -649,6 +674,7 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
+    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad

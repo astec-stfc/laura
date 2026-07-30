@@ -28,6 +28,14 @@ URI: [laura:magnetic](https://w3id.org/laura/magnetic)
 | [Magnet](Magnet.md) | Base class for all magnetic focusing and bending elements |  no  |
 | [Dipole](Dipole.md) |  |  yes  |
 | [Quadrupole](Quadrupole.md) |  |  yes  |
+| [Sextupole](Sextupole.md) | Sextupole chromaticity-correction magnet |  yes  |
+| [Octupole](Octupole.md) | Octupole magnet |  yes  |
+| [HorizontalCorrector](HorizontalCorrector.md) | Horizontal steering corrector |  yes  |
+| [VerticalCorrector](VerticalCorrector.md) | Vertical steering corrector |  yes  |
+| [CombinedCorrector](CombinedCorrector.md) | Combined horizontal/vertical steering corrector, naming the two single-plane ... |  yes  |
+| [Solenoid](Solenoid.md) | Solenoid focusing magnet |  yes  |
+| [Wiggler](Wiggler.md) | Wiggler / undulator insertion device |  yes  |
+| [NonLinearLens](NonLinearLens.md) | Non-linear integrable-optics lens |  yes  |
 
 
 

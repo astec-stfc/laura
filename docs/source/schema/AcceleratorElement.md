@@ -122,16 +122,16 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | ---  | --- | --- | --- |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique element name within the machine | direct |
 | [hardware_class](hardware_class.md) | 1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | direct |
-| [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for MODEL_REGISTRY dispatch | direct |
+| [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for ELEMENT_REGISTRY dispatch | direct |
 | [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | direct |
 | [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | direct |
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | direct |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | direct |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | direct |
-| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of input types | direct |
-| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | (List) of output types | direct |
-| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | direct |
-| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | (List) of upstream elements | direct |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element consumes (e | direct |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element produces (e | direct |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements feeding this one, whose ``outputs`` supply its ``inputs`` | direct |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements this one feeds; the inverse of ``upstream`` | direct |
 
 
 
@@ -212,6 +212,8 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [PhotonMonitor](PhotonMonitor.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [PhotonMonitor](PhotonMonitor.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Plasma](Plasma.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Plasma](Plasma.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [LaserEnergyMeter](LaserEnergyMeter.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
@@ -226,6 +228,22 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [Dipole](Dipole.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Quadrupole](Quadrupole.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Quadrupole](Quadrupole.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Sextupole](Sextupole.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Sextupole](Sextupole.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Octupole](Octupole.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Octupole](Octupole.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [HorizontalCorrector](HorizontalCorrector.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [HorizontalCorrector](HorizontalCorrector.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [VerticalCorrector](VerticalCorrector.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [VerticalCorrector](VerticalCorrector.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [CombinedCorrector](CombinedCorrector.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [CombinedCorrector](CombinedCorrector.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Solenoid](Solenoid.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Solenoid](Solenoid.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Wiggler](Wiggler.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [Wiggler](Wiggler.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [NonLinearLens](NonLinearLens.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [NonLinearLens](NonLinearLens.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -300,8 +318,8 @@ attributes:
     required: true
   hardware_type:
     name: hardware_type
-    description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the
-      concrete subclass to instantiate when loading from YAML.
+    description: Python class name used for ELEMENT_REGISTRY dispatch.  Identifies
+      the concrete subclass to instantiate when loading from YAML.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string(Generic)
@@ -359,7 +377,7 @@ attributes:
     range: string
   inputs:
     name: inputs
-    description: (List) of input types
+    description: Signal types this element consumes (e.g. ``[current, voltage]``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     domain_of:
@@ -368,7 +386,7 @@ attributes:
     multivalued: true
   outputs:
     name: outputs
-    description: (List) of output types
+    description: Signal types this element produces (e.g. ``[power, phase]``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     domain_of:
@@ -377,7 +395,8 @@ attributes:
     multivalued: true
   upstream:
     name: upstream
-    description: (List) of upstream elements.
+    description: Names of elements feeding this one, whose ``outputs`` supply its
+      ``inputs``.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     domain_of:
@@ -386,7 +405,7 @@ attributes:
     multivalued: true
   downstream:
     name: downstream
-    description: (List) of upstream elements.
+    description: Names of elements this one feeds; the inverse of ``upstream``.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     domain_of:
@@ -433,8 +452,8 @@ attributes:
     required: true
   hardware_type:
     name: hardware_type
-    description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the
-      concrete subclass to instantiate when loading from YAML.
+    description: Python class name used for ELEMENT_REGISTRY dispatch.  Identifies
+      the concrete subclass to instantiate when loading from YAML.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string(Generic)
@@ -498,7 +517,7 @@ attributes:
     range: string
   inputs:
     name: inputs
-    description: (List) of input types
+    description: Signal types this element consumes (e.g. ``[current, voltage]``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: AcceleratorElement
@@ -508,7 +527,7 @@ attributes:
     multivalued: true
   outputs:
     name: outputs
-    description: (List) of output types
+    description: Signal types this element produces (e.g. ``[power, phase]``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: AcceleratorElement
@@ -518,7 +537,8 @@ attributes:
     multivalued: true
   upstream:
     name: upstream
-    description: (List) of upstream elements.
+    description: Names of elements feeding this one, whose ``outputs`` supply its
+      ``inputs``.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: AcceleratorElement
@@ -528,7 +548,7 @@ attributes:
     multivalued: true
   downstream:
     name: downstream
-    description: (List) of upstream elements.
+    description: Names of elements this one feeds; the inverse of ``upstream``.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     owner: AcceleratorElement

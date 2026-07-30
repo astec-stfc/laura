@@ -105,6 +105,7 @@ URI: [laura:LaserElement](https://w3id.org/laura/LaserElement)
 | ---  | --- | --- | --- |
 | [Laser](Laser.md) | [laser](laser.md) | range | [LaserElement](LaserElement.md) |
 | [Plasma](Plasma.md) | [laser](laser.md) | range | [LaserElement](LaserElement.md) |
+| [Wiggler](Wiggler.md) | [laser](laser.md) | range | [LaserElement](LaserElement.md) |
 
 
 

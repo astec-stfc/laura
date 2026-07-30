@@ -176,7 +176,7 @@ class Quadrupole(Magnet):
 ```
 
 This value must exactly match the `hardware_type` string in YAML files for
-`MODEL_REGISTRY` dispatch to work (see [yaml-pipeline.md](yaml-pipeline.md)).
+`ELEMENT_REGISTRY` dispatch to work (see [yaml-pipeline.md](yaml-pipeline.md)).
 
 The schema enforces this via `slot_usage` constraints
 (e.g., `equals_string: Quadrupole`), providing ontology-level validation in
@@ -218,7 +218,7 @@ class MyNewElement(PhysicalBaseElement, _MyNewElementBase):
     # Custom validators / properties...
 ```
 
-The class is automatically registered in `MODEL_REGISTRY` at import time.
+The class is automatically registered in `ELEMENT_REGISTRY` at import time.
 YAML files with `hardware_type: MyNewElement` will be parsed as this class.
 
 ## Adding a concrete magnet type (Python-only)

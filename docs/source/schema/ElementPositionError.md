@@ -130,7 +130,7 @@ attributes:
   position:
     name: position
     description: Positional misalignment error [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - ElementPositionError
@@ -139,7 +139,7 @@ attributes:
   rotation:
     name: rotation
     description: Angular misalignment error [rad].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     domain_of:
     - ElementPositionError
@@ -163,7 +163,7 @@ attributes:
   position:
     name: position
     description: Positional misalignment error [m].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: ElementPositionError
     domain_of:
@@ -173,7 +173,7 @@ attributes:
   rotation:
     name: rotation
     description: Angular misalignment error [rad].
-    from_schema: https://w3id.org/laura/schema
+    from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     owner: ElementPositionError
     domain_of:

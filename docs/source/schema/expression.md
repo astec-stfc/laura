@@ -6,7 +6,7 @@ search:
 # Slot: expression 
 
 
-_Optional expression string for derived values._
+_Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``._
 
 
 
@@ -91,7 +91,10 @@ URI: [laura:expression](https://w3id.org/laura/expression)
 <details>
 ```yaml
 name: expression
-description: Optional expression string for derived values.
+description: 'Expression graph computing the value written to ``target``, as nested
+  mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is
+  a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``,
+  ``truediv`` and ``pow``.'
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ControlVariable

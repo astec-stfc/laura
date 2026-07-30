@@ -59,7 +59,7 @@ first — run the generation script to create it.
 ## Schema design notes
 
 - `hardware_type` carries `designates_type: true` — it is the dispatch key
-  used by `MODEL_REGISTRY` in Python and the type discriminator in LinkML.
+  used by `ELEMENT_REGISTRY` in Python and the type discriminator in LinkML.
 - `name` carries `identifier: true` — it is the unique element key.
 - `Position` and `Rotation` are defined as simple classes; the actual Python
   backing uses `NumpyVectorModel` which also accepts list input (`[x, y, z]`).
