@@ -173,6 +173,11 @@ def collapse_identifier_patterns(root: str, apply: bool = False) -> list:
     Returns a list of `(relative_path, element_name, pattern, keys_touched)`
     describing what was (or would be) changed.
     """
+    if not os.path.isdir(root):
+        # os.walk silently yields nothing for a bad path, which would
+        # otherwise look identical to "nothing here needs collapsing".
+        raise NotADirectoryError(f"root '{root}' is not a directory")
+
     changes = []
     for dirpath, _dirnames, filenames in os.walk(root):
         for fn in filenames:
@@ -209,7 +214,10 @@ def main():
     )
     args = parser.parse_args()
 
-    changes = collapse_identifier_patterns(args.root, apply=args.apply)
+    try:
+        changes = collapse_identifier_patterns(args.root, apply=args.apply)
+    except NotADirectoryError as exc:
+        parser.error(str(exc))
     for rel_path, name, pattern, keys_touched in changes:
         print(f"{rel_path}: name={name} -> identifier_pattern={pattern!r} (keys: {keys_touched})")
     verb = "Applied" if args.apply else "Would apply"

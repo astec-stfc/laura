@@ -233,6 +233,11 @@ def extract_schemas(root: str, apply: bool = False) -> dict:
             "files_rewritten": [(path, n_variables_left_inline, n_variables_before), ...],
         }
     """
+    if not os.path.isdir(root):
+        # os.walk silently yields nothing for a bad path, which would
+        # otherwise look identical to "this lattice has no duplication".
+        raise NotADirectoryError(f"root '{root}' is not a directory")
+
     report = {"schema_files": [], "files_rewritten": []}
     by_directory = defaultdict(list)
     for path in find_element_files(root):
@@ -267,7 +272,10 @@ def main():
     )
     args = parser.parse_args()
 
-    report = extract_schemas(args.root, apply=args.apply)
+    try:
+        report = extract_schemas(args.root, apply=args.apply)
+    except NotADirectoryError as exc:
+        parser.error(str(exc))
     print_report(report, applied=args.apply)
 
 
