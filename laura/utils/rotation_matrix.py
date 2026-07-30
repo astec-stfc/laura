@@ -78,8 +78,8 @@ def position_rotated(
         Rotated position
     """
     from ..models.physical import Position  # Avoid circular import
-    
-    matrix = rotation.rotation_matrix
+
+    matrix = euler_angles_to_rotation_matrix(rotation.theta, rotation.phi, rotation.psi)
     original_vec = np.array([position.x, position.y, position.z])
     rotated_vec = matrix @ original_vec
 
@@ -103,12 +103,12 @@ def element_start_position(
         Entrance position
     """
     from ..models.physical import Position  # Avoid circular import
-    
+
     # Vector pointing upstream (negative s)
     upstream = np.array([0.0, 0.0, -length / 2.0])
-    
+
     # Rotate to element frame
-    matrix = rotation.rotation_matrix
+    matrix = euler_angles_to_rotation_matrix(rotation.theta, rotation.phi, rotation.psi)
     offset = matrix @ upstream
     
     return Position(
@@ -163,12 +163,12 @@ def element_end_position(
         Exit position
     """
     from ..models.physical import Position  # Avoid circular import
-    
+
     # Vector pointing downstream (positive s)
     downstream = np.array([0.0, 0.0, length / 2.0])
-    
+
     # Rotate to element frame
-    matrix = rotation.rotation_matrix
+    matrix = euler_angles_to_rotation_matrix(rotation.theta, rotation.phi, rotation.psi)
     offset = matrix @ downstream
     
     return Position(

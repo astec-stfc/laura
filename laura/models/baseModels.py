@@ -327,7 +327,7 @@ class NumpyModel(ModelBase):
     @model_serializer(mode="wrap")
     def ser_model(self, handler, info: SerializationInfo):
         if info.mode == "json":
-            return self.array  # vector for JSON
+            return self.array.tolist()  # vector for JSON
         return handler(self)  # default dict for python
 
     @property

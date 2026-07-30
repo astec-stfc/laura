@@ -355,7 +355,7 @@ class Magnet(PhysicalBaseElement, _MagnetBase):
     @property
     def end_angle(self) -> float:
         """End angle of the magnet"""
-        return self.start_angle + self.bend_angle.theta
+        return self.start_angle.theta + self.bend_angle.theta
 
 
 class Dipole(Magnet, _DipoleBase):
