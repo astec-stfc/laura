@@ -26,6 +26,7 @@ dependencies = [
     "munch>=4",
     "pydantic-core>=2.41.5",
     "easygdf",
+    "h5py",
 ]
 
 requires-python = ">= 3.10"
