@@ -378,6 +378,12 @@ class opal_fieldsolver(opal_header):
     sample_interval: int = 1
     """Downsampling interval calculated as 2 ** (3 * sample_interval)"""
 
+    MIN_PARTICLES_PER_CELL: int = 8
+    """Fewest particles per space-charge cell the automatic mesh may produce.
+    Eight matches the mesh at which the CLARA benchmark stopped improving (16^3
+    at 32768 particles gave 2.07x ASTRA against 2.05x at 32^3, for an eighth of
+    the cells) and keeps ``grid**3`` safely below the particle count."""
+
     grid_size_override: int | tuple[int, int, int] | list | None = None
     """Explicit space-charge mesh size, replacing the automatic particle-count
     heuristic in :func:`~grid_size`. A single value is applied to all three
@@ -512,8 +518,18 @@ class opal_fieldsolver(opal_header):
         """
         if self.grid_size_override:
             return int(self.grid_size_override)
-        # print('asking for grid sizes n = ', self.npart, ' is ', self.grids.getGridSizes(self.npart))
-        return self.grids.getGridSizes(self.npart / self.sample_interval)
+        npart = self.npart / self.sample_interval
+        grid = self.grids.getGridSizes(npart)
+        # The shared heuristic aims at roughly one particle per cell, which OPAL
+        # will not accept: it stops with "the number of simulation particles is
+        # smaller than the number of gridpoints" as soon as grid**3 exceeds the
+        # particle count, which the bare cube root does at higher particle
+        # numbers. One particle per cell is poor statistics in any case, so step
+        # down in powers of two until each cell holds at least
+        # MIN_PARTICLES_PER_CELL.
+        while grid > 4 and grid ** 3 > npart / self.MIN_PARTICLES_PER_CELL:
+            grid //= 2
+        return grid
 
 
 class opal_beam(opal_header):
