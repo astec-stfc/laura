@@ -124,18 +124,19 @@ class BaseLatticeModel(ModelBase):
     """Top-level directory containing lattice files."""
 
     functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
-    """Mapping of functional-parameter names to their numeric values, or a path
-    to a YAML file holding such a mapping (resolved by
-    :func:`load_functional_definitions` at construction)."""
+    """Functional definitions for the lattice, e.g. ``{"quad1_k1l": -2,
+    "cav1_phase": 90}``, or a path to a YAML file holding such a mapping.
+    Registered into the shared registry so that string-valued element parameters
+    can be resolved to numbers on demand."""
 
     resolve_functional: bool = False
-    """Whether functional parameters are rendered as resolved numbers rather
-    than as their definition names."""
+    """Global resolution mode. When False (default), functional attributes are
+    rendered as their definition name (a string); when True they are presented as
+    resolved numbers. See :func:`~laura.models.baseModels.set_resolve_functional`."""
 
     _functional_source: str | None = None
 
-    def model_post_init(self, __context):
-        super().model_post_init(__context)
+    def model_post_init(self, __context) -> None:
         self._functional_source = (
             self.functional_definitions
             if isinstance(self.functional_definitions, str)
@@ -144,8 +145,6 @@ class BaseLatticeModel(ModelBase):
         self.functional_definitions = load_functional_definitions(
             self.functional_definitions, self.master_lattice
         )
-        # also publish to the shared registry, so that deeply nested element
-        # models can resolve their symbolic parameters
         set_functional_definitions(self.functional_definitions)
         set_resolve_functional(self.resolve_functional)
         elements = getattr(self, "elements", None)
@@ -854,6 +853,11 @@ class MachineLayout(BaseLatticeModel):
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
+        self.functional_definitions = load_functional_definitions(
+            self.functional_definitions, self.master_lattice
+        )
+        set_functional_definitions(self.functional_definitions)
+        set_resolve_functional(self.resolve_functional)
         matrix = [v.elements.elements.values() for v in self.sections.values()]
         all_elems = [item for row in matrix for item in row]
         if len(all_elems) > 0:

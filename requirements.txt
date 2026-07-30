@@ -13,6 +13,7 @@ pydantic-core>=2.41.5
 # pip install "laura-accelerator[wake_t]"
 # pip install "laura-accelerator[bmad]"
 # pip install "laura-accelerator[madx]"
+# pip install "laura-accelerator[gpt]"
 
 # ── Schema work only ─────────────────────────────────────────────────────────
 # None of the following are needed to *run* LAURA, so they are deliberately not

@@ -42,7 +42,7 @@ local_scheme = "no-local-version" # removes +untagged suffix
 
 # Individual simulation-code extras
 xsuite = [
-    "xsuite>=0.50.0",
+    "xsuite>=0.50.0; sys_platform != 'win32'",
 ]
 
 ocelot = [
@@ -68,6 +68,11 @@ madx = [
     "cpymad>=1.16.0",
 ]
 
+# GDF field-map read/write (laura.translator.utils.fields.gdf) for GPT
+gpt = [
+    "easygdf",
+]
+
 # RF-Track (laura.translator.conversion_rules.codes.rftrack_conversion) is not
 # distributed on PyPI, so it has no extras entry here — install the wheel
 # manually from the RF-Track page (CERN, A. Latina) into this environment.
@@ -75,12 +80,13 @@ madx = [
 # All lattice-conversion backends in one go
 # Install with: pip install "laura-accelerator[conversion]"
 conversion = [
-    "xsuite>=0.50.0",
+    "xsuite>=0.50.0; sys_platform != 'win32'",
     "ocelot-desy>=25.06.0",
     "cheetah-accelerator>=0.7.5",
     "wake_t>=0.8.0",
     "pytao>=0.5.5",
     "cpymad>=1.16.0",
+    "easygdf",
 ]
 
 test = [
@@ -130,12 +136,13 @@ sql = [
 # Everything — conversion backends, docs, schema tooling, and RDF support
 # Install with: pip install "laura-accelerator[full]"
 full = [
-    "xsuite>=0.50.0",
+    "xsuite>=0.50.0; sys_platform != 'win32'",
     "ocelot-desy>=25.06.0",
     "cheetah-accelerator>=0.7.5",
     "wake_t>=0.8.0",
     "pytao>=0.5.5",
     "cpymad>=1.16.0",
+    "easygdf",
     "sphinx>=8",
     "sphinx-rtd-theme",
     "myst-nb",
