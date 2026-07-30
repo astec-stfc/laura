@@ -346,9 +346,10 @@ class NumpyModel(ModelBase):
         return cls(**dict(zip(list(cls.model_fields.keys()), values)))
 
     def update(self, **kwargs):
+        cls = self.__class__
         [
             v.annotation.update(v)
-            for k, v in self.model_fields.items()
+            for v in cls.model_fields.values()
             if hasattr(v.annotation, "update")
         ]
         self.__dict__.update(kwargs)
