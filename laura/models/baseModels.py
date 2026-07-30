@@ -370,14 +370,6 @@ class NumpyVectorModel(NumpyModel):
             return False
         return list(self) == list(other)
 
-    def __neq__(self, other: Any) -> bool:
-        cls = self.__class__
-        if other == 0 or other == 0.0 or other is None:
-            if all([getattr(self, k) == 0 for k in cls.model_fields.keys()]):
-                return False
-            return True
-        return list(self) != list(other)
-
 
 class objectList(IgnoreExtra):
 

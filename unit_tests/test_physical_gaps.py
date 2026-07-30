@@ -22,11 +22,6 @@ class TestPositionJsonAndDunders:
         p = Position(x=1, y=2, z=3)
         assert p.model_dump(mode="json") == [1.0, 2.0, 3.0]
 
-    def test_neq_dunder_direct_call(self):
-        # `__neq__` (not the recognised `__ne__`) is unreachable via `!=`.
-        assert Position(x=1, y=0, z=0).__neq__(0) is True
-        assert Position().__neq__(0) is False
-
     def test_vector_angle_with_list_other(self):
         p = Position(x=0, y=0, z=5)
         result = p.vector_angle([0, 0, 0], [0, 0, 1])
@@ -45,10 +40,6 @@ class TestRotationJsonAndDunders:
     def test_from_values(self):
         r = Rotation.from_values(0.1, 0.2, 0.3)
         assert (r.phi, r.psi, r.theta) == pytest.approx((0.1, 0.2, 0.3))
-
-    def test_neq_dunder_direct_call(self):
-        assert Rotation(phi=0.1).__neq__(0) is True
-        assert Rotation().__neq__(0) is False
 
     def test_radd_direct_call(self):
         r1 = Rotation(phi=0.1, psi=0.2, theta=0.3)

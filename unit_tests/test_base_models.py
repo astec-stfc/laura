@@ -195,22 +195,6 @@ class TestNumpyVectorModel:
         assert V() == 0.0
         assert V() == None  # noqa: E711
 
-    def test_neq_nonzero(self):
-        class V(NumpyVectorModel):
-            x: float = 0.0
-            y: float = 0.0
-
-        v = V(x=1, y=0)
-        assert v.__neq__(0) is True
-
-    def test_neq_zero(self):
-        class V(NumpyVectorModel):
-            x: float = 0.0
-            y: float = 0.0
-
-        v = V()
-        assert v.__neq__(0) is False
-
 
 # ---------------------------------------------------------------------------
 # objectList / DeviceList / Aliases

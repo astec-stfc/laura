@@ -145,10 +145,3 @@ class TestNumpyVectorModel:
     def test_neq_list(self):
         v = _Vec3(x=1.0, y=2.0, z=3.0)
         assert v != [9.0, 9.0, 9.0]
-
-    def test_neq_dunder_direct_call(self):
-        # `__neq__` (not the recognised `__ne__`) is unreachable via `!=`;
-        # call it directly to exercise both branches of the method body.
-        assert _Vec3().__neq__(0) is False
-        assert _Vec3(x=1.0).__neq__(0) is True
-        assert _Vec3(x=1.0, y=2.0, z=3.0).__neq__([9.0, 9.0, 9.0]) is True

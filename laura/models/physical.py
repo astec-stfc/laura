@@ -81,9 +81,6 @@ class Position(_PositionBase):
             return all([self.x == 0, self.y == 0, self.z == 0])
         return list(self) == list(other)
 
-    def __neq__(self, other) -> bool:
-        return not self.__eq__(other)
-
     def __add__(self, other: "Position") -> "Position":
         return Position(
             x=(self.x + other.x), y=(self.y + other.y), z=(self.z + other.z)
@@ -148,9 +145,6 @@ class Rotation(_RotationBase):
         if other == 0 or other == 0.0 or other is None:
             return all([self.phi == 0, self.psi == 0, self.theta == 0])
         return list(self) == list(other)
-
-    def __neq__(self, other) -> bool:
-        return not self.__eq__(other)
 
     def __add__(self, other: "Rotation") -> "Rotation":
         return Rotation(

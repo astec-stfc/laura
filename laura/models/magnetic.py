@@ -156,9 +156,6 @@ class Multipoles(MultipolesData):
     def __eq__(self, other) -> bool:
         return self.ser_model() == other
 
-    def __neq__(self, other) -> bool:
-        return not self.__eq__(other)
-
 
 class FieldIntegral(_FieldIntegralBase):
     """
@@ -742,9 +739,6 @@ class SolenoidFields(solenoidFieldsData, _SolenoidFieldsBase):
 
     def __eq__(self, other: Any) -> bool:
         return self.ser_model() == other
-
-    def __neq__(self, other: Any) -> bool:
-        return not self.__eq__(other)
 
 
 class Solenoid_Magnet(_SolenoidMagnetBase, IgnoreExtra):

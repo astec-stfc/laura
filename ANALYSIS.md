@@ -84,7 +84,6 @@
 | `from_values()` | Constructor variant | Alternate constructor from 3 args | NO - convenience only | LOW |
 | `__iter__()` | Dunder | Makes Position iterable; essential for `list(position)` pattern | YES - widely used | **HIGH** |
 | `__eq__()` | Dunder | Custom equality; treats 0/None as zero vector | YES - semantic equality | **HIGH** |
-| `__neq__()` | Dunder | Inverse of __eq__ | YES - follows __eq__ | **HIGH** |
 | `__add__()` | Dunder | Vector addition | NO - utility math only | LOW |
 | `__radd__()` | Dunder | Reverse vector addition | NO - utility math only | LOW |
 | `__sub__()` | Dunder | Vector subtraction | NO - utility math only | LOW |
@@ -107,7 +106,6 @@
 | `from_values()` | Constructor variant | 3-arg constructor | NO - convenience | LOW |
 | `__iter__()` | Dunder | Makes iterable; essential for `list(rotation)` | YES - widely used | **HIGH** |
 | `__eq__()` | Dunder | Custom equality; treats 0/None as zero rotation | YES - semantic | **HIGH** |
-| `__neq__()` | Dunder | Inverse of __eq__ | YES - follows __eq__ | **HIGH** |
 | `__add__()` | Dunder | Rotation addition | NO - utility | LOW |
 | `__radd__()` | Dunder | Reverse rotation addition | NO - utility | LOW |
 | `__sub__()` | Dunder | Rotation subtraction | NO - utility | LOW |
@@ -182,7 +180,6 @@
 | `normal()` | Utility method | Getter for normal component at order; convenience | YES - widely used | **HIGH** |
 | `skew()` | Utility method | Getter for skew component at order; convenience | YES - widely used | **HIGH** |
 | `__eq__()` | Dunder | Compares serialized dicts | YES - functional | **HIGH** |
-| `__neq__()` | Dunder | Inverse of __eq__ | YES - follows __eq__ | **HIGH** |
 
 **Summary**: normal()/skew() are **essential** conveniences used throughout. Serializer is **essential** for API/export.
 
@@ -275,7 +272,6 @@
 | `ser_model()` | model_serializer | Returns all S*L fields as dict | YES - serialization | **HIGH** |
 | `normal()` | Utility method | Getter for solenoid field at order | YES - widely used | **HIGH** |
 | `__eq__()` | Dunder | Compares serialized dicts | YES - functional | **HIGH** |
-| `__neq__()` | Dunder | Inverse of __eq__ | YES - follows __eq__ | **HIGH** |
 
 **Summary**: Similar pattern to Multipoles; serializer and normal() are **essential**.
 

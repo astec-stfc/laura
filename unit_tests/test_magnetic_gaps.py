@@ -72,12 +72,6 @@ class TestMultipolesValidatorBranches:
         mp = Multipoles()
         assert mp != {"not": "matching"}
 
-    def test_neq_dunder_direct_call(self):
-        # `__neq__` (not the recognised `__ne__`) is unreachable via the `!=`
-        # operator; call it directly to exercise the method body itself.
-        mp = Multipoles()
-        assert mp.__neq__({"not": "matching"}) is True
-
 
 class TestFieldIntegralIter:
     def test_iter_yields_coefficients(self):
@@ -289,12 +283,6 @@ class TestSolenoidFieldsDunders:
         sf = SolenoidFields()
         assert not (sf == {"S0L": 0.0})  # partial dict never matches ser_model
         assert sf != {"S0L": 0.0}
-
-    def test_neq_dunder_direct_call(self):
-        # `__neq__` (not the recognised `__ne__`) is unreachable via `!=`;
-        # call it directly to exercise the method body.
-        sf = SolenoidFields()
-        assert sf.__neq__({"S0L": 0.0}) is True
 
 
 class TestSolenoidMagnetFieldAmplitude:

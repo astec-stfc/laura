@@ -156,34 +156,34 @@ class BaseLatticeModel(ModelBase):
                 self._functional_source,
             )
 
-    def __add__(self, other: dict) -> dict:
-        copy = getattr(self, self._basename).copy()
-        copy.extend(other)
-        return copy
+    # def __add__(self, other: dict) -> dict:
+    #     copy = getattr(self, self._basename).copy()
+    #     copy.extend(other)
+    #     return copy
 
-    def __radd__(self, other: dict) -> dict:
-        copy = other.copy()
-        copy.extend(getattr(self, self._basename))
-        return copy
+    # def __radd__(self, other: dict) -> dict:
+    #     copy = other.copy()
+    #     copy.extend(getattr(self, self._basename))
+    #     return copy
 
-    def __sub__(self, other):
-        copy = getattr(self, self._basename).copy()
-        if other in copy:
-            del copy[other]
-        return copy
+    # def __sub__(self, other):
+    #     copy = getattr(self, self._basename).copy()
+    #     if other in copy:
+    #         del copy[other]
+    #     return copy
 
-    def append(self, other: Any) -> None:
-        if not isinstance(other, list):
-            other = [other]
-        super().__init__(name=self.name, elements=self + other)
-        setattr(self, self._basename, self + other)
+    # def append(self, other: Any) -> None:
+    #     if not isinstance(other, list):
+    #         other = [other]
+    #     super().__init__(name=self.name, elements=self + other)
+    #     setattr(self, self._basename, self + other)
 
-    def remove(self, other: Any) -> None:
-        if other in getattr(self, self._basename):
-            copy = getattr(self, self._basename).copy()
-            copy.remove(other)
-            super().__init__(name=self.name, elements=copy)
-            getattr(self, self._basename).remove(other)
+    # def remove(self, other: Any) -> None:
+    #     if other in getattr(self, self._basename):
+    #         copy = getattr(self, self._basename).copy()
+    #         copy.remove(other)
+    #         super().__init__(name=self.name, elements=copy)
+    #         getattr(self, self._basename).remove(other)
 
     def __str__(self):
         return str({k: v.names() for k, v in getattr(self, self._basename).items()})
