@@ -25,6 +25,7 @@ dependencies = [
     "pandas>=2.2.2",
     "munch>=4",
     "pydantic-core>=2.41.5",
+    "easygdf",
 ]
 
 requires-python = ">= 3.10"
@@ -70,7 +71,6 @@ madx = [
 
 # GDF field-map read/write (laura.translator.utils.fields.gdf) for GPT
 gpt = [
-    "easygdf",
 ]
 
 # RF-Track (laura.translator.conversion_rules.codes.rftrack_conversion) is not

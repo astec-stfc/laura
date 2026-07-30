@@ -5,6 +5,7 @@ scipy>=1.15
 pandas>=2.2.2
 munch>=4
 pydantic-core>=2.41.5
+easygdf
 # Lattice conversion backends — install individually or all at once:
 # pip install "laura-accelerator[conversion]"
 # pip install "laura-accelerator[xsuite]"
