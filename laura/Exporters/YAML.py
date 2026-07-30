@@ -1,9 +1,17 @@
 import os
+import shutil
 import yaml
+from warnings import warn
 from typing import Union
 from ..models.elementList import MachineModel
 from ..models.element import PhysicalElement
 from ..models.magnetic import MagneticElement
+from ..Importers.YAML_Loader import (
+    COMBINED_SCHEMAS_KEY,
+    collapse_controls_schema,
+    get_controls_schema_variables,
+    resolve_controls_schema_path,
+)
 
 
 def represent_tuple(dumper, data):
@@ -40,9 +48,84 @@ def _clean_export_data(data: dict, ele: PhysicalElement) -> dict:
     return data
 
 
-def export_as_yaml(
-    filename: Union[str, None], ele: PhysicalElement = PhysicalElement
+def _collapse_dump_controls(
+    dump: dict, ele: PhysicalElement, schema_root: Union[str, None]
 ) -> None:
+    """
+    If ``dump['controls']`` names a ``schema`` and that schema can be found,
+    replace its fully-expanded ``variables`` with the minimal override form
+    (see :func:`laura.Importers.YAML_Loader.collapse_controls_schema`),
+    mutating ``dump`` in place. If the schema can't be located, the `variables`
+    dump is already fully expanded (nothing to collapse), so the dangling
+    `schema`/`identifier_pattern` reference is dropped instead of left in
+    place -- otherwise reloading the export would try (and fail) to resolve
+    it again despite `variables` already being complete.
+    """
+    controls = dump.get("controls")
+    if not isinstance(controls, dict) or not controls.get("schema"):
+        return
+    base_dir = os.path.join(schema_root, ele.subdirectory) if schema_root else None
+    try:
+        schema_variables = get_controls_schema_variables(controls["schema"], base_dir)
+    except FileNotFoundError as exc:
+        warn(f"Cannot collapse controls schema for {ele.name}: {exc}")
+        dump["controls"] = {
+            k: v for k, v in controls.items() if k not in ("schema", "identifier_pattern")
+        }
+        return
+    live_variables = ele.controls.variables if ele.controls is not None else None
+    dump["controls"] = collapse_controls_schema(
+        controls, ele.name, schema_variables, live_variables=live_variables
+    )
+
+
+def _copy_controls_schema(
+    ele: PhysicalElement, schema_root: Union[str, None], destination_dir: str, copied: set
+) -> None:
+    """Copy the schema file `ele.controls` references into `destination_dir`
+    (once per destination path), so an exported tree using `collapse_schema`
+    is loadable on its own without depending on the original lattice's schema
+    files still being where they were."""
+    controls = getattr(ele, "controls", None)
+    schema_ref = getattr(controls, "schema_", None) if controls is not None else None
+    if not schema_ref:
+        return
+    dest_path = os.path.join(destination_dir, schema_ref)
+    if dest_path in copied:
+        return
+    copied.add(dest_path)
+    base_dir = os.path.join(schema_root, ele.subdirectory) if schema_root else None
+    try:
+        src_path = resolve_controls_schema_path(schema_ref, base_dir)
+    except FileNotFoundError as exc:
+        warn(f"Cannot copy controls schema for {ele.name}: {exc}")
+        return
+    if os.path.abspath(src_path) == os.path.abspath(dest_path):
+        return
+    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    shutil.copyfile(src_path, dest_path)
+
+
+def export_as_yaml(
+    filename: Union[str, None],
+    ele: PhysicalElement = PhysicalElement,
+    collapse_schema: bool = False,
+    schema_root: Union[str, None] = None,
+) -> None:
+    """
+    Args:
+        collapse_schema: if True and `ele.controls` names a schema (see
+            `laura.models.control.ControlsInformation.schema_`), write
+            `controls` back out as `{schema, identifier_pattern, variables}`
+            with only the per-element overrides -- the same compact form the
+            lattice may have been loaded from -- instead of the fully
+            expanded `variables` dict. Disabled by default; falls back to the
+            full expansion (with a warning) if the schema can't be found.
+        schema_root: the YAML root the schema path in `controls.schema` is
+            relative to (typically the directory the lattice was loaded
+            from); required for `collapse_schema` to find anything to diff
+            against.
+    """
     # exclude_defaults strips default values for a cleaner export, but may fail
     # if nested models have required fields without defaults; fall back gracefully.
     try:
@@ -51,6 +134,8 @@ def export_as_yaml(
         dump = ele.base_model_dump()
     dump.pop("CASCADING_RULES", None)
     dump = _clean_export_data(dump, ele)
+    if collapse_schema:
+        _collapse_dump_controls(dump, ele, schema_root)
     if filename is not None:
         with open(filename, "w") as yaml_file:
             yaml.default_flow_style = False
@@ -59,23 +144,105 @@ def export_as_yaml(
         return dump
 
 
-def export_machine_combined_file(path: str, machine: MachineModel) -> None:
+def export_machine_combined_file(
+    path: str,
+    machine: MachineModel,
+    collapse_schema: bool = False,
+    schema_root: Union[str, None] = None,
+) -> None:
+    """
+    Args:
+        collapse_schema: if True, elements referencing a controls schema are
+            written in collapsed form (see `export_as_yaml`), and the schemas
+            they use are embedded in the combined file itself under the
+            reserved `laura.Importers.YAML_Loader.COMBINED_SCHEMAS_KEY` key,
+            so the file is self-contained -- loadable via
+            `read_YAML_Combined_File` with no companion `_schema.yaml` files
+            needed. Falls back to full expansion (with a warning) for any
+            element whose schema can't be found.
+        schema_root: as `export_as_yaml`; defaults to `machine.element_list`
+            when that is a directory path.
+    """
     filename = os.path.join(path, "summary.yaml")
     os.makedirs(path, exist_ok=True)
+    if collapse_schema and schema_root is None and isinstance(
+        getattr(machine, "element_list", None), str
+    ):
+        schema_root = machine.element_list
+
+    embedded_schemas = {}
     combined_yaml = {}
     for name, elem in machine.elements.items():
         if elem is None:
             continue
-        combined_yaml[name] = export_as_yaml(None, elem)
+        dump = export_as_yaml(None, elem)
+        if collapse_schema:
+            controls = dump.get("controls")
+            if isinstance(controls, dict) and controls.get("schema"):
+                schema_ref = controls["schema"]
+                combined_key = os.path.join(elem.subdirectory, schema_ref)
+                if combined_key not in embedded_schemas:
+                    base_dir = (
+                        os.path.join(schema_root, elem.subdirectory) if schema_root else None
+                    )
+                    try:
+                        embedded_schemas[combined_key] = get_controls_schema_variables(
+                            schema_ref, base_dir
+                        )
+                    except FileNotFoundError as exc:
+                        warn(f"Cannot embed controls schema for {elem.name}: {exc}")
+                        embedded_schemas[combined_key] = None
+                if embedded_schemas.get(combined_key) is not None:
+                    live_variables = elem.controls.variables if elem.controls is not None else None
+                    dump["controls"] = collapse_controls_schema(
+                        {**controls, "schema": combined_key},
+                        elem.name,
+                        embedded_schemas[combined_key],
+                        live_variables=live_variables,
+                    )
+                else:
+                    # Schema couldn't be found -- variables are already fully
+                    # expanded, so drop the dangling reference rather than
+                    # leave a `schema` key that won't resolve on reload.
+                    dump["controls"] = {
+                        k: v for k, v in controls.items()
+                        if k not in ("schema", "identifier_pattern")
+                    }
+        combined_yaml[name] = dump
+
+    embedded_schemas = {k: v for k, v in embedded_schemas.items() if v is not None}
+    if embedded_schemas:
+        combined_yaml[COMBINED_SCHEMAS_KEY] = embedded_schemas
+
     with open(filename, "w") as yaml_file:
         yaml.default_flow_style = True
         yaml.dump(combined_yaml, yaml_file)
 
 
 def export_machine(
-    path: str, machine: MachineModel, overwrite: bool = False, verbose: bool = False
+    path: str,
+    machine: MachineModel,
+    overwrite: bool = False,
+    verbose: bool = False,
+    collapse_schema: bool = False,
+    schema_root: Union[str, None] = None,
+    copy_schemas: bool = True,
 ) -> None:
+    """
+    Args:
+        collapse_schema: as `export_as_yaml`.
+        schema_root: as `export_as_yaml`; defaults to `machine.element_list`
+            when that is a directory path.
+        copy_schemas: when `collapse_schema` is set, also copy each schema
+            file referenced into the corresponding destination subdirectory
+            (once each), so the exported tree is loadable on its own.
+    """
     os.makedirs(path, exist_ok=True)
+    if collapse_schema and schema_root is None and isinstance(
+        getattr(machine, "element_list", None), str
+    ):
+        schema_root = machine.element_list
+    copied_schemas = set()
     for name, elem in machine.elements.items():
         if elem is None:
             continue
@@ -85,14 +252,31 @@ def export_machine(
         if overwrite or not os.path.isfile(filename):
             if verbose:
                 print("Exporting Element", name, "to file", filename)
-            export_as_yaml(filename, elem)
+            export_as_yaml(filename, elem, collapse_schema=collapse_schema, schema_root=schema_root)
+            if collapse_schema and copy_schemas:
+                _copy_controls_schema(elem, schema_root, directory, copied_schemas)
 
 
-def export_elements(path: str, elements: list[PhysicalElement]) -> None:
+def export_elements(
+    path: str,
+    elements: list[PhysicalElement],
+    collapse_schema: bool = False,
+    schema_root: Union[str, None] = None,
+    copy_schemas: bool = True,
+) -> None:
+    """
+    Args:
+        collapse_schema: as `export_as_yaml`.
+        schema_root: as `export_as_yaml`.
+        copy_schemas: as `export_machine`.
+    """
+    copied_schemas = set()
     for elem in elements:
         if elem is None:
             continue
         directory = os.path.join(path, elem.subdirectory)
         os.makedirs(directory, exist_ok=True)
         filename = os.path.join(directory, elem.name + ".yaml")
-        export_as_yaml(filename, elem)
+        export_as_yaml(filename, elem, collapse_schema=collapse_schema, schema_root=schema_root)
+        if collapse_schema and copy_schemas:
+            _copy_controls_schema(elem, schema_root, directory, copied_schemas)

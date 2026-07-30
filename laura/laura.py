@@ -142,6 +142,9 @@ class LAURA(MachineModel):
                 files = glob.glob(
                     os.path.abspath(el_list + "/**/*.yaml"), recursive=True
                 )
+                # Underscore-prefixed files (e.g. `_schema.yaml`, a shared
+                # `controls->schema` template) are auxiliary, not elements.
+                files = [f for f in files if not os.path.basename(f).startswith("_")]
                 filenames = {}
                 for fn in files:
                     meta = fast_get_element_metadata(fn)
