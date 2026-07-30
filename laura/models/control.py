@@ -302,7 +302,7 @@ class ControlVariable(_ControlVariableBase):
     _SERIALIZE_DEFAULTS: dict = {
         "units": "Arb. Units",
         "read_only": True,
-        "type": "statistical",
+        "control_type": "statistical",
         "description": "Default Description",
     }
 

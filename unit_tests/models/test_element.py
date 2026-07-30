@@ -1,6 +1,28 @@
 # python
 import pytest
-from laura.models.element import baseElement, PhysicalBaseElement, Element
+from laura.models.element import (
+    baseElement,
+    PhysicalBaseElement,
+    Element,
+    Sextupole,
+    Octupole,
+    Solenoid,
+    Wiggler,
+    NonLinearLens,
+    Horizontal_Corrector,
+    Vertical_Corrector,
+    Combined_Corrector,
+)
+from laura.models._generated import (
+    _SextupoleBase,
+    _OctupoleBase,
+    _SolenoidBase,
+    _WigglerBase,
+    _NonLinearLensBase,
+    _HorizontalCorrectorBase,
+    _VerticalCorrectorBase,
+    _CombinedCorrectorBase,
+)
 from laura.models.physical import PhysicalElement
 from laura.models.electrical import ElectricalElement
 from laura.models.manufacturer import ManufacturerElement
@@ -57,3 +79,38 @@ def test_element_initialization():
     assert isinstance(el.electrical, ElectricalElement)
     assert isinstance(el.manufacturer, ManufacturerElement)
     assert isinstance(el.simulation, SimulationElement)
+
+
+@pytest.mark.parametrize(
+    "cls,base",
+    [
+        (Sextupole, _SextupoleBase),
+        (Octupole, _OctupoleBase),
+        (Solenoid, _SolenoidBase),
+        (Wiggler, _WigglerBase),
+        (NonLinearLens, _NonLinearLensBase),
+        (Horizontal_Corrector, _HorizontalCorrectorBase),
+        (Vertical_Corrector, _VerticalCorrectorBase),
+        (Combined_Corrector, _CombinedCorrectorBase),
+    ],
+)
+def test_magnet_elements_inherit_generated_base(cls, base):
+    """Dipole/Quadrupole already did this (Dipole(Magnet, _DipoleBase)); these
+    were the ones added for the new schema classes that hadn't been wired up."""
+    assert issubclass(cls, base)
+
+
+def test_magnet_elements_still_construct_and_round_trip():
+    for cls in [Sextupole, Octupole, Solenoid, Wiggler, NonLinearLens]:
+        el = cls(name=cls.__name__, machine_area="MA")
+        assert el.hardware_type == cls.__name__
+        assert el.model_dump()["hardware_type"] == cls.__name__
+
+    combined = Combined_Corrector(
+        name="COMBINED1",
+        machine_area="MA",
+        Horizontal_Corrector="HCORR1",
+        Vertical_Corrector="VCORR1",
+    )
+    assert combined.Horizontal_Corrector == "HCORR1"
+    assert combined.Vertical_Corrector == "VCORR1"

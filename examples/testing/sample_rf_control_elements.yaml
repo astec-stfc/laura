@@ -132,7 +132,7 @@ LINAC_RF_CAVITY:
   machine_area: DEMO
   inputs: [power, phase]
   outputs: [voltage]
-  upstream: [LINAC_KLYSTRON_MODULATOR, LINAC_RF_PID, INJ_BAM_01]
+  upstream: [LINAC_KLYSTRON_MODULATOR, LINAC_RF_PID]
   downstream: []
   physical:
     datum: {x: 0.0, y: 0.0, z: 6.10}

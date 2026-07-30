@@ -55,6 +55,14 @@ from ._generated import (
     _DriftBase,
     _DipoleBase,
     _QuadrupoleBase,
+    _SextupoleBase,
+    _OctupoleBase,
+    _SolenoidBase,
+    _NonLinearLensBase,
+    _WigglerBase,
+    _HorizontalCorrectorBase,
+    _VerticalCorrectorBase,
+    _CombinedCorrectorBase,
 )
 from ..utils import CascadingAccessMixin, flatten_dict, StringWithQuotes, FlowList
 from .manufacturer import ManufacturerElement
@@ -381,7 +389,7 @@ class Quadrupole(Magnet, _QuadrupoleBase):
     """Magnetic attributes of the quadrupole."""
 
 
-class Sextupole(Magnet):
+class Sextupole(Magnet, _SextupoleBase):
     """
     Sextupole element.
 
@@ -397,7 +405,7 @@ class Sextupole(Magnet):
     """Magnetic attributes of the sextupole."""
 
 
-class Octupole(Magnet):
+class Octupole(Magnet, _OctupoleBase):
     """
     Octupole element.
 
@@ -413,7 +421,7 @@ class Octupole(Magnet):
     """Magnetic attributes of the octupole."""
 
 
-class Horizontal_Corrector(Dipole):
+class Horizontal_Corrector(Dipole, _HorizontalCorrectorBase):
     """
     Horizontal corrector element.
 
@@ -431,7 +439,7 @@ class Horizontal_Corrector(Dipole):
     """Corrector magnetic attributes."""
 
 
-class Vertical_Corrector(Dipole):
+class Vertical_Corrector(Dipole, _VerticalCorrectorBase):
     """
     Vertical corrector element.
 
@@ -449,7 +457,7 @@ class Vertical_Corrector(Dipole):
     """Corrector magnetic attributes."""
 
 
-class Combined_Corrector(Dipole):
+class Combined_Corrector(Dipole, _CombinedCorrectorBase):
     """
     Combined (horizontal + vertical) corrector element.
 
@@ -479,7 +487,7 @@ class Combined_Corrector(Dipole):
     """Name of vertical corrector."""
 
 
-class Solenoid(Magnet):
+class Solenoid(Magnet, _SolenoidBase):
     """
     Solenoid element.
 
@@ -495,7 +503,7 @@ class Solenoid(Magnet):
     """Magnetic attributes of the solenoid."""
 
 
-class NonLinearLens(Magnet):
+class NonLinearLens(Magnet, _NonLinearLensBase):
     """
     Non-linear lens element.
 
@@ -511,7 +519,7 @@ class NonLinearLens(Magnet):
     """Magnetic attributes of the non-linear-lens."""
 
 
-class Wiggler(Magnet):
+class Wiggler(Magnet, _WigglerBase):
     """
     Wiggler element.
 

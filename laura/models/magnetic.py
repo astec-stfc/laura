@@ -2,6 +2,7 @@ import numpy as np
 from .constants import speed_of_light, pi
 from pydantic import (
     BaseModel,
+    ConfigDict,
     model_serializer,
     model_validator,
     Field,
@@ -13,7 +14,17 @@ from pydantic import (
 )
 from typing import ClassVar, Dict, Any, List, Union
 from .baseModels import IgnoreExtra, T, resolve_functional_parameter, FunctionalMixin
-from ._generated import _MultipoleBase, _FieldIntegralBase, _LinearSaturationFitBase, _MagneticElementBase
+from ._generated import (
+    _MultipoleBase,
+    _FieldIntegralBase,
+    _LinearSaturationFitBase,
+    _MagneticElementBase,
+    _SolenoidFieldsBase,
+    _SolenoidMagnetBase,
+    _NonLinearLensMagnetBase,
+    _CorrectorMagnetBase,
+    _WigglerMagnetBase,
+)
 
 
 def Power(a, b):
@@ -699,7 +710,7 @@ solenoidFields = {
 solenoidFieldsData = create_model("solenoidFieldsData", **solenoidFields)
 
 
-class SolenoidFields(solenoidFieldsData):
+class SolenoidFields(solenoidFieldsData, _SolenoidFieldsBase):
     """Magnetic multipoles model."""
 
     # def __str__(self):
@@ -736,10 +747,18 @@ class SolenoidFields(solenoidFieldsData):
         return not self.__eq__(other)
 
 
-class Solenoid_Magnet(IgnoreExtra):
+class Solenoid_Magnet(_SolenoidMagnetBase, IgnoreExtra):
     """
     Solenoid magnet including higher order fields.
     """
+
+    # _SolenoidMagnetBase pulls in ConfiguredBaseModel's serialize_by_alias=True.
+    # Fields below use `alias=` (bidirectional) rather than the generated
+    # classes' input-only `validation_alias=`, so with serialize_by_alias on,
+    # model_dump() would emit YAML aliases (e.g. "mag_set_max_wait_time")
+    # instead of field names -- breaking flatten_dict()-based full_dump() and
+    # every export path that reads dumps by field name. Pin it back off.
+    model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
     """Magnetic length [m]."""
@@ -811,13 +830,16 @@ class Solenoid_Magnet(IgnoreExtra):
         setattr(self.fields, "S" + str(self.order) + "L", ks)
 
 
-class NonLinearLens_Magnet(IgnoreExtra):
+class NonLinearLens_Magnet(_NonLinearLensMagnetBase, IgnoreExtra):
     """
     Non-linear lens magnet. See `MAD-X manual`_ and `PAC2011 article`_
 
     .. _MAD-X manual: https://cern.ch/madx
     .. _PAC2011 article: https://proceedings.jacow.org/PAC2011/papers/wep070.pdf
     """
+
+    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
+    model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
     """Magnetic length of NLL [m]."""
@@ -838,7 +860,7 @@ class NonLinearLens_Magnet(IgnoreExtra):
         super().__init__(**data)
 
 
-class Corrector_Magnet(IgnoreExtra):
+class Corrector_Magnet(_CorrectorMagnetBase, IgnoreExtra):
     """
     Corrector (steering) magnet.
 
@@ -850,6 +872,9 @@ class Corrector_Magnet(IgnoreExtra):
     plane, while a :class:`~laura.models.element.Combined_Corrector` can carry
     both simultaneously.
     """
+
+    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
+    model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
     """Magnetic length [m]."""
@@ -873,10 +898,13 @@ class Corrector_Magnet(IgnoreExtra):
     functional definition."""
 
 
-class Wiggler_Magnet(IgnoreExtra):
+class Wiggler_Magnet(_WigglerMagnetBase, IgnoreExtra):
     """
     Undulator magnet.
     """
+
+    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
+    model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
     """Magnetic length of wiggler [m].
