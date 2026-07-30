@@ -176,3 +176,4 @@ PAdantic/Importers/~$CLARA Magnet Table v6.xlsx
 # Generated exporter / profiler output
 summary.yaml
 profile_output.txt
+*.lock
