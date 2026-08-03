@@ -57,26 +57,25 @@ classDiagram
     %% Magnet branch
     %% ═══════════════════════════════════════════════════════════
 
-    class MagnetBaseElement {
+    class Magnet {
         <<abstract>>
         +MagneticElement magnetic
         +DegaussableElement degauss
         +MagnetSimulationElement simulation
     }
 
-    PhysicalAcceleratorElement <|-- MagnetBaseElement
+    PhysicalAcceleratorElement <|-- Magnet
 
-    %% Concrete magnet types — Python only (not in schema)
-    MagnetBaseElement <|-- Dipole
-    MagnetBaseElement <|-- Quadrupole
-    MagnetBaseElement <|-- Sextupole
-    MagnetBaseElement <|-- Octupole
-    MagnetBaseElement <|-- Solenoid
-    MagnetBaseElement <|-- NonLinearLens
-    MagnetBaseElement <|-- Wiggler
-    Dipole <|-- Horizontal_Corrector
-    Dipole <|-- Vertical_Corrector
-    Dipole <|-- Combined_Corrector
+    Magnet <|-- Dipole
+    Magnet <|-- Quadrupole
+    Magnet <|-- Sextupole
+    Magnet <|-- Octupole
+    Magnet <|-- Solenoid
+    Magnet <|-- NonLinearLens
+    Magnet <|-- Wiggler
+    Dipole <|-- HorizontalCorrector
+    Dipole <|-- VerticalCorrector
+    Dipole <|-- CombinedCorrector
 
     %% ═══════════════════════════════════════════════════════════
     %% Diagnostic branch
@@ -99,6 +98,7 @@ classDiagram
     Diagnostic <|-- BunchLengthMonitor
     Diagnostic <|-- Camera
     Diagnostic <|-- Screen
+    Diagnostic <|-- PhotonMonitor
     Diagnostic <|-- ChargeDiagnostic
     ChargeDiagnostic <|-- WallCurrentMonitor
     ChargeDiagnostic <|-- FaradayCupMonitor
@@ -144,6 +144,7 @@ classDiagram
     StandardElement <|-- RFProtection
     StandardElement <|-- RFHeartbeat
     StandardElement <|-- PID
+    StandardElement <|-- PowerSupply
 
     %% ═══════════════════════════════════════════════════════════
     %% Other physical elements
@@ -217,8 +218,19 @@ classDiagram
         +Rotation global_rotation
         +ElementPositionError error
         +ElementSurvey survey
+        +ReferencePlacement reference_placement
+        +float s
+        +string s_point
         +float length
         +float physical_angle
+    }
+
+    class ReferencePlacement {
+        +string element
+        +string point
+        +Position offset
+        +Position world_offset
+        +float s_offset
     }
 
     class Position {
@@ -248,31 +260,44 @@ classDiagram
     PhysicalElement --> Rotation : rotation / global_rotation
     PhysicalElement --> ElementPositionError : error
     PhysicalElement --> ElementSurvey : survey
+    PhysicalElement --> ReferencePlacement : reference_placement
 ```
+
+`middle`, `s` and `reference_placement` are three mutually exclusive ways of
+expressing the same placement; see
+[Positioning modes](Element.html#positioning-modes).
 
 ## Schema ↔ Python class name mapping
 
-The schema uses descriptive names to avoid collisions with composition-model
-classes.  The Python wrapper classes in `laura/models/element.py` use the
-names familiar from the accelerator-physics literature.
+Most schema classes map one-to-one onto a Python class of the same name.  The
+exceptions are the abstract bases (renamed to avoid collisions with
+composition-model classes) and a handful of elements that use the underscored
+spelling familiar from the accelerator-physics literature.
 
 | Schema class | Python wrapper | Notes |
 |---|---|---|
 | `AcceleratorElement` | `baseElement` | Adds `CascadingAccessMixin`, `IgnoreExtra` |
 | `StandardElement` + `Element` | `Element` | Both schema layers merged in one Python class |
 | `PhysicalAcceleratorElement` | `PhysicalBaseElement` | |
-| `MagnetBaseElement` | `Magnet` | Avoids collision with `MagneticElement` sub-model |
+| `HorizontalCorrector` | `Horizontal_Corrector` | |
+| `VerticalCorrector` | `Vertical_Corrector` | |
+| `CombinedCorrector` | `Combined_Corrector` | |
+| `PhotonMonitor` | `Photon_Monitor` | Wrapper does not yet inherit the generated base |
+| `PowerSupply` | `PowerSupply` | Wrapper does not yet inherit the generated base |
 | All other schema classes | Same name | Direct one-to-one correspondence |
 
-## Python-only concrete magnet types
+The Python class `Magnet` corresponds to the schema class `Magnet`; the schema's
+own description still calls it `MagnetBaseElement`, a name that was dropped when
+the concrete magnet types moved into the schema.
 
-The schema defines only the abstract `MagnetBaseElement`.  Concrete magnet
-types are Python extensions not represented in the LinkML schema:
+## Concrete magnet types
 
-`Dipole`, `Quadrupole`, `Sextupole`, `Octupole`, `Solenoid`,
-`NonLinearLens`, `Wiggler`, `Horizontal_Corrector`, `Vertical_Corrector`,
-`Combined_Corrector`
-
-Adding a new magnet type requires only a Python class inheriting from
-`Magnet` — no schema change is needed unless new fields are introduced.
+The concrete magnet types — `Dipole`, `Quadrupole`, `Sextupole`, `Octupole`,
+`Solenoid`, `NonLinearLens`, `Wiggler`, `HorizontalCorrector`,
+`VerticalCorrector` and `CombinedCorrector` — are defined in the schema, in
+`laura/schema/YAML/magnets.yaml`, each with an `equals_string` constraint on its
+`hardware_type` and a `slot_usage` binding its `magnetic` slot to the matching
+`*_Magnet` composition model.  Adding a new one therefore means a schema class
+plus a Python wrapper; see
+[element-hierarchy.md](element-hierarchy.md#adding-a-concrete-magnet-type).
 

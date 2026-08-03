@@ -17,6 +17,14 @@ Subpackages
 Submodules
 ----------
 
+laura.schema.generate\_orm module
+---------------------------------
+
+.. automodule:: laura.schema.generate_orm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 laura.schema.generate\_pydantic module
 --------------------------------------
 

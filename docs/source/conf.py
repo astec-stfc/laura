@@ -18,10 +18,43 @@
 import os
 import sys
 import subprocess
+import importlib
+import pkgutil
 
-# docs/ is at project_root/docs
-# add project root (sufficient for `import laura` to work):
-sys.path.insert(0, os.path.abspath(".."))
+# This file is docs/source/conf.py, so the project root is two levels up.
+# Resolve it from __file__ rather than the working directory, which differs
+# between a local `sphinx-build` and a Read the Docs build.
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, _PROJECT_ROOT)
+
+
+def _preimport_laura() -> None:
+    """Import every ``laura`` submodule before Sphinx starts.
+
+    ``sphinx-autodoc-typehints`` resolves ``if TYPE_CHECKING:`` blocks by
+    re-importing modules with ``typing.TYPE_CHECKING`` forced True. Any
+    pydantic model class built while that flag is set fails to construct
+    (``PydanticSchemaGenerationError`` on ``__pydantic_extra__``), which
+    previously left ``laura.translator.converters.base`` and the ASTRA /
+    Ocelot / OPAL code writers undocumented. Importing them here -- before
+    that machinery is active -- puts them in ``sys.modules``, and autodoc
+    reuses the cached module instead of re-importing it.
+
+    Failures are ignored: modules needing an absent optional dependency
+    (Ocelot, Xsuite, openpyxl, ...) fall back to ``autodoc_mock_imports``.
+    """
+    try:
+        import laura
+    except Exception:
+        return
+    for info in pkgutil.walk_packages(laura.__path__, prefix="laura."):
+        try:
+            importlib.import_module(info.name)
+        except Exception:
+            pass
+
+
+_preimport_laura()
 
 
 def get_git_revision_hash(short: bool = True) -> str:
@@ -73,9 +106,6 @@ def setup(app):
 # def setup(app):
 #     app.add_css_file("my_theme.css")
 
-
-# set relative path to the documented project
-sys.path.insert(0, os.path.abspath("../../"))
 
 # set project name, author and copyright
 author = "James Jones, Alex Brynes, Matthew King, Mark Johnson"

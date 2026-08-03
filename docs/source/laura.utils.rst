@@ -25,6 +25,14 @@ laura.utils.dict\_utils module
    :undoc-members:
    :show-inheritance:
 
+laura.utils.dynamics module
+---------------------------
+
+.. automodule:: laura.utils.dynamics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 laura.utils.magnet\_conversions module
 --------------------------------------
 
@@ -33,10 +41,26 @@ laura.utils.magnet\_conversions module
    :undoc-members:
    :show-inheritance:
 
+laura.utils.resolution module
+-----------------------------
+
+.. automodule:: laura.utils.resolution
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 laura.utils.rotation\_matrix module
 -----------------------------------
 
 .. automodule:: laura.utils.rotation_matrix
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+laura.utils.signals module
+--------------------------
+
+.. automodule:: laura.utils.signals
    :members:
    :undoc-members:
    :show-inheritance:

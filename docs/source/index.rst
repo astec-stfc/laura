@@ -19,6 +19,44 @@ This package provides a standardized interface for interacting with objects repr
    | This site is currently **under construction**.
    | Some pages may have missing or incomplete reference documentation.
 
+Installation
+------------
+
+:mod:`LAURA` is published on PyPI as ``laura-accelerator`` and requires Python 3.10 or newer:
+
+.. code-block:: bash
+
+   pip install laura-accelerator
+
+The core install has no simulation-code dependencies -- reading, writing and manipulating lattices
+works out of the box. Support for individual target codes is pulled in through extras:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Extra
+     - Provides
+   * - ``[xsuite]``, ``[ocelot]``, ``[cheetah]``, ``[wake_t]``, ``[madx]``, ``[bmad]``
+     - A single simulation-code backend; see :ref:`translator`.
+   * - ``[conversion]``
+     - All of the above at once.
+   * - ``[rdf]``
+     - RDF / linked-data export and SPARQL queries; see :ref:`interfaces`.
+   * - ``[sql]``
+     - Relational (SQLAlchemy) export; see :ref:`interfaces`.
+   * - ``[schema]``
+     - LinkML tooling for regenerating the schema artefacts and for YAML validation.
+   * - ``[docs]``
+     - The Sphinx toolchain used to build this site.
+   * - ``[full]``
+     - Everything.
+
+.. note::
+
+   `RF-Track <https://gitlab.cern.ch/rf-track>`_ is not distributed on PyPI, so it has no extra --
+   install its wheel manually into the same environment to use :ref:`rftrack-translator`.
+
 Architecture
 ------------
 
@@ -27,9 +65,10 @@ Architecture
 
    Architecture/index
    Translator
+   Interfaces
    Examples
 
-   
+
 Participation
 -------------
 

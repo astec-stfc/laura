@@ -78,20 +78,34 @@ The core dispatch function:
 def interpret_YAML_Element(elem: dict, exclude_set=None):
     hw_type = elem.get("hardware_type")
     if not hw_type:
+        _log.warning("Skipping element '%s': no hardware_type field", name)
         return None
     adapter = ADAPTERS.get(hw_type)
     if adapter is None:
+        _log.warning("Skipping element '%s': unregistered hardware_type '%s'", name, hw_type)
         return None
     if exclude_set:
         elem = {k: v for k, v in elem.items() if k not in exclude_set}
     try:
         return adapter.validate_python(elem)
-    except Exception:
+    except Exception as exc:
+        _log.error("Failed to parse '%s' [%s]: %s", name, hw_type, exc)
         return None
 ```
 
-**Critical behaviour:** If validation fails (e.g. unexpected data), it
-silently returns `None`. Check logs if elements are missing.
+**Critical behaviour:** the return value on failure is `None`, not an
+exception — a bad element is dropped rather than aborting the load. The reason
+is logged, so raise the log level to see it:
+
+```python
+from laura import set_log_level
+set_log_level("DEBUG")     # or "WARNING" for skips and errors only
+```
+
+The relevant loggers are `laura.loader` (one DEBUG line per parsed element,
+WARNING on skip, ERROR on validation failure) and `laura.model` (layout and
+section building). Pass `validate=True` to turn schema violations into raised
+errors instead.
 
 #### validate_element_dict (optional schema validation)
 
@@ -134,7 +148,7 @@ This makes startup fast even for directories with hundreds of YAML files.
 All element models inherit from `IgnoreExtra`:
 
 ```python
-class IgnoreExtra(ModelBase):
+class IgnoreExtra(ModelBase, FunctionalMixin):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         extra="ignore",
@@ -157,8 +171,8 @@ Pydantic parsing.
 
 | Field | Purpose | Example |
 |-------|---------|---------|
-| `hardware_type` | **Class dispatch key** — must match Python class name exactly | `"Quadrupole"`, `"Screen"`, `"Shutter"` |
-| `hardware_class` | Organisational category — used for directory structure | `"Magnet"`, `"Diagnostic"`, `"Shutter"` |
+| `hardware_type` | **Class dispatch key** — must match a class's `hardware_type` field default exactly | `"Quadrupole"`, `"Screen"`, `"Shutter"` |
+| `hardware_class` | Organisational category (a `HardwareClassEnum` value) — used for directory structure | `"Magnet"`, `"Diagnostic"`, `"Shutter"` |
 
 The YAML directory structure follows:
 `YAML/{hardware_class}/{hardware_type}/{element_name}.yaml`
