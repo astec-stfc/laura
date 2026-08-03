@@ -12,9 +12,41 @@ from .cavity import RFCavityTranslator
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
 from .wake import WakefieldTranslator
+from .ac_dipole import ACDipoleTranslator
 from .codes.gpt import gpt_ccs, gpt_Zminmax, gpt_dtmint
-from ..utils.functions import tw_cavity_energy_gain
+from ..utils.functions import (
+    tw_cavity_energy_gain,
+    elegant_functional_definitions,
+    madx_functional_definitions,
+)
 from ..utils.fields import field
+from ...models.baseModels import IgnoreExtra
+from ..utils.functions import sanitize_string
+from .codes import (
+    astra_unsupported,
+    cheetah_unsupported,
+    csrtrack_unsupported,
+    elegant_unsupported,
+    genesis_unsupported,
+    gpt_unsupported,
+    ocelot_unsupported,
+    opal_unsupported,
+    wake_t_unsupported,
+    xsuite_unsupported,
+)
+
+unsupported_elements = {
+    "astra": astra_unsupported,
+    "cheetah": cheetah_unsupported,
+    "csrtrack": csrtrack_unsupported,
+    "elegant": elegant_unsupported,
+    "genesis": genesis_unsupported,
+    "gpt": gpt_unsupported,
+    "ocelot": ocelot_unsupported,
+    "opal": opal_unsupported,
+    "wake_t": wake_t_unsupported,
+    "xsuite": xsuite_unsupported,
+}
 
 
 class SectionLatticeTranslator(SectionLattice):
@@ -54,6 +86,9 @@ class SectionLatticeTranslator(SectionLattice):
     lsc_bins: PositiveInt = 20
     """Number of LSC bins for drifts."""
 
+    verbose: bool = False
+    """Print debug messages and warnings"""
+
     @classmethod
     def from_section(cls, section: SectionLattice) -> "SectionLatticeTranslator":
         """
@@ -77,8 +112,23 @@ class SectionLatticeTranslator(SectionLattice):
                 "order": section.model_copy().order,
                 "elements": section.model_copy().elements,
                 "master_lattice": section.model_copy().master_lattice,
+                "functional_definitions": section.functional_definitions,
+                "resolve_functional": section.resolve_functional,
+                "revolution_frequency": section.revolution_frequency,
             }
         )
+
+    def _check_elements_supported(self, code):
+        hw_types = set([e.hardware_type for e in list(self.elements.elements.values())])
+        unsupported = unsupported_elements[code.lower()]
+        if len(list(hw_types & set(unsupported))) > 0:
+            unsupported = " ".join(list(hw_types & set(unsupported)))
+            if self.verbose:
+                warn(f"WARNING! Elements {unsupported} not supported for {code};"
+                     f"Note that this may lead to errors or inaccurate results when tracking through these elements."
+                     f"NB The element may be supported in the code, but not yet by the LAURA converter;"
+                     f"Raise an issue if you want this to be rectified.")
+
 
     def to_astra(self) -> str:
         """
@@ -91,6 +141,7 @@ class SectionLatticeTranslator(SectionLattice):
             An ASTRA-compatible input file.
         """
         from .codes.astra import section_header_text_ASTRA
+        self._check_elements_supported("astra")
 
         headers = [
             "&APERTURE",
@@ -198,6 +249,7 @@ class SectionLatticeTranslator(SectionLattice):
         str
             A GPT-compatible input file.
         """
+        self._check_elements_supported("gpt")
         fulltext = ""
         for header in self.gpt_headers.values():
             fulltext += header.write_GPT()
@@ -298,6 +350,7 @@ class SectionLatticeTranslator(SectionLattice):
         str
             An OPAL-compatible input file.
         """
+        self._check_elements_supported("opal")
         check_dict = [
             "option",
             "distribution",
@@ -358,7 +411,7 @@ class SectionLatticeTranslator(SectionLattice):
             fulltext += s + ", "
         return fulltext[:-2] + "\n"
 
-    def to_elegant(self, charge: float = None) -> str:
+    def to_elegant(self, charge: float | None = None) -> str:
         """
         Create an ELEGANT-compatible input file based on the lattice information.
 
@@ -372,6 +425,7 @@ class SectionLatticeTranslator(SectionLattice):
         str
             An ELEGANT-compatible lattice file.
         """
+        self._check_elements_supported("elegant")
         section_with_drifts = self.createDrifts(
             csr_enable=self.csr_enable,
             lsc_enable=self.lsc_enable,
@@ -396,7 +450,7 @@ class SectionLatticeTranslator(SectionLattice):
             lstring += f"{elem}, "
         lstring = f"{lstring[:-2]})" + "\n"
         lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return string + lstring
+        return elegant_functional_definitions(self.functional_definitions) + string + lstring
 
     def to_genesis(self, split_element: str | None = None, chicanes: Dict | None = None) -> str:
         """
@@ -417,6 +471,7 @@ class SectionLatticeTranslator(SectionLattice):
         str
             A Genesis-compatible lattice file (v4).
         """
+        self._check_elements_supported("genesis")
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
@@ -514,7 +569,8 @@ class SectionLatticeTranslator(SectionLattice):
         from ocelot.cpbd.transformations.second_order import SecondTM
         from ocelot.cpbd.transformations.kick import KickTM
         from ocelot.cpbd.transformations.runge_kutta import RungeKuttaTM
-        from ocelot.cpbd.elements import Octupole, Undulator, Marker
+        from ocelot.cpbd.elements import Octupole, Undulator
+        self._check_elements_supported("ocelot")
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
         section_with_drifts = self.createDrifts()
@@ -526,7 +582,12 @@ class SectionLatticeTranslator(SectionLattice):
         elements = []
 
         for d in elem_dict.values():
-            elements.append(d.to_ocelot())
+            obj = d.to_ocelot()
+            if isinstance(obj, (list, tuple)):
+                # e.g. a Combined_Corrector split into an Hcor + Vcor pair.
+                elements.extend(obj)
+            else:
+                elements.append(obj)
 
         maglat = MagneticLattice(elements, method=method)
         if save:
@@ -549,6 +610,7 @@ class SectionLatticeTranslator(SectionLattice):
             A Cheetah `Segment` object.
         """
         from cheetah import Segment
+        self._check_elements_supported("cheetah")
 
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
@@ -597,20 +659,61 @@ class SectionLatticeTranslator(SectionLattice):
             A Xsuite `Line` object.
         """
         import xtrack as xt
+        self._check_elements_supported("xsuite")
 
         if not isinstance(env, xt.Environment):
             env = xt.Environment()
+        # Register this lattice's functional definitions (cascaded from the
+        # SectionLattice/MachineModel, and loaded from a YAML file if specified)
+        # as Environment variables, so elements can reference them symbolically
+        # (e.g. k1="kquad"). Fall back to the shared registry if the section was
+        # built without its own definitions. Skipped in resolution mode, where the
+        # values are baked in as numbers instead.
+        if not IgnoreExtra.resolve_functional:
+            for name, value in (
+                self.functional_definitions or IgnoreExtra.functional_definitions
+            ).items():
+                env[name] = value
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        def _is_symbolic(val: Any) -> bool:
+            # A plain categorical/string parameter (e.g. ACDipole's `plane`)
+            # is not symbolic -- only a string that names an actual functional
+            # definition (or an expression referencing one, e.g. "-(name)" /
+            # "name / length") should route through the deferred-expression
+            # `env.new()` path; other strings must go through direct
+            # construction instead, since `env.new()` only supports a limited
+            # allow-list of element classes.
+            if isinstance(val, str):
+                return any(
+                    nam in val for nam in IgnoreExtra.functional_definitions
+                )
+            if isinstance(val, (list, tuple)):
+                return any(_is_symbolic(v) for v in val)
+            return False
+
         line = env.new_line()
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
-                name, component, properties = element.to_xsuite(beam_length=beam_length)
-                line.append(element.name, component(**properties))
+                if isinstance(element, ACDipoleTranslator):
+                    name, component, properties = element.to_xsuite(
+                        beam_length=beam_length,
+                        revolution_frequency=self.revolution_frequency,
+                    )
+                else:
+                    name, component, properties = element.to_xsuite(beam_length=beam_length)
+                if any(_is_symbolic(v) for v in properties.values()):
+                    # Symbolic/functional parameters (e.g. k1="kquad"): build the
+                    # element through the Environment so the references are bound
+                    # as deferred expressions, then append it to the line by name.
+                    env.new(element.name, component, **properties)
+                    line.append(element.name)
+                else:
+                    line.append(element.name, component(**properties))
         if isinstance(particle_ref, xt.Particles):
             line.particle_ref = particle_ref
         if save:
@@ -627,6 +730,7 @@ class SectionLatticeTranslator(SectionLattice):
         str
             A CSRTrack-compatible lattice file.
         """
+        self._check_elements_supported("csrtrack")
         headers = ["dipole", "quadrupole", "screen"]
         counter = {k: 1 for k in headers}
         elem_dict = translate_elements(
@@ -665,6 +769,46 @@ class SectionLatticeTranslator(SectionLattice):
             csrtrackstr += h.write_CSRTrack()
         return csrtrackstr
 
+    def to_madx(self) -> str:
+        """
+        Create a MAD-X-compatible ``SEQUENCE`` definition based on the lattice
+        information, suitable for :meth:`cpymad.madx.Madx.input` (see the
+        `MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html>`_).
+
+        Elements are placed with ``refer=entry`` at their entrance s-position.
+        Explicit ``drift`` elements are inserted between elements via
+        :meth:`createDrifts` and written into the sequence like any other
+        element, which is the standard way of constructing a MAD-X lattice
+        (rather than relying on MAD-X's implicit gap-filling between elements
+        placed without a contiguous ``at=``).
+
+        Returns
+        -------
+        str
+            A MAD-X-compatible ``SEQUENCE`` definition, prefixed with variable
+            declarations for any functional definitions used symbolically by
+            the lattice's elements.
+        """
+        section_with_drifts = self.createDrifts()
+        elem_dict = translate_elements(
+            section_with_drifts.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        svals = self.get_s_values(as_dict=True, at_entrance=True)
+        exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
+        length = max(exit_svals.values()) if exit_svals else 0.0
+        fulltext = ""
+        for d in elem_dict.values():
+            at = d.physical.start.z if d.subelement else svals[d.name]
+            fulltext += d.to_madx(at=at)
+
+        seqstring = madx_functional_definitions(self.functional_definitions)
+        seqstring += f"{sanitize_string(self.name)}: SEQUENCE, refer=entry, l = {length};\n"
+        seqstring += fulltext
+        seqstring += "ENDSEQUENCE;\n"
+        return seqstring
+
     def to_wake_t(self) -> "Beamline":
         """
         Create a Wake-T-compatible beamline object based on the lattice information.
@@ -675,6 +819,7 @@ class SectionLatticeTranslator(SectionLattice):
             A Wake-T `Beamline` object.
         """
         from wake_t import Beamline
+        self._check_elements_supported("wake_t")
 
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(

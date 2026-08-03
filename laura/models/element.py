@@ -29,6 +29,7 @@ from .magnetic import (
     Solenoid_Magnet,
     NonLinearLens_Magnet,
     Wiggler_Magnet,
+    Corrector_Magnet,
 )
 from .plasma import PlasmaElement
 from .diagnostic import (
@@ -65,9 +66,15 @@ from .simulation import (
     MagnetSimulationElement,
     DriftSimulationElement,
     DiagnosticSimulationElement,
+    MatrixTransformSimulationElement,
     PlasmaSimulationElement,
     SimulationElement,
     TwissMatchSimulationElement,
+    ElectrostaticSeparatorSimulationElement,
+    ACDipoleSimulationElement,
+    WireSimulationElement,
+    BeamBeamSimulationElement,
+    RFMultipoleSimulationElement,
 )
 import yaml
 from collections.abc import MutableMapping
@@ -559,7 +566,8 @@ class Magnet(PhysicalBaseElement):
         Rotation of the magnet based on its bending angle.
         """
         if self.magnetic is not None and hasattr(self.magnetic, 'angle'):
-            return Rotation.from_list([0, 0, self.magnetic.angle])
+            # Use the resolved bend angle (geometry needs a number).
+            return Rotation.from_list([0, 0, self.magnetic.KnL(0)])
         return Rotation.from_list([0, 0, 0])
 
     @property
@@ -677,10 +685,16 @@ class Horizontal_Corrector(Dipole):
 
     Attributes:
         hardware_type (str): The hardware type of the corrector.
+        magnetic (:class:`~laura.models.magnetic.Corrector_Magnet`): The magnetic
+        attributes of the corrector -- only ``horizontal_kick`` is expected to be
+        set.
     """
 
     hardware_type: str = Field(default="Horizontal_Corrector", frozen=True)
     """Horizontal corrector hardware type."""
+
+    magnetic: Corrector_Magnet = Field(default_factory=Corrector_Magnet)
+    """Corrector magnetic attributes."""
 
 
 class Vertical_Corrector(Dipole):
@@ -689,24 +703,40 @@ class Vertical_Corrector(Dipole):
 
     Attributes:
         hardware_type (str): The hardware type of the corrector.
+        magnetic (:class:`~laura.models.magnetic.Corrector_Magnet`): The magnetic
+        attributes of the corrector -- only ``vertical_kick`` is expected to be
+        set.
     """
 
     hardware_type: str = Field(default="Vertical_Corrector", frozen=True)
     """Vertical corrector hardware type."""
 
+    magnetic: Corrector_Magnet = Field(default_factory=Corrector_Magnet)
+    """Corrector magnetic attributes."""
+
 
 class Combined_Corrector(Dipole):
     """
-    Horizontal corrector element.
+    Combined (horizontal + vertical) corrector element.
 
     Attributes:
         hardware_type (str): The hardware type of the corrector.
-        Horizontal_Corrector (str): The horizontal corrector.
-        Vertical_Corrector (str): The vertical corrector.
+        magnetic (:class:`~laura.models.magnetic.Corrector_Magnet`): The magnetic
+        attributes of the corrector; both ``horizontal_kick`` and ``vertical_kick``
+        may be set independently.
+        Horizontal_Corrector (str): Name of a separately-defined
+        :class:`Horizontal_Corrector` element this combined corrector is paired
+        with, for hardware/PS bookkeeping (see e.g. ``LAURA.get_correctors``) --
+        this is a cross-reference, not where the horizontal kick strength lives.
+        Vertical_Corrector (str): As ``Horizontal_Corrector``, for the paired
+        :class:`Vertical_Corrector` element.
     """
 
     hardware_type: str = Field(default="Combined_Corrector", frozen=True)
     """Combined corrector hardware type."""
+
+    magnetic: Corrector_Magnet = Field(default_factory=Corrector_Magnet)
+    """Corrector magnetic attributes."""
 
     Horizontal_Corrector: str | None = Field(default=None, frozen=True)
     """Name of horizontal corrector."""
@@ -787,6 +817,28 @@ class TwissMatch(PhysicalBaseElement):
         default_factory=TwissMatchSimulationElement
     )
     """Simulation attributes of the matching element."""
+
+
+class MatrixTransform(PhysicalBaseElement):
+    """
+    Matrix transform element. Applies an instantaneous matrix kick to the beam, up to 2nd order.
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.MatrixSimulationElement`): The simulation attributes of the matrix element.
+    """
+
+    hardware_type: str = Field(default="MatrixTransform", frozen=True)
+    """Twiss match hardware type."""
+
+    hardware_class: str = Field(default="Simulation", frozen=True)
+    """Twiss match hardware class."""
+
+    simulation: MatrixTransformSimulationElement = Field(
+        default_factory=MatrixTransformSimulationElement
+    )
+    """Simulation attributes of the matrix element."""
 
 
 class Diagnostic(PhysicalBaseElement):
@@ -1359,6 +1411,33 @@ class RFDeflectingCavity(RFCavity):
     """Simulation attributes of the RF deflecting cavity."""
 
 
+class CrabCavity(RFCavity):
+    """
+    Crab Cavity element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the crab cavity.
+        hardware_model (str): The specific hardware model of the crab cavity.
+        cavity (:class:`~laura.models.RF.RFCavityElement`): The RF cavity attributes of the element.
+        simulation: (:class:`~laura.models.simulation.RFCavitySimulationElement`): The simulation
+        attributes of the crab cavity.
+    """
+
+    hardware_type: str = Field(default="CrabCavity", frozen=True)
+    """Crab cavity hardware type."""
+
+    hardware_model: str = Field(default="SBand", frozen=True)
+    """Crab cavity hardware model."""
+
+    cavity: RFCavityElement = Field(default_factory=RFCavityElement)
+    """Cavity attributes of the crab cavity."""
+
+    simulation: RFCavitySimulationElement = Field(
+        default_factory=RFCavitySimulationElement
+    )
+    """Simulation attributes of the crab cavity."""
+
+
 class RFModulator(Element):
     """
     RF Modulator element.
@@ -1548,6 +1627,151 @@ class Drift(PhysicalBaseElement):
     simulation: DriftSimulationElement = Field(default_factory=DriftSimulationElement)
     """Simulation attributes of the drift."""
 
+
+class ElectrostaticSeparator(PhysicalBaseElement):
+    """
+    Electrostatic separator element: a static-field electrode pair providing a
+    transverse deflection (see the MAD-X ``ELSEPARATOR`` element; no equivalent
+    exists in ELEGANT or Xsuite).
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.ElectrostaticSeparatorSimulationElement`):
+        The simulation attributes of the separator.
+    """
+
+    hardware_type: str = Field(default="ElectrostaticSeparator", frozen=True)
+    """Electrostatic separator hardware type."""
+
+    hardware_class: str = Field(default="ElectrostaticSeparator", frozen=True)
+    """Electrostatic separator hardware class."""
+
+    simulation: ElectrostaticSeparatorSimulationElement = Field(
+        default_factory=ElectrostaticSeparatorSimulationElement
+    )
+    """Simulation attributes of the separator."""
+
+
+class ACDipole(PhysicalBaseElement):
+    """
+    Base class for AC dipole / tune-exciter elements: a thin, RF-driven kicker
+    used for AC-dipole tune and optics measurements (see the MAD-X
+    ``HACDIPOLE``/``VACDIPOLE`` elements and the Xsuite ``ACDipole`` element).
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.ACDipoleSimulationElement`):
+        The simulation attributes of the exciter.
+    """
+
+    hardware_class: str = Field(default="ACDipole", frozen=True)
+    """AC dipole hardware class."""
+
+    simulation: ACDipoleSimulationElement = Field(
+        default_factory=ACDipoleSimulationElement
+    )
+    """Simulation attributes of the AC dipole."""
+
+
+class Horizontal_AC_Dipole(ACDipole):
+    """
+    Horizontal AC dipole / tune-exciter element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+    """
+
+    hardware_type: str = Field(default="Horizontal_AC_Dipole", frozen=True)
+    """Horizontal AC dipole hardware type."""
+
+
+class Vertical_AC_Dipole(ACDipole):
+    """
+    Vertical AC dipole / tune-exciter element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+    """
+
+    hardware_type: str = Field(default="Vertical_AC_Dipole", frozen=True)
+    """Vertical AC dipole hardware type."""
+
+
+class Wire(PhysicalBaseElement):
+    """
+    Compensating wire element: a current-carrying wire used for long-range
+    beam-beam compensation (see the MAD-X ``WIRE`` element and the Xsuite
+    ``Wire`` element).
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.WireSimulationElement`):
+        The simulation attributes of the wire.
+    """
+
+    hardware_type: str = Field(default="Wire", frozen=True)
+    """Wire hardware type."""
+
+    hardware_class: str = Field(default="Wire", frozen=True)
+    """Wire hardware class."""
+
+    simulation: WireSimulationElement = Field(default_factory=WireSimulationElement)
+    """Simulation attributes of the wire."""
+
+
+class BeamBeam(PhysicalBaseElement):
+    """
+    Beam-beam interaction element: a weak-strong kick representing the
+    electromagnetic field of an opposing (colliding) bunch (see the MAD-X
+    ``BEAMBEAM`` element).
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.BeamBeamSimulationElement`):
+        The simulation attributes of the interaction.
+    """
+
+    hardware_type: str = Field(default="BeamBeam", frozen=True)
+    """Beam-beam hardware type."""
+
+    hardware_class: str = Field(default="BeamBeam", frozen=True)
+    """Beam-beam hardware class."""
+
+    simulation: BeamBeamSimulationElement = Field(
+        default_factory=BeamBeamSimulationElement
+    )
+    """Simulation attributes of the interaction."""
+
+
+class RFMultipole(PhysicalBaseElement):
+    """
+    Thin RF multipole element: a zero-length multipole kick whose strength
+    oscillates at an RF frequency, up to 5th order (see the MAD-X
+    ``RFMULTIPOLE`` element and the Xsuite ``RFMultipole`` element).
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.RFMultipoleSimulationElement`):
+        The simulation attributes of the multipole.
+    """
+
+    hardware_type: str = Field(default="RFMultipole", frozen=True)
+    """RF multipole hardware type."""
+
+    hardware_class: str = Field(default="RFMultipole", frozen=True)
+    """RF multipole hardware class."""
+
+    simulation: RFMultipoleSimulationElement = Field(
+        default_factory=RFMultipoleSimulationElement
+    )
+    """Simulation attributes of the multipole."""
+
+
 # bottom of element.py
 ELEMENT_REGISTRY: dict[str, type] = {
     cls.model_fields["hardware_type"].default: cls
@@ -1558,11 +1782,13 @@ ELEMENT_REGISTRY: dict[str, type] = {
         Beam_Position_Monitor, Beam_Arrival_Monitor, Bunch_Length_Monitor,
         Camera, Screen, ChargeDiagnostic,
         Wall_Current_Monitor, Faraday_Cup_Monitor, Integrated_Current_Transformer,
-        RFCavity, RFDeflectingCavity, RFModulator, RFProtection, RFHeartbeat,
+        RFCavity, RFDeflectingCavity, CrabCavity, RFModulator, RFProtection, RFHeartbeat,
         Plasma, Laser, LaserEnergyMeter, LaserMirror, LaserAttenuator,
         Shutter, Valve, Stage, VacuumGauge,
-        Marker, Aperture, Collimator, Drift, TwissMatch,
+        Marker, Aperture, Collimator, Drift, TwissMatch, MatrixTransform,
         Lighting, PID, Low_Level_RF, Wakefield,
         Photon_Monitor,
+        ElectrostaticSeparator, Horizontal_AC_Dipole, Vertical_AC_Dipole,
+        Wire, BeamBeam, RFMultipole,
     ]
 }

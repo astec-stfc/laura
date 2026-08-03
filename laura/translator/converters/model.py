@@ -3,6 +3,7 @@ from textwrap import wrap
 from laura.models.elementList import MachineModel
 from .converter import translate_elements
 from .layout import MachineLayoutTranslator
+from ..utils.functions import elegant_functional_definitions, sanitize_string
 
 
 class MachineModelTranslator(MachineModel):
@@ -18,13 +19,27 @@ class MachineModelTranslator(MachineModel):
                 "sections": machine.model_copy().sections,
                 "lattices": machine.model_copy().lattices,
                 "master_lattice": machine.model_copy().master_lattice,
+                "functional_definitions": machine.functional_definitions,
+                "resolve_functional": machine.resolve_functional,
+                "revolution_frequency": machine.revolution_frequency,
             }
         )
+
+    def _layout_translator(self, layout) -> MachineLayoutTranslator:
+        """
+        Build a :class:`MachineLayoutTranslator` for ``layout``, falling back
+        to this machine's own ``revolution_frequency`` if the layout does not
+        define its own.
+        """
+        translator = MachineLayoutTranslator.from_layout(layout)
+        if translator.revolution_frequency is None:
+            translator.revolution_frequency = self.revolution_frequency
+        return translator
 
     def to_astra(self) -> Dict[str, Dict[str, str]]:
         model = {}
         for name, latt in self.lattices.items():
-            model.update({name: MachineLayoutTranslator.from_layout(latt).to_astra()})
+            model.update({name: self._layout_translator(latt).to_astra()})
         return model
 
     def format_string(seld, string: str):
@@ -63,7 +78,7 @@ class MachineModelTranslator(MachineModel):
                 lstring += f"{l}, "
             lstring = f"{lstring[:-2]})" + "\n\n"
         lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return string + lstring
+        return elegant_functional_definitions(self.functional_definitions) + string + lstring
 
     def to_genesis(self, string: str = "") -> str:
         for latt in self.lattices.values():
@@ -94,7 +109,7 @@ class MachineModelTranslator(MachineModel):
         model = {}
         for name, latt in self.lattices.items():
             model.update(
-                {name: MachineLayoutTranslator.from_layout(latt).to_ocelot(save=save)}
+                {name: self._layout_translator(latt).to_ocelot(save=save)}
             )
         return model
 
@@ -102,7 +117,7 @@ class MachineModelTranslator(MachineModel):
         model = {}
         for name, latt in self.lattices.items():
             model.update(
-                {name: MachineLayoutTranslator.from_layout(latt).to_cheetah(save=save)}
+                {name: self._layout_translator(latt).to_cheetah(save=save)}
             )
         return model
 
@@ -113,7 +128,7 @@ class MachineModelTranslator(MachineModel):
         for name, latt in self.lattices.items():
             model.update(
                 {
-                    name: MachineLayoutTranslator.from_layout(latt).to_xsuite(
+                    name: self._layout_translator(latt).to_xsuite(
                         beam_length=beam_length,
                         env=env,
                         particle_ref=particle_ref,
@@ -121,4 +136,10 @@ class MachineModelTranslator(MachineModel):
                     )
                 }
             )
+        return model
+
+    def to_madx(self) -> Dict[str, Dict[str, str]]:
+        model = {}
+        for name, latt in self.lattices.items():
+            model.update({sanitize_string(name): self._layout_translator(latt).to_madx()})
         return model

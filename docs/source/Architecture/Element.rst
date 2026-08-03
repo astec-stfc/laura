@@ -502,7 +502,7 @@ model, for use in the readback's setter:
 .. _electrical-and-manufacturer:
 
 Electrical, Manufacturer and Reference Information
---------------------------------------------------
+----------------------------------------------------
 
 Other useful sets of information about an :py:class:`Element <laura.models.element.Element>` include electrical,
 manufacturer and reference information, stored in
@@ -545,7 +545,7 @@ Magnet Class
 Magnet elements in :mod:`LAURA` contain, in addition to the auxiliary information associated with the
 :ref:`element-class` (see :ref:`auxiliary`), detailed descriptions of the object's magnetic fields.
 Various magnet types are currently supported, including :ref:`multipole`, :ref:`solenoid`, :ref:`wiggler`,
-and :ref:`non-linear-lens`.
+:ref:`non-linear-lens`, and :ref:`corrector-magnet`.
 Every :py:class:`Magnet <laura.models.element.Magnet>` object has a ``magnetic`` attribute, described by a
 :py:class:`MagneticElement <laura.models.magnetic.MagneticElement>` instance, with various examples given below.
 
@@ -594,6 +594,10 @@ field strength of a :py:class:`Quadrupole_Magnet <laura.models.magnetic.Quadrupo
 one can call ``quad.KnL(1)``. Alternatively, one can call the ``quad.kl`` property which will retrieve the
 normalized field strength of the nominal order for that magnet.
 
+The ``normal`` and ``skew`` strengths may also be defined *functionally*, as a string naming a shared value
+rather than a number; see :ref:`functional-parameters`. In that case ``KnL`` always returns the resolved
+number (it is the computation accessor), while ``kl`` / ``k1l`` return the value as configured.
+
 .. _solenoid:
 
 Solenoid Magnet
@@ -606,7 +610,9 @@ Solenoid magnets comprise a different class of magnets, although their implement
 :py:class:`Multipoles <laura.models.magnetic.Multipoles>`, although with keys defined as ``SnL``.
 Furthermore, the solenoid strength can be set or retrieved as ``ks`` or ``field_amplitude``,
 with the former defined as :math:`K_s = \frac{ \partial B_s }{ \partial s }`, and the latter
-defining the peak solenoid field strength in Tesla.
+defining the peak solenoid field strength in Tesla. The ``SnL`` fields may be defined functionally
+(see :ref:`functional-parameters`); ``field_amplitude`` always returns the resolved number, while
+``ks`` returns the value as configured.
 
 .. _wiggler:
 
@@ -616,7 +622,7 @@ Wiggler Magnet
 Wigglers (or undulators) are defined using the following properties:
 
 * ``length: float`` -- total length of wiggler
-* ``strength: float`` -- wiggler strength K
+* ``strength: float`` -- wiggler strength K (may be defined functionally; see :ref:`functional-parameters`)
 * ``peak_magnetic_field: float``
 * ``period: float``
 * ``num_periods: int``
@@ -637,3 +643,173 @@ is followed, and only the quadrupole component is included:
 
 * ``integrated_strength: float`` -- the :math:`knll` term.
 * ``dimensional_parameter: float`` -- the :math:`cnll` term.
+
+Both may be defined functionally (see :ref:`functional-parameters`).
+
+.. _corrector-magnet:
+
+Corrector Magnet
+----------------
+
+:py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>`,
+:py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>`, and
+:py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` are steering
+(kicker) magnets. Although they extend :py:class:`Dipole <laura.models.element.Dipole>`
+at the element level, they do **not** use :py:class:`Dipole_Magnet <laura.models.magnetic.Dipole_Magnet>`
+for their ``magnetic`` attribute -- a dipole's ``normal``/``skew`` multipole components denote the
+magnetic field's *orientation*, not a beam plane, and reusing them to mean "horizontal" and "vertical"
+would be opaque. Instead, correctors use
+:py:class:`Corrector_Magnet <laura.models.magnetic.Corrector_Magnet>`, which stores the two planes as
+two independent, explicitly-named fields:
+
+* ``horizontal_kick: float`` -- horizontal kick angle [rad].
+* ``vertical_kick: float`` -- vertical kick angle [rad].
+
+A :py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>` or
+:py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>` is expected to populate only its
+own plane; a :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` may set both
+simultaneously. Both fields may be defined functionally (see :ref:`functional-parameters`).
+
+.. note::
+
+   :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` also has
+   ``Horizontal_Corrector``/``Vertical_Corrector`` string fields. These are **not** where the kick
+   strength lives -- they are name cross-references to separately-defined sibling elements, used for
+   hardware/power-supply bookkeeping (see e.g. ``LAURA.get_correctors``). A
+   :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>`'s own kick strength always
+   comes from its own ``magnetic.horizontal_kick``/``magnetic.vertical_kick``.
+
+.. _specialised-elements:
+
+Specialised and Collider Elements
+==================================
+
+A handful of element types cover physics not represented by any of the classes above. These are all
+primarily modelled on the equivalent MAD-X element :cite:`MADX` (see :ref:`madx-translator`); most have
+no equivalent in ELEGANT, and some have an Xsuite equivalent that is noted below.
+
+* :py:class:`MatrixTransform <laura.models.element.MatrixTransform>` -- an explicit, arbitrary transfer
+  matrix (0th/1st/2nd order: ``c_matrix``, ``r_matrix``, ``t_matrix`` on
+  :py:class:`MatrixTransformSimulationElement <laura.models.simulation.MatrixTransformSimulationElement>`),
+  for inserting a black-box transformation when no physical element model fits. Maps to MAD-X's ``MATRIX``,
+  ELEGANT's ``EMATRIX``, and Xsuite's ``SecondOrderTaylorMap``.
+* :py:class:`CrabCavity <laura.models.element.CrabCavity>` -- a dedicated crab-cavity/transverse-deflecting
+  RF element, extending :py:class:`RFCavity <laura.models.element.RFCavity>` (same ``cavity``/``simulation``
+  models). Maps to MAD-X's ``CRABCAVITY``, ELEGANT's ``RFDF`` (shared with
+  :py:class:`RFDeflectingCavity <laura.models.element.RFDeflectingCavity>`), and Xsuite's ``CrabCavity``.
+* :py:class:`ElectrostaticSeparator <laura.models.element.ElectrostaticSeparator>` -- a static-field
+  electrode pair providing a transverse deflection (MAD-X ``ELSEPARATOR``). No ELEGANT or Xsuite
+  equivalent exists, so this element only translates to MAD-X.
+* :py:class:`Horizontal_AC_Dipole <laura.models.element.Horizontal_AC_Dipole>` /
+  :py:class:`Vertical_AC_Dipole <laura.models.element.Vertical_AC_Dipole>` -- an RF-driven exciter used
+  for AC-dipole tune and optics measurements (MAD-X ``HACDIPOLE``/``VACDIPOLE``, Xsuite ``ACDipole``).
+
+  .. note::
+
+     Xsuite's ``ACDipole.freq`` is a tune-like quantity (units of :math:`2\\pi` per turn), not an absolute
+     frequency, whereas this element's ``simulation.frequency`` is in Hz. Converting between the two
+     requires the ring's revolution frequency -- see :ref:`revolution-frequency`.
+
+* :py:class:`Wire <laura.models.element.Wire>` -- a current-carrying compensating wire, used for
+  long-range beam-beam compensation (MAD-X ``WIRE``, Xsuite ``Wire``).
+* :py:class:`BeamBeam <laura.models.element.BeamBeam>` -- a weak-strong kick representing the
+  electromagnetic field of an opposing (colliding) bunch (MAD-X ``BEAMBEAM``, ELEGANT ``BEAMBEAM``, and
+  Xsuite's ``BeamBeamBiGaussian2D`` via the ``xfields`` package -- a required dependency of ``xsuite``,
+  so no extra install is needed). The opposing bunch's per-particle charge is stored as
+  ``simulation.charge`` in elementary-charge units (matching MAD-X's and Xsuite's convention); ELEGANT's
+  ``CHARGE`` (total charge in Coulombs) is derived from it (``n_particles * charge * e``). Only the
+  thin, single-slice weak-strong model (``BeamBeamBiGaussian2D``) is used for Xsuite; the finite
+  bunch-length ``BeamBeamBiGaussian3D`` model needs per-slice longitudinal configuration this element
+  does not currently represent.
+* :py:class:`RFMultipole <laura.models.element.RFMultipole>` -- a zero-length multipole kick whose
+  strength oscillates at an RF frequency, up to 5th order (MAD-X ``RFMULTIPOLE``, Xsuite ``RFMultipole``).
+
+.. _functional-parameters:
+
+Functional Parameters
+=====================
+
+Selected element attributes can be defined either directly as a number or
+*functionally*, as a string that names an entry in the lattice's functional
+definitions. This is convenient when several elements share a value, or when a
+parameter is driven by an external study or optimiser: the symbolic name is
+stored on the element while the numeric value lives in one place (the lattice's
+:ref:`functional-definitions`).
+
+The attributes that currently accept a functional definition are:
+
+* :py:class:`Multipole <laura.models.magnetic.Multipole>` ``normal`` and ``skew`` (and hence the magnet ``kl`` / ``k1l`` / ``KnL`` strengths, and the dipole ``angle``);
+* :py:class:`SolenoidFields <laura.models.magnetic.SolenoidFields>` ``SnL`` (and hence the solenoid ``ks`` / ``field_amplitude``);
+* :py:class:`MagneticElement <laura.models.magnetic.MagneticElement>` ``entrance_edge_angle`` and ``exit_edge_angle`` (see the note below on the reserved ``angle`` token);
+* :py:class:`NonLinearLens_Magnet <laura.models.magnetic.NonLinearLens_Magnet>` ``integrated_strength`` and ``dimensional_parameter``;
+* :py:class:`Corrector_Magnet <laura.models.magnetic.Corrector_Magnet>` ``horizontal_kick`` and ``vertical_kick``;
+* :py:class:`Wiggler_Magnet <laura.models.magnetic.Wiggler_Magnet>` ``strength``;
+* :py:class:`RFCavityElement <laura.models.RF.RFCavityElement>` and :py:class:`RFDeflectingCavityElement <laura.models.RF.RFDeflectingCavityElement>` ``phase``;
+* :py:class:`RFCavitySimulationElement <laura.models.simulation.RFCavitySimulationElement>` ``field_amplitude``;
+* :py:class:`MagnetSimulationElement <laura.models.simulation.MagnetSimulationElement>` ``field_amplitude``.
+
+.. note::
+
+   The dipole edge angles reserve the token ``angle``: any edge-angle string that
+   contains it (``"angle"`` or ``"angle/2"``) is interpreted as an expression
+   referencing the bend angle, not as a functional-definition name, and is always
+   resolved to a number. A functional edge angle must therefore use a name that
+   does not contain ``angle``.
+
+A functional attribute is supplied as a string in place of a number:
+
+.. code-block:: python
+
+    from laura.models.element import Quadrupole
+
+    quad = Quadrupole(
+        name="QUAD-01", machine_area="LINAC-1",
+        magnetic={"length": 0.3, "k1l": "quad1_k1l"},  # symbolic strength
+    )
+
+The values that the names resolve to are provided to the lattice container via
+``functional_definitions`` (e.g. ``{"quad1_k1l": -2.0}``); see
+:ref:`functional-definitions`.
+
+Raw versus resolved access
+--------------------------
+
+The string is stored verbatim, and there are two kinds of accessor:
+
+* **Configured** accessors return the value *as stored* (the functional name) by
+  default: ``magnet.kl`` / ``magnet.k1l``, ``dipole.angle``, ``solenoid.ks``,
+  ``Multipoles.normal(order)`` / ``skew(order)``, ``SolenoidFields.normal(order)``,
+  and direct reads of the raw fields (``cavity.phase``, ``nll.integrated_strength``, …).
+* **Resolved** accessors always return the *number*, resolving the functional
+  definition: ``magnet.KnL(order)``, ``dipole.rho``, ``solenoid.field_amplitude``,
+  ``magnet.get_gradient(...)``, ``wiggler.normalized_strength``, and the generic
+  ``element.resolved("field_name")`` / ``element.resolve(value)`` helpers.
+
+For example, with ``{"quad1_k1l": -2.0}`` and a 0.3 m magnet:
+
+.. code-block:: python
+
+    quad.magnetic.k1l      # 'quad1_k1l'  (configured / raw, default mode)
+    quad.magnetic.KnL(1)   # -2.0         (resolved integrated strength)
+
+A number passes through resolution unchanged, so elements that use ordinary
+numeric values behave exactly as before.
+
+Resolution mode
+---------------
+
+A global flag controls whether the *configured* accessors render functional
+attributes as strings or as resolved numbers. It is **off by default** (render as
+strings) and is set from the top level via the ``resolve_functional`` option of a
+lattice container (see :ref:`functional-definitions`) or directly with
+:py:func:`set_resolve_functional <laura.models.baseModels.set_resolve_functional>`:
+
+.. code-block:: python
+
+    from laura.models.baseModels import set_resolve_functional
+
+    set_resolve_functional(True)
+    quad.magnetic.k1l   # -2.0 (now resolved)
+
+Resolved/computation accessors such as ``KnL`` are unaffected by this flag — they
+always return numbers.

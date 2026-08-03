@@ -1,0 +1,44 @@
+general:
+  magnetic_length: l
+  length: l
+  entrance_edge_angle: e1
+  exit_edge_angle: e2
+  edge_field_integral: fint
+  half_gap: hgap
+  tilt_angle: tilt
+  horizontal_size: xsize
+  vertical_size: ysize
+dipole:
+  angle: angle
+  half_gap: hgap
+  edge_field_integral: fint
+quadrupole:
+  dz_rot: tilt
+sextupole:
+  dz_rot: tilt
+octupole:
+  dz_rot: tilt
+solenoid:
+  ks: ks
+nonlinearlens:
+  integrated_strength: knll
+  dimensional_parameter: cnll
+horizontal_corrector:
+  hangle: kick
+vertical_corrector:
+  vangle: kick
+combined_corrector:
+  hangle: hkick
+  vangle: vkick
+rfcavity:
+  frequency: freq
+  field_amplitude: volt
+  phase: lag
+rfdeflectingcavity:
+  frequency: freq
+  field_amplitude: volt
+  phase: lag
+crabcavity:
+  frequency: freq
+  field_amplitude: volt
+  phase: lag
