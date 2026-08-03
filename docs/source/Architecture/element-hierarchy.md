@@ -7,6 +7,9 @@ Hand-written wrapper classes in `laura/models/element.py` inherit from those
 generated bases and add Python-specific logic (validators, computed properties,
 `IgnoreExtra`, cascading attribute access).
 
+See [The LAURA Schema](../Schema.html) for what the ontology contains, the
+conventions its slots follow, and the full list of artefacts generated from it.
+
 See [element-er.md](element-er.md) for the full class diagram.
 
 ## Schema hierarchy

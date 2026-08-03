@@ -124,10 +124,10 @@ class BaseLatticeModel(ModelBase):
     """Top-level directory containing lattice files."""
 
     functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
-    """Functional definitions for the lattice, e.g. ``{"quad1_k1l": -2,
-    "cav1_phase": 90}``, or a path to a YAML file holding such a mapping.
-    Registered into the shared registry so that string-valued element parameters
-    can be resolved to numbers on demand."""
+    """Functional definitions for the lattice, e.g.
+    ``{"quad1_k1l": -2, "cav1_phase": 90}``, or a path to a YAML file holding
+    such a mapping. Registered into the shared registry so that string-valued
+    element parameters can be resolved to numbers on demand."""
 
     resolve_functional: bool = False
     """Global resolution mode. When False (default), functional attributes are

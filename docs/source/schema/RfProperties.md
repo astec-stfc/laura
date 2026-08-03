@@ -1,9 +1,3 @@
----
-search:
-  boost: 1.0
----
-
-
 # Subset: RfProperties 
 
 

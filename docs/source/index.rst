@@ -15,6 +15,21 @@ This package provides a standardized interface for interacting with objects repr
 * Store auxiliary data -- mechanical, survey, electrical, for example.
 * Provide a basic interface to the controls system for each element.
 
+Schema-first
+------------
+
+The definitive description of an accelerator element in :mod:`LAURA` is not Python code. It is a
+`LinkML <https://linkml.io/>`_ ontology, held in ``laura/schema/YAML/``, from which everything
+else is generated: the Pydantic classes you import, a JSON Schema that validates lattice files,
+an OWL ontology, SHACL shapes, a SQLAlchemy ORM, a GraphQL schema and TypeScript types.
+
+This is what makes "a ground source of truth" more than an aspiration. An element's properties,
+their units, their defaults and their permitted values are stated once, in a machine-readable
+form that is not tied to Python -- so a lattice can be validated, reasoned over, queried with
+SPARQL or loaded into a database without :mod:`LAURA` itself being involved.
+
+:doc:`Read about the schema → <Schema>`
+
 .. warning::
    | This site is currently **under construction**.
    | Some pages may have missing or incomplete reference documentation.
@@ -57,12 +72,13 @@ works out of the box. Support for individual target codes is pulled in through e
    `RF-Track <https://gitlab.cern.ch/rf-track>`_ is not distributed on PyPI, so it has no extra --
    install its wheel manually into the same environment to use :ref:`rftrack-translator`.
 
-Architecture
-------------
+Documentation
+-------------
 
 .. toctree::
    :maxdepth: 2
 
+   Schema
    Architecture/index
    Translator
    Interfaces

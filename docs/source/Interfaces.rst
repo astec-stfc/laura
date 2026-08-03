@@ -103,8 +103,10 @@ different from the one it was read in:
 RDF / linked data
 ~~~~~~~~~~~~~~~~~
 
-The LinkML schema doubles as an ontology, so a machine can be emitted as RDF and consumed by
-standard linked-data tooling. Requires ``pip install "laura-accelerator[rdf]"``.
+The LinkML schema doubles as an ontology (see :ref:`schema`), so a machine can be emitted as RDF
+and consumed by standard linked-data tooling -- validated against the generated SHACL shapes,
+reasoned over with the OWL ontology, or queried with SPARQL. Requires
+``pip install "laura-accelerator[rdf]"``.
 
 .. code-block:: python
 

@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: edge_field_integral 
 
 <div data-search-exclude markdown="1">

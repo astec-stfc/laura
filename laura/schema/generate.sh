@@ -79,8 +79,13 @@ path.write_text(patched)
 print(f"  Patched {content.count(chr(10)+'  {'+chr(10)+'  }')} empty types")
 EOF
 
-echo "Generating HTML documentation..."
+echo "Generating reference documentation..."
+# gen-doc writes but never prunes, so a renamed class or slot would leave its old
+# page behind for the Sphinx build to pick up. Clear the directory first.
+rm -f "$DOCS_DIR"/*.md
 gen-doc -d "$DOCS_DIR" "$SCHEMA"
+# Strip the MkDocs front matter gen-doc emits; see postprocess_docs.py.
+python "laura/schema/postprocess_docs.py" "$DOCS_DIR"
 
 echo "Generating ER diagram (auto, written to generated/)..."
 # Written to generated/ — does NOT overwrite the hand-maintained
@@ -92,6 +97,10 @@ python "laura/schema/generate_pydantic.py"
 
 echo ""
 echo "All artefacts generated successfully."
+echo "NOTE: gen-owl, gen-shacl and gen-sqltables emit their statements in a"
+echo "      non-deterministic order, so those three files show large diffs even"
+echo "      when the schema has not changed. Check the diff is only reordering"
+echo "      before committing them."
 echo "  JSON Schema : $OUT_DIR/laura_element.schema.json"
 echo "  OWL         : $OUT_DIR/laura_ontology.owl"
 echo "  JSON-LD ctx : $OUT_DIR/laura_context.jsonld"
@@ -100,7 +109,7 @@ echo "  TypeScript  : $OUT_DIR/laura_types.ts"
 echo "  SQL DDL     : $OUT_DIR/laura_schema.sql"
 echo "  SQLAlchemy  : $OUT_DIR/laura_orm.py"
 echo "  GraphQL     : $OUT_DIR/laura_schema.graphql"
-echo "  HTML docs   : $DOCS_DIR/"
+echo "  Reference   : $DOCS_DIR/"
 echo "  ER diagram  : $ER_FILE_AUTO (auto-generated skeleton)"
 echo "  Full diagram: docs/source/Architecture/element-er.md (hand-maintained)"
 echo "  Pydantic    : laura/models/_generated.py"

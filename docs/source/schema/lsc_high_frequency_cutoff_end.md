@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: lsc_high_frequency_cutoff_end 
 
 

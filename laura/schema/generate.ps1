@@ -24,7 +24,20 @@ New-Item -ItemType Directory -Force -Path $OUT_DIR  | Out-Null
 New-Item -ItemType Directory -Force -Path $DOCS_DIR | Out-Null
 
 Write-Host "Linting schema..." -ForegroundColor Cyan
-linkml-lint $SCHEMA
+# Advisory only. The schema carries ~50 standard_naming warnings for physics
+# conventions we intend to keep (slots named L, Kp, Ki, Kd, x, y, z, s; enum
+# values like RF and TwissMatch), and linkml-lint exits non-zero on warnings --
+# which, under $ErrorActionPreference = "Stop", aborted this script before it
+# generated anything.
+try {
+    linkml-lint $SCHEMA
+} catch {
+    Write-Host "  (lint warnings above are advisory; continuing)" -ForegroundColor DarkGray
+}
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  (lint warnings above are advisory; continuing)" -ForegroundColor DarkGray
+    $global:LASTEXITCODE = 0
+}
 
 Write-Host "Generating JSON Schema..." -ForegroundColor Cyan
 gen-json-schema $SCHEMA --indent 2 | Set-Content "$OUT_DIR/laura_element.schema.json" -Encoding ascii
@@ -66,11 +79,20 @@ gen-graphql $SCHEMA | Set-Content "$OUT_DIR/laura_schema.graphql"
 # GraphQL SDL (object types must have at least one field).  Patch them in-place.
 Write-Host "  Patching empty GraphQL types..." -ForegroundColor DarkGray
 $gql = Get-Content "$OUT_DIR/laura_schema.graphql" -Raw
-$gql = [regex]::Replace($gql, '(?m)(type \w+\r?\n  \{\r?\n)  \}', '$1    _placeholder: Boolean`n  }')
+# The replacement must be double-quoted for `n to be a newline: in a
+# single-quoted string PowerShell writes the two characters back-tick + n
+# literally, which produced `_placeholder: Boolean`n  }` -- invalid GraphQL SDL.
+# $1 is escaped so PowerShell leaves the regex group reference alone.
+$gql = [regex]::Replace($gql, '(?m)(type \w+\r?\n  \{\r?\n)  \}', "`$1    _placeholder: Boolean`n  }")
 Set-Content "$OUT_DIR/laura_schema.graphql" $gql
 
-Write-Host "Generating HTML documentation..." -ForegroundColor Cyan
-gen-doc -d $DOCS_DIR $SCHEMA
+Write-Host "Generating reference documentation..." -ForegroundColor Cyan
+# gen-doc writes but never prunes, so a renamed class or slot would leave its old
+# page behind for the Sphinx build to pick up. Clear the directory first.
+Get-ChildItem $DOCS_DIR -Filter *.md | Remove-Item -Force
+gen-doc -d $DOCS_DIR $SCHEMA | Out-Null   # gen-doc prints a stray "None"
+# Strip the MkDocs front matter gen-doc emits; see postprocess_docs.py.
+python "laura/schema/postprocess_docs.py" $DOCS_DIR
 
 Write-Host "Generating ER diagram (auto, written to generated/)..." -ForegroundColor Cyan
 # Written to generated/ — does NOT overwrite the hand-maintained
@@ -82,6 +104,10 @@ python "laura/schema/generate_pydantic.py"
 
 Write-Host ""
 Write-Host "All artefacts generated successfully." -ForegroundColor Green
+Write-Host "NOTE: gen-owl, gen-shacl and gen-sqltables emit their statements in a" -ForegroundColor DarkGray
+Write-Host "      non-deterministic order, so those three files show large diffs even" -ForegroundColor DarkGray
+Write-Host "      when the schema has not changed. Check the diff is only reordering" -ForegroundColor DarkGray
+Write-Host "      before committing them." -ForegroundColor DarkGray
 Write-Host "  JSON Schema : $OUT_DIR/laura_element.schema.json"
 Write-Host "  OWL         : $OUT_DIR/laura_ontology.owl"
 Write-Host "  JSON-LD ctx : $OUT_DIR/laura_context.jsonld"
@@ -90,7 +116,7 @@ Write-Host "  TypeScript  : $OUT_DIR/laura_types.ts"
 Write-Host "  SQL DDL     : $OUT_DIR/laura_schema.sql"
 Write-Host "  SQLAlchemy  : $OUT_DIR/laura_orm.py"
 Write-Host "  GraphQL     : $OUT_DIR/laura_schema.graphql"
-Write-Host "  HTML docs   : $DOCS_DIR/"
+Write-Host "  Reference   : $DOCS_DIR/"
 Write-Host "  ER diagram  : $ER_FILE_AUTO (auto-generated skeleton)
   Full diagram: docs/source/Architecture/element-er.md (hand-maintained)"
 Write-Host "  Pydantic    : laura/models/_generated.py"

@@ -3,8 +3,9 @@
 Element Definition
 ==================
 
-Accelerator elements in :mod:`LAURA` are based on a hierarchical structure defined by a
-`LinkML ontology <../../laura/schema/YAML/laura_schema.yaml>`_.
+Accelerator elements in :mod:`LAURA` are based on a hierarchical structure defined by a LinkML
+ontology; see :ref:`schema` for what that ontology contains and how it reaches the Python
+classes described here.
 All elements must define some common properties in order to identify their type,
 ``machine_area``, and other fields.
 From this base level, additional details can be added progressively depending on
@@ -12,7 +13,14 @@ the element type and its intended use.
 
 The class hierarchy is illustrated in the
 `element class diagram <element-er.html>`_
-and described in detail in :doc:`element-hierarchy`.
+and described in detail in :doc:`element-hierarchy`;
+:numref:`fig-element-structure` gives an overview of how an element is composed.
+
+.. _fig-element-structure:
+.. figure:: assets/element-structure.png
+
+   Composition of a :mod:`LAURA` element: the ``baseElement`` → ``Element`` →
+   ``PhysicalBaseElement`` spine, and the sub-models each layer attaches.
 
 
 .. _base-element:
@@ -37,18 +45,9 @@ The following additional properties can also be provided:
 * ``alias: str | list``: Alternative name(s) for the element. Accepts a single comma-separated string or a list; ``name_alias`` is an input alias for this field.
 * ``subelement: str | None``: The name of the element this one 'belongs' to, i.e. that it overlaps in physical space -- such as a wakefield attached to a cavity or a solenoid magnet around an RF photoinjector. A sub-element is excluded when computing the total length of a beamline. Passing ``True`` instead of a name marks the element as a sub-element without naming a parent.
 
-An element may also declare how it is wired to the rest of the machine. This describes
-signal connectivity -- which power supply feeds which magnet, which klystron drives which
-cavity -- rather than beam order:
-
-* ``inputs: list[IOTypeEnum]``: Signal types this element consumes, e.g. ``[current, voltage]``.
-* ``outputs: list[IOTypeEnum]``: Signal types this element produces, e.g. ``[power, phase]``.
-* ``upstream: list[str]``: Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.
-* ``downstream: list[str]``: Names of elements this one feeds; the inverse of ``upstream``.
-
-The available signal types are ``current``, ``voltage``, ``phase``, ``setpoint``,
-``on_off_state``, ``open_closed_state``, ``position``, ``rotation``, ``power`` and
-``pressure``.
+An element may also declare how it is wired to the rest of the machine, through ``inputs``,
+``outputs``, ``upstream`` and ``downstream``. These four describe the control/signal graph and
+are covered in :ref:`signal-connectivity`.
 
 While most elements that are typically considered part of an accelerator lattice are defined with reference to a
 fiducial position, and therefore are described in physical space with respect to that position, not all
@@ -388,6 +387,179 @@ generation. For more examples of creating elements and combining them into latti
 :ref:`examples`. Elements can be organised into :ref:`section-lattice` and :ref:`machine-layout`
 structures as described in :ref:`lattice`. Once defined, elements can be exported to simulation
 codes using the :ref:`translator` module.
+
+.. _signal-connectivity:
+
+Signal Connectivity
+===================
+
+A lattice is an ordered thing: the beam meets the gun, then the solenoid, then the first
+quadrupole. But the hardware that makes those elements work is wired up quite differently. A
+power supply sits in a rack and feeds a magnet somewhere along the beamline; a klystron drives a
+cavity through a waveguide run; a feedback loop reads a cavity probe and trims the modulator
+that drives it. None of that is described by beam order, and none of it is derivable from
+s-position.
+
+:mod:`LAURA` therefore stores a second, independent graph on the base element. It is described
+by four slots, which split cleanly into *what flows* and *what is connected*:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Slot
+     - Meaning
+   * - ``inputs``
+     - The **kinds of signal** this element consumes, as an unordered set of ``IOTypeEnum`` values. Types, not values, and not element names.
+   * - ``outputs``
+     - The kinds of signal this element produces.
+   * - ``upstream``
+     - The **names of elements** feeding this one -- those whose ``outputs`` supply its ``inputs``.
+   * - ``downstream``
+     - The names of elements this one feeds; by convention, the inverse of ``upstream``.
+
+The available signal types are ``current``, ``voltage``, ``power``, ``phase``, ``charge``,
+``magnetic_field``, ``pressure``, ``position``, ``rotation``, ``setpoint``, ``on_off_state``,
+``open_closed_state``, ``absolute_time``, ``relative_time``, ``shot_number``, ``value`` and
+``waveform``.
+
+Reading the two together is what makes a link meaningful: an edge from ``A`` to ``B`` carries
+whatever lies in the intersection of ``A.outputs`` and ``B.inputs``.
+
+Example: an RF drive chain
+--------------------------
+
+The following is drawn from ``examples/testing/sample_rf_control_elements.yaml``, which is a
+complete runnable machine description:
+
+.. code-block:: yaml
+
+    GUN_RF_POWER_SUPPLY:
+      name: GUN_RF_POWER_SUPPLY
+      hardware_class: RF
+      hardware_type: PowerSupply
+      machine_area: DEMO
+      inputs: [setpoint]
+      outputs: [current, voltage]
+      upstream: []
+      downstream: [GUN_KLYSTRON_MODULATOR]
+
+    GUN_KLYSTRON_MODULATOR:
+      name: GUN_KLYSTRON_MODULATOR
+      hardware_class: RF
+      hardware_type: RFModulator
+      machine_area: DEMO
+      inputs: [current, voltage]
+      outputs: [power, phase]
+      upstream: [GUN_RF_POWER_SUPPLY, GUN_RF_PID]
+      downstream: [GUN_RF_CAVITY]
+
+    GUN_RF_PID:
+      name: GUN_RF_PID
+      hardware_class: Feedback
+      hardware_type: PID
+      machine_area: DEMO
+      inputs: [setpoint, phase]
+      outputs: [phase]
+      upstream: [GUN_RF_CAVITY]
+      downstream: [GUN_KLYSTRON_MODULATOR, GUN_RF_CAVITY]
+
+    GUN_RF_CAVITY:
+      name: GUN_RF_CAVITY
+      hardware_class: RFCavity
+      hardware_type: RFCavity
+      machine_area: DEMO
+      inputs: [power, phase]
+      outputs: [voltage]
+      upstream: [GUN_KLYSTRON_MODULATOR, GUN_RF_PID]
+      downstream: [INJ_SOL_01]
+      physical:
+        middle: {x: 0.0, y: 0.0, z: 0.10}
+        length: 0.20
+
+Which reads as:
+
+.. code-block:: text
+
+    GUN_RF_POWER_SUPPLY  --current,voltage-->  GUN_KLYSTRON_MODULATOR
+    GUN_KLYSTRON_MODULATOR  --power,phase-->   GUN_RF_CAVITY
+    GUN_RF_CAVITY  --(measured)-->  GUN_RF_PID  --phase-->  GUN_KLYSTRON_MODULATOR
+
+A power supply drives a modulator, which drives a cavity, and a PID closes the loop back onto
+the modulator by trimming its phase.
+
+Two properties to know before writing traversal code
+-----------------------------------------------------
+
+**The graph is not acyclic.** ``GUN_RF_PID`` is downstream of ``GUN_RF_CAVITY`` and also lists
+that cavity in its own ``downstream``. That is a feedback loop, correctly described -- not a
+mistake. Track visited nodes or your traversal will not terminate.
+
+**Symmetry is a convention, not a constraint.** The two directions are stored rather than
+derived, so nothing enforces that ``A.downstream`` containing ``B`` implies ``B.upstream``
+contains ``A``. In the example above ``GUN_RF_CAVITY`` lists ``INJ_SOL_01`` in ``downstream``
+(a hand-off to the next section) while ``INJ_SOL_01.upstream`` names only its own power supply.
+Follow one direction consistently rather than assuming the inverse link exists.
+
+Traversing the graph
+--------------------
+
+The links are plain lists of names, so there is deliberately no graph API on
+:py:class:`LAURA <laura.laura.LAURA>` for this -- a few lines of ``collections.deque`` covers it:
+
+.. code-block:: python
+
+    from collections import deque
+
+    def signals_between(machine, source: str, dest: str) -> list[str]:
+        """Signal types flowing source -> dest: its outputs ∩ dest's inputs."""
+        return sorted(set(machine[source].outputs) & set(machine[dest].inputs))
+
+    def find_path(machine, start: str, goal: str) -> list[str] | None:
+        """Shortest ``downstream`` path from *start* to *goal*, or None."""
+        queue, seen = deque([[start]]), {start}
+        while queue:
+            path = queue.popleft()
+            if path[-1] == goal:
+                return path
+            for nxt in machine[path[-1]].downstream:
+                if nxt in seen or nxt not in machine.elements:
+                    continue
+                seen.add(nxt)                     # the cycle guard
+                queue.append(path + [nxt])
+        return None
+
+Answering "what drives this cavity, and with what?" is then a single loop over ``upstream``:
+
+.. code-block:: python
+
+    cavity = machine["LINAC_RF_CAVITY"]
+    for name in cavity.upstream:
+        print(name, "supplies", signals_between(machine, name, cavity.name))
+
+    # LINAC_KLYSTRON_MODULATOR supplies ['phase', 'power']
+    # LINAC_RF_PID supplies ['phase']
+
+and the reverse question -- which magnet a given power supply actually drives -- falls out of
+``downstream``:
+
+.. code-block:: python
+
+    for name, elem in sorted(machine.elements.items()):
+        if elem.hardware_type != "PowerSupply":
+            continue
+        for driven in elem.downstream:
+            print(name, "-->", driven, signals_between(machine, name, driven))
+
+    # INJ_QUAD_01_PSU --> INJ_QUAD_01 ['current']
+    # INJ_SOL_01_PSU --> INJ_SOL_01 ['current']
+
+A complete, runnable version of all of the above -- including a breadth-first walk that proves
+the feedback cycle terminates -- is in ``examples/testing/signal_graph_example.py``:
+
+.. code-block:: bash
+
+    python examples/testing/signal_graph_example.py
 
 .. _auxiliary:
 

@@ -32,7 +32,7 @@ laura:schema.owl.ttl a owl:Ontology ;
     dcterms:license "Apache Software License 2.0" ;
     dcterms:title "LAURA Accelerator Element Schema" ;
     pav:version "0.1.0" ;
-    skos:definition "Linked Data schema for the LAURA (Lattice And Unified Representation of Accelerators) accelerator element model.  Covers all element types, their physical, magnetic, diagnostic, RF, and control-system properties." .
+    skos:definition "Linked Data schema for the LAURA (Lattice Architecture for a Unified Representation of Accelerators) accelerator element model.  Covers all element types, their physical, magnetic, diagnostic, RF, and control-system properties." .
 
 laura:BeamArrivalMonitor a owl:Class ;
     rdfs:label "BeamArrivalMonitor" ;
@@ -5352,7 +5352,7 @@ laura:SolenoidFields a owl:Class ;
         [ a owl:Restriction ;
             owl:maxCardinality 1 ;
             owl:onProperty laura:S12L ] ;
-    skos:definition "Solenoid integrated axial field components ``S0L``–``S12L`` [T.m]." ;
+    skos:definition "Solenoid integrated axial field components ``S0L``ï¿½``S12L`` [T.m]." ;
     skos:exactMatch laura:SolenoidFields ;
     skos:inScheme <https://w3id.org/laura/schema/magnetic> .
 

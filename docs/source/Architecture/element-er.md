@@ -29,6 +29,10 @@ classDiagram
         +list~string~ alias
         +string virtual_name
         +string subelement
+        +list~IOTypeEnum~ inputs
+        +list~IOTypeEnum~ outputs
+        +list~string~ upstream
+        +list~string~ downstream
     }
 
     class StandardElement {
@@ -266,6 +270,12 @@ classDiagram
 `middle`, `s` and `reference_placement` are three mutually exclusive ways of
 expressing the same placement; see
 [Positioning modes](Element.html#positioning-modes).
+
+`inputs` / `outputs` / `upstream` / `downstream` on the root class describe the
+control/signal graph — which power supply feeds which magnet, which klystron
+drives which cavity. That graph is directed, may contain feedback cycles, and is
+entirely separate from beam ordering (which comes from the layout and s-position).
+See [Signal connectivity](Element.html#signal-connectivity).
 
 ## Schema ↔ Python class name mapping
 

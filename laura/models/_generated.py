@@ -97,9 +97,9 @@ class LinkMLMeta(RootModel):
 
 linkml_meta = LinkMLMeta({'default_prefix': 'laura',
      'default_range': 'string',
-     'description': 'Linked Data schema for the LAURA (Lattice And Unified '
-                    'Representation of Accelerators) accelerator element model.  '
-                    'Covers all element types, their physical, magnetic, '
+     'description': 'Linked Data schema for the LAURA (Lattice Architecture for a '
+                    'Unified Representation of Accelerators) accelerator element '
+                    'model.  Covers all element types, their physical, magnetic, '
                     'diagnostic, RF, and control-system properties.',
      'id': 'https://w3id.org/laura/schema',
      'imports': ['linkml:types',

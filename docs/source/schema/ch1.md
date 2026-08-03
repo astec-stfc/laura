@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: ch1 
 
 <div data-search-exclude markdown="1">

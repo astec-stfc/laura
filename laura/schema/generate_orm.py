@@ -38,6 +38,9 @@ def _run_gen_sqla(schema_path: str) -> str:
         [str(gen_sqla), schema_path],
         capture_output=True,
         text=True,
+        # `text=True` alone decodes with the locale encoding (cp1252 on Windows),
+        # turning every non-ASCII character in a schema description into mojibake.
+        encoding="utf-8",
     )
     if result.returncode != 0:
         sys.stderr.write(result.stderr)
