@@ -122,7 +122,7 @@ class astra_newrun(astra_header):
     """If true, the run will be interrupted if the reference particle is lost during the on-
     and off-axis reference particle tracking."""
 
-    h_max: float = 0.07
+    h_max: float = 0.001
     """Maximum time step for the Runge-Kutta integration."""
 
     h_min: float = 0.0
@@ -296,6 +296,9 @@ class astra_charge(astra_header):
     says "if min_grid is zero it is set automatically according to Eq. (4.2)
     based on the parameter H_min". A tiny but non-zero value silently disables
     that."""
+
+    n_min: int = 30
+    """Minimum number of particles per time step for the Runge-Kutta integration."""
 
     max_scale: float = 0.05
     """If one of the space charge scaling factors exceeds the limit 1± max_scale a new
