@@ -54,9 +54,14 @@ def _dipole(**magnetic):
 
 
 def _cavity(field_amplitude, phase=0.0, structure="StandingWave"):
+    mode = (
+        {"mode_numerator": 1.0, "mode_denominator": 3}
+        if structure == "TravellingWave"
+        else {}
+    )
     cav = RFCavity(
         name="C1", machine_area="L02",
-        cavity={"phase": phase, "structure_Type": structure},
+        cavity={"phase": phase, "structure_type": structure, **mode},
         simulation={"field_amplitude": field_amplitude},
     )
     return RFCavityTranslator.model_validate(cav.model_dump())
@@ -217,7 +222,7 @@ class TestMadxSection:
         )
         c = RFCavity(
             name="C1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": volt},
             physical=PhysicalElement(length=1.0, middle=Position(x=0, y=0, z=3.0)),
         )

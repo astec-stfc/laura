@@ -1195,7 +1195,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                     field_kwargs.update(
                         {
                             "frequency": self.cavity.frequency,
-                            "cavity_type": self.cavity.structure_Type,
+                            "cavity_type": self.cavity.structure_type,
                             "n_cells": self.cavity.n_cells,
                         }
                     )
@@ -1209,11 +1209,8 @@ class BaseElementTranslator(PhysicalBaseElement):
                     additional = {}
                     if hasattr(self.cavity, "frequency"):
                         additional.update({"frequency": self.cavity.frequency})
-                    if hasattr(self.cavity, "structure_Type"):
-                        additional.update(
-                            {"structure_Type": self.cavity.structure_Type}
-                        )
-                        cavity_type = (self.cavity.structure_Type,)
+                    if hasattr(self.cavity, "structure_type"):
+                        additional.update({"cavity_type": self.cavity.structure_type})
                     self.simulation.wakefield_definition = field(
                         filename=expand_substitution(
                             self, self.simulation.wakefield_definition, self.master_lattice,

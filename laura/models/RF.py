@@ -9,7 +9,7 @@ class RFCavityElement(IgnoreExtra):
     RF Cavity model.
     """
 
-    structure_Type: str = "StandingWave"
+    structure_type: str = "StandingWave"
     """Type of RF structure
     #TODO make this literal.
     """
@@ -64,7 +64,7 @@ class RFCavityElement(IgnoreExtra):
     """Gradient calibration for the cavity (if provided in config file)"""
 
     def model_post_init(self, __context):
-        if self.structure_Type.lower == "travellingwave" and any(
+        if self.structure_type.lower() == "travellingwave" and any(
             [self.mode_numerator is None and self.mode_denominator is None]
         ):
             raise ValueError(

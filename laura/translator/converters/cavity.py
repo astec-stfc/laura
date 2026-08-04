@@ -37,7 +37,7 @@ class RFCavityTranslator(BaseElementTranslator):
     @computed_field
     @property
     def structure_type(self) -> str:
-        return self.cavity.structure_Type
+        return self.cavity.structure_type
 
     @property
     def phase(self) -> float:

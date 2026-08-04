@@ -84,7 +84,7 @@ class TestFunctionalParametersRF:
 class TestRFCavityElement:
     def test_defaults(self):
         cav = RFCavityElement()
-        assert cav.structure_Type == "StandingWave"
+        assert cav.structure_type == "StandingWave"
         assert cav.frequency == pytest.approx(2998500000.0)
         assert cav.phase == pytest.approx(0.0)
         assert cav.n_cells == 1
