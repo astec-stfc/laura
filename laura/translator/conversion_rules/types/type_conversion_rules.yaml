@@ -110,6 +110,7 @@ opal:
   Marker: monitor
   CrabCavity: drift
   Photon_Monitor: monitor
+  Shutter: drift
 madx:
   Dipole: sbend
   Quadrupole: quadrupole

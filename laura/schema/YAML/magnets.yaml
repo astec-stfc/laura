@@ -1,0 +1,385 @@
+id: https://w3id.org/laura/schema/magnetic
+name: laura_magnet_schema
+title: LAURA Magnet Model Chunk
+description: >-
+  Magnet classes.
+version: "0.1.0"
+license: Apache Software License 2.0
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+imports:
+  - linkml:types
+  - magnetic
+
+classes:
+
+  # -- Magnet Objects -----------------------------------------------------------------
+
+  Dipole_Magnet:
+    is_a: MagneticElement
+    slot_usage:
+      order:
+        ifabsent: 0
+        equals_number: 0
+
+  Dipole:
+    is_a: Magnet
+    slot_usage:
+      magnetic:
+        range: Dipole_Magnet
+      hardware_type:
+        equals_string: Dipole
+        ifabsent: Dipole
+
+  Quadrupole_Magnet:
+    is_a: MagneticElement
+    slot_usage:
+      order:
+        ifabsent: 1
+        equals_number: 1
+
+  Quadrupole:
+    is_a: Magnet
+    slot_usage:
+      magnetic:
+        range: Quadrupole_Magnet
+      hardware_type:
+        equals_string: Quadrupole
+        ifabsent: Quadrupole
+
+  Sextupole_Magnet:
+    is_a: MagneticElement
+    description: Sextupole magnet field, principal multipole order 2.
+    slot_usage:
+      order:
+        ifabsent: 2
+        equals_number: 2
+
+  Sextupole:
+    is_a: Magnet
+    description: Sextupole chromaticity-correction magnet.
+    class_uri: laura:Sextupole
+    slot_usage:
+      magnetic:
+        range: Sextupole_Magnet
+      hardware_type:
+        equals_string: Sextupole
+        ifabsent: Sextupole
+
+  Octupole_Magnet:
+    is_a: MagneticElement
+    description: Octupole magnet field, principal multipole order 3.
+    slot_usage:
+      order:
+        ifabsent: 3
+        equals_number: 3
+
+  Octupole:
+    is_a: Magnet
+    description: Octupole magnet.
+    class_uri: laura:Octupole
+    slot_usage:
+      magnetic:
+        range: Octupole_Magnet
+      hardware_type:
+        equals_string: Octupole
+        ifabsent: Octupole
+
+  # -- Correctors ---------------------------------------------------------------
+  # Correctors are dipoles in Python (``is_a: Dipole``) but carry a kick-based
+  # magnetic model rather than a multipole one.
+
+  Corrector_Magnet:
+    description: >-
+      Steering-corrector field, expressed as horizontal and vertical kicks
+      rather than multipole coefficients.
+    class_uri: laura:Corrector_Magnet
+    attributes:
+      length:
+        range: float
+        ifabsent: float(0.0)
+        description: Magnetic length [m].
+        minimum_value: 0
+      order:
+        range: integer
+        ifabsent: int(0)
+        description: Multipole order (0, a dipole field).
+      tilt:
+        range: float
+        ifabsent: float(0.0)
+        description: Roll of the corrector about the beam axis [rad].
+      horizontal_kick:
+        range: float
+        ifabsent: float(0.0)
+        description: Horizontal deflection [rad]. May be a functional expression.
+      vertical_kick:
+        range: float
+        ifabsent: float(0.0)
+        description: Vertical deflection [rad]. May be a functional expression.
+
+  HorizontalCorrector:
+    is_a: Dipole
+    description: Horizontal steering corrector.
+    class_uri: laura:HorizontalCorrector
+    slot_usage:
+      magnetic:
+        range: Corrector_Magnet
+      hardware_type:
+        equals_string: Horizontal_Corrector
+        ifabsent: Horizontal_Corrector
+
+  VerticalCorrector:
+    is_a: Dipole
+    description: Vertical steering corrector.
+    class_uri: laura:VerticalCorrector
+    slot_usage:
+      magnetic:
+        range: Corrector_Magnet
+      hardware_type:
+        equals_string: Vertical_Corrector
+        ifabsent: Vertical_Corrector
+
+  CombinedCorrector:
+    is_a: Dipole
+    description: >-
+      Combined horizontal/vertical steering corrector, naming the two
+      single-plane correctors it stands in for.
+    class_uri: laura:CombinedCorrector
+    slot_usage:
+      magnetic:
+        range: Corrector_Magnet
+      hardware_type:
+        equals_string: Combined_Corrector
+        ifabsent: Combined_Corrector
+    attributes:
+      Horizontal_Corrector:
+        range: string
+        description: Name of the horizontal-plane corrector element.
+      Vertical_Corrector:
+        range: string
+        description: Name of the vertical-plane corrector element.
+
+  # -- Solenoid -----------------------------------------------------------------
+
+  SolenoidFields:
+    description: >-
+      Solenoid integrated axial field components ``S0L``–``S12L`` [T.m].
+    class_uri: laura:SolenoidFields
+    attributes:
+      S0L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 0 [T.m]."
+      S1L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 1 [T.m]."
+      S2L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 2 [T.m]."
+      S3L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 3 [T.m]."
+      S4L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 4 [T.m]."
+      S5L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 5 [T.m]."
+      S6L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 6 [T.m]."
+      S7L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 7 [T.m]."
+      S8L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 8 [T.m]."
+      S9L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 9 [T.m]."
+      S10L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 10 [T.m]."
+      S11L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 11 [T.m]."
+      S12L:
+        range: float
+        ifabsent: float(0.0)
+        description: "Integrated solenoid field, order 12 [T.m]."
+
+  Solenoid_Magnet:
+    description: >-
+      Solenoid field model, including systematic and random field errors and
+      the current-to-field calibration.
+    class_uri: laura:Solenoid_Magnet
+    attributes:
+      length:
+        range: float
+        ifabsent: float(0.0)
+        description: Magnetic length [m].
+        minimum_value: 0
+      order:
+        range: integer
+        ifabsent: int(0)
+        description: Principal solenoid multipole order.
+      fields:
+        range: SolenoidFields
+        description: Nominal integrated axial field components.
+      systematic_fields:
+        range: SolenoidFields
+        description: Systematic field errors.
+      random_fields:
+        range: SolenoidFields
+        description: Random field errors.
+      field_integral_coefficients:
+        range: FieldIntegral
+        description: Polynomial current-to-integrated-field coefficients.
+      linear_saturation_coefficients:
+        range: LinearSaturationFit
+        description: Linear-plus-saturation fit of field against current.
+      settle_time:
+        range: float
+        ifabsent: float(45.0)
+        description: Time to wait after a set before the field is stable [s].
+        minimum_value: 0
+
+  Solenoid:
+    is_a: Magnet
+    description: Solenoid focusing magnet.
+    class_uri: laura:Solenoid
+    slot_usage:
+      magnetic:
+        range: Solenoid_Magnet
+      hardware_type:
+        equals_string: Solenoid
+        ifabsent: Solenoid
+
+  # -- Wiggler / undulator ------------------------------------------------------
+
+  Wiggler_Magnet:
+    description: Periodic wiggler/undulator field.
+    class_uri: laura:Wiggler_Magnet
+    attributes:
+      length:
+        range: float
+        ifabsent: float(0.0)
+        description: Magnetic length [m].
+        minimum_value: 0
+      strength:
+        range: float
+        ifabsent: float(0.0)
+        description: >-
+          Deflection parameter K. May be a functional expression.
+        minimum_value: 0
+      peak_magnetic_field:
+        range: float
+        ifabsent: float(0.0)
+        description: Peak on-axis field [T].
+      period:
+        range: float
+        ifabsent: float(0.0)
+        description: Magnetic period length [m].
+      num_periods:
+        range: integer
+        ifabsent: int(0)
+        description: Number of full magnetic periods.
+        minimum_value: 0
+      helical:
+        range: boolean
+        ifabsent: "False"
+        description: True for a helical device, False for planar.
+      quadratic_roll_off_x:
+        range: float
+        ifabsent: float(0.0)
+        description: Quadratic field roll-off in x [1/m^2].
+      quadratic_roll_off_y:
+        range: float
+        ifabsent: float(0.0)
+        description: Quadratic field roll-off in y [1/m^2].
+      transverse_gradient_x:
+        range: float
+        ifabsent: float(0.0)
+        description: Transverse field gradient in x [1/m].
+      transverse_gradient_y:
+        range: float
+        ifabsent: float(0.0)
+        description: Transverse field gradient in y [1/m].
+
+  Wiggler:
+    is_a: Magnet
+    description: Wiggler / undulator insertion device.
+    class_uri: laura:Wiggler
+    slot_usage:
+      magnetic:
+        range: Wiggler_Magnet
+      hardware_type:
+        equals_string: Wiggler
+        ifabsent: Wiggler
+    attributes:
+      laser:
+        range: LaserElement
+        description: >-
+          Drive laser, for laser-undulator (inverse-Compton) configurations.
+
+  # -- Non-linear lens ----------------------------------------------------------
+
+  NonLinearLens_Magnet:
+    description: >-
+      Integrable-optics non-linear lens field.  See the MAD-X manual and
+      Danilov/Nagaitsev, PAC2011 WEP070.
+    class_uri: laura:NonLinearLens_Magnet
+    attributes:
+      length:
+        range: float
+        ifabsent: float(0.0)
+        description: Magnetic length [m].
+        minimum_value: 0
+      integrated_strength:
+        range: float
+        ifabsent: float(0.0)
+        description: >-
+          Integrated lens strength (MAD-X ``knll``). May be a functional
+          expression.
+        minimum_value: 0
+      dimensional_parameter:
+        range: float
+        ifabsent: float(0.0)
+        description: >-
+          Dimensional parameter setting the transverse scale (MAD-X ``cnll``).
+          May be a functional expression.
+
+  NonLinearLens:
+    is_a: Magnet
+    description: Non-linear integrable-optics lens.
+    class_uri: laura:NonLinearLens
+    slot_usage:
+      magnetic:
+        range: NonLinearLens_Magnet
+      hardware_type:
+        equals_string: NonLinearLens
+        ifabsent: NonLinearLens

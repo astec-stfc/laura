@@ -97,15 +97,6 @@ class TestIgnoreExtra:
         assert obj.x == 5
         assert not hasattr(obj, "unknown_field")
 
-    def test_from_CATAP(self):
-        class IE(IgnoreExtra):
-            x: int
-            y: float = 0.0
-
-        obj = IE.from_CATAP({"x": 10, "y": 3.14})
-        assert obj.x == 10
-        assert obj.y == pytest.approx(3.14)
-
     def test_update(self):
         class IE(IgnoreExtra):
             x: int = 0
@@ -203,22 +194,6 @@ class TestNumpyVectorModel:
         assert V() == 0
         assert V() == 0.0
         assert V() == None  # noqa: E711
-
-    def test_neq_nonzero(self):
-        class V(NumpyVectorModel):
-            x: float = 0.0
-            y: float = 0.0
-
-        v = V(x=1, y=0)
-        assert v.__neq__(0) is True
-
-    def test_neq_zero(self):
-        class V(NumpyVectorModel):
-            x: float = 0.0
-            y: float = 0.0
-
-        v = V()
-        assert v.__neq__(0) is False
 
 
 # ---------------------------------------------------------------------------

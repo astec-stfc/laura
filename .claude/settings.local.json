@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest unit_tests/test_sql_exporter.py -x --tb=short)",
+      "PowerShell(Get-Command python3, py, uv, conda 2>$null)",
+      "PowerShell(C:\\\\ProgramData\\\\miniconda3\\\\Scripts\\\\conda.exe run -n astec-accelerator-models python -c \"import sqlalchemy; print\\(sqlalchemy.__version__\\)\")",
+      "Bash(python -m pytest unit_tests/test_reference_placement.py -v)",
+      "PowerShell(Get-Command py 2>$null)",
+      "PowerShell(py --version 2>&1)",
+      "Bash(python laura/schema/generate_pydantic.py)",
+      "Bash(conda run *)",
+      "Bash(grep -n \"class frameworkGroup\\\\|class chicane\\\\|update_groups\\\\|groups\" \"C:/Users/jkj62/Documents/GitHub/simba/simba/Framework_objects.py\" | head -20)",
+      "Read(//c/Users/jkj62.CLRC/Documents/GitHub/simba/simba/**)"
+    ]
+  }
+}

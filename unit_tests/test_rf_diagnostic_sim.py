@@ -84,7 +84,7 @@ class TestFunctionalParametersRF:
 class TestRFCavityElement:
     def test_defaults(self):
         cav = RFCavityElement()
-        assert cav.structure_Type == "StandingWave"
+        assert cav.structure_type == "StandingWave"
         assert cav.frequency == pytest.approx(2998500000.0)
         assert cav.phase == pytest.approx(0.0)
         assert cav.n_cells == 1
@@ -166,7 +166,7 @@ class TestSimulationModels:
     def test_simulation_element_defaults(self):
         se = SimulationElement()
         assert se.field_definition is None
-        assert se.scale_field is False
+        assert se.scale_field == 1.0
 
     def test_magnet_simulation(self):
         ms = MagnetSimulationElement()
@@ -191,8 +191,8 @@ class TestSimulationModels:
 class TestElectricalElement:
     def test_defaults(self):
         ee = ElectricalElement()
-        assert ee.minI is not None or ee.minI == 0
-        assert ee.maxI is not None or ee.maxI == 0
+        assert ee.min_i is not None or ee.min_i == 0
+        assert ee.max_i is not None or ee.max_i == 0
 
 
 # ---------------------------------------------------------------------------

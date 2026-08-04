@@ -1,6 +1,12 @@
 laura.translator.utils.fields package
 =====================================
 
+.. automodule:: laura.translator.utils.fields
+   :members:
+   :private-members:
+   :show-inheritance:
+   :undoc-members:
+
 Submodules
 ----------
 
@@ -44,6 +50,15 @@ laura.translator.utils.fields.opal module
 -----------------------------------------
 
 .. automodule:: laura.translator.utils.fields.opal
+   :members:
+   :private-members:
+   :show-inheritance:
+   :undoc-members:
+
+laura.translator.utils.fields.rftrack module
+--------------------------------------------
+
+.. automodule:: laura.translator.utils.fields.rftrack
    :members:
    :private-members:
    :show-inheritance:

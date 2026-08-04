@@ -13,6 +13,14 @@ from laura.models.magnetic import (
     SolenoidFields,
     NonLinearLens_Magnet,
     Wiggler_Magnet,
+    Corrector_Magnet,
+)
+from laura.models._generated import (
+    _SolenoidMagnetBase,
+    _WigglerMagnetBase,
+    _NonLinearLensMagnetBase,
+    _CorrectorMagnetBase,
+    _SolenoidFieldsBase,
 )
 
 
@@ -92,3 +100,84 @@ def test_solenoid_fields():
     fields = SolenoidFields(S0L=0.5, S1L=0.3)
     assert fields.S0L == 0.5
     assert fields.S1L == 0.3
+
+
+class TestGeneratedBaseWiring:
+    """Solenoid_Magnet, Wiggler_Magnet, NonLinearLens_Magnet, Corrector_Magnet and
+    SolenoidFields inherit their LinkML-generated ``_XxxBase`` counterpart
+    (unlike Dipole_Magnet/Quadrupole_Magnet/Sextupole_Magnet/Octupole_Magnet,
+    which reach _MagneticElementBase only via MagneticElement -- there is no
+    per-order generated magnetic-field base to wire onto for those). This class
+    guards the wiring itself and the two traps that come with it."""
+
+    def test_classes_inherit_generated_bases(self):
+        assert issubclass(Solenoid_Magnet, _SolenoidMagnetBase)
+        assert issubclass(Wiggler_Magnet, _WigglerMagnetBase)
+        assert issubclass(NonLinearLens_Magnet, _NonLinearLensMagnetBase)
+        assert issubclass(Corrector_Magnet, _CorrectorMagnetBase)
+        assert issubclass(SolenoidFields, _SolenoidFieldsBase)
+
+    def test_legacy_yaml_aliases_still_load(self):
+        """The generated bases don't declare these legacy aliases (the schema
+        chunk doesn't list them), so the hand-written Field(alias=...)
+        overrides must still be in effect, not shadowed by the generated
+        field of the same name."""
+        sol = Solenoid_Magnet(magnetic_length=0.3, mag_set_max_wait_time=99.0)
+        assert sol.length == 0.3
+        assert sol.settle_time == 99.0
+
+        wig = Wiggler_Magnet(K=1.5, B=0.8, lambdau=0.05, nwig=40, kx=0.1)
+        assert wig.strength == 1.5
+        assert wig.peak_magnetic_field == 0.8
+        assert wig.period == 0.05
+        assert wig.num_periods == 40
+        assert wig.quadratic_roll_off_x == 0.1
+
+        nll = NonLinearLens_Magnet(magnetic_length=0.2, knll=1.0, cnll=0.01)
+        assert nll.integrated_strength == 1.0
+        assert nll.dimensional_parameter == 0.01
+
+    def test_functional_string_values_still_accepted(self):
+        """The generated bases type these slots as plain float; the
+        hand-written Union[float, str] override (for functional-definition
+        names) must win, not the generated float-only field."""
+        wig = Wiggler_Magnet(K="wiggler_k_expr")
+        assert wig.strength == "wiggler_k_expr"
+
+        corr = Corrector_Magnet(horizontal_kick="hcorr_expr")
+        assert corr.horizontal_kick == "hcorr_expr"
+
+        nll = NonLinearLens_Magnet(knll="nll_k_expr")
+        assert nll.integrated_strength == "nll_k_expr"
+
+        fields = SolenoidFields(S0L="sol_expr")
+        assert fields.S0L == "sol_expr"
+
+    def test_model_dump_uses_field_names_not_aliases(self):
+        """Regression guard: _SolenoidMagnetBase etc. pull in
+        ConfiguredBaseModel's serialize_by_alias=True. Combined with the
+        Field(alias=...) overrides above -- alias is bidirectional, unlike the
+        generated classes' input-only validation_alias -- model_dump() would
+        emit YAML aliases ("knll", "mag_set_max_wait_time", ...) instead of
+        field names, silently breaking flatten_dict()-based full_dump() and
+        any other export path keyed by field name. Each class pins
+        serialize_by_alias back to False to prevent this."""
+        nll = NonLinearLens_Magnet(magnetic_length=0.1, knll=0.4, cnll=0.01)
+        dumped = nll.model_dump()
+        assert "integrated_strength" in dumped
+        assert "knll" not in dumped
+
+        sol = Solenoid_Magnet(magnetic_length=0.3, mag_set_max_wait_time=99.0)
+        dumped = sol.model_dump()
+        assert "settle_time" in dumped
+        assert "mag_set_max_wait_time" not in dumped
+
+        wig = Wiggler_Magnet(K=1.5)
+        dumped = wig.model_dump()
+        assert "strength" in dumped
+        assert "K" not in dumped
+
+        corr = Corrector_Magnet(magnetic_length=0.1)
+        dumped = corr.model_dump()
+        assert "length" in dumped
+        assert "magnetic_length" not in dumped

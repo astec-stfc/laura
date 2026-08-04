@@ -4,6 +4,7 @@ LAURA Main Module
 The main class for handling a full particle accelerator lattice.
 """
 
+import logging
 import os
 import glob
 import types
@@ -13,8 +14,10 @@ from typing import List, Dict, Any
 from pydantic import field_validator, model_validator
 from yaml.constructor import Constructor
 
+_log = logging.getLogger("laura.machine")
+
 from .models.physical import PhysicalElement, Position
-from .models.elementList import MachineModel, baseElement
+from .models.elementList import MachineModel, baseElement, dot, chunks
 from .models.element import Drift
 from .Importers.YAML_Loader import (
     read_YAML_Combined_File,
@@ -35,16 +38,6 @@ def add_bool(self, node):
 
 
 Constructor.add_constructor("tag:yaml.org,2002:bool", add_bool)
-
-
-def dot(a, b) -> float:
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-
-
-def chunks(li, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(li), n):
-        yield li[i : i + n]
 
 
 class LAURA(MachineModel):
@@ -106,7 +99,13 @@ class LAURA(MachineModel):
             elif os.path.isdir(os.path.abspath(os.path.dirname(__file__) + "/" + v)):
                 return os.path.abspath(os.path.dirname(__file__) + "/" + v)
             else:
-                raise ValueError(f"Directory {v} does not exist")
+                # Not resolvable relative to the cwd or the laura package;
+                # defer to model_post_init, which resolves the path relative
+                # to master_lattice (the environment-independent anchor the
+                # framework always supplies). Raising here would break any
+                # environment where laura is not installed beside the lattice
+                # files (e.g. laura in site-packages during testing).
+                return v
         else:
             return v
 
@@ -116,6 +115,16 @@ class LAURA(MachineModel):
             candidate = os.path.join(self.master_lattice, el_list)
             if os.path.exists(candidate):
                 el_list = candidate
+
+        if isinstance(el_list, str) and el_list and not os.path.exists(el_list):
+            raise ValueError(
+                f"element_list '{self.element_list}' does not exist"
+                + (
+                    f" (also tried relative to master_lattice '{self.master_lattice}')"
+                    if self.master_lattice
+                    else ""
+                )
+            )
 
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
@@ -165,6 +174,11 @@ class LAURA(MachineModel):
 
         for name in elements:
             elem = self.elements[name]
+            if elem.is_subelement():
+                # Co-located with another element (e.g. a solenoid wrapped
+                # around a cavity) -- excluded from s/drift calculations,
+                # matching MachineLayout.createDrifts in elementList.py.
+                continue
             originalelements[name] = elem
             pos = elem.physical.start.array
             positions.append(pos)
@@ -184,8 +198,8 @@ class LAURA(MachineModel):
                     length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
                     vector = dot((d[1] - d[0]), [0, 0, 1])
                 except Exception as exc:
-                    print("Element with error = ", e[0])
-                    print(d)
+                    _log.error("Drift calculation error near element '%s': %s", e[0], exc)
+                    _log.debug("Position data: %s", d)
                     raise exc
                 if round(length, 6) > 0:
                     elementno += 1
@@ -194,9 +208,9 @@ class LAURA(MachineModel):
                     newdrift = Drift(
                         name=name,
                         machine_area=newelements[e[0]].machine_area,
-                        hardware_class="drift",
+                        hardware_class="Drift",
                         physical=PhysicalElement(
-                            length=round(copysign(length, vector), 6),
+                            length=abs(round(copysign(length, vector), 6)),
                             middle=Position(x=x, y=y, z=z),
                             datum=Position(x=x, y=y, z=z),
                         ),
@@ -244,6 +258,18 @@ class LAURA(MachineModel):
             s_pos += l
             if not drift:
                 elem_s[elem] = round(s_pos, 6)
+                # A combined corrector is placed as a single physical element,
+                # but get_horizontal_correctors()/get_vertical_correctors()
+                # hand back the names of its individual H/V sub-elements
+                # (separate control PVs at the same location) instead of the
+                # combined corrector's own name. Those sub-names never appear
+                # in the path's element list, so give them the parent's
+                # s-position too.
+                original = self.elements.get(elem)
+                for sub_attr in ("Horizontal_Corrector", "Vertical_Corrector"):
+                    sub_name = getattr(original, sub_attr, None)
+                    if sub_name:
+                        elem_s[sub_name] = elem_s[elem]
         return elem_s
 
     def get_rf_cavities(

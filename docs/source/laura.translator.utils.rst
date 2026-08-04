@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    laura.translator.utils.fields
+   laura.translator.utils.elegant
 
 Submodules
 ----------

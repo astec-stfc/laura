@@ -1,0 +1,4 @@
+# Shell scripts must keep LF endings: with core.autocrlf=true (the Git for
+# Windows default) they are otherwise checked out with CRLF, and bash then fails
+# on the trailing carriage return -- starting with the shebang line.
+*.sh text eol=lf
