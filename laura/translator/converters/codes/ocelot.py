@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
-from typing import Any, Dict, TYPE_CHECKING
+from typing import Any, Dict, Literal, TYPE_CHECKING
 from scipy.spatial.transform import Rotation
 try:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
@@ -38,6 +38,19 @@ class OcelotLatticeImporter(BaseModel):
     magnetic_lattice: Any
     """Name of ELEGANT parameters file"""
 
+    position_mode: Literal["s", "cartesian"] = "s"
+    """How element positions are resolved from the Ocelot lattice:
+
+    ``"s"`` (default): each element is given the cumulative arc-length
+    (``physical.s``, ``s_point="end"``) obtained by summing ``elem.l`` in
+    sequence order. LAURA integrates the design orbit itself (see
+    :meth:`~laura.models.elementList.SectionLattice._resolve_s_coordinates`)
+    to produce global ``middle``/rotation.
+
+    ``"cartesian"``: the legacy behaviour -- global ``middle``/rotation are
+    computed directly by :meth:`lattice_to_cartesian_with_rotation`.
+    """
+
     laura_elements: Dict = {}
     """Dictionary containing converted element objects"""
 
@@ -45,7 +58,6 @@ class OcelotLatticeImporter(BaseModel):
         return self.lattice_to_cartesian_with_rotation(self.magnetic_lattice.sequence)
 
     def create_element_dictionary(self):
-        elements = self.magnetic_lattice_to_elements()
         self.laura_elements = {}
         strip_chars = "'>"
         switch_dict = {
@@ -53,10 +65,35 @@ class OcelotLatticeImporter(BaseModel):
             for x, y in type_conversion_rules_Ocelot.items()
         }
 
-        for elem, pos_and_rot in elements.items():
-            # if type(elem) not in switch_dict:
-            #     warn(f"Ocelot element type {type(elem)} not convertible")
+        sequence = list(self.magnetic_lattice.sequence)
+        cartesian = (
+            self.magnetic_lattice_to_elements()
+            if self.position_mode == "cartesian"
+            else {}
+        )
+
+        cumulative_s = 0.0
+        for elem in sequence:
+            length = float(getattr(elem, "l", 0.0))
+
+            if self.position_mode == "s":
+                cumulative_s += length
+                phys_common = {"s": cumulative_s, "s_point": "end", "length": length}
+            else:
+                pos_and_rot = cartesian.get(elem)
+                if pos_and_rot is None:
+                    continue
+                pos = pos_and_rot[0][::-1]
+                rot = [
+                    float(pos_and_rot[1][0]),
+                    float(pos_and_rot[1][2]),
+                    float(pos_and_rot[1][1]),
+                ]
+                phys_common = {"position": pos, "global_rotation": rot, "length": length}
+
             typeconv = str(type(elem)).lower().split(".")[-1].strip("'>")
+            if typeconv == "drift":
+                continue
             key = None
             for k, v in switch_dict.items():
                 if v == k.split("_")[-1] and typeconv in k:
@@ -70,8 +107,8 @@ class OcelotLatticeImporter(BaseModel):
             newobj = {
                 "name": elem.id,
                 "hardware_type": switch_dict[key],
-                "hardware_class": switch_dict[key],
                 "machine_area": self.machine_area,
+                "physical": dict(phys_common),
             }
             try:
                 merged = (
@@ -86,34 +123,22 @@ class OcelotLatticeImporter(BaseModel):
             sftype = switch_dict[key]
             try:
                 if sftype == "Kicker":
-                    model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, "Combined_Corrector")
-                    )
-                    newobj["hardware_type"] = "Combined_Corrector"
+                    classname = "Combined_Corrector"
                 elif "Cavity" not in sftype:
-                    model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, sftype.capitalize())
+                    classname = (
+                        sftype if hasattr(LAURA_elements, sftype) else sftype.capitalize()
                     )
-                    newobj["hardware_type"] = sftype.capitalize()
                 else:
-                    model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, sftype)
-                    )
-            except AttributeError:
-                print(f"type {sftype} not recognized")
-                newobj.update(
-                    {
-                        elem.id: {
-                            "hardware_type": "Drift",
-                            "name": elem.id,
-                            "hardware_class": "Drift",
-                            "machine_area": self.machine_area,
-                        }
-                    }
+                    classname = sftype
+                model_fields = introspect_model_defaults(
+                    getattr(LAURA_elements, classname), resolve_optional=True
                 )
+                newobj["hardware_type"] = classname
+            except AttributeError:
+                warn(f"Ocelot type {sftype!r} for {elem.id!r} not recognized; skipping.")
                 continue
             for subk in ["magnetic", "cavity", "simulation", "diagnostic", "physical"]:
-                if subk in model_fields:
+                if subk in model_fields and subk not in newobj:
                     newobj.update({subk: {}})
             for oceparam, value in elem.element.__dict__.items():
                 oceparam = oceparam.lower()
@@ -126,18 +151,16 @@ class OcelotLatticeImporter(BaseModel):
                         ):
                             if "magnetic" not in newobj:
                                 newobj.update({"magnetic": {}})
+                            order = magnetic_orders[newobj["hardware_type"]]
                             try:
-                                newobj["magnetic"]["kl"] = (
-                                    getattr(
-                                        elem.element,
-                                        f"k{magnetic_orders[newobj['hardware_type']]}",
-                                    )
-                                    * elem.l
+                                kl_value = (
+                                    getattr(elem.element, f"k{order}") * length
                                 )
                             except AttributeError:
-                                newobj["magnetic"]["kl"] = elem.element.angle
-                            newobj["magnetic"].update({oceparam: value})
-                            newobj["hardware_class"] = "Magnet"
+                                kl_value = elem.element.angle
+                            newobj["magnetic"].setdefault("multipoles", {})[
+                                f"K{order}L"
+                            ] = {"normal": kl_value, "order": order}
                         if oceparam in model_fields[subk] and hasattr(elem, oceparam):
                             newobj[subk].update({oceparam: getattr(elem, oceparam)})
                         elif oceparam in kwele:
@@ -153,7 +176,6 @@ class OcelotLatticeImporter(BaseModel):
                                             oceparam == "v"
                                             and "Cavity" in newobj["hardware_type"]
                                         ):
-                                            newobj["hardware_class"] = "RF"
                                             newobj[subk].update(
                                                 {
                                                     kwele[oceparam]: getattr(
@@ -174,14 +196,6 @@ class OcelotLatticeImporter(BaseModel):
                                         pass
                                     except AttributeError:
                                         pass
-            pos = pos_and_rot[0][::-1]
-            rot = [
-                float(pos_and_rot[1][0]),
-                float(pos_and_rot[1][2]),
-                float(pos_and_rot[1][1]),
-            ]
-            newobj["physical"]["position"] = pos
-            newobj["physical"]["global_rotation"] = rot
             self.laura_elements.update(
                 {elem.id: getattr(LAURA_elements, newobj["hardware_type"])(**newobj)}
             )
