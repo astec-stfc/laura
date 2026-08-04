@@ -2,13 +2,15 @@ import logging
 import os
 import yaml
 from typing import Union, Literal, Optional
-from ..models.elementList import MachineModel
+from ..models.elementList import MachineModel, MachineLayout, SectionLattice
 from ..models.element import PhysicalElement
 from ..models.magnetic import MagneticElement
 
 _log = logging.getLogger("laura.exporter.yaml")
 
 PositionMode = Literal["global", "s", "reference"]
+
+ExportSource = Union[SectionLattice, MachineLayout, MachineModel]
 
 
 def represent_tuple(dumper, data):
@@ -113,28 +115,47 @@ def _apply_position_mode(
     return dump
 
 
-def _iter_section_order(machine: MachineModel):
+def _iter_section_order(source: ExportSource):
     """Yield ``(name, elem, prev_name, prev_elem)`` in section order.
 
-    Each element appears at most once (first section occurrence wins).
-    Elements not referenced by any section are yielded last without a
-    predecessor.
+    Accepts a single :class:`SectionLattice`, a :class:`MachineLayout` (all
+    its sections), or a full :class:`MachineModel` (every section across all
+    its layouts). Each element appears at most once (first occurrence wins).
     """
+    if isinstance(source, SectionLattice):
+        sections = [source]
+        registry = None
+        extra_elements = {}
+    elif isinstance(source, MachineLayout):
+        sections = list(source.sections.values())
+        registry = None
+        extra_elements = {}
+    elif isinstance(source, MachineModel):
+        sections = list(source.sections.values())
+        registry = source.elements
+        extra_elements = source.elements
+    else:
+        raise TypeError(
+            f"Cannot export from a {type(source).__name__!r}; expected a "
+            "SectionLattice, MachineLayout, or MachineModel."
+        )
+
     seen: set = set()
-    for section in machine.sections.values():
+    for section in sections:
+        section_registry = registry if registry is not None else section.elements.elements
         prev_name: Optional[str] = None
         prev_elem = None
         for name in section.order:
             if name in seen:
                 continue
-            elem = machine.elements.get(name)
+            elem = section_registry.get(name)
             if elem is None:
                 continue
             seen.add(name)
             yield name, elem, prev_name, prev_elem
             prev_name = name
             prev_elem = elem
-    for name, elem in machine.elements.items():
+    for name, elem in extra_elements.items():
         if name not in seen and elem is not None:
             yield name, elem, None, None
 
@@ -189,7 +210,7 @@ def export_as_yaml(
 
 def export_machine_combined_file(
     path: str,
-    machine: MachineModel,
+    machine: ExportSource,
     position_mode: PositionMode = "global",
 ) -> None:
     """Export all elements to a single combined ``summary.yaml``.
@@ -199,7 +220,9 @@ def export_machine_combined_file(
     path:
         Directory in which to write ``summary.yaml``.
     machine:
-        Machine model to export.
+        A :class:`~laura.models.elementList.SectionLattice`,
+        :class:`~laura.models.elementList.MachineLayout`, or
+        :class:`~laura.models.elementList.MachineModel` to export.
     position_mode:
         Position representation — ``"global"`` (default), ``"s"``, or
         ``"reference"`` (each element relative to its section predecessor).
@@ -218,7 +241,7 @@ def export_machine_combined_file(
 
 def export_machine(
     path: str,
-    machine: MachineModel,
+    machine: ExportSource,
     overwrite: bool = False,
     verbose: bool = False,
     position_mode: PositionMode = "global",
@@ -230,7 +253,9 @@ def export_machine(
     path:
         Root output directory.  Sub-directories mirror ``elem.subdirectory``.
     machine:
-        Machine model to export.
+        A :class:`~laura.models.elementList.SectionLattice`,
+        :class:`~laura.models.elementList.MachineLayout`, or
+        :class:`~laura.models.elementList.MachineModel` to export.
     overwrite:
         Overwrite existing files when ``True`` (default ``False``).
     verbose:

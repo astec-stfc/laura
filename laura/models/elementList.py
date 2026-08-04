@@ -678,8 +678,15 @@ class SectionLattice(BaseLatticeModel):
             pos_list.extend([start_arr, mid_arr, end_arr])
             rot_list.extend([phys.rotation_matrix, phys.rotation_matrix, phys.end_rotation_matrix])
 
-            # Assign s (bypasses sync since _trajectory not yet set)
+            # Assign s (bypasses sync since _trajectory not yet set). This is
+            # always the *middle* arc-length regardless of the s_point the
+            # element was originally specified with (e.g. an ELEGANT import
+            # using s_point="end") -- s_point must be reset to match, or a
+            # later s-mode YAML export would pair this middle-s value with a
+            # stale s_point, corrupting any re-import (e.g. resolving to
+            # `s - length` for "end" instead of `s - length/2` for "middle").
             phys.s = s_elem_mid
+            phys.s_point = "middle"
 
             current_s = s_elem_end
             prev_end = end_arr

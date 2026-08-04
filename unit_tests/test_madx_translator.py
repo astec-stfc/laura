@@ -236,8 +236,6 @@ class TestMadxSection:
         assert "Q1: quadrupole" in out
         assert "D1: sbend" in out
         assert "C1: rfcavity" in out
-        # explicit drifts are written between elements, the standard way of
-        # constructing a MAD-X lattice.
         assert "S1_drift_1: drift" in out
         assert "S1_drift_2: drift" in out
 
@@ -268,7 +266,7 @@ class TestMadxSection:
         madx.beam(particle="electron", energy=1.0)
         madx.use(sequence="S1")
         tw = madx.twiss(betx=1, bety=1)
-        assert tw["s"][-1] == pytest.approx(2.7513000197245434)
+        assert tw["s"][-1] == pytest.approx(2.751570601951526)
 
     def test_resolved_mode_bakes_numbers_no_header(self):
         pytest.importorskip("cpymad")

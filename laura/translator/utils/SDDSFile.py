@@ -279,6 +279,14 @@ class SDDSFile(object):
             self._sddsObject.mode = self._sddsObject.SDDS_ASCII
         else:
             self._sddsObject.mode = self._sddsObject.SDDS_BINARY
+        # (text, contents) header pair, e.g. ("floor coordinates--input: foo.ele
+        # lattice: bar.lte", "floor coordinates") -- populated by read_file().
+        self.file_description = ("", "")
+
+    @property
+    def description(self) -> str:
+        """The file-level SDDS description string (empty if not set/read)."""
+        return self.file_description[0]
 
     def _new_sdds_object(self, cleared: bool):
         if self._indexed:
@@ -478,6 +486,7 @@ class SDDSFile(object):
     def read_file(self, filename, page=-1):
         self._sddsObject.load(filename)
         sddsref = self._sddsObject
+        self.file_description = tuple(getattr(sddsref, "description", ("", "")))
         for col in range(len(sddsref.columnName)):
             symbol, unit, description, formatString, type, fieldLength = (
                 sddsref.columnDefinition[col]

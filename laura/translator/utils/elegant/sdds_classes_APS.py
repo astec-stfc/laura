@@ -1,3 +1,4 @@
+import re
 from itertools import groupby
 import numpy as np
 from warnings import warn
@@ -21,6 +22,12 @@ class SDDS_Floor:
 
     duplicates: list = []
 
+    lattice_name: str = None
+    """Best-effort lattice/beamline name, parsed from ELEGANT's own
+    ``&floor_coordinates`` description string (``"...lattice: Linac.lte"``).
+    ``None`` if the description doesn't match that format (e.g. a
+    hand-written description, or an ASCII SDDS file without one)."""
+
     sdds_position_columns = [
         "ElementName",
         "X",
@@ -33,6 +40,11 @@ class SDDS_Floor:
         "phi",
         "psi",
         "theta",
+    ]
+
+    sdds_s_columns = [
+        "ElementName",
+        "s",
     ]
 
     def __init__(self, filename: str = None, page: int = 0, prefix: str = "."):
@@ -49,17 +61,23 @@ class SDDS_Floor:
         return [k for k, g in groupby(sorted(self.ElementName)) if len(list(g)) > 1]
 
     def number_element(self, elem):
-        # if elem in self.duplicates:
+        if elem not in self.duplicates:
+            return elem
         no = self.counter.counter(elem)
         self.counter.add(elem)
         return elem + self.prefix + str(no)
-        # return elem
 
     def import_sdds_floor_file(self, filename: str, page: int = 0, index=1) -> list:
         elegantObject = SDDSFile(index=index)
         elegantObject.read_file(filename, page=page)
         elegantData = elegantObject.data
-        for a in self.sdds_position_columns + self.sdds_angle_columns:
+        match = re.search(r"lattice:\s*(\S+?)(?:\.lte)?\s*$", elegantObject.description)
+        self.lattice_name = match.group(1) if match else None
+        has_s = "s" in elegantData
+        columns = self.sdds_position_columns + self.sdds_angle_columns
+        if has_s:
+            columns = columns + ["s"]
+        for a in columns:
             if np.array(elegantData[a]).ndim > 1:
                 setattr(self, a, elegantData[a][page])
             else:
@@ -85,6 +103,10 @@ class SDDS_Floor:
             e: {"end": rawpositiondata[e], "end_rotation": rawangledata[e]}
             for e in self.ElementName
         }
+        if has_s:
+            rawsdata = dict(zip(self.ElementName, map(float, self.s)))
+            for e in self.ElementName:
+                self.data[e]["s"] = rawsdata[e]
 
     def __getitem__(self, key):
         if key in self.data:
@@ -109,24 +131,23 @@ class SDDS_Params:
     def join_params(self) -> None:
         if not self.elegantData:
             self.import_sdds_params_file()
+        max_occurrence = {}
+        for name, occ in zip(
+            self.elegantData["ElementName"], self.elegantData["ElementOccurence"]
+        ):
+            max_occurrence[name] = max(max_occurrence.get(name, 1), occ)
+
         self.elegantParams = {}
         for i, k in enumerate(self.elegantData["ElementName"]):
-            if (
-                f"{k}.{self.elegantData['ElementOccurence'][i]}"
-                not in self.elegantParams
-            ):
+            occurrence = self.elegantData["ElementOccurence"][i]
+            key = f"{k}.{occurrence}" if max_occurrence[k] > 1 else k
+            if key not in self.elegantParams:
                 self.elegantParams.update(
-                    {
-                        f"{k}.{self.elegantData['ElementOccurence'][i]}": {
-                            param: [] for param in list(self.elegantData.keys())[1:]
-                        }
-                    }
+                    {key: {param: [] for param in list(self.elegantData.keys())[1:]}}
                 )
             for val in list(self.elegantData.keys())[1:]:
                 if self.elegantData["ElementName"][i] == k:
-                    self.elegantParams[
-                        f"{k}.{self.elegantData['ElementOccurence'][i]}"
-                    ][val].append(self.elegantData[val][i])
+                    self.elegantParams[key][val].append(self.elegantData[val][i])
 
     def create_element_dictionary(self) -> tuple:
         if not self.elegantParams:
@@ -143,7 +164,6 @@ class SDDS_Params:
                         k: {
                             "hardware_type": elemtype,
                             "name": k,
-                            "hardware_class": elemtype,
                             "machine_area": "test",
                         }
                     }
@@ -155,7 +175,6 @@ class SDDS_Params:
                         k: {
                             "hardware_type": switch_dict[elemtype],
                             "name": k,
-                            "hardware_class": switch_dict[elemtype],
                             "machine_area": "test",
                         }
                     }
@@ -192,19 +211,23 @@ class SDDS_Params:
             try:
                 if sftype == "kicker":
                     model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, "Combined_Corrector")
+                        getattr(LAURA_elements, "Combined_Corrector"),
+                        resolve_optional=True,
                     )
                     sfconvert[k]["hardware_type"] = "Combined_Corrector"
                 elif "Cavity" not in sftype:
-                    model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, sftype.capitalize())
+                    classname = (
+                        sftype if hasattr(LAURA_elements, sftype) else sftype.capitalize()
                     )
-                    sfconvert[k]["hardware_type"] = sfconvert[k][
-                        "hardware_type"
-                    ].capitalize()
+                    model_fields = introspect_model_defaults(
+                        getattr(LAURA_elements, classname),
+                        resolve_optional=True,
+                    )
+                    sfconvert[k]["hardware_type"] = classname
                 else:
                     model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, sftype)
+                        getattr(LAURA_elements, sftype),
+                        resolve_optional=True,
                     )
             except AttributeError:
                 print(f"type {sftype} not recognized")

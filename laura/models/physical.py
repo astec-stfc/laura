@@ -598,16 +598,12 @@ class PhysicalElement(_PhysicalElementBase):
         middle = np.array(self.middle.array)
 
         if abs(self._physical_angle) > 1e-9:
-            # Bent element
-            sx = (
-                -self.length
-                * (1 - np.cos(self._physical_angle))
-                / (2 * self._physical_angle)
-            )
+            theta = self._physical_angle
+            half = theta / 2.0
+            rho = self.length / theta
+            sx = -rho * (1 - np.cos(half))
             sy = 0
-            sz = (
-                -self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
-            )
+            sz = -rho * np.sin(half)
         else:
             # Straight element
             sx, sy, sz = 0, 0, -self.length / 2.0
@@ -627,13 +623,12 @@ class PhysicalElement(_PhysicalElementBase):
         middle = np.array(self.middle.array)
 
         if abs(self._physical_angle) > 1e-9:
-            ex = (
-                self.length
-                * (1 - np.cos(self._physical_angle))
-                / (2 * self._physical_angle)
-            )
+            theta = self._physical_angle
+            half = theta / 2.0
+            rho = self.length / theta
+            ex = rho * (np.cos(half) - np.cos(theta))
             ey = 0
-            ez = self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
+            ez = rho * (np.sin(theta) - np.sin(half))
         else:
             ex, ey, ez = 0, 0, self.length / 2.0
 

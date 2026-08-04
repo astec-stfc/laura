@@ -1,6 +1,7 @@
 from pydantic import BaseModel
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Literal
 from collections import Counter
+from warnings import warn
 from . import magnetic_orders
 import laura.models.element as LAURA_elements
 from laura.models.elementList import SectionLattice, MachineLayout, ElementList
@@ -11,6 +12,12 @@ from laura.models.element import (
     Horizontal_Corrector,
 )
 import math
+
+_SILENTLY_SKIPPED_TYPES = ("Drift", "Beginning_Ele")
+
+_CAVITY_TYPES = ("Lcavity", "RFCavity")
+
+_COLLIMATOR_TYPES = ("ECollimator", "RCollimator")
 
 
 def norm(v):
@@ -65,6 +72,21 @@ class BmadLatticeImporter(BaseModel):
     libtao: str = None
     """libtao.so file"""
 
+    position_mode: Literal["s", "floor"] = "s"
+    """How element positions are resolved from Tao:
+
+    ``"s"`` (default): each element is given Bmad's own cumulative
+    arc-length ``s`` and LAURA integrates the design orbit itself (see
+    :meth:`~laura.models.elementList.SectionLattice._resolve_s_coordinates`)
+    to produce global ``middle``/rotation. ``orbit.floor.x/y/z`` are still
+    fetched and kept on :attr:`xpos`/:attr:`ypos`/:attr:`zpos`, purely so
+    LAURA's own integration can be cross-checked against Tao's.
+
+    ``"floor"``: the legacy behaviour -- each element's global ``middle``
+    and rotation are derived directly from consecutive
+    ``orbit.floor.x/y/z`` points, bypassing LAURA's trajectory integration.
+    """
+
     elements: Dict = {}
     """Dictionary containing converted LAURA element objects"""
 
@@ -77,6 +99,10 @@ class BmadLatticeImporter(BaseModel):
     types: Dict[int, Dict[str, List[str]]] = {}
 
     lengths: Dict[int, Dict[str, List[float]]] = {}
+
+    spos: Dict[int, Dict[str, List[float]]] = {}
+    """Cumulative arc-length at the *exit* of each element (Bmad's ``ele.s``),
+    used for ``position_mode="s"``."""
 
     xpos: Dict[int, Dict[str, List[float]]] = {}
 
@@ -112,6 +138,7 @@ class BmadLatticeImporter(BaseModel):
                 self.names_numbered.update({self.n_universes: {}})
                 self.types.update({self.n_universes: {}})
                 self.lengths.update({self.n_universes: {}})
+                self.spos.update({self.n_universes: {}})
                 self.xpos.update({self.n_universes: {}})
                 self.ypos.update({self.n_universes: {}})
                 self.zpos.update({self.n_universes: {}})
@@ -129,6 +156,7 @@ class BmadLatticeImporter(BaseModel):
                     ]
                     types = [i for i in tao.lat_list("*", "ele.key", **kwa)]
                     lengths = [i for i in tao.lat_list("*", "ele.l", **kwa)]
+                    spos = [i for i in tao.lat_list("*", "ele.s", **kwa)]
                     xpos = [i for i in tao.lat_list("*", "orbit.floor.x", **kwa)]
                     ypos = [i for i in tao.lat_list("*", "orbit.floor.y", **kwa)]
                     zpos = [i for i in tao.lat_list("*", "orbit.floor.z", **kwa)]
@@ -140,6 +168,7 @@ class BmadLatticeImporter(BaseModel):
                     self.names_numbered[self.n_universes].update({b: names_numbered})
                     self.types[self.n_universes].update({b: types})
                     self.lengths[self.n_universes].update({b: lengths})
+                    self.spos[self.n_universes].update({b: spos})
                     self.xpos[self.n_universes].update({b: xpos})
                     self.ypos[self.n_universes].update({b: ypos})
                     self.zpos[self.n_universes].update({b: zpos})
@@ -153,176 +182,217 @@ class BmadLatticeImporter(BaseModel):
             for k in range(1, self.n_universes)
         }
 
+    def _physical_common(self, universe: int, b: str, i: int) -> dict:
+        """Build this element's shared ``physical`` sub-dict (position + length).
+
+        ``"s"`` mode: Bmad's own cumulative arc-length
+        is handed straight to LAURA as ``physical.s``/``s_point``,
+        and LAURA's own trajectory integration produces global
+        middle/rotation later, via ``resolve_positions()``.
+
+        ``"floor"`` mode (legacy): global ``middle``/rotation are derived
+        directly from consecutive ``orbit.floor.x/y/z`` points.
+        """
+        length = float(self.lengths[universe][b][i])
+        if self.position_mode == "s":
+            return {
+                "s": self.spos[universe][b][i],
+                "s_point": "end",
+                "length": length,
+            }
+
+        end_x = self.xpos[universe][b][i]
+        end_y = self.ypos[universe][b][i]
+        end_z = self.zpos[universe][b][i]
+
+        # Start position is the end of the previous element, or the origin
+        # for the first element in the branch.
+        if i > 0:
+            start_x = self.xpos[universe][b][i - 1]
+            start_y = self.ypos[universe][b][i - 1]
+            start_z = self.zpos[universe][b][i - 1]
+        else:
+            start_x = start_y = start_z = 0.0
+
+        middle = [
+            (start_x + end_x) / 2.0,
+            (start_y + end_y) / 2.0,
+            (start_z + end_z) / 2.0,
+        ]
+
+        # Beam direction at the START of this element (i.e. the exit
+        # direction of the previous element).
+        if i > 1:
+            forward = (
+                self.xpos[universe][b][i - 1] - self.xpos[universe][b][i - 2],
+                self.ypos[universe][b][i - 1] - self.ypos[universe][b][i - 2],
+                self.zpos[universe][b][i - 1] - self.zpos[universe][b][i - 2],
+            )
+        elif i == 1:
+            forward = (
+                self.xpos[universe][b][0],
+                self.ypos[universe][b][0],
+                self.zpos[universe][b][0],
+            )
+        else:
+            forward = (0.0, 0.0, 1.0)
+        pitch, roll, yaw = rotation_angles(forward)
+
+        return {
+            "position": middle,
+            "global_rotation": [pitch, roll, yaw],
+            "length": length,
+        }
+
     def create_element_dictionary(self, universe: int) -> None:
         for b in self.names_numbered[universe].keys():
             for i, nam in enumerate(self.names_numbered[universe][b]):
-                end_x = self.xpos[universe][b][i]
-                end_y = self.ypos[universe][b][i]
-                end_z = self.zpos[universe][b][i]
-
-                # Get the start position (end of previous element, or origin if first)
-                if i > 0:
-                    start_x = self.xpos[universe][b][i - 1]
-                    start_y = self.ypos[universe][b][i - 1]
-                    start_z = self.zpos[universe][b][i - 1]
-                else:
-                    # First element starts at origin (or you might have a specific starting point)
-                    start_x = 0.0
-                    start_y = 0.0
-                    start_z = 0.0
-
-                # Calculate middle position as the average of start and end
-                middle = [
-                    (start_x + end_x) / 2.0,
-                    (start_y + end_y) / 2.0,
-                    (start_z + end_z) / 2.0,
-                ]
-
-                # Calculate the beam direction at the START of this element
-                # This is the direction the beam is traveling when it enters the element
-                if i > 1:
-                    # Direction from the element before last to the last element
-                    # This gives us the exit direction of the previous element
-                    forward = (
-                        self.xpos[universe][b][i - 1] - self.xpos[universe][b][i - 2],
-                        self.ypos[universe][b][i - 1] - self.ypos[universe][b][i - 2],
-                        self.zpos[universe][b][i - 1] - self.zpos[universe][b][i - 2],
-                    )
-                elif i == 1:
-                    # For the second element, use direction from origin to first element's end
-                    forward = (
-                        self.xpos[universe][b][0],
-                        self.ypos[universe][b][0],
-                        self.zpos[universe][b][0],
-                    )
-                else:
-                    # For the first element, assume initial direction along z-axis
-                    # (or you might have a specific initial direction)
-                    forward = (0.0, 0.0, 1.0)
-
-                # Calculate rotation angles from the forward direction at element start
-                pitch, roll, yaw = rotation_angles(forward)
+                etype = self.types[universe][b][i]
+                length = float(self.lengths[universe][b][i])
+                phys_common = self._physical_common(universe, b, i)
 
                 elem_data = {}
                 parameters = self.params[universe][b][i]
-                if self.types[universe][b][i] == "Kicker":
-                    hardware_class = "Magnet"
+                if etype == "Kicker":
                     hardware_type = "Combined_Corrector"
                     horizontal = nam + "_H"
                     vertical = nam + "_V"
-                    hcor = {
-                        "length": self.lengths[universe][b][i],
-                        "horizontal_kick": parameters["HKICK"],
-                    }
-                    vcor = {
-                        "length": float(self.lengths[universe][b][i]),
-                        "vertical_kick": parameters["VKICK"],
-                    }
+                    hcor = {"length": length, "horizontal_kick": parameters["HKICK"]}
+                    vcor = {"length": length, "vertical_kick": parameters["VKICK"]}
                     elem_data = {
                         "hardware_type": hardware_type,
-                        "Horizontal_Corrector": horizontal,
-                        "Vertical_Corrector": vertical,
                         "magnetic": {
-                            "length": self.lengths[universe][b][i],
+                            "length": length,
                             "horizontal_kick": parameters["HKICK"],
                             "vertical_kick": parameters["VKICK"],
                         },
                     }
-                elif self.types[universe][b][i] in magnetic_orders:
-                    hardware_type = self.types[universe][b][i]
-                    hardware_class = "Magnet"
+                elif etype in magnetic_orders:
+                    hardware_type = etype
+                    order = magnetic_orders[hardware_type]
                     try:
                         kl = {
                             "multipoles": {
-                                f"K{magnetic_orders[hardware_type]}L": {
-                                    "normal": parameters[
-                                        f"K{magnetic_orders[hardware_type]}"
-                                    ]
-                                    * self.lengths[universe][b][i],
-                                    "order": magnetic_orders[hardware_type],
+                                f"K{order}L": {
+                                    "normal": parameters[f"K{order}"] * length,
+                                    "order": order,
                                 },
                             },
                         }
                     except KeyError:
                         kl = {
                             "multipoles": {
-                                f"K{magnetic_orders[hardware_type]}L": {
+                                f"K{order}L": {
                                     "normal": parameters["ANGLE"],
-                                    "order": magnetic_orders[hardware_type],
+                                    "order": order,
                                 },
                             },
                             "entrance_edge_angle": parameters["E1"],
                             "exit_edge_angle": parameters["E2"],
                         }
                     if "GAP" in parameters:
-                        kl.update({"GAP": parameters["GAP"]})
+                        kl.update({"gap": parameters["GAP"]})
                     elem_data = {
                         "hardware_type": hardware_type,
+                        "magnetic": {"order": order, "length": length, **kl},
+                    }
+                elif etype in _CAVITY_TYPES:
+                    n_cells = parameters.get("N_CELL", 1) or 1
+                    elem_data = {
+                        "hardware_type": "RFCavity",
+                        "cavity": {
+                            "phase": parameters.get("PHI0", 0.0) * 360.0,
+                            "frequency": parameters["RF_FREQUENCY"],
+                            "n_cells": n_cells,
+                            "cell_length": length / n_cells,
+                            "structure_type": str(
+                                parameters.get("CAVITY_TYPE", "Standing_Wave")
+                            ).replace("_", ""),
+                        },
+                        "simulation": {"field_amplitude": parameters["VOLTAGE"]},
+                    }
+                elif etype == "Wiggler":
+                    b_max = parameters.get("B_MAX", 0.0)
+                    l_period = parameters.get("L_PERIOD", 0.0)
+                    elem_data = {
+                        "hardware_type": "Wiggler",
                         "magnetic": {
-                            "order": magnetic_orders[hardware_type],
-                            "length": float(self.lengths[universe][b][i]),
-                            **kl,
+                            "length": length,
+                            "peak_magnetic_field": b_max,
+                            "period": l_period,
+                            "num_periods": int(parameters.get("N_PERIOD", 0)),
+                            "strength": 0.934 * b_max * (l_period * 100.0),
                         },
                     }
-                elif self.types[universe][b][i] == "Marker":
-                    hardware_class = "Simulation"
-                    hardware_type = "Marker"
-                    markelem = {
-                        "physical": {
-                            "position": middle,
-                            "global_rotation": [
-                                pitch,
-                                roll,
-                                yaw,
-                            ],
-                            "length": float(self.lengths[universe][b][i]),
+                elif etype == "Solenoid":
+                    bs_field = parameters.get("BS_FIELD", 0.0)
+                    elem_data = {
+                        "hardware_type": "Solenoid",
+                        "magnetic": {
+                            "length": length,
+                            "fields": {"S0L": bs_field * length},
                         },
+                    }
+                elif etype in _COLLIMATOR_TYPES:
+                    elem_data = {
+                        "hardware_type": "Collimator",
+                        "aperture": {
+                            "horizontal_size": (
+                                parameters.get("X1_LIMIT", 0.0)
+                                + parameters.get("X2_LIMIT", 0.0)
+                            ),
+                            "vertical_size": (
+                                parameters.get("Y1_LIMIT", 0.0)
+                                + parameters.get("Y2_LIMIT", 0.0)
+                            ),
+                        },
+                    }
+                elif etype in ("Marker", "Monitor"):
+                    markelem = {
+                        "physical": dict(phys_common),
                         "name": nam,
-                        "hardware_class": hardware_class,
-                        "hardware_type": hardware_type,
+                        "hardware_type": (
+                            "Marker" if etype == "Marker" else "Beam_Position_Monitor"
+                        ),
                         "machine_area": "test",
                     }
                     self.laura_elems[universe][b].update(
-                        {
-                            nam: getattr(LAURA_elements, self.types[universe][b][i])(
-                                **markelem
-                            )
-                        }
+                        {nam: getattr(LAURA_elements, markelem["hardware_type"])(**markelem)}
                     )
+                elif etype not in _SILENTLY_SKIPPED_TYPES:
+                    warn(
+                        f"Could not parse Bmad element type {etype!r} for "
+                        f"{nam!r}; skipping."
+                    )
+
                 if elem_data:
                     elems = {
                         nam: {
-                            "physical": {
-                                "position": middle,
-                                "global_rotation": [
-                                    pitch,
-                                    roll,
-                                    yaw,
-                                ],
-                                "length": float(self.lengths[universe][b][i]),
-                            },
+                            "physical": dict(phys_common),
                             "name": nam,
-                            "hardware_class": hardware_class,
-                            "hardware_type": hardware_type,
                             "machine_area": "test",
+                            **elem_data,
                         }
                     }
-                    elems[nam].update(**elem_data)
-                    if self.types[universe][b][i] == "Kicker":
-                        helem = elems[nam].copy()
+                    if etype == "Kicker":
+                        helem = dict(elems[nam])
+                        helem["physical"] = dict(phys_common)
                         helem.update(
                             {
                                 "name": horizontal,
                                 "hardware_type": "Horizontal_Corrector",
                                 "magnetic": hcor,
+                                "subelement": nam,
                             }
                         )
-                        velem = elems[nam].copy()
+                        velem = dict(elems[nam])
+                        velem["physical"] = dict(phys_common)
                         velem.update(
                             {
                                 "name": vertical,
                                 "hardware_type": "Vertical_Corrector",
                                 "magnetic": vcor,
+                                "subelement": nam,
                             }
                         )
                         comb = Combined_Corrector(**elems[nam])
@@ -335,29 +405,31 @@ class BmadLatticeImporter(BaseModel):
                                 vertical: vert,
                             },
                         )
-                    elif self.types[universe][b][i] in magnetic_orders:
-                        if self.types[universe][b][i] in ["RBend", "SBend"]:
+                    else:
+                        if etype in ("RBend", "SBend"):
                             self.types[universe][b][i] = "Dipole"
                             elems[nam]["hardware_type"] = "Dipole"
-                            elems[nam]["physical"]["physical_angle"] = -elems[nam][
-                                "magnetic"
-                            ]["multipoles"]["K0L"]["normal"]
+                        hardware_type = elems[nam]["hardware_type"]
                         self.laura_elems[universe][b].update(
-                            {
-                                nam: getattr(LAURA_elements, self.types[universe][b][i])(
-                                    **elems[nam]
-                                )
-                            }
+                            {nam: getattr(LAURA_elements, hardware_type)(**elems[nam])}
                         )
 
     def create_section(self, universe: int, branch: str) -> Dict[str, SectionLattice]:
         if not self.elements:
             self.create_element_dictionary(universe)
-        order = list(self.laura_elems[universe][branch].keys())
         elems = self.laura_elems[universe][branch]
+        order = [n for n, e in elems.items() if not e.is_subelement()]
         seclat = SectionLattice(
             order=order, elements=ElementList(elements=elems), name=branch
         )
+        seclat.resolve_positions(elems)
+        for name, elem in elems.items():
+            if elem.is_subelement():
+                parent = elems.get(elem.subelement)
+                if parent is not None and parent.physical.middle is not None:
+                    elem.physical.middle = parent.physical.middle
+                    elem.physical.rotation = parent.physical.rotation
+                    elem.physical.global_rotation = parent.physical.global_rotation
         return {branch: seclat}
 
     def create_layout(self, universe: int) -> Dict[str, MachineLayout]:

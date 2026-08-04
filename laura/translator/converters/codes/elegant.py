@@ -1,10 +1,12 @@
+import os
 import numpy as np
 from pydantic import BaseModel
-from typing import Dict
+from typing import Dict, Literal, Optional, Union
 from ...utils.elegant import SDDSFile
 import laura.models.element as LAURA_elements
 from laura.models.elementList import SectionLattice, MachineLayout, ElementList
 from ...utils.elegant.sdds_classes_APS import SDDS_Floor, SDDS_Params
+from ....Exporters.YAML import export_machine_combined_file, PositionMode
 
 
 class ElegantLatticeImporter(BaseModel):
@@ -15,6 +17,20 @@ class ElegantLatticeImporter(BaseModel):
     floor_file: str
     """Name of ELEGANT floor file"""
 
+    position_mode: Literal["s", "floor"] = "s"
+    """How element positions are resolved from the ELEGANT floor file:
+
+    ``"s"`` (default): each element is given its ELEGANT-computed cumulative
+    arc-length ``s`` (``physical.s``, ``s_point="end"``) and LAURA integrates
+    the design orbit itself (see
+    :meth:`~laura.models.elementList.SectionLattice._resolve_s_coordinates`)
+    to produce global ``middle``/rotation.
+
+    ``"floor"``: the legacy behaviour -- each element's global ``middle``
+    and rotation are taken directly from the floor file, bypassing LAURA's
+    trajectory integration entirely.
+    """
+
     elegant_data: Dict = {}
     """Dictionary containing data about the ELEGANT lattice"""
 
@@ -22,8 +38,27 @@ class ElegantLatticeImporter(BaseModel):
     """Dictionary containing floor positions for the ELEGANT lattice"""
 
     elements: Dict = {}
-    """Dictionary containing converted 
+    """Dictionary containing converted
     :class:`~laura.models.element.Element` objects"""
+
+    lattice_name: Optional[str] = None
+    """Best-effort lattice name parsed from the floor file's own ELEGANT
+    description (``&floor_coordinates``'s ``"...lattice: Linac.lte"``);
+    ``None`` until :meth:`update_floor_coordinates` has run, or if the
+    description didn't match that format. Used as the default section/layout
+    name in :meth:`create_section`/:meth:`create_layout` when not given
+    explicitly."""
+
+    def _default_name(self) -> str:
+        """Best-effort name for an auto-derived section/layout.
+
+        Prefers the lattice name parsed from the floor file's description
+        (e.g. ``"Linac"``); falls back to the params file's basename, which
+        is always available, when that parse didn't match.
+        """
+        if self.lattice_name:
+            return self.lattice_name
+        return os.path.splitext(os.path.basename(self.params_file))[0]
 
     def create_element_dictionary(self):
         params = SDDS_Params(self.params_file)
@@ -34,6 +69,7 @@ class ElegantLatticeImporter(BaseModel):
         flr = SDDS_Floor()
         flr.import_sdds_floor_file(self.floor_file)
         self.floor_data = flr.data
+        self.lattice_name = flr.lattice_name
 
         i = 0
         for k, v in self.floor_data.items():
@@ -75,50 +111,88 @@ class ElegantLatticeImporter(BaseModel):
             if k in self.floor_data:
                 vtype = v["hardware_type"]
                 if "drift" not in vtype.lower():
-                    if "l" in v and v["l"] > 0:
-                        # Get physical angle for bent elements
-                        physical_angle = 0.0
-                        if v["hardware_type"].lower() == "dipole" and "angle" in v:
-                            physical_angle = v["angle"]
+                    elem_length = v.get("l", 0.0)
 
-                        # Calculate middle position properly
-                        centre = calculate_middle_from_start(
-                            start_pos=self.floor_data[k]["start"],
-                            end_pos=self.floor_data[k]["end"],
-                        )
+                    if self.position_mode == "s":
+                        v = self._convert_k_to_kl(v)
+                        v = self._convert_ele_phase_to_phase(v)
+
+                        if "physical" in v:
+                            v["physical"].update(
+                                {
+                                    "s": self.floor_data[k]["s"],
+                                    "s_point": "end",
+                                    "length": elem_length,
+                                }
+                            )
+                        else:
+                            v["physical"] = {
+                                "s": self.floor_data[k]["s"],
+                                "s_point": "end",
+                                "length": elem_length,
+                            }
                     else:
-                        # Zero length element - middle is same as start
-                        centre = np.array(self.floor_data[k]["start"])
-                        physical_angle = 0.0
+                        if "l" in v and v["l"] > 0:
+                            # Get physical angle for bent elements
+                            physical_angle = 0.0
+                            if v["hardware_type"].lower() == "dipole" and "angle" in v:
+                                physical_angle = v["angle"]
 
-                    v = self._convert_k_to_kl(v)
-                    v = self._convert_ele_phase_to_phase(v)
+                            # Calculate middle position properly
+                            centre = calculate_middle_from_start(
+                                start_pos=self.floor_data[k]["start"],
+                                end_pos=self.floor_data[k]["end"],
+                            )
+                        else:
+                            # Zero length element - middle is same as start
+                            centre = np.array(self.floor_data[k]["start"])
+                            physical_angle = 0.0
 
-                    rotation = self.floor_data[k]["end_rotation"]
-                    if "physical" in v:
-                        v["physical"].update(
-                            {
+                        v = self._convert_k_to_kl(v)
+                        v = self._convert_ele_phase_to_phase(v)
+
+                        rotation = self.floor_data[k]["end_rotation"]
+                        if "physical" in v:
+                            v["physical"].update(
+                                {
+                                    "middle": {p: c for p, c in zip(["x", "y", "z"], centre.tolist())},
+                                    "global_rotation": rotation,
+                                    "length": elem_length,
+                                }
+                            )
+                        else:
+                            v["physical"] = {
                                 "middle": {p: c for p, c in zip(["x", "y", "z"], centre.tolist())},
                                 "global_rotation": rotation,
+                                "length": elem_length,
                             }
-                        )
-                    else:
-                        v["physical"] = {
-                            "middle": {p: c for p, c in zip(["x", "y", "z"], centre.tolist())},
-                            "global_rotation": rotation,
-                        }
 
-                    # Add physical_angle for bent elements
-                    if abs(physical_angle) > 1e-9:
-                        v["physical"]["physical_angle"] = physical_angle
-                    if "hardware_class" not in v:
-                        v["hardware_class"] = vtype
-
+                        # Add physical_angle for bent elements
+                        if abs(physical_angle) > 1e-9:
+                            v["physical"]["physical_angle"] = physical_angle
                     self.elements.update({k: getattr(LAURA_elements, vtype)(**v)})
 
-    def create_section(self, section: Dict) -> Dict[str, SectionLattice]:
+    def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:
+        """Build a named :class:`SectionLattice` from imported elements.
+
+        Parameters
+        ----------
+        section: dict, optional
+            ``{section_name: [first_element_name, last_element_name]}``. When
+            omitted, a single section spanning the *entire* imported lattice
+            (its first through last element, in beamline order) is derived
+            automatically -- the natural default, since ELEGANT's own
+            params/floor files describe exactly one flat, ordered beamline
+            with no further native sub-division. The name defaults to
+            :meth:`_default_name`.
+        """
         if not self.elements:
             self.create_laura_element_dictionary()
+        if section is None:
+            names = list(self.elements.keys())
+            if not names:
+                raise ValueError("No elements were imported; cannot build a section.")
+            section = {self._default_name(): [names[0], names[-1]]}
         secname = list(section.keys())
         assert len(secname) == 1
         secelements = list(section.values())[0]
@@ -129,11 +203,11 @@ class ElegantLatticeImporter(BaseModel):
         for name, elem in self.elements.items():
             if name == secelements[0]:
                 appending = True
-            elif name == secelements[1]:
-                appending = False
             if appending:
                 order.append(name)
                 elems.update({name: elem})
+            if name == secelements[1]:
+                appending = False
         if not order:
             raise KeyError(
                 f"element {secelements[0]} not found in lattice; could not construct section"
@@ -141,21 +215,60 @@ class ElegantLatticeImporter(BaseModel):
         seclat = SectionLattice(
             order=order, elements=ElementList(elements=elems), name=secname[0]
         )
+        seclat.resolve_positions(self.elements)
         return {secname[0]: seclat}
 
-    def create_layout(self, name: str, sections: Dict) -> MachineLayout:
-        layout_sections = {}
-        for secname, secpos in sections.items():
-            layout_sections.update(self.create_section({secname: secpos}))
+    def create_layout(
+        self, name: Optional[str] = None, sections: Optional[Dict] = None
+    ) -> MachineLayout:
+        """Build a :class:`MachineLayout` from one or more sections.
+
+        Parameters
+        ----------
+        name: str, optional
+            Layout name. Defaults to :meth:`_default_name` when omitted.
+        sections: dict, optional
+            ``{section_name: [first_element_name, last_element_name]}`` for
+            each section. When omitted, a single auto-derived section
+            spanning the whole imported lattice is used (see
+            :meth:`create_section`).
+        """
+        if sections is None:
+            layout_sections = self.create_section(None)
+        else:
+            layout_sections = {}
+            for secname, secpos in sections.items():
+                layout_sections.update(self.create_section({secname: secpos}))
         return MachineLayout(
-            name=name,
-            sections={
-                k: v
-                for k, v in zip(
-                    list(layout_sections.keys()), list(layout_sections.values())
-                )
-            },
+            name=name or self._default_name(),
+            sections=layout_sections,
         )
+
+    def export_yaml(
+        self,
+        path: str,
+        source: Union[SectionLattice, MachineLayout],
+        position_mode: PositionMode = "s",
+    ) -> None:
+        """Export this importer's resolved lattice to a combined LAURA YAML file.
+
+        Defaults to ``position_mode="s"`` (arc-length positioning). Call
+        :meth:`~laura.models.elementList.SectionLattice.resolve_positions` on
+        ``source`` first so every element's ``s`` value is populated.
+
+        Parameters
+        ----------
+        path: str
+            Directory in which to write ``summary.yaml``.
+        source: SectionLattice | MachineLayout
+            The section (from :meth:`create_section`) or layout (from
+            :meth:`create_layout`) to export.
+        position_mode: "global" | "s" | "reference"
+            Position representation forwarded to
+            :func:`~laura.Exporters.YAML.export_machine_combined_file`; see
+            there for the meaning of each mode.
+        """
+        export_machine_combined_file(path, source, position_mode=position_mode)
 
     @staticmethod
     def _convert_k_to_kl(v) -> dict:

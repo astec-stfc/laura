@@ -177,3 +177,7 @@ PAdantic/Importers/~$CLARA Magnet Table v6.xlsx
 summary.yaml
 profile_output.txt
 *.lock
+
+# AI stuff
+CLAUDE.md
+.mex/
