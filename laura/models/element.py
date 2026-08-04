@@ -589,6 +589,9 @@ class MatrixTransform(PhysicalBaseElement, _MatrixTransformBase):
     hardware_class: str = Field(default="Simulation", frozen=True)
     """Twiss match hardware class."""
 
+    simulation: Optional[MatrixTransformSimulationElement] = None
+    """Matrix transform simulation attributes."""
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "simulation", MatrixTransformSimulationElement)

@@ -220,6 +220,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
     @field_validator("r_matrix", mode="before")
     @classmethod
     def validate_r_matrix(cls, v):
+        print(v)
         if isinstance(v, dict):
             matrix = np.eye(6)
 

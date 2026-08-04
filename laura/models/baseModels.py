@@ -4,6 +4,7 @@ import numpy as np
 from pydantic_core.core_schema import SerializationInfo
 
 from ..utils.dict_utils import (
+    StringWithQuotes as string_with_quotes,
     FlowList as flow_list,
     numpy_scalar_to_python,
 )
