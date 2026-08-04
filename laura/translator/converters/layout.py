@@ -18,17 +18,27 @@ class MachineLayoutTranslator(MachineLayout):
                 "master_lattice": layout.model_copy().master_lattice,
                 "functional_definitions": layout.functional_definitions,
                 "resolve_functional": layout.resolve_functional,
+                "revolution_frequency": layout.revolution_frequency,
             }
         )
+
+    def _section_translator(self, section) -> SectionLatticeTranslator:
+        """
+        Build a :class:`SectionLatticeTranslator` for ``section``, falling back
+        to this layout's own ``revolution_frequency`` if the section does not
+        define its own.
+        """
+        translator = SectionLatticeTranslator.from_section(section)
+        if translator.revolution_frequency is None:
+            translator.revolution_frequency = self.revolution_frequency
+        return translator
 
     def to_astra(self) -> Dict[str, str]:
         lattices = {}
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_astra()
+                    section.name: self._section_translator(section).to_astra()
                 }
             )
         return lattices
@@ -79,9 +89,7 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_ocelot(save=save)
+                    section.name: self._section_translator(section).to_ocelot(save=save)
                 }
             )
         return lattices
@@ -91,9 +99,7 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_cheetah(save=save)
+                    section.name: self._section_translator(section).to_cheetah(save=save)
                 }
             )
         return lattices
@@ -105,9 +111,7 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_xsuite(
+                    section.name: self._section_translator(section).to_xsuite(
                         beam_length=beam_length,
                         env=env,
                         particle_ref=particle_ref,
@@ -123,9 +127,7 @@ class MachineLayoutTranslator(MachineLayout):
             b = beam[section.name] if isinstance(beam, Dict) and section.name in beam.keys() else None
             lattices.update(
                 {
-                    sanitize_string(section.name): SectionLatticeTranslator.from_section(
-                        section
-                    ).to_madx(beam=b)
+                    sanitize_string(section.name): self._section_translator(section).to_madx()
                 }
             )
         return lattices

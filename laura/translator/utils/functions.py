@@ -3,9 +3,11 @@ import os
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
+
 from laura.models.element import Magnet
 from laura.models.baseModels import IgnoreExtra
 from typing import Any, Dict, Type, get_args, get_origin, Union, Literal
+from .fields import field
 
 
 def elegant_functional_definitions(definitions: Dict | None = None) -> str:
@@ -96,25 +98,25 @@ class Counter(dict):
         super().__init__()
         self.sub = sub
 
-    def counter(self, type):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
+    def counter(self, typ):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
             return 1
-        return self[type] + 1
+        return self[typ] + 1
 
-    def value(self, type):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
+    def value(self, typ):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
             return 1
-        return self[type]
+        return self[typ]
 
-    def add(self, type, n=1):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
-            self[type] = n
+    def add(self, typ, n=1):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
+            self[typ] = n
         else:
-            self[type] += n
-        return self[type]
+            self[typ] += n
+        return self[typ]
 
 
 def convert_numpy_types(v):
@@ -232,9 +234,9 @@ def lattice_to_cartesian(elements):
 
 def sanitize_kwargs(model_cls: type[BaseModel], data: dict[str, Any]) -> dict[str, Any]:
     sanitized = {}
-    for field_name, field in model_cls.model_fields.items():
+    for field_name, fiel in model_cls.model_fields.items():
         value = data.get(field_name, None)
-        annotation = field.annotation
+        annotation = fiel.annotation
         origin = get_origin(annotation)
         args = get_args(annotation)
 
@@ -271,15 +273,15 @@ def _is_valid_type(value: Any, annotation: Any) -> bool:
     return isinstance(value, annotation)
 
 
-def get_field_default(field: FieldInfo) -> Any:
+def get_field_default(fiel: FieldInfo) -> Any:
     """Get the default value or instance from a field definition."""
-    if callable(field.default_factory):
+    if callable(fiel.default_factory):
         try:
-            return field.default_factory()
+            return fiel.default_factory()
         except Exception:
             return "FACTORY_ERROR"
-    if field.default is not None:
-        return field.default
+    if fiel.default is not None:
+        return fiel.default
     return None
 
 
@@ -292,8 +294,8 @@ def introspect_model_defaults(
     """Recursively introspect a Pydantic model class, extracting default values (including nested)."""
     result = {}
 
-    for field_name, field in model_cls.model_fields.items():
-        default_value = get_field_default(field)
+    for field_name, fiel in model_cls.model_fields.items():
+        default_value = get_field_default(fiel)
 
         # If the default value is a BaseModel (e.g., from default_factory), recurse
         if isinstance(default_value, BaseModel):
@@ -320,7 +322,7 @@ def introspect_model_defaults(
     return result
 
 
-def isevaluable(self, s):
+def isevaluable(s):
     try:
         eval(s)
         return True
@@ -346,7 +348,7 @@ def expand_substitution(self, param, master_lattice="./", subs=None, elements=No
         regex = re.compile(r"\$(.*?)\$")
         s = re.search(regex, param)
         if s:
-            if isevaluable(self, s.group(1)) is True:
+            if isevaluable(s.group(1)):
                 replaced_str = str(eval(re.sub(regex, str(eval(s.group(1))), param)))
             else:
                 replaced_str = re.sub(regex, s.group(1), param)
@@ -392,7 +394,7 @@ def checkValue(self, d, default=None):
         )
 
 
-def tw_cavity_energy_gain(cavity):
+def tw_cavity_energy_gain(cavity: "laura.translator.converters.cavity.RFCavityTranslator"):
     """
     Estimate energy gain in a travelling-wave RF cavity.
 

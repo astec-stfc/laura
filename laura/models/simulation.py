@@ -1,6 +1,15 @@
-from pydantic import PositiveInt, PositiveFloat, SerializeAsAny, Field
-from typing import Literal, Any, Dict, Union
+from pydantic import (
+    PositiveInt,
+    PositiveFloat,
+    SerializeAsAny,
+    computed_field,
+    field_validator,
+    Field
+)
+from typing import Literal, Any, Dict, List, Union
 from .baseModels import IgnoreExtra
+import numpy as np
+import re
 
 
 class ApertureElement(IgnoreExtra):
@@ -407,3 +416,312 @@ class TwissMatchSimulationElement(IgnoreExtra):
 
     from_beam: bool = True
     """If `True`, compute transformation from tracked beam properties instead of Twiss parameters"""
+
+    @computed_field
+    @property
+    def r_matrix(self) -> np.ndarray:
+        bx = np.sqrt(self.beta_x)
+        by = np.sqrt(self.beta_y)
+
+        R = np.eye(6)
+
+        # x-plane CS transform
+        R[0, 0] = bx
+        R[0, 5] = self.eta_x
+
+        R[1, 0] = -self.alpha_x / bx
+        R[1, 1] = 1.0 / bx
+        R[1, 5] = self.eta_xp
+
+        # y-plane CS transform
+        R[2, 2] = by
+        R[2, 5] = self.eta_y
+
+        R[3, 2] = -self.alpha_y / by
+        R[3, 3] = 1.0 / by
+        R[3, 5] = self.eta_yp
+
+        # z, δ untouched
+        R[4, 4] = 1.0
+        R[5, 5] = 1.0
+
+        return R
+
+    @computed_field
+    @property
+    def r_matrix_7x7(self) -> np.ndarray:
+        n = self.r_matrix.shape[0]
+        B = np.zeros((n + 1, n + 1))
+        B[:n, :n] = self.r_matrix
+        B[n, n] = 1
+        return B
+
+
+class MatrixTransformSimulationElement(IgnoreExtra):
+    c_matrix: np.ndarray = Field(default_factory=lambda: np.zeros(6))
+    """C-matrix for the element (0th order transformation matrix)."""
+
+    r_matrix: np.ndarray = Field(default_factory=lambda: np.eye(6))
+    """R-matrix for the element (1st order transformation matrix)."""
+
+    t_matrix: np.ndarray = Field(default_factory=lambda: np.zeros((6, 6, 6)))
+    """T-matrix for the element (2nd order transformation matrix)."""
+
+    @field_validator("c_matrix", mode="before")
+    @classmethod
+    def validate_c_matrix(cls, v):
+        if isinstance(v, dict):
+            vector = np.zeros(6)
+
+            for key, value in v.items():
+                m = re.fullmatch(r"c(\d)", key.lower())
+                if not m:
+                    raise ValueError(
+                        f"Invalid C-matrix element '{key}'. Expected e.g. c1."
+                    )
+
+                idx = int(m.group(1)) - 1
+
+                if not (0 <= idx < 6):
+                    raise ValueError(
+                        f"C-matrix index out of range: {key}"
+                    )
+
+                vector[idx] = float(value)
+
+            return vector
+
+        arr = np.asarray(v, dtype=float)
+
+        if arr.shape != (6,):
+            raise ValueError(
+                f"c_matrix must have shape (6,), got {arr.shape}"
+            )
+
+        return arr
+
+    @field_validator("r_matrix", mode="before")
+    @classmethod
+    def validate_r_matrix(cls, v):
+        if isinstance(v, dict):
+            matrix = np.eye(6)
+
+            for key, value in v.items():
+                m = re.fullmatch(r"r(\d)(\d)", key.lower())
+                if not m:
+                    raise ValueError(
+                        f"Invalid R-matrix element '{key}'. Expected e.g. r21."
+                    )
+
+                row = int(m.group(1)) - 1
+                col = int(m.group(2)) - 1
+
+                if not (0 <= row < 6 and 0 <= col < 6):
+                    raise ValueError(
+                        f"R-matrix index out of range: {key}"
+                    )
+
+                matrix[row, col] = float(value)
+
+            return matrix
+
+        arr = np.asarray(v, dtype=float)
+
+        if arr.shape != (6, 6):
+            raise ValueError(
+                f"r_matrix must have shape (6,6), got {arr.shape}"
+            )
+
+        return arr
+
+    @field_validator("t_matrix", mode="before")
+    @classmethod
+    def validate_t_matrix(cls, v):
+        if isinstance(v, dict):
+            tensor = np.zeros((6, 6, 6))
+
+            for key, value in v.items():
+                m = re.fullmatch(r"t(\d)(\d)(\d)", key.lower())
+                if not m:
+                    raise ValueError(
+                        f"Invalid T-matrix element '{key}'. Expected e.g. t513."
+                    )
+
+                i = int(m.group(1)) - 1
+                j = int(m.group(2)) - 1
+                k = int(m.group(3)) - 1
+
+                if not all(0 <= idx < 6 for idx in (i, j, k)):
+                    raise ValueError(
+                        f"T-matrix index out of range: {key}"
+                    )
+
+                tensor[i, j, k] = float(value)
+
+            return tensor
+
+        arr = np.asarray(v, dtype=float)
+
+        if arr.shape != (6, 6, 6):
+            raise ValueError(
+                f"t_matrix must have shape (6,6,6), got {arr.shape}"
+            )
+
+        return arr
+
+    @computed_field
+    @property
+    def r_matrix_7x7(self) -> np.ndarray:
+        n = self.r_matrix.shape[0]
+        B = np.zeros((n + 1, n + 1))
+        B[:n, :n] = self.r_matrix
+        B[n, n] = 1
+        return B
+
+
+class ElectrostaticSeparatorSimulationElement(IgnoreExtra):
+    """
+    Electrostatic separator simulation element model.
+
+    See the MAD-X ``ELSEPARATOR`` element (no equivalent element exists in
+    ELEGANT or Xsuite).
+    """
+
+    horizontal_field: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Horizontal deflecting electric field [V/m]. Stored verbatim: a number, or
+    the name of a functional definition."""
+
+    vertical_field: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Vertical deflecting electric field [V/m]. Stored verbatim: a number, or
+    the name of a functional definition."""
+
+    tilt: float = 0.0
+    """Rotation of the separator about the beam axis [rad]."""
+
+
+class ACDipoleSimulationElement(IgnoreExtra):
+    """
+    AC dipole / tune-exciter simulation element model.
+
+    See the MAD-X ``HACDIPOLE``/``VACDIPOLE`` elements and the Xsuite
+    ``ACDipole`` element.
+    """
+
+    field_amplitude: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Peak kick voltage/amplitude of the exciter. Stored verbatim: a number, or
+    the name of a functional definition."""
+
+    frequency: float = 0.0
+    """Drive frequency [Hz]."""
+
+    phase: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Phase lag [deg]. Stored verbatim: a number, or the name of a functional
+    definition."""
+
+    ramp: List[int] = Field(default_factory=lambda: [0, 0, 0, 0])
+    """Turn numbers ``[ramp1, ramp2, ramp3, ramp4]`` defining the ramp-up start,
+    flat-top start, flat-top end and ramp-down end (see the MAD-X ``RAMP1..4``
+    parameters and the Xsuite ``ACDipole.ramp``)."""
+
+
+class WireSimulationElement(IgnoreExtra):
+    """
+    Compensating wire simulation element model.
+
+    See the MAD-X ``WIRE`` element and the Xsuite ``Wire`` element. The
+    physical length of the wire is the element's own ``physical.length``
+    (MAD-X ``L``/Xsuite ``L_phy``).
+    """
+
+    current: float = 0.0
+    """Current carried by the wire [A]."""
+
+    interaction_length: float = 0.0
+    """Interaction (effective) length of the wire [m] (MAD-X ``L_INT``, Xsuite
+    ``L_int``)."""
+
+    horizontal_offset: float = 0.0
+    """Horizontal offset of the wire from the reference orbit [m] (``XMA``)."""
+
+    vertical_offset: float = 0.0
+    """Vertical offset of the wire from the reference orbit [m] (``YMA``)."""
+
+
+class BeamBeamSimulationElement(IgnoreExtra):
+    """
+    Beam-beam interaction simulation element model.
+
+    See the MAD-X ``BEAMBEAM`` element (weak-strong kick from an opposing
+    bunch).
+    """
+
+    charge: float = 1.0
+    """Charge of a single particle in the opposing beam, in units of the
+    elementary charge (e.g. ``+1`` for protons/positrons, ``-1`` for
+    electrons) -- matches Xsuite's ``other_beam_q0``. MAD-X's ``CHARGE`` and
+    ELEGANT's ``CHARGE`` (in Coulombs, ``= n_particles * charge * e``) are
+    both derived from this."""
+
+    n_particles: float = 0.0
+    """Number of particles in the opposing (strong) bunch (MAD-X ``NPART``)."""
+
+    horizontal_offset: float = 0.0
+    """Horizontal offset of the opposing bunch centroid [m] (``XMA``)."""
+
+    vertical_offset: float = 0.0
+    """Vertical offset of the opposing bunch centroid [m] (``YMA``)."""
+
+    horizontal_sigma: float = 0.0
+    """Horizontal RMS beam size of the opposing bunch [m] (``SIGX``)."""
+
+    vertical_sigma: float = 0.0
+    """Vertical RMS beam size of the opposing bunch [m] (``SIGY``)."""
+
+    width: float = 0.0
+    """Bunch length of the opposing bunch [m], for the 3D weak-strong model
+    (``WIDTH``)."""
+
+
+class RFMultipoleSimulationElement(IgnoreExtra):
+    """
+    Thin RF multipole simulation element model.
+
+    See the MAD-X ``RFMULTIPOLE`` element and the Xsuite ``RFMultipole``
+    element -- a zero-length multipole kick whose strength oscillates at an RF
+    frequency, up to 5th order (dipole through decapole).
+    """
+
+    frequency: float = 0.0
+    """RF frequency [Hz]."""
+
+    phase: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Overall phase lag [deg]. Stored verbatim: a number, or the name of a
+    functional definition."""
+
+    field_amplitude: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Longitudinal voltage [V] (MAD-X ``VOLT``). Stored verbatim: a number, or
+    the name of a functional definition."""
+
+    knl: List[float] = Field(default_factory=lambda: [0.0] * 5)
+    """Integrated normal multipole strengths, order 0 (dipole) to 4 (decapole)."""
+
+    ksl: List[float] = Field(default_factory=lambda: [0.0] * 5)
+    """Integrated skew multipole strengths, order 0 (dipole) to 4 (decapole)."""
+
+    pnl: List[float] = Field(default_factory=lambda: [0.0] * 5)
+    """Phase of the normal multipole components [deg], order 0 to 4."""
+
+    psl: List[float] = Field(default_factory=lambda: [0.0] * 5)
+    """Phase of the skew multipole components [deg], order 0 to 4."""

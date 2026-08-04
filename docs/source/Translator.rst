@@ -298,6 +298,19 @@ the MAD-X global afterwards (``madx.globals["name"] = ...``) updates every eleme
    adjustment is needed, unlike for Xsuite (see
    :py:meth:`CorrectorTranslator.to_xsuite <laura.translator.converters.magnet.CorrectorTranslator.to_xsuite>`).
 
+A few element types select between more than one MAD-X representation depending on their own
+attributes, rather than a fixed one-to-one mapping:
+
+* :py:class:`RFCavity <laura.models.element.RFCavity>` is written as a MAD-X ``TWCAVITY`` rather than
+  ``RFCAVITY`` when ``cavity.structure_Type == "TravellingWave"``.
+* :py:class:`Aperture <laura.models.element.Aperture>`/:py:class:`Collimator <laura.models.element.Collimator>`
+  are written as ``ECOLLIMATOR`` rather than ``RCOLLIMATOR`` when ``aperture.shape`` is ``"elliptical"``
+  or ``"circular"``.
+
+See :ref:`specialised-elements` for the newer, more specialised element types (``MatrixTransform``,
+``CrabCavity``, ``ElectrostaticSeparator``, the AC dipoles, ``Wire``, ``BeamBeam``, ``RFMultipole``) and
+which of MAD-X/ELEGANT/Xsuite each one supports.
+
 .. _machine-layout-translator:
 
 Machine Layout Translator
@@ -353,6 +366,23 @@ Example usage:
 
     # Create Ocelot lattices for all sections
     ocelot_lattices = translator.to_ocelot(save=True)
+
+.. _revolution-frequency:
+
+Revolution Frequency
+~~~~~~~~~~~~~~~~~~~~
+
+:py:class:`SectionLattice <laura.models.elementList.SectionLattice>`,
+:py:class:`MachineLayout <laura.models.elementList.MachineLayout>`, and
+:py:class:`MachineModel <laura.models.elementList.MachineModel>` each have an optional
+``revolution_frequency`` [Hz] attribute, for lattices that are (part of) a closed ring. When translating
+to Xsuite, :py:meth:`SectionLatticeTranslator.to_xsuite <laura.translator.converters.section.SectionLatticeTranslator.to_xsuite>`
+passes its own value through to any :py:class:`Horizontal_AC_Dipole <laura.models.element.Horizontal_AC_Dipole>`/
+:py:class:`Vertical_AC_Dipole <laura.models.element.Vertical_AC_Dipole>` elements it translates (see the
+note on :ref:`specialised-elements`), and :py:meth:`MachineLayoutTranslator.to_xsuite <laura.translator.converters.layout.MachineLayoutTranslator.to_xsuite>`/
+:py:meth:`MachineModelTranslator.to_xsuite <laura.translator.converters.model.MachineModelTranslator.to_xsuite>`
+cascade their own value down to any child section/layout that does not define its own -- so it only needs
+to be set once, at whichever level is convenient, and every level below inherits it unless overridden.
 
 .. _machine-model-translator:
 
