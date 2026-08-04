@@ -1721,6 +1721,8 @@ class Wire(PhysicalBaseElement):
     simulation: WireSimulationElement = Field(default_factory=WireSimulationElement)
     """Simulation attributes of the wire."""
 
+    controls: ControlsInformation | None = None
+
 
 class BeamBeam(PhysicalBaseElement):
     """
