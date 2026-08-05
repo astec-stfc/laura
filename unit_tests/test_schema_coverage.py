@@ -13,6 +13,7 @@ whose slots have gone stale still passes. Regenerating is what catches that:
     python laura/schema/generate_pydantic.py
 """
 
+import json
 import pathlib
 
 import pytest
@@ -24,11 +25,18 @@ SCHEMA_DIR = pathlib.Path(__file__).resolve().parent.parent / "laura" / "schema"
 
 
 def _schema_class_names() -> dict[str, str]:
-    """Map every class defined across the schema chunk files to its filename."""
+    """Map every class defined across the schema chunk files to its filename.
+
+    Classes marked ``class_uri: linkml:Any`` are skipped: LinkML treats those as
+    the any-type rather than a real class, so gen-pydantic renders them as
+    ``typing.Any`` at each use site and never emits a class to look for.
+    """
     found: dict[str, str] = {}
     for path in sorted(SCHEMA_DIR.glob("*.yaml")):
         doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        for class_name in (doc.get("classes") or {}):
+        for class_name, defn in (doc.get("classes") or {}).items():
+            if (defn or {}).get("class_uri") == "linkml:Any":
+                continue
             found[class_name] = path.name
     return found
 
@@ -116,3 +124,42 @@ def test_generated_module_covers_the_schema():
         + ", ".join(sorted(missing))
         + ". Regenerate with `python laura/schema/generate_pydantic.py`."
     )
+
+
+def test_mapping_valued_control_slots_validate():
+    """A ControlVariable's nested mappings must satisfy the generated JSON Schema.
+
+    ``expression``, ``states``, ``update`` and ``dynamics`` all hold mappings but
+    were declared ``range: string``, so any real export was rejected by the schema
+    derived from the model describing it. They are ``AnyValue`` (``linkml:Any``)
+    now; this fails again if one is narrowed back to a scalar range.
+
+    Validated against ``$defs/ControlVariable`` directly: the schema's root is
+    AcceleratorElement, which has no ``controls`` slot, so validating a whole
+    element never reaches these.
+    """
+    jsonschema = pytest.importorskip("jsonschema")
+    schema_path = (
+        pathlib.Path(__file__).resolve().parent.parent
+        / "laura" / "schema" / "generated" / "laura_element.schema.json"
+    )
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    variable = {
+        "identifier": "QV:SETI",
+        "protocol": "EPICS",
+        "units": "A",
+        "io_type": "current",
+        "min_value": 0.0,
+        "max_value": 200.0,
+        "step": 0.05,
+        "readback_tolerance": 0.01,
+        "timestamp": "2026-08-04T17:00:00",
+        "severity": "no_alarm",
+        "expression": {"op": "mul", "args": ["k1l_control", "magnetic.length"]},
+        "states": {"OPEN": 1, "CLOSED": 0},
+        "update": {"function": "laura.utils.signals.Sinusoid", "period": 1.0},
+        "dynamics": {"model": "laura.utils.dynamics.first_order", "tau": 0.5},
+    }
+    validator = jsonschema.Draft7Validator({**schema, "$ref": "#/$defs/ControlVariable"})
+    errors = [f"{list(e.absolute_path)}: {e.message}" for e in validator.iter_errors(variable)]
+    assert not errors, "ControlVariable rejected by its own JSON Schema: " + "; ".join(errors)

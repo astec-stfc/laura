@@ -14,6 +14,7 @@ URI: [laura:IOTypeEnum](https://w3id.org/laura/IOTypeEnum)
 ## Permissible Values
 | Value | Meaning | Description |
 | --- | --- | --- |
+| unknown | None | Unspecified signal type (the default) |
 | current | None | Electrical current |
 | voltage | None | Electrical voltage |
 | phase | None | Phase in radians |
@@ -31,6 +32,7 @@ URI: [laura:IOTypeEnum](https://w3id.org/laura/IOTypeEnum)
 | value | None | Single value |
 | waveform | None | Multivalued waveform |
 | magnetic_field | None | Magnetic field |
+| beam_position | None | Beam position |
 
 
 
@@ -41,6 +43,7 @@ URI: [laura:IOTypeEnum](https://w3id.org/laura/IOTypeEnum)
 | ---  | --- |
 | [inputs](inputs.md) | Signal types this element consumes (e |
 | [outputs](outputs.md) | Signal types this element produces (e |
+| [io_type](io_type.md) | Physical quantity this variable carries (e |
 
 
 
@@ -76,6 +79,9 @@ description: Input types for accelerator elements.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 permissible_values:
+  unknown:
+    text: unknown
+    description: Unspecified signal type (the default).
   current:
     text: current
     description: Electrical current.
@@ -127,6 +133,9 @@ permissible_values:
   magnetic_field:
     text: magnetic_field
     description: Magnetic field.
+  beam_position:
+    text: beam_position
+    description: Beam position.
 
 ```
 </details>

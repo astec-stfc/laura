@@ -18,6 +18,7 @@ Or via the generate.ps1 / generate.sh scripts::
 """
 
 import ast
+import os
 import re
 import subprocess
 import sys
@@ -92,6 +93,9 @@ def _run_gen_pydantic(schema_path: str) -> str:
         # description (en dashes, Greek letters, the ohm sign) comes back as
         # mojibake and is written into _generated.py that way.
         encoding="utf-8",
+        # ...and the child has to *write* UTF-8 for that to decode, which on
+        # Windows it will not do unless told.
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
     )
     if result.returncode != 0:
         sys.stderr.write(result.stderr)

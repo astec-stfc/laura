@@ -26,6 +26,20 @@ default_range: string
 imports:
   - linkml:types
 
+enums:
+
+  LatticeSourceEnum:
+    description: >-
+      Where the values in a machine model came from, which decides how far
+      they can be trusted as a description of the real machine.
+    permissible_values:
+      design:
+        description: Design values; never read from hardware.
+      measured:
+        description: Read back from the machine at a point in time.
+      simulated:
+        description: Produced by a tracking or simulation code.
+
 classes:
 
   SectionLattice:
@@ -70,6 +84,27 @@ classes:
       sections, layouts, and named lattice configurations.
     class_uri: laura:MachineModel
     attributes:
+      description:
+        range: string
+        description: Human-readable description of what this machine model represents.
+        slot_uri: dcterms:description
+      created:
+        range: datetime
+        description: >-
+          When this model was produced -- for ``measured`` models, when the
+          machine was read.
+        slot_uri: dcterms:created
+      source:
+        range: LatticeSourceEnum
+        ifabsent: string(design)
+        description: >-
+          Whether these values are design, measured or simulated. Defaults to
+          ``design``, which is what an untagged lattice file has always been.
+      run_id:
+        range: string
+        description: >-
+          Identifier of the run, shot or scan this model belongs to, for
+          matching it against data recorded elsewhere.
       elements:
         multivalued: true
         range: AcceleratorElement

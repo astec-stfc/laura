@@ -303,6 +303,7 @@ class ControlVariable(_ControlVariableBase):
         "units": "Arb. Units",
         "read_only": True,
         "control_type": "statistical",
+        "io_type": "unknown",
         "description": "Default Description",
     }
 

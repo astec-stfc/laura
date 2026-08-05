@@ -33,7 +33,7 @@ URI: [laura:update](https://w3id.org/laura/update)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
+| Range | [AnyValue](AnyValue.md) |
 | Domain Of | [ControlVariable](ControlVariable.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ rank: 1000
 owner: ControlVariable
 domain_of:
 - ControlVariable
-range: string
+range: AnyValue
 
 ```
 </details></div>

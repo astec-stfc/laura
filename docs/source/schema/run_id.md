@@ -1,10 +1,15 @@
-# Slot: description 
+# Slot: run_id 
+
+
+_Identifier of the run, shot or scan this model belongs to, for matching it against data recorded elsewhere._
+
+
 
 <div data-search-exclude markdown="1">
 
 
 
-URI: [laura:description](https://w3id.org/laura/description)
+URI: [laura:run_id](https://w3id.org/laura/run_id)
 <!-- no inheritance hierarchy -->
 
 
@@ -15,7 +20,6 @@ URI: [laura:description](https://w3id.org/laura/description)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |  no  |
 | [MachineModel](MachineModel.md) | Top-level container for a complete accelerator lattice: elements, sections, l... |  no  |
 
 
@@ -30,12 +34,19 @@ URI: [laura:description](https://w3id.org/laura/description)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [ControlVariable](ControlVariable.md), [MachineModel](MachineModel.md) |
+| Domain Of | [MachineModel](MachineModel.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+### Slot Characteristics
+
+| Property | Value |
+| --- | --- |
+| Owner | [MachineModel](MachineModel.md) |
+
+
 
 
 
@@ -52,13 +63,20 @@ URI: [laura:description](https://w3id.org/laura/description)
 
 
 
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
+
+
+
 
 ## Mappings
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:description |
-| native | laura:description |
+| self | laura:run_id |
+| native | laura:run_id |
 
 
 
@@ -67,9 +85,13 @@ URI: [laura:description](https://w3id.org/laura/description)
 
 <details>
 ```yaml
-name: description
+name: run_id
+description: Identifier of the run, shot or scan this model belongs to, for matching
+  it against data recorded elsewhere.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
+owner: MachineModel
 domain_of:
-- ControlVariable
 - MachineModel
 range: string
 

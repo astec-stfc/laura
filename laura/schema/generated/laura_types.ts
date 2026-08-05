@@ -56,6 +56,8 @@ export type PhysicalAcceleratorElementName = string;
 */
 export enum IOTypeEnum {
     
+    /** Unspecified signal type (the default). */
+    unknown = "unknown",
     /** Electrical current. */
     current = "current",
     /** Electrical voltage. */
@@ -90,6 +92,22 @@ export enum IOTypeEnum {
     waveform = "waveform",
     /** Magnetic field. */
     magnetic_field = "magnetic_field",
+    /** Beam position. */
+    beam_position = "beam_position",
+};
+/**
+* Alarm severity reported alongside a control-system reading, following the EPICS severity levels.
+*/
+export enum AlarmSeverityEnum {
+    
+    /** Value is within its alarm limits. */
+    no_alarm = "no_alarm",
+    /** Value has crossed a warning limit. */
+    minor = "minor",
+    /** Value has crossed an alarm limit. */
+    major = "major",
+    /** Value could not be read, or is not trustworthy. */
+    invalid = "invalid",
 };
 /**
 * Kind of quantity a control variable carries.
@@ -117,6 +135,18 @@ export enum ApertureShapeEnum {
     circular = "circular",
     rectangular = "rectangular",
     elliptical = "elliptical",
+};
+/**
+* Where the values in a machine model came from, which decides how far they can be trusted as a description of the real machine.
+*/
+export enum LatticeSourceEnum {
+    
+    /** Design values; never read from hardware. */
+    design = "design",
+    /** Read back from the machine at a point in time. */
+    measured = "measured",
+    /** Produced by a tracking or simulation code. */
+    simulated = "simulated",
 };
 /**
 * Bending plane enum.
@@ -288,6 +318,13 @@ export interface PhysicalElement {
 
 
 /**
+ * A value with no fixed structure. Used for slots holding nested mappings that LAURA stores and interprets itself, so that consumers validating against the generated JSON Schema or SHACL shapes are not told to expect a plain string.
+ */
+export interface AnyValue {
+}
+
+
+/**
  * A single process-variable entry mapping a logical name to a control-system PV identifier.
  */
 export interface ControlVariable {
@@ -305,22 +342,36 @@ export interface ControlVariable {
     read_only?: boolean,
     /** Last-read value. Scalar for most control types; a list for ``waveform``. */
     value?: string,
+    /** Time at which ``value`` was read from the control system. Absent means the value has never been read, or came from a source that does not timestamp it. */
+    timestamp?: string,
+    /** Alarm severity reported with ``value``. Absent means no severity was supplied; it does not mean the reading was healthy. */
+    severity?: string,
+    /** Lowest value this variable may be set to, in ``units``. Advisory operating limit for anything writing a set-point, not a hardware interlock. */
+    min_value?: number,
+    /** Highest value this variable may be set to, in ``units``. As ``min_value``, advisory rather than enforced. */
+    max_value?: number,
+    /** Smallest meaningful change in this variable, in ``units``. Below this a set-point change is lost in noise or resolution. */
+    step?: number,
+    /** Fractional deviation within which a readback counts as having reached its set-point (0.01 = 1 %). Named to avoid colliding with ``DegaussableElement.tolerance``, which is an absolute current band. */
+    readback_tolerance?: number,
     /** Kind of quantity this variable carries. Accepted in YAML as ``type``. */
     control_type?: string,
+    /** Physical quantity this variable carries (e.g. ``voltage``, ``beam_position``), as opposed to ``control_type``, which is the shape of its value. */
+    io_type?: string,
     /** Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value. */
     target?: string,
     /** Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``. */
-    expression?: string,
+    expression?: AnyValue,
     /** Mapping of state name to underlying control-system value, for ``control_type: state``. */
-    states?: string,
+    states?: AnyValue,
     /** Name of the readback variable this set-point drives. */
     readback?: string,
     /** Name of the set-point variable this readback follows. */
     setpoint?: string,
     /** Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA. */
-    update?: string,
+    update?: AnyValue,
     /** Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``. */
-    dynamics?: string,
+    dynamics?: AnyValue,
 }
 
 
@@ -501,6 +552,14 @@ export interface MachineLayout {
  * Top-level container for a complete accelerator lattice: elements, sections, layouts, and named lattice configurations.
  */
 export interface MachineModel {
+    /** Human-readable description of what this machine model represents. */
+    description?: string,
+    /** When this model was produced -- for ``measured`` models, when the machine was read. */
+    created?: string,
+    /** Whether these values are design, measured or simulated. Defaults to ``design``, which is what an untagged lattice file has always been. */
+    source?: string,
+    /** Identifier of the run, shot or scan this model belongs to, for matching it against data recorded elsewhere. */
+    run_id?: string,
     /** All elements in the machine, keyed by name. */
     elements?: AcceleratorElementName[],
     /** All named beamline sections. */

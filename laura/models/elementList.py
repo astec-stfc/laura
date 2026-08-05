@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime
 import numpy as np
 from typing import List, Dict, Any, Union, Literal, Optional
 from pydantic import field_validator, BaseModel, ValidationInfo, Field, PositiveInt
@@ -16,6 +17,7 @@ from .baseModels import (
     set_resolve_functional,
     validate_functional_references,
 )
+from ._generated import LatticeSourceEnum
 from .exceptions import LatticeError
 import warnings
 
@@ -1137,6 +1139,22 @@ class MachineModel(ModelBase):
 
     master_lattice: str | None = None
     """Directory containing lattice YAML files."""
+
+    # Provenance. Without these there is nothing in a lattice file saying whether
+    # its numbers are design values, a readback of the real machine, or the output
+    # of a tracking code -- which is the first thing anything consuming the model
+    # needs to know before trusting them.
+    description: str | None = None
+    """Human-readable description of what this machine model represents."""
+
+    created: datetime | None = None
+    """When this model was produced; for `source` "measured", when the machine was read."""
+
+    source: LatticeSourceEnum = LatticeSourceEnum.design
+    """Whether these values are design, measured or simulated."""
+
+    run_id: str | None = None
+    """Identifier of the run, shot or scan this model belongs to."""
 
     functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
     """Mapping of functional-parameter names to their numeric values, or a path

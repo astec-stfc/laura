@@ -1,7 +1,7 @@
-# Slot: expression 
+# Slot: step 
 
 
-_Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``._
+_Smallest meaningful change in this variable, in ``units``. Below this a set-point change is lost in noise or resolution._
 
 
 
@@ -9,7 +9,7 @@ _Expression graph computing the value written to ``target``, as nested mappings 
 
 
 
-URI: [laura:expression](https://w3id.org/laura/expression)
+URI: [laura:step](https://w3id.org/laura/step)
 <!-- no inheritance hierarchy -->
 
 
@@ -33,7 +33,7 @@ URI: [laura:expression](https://w3id.org/laura/expression)
 
 | Property | Value |
 | --- | --- |
-| Range | [AnyValue](AnyValue.md) |
+| Range | [Float](Float.md) |
 | Domain Of | [ControlVariable](ControlVariable.md) |
 
 ### Cardinality and Requirements
@@ -75,8 +75,8 @@ URI: [laura:expression](https://w3id.org/laura/expression)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:expression |
-| native | laura:expression |
+| self | laura:step |
+| native | laura:step |
 
 
 
@@ -85,17 +85,15 @@ URI: [laura:expression](https://w3id.org/laura/expression)
 
 <details>
 ```yaml
-name: expression
-description: 'Expression graph computing the value written to ``target``, as nested
-  mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is
-  a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``,
-  ``truediv`` and ``pow``.'
+name: step
+description: Smallest meaningful change in this variable, in ``units``. Below this
+  a set-point change is lost in noise or resolution.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ControlVariable
 domain_of:
 - ControlVariable
-range: AnyValue
+range: float
 
 ```
 </details></div>

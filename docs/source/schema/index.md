@@ -63,6 +63,7 @@ Name: laura_schema
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFHeartbeat](RFHeartbeat.md) | RF timing heartbeat / signal-monitor element |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFModulator](RFModulator.md) | RF modulator (klystron driver) element |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFProtection](RFProtection.md) | RF protection system element |
+| [AnyValue](AnyValue.md) | A value with no fixed structure |
 | [ApertureElement](ApertureElement.md) | Transverse aperture geometry for drift-space checks and collimators |
 | [CameraMask](CameraMask.md) | Camera analysis mask parameters |
 | [CameraPixelResultsIndices](CameraPixelResultsIndices.md) | Indices into camera pixel-analysis result arrays |
@@ -182,6 +183,7 @@ Name: laura_schema
 | [controls](controls.md) | Control-system process-variable definitions |
 | [coupling_cell_length](coupling_cell_length.md) | Length of the coupling cell [m] |
 | [covariance](covariance.md) | Beam covariance index |
+| [created](created.md) | When this model was produced -- for ``measured`` models, when the machine was... |
 | [crest](crest.md) | On-crest phase offset providing maximum energy gain [deg] |
 | [crest_phase](crest_phase.md) | Cavity crest phase |
 | [csr_bins](csr_bins.md) | Number of longitudinal bins for the CSR mesh |
@@ -276,6 +278,7 @@ Name: laura_schema
 | [interpolate](interpolate.md) | Interpolate points in wake file |
 | [interpolate_current_bins](interpolate_current_bins.md) | Flag indicating current-bin interpolation |
 | [interpolation_method](interpolation_method.md) | Interpolation method for ASTRA |
+| [io_type](io_type.md) | Physical quantity this variable carries (e |
 | [isr_enable](isr_enable.md) | Enable incoherent synchrotron-radiation emittance growth |
 | [K0L](K0L.md) | Integrated dipole field |
 | [K1L](K1L.md) | Integrated quadrupole gradient |
@@ -313,12 +316,14 @@ Name: laura_schema
 | [max_amplitude](max_amplitude.md) | Maximum allowed amplitude |
 | [max_i](max_i.md) | Maximum current [A] |
 | [max_longitudinal_position](max_longitudinal_position.md) | Maximum longitudinal position [m] |
+| [max_value](max_value.md) | Highest value this variable may be set to, in ``units`` |
 | [maximum](maximum.md) | Maximum mask radius in pixels [x, y] |
 | [mechanical_middle](mechanical_middle.md) | Mechanical center of the camera in pixels [x, y] |
 | [middle](middle.md) | Longitudinal midpoint (centre) of the element |
 | [min](min.md) | Minimum value |
 | [min_i](min_i.md) | Minimum current [A] |
 | [min_longitudinal_position](min_longitudinal_position.md) | Minimum longitudinal position [m] |
+| [min_value](min_value.md) | Lowest value this variable may be set to, in ``units`` |
 | [minimum](minimum.md) | Minimum pixel positions [x, y] |
 | [mode_denominator](mode_denominator.md) | Mode fraction denominator |
 | [mode_numerator](mode_numerator.md) | Mode fraction numerator |
@@ -385,10 +390,12 @@ Name: laura_schema
 | [read_only](read_only.md) | Whether the variable is read-only |
 | [read_tolerance](read_tolerance.md) | Read-back vs |
 | [readback](readback.md) | Name of the readback variable this set-point drives |
+| [readback_tolerance](readback_tolerance.md) | Fractional deviation within which a readback counts as having reached its set... |
 | [reference](reference.md) | Links to design drawings and files |
 | [reference_placement](reference_placement.md) | Place this element relative to another element's frame instead of using absol... |
 | [right](right.md) | Right sense value |
 | [rotation](rotation.md) | Angular misalignment error [rad] |
+| [run_id](run_id.md) | Identifier of the run, shot or scan this model belongs to, for matching it ag... |
 | [s](s.md) | Arc-length position [m] along the design trajectory (s=0 at the global origin... |
 | [S0L](S0L.md) | Integrated solenoid field, order 0 [T |
 | [S10L](S10L.md) | Integrated solenoid field, order 10 [T |
@@ -420,6 +427,7 @@ Name: laura_schema
 | [serial_number](serial_number.md) | Manufacturer serial number |
 | [setpoint](setpoint.md) | Name of the set-point variable this readback follows |
 | [settle_time](settle_time.md) | Power-supply settle time after a change [s] |
+| [severity](severity.md) | Alarm severity reported with ``value`` |
 | [shape](shape.md) | Cross-sectional aperture shape |
 | [shunt_impedance](shunt_impedance.md) | Shunt impedance [M?/m] |
 | [shutter](shutter.md) | Shutter interlock configuration |
@@ -429,10 +437,12 @@ Name: laura_schema
 | [smooth_current_bins](smooth_current_bins.md) | Flag indicating current-bin smoothing |
 | [smooth_points](smooth_points.md) | Number of points used to smooth the field map [ASTRA] |
 | [smoothing_half_width](smoothing_half_width.md) | Half-width of the current-profile smoothing kernel |
+| [source](source.md) | Whether these values are design, measured or simulated |
 | [species](species.md) | Plasma species name (e |
 | [sr_enable](sr_enable.md) | Enable synchrotron-radiation energy loss |
 | [start](start.md) | Start time |
 | [states](states.md) | Mapping of state name to underlying control-system value, for ``control_type:... |
+| [step](step.md) | Smallest meaningful change in this variable, in ``units`` |
 | [step_max](step_max.md) | Maximum step size for mirror adjustment |
 | [steps](steps.md) | Number of degauss steps per half-cycle |
 | [strength](strength.md) | Deflection parameter K |
@@ -446,6 +456,7 @@ Name: laura_schema
 | [target](target.md) | Dotted attribute path on the owning element that ``expression`` writes to (e |
 | [theta](theta.md) | Rotation about the longitudinal (z) axis [rad] |
 | [tilt](tilt.md) | Global tilt about the beam axis [rad] |
+| [timestamp](timestamp.md) | Time at which ``value`` was read from the control system |
 | [timings](timings.md) | Timing windows for LLRF channels |
 | [tolerance](tolerance.md) | Current tolerance band during the degauss cycle [A] |
 | [trace](trace.md) | Trace metadata |
@@ -498,6 +509,7 @@ Name: laura_schema
 
 | Enumeration | Description |
 | --- | --- |
+| [AlarmSeverityEnum](AlarmSeverityEnum.md) | Alarm severity reported alongside a control-system reading, following the EPI... |
 | [ApertureShapeEnum](ApertureShapeEnum.md) | Cross-sectional shape of a beam-pipe aperture |
 | [BendingPlaneEnum](BendingPlaneEnum.md) | Bending plane enum |
 | [ControlTypeEnum](ControlTypeEnum.md) | Kind of quantity a control variable carries |
@@ -505,6 +517,7 @@ Name: laura_schema
 | [IOTypeEnum](IOTypeEnum.md) | Input types for accelerator elements |
 | [LaserPolarizationEnum](LaserPolarizationEnum.md) | Polarization state of a laser beam |
 | [LaserProfileTypeEnum](LaserProfileTypeEnum.md) | Transverse intensity profile model for a laser beam |
+| [LatticeSourceEnum](LatticeSourceEnum.md) | Where the values in a machine model came from, which decides how far they can... |
 
 
 ## Types

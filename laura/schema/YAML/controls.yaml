@@ -31,6 +31,8 @@ enums:
   IOTypeEnum:
     description: Input types for accelerator elements.
     permissible_values:
+      unknown:
+        description: Unspecified signal type (the default).
       current:
         description: Electrical current.
       voltage:
@@ -65,6 +67,22 @@ enums:
         description: Multivalued waveform.
       magnetic_field:
         description: Magnetic field.
+      beam_position:
+        description: Beam position.
+
+  AlarmSeverityEnum:
+    description: >-
+      Alarm severity reported alongside a control-system reading, following
+      the EPICS severity levels.
+    permissible_values:
+      no_alarm:
+        description: Value is within its alarm limits.
+      minor:
+        description: Value has crossed a warning limit.
+      major:
+        description: Value has crossed an alarm limit.
+      invalid:
+        description: Value could not be read, or is not trustworthy.
 
   ControlTypeEnum:
     description: Kind of quantity a control variable carries.
@@ -83,6 +101,14 @@ enums:
         description: Value with associated statistics (the default).
 
 classes:
+
+  AnyValue:
+    description: >-
+      A value with no fixed structure. Used for slots holding nested mappings
+      that LAURA stores and interprets itself, so that consumers validating
+      against the generated JSON Schema or SHACL shapes are not told to expect
+      a plain string.
+    class_uri: linkml:Any
 
   ControlVariable:
     description: >-
@@ -123,6 +149,40 @@ classes:
         description: >-
           Last-read value. Scalar for most control types; a list for
           ``waveform``.
+      timestamp:
+        range: datetime
+        description: >-
+          Time at which ``value`` was read from the control system. Absent
+          means the value has never been read, or came from a source that
+          does not timestamp it.
+      severity:
+        range: AlarmSeverityEnum
+        description: >-
+          Alarm severity reported with ``value``. Absent means no severity
+          was supplied; it does not mean the reading was healthy.
+      min_value:
+        range: float
+        description: >-
+          Lowest value this variable may be set to, in ``units``. Advisory
+          operating limit for anything writing a set-point, not a hardware
+          interlock.
+      max_value:
+        range: float
+        description: >-
+          Highest value this variable may be set to, in ``units``. As
+          ``min_value``, advisory rather than enforced.
+      step:
+        range: float
+        description: >-
+          Smallest meaningful change in this variable, in ``units``. Below
+          this a set-point change is lost in noise or resolution.
+      readback_tolerance:
+        range: float
+        description: >-
+          Fractional deviation within which a readback counts as having
+          reached its set-point (0.01 = 1 %). Named to avoid colliding with
+          ``DegaussableElement.tolerance``, which is an absolute current band.
+        minimum_value: 0.0
       control_type:
         range: ControlTypeEnum
         ifabsent: string(statistical)
@@ -130,20 +190,27 @@ classes:
           Kind of quantity this variable carries. Accepted in YAML as ``type``.
         aliases:
           - type
+      io_type:
+        range: IOTypeEnum
+        ifabsent: string(unknown)
+        description: >-
+          Physical quantity this variable carries (e.g. ``voltage``,
+          ``beam_position``), as opposed to ``control_type``, which is the
+          shape of its value.
       target:
         range: string
         description: >-
           Dotted attribute path on the owning element that ``expression``
           writes to (e.g., ``magnetic.k1l``). Not a set-point value.
       expression:
-        range: string
+        range: AnyValue
         description: >-
           Expression graph computing the value written to ``target``, as nested
           mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where
           a symbol is a variable name or a dotted attribute path. Operators are
           ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.
       states:
-        range: string
+        range: AnyValue
         description: >-
           Mapping of state name to underlying control-system value, for
           ``control_type: state``.
@@ -154,14 +221,14 @@ classes:
         range: string
         description: Name of the set-point variable this readback follows.
       update:
-        range: string
+        range: AnyValue
         description: >-
           Signal generating this variable's value over time, as
           ``{function: <import path>, **kwargs}`` -- see
           ``laura.utils.signals``. Stored with ``function`` as a fully
           qualified import path so it resolves without LAURA.
       dynamics:
-        range: string
+        range: AnyValue
         description: >-
           Response model describing how this variable's readback follows its
           set-point, as ``{model: <import path>, **kwargs}`` -- see

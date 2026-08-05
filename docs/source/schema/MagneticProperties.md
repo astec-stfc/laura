@@ -61,42 +61,6 @@ URI: [MagneticProperties](MagneticProperties.md)
 
 
 
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         
 
@@ -135,6 +99,45 @@ URI: [MagneticProperties](MagneticProperties.md)
 
 
 
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -329,6 +332,16 @@ URI: [MagneticProperties](MagneticProperties.md)
 
 
         
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,7 +1,7 @@
-# Slot: expression 
+# Slot: severity 
 
 
-_Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``._
+_Alarm severity reported with ``value``. Absent means no severity was supplied; it does not mean the reading was healthy._
 
 
 
@@ -9,7 +9,7 @@ _Expression graph computing the value written to ``target``, as nested mappings 
 
 
 
-URI: [laura:expression](https://w3id.org/laura/expression)
+URI: [laura:severity](https://w3id.org/laura/severity)
 <!-- no inheritance hierarchy -->
 
 
@@ -33,7 +33,7 @@ URI: [laura:expression](https://w3id.org/laura/expression)
 
 | Property | Value |
 | --- | --- |
-| Range | [AnyValue](AnyValue.md) |
+| Range | [AlarmSeverityEnum](AlarmSeverityEnum.md) |
 | Domain Of | [ControlVariable](ControlVariable.md) |
 
 ### Cardinality and Requirements
@@ -75,8 +75,8 @@ URI: [laura:expression](https://w3id.org/laura/expression)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:expression |
-| native | laura:expression |
+| self | laura:severity |
+| native | laura:severity |
 
 
 
@@ -85,17 +85,15 @@ URI: [laura:expression](https://w3id.org/laura/expression)
 
 <details>
 ```yaml
-name: expression
-description: 'Expression graph computing the value written to ``target``, as nested
-  mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is
-  a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``,
-  ``truediv`` and ``pow``.'
+name: severity
+description: Alarm severity reported with ``value``. Absent means no severity was
+  supplied; it does not mean the reading was healthy.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ControlVariable
 domain_of:
 - ControlVariable
-range: AnyValue
+range: AlarmSeverityEnum
 
 ```
 </details></div>

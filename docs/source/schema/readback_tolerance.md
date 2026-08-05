@@ -1,7 +1,7 @@
-# Slot: expression 
+# Slot: readback_tolerance 
 
 
-_Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``._
+_Fractional deviation within which a readback counts as having reached its set-point (0.01 = 1 %). Named to avoid colliding with ``DegaussableElement.tolerance``, which is an absolute current band._
 
 
 
@@ -9,7 +9,7 @@ _Expression graph computing the value written to ``target``, as nested mappings 
 
 
 
-URI: [laura:expression](https://w3id.org/laura/expression)
+URI: [laura:readback_tolerance](https://w3id.org/laura/readback_tolerance)
 <!-- no inheritance hierarchy -->
 
 
@@ -33,7 +33,7 @@ URI: [laura:expression](https://w3id.org/laura/expression)
 
 | Property | Value |
 | --- | --- |
-| Range | [AnyValue](AnyValue.md) |
+| Range | [Float](Float.md) |
 | Domain Of | [ControlVariable](ControlVariable.md) |
 
 ### Cardinality and Requirements
@@ -45,6 +45,13 @@ URI: [laura:expression](https://w3id.org/laura/expression)
 | Property | Value |
 | --- | --- |
 | Owner | [ControlVariable](ControlVariable.md) |
+
+
+### Value Constraints
+
+| Property | Value |
+| --- | --- |
+| Minimum Value | 0 |
 
 
 
@@ -75,8 +82,8 @@ URI: [laura:expression](https://w3id.org/laura/expression)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:expression |
-| native | laura:expression |
+| self | laura:readback_tolerance |
+| native | laura:readback_tolerance |
 
 
 
@@ -85,17 +92,17 @@ URI: [laura:expression](https://w3id.org/laura/expression)
 
 <details>
 ```yaml
-name: expression
-description: 'Expression graph computing the value written to ``target``, as nested
-  mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is
-  a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``,
-  ``truediv`` and ``pow``.'
+name: readback_tolerance
+description: Fractional deviation within which a readback counts as having reached
+  its set-point (0.01 = 1 %). Named to avoid colliding with ``DegaussableElement.tolerance``,
+  which is an absolute current band.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ControlVariable
 domain_of:
 - ControlVariable
-range: AnyValue
+range: float
+minimum_value: 0.0
 
 ```
 </details></div>

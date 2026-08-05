@@ -272,6 +272,23 @@ class PhysicalElement(Base):
     
 
 
+class AnyValue(Base):
+    """
+    A value with no fixed structure. Used for slots holding nested mappings that LAURA stores and interprets itself, so that consumers validating against the generated JSON Schema or SHACL shapes are not told to expect a plain string.
+    """
+    __tablename__ = 'AnyValue'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    
+
+    def __repr__(self):
+        return f"AnyValue(id={self.id},)"
+
+
+
+    
+
+
 class ControlVariable(Base):
     """
     A single process-variable entry mapping a logical name to a control-system PV identifier.
@@ -286,19 +303,30 @@ class ControlVariable(Base):
     description = Column(Text())
     read_only = Column(Boolean())
     value = Column(Text())
+    timestamp = Column(DateTime())
+    severity = Column(Enum('no_alarm', 'minor', 'major', 'invalid', name='AlarmSeverityEnum'))
+    min_value = Column(Float())
+    max_value = Column(Float())
+    step = Column(Float())
+    readback_tolerance = Column(Float())
     control_type = Column(Enum('scalar', 'binary', 'state', 'string', 'waveform', 'statistical', name='ControlTypeEnum'))
+    io_type = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'))
     target = Column(Text())
-    expression = Column(Text())
-    states = Column(Text())
     readback = Column(Text())
     setpoint = Column(Text())
-    update = Column(Text())
-    dynamics = Column(Text())
     ControlsInformation_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    expression_id = Column(Integer(), ForeignKey('AnyValue.id'))
+    expression = relationship("AnyValue", uselist=False, foreign_keys=[expression_id])
+    states_id = Column(Integer(), ForeignKey('AnyValue.id'))
+    states = relationship("AnyValue", uselist=False, foreign_keys=[states_id])
+    update_id = Column(Integer(), ForeignKey('AnyValue.id'))
+    update = relationship("AnyValue", uselist=False, foreign_keys=[update_id])
+    dynamics_id = Column(Integer(), ForeignKey('AnyValue.id'))
+    dynamics = relationship("AnyValue", uselist=False, foreign_keys=[dynamics_id])
     
 
     def __repr__(self):
-        return f"ControlVariable(id={self.id},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},states={self.states},readback={self.readback},setpoint={self.setpoint},update={self.update},dynamics={self.dynamics},ControlsInformation_id={self.ControlsInformation_id},)"
+        return f"ControlVariable(id={self.id},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},timestamp={self.timestamp},severity={self.severity},min_value={self.min_value},max_value={self.max_value},step={self.step},readback_tolerance={self.readback_tolerance},control_type={self.control_type},io_type={self.io_type},target={self.target},readback={self.readback},setpoint={self.setpoint},ControlsInformation_id={self.ControlsInformation_id},expression_id={self.expression_id},states_id={self.states_id},update_id={self.update_id},dynamics_id={self.dynamics_id},)"
 
 
 
@@ -459,6 +487,10 @@ class MachineModel(Base):
     __tablename__ = 'MachineModel'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    description = Column(Text())
+    created = Column(DateTime())
+    source = Column(Enum('design', 'measured', 'simulated', name='LatticeSourceEnum'))
+    run_id = Column(Text())
     
     
     # ManyToMany
@@ -474,7 +506,7 @@ class MachineModel(Base):
     
 
     def __repr__(self):
-        return f"MachineModel(id={self.id},)"
+        return f"MachineModel(id={self.id},description={self.description},created={self.created},source={self.source},run_id={self.run_id},)"
 
 
 
@@ -1431,7 +1463,7 @@ class AcceleratorElementInputs(Base):
     __tablename__ = 'AcceleratorElement_inputs'
 
     AcceleratorElement_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1449,7 +1481,7 @@ class AcceleratorElementOutputs(Base):
     __tablename__ = 'AcceleratorElement_outputs'
 
     AcceleratorElement_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1521,7 +1553,7 @@ class StandardElementInputs(Base):
     __tablename__ = 'StandardElement_inputs'
 
     StandardElement_name = Column(Text(), ForeignKey('StandardElement.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1539,7 +1571,7 @@ class StandardElementOutputs(Base):
     __tablename__ = 'StandardElement_outputs'
 
     StandardElement_name = Column(Text(), ForeignKey('StandardElement.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1611,7 +1643,7 @@ class ElementInputs(Base):
     __tablename__ = 'Element_inputs'
 
     Element_name = Column(Text(), ForeignKey('Element.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1629,7 +1661,7 @@ class ElementOutputs(Base):
     __tablename__ = 'Element_outputs'
 
     Element_name = Column(Text(), ForeignKey('Element.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1701,7 +1733,7 @@ class PhysicalAcceleratorElementInputs(Base):
     __tablename__ = 'PhysicalAcceleratorElement_inputs'
 
     PhysicalAcceleratorElement_name = Column(Text(), ForeignKey('PhysicalAcceleratorElement.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1719,7 +1751,7 @@ class PhysicalAcceleratorElementOutputs(Base):
     __tablename__ = 'PhysicalAcceleratorElement_outputs'
 
     PhysicalAcceleratorElement_name = Column(Text(), ForeignKey('PhysicalAcceleratorElement.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1809,7 +1841,7 @@ class TwissMatchInputs(Base):
     __tablename__ = 'TwissMatch_inputs'
 
     TwissMatch_name = Column(Text(), ForeignKey('TwissMatch.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1827,7 +1859,7 @@ class TwissMatchOutputs(Base):
     __tablename__ = 'TwissMatch_outputs'
 
     TwissMatch_name = Column(Text(), ForeignKey('TwissMatch.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1899,7 +1931,7 @@ class StageInputs(Base):
     __tablename__ = 'Stage_inputs'
 
     Stage_name = Column(Text(), ForeignKey('Stage.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1917,7 +1949,7 @@ class StageOutputs(Base):
     __tablename__ = 'Stage_outputs'
 
     Stage_name = Column(Text(), ForeignKey('Stage.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -1989,7 +2021,7 @@ class VacuumGaugeInputs(Base):
     __tablename__ = 'VacuumGauge_inputs'
 
     VacuumGauge_name = Column(Text(), ForeignKey('VacuumGauge.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2007,7 +2039,7 @@ class VacuumGaugeOutputs(Base):
     __tablename__ = 'VacuumGauge_outputs'
 
     VacuumGauge_name = Column(Text(), ForeignKey('VacuumGauge.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2079,7 +2111,7 @@ class LaserInputs(Base):
     __tablename__ = 'Laser_inputs'
 
     Laser_name = Column(Text(), ForeignKey('Laser.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2097,7 +2129,7 @@ class LaserOutputs(Base):
     __tablename__ = 'Laser_outputs'
 
     Laser_name = Column(Text(), ForeignKey('Laser.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2169,7 +2201,7 @@ class ShutterInputs(Base):
     __tablename__ = 'Shutter_inputs'
 
     Shutter_name = Column(Text(), ForeignKey('Shutter.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2187,7 +2219,7 @@ class ShutterOutputs(Base):
     __tablename__ = 'Shutter_outputs'
 
     Shutter_name = Column(Text(), ForeignKey('Shutter.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2259,7 +2291,7 @@ class ValveInputs(Base):
     __tablename__ = 'Valve_inputs'
 
     Valve_name = Column(Text(), ForeignKey('Valve.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2277,7 +2309,7 @@ class ValveOutputs(Base):
     __tablename__ = 'Valve_outputs'
 
     Valve_name = Column(Text(), ForeignKey('Valve.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2349,7 +2381,7 @@ class MarkerInputs(Base):
     __tablename__ = 'Marker_inputs'
 
     Marker_name = Column(Text(), ForeignKey('Marker.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2367,7 +2399,7 @@ class MarkerOutputs(Base):
     __tablename__ = 'Marker_outputs'
 
     Marker_name = Column(Text(), ForeignKey('Marker.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2439,7 +2471,7 @@ class ApertureInputs(Base):
     __tablename__ = 'Aperture_inputs'
 
     Aperture_name = Column(Text(), ForeignKey('Aperture.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2457,7 +2489,7 @@ class ApertureOutputs(Base):
     __tablename__ = 'Aperture_outputs'
 
     Aperture_name = Column(Text(), ForeignKey('Aperture.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2529,7 +2561,7 @@ class CollimatorInputs(Base):
     __tablename__ = 'Collimator_inputs'
 
     Collimator_name = Column(Text(), ForeignKey('Collimator.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2547,7 +2579,7 @@ class CollimatorOutputs(Base):
     __tablename__ = 'Collimator_outputs'
 
     Collimator_name = Column(Text(), ForeignKey('Collimator.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2619,7 +2651,7 @@ class DriftInputs(Base):
     __tablename__ = 'Drift_inputs'
 
     Drift_name = Column(Text(), ForeignKey('Drift.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2637,7 +2669,7 @@ class DriftOutputs(Base):
     __tablename__ = 'Drift_outputs'
 
     Drift_name = Column(Text(), ForeignKey('Drift.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2709,7 +2741,7 @@ class LightingInputs(Base):
     __tablename__ = 'Lighting_inputs'
 
     Lighting_name = Column(Text(), ForeignKey('Lighting.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2727,7 +2759,7 @@ class LightingOutputs(Base):
     __tablename__ = 'Lighting_outputs'
 
     Lighting_name = Column(Text(), ForeignKey('Lighting.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2799,7 +2831,7 @@ class PowerSupplyInputs(Base):
     __tablename__ = 'PowerSupply_inputs'
 
     PowerSupply_name = Column(Text(), ForeignKey('PowerSupply.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2817,7 +2849,7 @@ class PowerSupplyOutputs(Base):
     __tablename__ = 'PowerSupply_outputs'
 
     PowerSupply_name = Column(Text(), ForeignKey('PowerSupply.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2979,7 +3011,7 @@ class MagnetInputs(Base):
     __tablename__ = 'Magnet_inputs'
 
     Magnet_name = Column(Text(), ForeignKey('Magnet.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -2997,7 +3029,7 @@ class MagnetOutputs(Base):
     __tablename__ = 'Magnet_outputs'
 
     Magnet_name = Column(Text(), ForeignKey('Magnet.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3105,7 +3137,7 @@ class RFCavityInputs(Base):
     __tablename__ = 'RFCavity_inputs'
 
     RFCavity_name = Column(Text(), ForeignKey('RFCavity.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3123,7 +3155,7 @@ class RFCavityOutputs(Base):
     __tablename__ = 'RFCavity_outputs'
 
     RFCavity_name = Column(Text(), ForeignKey('RFCavity.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3195,7 +3227,7 @@ class RFDeflectingCavityInputs(Base):
     __tablename__ = 'RFDeflectingCavity_inputs'
 
     RFDeflectingCavity_name = Column(Text(), ForeignKey('RFDeflectingCavity.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3213,7 +3245,7 @@ class RFDeflectingCavityOutputs(Base):
     __tablename__ = 'RFDeflectingCavity_outputs'
 
     RFDeflectingCavity_name = Column(Text(), ForeignKey('RFDeflectingCavity.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3285,7 +3317,7 @@ class WakefieldInputs(Base):
     __tablename__ = 'Wakefield_inputs'
 
     Wakefield_name = Column(Text(), ForeignKey('Wakefield.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3303,7 +3335,7 @@ class WakefieldOutputs(Base):
     __tablename__ = 'Wakefield_outputs'
 
     Wakefield_name = Column(Text(), ForeignKey('Wakefield.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3375,7 +3407,7 @@ class LowLevelRFInputs(Base):
     __tablename__ = 'LowLevelRF_inputs'
 
     LowLevelRF_name = Column(Text(), ForeignKey('LowLevelRF.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3393,7 +3425,7 @@ class LowLevelRFOutputs(Base):
     __tablename__ = 'LowLevelRF_outputs'
 
     LowLevelRF_name = Column(Text(), ForeignKey('LowLevelRF.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3465,7 +3497,7 @@ class RFModulatorInputs(Base):
     __tablename__ = 'RFModulator_inputs'
 
     RFModulator_name = Column(Text(), ForeignKey('RFModulator.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3483,7 +3515,7 @@ class RFModulatorOutputs(Base):
     __tablename__ = 'RFModulator_outputs'
 
     RFModulator_name = Column(Text(), ForeignKey('RFModulator.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3555,7 +3587,7 @@ class RFProtectionInputs(Base):
     __tablename__ = 'RFProtection_inputs'
 
     RFProtection_name = Column(Text(), ForeignKey('RFProtection.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3573,7 +3605,7 @@ class RFProtectionOutputs(Base):
     __tablename__ = 'RFProtection_outputs'
 
     RFProtection_name = Column(Text(), ForeignKey('RFProtection.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3645,7 +3677,7 @@ class RFHeartbeatInputs(Base):
     __tablename__ = 'RFHeartbeat_inputs'
 
     RFHeartbeat_name = Column(Text(), ForeignKey('RFHeartbeat.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3663,7 +3695,7 @@ class RFHeartbeatOutputs(Base):
     __tablename__ = 'RFHeartbeat_outputs'
 
     RFHeartbeat_name = Column(Text(), ForeignKey('RFHeartbeat.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3735,7 +3767,7 @@ class PIDInputs(Base):
     __tablename__ = 'PID_inputs'
 
     PID_name = Column(Text(), ForeignKey('PID.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3753,7 +3785,7 @@ class PIDOutputs(Base):
     __tablename__ = 'PID_outputs'
 
     PID_name = Column(Text(), ForeignKey('PID.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3861,7 +3893,7 @@ class DiagnosticInputs(Base):
     __tablename__ = 'Diagnostic_inputs'
 
     Diagnostic_name = Column(Text(), ForeignKey('Diagnostic.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3879,7 +3911,7 @@ class DiagnosticOutputs(Base):
     __tablename__ = 'Diagnostic_outputs'
 
     Diagnostic_name = Column(Text(), ForeignKey('Diagnostic.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3951,7 +3983,7 @@ class BeamPositionMonitorInputs(Base):
     __tablename__ = 'BeamPositionMonitor_inputs'
 
     BeamPositionMonitor_name = Column(Text(), ForeignKey('BeamPositionMonitor.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -3969,7 +4001,7 @@ class BeamPositionMonitorOutputs(Base):
     __tablename__ = 'BeamPositionMonitor_outputs'
 
     BeamPositionMonitor_name = Column(Text(), ForeignKey('BeamPositionMonitor.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4041,7 +4073,7 @@ class BeamArrivalMonitorInputs(Base):
     __tablename__ = 'BeamArrivalMonitor_inputs'
 
     BeamArrivalMonitor_name = Column(Text(), ForeignKey('BeamArrivalMonitor.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4059,7 +4091,7 @@ class BeamArrivalMonitorOutputs(Base):
     __tablename__ = 'BeamArrivalMonitor_outputs'
 
     BeamArrivalMonitor_name = Column(Text(), ForeignKey('BeamArrivalMonitor.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4131,7 +4163,7 @@ class BunchLengthMonitorInputs(Base):
     __tablename__ = 'BunchLengthMonitor_inputs'
 
     BunchLengthMonitor_name = Column(Text(), ForeignKey('BunchLengthMonitor.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4149,7 +4181,7 @@ class BunchLengthMonitorOutputs(Base):
     __tablename__ = 'BunchLengthMonitor_outputs'
 
     BunchLengthMonitor_name = Column(Text(), ForeignKey('BunchLengthMonitor.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4221,7 +4253,7 @@ class CameraInputs(Base):
     __tablename__ = 'Camera_inputs'
 
     Camera_name = Column(Text(), ForeignKey('Camera.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4239,7 +4271,7 @@ class CameraOutputs(Base):
     __tablename__ = 'Camera_outputs'
 
     Camera_name = Column(Text(), ForeignKey('Camera.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4311,7 +4343,7 @@ class ScreenInputs(Base):
     __tablename__ = 'Screen_inputs'
 
     Screen_name = Column(Text(), ForeignKey('Screen.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4329,7 +4361,7 @@ class ScreenOutputs(Base):
     __tablename__ = 'Screen_outputs'
 
     Screen_name = Column(Text(), ForeignKey('Screen.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4401,7 +4433,7 @@ class ChargeDiagnosticInputs(Base):
     __tablename__ = 'ChargeDiagnostic_inputs'
 
     ChargeDiagnostic_name = Column(Text(), ForeignKey('ChargeDiagnostic.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4419,7 +4451,7 @@ class ChargeDiagnosticOutputs(Base):
     __tablename__ = 'ChargeDiagnostic_outputs'
 
     ChargeDiagnostic_name = Column(Text(), ForeignKey('ChargeDiagnostic.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4491,7 +4523,7 @@ class WallCurrentMonitorInputs(Base):
     __tablename__ = 'WallCurrentMonitor_inputs'
 
     WallCurrentMonitor_name = Column(Text(), ForeignKey('WallCurrentMonitor.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4509,7 +4541,7 @@ class WallCurrentMonitorOutputs(Base):
     __tablename__ = 'WallCurrentMonitor_outputs'
 
     WallCurrentMonitor_name = Column(Text(), ForeignKey('WallCurrentMonitor.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4581,7 +4613,7 @@ class FaradayCupMonitorInputs(Base):
     __tablename__ = 'FaradayCupMonitor_inputs'
 
     FaradayCupMonitor_name = Column(Text(), ForeignKey('FaradayCupMonitor.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4599,7 +4631,7 @@ class FaradayCupMonitorOutputs(Base):
     __tablename__ = 'FaradayCupMonitor_outputs'
 
     FaradayCupMonitor_name = Column(Text(), ForeignKey('FaradayCupMonitor.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4671,7 +4703,7 @@ class IntegratedCurrentTransformerInputs(Base):
     __tablename__ = 'IntegratedCurrentTransformer_inputs'
 
     IntegratedCurrentTransformer_name = Column(Text(), ForeignKey('IntegratedCurrentTransformer.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4689,7 +4721,7 @@ class IntegratedCurrentTransformerOutputs(Base):
     __tablename__ = 'IntegratedCurrentTransformer_outputs'
 
     IntegratedCurrentTransformer_name = Column(Text(), ForeignKey('IntegratedCurrentTransformer.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4761,7 +4793,7 @@ class PhotonMonitorInputs(Base):
     __tablename__ = 'PhotonMonitor_inputs'
 
     PhotonMonitor_name = Column(Text(), ForeignKey('PhotonMonitor.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -4779,7 +4811,7 @@ class PhotonMonitorOutputs(Base):
     __tablename__ = 'PhotonMonitor_outputs'
 
     PhotonMonitor_name = Column(Text(), ForeignKey('PhotonMonitor.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5013,7 +5045,7 @@ class PlasmaInputs(Base):
     __tablename__ = 'Plasma_inputs'
 
     Plasma_name = Column(Text(), ForeignKey('Plasma.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5031,7 +5063,7 @@ class PlasmaOutputs(Base):
     __tablename__ = 'Plasma_outputs'
 
     Plasma_name = Column(Text(), ForeignKey('Plasma.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5103,7 +5135,7 @@ class LaserEnergyMeterInputs(Base):
     __tablename__ = 'LaserEnergyMeter_inputs'
 
     LaserEnergyMeter_name = Column(Text(), ForeignKey('LaserEnergyMeter.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5121,7 +5153,7 @@ class LaserEnergyMeterOutputs(Base):
     __tablename__ = 'LaserEnergyMeter_outputs'
 
     LaserEnergyMeter_name = Column(Text(), ForeignKey('LaserEnergyMeter.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5193,7 +5225,7 @@ class LaserHalfWavePlateInputs(Base):
     __tablename__ = 'LaserHalfWavePlate_inputs'
 
     LaserHalfWavePlate_name = Column(Text(), ForeignKey('LaserHalfWavePlate.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5211,7 +5243,7 @@ class LaserHalfWavePlateOutputs(Base):
     __tablename__ = 'LaserHalfWavePlate_outputs'
 
     LaserHalfWavePlate_name = Column(Text(), ForeignKey('LaserHalfWavePlate.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5283,7 +5315,7 @@ class LaserMirrorInputs(Base):
     __tablename__ = 'LaserMirror_inputs'
 
     LaserMirror_name = Column(Text(), ForeignKey('LaserMirror.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5301,7 +5333,7 @@ class LaserMirrorOutputs(Base):
     __tablename__ = 'LaserMirror_outputs'
 
     LaserMirror_name = Column(Text(), ForeignKey('LaserMirror.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5373,7 +5405,7 @@ class LaserAttenuatorInputs(Base):
     __tablename__ = 'LaserAttenuator_inputs'
 
     LaserAttenuator_name = Column(Text(), ForeignKey('LaserAttenuator.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5391,7 +5423,7 @@ class LaserAttenuatorOutputs(Base):
     __tablename__ = 'LaserAttenuator_outputs'
 
     LaserAttenuator_name = Column(Text(), ForeignKey('LaserAttenuator.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5463,7 +5495,7 @@ class DipoleInputs(Base):
     __tablename__ = 'Dipole_inputs'
 
     Dipole_name = Column(Text(), ForeignKey('Dipole.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5481,7 +5513,7 @@ class DipoleOutputs(Base):
     __tablename__ = 'Dipole_outputs'
 
     Dipole_name = Column(Text(), ForeignKey('Dipole.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5553,7 +5585,7 @@ class QuadrupoleInputs(Base):
     __tablename__ = 'Quadrupole_inputs'
 
     Quadrupole_name = Column(Text(), ForeignKey('Quadrupole.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5571,7 +5603,7 @@ class QuadrupoleOutputs(Base):
     __tablename__ = 'Quadrupole_outputs'
 
     Quadrupole_name = Column(Text(), ForeignKey('Quadrupole.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5643,7 +5675,7 @@ class SextupoleInputs(Base):
     __tablename__ = 'Sextupole_inputs'
 
     Sextupole_name = Column(Text(), ForeignKey('Sextupole.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5661,7 +5693,7 @@ class SextupoleOutputs(Base):
     __tablename__ = 'Sextupole_outputs'
 
     Sextupole_name = Column(Text(), ForeignKey('Sextupole.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5733,7 +5765,7 @@ class OctupoleInputs(Base):
     __tablename__ = 'Octupole_inputs'
 
     Octupole_name = Column(Text(), ForeignKey('Octupole.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5751,7 +5783,7 @@ class OctupoleOutputs(Base):
     __tablename__ = 'Octupole_outputs'
 
     Octupole_name = Column(Text(), ForeignKey('Octupole.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5823,7 +5855,7 @@ class HorizontalCorrectorInputs(Base):
     __tablename__ = 'HorizontalCorrector_inputs'
 
     HorizontalCorrector_name = Column(Text(), ForeignKey('HorizontalCorrector.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5841,7 +5873,7 @@ class HorizontalCorrectorOutputs(Base):
     __tablename__ = 'HorizontalCorrector_outputs'
 
     HorizontalCorrector_name = Column(Text(), ForeignKey('HorizontalCorrector.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5913,7 +5945,7 @@ class VerticalCorrectorInputs(Base):
     __tablename__ = 'VerticalCorrector_inputs'
 
     VerticalCorrector_name = Column(Text(), ForeignKey('VerticalCorrector.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -5931,7 +5963,7 @@ class VerticalCorrectorOutputs(Base):
     __tablename__ = 'VerticalCorrector_outputs'
 
     VerticalCorrector_name = Column(Text(), ForeignKey('VerticalCorrector.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -6003,7 +6035,7 @@ class CombinedCorrectorInputs(Base):
     __tablename__ = 'CombinedCorrector_inputs'
 
     CombinedCorrector_name = Column(Text(), ForeignKey('CombinedCorrector.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -6021,7 +6053,7 @@ class CombinedCorrectorOutputs(Base):
     __tablename__ = 'CombinedCorrector_outputs'
 
     CombinedCorrector_name = Column(Text(), ForeignKey('CombinedCorrector.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -6093,7 +6125,7 @@ class SolenoidInputs(Base):
     __tablename__ = 'Solenoid_inputs'
 
     Solenoid_name = Column(Text(), ForeignKey('Solenoid.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -6111,7 +6143,7 @@ class SolenoidOutputs(Base):
     __tablename__ = 'Solenoid_outputs'
 
     Solenoid_name = Column(Text(), ForeignKey('Solenoid.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -6183,7 +6215,7 @@ class WigglerInputs(Base):
     __tablename__ = 'Wiggler_inputs'
 
     Wiggler_name = Column(Text(), ForeignKey('Wiggler.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -6201,7 +6233,7 @@ class WigglerOutputs(Base):
     __tablename__ = 'Wiggler_outputs'
 
     Wiggler_name = Column(Text(), ForeignKey('Wiggler.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -6273,7 +6305,7 @@ class NonLinearLensInputs(Base):
     __tablename__ = 'NonLinearLens_inputs'
 
     NonLinearLens_name = Column(Text(), ForeignKey('NonLinearLens.name'), primary_key=True)
-    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    inputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):
@@ -6291,7 +6323,7 @@ class NonLinearLensOutputs(Base):
     __tablename__ = 'NonLinearLens_outputs'
 
     NonLinearLens_name = Column(Text(), ForeignKey('NonLinearLens.name'), primary_key=True)
-    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    outputs = Column(Enum('unknown', 'current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', 'beam_position', name='IOTypeEnum'), primary_key=True)
     
 
     def __repr__(self):

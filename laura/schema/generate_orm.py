@@ -15,6 +15,7 @@ Usage (from repo root)::
 Or via the generate.ps1 / generate.sh scripts.
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -41,6 +42,10 @@ def _run_gen_sqla(schema_path: str) -> str:
         # `text=True` alone decodes with the locale encoding (cp1252 on Windows),
         # turning every non-ASCII character in a schema description into mojibake.
         encoding="utf-8",
+        # ...and the child has to *write* UTF-8 for that to decode, which on
+        # Windows it will not do unless told; otherwise en-dashes in schema
+        # descriptions arrive as cp1252 bytes and the read blows up.
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
     )
     if result.returncode != 0:
         sys.stderr.write(result.stderr)

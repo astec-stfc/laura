@@ -192,6 +192,10 @@ class IOTypeEnum(str, Enum):
     """
     Input types for accelerator elements.
     """
+    unknown = "unknown"
+    """
+    Unspecified signal type (the default).
+    """
     current = "current"
     """
     Electrical current.
@@ -260,6 +264,32 @@ class IOTypeEnum(str, Enum):
     """
     Magnetic field.
     """
+    beam_position = "beam_position"
+    """
+    Beam position.
+    """
+
+
+class AlarmSeverityEnum(str, Enum):
+    """
+    Alarm severity reported alongside a control-system reading, following the EPICS severity levels.
+    """
+    no_alarm = "no_alarm"
+    """
+    Value is within its alarm limits.
+    """
+    minor = "minor"
+    """
+    Value has crossed a warning limit.
+    """
+    major = "major"
+    """
+    Value has crossed an alarm limit.
+    """
+    invalid = "invalid"
+    """
+    Value could not be read, or is not trustworthy.
+    """
 
 
 class ControlTypeEnum(str, Enum):
@@ -299,6 +329,24 @@ class ApertureShapeEnum(str, Enum):
     circular = "circular"
     rectangular = "rectangular"
     elliptical = "elliptical"
+
+
+class LatticeSourceEnum(str, Enum):
+    """
+    Where the values in a machine model came from, which decides how far they can be trusted as a description of the real machine.
+    """
+    design = "design"
+    """
+    Design values; never read from hardware.
+    """
+    measured = "measured"
+    """
+    Read back from the machine at a point in time.
+    """
+    simulated = "simulated"
+    """
+    Produced by a tracking or simulation code.
+    """
 
 
 class BendingPlaneEnum(str, Enum):
@@ -575,30 +623,45 @@ class _ControlVariableBase(ConfiguredBaseModel):
     """Control-system protocol (e.g., ``EPICS``, ``Tango``)."""
     units: str = Field(default="Arb. Units", description="""Physical units string (e.g., ``A``, ``T/m``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable'], 'ifabsent': 'string(Arb. Units)'} })
     """Physical units string (e.g., ``A``, ``T/m``)."""
-    description: str = Field(default="Default Description", description="""Human-readable description.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable'], 'ifabsent': 'string(Default Description)'} })
+    description: str = Field(default="Default Description", description="""Human-readable description.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable', 'MachineModel'],
+         'ifabsent': 'string(Default Description)'} })
     """Human-readable description."""
     read_only: Optional[bool] = Field(default=True, description="""Whether the variable is read-only.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable'], 'ifabsent': 'True'} })
     """Whether the variable is read-only."""
     value: Optional[Union[float, int, str]] = Field(default=None, description="""Last-read value. Scalar for most control types; a list for ``waveform``.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'integer'}, {'range': 'string'}],
          'domain_of': ['ControlVariable']} })
     """Last-read value. Scalar for most control types; a list for ``waveform``."""
+    timestamp: Optional[datetime ] = Field(default=None, description="""Time at which ``value`` was read from the control system. Absent means the value has never been read, or came from a source that does not timestamp it.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    """Time at which ``value`` was read from the control system. Absent means the value has never been read, or came from a source that does not timestamp it."""
+    severity: Optional[AlarmSeverityEnum] = Field(default=None, description="""Alarm severity reported with ``value``. Absent means no severity was supplied; it does not mean the reading was healthy.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    """Alarm severity reported with ``value``. Absent means no severity was supplied; it does not mean the reading was healthy."""
+    min_value: Optional[float] = Field(default=None, description="""Lowest value this variable may be set to, in ``units``. Advisory operating limit for anything writing a set-point, not a hardware interlock.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    """Lowest value this variable may be set to, in ``units``. Advisory operating limit for anything writing a set-point, not a hardware interlock."""
+    max_value: Optional[float] = Field(default=None, description="""Highest value this variable may be set to, in ``units``. As ``min_value``, advisory rather than enforced.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    """Highest value this variable may be set to, in ``units``. As ``min_value``, advisory rather than enforced."""
+    step: Optional[float] = Field(default=None, description="""Smallest meaningful change in this variable, in ``units``. Below this a set-point change is lost in noise or resolution.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    """Smallest meaningful change in this variable, in ``units``. Below this a set-point change is lost in noise or resolution."""
+    readback_tolerance: Optional[float] = Field(default=None, description="""Fractional deviation within which a readback counts as having reached its set-point (0.01 = 1 %). Named to avoid colliding with ``DegaussableElement.tolerance``, which is an absolute current band.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    """Fractional deviation within which a readback counts as having reached its set-point (0.01 = 1 %). Named to avoid colliding with ``DegaussableElement.tolerance``, which is an absolute current band."""
     control_type: Optional[ControlTypeEnum] = Field(default=ControlTypeEnum.statistical, description="""Kind of quantity this variable carries. Accepted in YAML as ``type``.""", validation_alias=AliasChoices('control_type', 'type'), json_schema_extra = { "linkml_meta": {'aliases': ['type'],
          'domain_of': ['ControlVariable'],
          'ifabsent': 'string(statistical)'} })
     """Kind of quantity this variable carries. Accepted in YAML as ``type``."""
+    io_type: Optional[IOTypeEnum] = Field(default=IOTypeEnum.unknown, description="""Physical quantity this variable carries (e.g. ``voltage``, ``beam_position``), as opposed to ``control_type``, which is the shape of its value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable'], 'ifabsent': 'string(unknown)'} })
+    """Physical quantity this variable carries (e.g. ``voltage``, ``beam_position``), as opposed to ``control_type``, which is the shape of its value."""
     target: Optional[str] = Field(default=None, description="""Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value."""
-    expression: Optional[str] = Field(default=None, description="""Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    expression: Optional[Any] = Field(default=None, description="""Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``."""
-    states: Optional[str] = Field(default=None, description="""Mapping of state name to underlying control-system value, for ``control_type: state``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    states: Optional[Any] = Field(default=None, description="""Mapping of state name to underlying control-system value, for ``control_type: state``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Mapping of state name to underlying control-system value, for ``control_type: state``."""
     readback: Optional[str] = Field(default=None, description="""Name of the readback variable this set-point drives.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Name of the readback variable this set-point drives."""
     setpoint: Optional[str] = Field(default=None, description="""Name of the set-point variable this readback follows.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Name of the set-point variable this readback follows."""
-    update: Optional[str] = Field(default=None, description="""Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    update: Optional[Any] = Field(default=None, description="""Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA."""
-    dynamics: Optional[str] = Field(default=None, description="""Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    dynamics: Optional[Any] = Field(default=None, description="""Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``."""
 
 
@@ -709,6 +772,15 @@ class _MachineModelBase(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MachineModel',
          'from_schema': 'https://w3id.org/laura/schema/machine'})
 
+    description: Optional[str] = Field(default=None, description="""Human-readable description of what this machine model represents.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable', 'MachineModel'],
+         'slot_uri': 'dcterms:description'} })
+    """Human-readable description of what this machine model represents."""
+    created: Optional[datetime ] = Field(default=None, description="""When this model was produced -- for ``measured`` models, when the machine was read.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineModel'], 'slot_uri': 'dcterms:created'} })
+    """When this model was produced -- for ``measured`` models, when the machine was read."""
+    source: Optional[LatticeSourceEnum] = Field(default=LatticeSourceEnum.design, description="""Whether these values are design, measured or simulated. Defaults to ``design``, which is what an untagged lattice file has always been.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineModel'], 'ifabsent': 'string(design)'} })
+    """Whether these values are design, measured or simulated. Defaults to ``design``, which is what an untagged lattice file has always been."""
+    run_id: Optional[str] = Field(default=None, description="""Identifier of the run, shot or scan this model belongs to, for matching it against data recorded elsewhere.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineModel']} })
+    """Identifier of the run, shot or scan this model belongs to, for matching it against data recorded elsewhere."""
     elements: list[str] = Field(default_factory=list, description="""All elements in the machine, keyed by name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
     """All elements in the machine, keyed by name."""
     sections: list[str] = Field(default_factory=list, description="""All named beamline sections.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
