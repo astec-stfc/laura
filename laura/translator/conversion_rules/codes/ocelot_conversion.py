@@ -1,19 +1,26 @@
-from ocelot.cpbd.elements import (
-    Solenoid,
-    SBend,
-    Quadrupole,
-    Sextupole,
-    Octupole,
-    Monitor,
-    Marker,
-    Cavity,
-    Hcor,
-    Vcor,
-    Undulator,
-    TDCavity,
-    Aperture,
-    Drift,
-)
+try:
+    from ocelot.cpbd.elements import (
+        Solenoid,
+        SBend,
+        Quadrupole,
+        Sextupole,
+        Octupole,
+        Monitor,
+        Marker,
+        Cavity,
+        Hcor,
+        Vcor,
+        Undulator,
+        TDCavity,
+        Aperture,
+        Drift,
+    )
+    _OCELOT_AVAILABLE = True
+except ImportError as _err:
+    raise ImportError(
+        "ocelot-desy is not installed. "
+        "Install with: pip install \"laura-accelerator[ocelot]\""
+    ) from _err
 
 ocelot_conversion_rules = {
     "Dipole": SBend,

@@ -24,13 +24,9 @@ dependencies = [
     "scipy>=1.15",
     "pandas>=2.2.2",
     "munch>=4",
-    "xsuite>=0.50.0",
-    "ocelot-desy>=25.06.0",
     "pydantic-core>=2.41.5",
-    "pytao>=0.5.5",
-    "cheetah-accelerator>=0.7.5",
-    "wake_t>=0.8.0",
-    "cpymad>=1.16.0",
+    "easygdf",
+    "h5py",
 ]
 
 requires-python = ">= 3.10"
@@ -46,9 +42,63 @@ local_scheme = "no-local-version" # removes +untagged suffix
 
 [project.optional-dependencies]
 
+# Individual simulation-code extras
+xsuite = [
+    "xsuite>=0.50.0; sys_platform != 'win32'",
+]
+
+ocelot = [
+    "ocelot-desy>=25.06.0",
+]
+
+cheetah = [
+    "cheetah-accelerator>=0.7.5",
+]
+
+wake_t = [
+    "wake_t>=0.8.0",
+]
+
+bmad = [
+    "pytao>=0.5.5",
+]
+
+# laura never imports cpymad -- the MAD-X translator only emits text for
+# Madx.input() -- so this is what you need to *run* the output, not to produce
+# it. Hence an extra rather than a hard dependency (cpymad builds MAD-X).
+madx = [
+    "cpymad>=1.16.0",
+]
+
+# GDF field-map read/write (laura.translator.utils.fields.gdf) for GPT
+gpt = [
+]
+
+# RF-Track (laura.translator.conversion_rules.codes.rftrack_conversion) is not
+# distributed on PyPI, so it has no extras entry here — install the wheel
+# manually from the RF-Track page (CERN, A. Latina) into this environment.
+
+# All lattice-conversion backends in one go
+# Install with: pip install "laura-accelerator[conversion]"
+conversion = [
+    "xsuite>=0.50.0; sys_platform != 'win32'",
+    "ocelot-desy>=25.06.0",
+    "cheetah-accelerator>=0.7.5",
+    "wake_t>=0.8.0",
+    "pytao>=0.5.5",
+    "cpymad>=1.16.0",
+    "easygdf",
+]
+
 test = [
     "pytest",
     "pytest-cov",
+    # The suite guards these with pytest.importorskip, so they are not hard
+    # requirements -- but without them ~35 tests silently skip, which is worse
+    # than useless in CI.
+    "rdflib>=7.0",
+    "sqlalchemy>=2.0",
+    "jsonschema>=4.0",
 ]
 
 docs = [
@@ -57,6 +107,55 @@ docs = [
     "myst-nb",
     "sphinx_autodoc_typehints>=3",
     "sphinxcontrib-bibtex",
+    # Required by docs/source/conf.py's extensions list. readthedocs.yml
+    # installs .[docs] only, so anything conf.py loads has to be declared here
+    # -- the now-deleted docs/requirements.txt was never read by the RTD build.
+    "myst-parser",
+    "sphinxcontrib-mermaid",
+]
+
+# LinkML schema tooling — generates JSON Schema, OWL, SHACL, docs, etc.
+# Install with: pip install "laura-accelerator[schema]"
+schema = [
+    "linkml>=1.8",
+    "linkml-runtime>=1.8",
+    "jsonschema>=4.0",
+]
+
+# RDF / Linked-Data export support
+# Install with: pip install "laura-accelerator[rdf]"
+rdf = [
+    "rdflib>=7.0",
+]
+
+# SQL export support (laura.Exporters.SQL + laura/schema/generated/laura_orm.py)
+# Install with: pip install "laura-accelerator[sql]"
+sql = [
+    "sqlalchemy>=2.0",
+]
+
+# Everything — conversion backends, docs, schema tooling, and RDF support
+# Install with: pip install "laura-accelerator[full]"
+full = [
+    "xsuite>=0.50.0; sys_platform != 'win32'",
+    "ocelot-desy>=25.06.0",
+    "cheetah-accelerator>=0.7.5",
+    "wake_t>=0.8.0",
+    "pytao>=0.5.5",
+    "cpymad>=1.16.0",
+    "easygdf",
+    "sphinx>=8",
+    "sphinx-rtd-theme",
+    "myst-nb",
+    "sphinx_autodoc_typehints>=3",
+    "sphinxcontrib-bibtex",
+    "myst-parser",
+    "sphinxcontrib-mermaid",
+    "linkml>=1.8",
+    "linkml-runtime>=1.8",
+    "jsonschema>=4.0",
+    "rdflib>=7.0",
+    "sqlalchemy>=2.0",
 ]
 
 [project.urls]
@@ -64,7 +163,14 @@ Homepage = "https://github.com/astec-stfc/laura"
 Repository = "https://github.com/astec-stfc/laura.git"
 Issues = "https://github.com/astec-stfc/laura/-/issues/"
 
+[tool.setuptools.package-data]
+"laura.schema.generated" = ["*.owl", "*.graphql", "*.json", "*.ttl", "*.ts", "*.sql"]
+
 [tool.pytest.ini_options]
+addopts = "-m 'not slow'"
+markers = [
+    "slow: slow tests excluded by default (run with -m slow or --no-header -o addopts='')",
+]
 filterwarnings = [
     "ignore:Pydantic serializer warnings:UserWarning",
 ]

@@ -16,6 +16,7 @@ simulation codes including:
 * `Wake-T <https://github.com/AngelFP/Wake-T/>`_ :cite:`WakeT`
 * `Genesis <https://github.com/svenreiche/Genesis-1.3-Version4>`_ :cite:`Genesis`
 * `MAD-X <https://cern.ch/madx>`_ :cite:`MADX`, via `cpymad <https://hibtc.github.io/cpymad/index.html>`_
+* `RF-Track <https://gitlab.cern.ch/rf-track>`_ -- see :ref:`rftrack-translator`
 
 The translator module uses a hierarchical approach: individual elements are translated first, then combined into
 sections that can be exported as complete input files or objects for each simulation code.
@@ -51,13 +52,15 @@ Translation methods for each supported code:
 * ``to_ocelot()``: Creates Ocelot element objects.
 * ``to_cheetah()``: Creates Cheetah accelerator objects.
 * ``to_xsuite(beam_length)``: Generates Xsuite line components.
-* ``to_genesis()``: Produces Genesis v4 lattice format.
+* ``to_genesis(index)``: Produces Genesis v4 lattice format.
 * ``to_astra(n)``: Creates ASTRA input format.
 * ``to_csrtrack(n)``: Generates CSRTrack input format.
 * ``to_gpt(Brho, ccs)``: Produces GPT element definitions.
 * ``to_wake_t()``: Creates Wake-T beamline objects.
 * ``to_opal(sval, designenergy)``: Generates OPAL lattice format.
 * ``to_madx(at)``: Generates a MAD-X element-definition string, for use with :py:meth:`cpymad.madx.Madx.input`.
+* ``to_rftrack(P_Q)``: Creates an RF-Track element object; see :ref:`rftrack-translator`.
+* ``to_rftrack_repr(varname, P_Q)``: Emits the Python source lines that reconstruct the same RF-Track object standalone.
 
 Utility methods for field and file management:
 
@@ -136,13 +139,15 @@ Returns:
 
 The function automatically selects the appropriate translator class based on element type:
 
-* Magnets → :py:class:`MagnetTranslator`, :py:class:`SolenoidTranslator`, :py:class:`DipoleTranslator`, etc.
+* Magnets → :py:class:`MagnetTranslator`, :py:class:`SolenoidTranslator`, :py:class:`DipoleTranslator`, :py:class:`WigglerTranslator`, :py:class:`NonLinearLensTranslator`, :py:class:`CorrectorTranslator`
 * RF Cavities → :py:class:`RFCavityTranslator`
 * Drifts → :py:class:`DriftTranslator`
 * Diagnostics → :py:class:`DiagnosticTranslator`
-* Apertures → :py:class:`ApertureTranslator`
+* Apertures and collimators → :py:class:`ApertureTranslator`
 * Plasma elements → :py:class:`PlasmaTranslator`
 * Laser elements → :py:class:`LaserTranslator`
+* Twiss matching points → :py:class:`TwissMatchTranslator`
+* Anything else → :py:class:`BaseElementTranslator <laura.translator.converters.base.BaseElementTranslator>`
 
 Example:
 
@@ -182,13 +187,14 @@ Translation methods for complete lattice sections:
 * ``to_gpt(startz, endz, Brho)``: Generates GPT lattice definitions with coordinate systems.
 * ``to_opal(energy, breakstr)``: Produces OPAL beamline definitions.
 * ``to_elegant(charge)``: Creates Elegant lattice files.
-* ``to_genesis()``: Generates Genesis v4 lattice format.
+* ``to_genesis(split_element, chicanes)``: Generates Genesis v4 lattice format, optionally splitting the lattice at a named element and describing chicanes.
 * ``to_ocelot(save)``: Creates Ocelot :py:class:`MagneticLattice` objects.
 * ``to_cheetah(save)``: Produces Cheetah :py:class:`Segment` objects.
 * ``to_xsuite(beam_length, env, particle_ref, save)``: Generates Xsuite :py:class:`Line` objects.
 * ``to_csrtrack()``: Creates CSRTrack input files.
 * ``to_wake_t()``: Produces Wake-T :py:class:`Beamline` objects.
-* ``to_madx()``: Creates a MAD-X ``SEQUENCE`` definition string; see :ref:`madx-translator`.
+* ``to_madx(beam, refer)``: Creates a MAD-X ``SEQUENCE`` definition string; see :ref:`madx-translator`.
+* ``to_rftrack(P_Q, save, sc_nsteps)`` / ``to_rftrack_volume(P_Q, save)``: Builds an RF-Track ``Lattice`` or ``Volume``; see :ref:`rftrack-translator`.
 
 The translator automatically:
 
@@ -236,6 +242,7 @@ Example workflow:
    Some simulation codes require additional parameters for proper translation:
 
    * GPT requires magnetic rigidity (``Brho``) for dipole elements
+   * RF-Track requires the reference momentum-over-charge (``P_Q``, in MV/c) for dipole elements
    * OPAL requires beam energy for proper dipole field calculations
    * Xsuite requires the number of particles for monitor elements
    * ASTRA and CSRTrack use specialized headers for configuration
@@ -257,9 +264,18 @@ MAD-X Translator
 Unlike Elegant/Genesis (which build a ``LINE``) or OPAL (which uses ``ELEMEDGE`` positions),
 :py:meth:`SectionLatticeTranslator.to_madx <laura.translator.converters.section.SectionLatticeTranslator.to_madx>`
 generates a MAD-X ``SEQUENCE`` :cite:`MADX`, with each element placed at its absolute entrance s-position
-(``refer=entry``). Explicit ``drift`` elements are inserted between elements via ``createDrifts()`` and
-written into the sequence like any other element -- the standard way of constructing a MAD-X lattice --
-rather than relying on MAD-X's implicit gap-filling between elements placed without a contiguous ``at=``.
+(``refer=entry``, the default). Passing ``refer="centre"`` places elements at their centre instead,
+which MAD-X requires before a ``MAKETHIN`` / ``TRACK``. Explicit ``drift`` elements are inserted
+between elements via ``createDrifts()`` and written into the sequence like any other element --
+the standard way of constructing a MAD-X lattice -- rather than relying on MAD-X's implicit
+gap-filling between elements placed without a contiguous ``at=``.
+
+An optional ``beam`` dictionary (keys as defined in the
+`Beam section of the MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html#Ch7.S1>`_)
+emits a ``BEAM`` statement before the sequence and a matching ``USE`` after it, so the returned
+string is immediately usable. Without it, the output is a bare sequence definition and the caller
+must issue its own ``BEAM`` and ``USE`` -- MAD-X aborts with *"USE - sequence without beam"*
+otherwise.
 
 The returned string is plain MAD-X input, intended to be passed directly to
 `cpymad <https://hibtc.github.io/cpymad/index.html>`_:
@@ -270,13 +286,16 @@ The returned string is plain MAD-X input, intended to be passed directly to
     from laura.translator.converters.section import SectionLatticeTranslator
 
     translator = SectionLatticeTranslator.from_section(section)
-    sequence_string = translator.to_madx()
+    sequence_string = translator.to_madx(
+        beam={"particle": "electron", "energy": 1.0}
+    )
 
     madx = Madx()
-    madx.input(sequence_string)
-    madx.beam(particle="electron", energy=1.0)
-    madx.use(sequence=section.name)
+    madx.input(sequence_string)          # declares BEAM, SEQUENCE and USE
     twiss = madx.twiss(betx=1, bety=1)
+
+At the layout and model level, ``to_madx`` takes the beam definitions keyed by section name
+(and, for the model, by layout then section), so each sequence can be given its own beam.
 
 As with the other codes, a :ref:`functional parameter <functional-parameters>` is carried through
 symbolically rather than being resolved to a number: the header (produced by
@@ -297,6 +316,112 @@ the MAD-X global afterwards (``madx.globals["name"] = ...``) updates every eleme
    convention agrees with LAURA's (a positive kick deflects toward positive x/y), so no sign
    adjustment is needed, unlike for Xsuite (see
    :py:meth:`CorrectorTranslator.to_xsuite <laura.translator.converters.magnet.CorrectorTranslator.to_xsuite>`).
+
+.. _rftrack-translator:
+
+RF-Track Translator
+-------------------
+
+`RF-Track <https://gitlab.cern.ch/rf-track>`_ (CERN, A. Latina) is a tracking code whose
+lattices are Python objects rather than text files, like Ocelot, Cheetah and Xsuite. It is not
+distributed on PyPI, so :mod:`LAURA` has no extra for it -- install the wheel manually into the
+same environment.
+
+Unlike the other object-based codes, RF-Track conversion is not implemented as a per-category
+override on each translator class. :py:meth:`BaseElementTranslator.to_rftrack
+<laura.translator.converters.base.BaseElementTranslator.to_rftrack>` is a single generic
+implementation that dispatches on ``hardware_type`` through
+:py:data:`rftrack_conversion_rules
+<laura.translator.conversion_rules.codes.rftrack_conversion.rftrack_conversion_rules>`; the
+builder functions receive the fully-typed translator instance, so a
+:py:class:`DipoleTranslator` still arrives with its edge angles intact. Element types with no
+builder fall back to a drift, with a warning.
+
+Two tracking environments
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+RF-Track offers two integration environments, and :mod:`LAURA` can produce either:
+
+* :py:meth:`to_rftrack <laura.translator.converters.section.SectionLatticeTranslator.to_rftrack>`
+  returns a ``Lattice`` -- the space-integration environment, tracked with a ``Bunch6d``. Space
+  charge is applied as ``sc_nsteps`` evenly-spaced kicks per element.
+* :py:meth:`to_rftrack_volume <laura.translator.converters.section.SectionLatticeTranslator.to_rftrack_volume>`
+  wraps that ``Lattice`` in a ``Volume`` at the origin -- the time-integration environment,
+  tracked with a ``Bunch6dT``. This is what RF-Track recommends for space-charge-dominated and
+  cathode regimes. Space charge here is driven by the ``sc_dt_mm`` tracking option rather than
+  per-element kicks, so ``sc_nsteps`` is not applied.
+
+``P_Q``, the beam reference momentum-over-charge in MV/c, is threaded down to every element in
+the same way ``Brho`` is for GPT. It matters for dipoles: RF-Track's ``SBend``, unlike its
+``Quadrupole`` and ``Multipole``, cannot defer this to ``autophase()``, and an unset value
+silently produces zero transmission.
+
+.. code-block:: python
+
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    translator = SectionLatticeTranslator.from_section(section)
+    translator.directory = "./simulations"
+
+    # Space-integration lattice, with 10 space-charge kicks per element
+    lattice = translator.to_rftrack(P_Q=250.0, sc_nsteps=10)
+
+    # Time-integration volume, for a cathode / space-charge-dominated region
+    volume = translator.to_rftrack_volume(P_Q=250.0)
+
+Saving a standalone lattice
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+RF-Track has no equivalent of Ocelot's ``MagneticLattice.save_as_py_file()``, so
+``to_rftrack(save=True)`` writes one: a Python script at ``{directory}/{name}.py`` that
+rebuilds the lattice using only ``RF_Track`` and ``numpy``, with no :mod:`LAURA` import needed
+to reload it. Each element contributes its own source lines via
+:py:meth:`to_rftrack_repr <laura.translator.converters.base.BaseElementTranslator.to_rftrack_repr>`.
+
+Supported elements
+~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - :mod:`LAURA` element
+     - RF-Track object
+   * - ``Drift``, ``Aperture``, ``Collimator``, ``Marker``
+     - ``Drift``
+   * - ``Quadrupole``
+     - ``Quadrupole``
+   * - ``Dipole``
+     - ``SBend``
+   * - ``Sextupole``, ``Octupole``
+     - ``Multipole`` (RF-Track has no dedicated class; MAD-X multipole convention, as in :mod:`LAURA`)
+   * - ``Solenoid``
+     - ``Solenoid``, or ``Static_Magnetic_FieldMap_1d`` when an on-axis field map is available
+   * - ``Wiggler`` / undulator
+     - ``Undulator``
+   * - ``Horizontal_Corrector``, ``Vertical_Corrector``, ``Combined_Corrector``
+     - ``Corrector``
+   * - ``RFCavity``
+     - ``RF_FieldMap_1d`` from a real field map where one is resolved, otherwise the analytic ``TW_Structure`` or ``Pillbox_Cavity``
+   * - ``Beam_Position_Monitor``
+     - ``Bpm``
+   * - ``Screen``
+     - ``Screen``
+
+.. note::
+
+   A few builders -- notably the stitched travelling-wave field map
+   (``build_tw_fieldmap``: input coupler, complex core, output coupler) -- return a *list* of
+   RF-Track objects rather than one. These are flattened into the caller's own ``Lattice`` as
+   siblings rather than nested in a sub-lattice, because nesting a ``Lattice`` inside a
+   ``Lattice`` inside a ``Volume`` breaks ``Volume.autophase()`` for the inner elements.
+
+.. warning::
+
+   Corrector kick strengths are **not** carried across: a converted ``Corrector`` is created at
+   zero strength and is expected to be set at run time, mirroring how ASTRA and GPT correctors
+   are handled. Screens are created with infinite extent and an unbounded time window;
+   width, height and time window are not yet carried over from :mod:`LAURA`.
 
 .. _machine-layout-translator:
 
@@ -323,7 +448,8 @@ Translation methods produce complete beamline definitions:
 * ``to_ocelot(save)``: Returns a dictionary of Ocelot :py:class:`MagneticLattice` objects.
 * ``to_cheetah(save)``: Produces a dictionary of Cheetah :py:class:`Segment` objects.
 * ``to_xsuite(beam_length, env, particle_ref, save)``: Generates a dictionary of Xsuite :py:class:`Line` objects.
-* ``to_madx()``: Returns a dictionary of MAD-X ``SEQUENCE`` definition strings, keyed by section name.
+* ``to_rftrack(P_Q, save)``: Returns a dictionary of RF-Track ``Lattice`` objects; see :ref:`rftrack-translator`.
+* ``to_madx(beam)``: Returns a dictionary of MAD-X ``SEQUENCE`` definition strings, keyed by section name. ``beam`` is itself keyed by section name.
 
 The translator automatically:
 
@@ -379,7 +505,8 @@ Translation methods handle the full machine hierarchy:
 * ``to_ocelot(save)``: Returns nested dictionaries of :py:class:`MagneticLattice` objects.
 * ``to_cheetah(save)``: Produces nested dictionaries of :py:class:`Segment` objects.
 * ``to_xsuite(beam_length, env, particle_ref, save)``: Generates nested dictionaries of :py:class:`Line` objects.
-* ``to_madx()``: Returns nested dictionaries of MAD-X ``SEQUENCE`` definition strings (by layout, then section).
+* ``to_rftrack(P_Q, save)``: Returns nested dictionaries of RF-Track ``Lattice`` objects.
+* ``to_madx(beam)``: Returns nested dictionaries of MAD-X ``SEQUENCE`` definition strings (by layout, then section). ``beam`` is required here, and is keyed by layout then section.
 
 The translator provides:
 
@@ -426,6 +553,7 @@ Output structure for nested translations:
 * Ocelot: ``Dict[layout_name, Dict[section_name, MagneticLattice]]``
 * Cheetah: ``Dict[layout_name, Dict[section_name, Segment]]``
 * Xsuite: ``Dict[layout_name, Dict[section_name, Line]]``
+* RF-Track: ``Dict[layout_name, Dict[section_name, Lattice]]``
 * MAD-X: ``Dict[layout_name, Dict[section_name, str]]``
 
 For string-based formats (Elegant, Genesis), the translator generates:
@@ -446,9 +574,10 @@ For string-based formats (Elegant, Genesis), the translator generates:
    * Ocelot (object dictionaries)
    * Cheetah (object dictionaries)
    * Xsuite (object dictionaries)
+   * RF-Track (object dictionaries; see :ref:`rftrack-translator`)
    * MAD-X (dictionary of strings; see :ref:`madx-translator`)
 
-   For GPT, OPAL, CSRTrack, and Wake-T translations, use the
+   For GPT, OPAL, CSRTrack, Wake-T, and the RF-Track ``Volume`` environment, use the
    :py:class:`SectionLatticeTranslator <laura.translator.converters.section.SectionLatticeTranslator>` directly.
 
 The hierarchical translation system ensures that complex machine models with multiple beam paths

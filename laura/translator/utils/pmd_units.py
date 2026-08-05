@@ -30,6 +30,9 @@ class pmd_unit:
     unitDimension: SI Base Exponents
 
     Base unit dimensions are defined as:
+
+    .. code-block:: text
+
        Base dimension  | exponents.       | SI unit
        ---------------- -----------------   -------
        length          : (1,0,0,0,0,0,0)     m
@@ -40,19 +43,25 @@ class pmd_unit:
        mol             : (0,0,0,0,0,1,0)     mol
        luminous        : (0,0,0,0,0,0,1)     cd
 
+
     Example:
-        pmd_unit('eV', 1.602176634e-19, (2, 1, -2, 0, 0, 0, 0))
+
+        ``pmd_unit('eV', 1.602176634e-19, (2, 1, -2, 0, 0, 0, 0))``
+
         defines that an eV is 1.602176634e-19 of base units m^2 kg/s^2, which is a Joule (J)
 
-    If unitSI=0 (default), init with a known symbol:
-        pmd_unit('T')
-    returns:
-        pmd_unit('T', 1, (0, 1, -2, -1, 0, 0, 0))
+    If ``unitSI=0`` (default), init with a known symbol:
+
+        ``pmd_unit('T')``
+
+        returns ``pmd_unit('T', 1, (0, 1, -2, -1, 0, 0, 0))``
 
 
     Simple equalities are provided:
-        u1 == u2
-    Returns True if the params are all the same.
+
+        ``u1 == u2``
+
+        Returns True if the params are all the same.
 
     """
 

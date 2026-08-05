@@ -1,0 +1,182 @@
+id: https://w3id.org/laura/schema/controls
+name: laura_controls_schema
+title: LAURA Controls Model Chunk
+description: >-
+  Control-system variable and process-variable classes.
+version: "0.1.0"
+license: Apache Software License 2.0
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+# This is a chunk of the LAURA schema, not a standalone model: classes here
+# refer to slots and base classes defined in laura_schema.yaml, which imports
+# this file. Always generate from laura_schema.yaml, never from this file.
+imports:
+  - linkml:types
+
+enums:
+
+  IOTypeEnum:
+    description: Input types for accelerator elements.
+    permissible_values:
+      current:
+        description: Electrical current.
+      voltage:
+        description: Electrical voltage.
+      phase:
+        description: Phase in radians.
+      setpoint:
+        description: Control setpoint.
+      on_off_state:
+        description: On/Off state.
+      open_closed_state:
+        description: Open/Closed state.
+      position:
+        description: Physical position.
+      rotation:
+        description: Physical rotation.
+      power:
+        description: Electrical power.
+      pressure:
+        description: Gas pressure.
+      charge:
+        description: Electrical charge.
+      absolute_time:
+        description: Absolute timing.
+      relative_time:
+        description: Relative timing.
+      shot_number:
+        description: Shot number.
+      value:
+        description: Single value.
+      waveform:
+        description: Multivalued waveform.
+      magnetic_field:
+        description: Magnetic field.
+
+  ControlTypeEnum:
+    description: Kind of quantity a control variable carries.
+    permissible_values:
+      scalar:
+        description: Single numeric value.
+      binary:
+        description: Two-state value.
+      state:
+        description: Enumerated state, mapped through ``states``.
+      string:
+        description: Textual value.
+      waveform:
+        description: Array-valued trace.
+      statistical:
+        description: Value with associated statistics (the default).
+
+classes:
+
+  ControlVariable:
+    description: >-
+      A single process-variable entry mapping a logical name to a
+      control-system PV identifier.
+    class_uri: laura:ControlVariable
+    attributes:
+      identifier:
+        range: string
+        description: Protocol-specific PV name (e.g., EPICS PV address).
+      dtype:
+        range: string
+        ifabsent: string(float)
+        description: >-
+          Data type, held as a Python type and serialised by name
+          (e.g., ``float``, ``int``, ``str``).
+      protocol:
+        range: string
+        description: Control-system protocol (e.g., ``EPICS``, ``Tango``).
+      units:
+        range: string
+        ifabsent: string(Arb. Units)
+        description: Physical units string (e.g., ``A``, ``T/m``).
+      description:
+        range: string
+        ifabsent: string(Default Description)
+        description: Human-readable description.
+      read_only:
+        range: boolean
+        ifabsent: "True"
+        description: Whether the variable is read-only.
+      value:
+        range: string
+        any_of:
+          - range: float
+          - range: integer
+          - range: string
+        description: >-
+          Last-read value. Scalar for most control types; a list for
+          ``waveform``.
+      control_type:
+        range: ControlTypeEnum
+        ifabsent: string(statistical)
+        description: >-
+          Kind of quantity this variable carries. Accepted in YAML as ``type``.
+        aliases:
+          - type
+      target:
+        range: string
+        description: >-
+          Dotted attribute path on the owning element that ``expression``
+          writes to (e.g., ``magnetic.k1l``). Not a set-point value.
+      expression:
+        range: string
+        description: >-
+          Expression graph computing the value written to ``target``, as nested
+          mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where
+          a symbol is a variable name or a dotted attribute path. Operators are
+          ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.
+      states:
+        range: string
+        description: >-
+          Mapping of state name to underlying control-system value, for
+          ``control_type: state``.
+      readback:
+        range: string
+        description: Name of the readback variable this set-point drives.
+      setpoint:
+        range: string
+        description: Name of the set-point variable this readback follows.
+      update:
+        range: string
+        description: >-
+          Signal generating this variable's value over time, as
+          ``{function: <import path>, **kwargs}`` -- see
+          ``laura.utils.signals``. Stored with ``function`` as a fully
+          qualified import path so it resolves without LAURA.
+      dynamics:
+        range: string
+        description: >-
+          Response model describing how this variable's readback follows its
+          set-point, as ``{model: <import path>, **kwargs}`` -- see
+          ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or
+          ``setpoint``.
+
+  ControlsInformation:
+    description: >-
+      Collection of process-variable definitions for an element's control
+      interface.
+    class_uri: laura:ControlsInformation
+    attributes:
+      variables:
+        multivalued: true
+        inlined: true
+        inlined_as_list: false
+        range: ControlVariable
+        description: Named control variables keyed by logical name.

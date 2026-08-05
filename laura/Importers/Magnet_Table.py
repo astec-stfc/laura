@@ -1,6 +1,16 @@
+import logging
 import os
 from math import ceil
-import pandas
+
+_log = logging.getLogger("laura.loader.magnet_table")
+
+try:
+    import pandas
+except ImportError as _err:
+    raise ImportError(
+        "pandas is not installed. "
+        "Install with: pip install pandas"
+    ) from _err
 
 magnet_table_filename = os.path.join(
     os.path.dirname(__file__), "CLARA Magnet Table v6.xlsx"
@@ -54,7 +64,7 @@ def add_magnet_table_parameters(n, e, magnetPV):
         e.degauss.values = create_degauss_values(float(I_degauss))
         e.manufacturer.manufacturer = manufacturer
         e.manufacturer.serial_number = serial_number
-        e.electrical.maxI = ceil(I_degauss)
-        e.electrical.minI = -1.0 * ceil(I_degauss)
+        e.electrical.max_i = ceil(I_degauss)
+        e.electrical.min_i = -1.0 * ceil(I_degauss)
     except Exception:
-        print("Magnet missing from magnet table!", magnet)
+        _log.warning("Magnet '%s' not found in magnet table", magnet)
