@@ -1,7 +1,4 @@
----
-search:
-  boost: 1.0
----# Type: Decimal 
+# Type: Decimal 
 
 
 

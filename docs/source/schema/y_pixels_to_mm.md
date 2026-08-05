@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: y_pixels_to_mm 
 
 

@@ -1,9 +1,3 @@
----
-search:
-  boost: 2.0
----
-
-
 # Enum: ApertureShapeEnum 
 
 

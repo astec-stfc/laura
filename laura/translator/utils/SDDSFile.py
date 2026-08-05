@@ -305,6 +305,23 @@ class SDDSFile(object):
         except Exception:
             return sdds.sdds.SDDS()
 
+    def _new_sdds_object(self, cleared: bool):
+        if self._indexed:
+            slot = self.index % 20
+            try:
+                return sdds.SDDS(slot)
+            except Exception:
+                return sdds.sdds.SDDS(slot)
+        if cleared:
+            try:
+                return sdds.SDDS(None)
+            except Exception:
+                return sdds.sdds.SDDS(None)
+        try:
+            return sdds.SDDS(0)
+        except Exception:
+            return sdds.sdds.SDDS()
+
     @property
     def index(self):
         return self._index

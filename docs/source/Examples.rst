@@ -525,6 +525,47 @@ one of ``"beam"`` (the default), ``"rf"`` or ``"laser"`` -- and can be filtered 
     # And element queries can be restricted to sections of a given type
     beam_bpms = model.get_all_elements(element_type="BPM", section_type="beam")
 
+.. _example-signal-graph:
+
+Wiring Up the Signal Graph
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Alongside the beam path, every element can declare what it is wired to. ``inputs`` and
+``outputs`` say *what kind* of signal flows (``IOTypeEnum`` values); ``upstream`` and
+``downstream`` say *which* elements are on either side, by name. See
+:ref:`signal-connectivity` for the full description.
+
+.. code-block:: python
+
+    from laura.models.element import PowerSupply, Quadrupole
+
+    psu = PowerSupply(
+        name="INJ_QUAD_01_PSU",
+        hardware_class="Magnet",
+        machine_area="INJ",
+        inputs=["setpoint"],
+        outputs=["current"],
+        downstream=["INJ_QUAD_01"],
+    )
+
+    quad = Quadrupole(
+        name="INJ_QUAD_01",
+        machine_area="INJ",
+        physical={"middle": [0, 0, 0.76], "length": 0.12},
+        inputs=["current"],
+        outputs=["magnetic_field"],
+        upstream=["INJ_QUAD_01_PSU"],
+    )
+
+    model = MachineModel(elements={e.name: e for e in (psu, quad)})
+
+    # What flows along the psu -> quad link?
+    src, dst = model["INJ_QUAD_01_PSU"], model["INJ_QUAD_01"]
+    print(sorted(set(src.outputs) & set(dst.inputs)))   # ['current']
+
+A runnable walk over a complete RF drive chain, including a feedback loop, is in
+``examples/testing/signal_graph_example.py``.
+
 .. _example-rdf-sparql:
 
 Querying a Model

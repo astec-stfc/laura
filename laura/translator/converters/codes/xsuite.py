@@ -67,7 +67,9 @@ class XsuiteLatticeImporter(BaseModel):
     )
 
     name: str = "Lattice"
+
     machine_area: str = "Lattice"
+
     line: Any
     """Xtrack line. Xtrack is only required when the importer is used."""
 

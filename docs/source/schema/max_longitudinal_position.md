@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: max_longitudinal_position 
 
 

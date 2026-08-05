@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: linear_saturation_coefficients 
 
 <div data-search-exclude markdown="1">

@@ -87,6 +87,11 @@ def _run_gen_pydantic(schema_path: str) -> str:
         [str(gen_pydantic), schema_path, "--extra-fields", "ignore"],
         capture_output=True,
         text=True,
+        # Without this, `text=True` decodes with the locale encoding, which on
+        # Windows is cp1252 -- and every non-ASCII character in a schema
+        # description (en dashes, Greek letters, the ohm sign) comes back as
+        # mojibake and is written into _generated.py that way.
+        encoding="utf-8",
     )
     if result.returncode != 0:
         sys.stderr.write(result.stderr)
@@ -373,8 +378,6 @@ def _apply_schema_fixes(content: str, schema_path: str) -> str:
     return fixed
 
 
-
-
 # Python primitive type names for which Optional-stripping is safe.
 # Complex generated-class types (e.g. ``_PositionBase``) are intentionally
 # excluded to avoid applying ifabsent defaults from an identically-named
@@ -462,7 +465,7 @@ def _inject_alias_choices(
     if ", json_schema_extra" in line:
         line = line.replace(", json_schema_extra", f", {alias_kwarg}json_schema_extra", 1)
     elif line.rstrip().endswith(")"):
-        line = line.rstrip()[:-1] + f", {alias_kwarg})" 
+        line = line.rstrip()[:-1] + f", {alias_kwarg})"
     return line
 
 

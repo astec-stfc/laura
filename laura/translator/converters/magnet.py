@@ -147,7 +147,7 @@ class MagnetTranslator(BaseElementTranslator):
         Error in first-order magnetic strength
 
         Currently returns zero...
-        # TODO relate these to systematic\_ and random_multipoles
+        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
 
         Returns
         -------
@@ -163,7 +163,7 @@ class MagnetTranslator(BaseElementTranslator):
         Error in second-order magnetic strength
 
         Currently returns zero...
-        # TODO relate these to systematic\_ and random_multipoles
+        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
 
         Returns
         -------
@@ -179,7 +179,7 @@ class MagnetTranslator(BaseElementTranslator):
         Error in third-order magnetic strength
 
         Currently returns zero...
-        # TODO relate these to systematic\_ and random_multipoles
+        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
 
         Returns
         -------
@@ -540,7 +540,7 @@ class DipoleTranslator(BaseElementTranslator):
     def k3l(self, value: float) -> None:
         setattr(getattr(self.magnetic.multipoles, "K3L"), "normal", value)
 
-    # TODO relate these to systematic\_ and random_multipoles
+    # TODO relate these to systematic_multipoles and random_multipoles
     @computed_field
     @property
     def dk1(self) -> float:

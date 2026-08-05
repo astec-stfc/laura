@@ -4,7 +4,7 @@ LAURA Element Module
 The main class for representing accelerator elements in LAURA.
 """
 
-from typing import Optional, List, Union, Dict, Any
+from typing import Optional, Type, List, Union, Dict, Any
 import os
 from pydantic import field_validator, Field
 from .control import (
@@ -13,7 +13,7 @@ from .control import (
     MirrorControlsInformation,
     ShutterControlsInformation,
 )
-from .baseModels import IgnoreExtra
+from .baseModels import T, Aliases, IgnoreExtra
 from ._generated import (
     _AcceleratorElementBase,
     _ElementBase,
@@ -67,8 +67,11 @@ from ._generated import (
 from ..utils import CascadingAccessMixin, flatten_dict, StringWithQuotes, FlowList
 from .manufacturer import ManufacturerElement
 from .electrical import ElectricalElement
+from .degauss import DegaussableElement
 from .physical import PhysicalElement, Rotation
+from .reference import ReferenceElement
 from .magnetic import (
+    MagneticElement,
     Dipole_Magnet,
     Quadrupole_Magnet,
     Sextupole_Magnet,
@@ -91,6 +94,7 @@ from .diagnostic import (
 from .laser import (
     LaserElement,
     LaserEnergyMeterElement,
+    LaserMirrorElement,
     LaserHalfWavePlateElement,
 )
 from .lighting import LightingElement

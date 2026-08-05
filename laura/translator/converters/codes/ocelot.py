@@ -2,8 +2,17 @@ from __future__ import annotations
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
-from typing import Any, Dict, Literal, Optional, Union
+from typing import Any, Dict, TYPE_CHECKING, Literal, Optional, Union
 from scipy.spatial.transform import Rotation
+try:
+    from ocelot.cpbd.magnetic_lattice import MagneticLattice
+    _OCELOT_AVAILABLE = True
+except ImportError:
+    _OCELOT_AVAILABLE = False
+    MagneticLattice = None  # type: ignore[assignment, misc]
+
+if TYPE_CHECKING:
+    from ocelot.cpbd.magnetic_lattice import MagneticLattice  # type: ignore[no-redef]
 import laura.models.element as LAURA_elements
 from laura.models.elementList import SectionLattice, MachineLayout, ElementList
 from . import magnetic_orders

@@ -1,8 +1,3 @@
----
-search:
-  boost: 10.0
----
-
 # Class: QuadrupoleMagnet 
 
 <div data-search-exclude markdown="1">

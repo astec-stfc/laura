@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: fringe_field_coefficient 
 
 

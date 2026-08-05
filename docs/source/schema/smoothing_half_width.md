@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: smoothing_half_width 
 
 

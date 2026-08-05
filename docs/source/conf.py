@@ -137,7 +137,7 @@ source_suffix = {
     ".md": "myst",
 }
 master_doc = "index"  # name for the root document
-exclude_patterns = ["_build", "schema/**"]  # patterns to exclude when looking for source files
+exclude_patterns = ["_build"]  # patterns to exclude when looking for source files
 templates_path = ["_templates"]  # list of paths that contain extra templates
 add_function_parentheses = True  # display function and method names with parentheses
 add_module_names = False  # don't include module names before object names
@@ -231,15 +231,21 @@ autodoc_pydantic_settings_show_config_summary = False
 autodoc_pydantic_field_list_validators = False
 autodoc_pydantic_model_show_validator_members = False
 
-# Suppress duplicate-object-description warnings that arise because sphinx-apidoc
-# documents each module both in its parent package RST and in its own RST file.
 suppress_warnings = [
-    "ref.python",           # Sphinx 8.1.3: duplicate object descriptions are not suppressable via type=
+    # Ambiguous python cross-references: bare `set` / `type` in docstrings match
+    # several autodoc'd members (gpt_setfile.set, SDDSObject.type, ...).
+    "ref.python",
     "myst.xref_missing",    # .md files link to .yaml files which Sphinx cannot resolve as cross-references
     "ref.any",              # suppress any-role cross-reference parse failures
     "ref.c",                # .yaml paths in markdown links are misidentified as C cross-references
     "ref.cpp",              # .yaml paths in markdown links are misidentified as C++ cross-references
 ]
+
+# NOTE: the build also emits ~100 "duplicate object description of
+# laura.models.element.<Class>.hardware_type/hardware_model" warnings. These are
+# cosmetic -- the rendered HTML contains exactly one anchor per name -- and are
+# NOT covered by the "ref.python" entry above: sphinx.domains.python logs them
+# without a `type=`, so suppress_warnings has no handle on them at all.
 
 # nb_execution_mode = "off"  # options: "off", "auto", "force"
 

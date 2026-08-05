@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: transverse_gradient_y 
 
 

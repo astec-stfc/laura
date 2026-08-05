@@ -2,9 +2,9 @@ id: https://w3id.org/laura/schema
 name: laura_schema
 title: LAURA Accelerator Element Schema
 description: >-
-  Linked Data schema for the LAURA (Lattice And Unified Representation of
-  Accelerators) accelerator element model.  Covers all element types,
-  their physical, magnetic, diagnostic, RF, and control-system properties.
+  Linked Data schema for the LAURA (Lattice Architecture for a Unified
+  Representation of Accelerators) accelerator element model.  Covers all element
+  types, their physical, magnetic, diagnostic, RF, and control-system properties.
 version: "0.1.0"
 license: Apache Software License 2.0
 

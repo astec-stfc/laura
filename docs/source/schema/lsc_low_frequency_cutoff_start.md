@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: lsc_low_frequency_cutoff_start 
 
 

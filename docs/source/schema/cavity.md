@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: cavity 
 
 <div data-search-exclude markdown="1">

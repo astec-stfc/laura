@@ -1,8 +1,3 @@
----
-search:
-  boost: 5.0
----
-
 # Slot: quadratic_roll_off_x 
 
 
