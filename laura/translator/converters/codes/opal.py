@@ -514,7 +514,7 @@ class opal_fieldsolver(opal_header):
         if self.grid_size_override:
             return int(self.grid_size_override)
         npart = self.npart / self.sample_interval
-        grid = self.grids.getGridSizes(npart)
+        grid = get_grid_size(npart)
         # The shared heuristic aims at roughly one particle per cell, which OPAL
         # will not accept: it stops with "the number of simulation particles is
         # smaller than the number of gridpoints" as soon as grid**3 exceeds the

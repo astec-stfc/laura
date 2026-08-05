@@ -355,9 +355,6 @@ class astra_charge(astra_header):
     """Smoothing parameter for z-direction. Only for 3D FFT algorithm; ASTRA's
     own default is 0, and it has no effect on the cylindrical solver."""
 
-    grids: getGrids | None = None
-    """Space charge grids"""
-
     objectname: str = "charge"
     """Name of object"""
 
