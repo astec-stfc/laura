@@ -78,7 +78,7 @@ class TestMachineModel(unittest.TestCase):
                 )
                 self.assertEqual(
                     mm.elements[name].alias,
-                    Aliases(aliases=info["alias"]),
+                    info["alias"],
                 )
         for name, section in mm.sections.items():
             with self.subTest(name=name):
@@ -126,7 +126,7 @@ class TestMachineModel(unittest.TestCase):
                 )
                 self.assertEqual(
                     mm.elements[name].alias,
-                    Aliases(aliases=info["alias"]),
+                    info["alias"],
                 )
         for name, section in mm.sections.items():
             with self.subTest(name=name):
@@ -176,7 +176,7 @@ class TestMachineModel(unittest.TestCase):
                 )
                 self.assertEqual(
                     mm.elements[name].alias,
-                    Aliases(aliases=info["alias"]),
+                    info["alias"],
                 )
         for name, section in mm.sections.items():
             with self.subTest(name=name):
@@ -233,7 +233,7 @@ class TestMachineModel(unittest.TestCase):
                 )
                 self.assertEqual(
                     mm.elements[name].alias,
-                    Aliases(aliases=info["alias"]),
+                    info["alias"],
                 )
         for name, section in mm.sections.items():
             with self.subTest(name=name):
@@ -297,7 +297,7 @@ class TestMachineModel(unittest.TestCase):
                 )
                 self.assertEqual(
                     mm.elements[name].alias,
-                    Aliases(aliases=info["alias"]),
+                    info["alias"],
                 )
         for name, section in mm.sections.items():
             with self.subTest(name=name):
@@ -324,3 +324,117 @@ class TestMachineModel(unittest.TestCase):
             list(mm.lattices["line1"].sections.keys()),
             ["AREA-01", "AREA-02"],
         )
+
+    def test_machine_model_with_inline_typed_sections(self):
+        sections = {
+            "sections": {
+                "AREA-01": {
+                    "type": "beam",
+                    "elements": ["MAG-01", "BPM-01"],
+                },
+                "AREA-02": {
+                    "type": "rf",
+                    "elements": ["CAV-01"],
+                },
+            }
+        }
+        layout = {
+            "layouts": {
+                "line1": ["AREA-01", "AREA-02"],
+            }
+        }
+        mm = MachineModel(
+            elements={
+                name: PhysicalBaseElement(**info)
+                for name, info in self.elements.items()
+            },
+            section=sections,
+            layout=layout,
+        )
+        self.assertEqual(mm.sections["AREA-01"].section_type, "beam")
+        self.assertEqual(mm.sections["AREA-02"].section_type, "rf")
+
+    def test_machine_model_with_layout_metadata_types(self):
+        sections = {
+            "sections": {
+                "AREA-01": ["MAG-01", "BPM-01"],
+                "AREA-02": ["CAV-01"],
+            }
+        }
+        layout = {
+            "layouts": {
+                "line1": ["AREA-01", "AREA-02"],
+                "line2": ["AREA-02"],
+            },
+            "layout_metadata": {
+                "line1": {"type": "beam"},
+                "line2": {"type": "rf"},
+            },
+        }
+        mm = MachineModel(
+            elements={
+                name: PhysicalBaseElement(**info)
+                for name, info in self.elements.items()
+            },
+            section=sections,
+            layout=layout,
+        )
+        self.assertEqual(mm.lattices["line1"].layout_type, "beam")
+        self.assertEqual(mm.lattices["line2"].layout_type, "rf")
+
+    def test_get_sections_by_type(self):
+        sections = {
+            "sections": {
+                "AREA-01": {
+                    "type": "beam",
+                    "elements": ["MAG-01", "BPM-01"],
+                },
+                "AREA-02": {
+                    "type": "rf",
+                    "elements": ["CAV-01"],
+                },
+            }
+        }
+        layout = {
+            "layouts": {
+                "line1": ["AREA-01", "AREA-02"],
+            }
+        }
+        mm = MachineModel(
+            elements={
+                name: PhysicalBaseElement(**info)
+                for name, info in self.elements.items()
+            },
+            section=sections,
+            layout=layout,
+        )
+        beam_sections = mm.get_sections_by_type("beam")
+        self.assertListEqual(list(beam_sections.keys()), ["AREA-01"])
+
+    def test_get_layouts_by_type(self):
+        sections = {
+            "sections": {
+                "AREA-01": ["MAG-01", "BPM-01"],
+                "AREA-02": ["CAV-01"],
+            }
+        }
+        layout = {
+            "layouts": {
+                "line1": ["AREA-01", "AREA-02"],
+                "line2": ["AREA-02"],
+            },
+            "layout_metadata": {
+                "line1": {"type": "beam"},
+                "line2": {"type": "rf"},
+            },
+        }
+        mm = MachineModel(
+            elements={
+                name: PhysicalBaseElement(**info)
+                for name, info in self.elements.items()
+            },
+            section=sections,
+            layout=layout,
+        )
+        rf_layouts = mm.get_layouts_by_type("rf")
+        self.assertListEqual(list(rf_layouts.keys()), ["line2"])

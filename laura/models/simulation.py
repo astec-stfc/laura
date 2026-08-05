@@ -1,184 +1,93 @@
 from pydantic import (
-    PositiveInt,
-    PositiveFloat,
-    SerializeAsAny,
     computed_field,
     field_validator,
     Field
 )
-from typing import Literal, Any, Dict, List, Union
-from .baseModels import IgnoreExtra
+from typing import Literal, Any, ClassVar, Union, Dict, List
+from .baseModels import IgnoreExtra, FunctionalMixin
+from ._generated import (
+    _ApertureElementBase,
+    _SimulationElementBase,
+    _MagnetSimulationElementBase,
+    _RFCavitySimulationElementBase,
+    _WakefieldSimulationElementBase,
+    _DriftSimulationElementBase,
+    _DiagnosticSimulationElementBase,
+    _PlasmaSimulationElementBase,
+    _TwissMatchSimulationElementBase,
+    _MatrixTransformSimulationElementBase,
+    _ElectrostaticSeparatorSimulationElementBase,
+    _ACDipoleSimulationElementBase,
+    _WireSimulationElementBase,
+    _BeamBeamSimulationElementBase,
+    _RFMultipoleSimulationElementBase,
+)
+from ..translator.utils.fields import field
 import numpy as np
 import re
 
 
-class ApertureElement(IgnoreExtra):
+class ApertureElement(_ApertureElementBase):
     """Physical info model."""
 
-    number_of_elements: int | None = None
-    """Number of aperture elements"""
-
-    horizontal_size: float = 0.0
-    """Horizontal aperture size [m]"""
-
-    vertical_size: float = 0.0
-    """Vertical aperture size [m]"""
-
-    shape: (
-        Literal["elliptical", "planar", "circular", "rectangular", "scraper"] | None
-    ) = None
-    """Aperture shape"""
-
-    radius: float | None = None
-    """Radius of aperture"""
-
-    negative_extent: float | None = None
-    """Longitudinal start position of an aperture"""
-
-    positive_extent: float | None = None
-    """Longitudinal end position of an aperture"""
+    pass
 
 
-class SimulationElement(IgnoreExtra):
+class SimulationElement(_SimulationElementBase, FunctionalMixin):
     """
     Simulation element model.
     """
 
-    field_definition: SerializeAsAny[Any] = None
-    """String pointing to field definition"""
-
-    wakefield_definition: SerializeAsAny[Any] = None
-    """String pointing to wakefield definition"""
-
+    # Everything else PR #4 declared here (field_definition, wakefield_definition,
+    # field_reference_position, scale_field) now comes from the generated schema
+    # base. wakefield_enable does not yet exist in the schema, so it stays an
+    # explicit override until it is added to laura_schema.yaml.
     wakefield_enable: bool = True
     """Flag to indicate whether the wakefield defined by
     :attr:`~wakefield_definition` is applied. Set to False to track the element
     without its wakefield, without discarding the definition itself."""
 
-    field_reference_position: Literal["start", "middle", "end"] | None = None
-    """Reference position for field file"""
 
-    scale_field: int | float | bool = False
-    """Flag indicating whether to scale the field from the field file"""
-
-
-class MagnetSimulationElement(SimulationElement):
+class MagnetSimulationElement(_MagnetSimulationElementBase, FunctionalMixin):
     """
     Magnet simulation element model.
     """
 
-    n_kicks: int = 4
-    """Number of kicks for tracking through the quad"""
+    field_definition: str | field | None = None
+    # Schema declares `smooth` as boolean but ASTRA uses an integer smoothing count (Q_smooth / S_smooth).
+    smooth: int | None = 2
 
-    n_slices: int = 4
-    """Number of kicks for tracking through the quad"""
-
-    smooth: int | float | None = 2
-    """Number of points to smooth the field map [ASTRA only]"""
-
-    edge_field_integral: float = 0.5
-    """Edge field integral for fringes"""
-
-    edge1_effects: int = 1
-    """Flag to indicate whether entrance edge effects are included"""
-
-    edge2_effects: int = 1
-    """Flag to indicate whether exit edge effects are included"""
-
-    sr_enable: bool = True
-    """Flag to enable SR calculations"""
-
-    integration_order: int = 4
-    """Runge-Kutta integration order"""
-
-    nonlinear: int = 1
-    """Flag to indicate whether to perform nonlinear calculations"""
-
-    smoothing_half_width: int = 1
-    """Half-width for smoothing"""
-
-    edge_order: int = 2
-    """Matrix order for edges"""
-
-    csr_bins: int = 100
-    """Number of CSR bins"""
-
-    deltaL: float = 0.0
-    """Delta length"""
-
-    csr_enable: bool = True
-    """Flag to indicate whether CSR is enabled"""
-
-    isr_enable: bool = True
-    """Flag to indicate whether ISR is enabled"""
-
+    # Schema types this as plain float; widened to accept the name of a
+    # functional definition, and marked so functional_references() finds it.
     field_amplitude: Union[float, str] = Field(
         default=0.0, json_schema_extra={"functional": True}
     )
     """Field amplitude for the magnet simulation. Stored verbatim: a number or a
     string naming a functional definition (resolve via ``resolved("field_amplitude")``)."""
 
+    # n_kicks, n_slices, edge_*, sr_enable, integration_order, nonlinear,
+    # smoothing_half_width, csr_*, isr_enable and deltaL were declared inline by
+    # PR #4; they now come from _MagnetSimulationElementBase.
 
-class DriftSimulationElement(SimulationElement):
+
+class DriftSimulationElement(_DriftSimulationElementBase):
     """
     Drift simulation element model.
     """
 
-    lsc_interpolate: int = 1
-    """Flag to allow for interpolation of computed longitudinal space charge wake.
-    See `Elegant manual LSC drift`_
-    
-    .. _Elegant manual LSC drift: https://ops.aps.anl.gov/manuals/elegant_latest/elegantsu168.html#x179-18000010.58
-    """
-
-    csr_enable: bool = True
-    """Enable CSR drift calculations"""
-
-    lsc_enable: bool = True
-    """Enable LSC drift calculations"""
-
-    use_stupakov: int = 1
-    """Use Stupakov formula; see `Elegant manual LSC drift`_"""
-
-    csrdz: PositiveFloat = 0.01
-    """Step size for CSR calculations"""
-
-    lsc_bins: PositiveInt = 20
-    """Number of bins for LSC calculations"""
-
-    lsc_high_frequency_cutoff_start: float | None = None
-    """Spatial frequency at which smoothing filter begins. If not positive, no frequency filter smoothing is done. 
-    See `Elegant manual LSC drift`_
-    """
-
-    lsc_high_frequency_cutoff_end: float | None = None
-    """Spatial frequency at which smoothing filter is 0. See `Elegant manual LSC drift`_"""
-
-    lsc_low_frequency_cutoff_start: float | None = None
-    """Highest spatial frequency at which low-frequency cutoff filter is zero. See `Elegant manual LSC drift`_"""
-
-    lsc_low_frequency_cutoff_end: float | None = None
-    """Lowest spatial frequency at which low-frequency cutoff filter is 1. See `Elegant manual LSC drift`_"""
+    pass
 
 
-class DiagnosticSimulationElement(SimulationElement):
-    output_filename: str | None = None
-    """Output filename for the diagnostic"""
+class DiagnosticSimulationElement(_DiagnosticSimulationElementBase):
+    pass
 
 
-class PlasmaSimulationElement(SimulationElement):
+class PlasmaSimulationElement(_PlasmaSimulationElementBase):
     """
     Plasma simulation element model.
     """
 
-    wakefield_model: Literal["quasistatic_2d"] | None = None
-    """Wakefield model (Wake-T); possible values: 
-    'blowout', 'custom_blowout', 'focusing_blowout', 'cold_fluid_1d' and 'quasistatic_2d'; if None, no
-    wakefields are computed.
-    # TODO add more of these and check which we support
-    """
-
-    required_attrs: Dict = {
+    required_attrs: ClassVar[dict[str, list[str]]] = {
         "common": [
             "length",
         ],
@@ -192,230 +101,38 @@ class PlasmaSimulationElement(SimulationElement):
         ],
     }
 
-    bunch_pusher: Literal["rk4", "boris"] = "boris"
-    """Pusher used to evolve particles in time in the plasma [Wake-T]; possible values:
-    'rk4', 'boris'; see `Wake-T pusher`_
-
-    .. _Wake-T pusher: https://github.com/AngelFP/Wake-T/tree/dev/wake_t/particles/push
-    """
-
-    dt_bunch: float | Literal["auto"] = "auto"
-    """The time step for evolving the particle bunches. If 'auto', set to dt=T/(10*2*pi) with T
-    the plasma period.
-    """
-
-    n_out: int = 1
-    """Number of times to dump the particle distribution during the plasma stage."""
-
-    min_longitudinal_position: float = 0
-    """Minimum longitudinal position [metres] up to which
-    plasma wakefield will be calculated. Converted to boosted co-ordinates for Wake-T during 
-    simulation setup."""
-
-    max_longitudinal_position: float = 0
-    """Maximum longitudinal position [metres] up to which
-        plasma wakefield will be calculated. Converted to boosted co-ordinates for Wake-T during
-        simulation setup."""
-
-    n_longitudinal: int = 0
-    """Number of grid points in the longitudinal direction"""
-
-    n_radial: int = 0
-    """Number of grid points in the radial direction"""
-
-    plasma_particles_per_cell: int = 2
-    """Number of plasma particles per cell; 2 by default"""
-
-    r_max: float = 0
-    """Radial extent of the simulation box [meters]"""
-
-    r_max_plasma: float | None = None
-    """Maximum radial extension of the plasma column; set to `r_max` if None"""
-
-    dz_fields: float | None = None
-    """Determines how often the plasma wakefields should be updated; 
-        `max_longitudinal_position`-`min_longitudinal_position` by default"""
-
-    plasma_pusher: Literal["rk4", "boris"] = "boris"
-    """Pusher used to evolve the plasma in time [Wake-T]; possible values:
-    'rk4', 'boris'; see `Wake-T pusher`_
-
-    .. _Wake-T pusher: https://github.com/AngelFP/Wake-T/tree/dev/wake_t/particles/push
-    """
+    pass
 
 
-class RFCavitySimulationElement(SimulationElement):
+class RFCavitySimulationElement(_RFCavitySimulationElementBase, FunctionalMixin):
     """
     RF cavity simulation element model.
     """
 
+    field_definition: str | field | None = None
+    wakefield_definition: str | field | None = None
+
+    # Schema types this as plain float; widened to accept the name of a
+    # functional definition, and marked so functional_references() finds it.
     field_amplitude: Union[float, str] = Field(
         default=0.0, json_schema_extra={"functional": True}
     )
     """Cavity field amplitude. Stored verbatim: a number or a string naming a
     functional definition (resolve via ``resolved("field_amplitude")``)."""
 
-    t_column: str | None = None
-    """t column in wake file"""
 
-    z_column: str | None = None
-    """z column in wake file"""
-
-    wx_column: str | None = None
-    """Wx column in wake file"""
-
-    wy_column: str | None = None
-    """Wy column in wake file"""
-
-    wz_column: str | None = None
-    """Wz column in wake file"""
-
-    change_p0: int = 1
-    """Flag to indicate whether cavity is changing momentum"""
-
-    n_kicks: int = 0
-    """Number of cavity kicks to apply"""
-
-    end1_focus: int = 1
-    """Apply entrance focusing"""
-
-    end2_focus: int = 1
-    """Apply exit focusing"""
-
-    body_focus_model: str = "SRS"
-    """Cavity focusing model"""
-
-    lsc_bins: int = 100
-    """Number of longitudinal space charge bins"""
-
-    current_bins: int = 0
-    """Number of current bins"""
-
-    interpolate_current_bins: int = 1
-    """Flag to indicate whether to interpolate during current histogram"""
-
-    smooth_current_bins: int = 1
-    """Flag to indicate whether to smooth the current histogram"""
-
-    smooth: int | None = None
-    """Smoothing parameter"""
-
-    ez_peak: float | None = None
-    """Peak longitudinal electric field"""
-
-    field_file_name: str | None = None
-    """Cavity field file name"""
-
-    wakefile: str | None = None
-    """Name of wake file"""
-
-    zwakefile: str | None = None
-    """Name of longitudinal wake file"""
-
-    trwakefile: str | None = None
-    """Name of transverse wake file"""
-
-
-class WakefieldSimulationElement(SimulationElement):
+class WakefieldSimulationElement(_WakefieldSimulationElementBase):
     """
     Wakefield simulation element model.
     """
 
-    allow_long_beam: bool = True
-    """Flag to indicate whether beams longer than the wakefield are allowed."""
+    wakefield_definition: str | field | None = None
 
-    bunched_beam: bool = False
-    """Flag to indicate whether a bunched beam is to be used."""
-
-    change_momentum: bool = True
-    """Flag to indicate whether the wakefield can change the central momentum of the bunch."""
-
-    factor: float = 1
-    """
-    Wake scaling factor.
-    #TODO check if redundant based on scale_kick?
-    """
-
-    interpolate: bool = True
-    """Flag to indicate whether to interpolate points in wake file."""
-
-    scale_kick: float = 1
-    """Factor by which to scale wake kicks."""
-
-    t_column: str | None = None
-    """t column in wake file"""
-
-    z_column: str | None = None
-    """z column in wake file"""
-
-    wx_column: str | None = None
-    """Wx column in wake file"""
-
-    wy_column: str | None = None
-    """Wy column in wake file"""
-
-    wz_column: str | None = None
-    """Wz column in wake file"""
-
-    scale_field_ex: float = 0.0
-    """x-component of the longitudinal direction vector."""
-
-    scale_field_ey: float = 0.0
-    """y-component of the longitudinal direction vector."""
-
-    scale_field_ez: float = 1.0
-    """z-component of the longitudinal direction vector."""
-
-    scale_field_hx: float = 1.0
-    """x-component of the horizontal direction vector."""
-
-    scale_field_hy: float = 0.0
-    """y-component of the horizontal direction vector."""
-
-    scale_field_hz: float = 0.0
-    """z-component of the horizontal direction vector."""
-
-    equal_grid: float = 0.66
-    """If 1.0 an equidistant grid is set up, if 0.0 a grid with equal charge per grid cell is
-    employed. Values between 1.0 and 0.0 result in intermediate binning based on
-    a linear combination of the two methods."""
-
-    interpolation_method: int = 2
-    """Interpolation method for ASTRA: 0 = rectangular, 1 = triangular, 2 = Gaussian."""
-    smooth: float = 0.25
-    """Smoothing parameter for Gaussian interpolation."""
-
-    subbins: int = 10
-    """Sub binning parameter."""
+    pass
 
 
-class TwissMatchSimulationElement(IgnoreExtra):
-    beta_x: float
-    """Horizontal beta"""
-
-    beta_y: float
-    """Vertical beta"""
-
-    alpha_x: float
-    """Horizontal alpha"""
-
-    alpha_y: float
-    """Vertical alpha"""
-
-    eta_x: float = 0.0
-    """Horizontal dispersion"""
-
-    eta_y: float = 0.0
-    """Vertical dispersion"""
-
-    eta_xp: float = 0.0
-    """Horizontal dispersion derivative"""
-
-    eta_yp: float = 0.0
-    """Vertical dispersion derivative"""
-
-    from_beam: bool = True
-    """If `True`, compute transformation from tracked beam properties instead of Twiss parameters"""
+class TwissMatchSimulationElement(_TwissMatchSimulationElementBase):
+    pass
 
     @computed_field
     @property
@@ -457,7 +174,7 @@ class TwissMatchSimulationElement(IgnoreExtra):
         return B
 
 
-class MatrixTransformSimulationElement(IgnoreExtra):
+class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
     c_matrix: np.ndarray = Field(default_factory=lambda: np.zeros(6))
     """C-matrix for the element (0th order transformation matrix)."""
 
@@ -503,6 +220,7 @@ class MatrixTransformSimulationElement(IgnoreExtra):
     @field_validator("r_matrix", mode="before")
     @classmethod
     def validate_r_matrix(cls, v):
+        print(v)
         if isinstance(v, dict):
             matrix = np.eye(6)
 
@@ -579,12 +297,9 @@ class MatrixTransformSimulationElement(IgnoreExtra):
         return B
 
 
-class ElectrostaticSeparatorSimulationElement(IgnoreExtra):
+class ElectrostaticSeparatorSimulationElement(_ElectrostaticSeparatorSimulationElementBase):
     """
     Electrostatic separator simulation element model.
-
-    See the MAD-X ``ELSEPARATOR`` element (no equivalent element exists in
-    ELEGANT or Xsuite).
     """
 
     horizontal_field: Union[float, str] = Field(
@@ -603,12 +318,9 @@ class ElectrostaticSeparatorSimulationElement(IgnoreExtra):
     """Rotation of the separator about the beam axis [rad]."""
 
 
-class ACDipoleSimulationElement(IgnoreExtra):
+class ACDipoleSimulationElement(_ACDipoleSimulationElementBase):
     """
     AC dipole / tune-exciter simulation element model.
-
-    See the MAD-X ``HACDIPOLE``/``VACDIPOLE`` elements and the Xsuite
-    ``ACDipole`` element.
     """
 
     field_amplitude: Union[float, str] = Field(
@@ -628,75 +340,59 @@ class ACDipoleSimulationElement(IgnoreExtra):
 
     ramp: List[int] = Field(default_factory=lambda: [0, 0, 0, 0])
     """Turn numbers ``[ramp1, ramp2, ramp3, ramp4]`` defining the ramp-up start,
-    flat-top start, flat-top end and ramp-down end (see the MAD-X ``RAMP1..4``
-    parameters and the Xsuite ``ACDipole.ramp``)."""
+    flat-top start, flat-top end and ramp-down end."""
 
 
-class WireSimulationElement(IgnoreExtra):
+class WireSimulationElement(_WireSimulationElementBase):
     """
     Compensating wire simulation element model.
-
-    See the MAD-X ``WIRE`` element and the Xsuite ``Wire`` element. The
-    physical length of the wire is the element's own ``physical.length``
-    (MAD-X ``L``/Xsuite ``L_phy``).
     """
 
     current: float = 0.0
     """Current carried by the wire [A]."""
 
     interaction_length: float = 0.0
-    """Interaction (effective) length of the wire [m] (MAD-X ``L_INT``, Xsuite
-    ``L_int``)."""
+    """Interaction (effective) length of the wire [m]."""
 
     horizontal_offset: float = 0.0
-    """Horizontal offset of the wire from the reference orbit [m] (``XMA``)."""
+    """Horizontal offset of the wire from the reference orbit [m]."""
 
     vertical_offset: float = 0.0
-    """Vertical offset of the wire from the reference orbit [m] (``YMA``)."""
+    """Vertical offset of the wire from the reference orbit [m]."""
 
 
-class BeamBeamSimulationElement(IgnoreExtra):
+class BeamBeamSimulationElement(_BeamBeamSimulationElementBase):
     """
     Beam-beam interaction simulation element model.
-
-    See the MAD-X ``BEAMBEAM`` element (weak-strong kick from an opposing
-    bunch).
     """
 
     charge: float = 1.0
     """Charge of a single particle in the opposing beam, in units of the
     elementary charge (e.g. ``+1`` for protons/positrons, ``-1`` for
-    electrons) -- matches Xsuite's ``other_beam_q0``. MAD-X's ``CHARGE`` and
-    ELEGANT's ``CHARGE`` (in Coulombs, ``= n_particles * charge * e``) are
-    both derived from this."""
+    electrons)."""
 
     n_particles: float = 0.0
-    """Number of particles in the opposing (strong) bunch (MAD-X ``NPART``)."""
+    """Number of particles in the opposing (strong) bunch."""
 
     horizontal_offset: float = 0.0
-    """Horizontal offset of the opposing bunch centroid [m] (``XMA``)."""
+    """Horizontal offset of the opposing bunch centroid [m]."""
 
     vertical_offset: float = 0.0
-    """Vertical offset of the opposing bunch centroid [m] (``YMA``)."""
+    """Vertical offset of the opposing bunch centroid [m]."""
 
     horizontal_sigma: float = 0.0
-    """Horizontal RMS beam size of the opposing bunch [m] (``SIGX``)."""
+    """Horizontal RMS beam size of the opposing bunch [m]."""
 
     vertical_sigma: float = 0.0
-    """Vertical RMS beam size of the opposing bunch [m] (``SIGY``)."""
+    """Vertical RMS beam size of the opposing bunch [m]."""
 
     width: float = 0.0
-    """Bunch length of the opposing bunch [m], for the 3D weak-strong model
-    (``WIDTH``)."""
+    """Bunch length of the opposing bunch [m], for the 3D weak-strong model."""
 
 
-class RFMultipoleSimulationElement(IgnoreExtra):
+class RFMultipoleSimulationElement(_RFMultipoleSimulationElementBase, FunctionalMixin):
     """
     Thin RF multipole simulation element model.
-
-    See the MAD-X ``RFMULTIPOLE`` element and the Xsuite ``RFMultipole``
-    element -- a zero-length multipole kick whose strength oscillates at an RF
-    frequency, up to 5th order (dipole through decapole).
     """
 
     frequency: float = 0.0
@@ -711,7 +407,7 @@ class RFMultipoleSimulationElement(IgnoreExtra):
     field_amplitude: Union[float, str] = Field(
         default=0.0, json_schema_extra={"functional": True}
     )
-    """Longitudinal voltage [V] (MAD-X ``VOLT``). Stored verbatim: a number, or
+    """Longitudinal voltage [V]. Stored verbatim: a number, or
     the name of a functional definition."""
 
     knl: List[float] = Field(default_factory=lambda: [0.0] * 5)

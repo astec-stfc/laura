@@ -1,26 +1,32 @@
-from cheetah.accelerator import (  # noqa: F401
-    BPM,
-    Aperture,
-    Cavity,
-    CustomTransferMap,
-    Dipole,
-    Drift,
-    Element,
-    HorizontalCorrector,
-    Marker,
-    Quadrupole,
-    RBend,
-    Screen,
-    Segment,
-    Sextupole,
-    Solenoid,
-    SpaceChargeKick,
-    TransverseDeflectingCavity,
-    Undulator,
-    VerticalCorrector,
-    CombinedCorrector,
-    CustomTransferMap,
-)
+try:
+    from cheetah.accelerator import (  # noqa: F401
+        BPM,
+        Aperture,
+        Cavity,
+        CombinedCorrector,
+        CustomTransferMap,
+        Dipole,
+        Drift,
+        Element,
+        HorizontalCorrector,
+        Marker,
+        Quadrupole,
+        RBend,
+        Screen,
+        Segment,
+        Sextupole,
+        Solenoid,
+        SpaceChargeKick,
+        TransverseDeflectingCavity,
+        Undulator,
+        VerticalCorrector,
+    )
+    _CHEETAH_AVAILABLE = True
+except ImportError as _err:
+    raise ImportError(
+        "cheetah-accelerator is not installed. "
+        "Install with: pip install \"laura-accelerator[cheetah]\""
+    ) from _err
 
 cheetah_conversion_rules = {
     "Dipole": Dipole,

@@ -516,3 +516,22 @@ class TestControlsInformation(unittest.TestCase):
         dumped = controls_info.model_dump()
         self.assertEqual(dumped["variables"]["var1"]["dtype"], "float")
         self.assertEqual(dumped["variables"]["var2"]["dtype"], "int")
+
+
+class TestControlVariableSerializeDefaults(unittest.TestCase):
+    """`_SERIALIZE_DEFAULTS` keys must match the field names `serialize` reads
+    from `self`, not their YAML aliases -- ``control_type`` is the field,
+    ``type`` is only the alias it is populated from."""
+
+    def test_default_control_type_is_omitted(self):
+        cv = ControlVariable(identifier="var1", protocol="CA")
+        self.assertNotIn("control_type", cv.model_dump())
+
+    def test_non_default_control_type_is_kept(self):
+        cv = ControlVariable(identifier="var1", protocol="CA", type="waveform")
+        print(cv.model_dump())
+        self.assertEqual(cv.model_dump()["type"], "waveform")
+
+    def test_default_control_type_omitted_via_alias(self):
+        cv = ControlVariable(identifier="var1", protocol="CA", type="statistical")
+        self.assertNotIn("control_type", cv.model_dump())

@@ -1,0 +1,303 @@
+id: https://w3id.org/laura/schema/elements
+name: laura_elements_schema
+title: LAURA Simple Element Model Chunk
+description: >-
+  Concrete element classes with no domain-specific sub-model.
+version: "0.1.0"
+license: Apache Software License 2.0
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+# This is a chunk of the LAURA schema, not a standalone model: classes here
+# refer to slots and base classes defined in laura_schema.yaml, which imports
+# this file. Always generate from laura_schema.yaml, never from this file.
+imports:
+  - linkml:types
+
+enums:
+
+  ApertureShapeEnum:
+    description: Cross-sectional shape of a beam-pipe aperture.
+    permissible_values:
+      circular:    {}
+      rectangular: {}
+      elliptical:  {}
+
+classes:
+
+  ShutterElement:
+    description: Shutter interlock configuration.
+    class_uri: laura:ShutterElement
+    attributes:
+      interlocks:
+        multivalued: true
+        range: string
+        description: Names of the interlocks guarding this shutter.
+        aliases:
+          - shutter_interlock_names
+
+  ValveElement:
+    description: Vacuum valve configuration (no additional fields).
+    class_uri: laura:ValveElement
+
+  LightingElement:
+    description: Lighting element (no additional fields currently defined).
+    class_uri: laura:LightingElement
+
+  TwissMatch:
+    is_a: PhysicalAcceleratorElement
+    description: >-
+      Virtual Twiss-parameter matching point -- a zero-length marker that
+      defines the desired optical functions at a location in the lattice.
+    class_uri: laura:TwissMatch
+    slot_usage:
+      hardware_type:
+        equals_string: TwissMatch
+      simulation:
+        range: TwissMatchSimulationElement
+
+  MatrixTransform:
+    is_a: PhysicalAcceleratorElement
+    description: Transfer-map element with zero-, first-, and second-order coefficients.
+    class_uri: laura:MatrixTransform
+    slot_usage:
+      hardware_type:
+        equals_string: MatrixTransform
+      simulation:
+        range: MatrixTransformSimulationElement
+
+  ElectrostaticSeparator:
+    is_a: PhysicalAcceleratorElement
+    description: Static electrostatic transverse-deflection element.
+    class_uri: laura:ElectrostaticSeparator
+    slot_usage:
+      hardware_type:
+        equals_string: ElectrostaticSeparator
+      simulation:
+        range: ElectrostaticSeparatorSimulationElement
+
+  ACDipole:
+    is_a: PhysicalAcceleratorElement
+    abstract: true
+    description: Base class for horizontal and vertical AC-dipole tune exciters.
+    class_uri: laura:ACDipole
+    slot_usage:
+      simulation:
+        range: ACDipoleSimulationElement
+
+  Horizontal_AC_Dipole:
+    is_a: ACDipole
+    description: Horizontally deflecting AC-dipole tune exciter.
+    class_uri: laura:Horizontal_AC_Dipole
+    slot_usage:
+      hardware_type:
+        equals_string: Horizontal_AC_Dipole
+
+  Vertical_AC_Dipole:
+    is_a: ACDipole
+    description: Vertically deflecting AC-dipole tune exciter.
+    class_uri: laura:Vertical_AC_Dipole
+    slot_usage:
+      hardware_type:
+        equals_string: Vertical_AC_Dipole
+
+  Wire:
+    is_a: PhysicalAcceleratorElement
+    description: Current-carrying wire for long-range beam-beam compensation.
+    class_uri: laura:Wire
+    slot_usage:
+      hardware_type:
+        equals_string: Wire
+      simulation:
+        range: WireSimulationElement
+
+  BeamBeam:
+    is_a: PhysicalAcceleratorElement
+    description: Weak-strong beam-beam interaction element.
+    class_uri: laura:BeamBeam
+    slot_usage:
+      hardware_type:
+        equals_string: BeamBeam
+      simulation:
+        range: BeamBeamSimulationElement
+
+  RFMultipole:
+    is_a: PhysicalAcceleratorElement
+    description: Thin RF-driven multipole kick.
+    class_uri: laura:RFMultipole
+    slot_usage:
+      hardware_type:
+        equals_string: RFMultipole
+      simulation:
+        range: RFMultipoleSimulationElement
+
+  Stage:
+    is_a: PhysicalAcceleratorElement
+    description: Motorised positioning stage.
+    class_uri: laura:Stage
+    slot_usage:
+      hardware_type:
+        equals_string: Stage
+
+  VacuumGauge:
+    is_a: PhysicalAcceleratorElement
+    description: Vacuum-pressure gauge.
+    class_uri: laura:VacuumGauge
+    slot_usage:
+      hardware_type:
+        equals_string: VacuumGauge
+
+  Laser:
+    is_a: PhysicalAcceleratorElement
+    description: Laser system element (full laser setup including beam parameters).
+    class_uri: laura:Laser
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: Laser
+    attributes:
+      laser:
+        range: LaserElement
+        description: Laser-beam parameters.
+
+  Shutter:
+    is_a: PhysicalAcceleratorElement
+    description: Beam or laser shutter with interlock logic.
+    class_uri: laura:Shutter
+    slot_usage:
+      hardware_type:
+        equals_string: Shutter
+    attributes:
+      shutter:
+        range: ShutterElement
+        description: Shutter interlock configuration.
+
+  ApertureElement:
+    description: Transverse aperture geometry for drift-space checks and collimators.
+    class_uri: laura:ApertureElement
+    attributes:
+      number_of_elements:
+        range: integer
+        description: Number of aperture sub-elements (e.g., for multi-leaf collimators).
+        minimum_value: 0
+        ifabsent: int(0)
+      horizontal_size:
+        range: float
+        description: Full horizontal aperture [m].
+        ifabsent: float(0.0)
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      vertical_size:
+        range: float
+        description: Full vertical aperture [m].
+        ifabsent: float(0.0)
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      shape:
+        range: ApertureShapeEnum
+        description: Cross-sectional aperture shape.
+      radius:
+        range: float
+        description: Radius for circular apertures [m].
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      negative_extent:
+        range: float
+        description: Upstream / inner extent [m].
+        unit:
+          ucum_code: m
+      positive_extent:
+        range: float
+        description: Downstream / outer extent [m].
+        unit:
+          ucum_code: m
+
+  Valve:
+    is_a: PhysicalAcceleratorElement
+    description: Vacuum gate valve.
+    class_uri: laura:Valve
+    slot_usage:
+      hardware_type:
+        equals_string: Valve
+    attributes:
+      valve:
+        range: ValveElement
+        description: Valve configuration.
+
+  Marker:
+    is_a: PhysicalAcceleratorElement
+    description: >-
+      Virtual survey marker -- a zero-length reference point used for
+      alignment.
+    class_uri: laura:Marker
+    slot_usage:
+      hardware_type:
+        equals_string: Marker
+
+  Aperture:
+    is_a: PhysicalAcceleratorElement
+    description: Mechanical aperture restriction in the beam pipe.
+    class_uri: laura:Aperture
+    slot_usage:
+      hardware_type:
+        equals_string: Aperture
+    attributes:
+      aperture:
+        range: ApertureElement
+        description: Aperture geometry parameters.
+
+  Collimator:
+    is_a: Aperture
+    description: Movable collimator jaw (extends Aperture).
+    class_uri: laura:Collimator
+    slot_usage:
+      hardware_type:
+        equals_string: Collimator
+
+  Drift:
+    is_a: PhysicalAcceleratorElement
+    description: Field-free drift space between elements.
+    class_uri: laura:Drift
+    slot_usage:
+      hardware_type:
+        equals_string: Drift
+      simulation:
+        range: DriftSimulationElement
+
+  Lighting:
+    is_a: StandardElement
+    description: Experimental-hall lighting element.
+    class_uri: laura:Lighting
+    slot_usage:
+      hardware_type:
+        equals_string: Lighting
+    attributes:
+      lights:
+        range: LightingElement
+        description: Lighting configuration.
+
+  PowerSupply:
+    is_a: StandardElement
+    description: >-
+      Generic power-supply unit providing control/setpoint-driven outputs
+      (for example current/voltage) to other accelerator components.
+    class_uri: laura:PowerSupply
+    slot_usage:
+      hardware_type:
+        equals_string: PowerSupply

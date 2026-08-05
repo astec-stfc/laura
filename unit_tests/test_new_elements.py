@@ -294,7 +294,7 @@ class TestMatrixTransformAndCrabCavityDispatch:
         from laura.translator.converters.cavity import RFCavityTranslator
         cc = CrabCavity(
             name="cc1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": 5e6}, physical={"length": 1.0},
         )
         assert isinstance(translate_elements([cc])["cc1"], RFCavityTranslator)
@@ -321,7 +321,7 @@ class TestMatrixTransformAndCrabCavityDispatch:
     def test_crab_cavity_elegant_uses_rfdf_not_rfca(self):
         cc = CrabCavity(
             name="cc1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": 5e6}, physical={"length": 1.0},
         )
         out = translate_elements([cc])["cc1"].to_elegant()
@@ -338,7 +338,7 @@ class TestMatrixTransformAndCrabCavityDispatch:
         # whenever no wakefield was defined (the common case).
         rdc = RFDeflectingCavity(
             name="rdc1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": 5e6}, physical={"length": 1.0},
         )
         out = translate_elements([rdc])["rdc1"].to_elegant()
@@ -347,7 +347,7 @@ class TestMatrixTransformAndCrabCavityDispatch:
     def test_crab_cavity_madx(self):
         cc = CrabCavity(
             name="cc1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": 5e6}, physical={"length": 1.0},
         )
         out = translate_elements([cc])["cc1"].to_madx()
@@ -360,7 +360,7 @@ class TestMatrixTransformAndCrabCavityDispatch:
         pytest.importorskip("cheetah")
         cc = CrabCavity(
             name="cc1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": 5e6}, physical={"length": 1.0},
         )
         translator = translate_elements([cc])["cc1"]
@@ -373,7 +373,12 @@ class TestMadxCavityAndAperture:
     def test_travelling_wave_cavity_uses_twcavity(self):
         cav = RFCavity(
             name="c1", machine_area="S",
-            cavity={"structure_Type": "TravellingWave", "phase": 0.0},
+            cavity={
+                "structure_type": "TravellingWave",
+                "phase": 0.0,
+                "mode_numerator": 2,
+                "mode_denominator": 3,
+            },
             simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
         )
         out = translate_elements([cav])["c1"].to_madx()
@@ -382,7 +387,7 @@ class TestMadxCavityAndAperture:
     def test_standing_wave_cavity_uses_rfcavity(self):
         cav = RFCavity(
             name="c1", machine_area="S",
-            cavity={"structure_Type": "StandingWave", "phase": 0.0},
+            cavity={"structure_type": "StandingWave", "phase": 0.0},
             simulation={"field_amplitude": 20e6}, physical={"length": 1.0},
         )
         out = translate_elements([cav])["c1"].to_madx()

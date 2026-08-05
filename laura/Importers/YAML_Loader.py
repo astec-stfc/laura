@@ -1,16 +1,20 @@
 import re
 from typing import List
 import json
+import logging
 import yaml
 import os
-from pprint import pprint
-from warnings import warn
+import pathlib
+import functools
 from yaml import CSafeLoader as Loader
-from pydantic import TypeAdapter, ValidationError, BaseModel
+from pydantic import TypeAdapter, BaseModel
+from typing import List
 
 # Import elements before building registry
 from ..models.element import ELEMENT_REGISTRY
 from ..models.control import ControlVariable
+
+_log = logging.getLogger("laura.loader")
 
 # Fast metadata extraction regex
 _NAME_RE = re.compile(r'^\s*name:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE)
@@ -41,6 +45,7 @@ def fast_get_element_metadata(filename: str) -> dict:
     if not metadata["name"]:
         metadata["name"] = os.path.basename(filename).replace('.yaml', '').replace('.yml', '')
     return metadata
+
 
 class LazyElementDict(dict):
     """
@@ -131,6 +136,7 @@ def get_model_registry():
     return _MODEL_REGISTRY
 
 
+
 class LazyAdapterDict(dict):
     def get(self, key, default=None):
         if key not in self:
@@ -140,7 +146,53 @@ class LazyAdapterDict(dict):
             self[key] = TypeAdapter(model)
         return super().get(key)
 
+
 ADAPTERS = LazyAdapterDict()
+
+# ── Optional JSON Schema validation ──────────────────────────────────────────
+
+_SCHEMA_PATH = (
+    pathlib.Path(__file__).resolve().parent.parent
+    / "schema"
+    / "generated"
+    / "laura_element.schema.json"
+)
+
+
+@functools.cache
+def _get_json_schema() -> dict:
+    """Load and cache the generated LAURA JSON Schema."""
+    if not _SCHEMA_PATH.exists():
+        raise FileNotFoundError(
+            f"LAURA JSON Schema not found at '{_SCHEMA_PATH}'.  "
+            "Generate it with: gen-json-schema laura/schema/laura_schema.yaml "
+            "--output laura/schema/generated/laura_element.schema.json"
+        )
+    with open(_SCHEMA_PATH, "r") as fh:
+        return json.load(fh)
+
+
+def validate_element_dict(elem: dict) -> None:
+    """Validate *elem* against the LAURA LinkML-derived JSON Schema.
+
+    Raises
+    ------
+    jsonschema.ValidationError
+        If *elem* does not conform to the schema.
+    ImportError
+        If the *jsonschema* package is not installed.
+    FileNotFoundError
+        If the generated JSON Schema file has not been created yet.
+    """
+    try:
+        import jsonschema  # noqa: PLC0415
+    except ImportError as exc:
+        raise ImportError(
+            "Install 'jsonschema' to enable YAML schema validation: "
+            "pip install 'laura-accelerator[schema]'"
+        ) from exc
+    jsonschema.validate(instance=elem, schema=_get_json_schema())
+
 
 def filter_top_level(elem: dict, exclude_keys: List[str] | None = None) -> dict:
     if isinstance(exclude_keys, list):
@@ -346,12 +398,14 @@ def interpret_YAML_Element(
 ):
     hw_type = elem.get("hardware_type")
     if not hw_type:
-        warn(f"hardware_type not found in element {elem.get('name', 'unknown')}; returning None")
+        name = elem.get("name", "<unknown>")
+        _log.warning("Skipping element '%s': no hardware_type field", name)
         return None
 
     adapter = ADAPTERS.get(hw_type)
     if adapter is None:
-        warn(f"adapter not found in element {elem.get('name', 'unknown')}; returning None")
+        name = elem.get("name", "<unknown>")
+        _log.warning("Skipping element '%s': unregistered hardware_type '%s'", name, hw_type)
         return None
 
     controls = elem.get("controls")
@@ -367,19 +421,46 @@ def interpret_YAML_Element(
         elem = {k: v for k, v in elem.items() if k not in exclude_set}
 
     try:
-        return adapter.validate_python(elem)
-    except ValidationError as e:
-        pprint(e.errors(), width=200)
-    warn(f"Could not interpret {elem.get('name', 'unknown')}; returning None")
-    return None
+        result = adapter.validate_python(elem)
+        _log.debug("Loaded %s (%s)", elem.get("name", "?"), hw_type)
+        return result
+    except Exception as exc:
+        name = elem.get("name", "<unknown>")
+        _log.error(
+            "Failed to parse '%s' [%s]: %s",
+            name, hw_type, exc,
+        )
+        _log.debug("Validation error detail for '%s':", name, exc_info=True)
+        return None
 
 
-def read_YAML_Element_File(filename: str, exclude_keys: List[str] | None = None):
+def read_YAML_Element_File(
+    filename: str,
+    exclude_keys: List[str] | None = None,
+    validate: bool = False,
+):
+    """Read a single-element YAML file and return the parsed model.
+
+    Parameters
+    ----------
+    filename:
+        Path to the YAML file.
+    exclude_keys:
+        Top-level keys to strip before parsing (e.g., legacy fields).
+    validate:
+        When ``True``, validate the raw YAML dict against the LinkML-derived
+        JSON Schema *before* Pydantic parsing.  Requires both the
+        *jsonschema* package and a previously generated schema file.
+    """
     exclude_set = set(exclude_keys) if exclude_keys else None
     with open(filename, "r") as stream:
         data = yaml.load(stream, Loader=Loader)
+    if validate:
+        validate_element_dict(data)
     return interpret_YAML_Element(
-        data, exclude_set=exclude_set, base_dir=os.path.dirname(os.path.abspath(filename))
+        data,
+        exclude_set=exclude_set,
+        base_dir=os.path.dirname(os.path.abspath(filename)),
     )
 
 
@@ -393,7 +474,23 @@ def read_YAML_Element_Files(filenames: list):
     return gen, filenames
 
 
-def read_YAML_Combined_File(filename: str, exclude_keys=None):
+def read_YAML_Combined_File(
+    filename: str,
+    exclude_keys=None,
+    validate: bool = False,
+):
+    """Read a combined (multi-element) YAML or JSON file and return parsed models.
+
+    Parameters
+    ----------
+    filename:
+        Path to the YAML or JSON file containing multiple element definitions.
+    exclude_keys:
+        Top-level keys to strip from each element before parsing.
+    validate:
+        When ``True``, validate each element dict against the LinkML-derived
+        JSON Schema *before* Pydantic parsing.
+    """
     exclude_set = set(exclude_keys) if exclude_keys else None
 
     if ".yaml" in filename.lower():
@@ -403,13 +500,27 @@ def read_YAML_Combined_File(filename: str, exclude_keys=None):
         with open(filename, "r") as stream:
             elements = json.load(stream)
 
+    if validate:
+        for element in elements.values():
+            validate_element_dict(element)
+
     # A combined file may embed the controls schemas its elements reference
     # (see COMBINED_SCHEMAS_KEY / export_machine_combined_file), so it can be
     # loaded standalone without companion `_schema.yaml` files on disk.
     schema_map = elements.pop(COMBINED_SCHEMAS_KEY, None)
 
     base_dir = os.path.dirname(os.path.abspath(filename))
-    return [
+
+    _log.debug("Parsing %d elements from '%s'", len(elements), filename)
+    results = [
         interpret_YAML_Element(element, exclude_set, base_dir=base_dir, schema_map=schema_map)
         for element in elements.values()
     ]
+    loaded = sum(1 for r in results if r is not None)
+    failed = len(results) - loaded
+    _log.info(
+        "Loaded %d/%d elements from '%s'%s",
+        loaded, len(results), filename,
+        f" ({failed} failed — enable DEBUG for details)" if failed else "",
+    )
+    return results

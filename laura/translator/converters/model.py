@@ -1,9 +1,13 @@
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 from textwrap import wrap
 from laura.models.elementList import MachineModel
 from .converter import translate_elements
 from .layout import MachineLayoutTranslator
 from ..utils.functions import elegant_functional_definitions, sanitize_string
+
+if TYPE_CHECKING:
+    from ocelot.cpbd.magnetic_lattice import MagneticLattice
+    from cheetah import Segment
 
 
 class MachineModelTranslator(MachineModel):
@@ -40,6 +44,29 @@ class MachineModelTranslator(MachineModel):
         model = {}
         for name, latt in self.lattices.items():
             model.update({name: self._layout_translator(latt).to_astra()})
+        return model
+
+    def to_rftrack(self, P_Q: float = float("nan"), save: bool = False) -> Dict[str, Dict[str, object]]:
+        """
+        Create one RF-Track ``Lattice`` per section, grouped by layout.
+
+        Parameters
+        ----------
+        P_Q: float
+            Beam reference momentum-over-charge [MV/c], forwarded to every
+            layout's ``to_rftrack(P_Q=...)``.
+        save: bool
+            Forwarded to every layout's ``to_rftrack(save=...)``; see
+            ``SectionLatticeTranslator.to_rftrack``.
+
+        Returns
+        -------
+        Dict[str, Dict[str, object]]
+            ``{layout_name: {section_name: RF_Track.Lattice, ...}, ...}``
+        """
+        model = {}
+        for name, latt in self.lattices.items():
+            model.update({name: MachineLayoutTranslator.from_layout(latt).to_rftrack(P_Q=P_Q, save=save)})
         return model
 
     def format_string(seld, string: str):

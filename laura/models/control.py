@@ -1,18 +1,22 @@
 import builtins
 from pydantic import (
-    BaseModel,
     ValidationError,
     field_validator,
     model_serializer,
     ConfigDict, Field,
 )
 from pydantic import ValidationInfo
-from typing import Any, Callable, Dict, Type, Literal
+from typing import Any, Callable, Dict, Type
 import operator
 from dataclasses import fields, is_dataclass
 from laura.utils.dynamics import resolve_response, response_path
 from laura.utils.signals import resolve_signal, signal_path
 from warnings import warn
+
+from ._generated import (
+    _ControlVariableBase,
+    _ControlsInformationBase,
+)
 
 OPS = {
     "add": operator.add,
@@ -116,79 +120,72 @@ def validate_callable_spec(
     return {**v, key: path(obj_cls)}
 
 
-class ControlVariable(BaseModel):
+class ControlVariable(_ControlVariableBase):
     """
     Model representing a control variable in a system.
 
     Example on updating element attributes based on control variables:
-    ```python
-    from laura.models.element import Element
-    from laura.models.control import ControlVariable, ControlsInformation
-    # Define control variables
-    cv1 = ControlVariable(
-        identifier="k1l_control",
-        dtype=float,
-        protocol="some_protocol",
-        units="1/m",
-        description="Control for k1l",
-        read_only=False,
-        value=0.1,
-        target="magnetic.k1l",
-        expression={"op": "mul", "args": ["k1l_control", "magnetic.length"]},
-    )
-    controls_info = ControlsInformation(variables={"k1l_control": cv1})
-    # Create an element with magnetic attributes
-    element = Element(
-        name="Quad1",
-        magnetic={"k1l": 0.0, "k2l": 0.0},
-        controls=controls_info,
-    )
-    # Apply control variables to the element
-    controls_info.apply(element)
-    print(element.magnetic.k1l)  # Should reflect the updated value based on the control variable
-    ```
+
+    .. code-block:: python
+
+        from laura.models.element import Element
+        from laura.models.control import ControlVariable, ControlsInformation
+        # Define control variables
+        cv1 = ControlVariable(
+            identifier="k1l_control",
+            dtype=float,
+            protocol="some_protocol",
+            units="1/m",
+            description="Control for k1l",
+            read_only=False,
+            value=0.1,
+            target="magnetic.k1l",
+            expression={"op": "mul", "args": ["k1l_control", "magnetic.length"]},
+        )
+        controls_info = ControlsInformation(variables={"k1l_control": cv1})
+        # Create an element with magnetic attributes
+        element = Element(
+            name="Quad1",
+            magnetic={"k1l": 0.0, "k2l": 0.0},
+            controls=controls_info,
+        )
+        # Apply control variables to the element
+        controls_info.apply(element)
+        print(element.magnetic.k1l)  # Should reflect the updated value based on the control variable
     """
+
+    # Slots below override `_ControlVariableBase` where the Python type is
+    # richer than the LinkML range can express, or where the schema's
+    # cardinality is looser than this model wants. Everything else --
+    # `units`, `description`, `read_only`, `control_type`, `target`,
+    # `readback`, `setpoint` -- is inherited from the generated base,
+    # including the `type` alias on `control_type`.
 
     identifier: str
     """Unique identifier for the control variable."""
 
     dtype: type = float
-    """Data type of the control variable (e.g., int, float, str)."""
+    """Data type of the control variable (e.g., int, float, str).
+
+    Held as a Python type; the schema range is ``string`` because it is
+    serialised by name (see `serialize`).
+    """
 
     protocol: str
     """Protocol or method used to interact with the control variable."""
 
-    units: str = "Arb. Units"
-    """Units of measurement for the control variable."""
-
-    description: str = "Default Description"
-    """Description of the control variable."""
-
-    read_only: bool = True
-    """Indicates if the variable is read-only."""
-
     value: float | int | str | list | None = None
-    """Current value of the control variable."""
+    """Current value of the control variable.
 
-    target: str | None = None  # "magnetic.k1l"
-    """Target attribute path in the system to apply the control variable."""
+    Widened from the schema's scalar ``any_of`` to also accept a list, for
+    ``waveform`` variables.
+    """
 
     expression: dict | None = None  # expression graph
     """Expression defining how to compute the value to set at the target."""
 
-    control_type: Literal["scalar", "binary", "state", "string", "waveform", "statistical"] = Field(
-        default="statistical", alias="type",
-    )
-    """Type of control variable."""
-
     states: Dict | None = None
     """Possible state mapping enums."""
-
-    readback: str | None = None
-    """Connects a setpoint to a readback."""
-
-    setpoint: str | None = None
-    """Connects a readback to a setpoint."""
 
     update: Dict | None = None
     """
@@ -219,6 +216,9 @@ class ControlVariable(BaseModel):
     its own instance.
     """
 
+    # The generated base ignores unknown keys; control variables carry
+    # protocol-specific extras (auto_buffer, buffer_size, ...) that must
+    # survive a load/export round-trip, so keep them.
     model_config = ConfigDict(
         arbitrary_types_allowed=False,
         extra="allow",
@@ -302,7 +302,7 @@ class ControlVariable(BaseModel):
     _SERIALIZE_DEFAULTS: dict = {
         "units": "Arb. Units",
         "read_only": True,
-        "type": "statistical",
+        "control_type": "statistical",
         "description": "Default Description",
     }
 
@@ -343,7 +343,7 @@ class ControlVariable(BaseModel):
         return self.identifier
 
 
-class ControlsInformation(BaseModel):
+class ControlsInformation(_ControlsInformationBase):
     """
     Model representing a collection of control variables.
 
@@ -364,6 +364,8 @@ class ControlsInformation(BaseModel):
     where it came from.
     """
 
+    # Narrowed from the generated base's `_ControlVariableBase` values so the
+    # validators and helpers on `ControlVariable` are available.
     variables: Dict[str, ControlVariable]
     """Dictionary mapping variable names to `~laura.models.control.ControlVariable` instances."""
 

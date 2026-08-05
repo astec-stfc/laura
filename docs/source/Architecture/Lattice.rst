@@ -76,9 +76,9 @@ The :py:class:`ElementList <laura.models.elementList.ElementList>` class provide
         }
     )
 
-    print(element_list.names)  # ['gun', 'solenoid']
+    print(element_list.names)  # ['cavity1', 'quad1', 'cavity2']
     cav1 = element_list["cavity1"]
-    idx = element_list.index("quad1")
+    idx = element_list.index("quad1")  # 1
     all_elements = element_list.list()
 
 .. _section-lattice:
@@ -95,6 +95,7 @@ A section lattice must define:
 * ``name: str``: The name of the lattice section.
 * ``order: List[str]``: An ordered list of element names defining the sequence along the beam path.
 * ``elements: ElementList``: A container holding the actual element objects.
+* ``section_type: "beam" | "rf" | "laser"``: What kind of lattice this section belongs to (default ``"beam"``); see :ref:`lattice-types`.
 * ``master_lattice: str | None``: Optional top-level directory containing lattice files.
 * ``functional_definitions: str | dict``: Optional functional definitions (a mapping or YAML file path); see :ref:`functional-definitions`.
 * ``resolve_functional: bool``: Optional global resolution mode (default ``False``); see :ref:`functional-definitions`.
@@ -102,15 +103,17 @@ A section lattice must define:
 Key methods and properties include:
 
 * ``names``: Returns a list of element names in the section.
-* ``createDrifts()``: Automatically inserts drift spaces between elements based on their physical positions.
-* ``get_s_values(as_dict, at_entrance, starting_s)``: Calculates the cumulative S-position values for elements along the beamline.
+* ``createDrifts()``: Automatically inserts drift spaces between elements based on their physical positions. Drifts are named ``{section_name}_drift_{n}``.
+* ``get_s_values(as_dict, at_entrance, starting_s)``: Calculates the cumulative S-position values for elements along the beamline. This operates on the section *with drifts inserted*, so the returned sequence has no gaps.
+* ``get_resolved_s_values(...)``: As ``get_s_values``, but reading the ``s`` values already assigned by ``resolve_positions`` rather than re-accumulating lengths.
+* ``resolve_positions(element_registry)``: Resolves all three :ref:`positioning modes <positioning-modes>` -- ``reference_placement``, ``s``, and global ``middle`` -- into a consistent set of global coordinates, and builds the section's :py:class:`Trajectory <laura.models.trajectory.Trajectory>`. Called automatically when a :ref:`machine-model` is assembled.
 
 Example usage:
 
 .. code-block:: python
-    
+
     from laura.models.elementList import SectionLattice
-    
+
     section = SectionLattice(
         name="injector",
         order=["cavity1", "quad1", "cavity2"],
@@ -131,6 +134,7 @@ A machine layout defines:
 
 * ``name: str``: The name of the layout/beam path.
 * ``sections: Dict[str, SectionLattice]``: Dictionary of lattice sections, keyed by section name.
+* ``layout_type: "beam" | "rf" | "laser"``: What kind of lattice this beam path represents (default ``"beam"``); see :ref:`lattice-types`.
 * ``master_lattice: str | None``: Directory containing lattice files.
 * ``functional_definitions: str | dict``: Optional functional definitions (a mapping or YAML file path); see :ref:`functional-definitions`.
 * ``resolve_functional: bool``: Optional global resolution mode (default ``False``); see :ref:`functional-definitions`.
@@ -138,9 +142,18 @@ A machine layout defines:
 Important methods include:
 
 * ``get_element(name)``: Returns the element object for a given element name.
-* ``get_all_elements(element_type, element_model, element_class)``: Returns filtered lists of elements.
+* ``get_all_elements(element_type, element_model, element_class)``: Returns filtered lists of element names.
 * ``elements_between(start, end, element_type, element_model, element_class)``: Returns elements within a specified range along the beam path.
 * ``_get_all_elements()``: Returns all elements in the layout in order.
+
+.. note::
+
+   Building a layout chains its sections together using their elements' start and end
+   positions, so every element in a layout must have physical data -- i.e. be a
+   :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>` subclass.
+   A position-less :py:class:`Element <laura.models.element.Element>` (an LLRF module,
+   a laser mirror, a lighting controller) may live in ``MachineModel.elements`` and in a
+   section, but cannot take part in a beam path.
 
 The layout automatically handles element ordering and can filter elements by various criteria:
 
@@ -178,9 +191,12 @@ The machine model includes:
 Key functionality:
 
 * ``get_element(name)``: Retrieve any element by name from the full machine.
-* ``get_all_elements(element_type, element_model, element_class)``: Filter all machine elements by criteria.
-* ``elements_between(start, end, element_type, element_model, element_class, path)``: Get elements within a range on a specific beam path.
+* ``get_all_elements(element_type, element_model, element_class, section_type)``: Filter all machine elements by criteria.
+* ``elements_between(start, end, element_type, element_model, element_class, path, section_type)``: Get elements within a range on a specific beam path.
+* ``get_sections_by_type(section_type)`` / ``get_layouts_by_type(layout_type)``: Filter sections/layouts by :ref:`lattice type <lattice-types>`.
 * ``append(values)`` / ``update(values)``: Dynamically add new elements to the model.
+* ``resolve_positions()``: Re-resolve every element's placement and rebuild the section trajectories after the model has been modified. ``resolve_reference_placements()`` is the older, narrower name for the same operation.
+* ``export_rdf(path, format, machine_name)`` / ``sparql(query)``: Linked-data export and querying; see :ref:`interfaces`.
 
 The machine model supports multiple beam paths and can automatically build sections from elements if no explicit
 section definition is provided:
@@ -212,6 +228,52 @@ section definition is provided:
 The machine model automatically manages the relationships between elements, sections, and layouts, ensuring
 consistency across the entire lattice definition. It provides both dictionary-style access (``model["element_name"]``)
 and method-based queries for flexible interaction with the lattice data.
+
+.. _lattice-types:
+
+Lattice Types
+-------------
+
+An accelerator is not described by a single chain of elements. Alongside the beam path there
+is an RF distribution network -- modulators, klystrons, waveguide, LLRF -- and, on a
+photoinjector machine, a laser transport line. These are lattices in their own right: ordered,
+connected, and worth querying separately, but they are not beam paths and should not be
+returned by a query for "the elements between the gun and the dump".
+
+Both :py:class:`SectionLattice <laura.models.elementList.SectionLattice>` and
+:py:class:`MachineLayout <laura.models.elementList.MachineLayout>` therefore carry a type,
+one of ``"beam"`` (the default), ``"rf"`` or ``"laser"``. In a ``sections.yaml`` a section is
+either a bare list (implying ``beam``) or a mapping with an explicit ``type``:
+
+.. code-block:: yaml
+
+    sections:
+      INJ:
+        elements: [GUN, SOL-01, BPM-01]
+        type: beam
+      LASER:
+        elements: [LSR-HWP-01, LSR-MIRROR-01]
+        type: laser
+
+    # in layouts.yaml
+    layouts:
+      main_beam: [INJ, LINAC]
+      laser_line: [LASER]
+    layout_metadata:
+      laser_line: laser
+    default_layout: main_beam
+
+They can then be selected with
+:py:meth:`get_sections_by_type <laura.models.elementList.MachineModel.get_sections_by_type>` and
+:py:meth:`get_layouts_by_type <laura.models.elementList.MachineModel.get_layouts_by_type>`, and
+element queries can be restricted with ``section_type``:
+
+.. code-block:: python
+
+    laser_sections = model.get_sections_by_type("laser")
+    beam_bpms = model.get_all_elements(element_type="BPM", section_type="beam")
+
+See :ref:`example-lattice-types` for a complete worked example.
 
 .. _functional-definitions:
 

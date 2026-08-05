@@ -1,0 +1,222 @@
+id: https://w3id.org/laura/schema/geometry
+name: laura_geometry_schema
+title: LAURA Geometry Model Chunk
+description: >-
+  Element placement, survey and geometry classes.
+version: "0.1.0"
+license: Apache Software License 2.0
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+# This is a chunk of the LAURA schema, not a standalone model: classes here
+# refer to slots and base classes defined in laura_schema.yaml, which imports
+# this file. Always generate from laura_schema.yaml, never from this file.
+imports:
+  - linkml:types
+
+classes:
+
+  Position:
+    description: >-
+      Cartesian position in the global accelerator coordinate system.
+      All components are in metres.
+    class_uri: laura:Position
+    in_subset:
+      - physical_properties
+    attributes:
+      x:
+        range: float
+        ifabsent: float(0)
+        description: Horizontal component [m].
+        unit:
+          ucum_code: m
+      y:
+        range: float
+        ifabsent: float(0)
+        description: Vertical component [m].
+        unit:
+          ucum_code: m
+      z:
+        range: float
+        ifabsent: float(0)
+        description: Longitudinal (beam-direction) component [m].
+        unit:
+          ucum_code: m
+
+  Rotation:
+    description: >-
+      Euler-angle rotation relative to the global coordinate system.
+      All angles are in radians, bounded to [-pi, pi].
+    class_uri: laura:Rotation
+    in_subset:
+      - physical_properties
+    attributes:
+      phi:
+        range: float
+        ifabsent: float(0)
+        description: Rotation about the horizontal (x) axis [rad].
+        minimum_value: -3.141592653589793
+        maximum_value:  3.141592653589793
+        unit:
+          ucum_code: rad
+      psi:
+        range: float
+        ifabsent: float(0)
+        description: Rotation about the vertical (y) axis [rad].
+        minimum_value: -3.141592653589793
+        maximum_value:  3.141592653589793
+        unit:
+          ucum_code: rad
+      theta:
+        range: float
+        ifabsent: float(0)
+        description: Rotation about the longitudinal (z) axis [rad].
+        minimum_value: -3.141592653589793
+        maximum_value:  3.141592653589793
+        unit:
+          ucum_code: rad
+
+  ElementPositionError:
+    description: Alignment position and rotation errors for a physically-located element.
+    class_uri: laura:ElementPositionError
+    attributes:
+      position:
+        range: Position
+        description: Positional misalignment error [m].
+      rotation:
+        range: Rotation
+        description: Angular misalignment error [rad].
+
+  ElementSurvey:
+    description: >-
+      Survey-measured position and rotation of an element.
+      Structure is identical to ElementPositionError.
+    class_uri: laura:ElementSurvey
+    attributes:
+      position:
+        range: Position
+        description: Surveyed position.
+      rotation:
+        range: Rotation
+        description: Surveyed rotation.
+
+  ReferencePlacement:
+    description: >-
+      Positions an element relative to a named reference element's local frame.
+      The ``offset`` field is expressed in the reference element's local frame
+      at the chosen ``point`` (start / middle / end).  Use ``world_offset``
+      instead to supply an offset already in global world coordinates.
+    class_uri: laura:ReferencePlacement
+    in_subset:
+      - physical_properties
+    attributes:
+      element:
+        range: string
+        required: true
+        description: Name of the reference element.
+      point:
+        range: string
+        ifabsent: string(end)
+        description: >-
+          Which point on the reference element to use as the origin frame:
+          'start', 'middle', or 'end'.
+      offset:
+        range: Position
+        description: >-
+          Offset expressed in the reference element's local frame at the
+          chosen point.
+      world_offset:
+        range: Position
+        description: >-
+          Offset already expressed in global world coordinates.
+      s_offset:
+        range: float
+        description: >-
+          Scalar offset [m] along the local beam direction (s-axis) from the
+          reference point.  Equivalent to ``offset: [0, 0, s_offset]`` but
+          expressed as a single number.  Mutually exclusive with ``offset``
+          and ``world_offset``.
+        unit:
+          ucum_code: m
+
+  PhysicalElement:
+    description: >-
+      Physical placement data: position, rotation, length, and associated
+      survey / alignment-error information.
+    class_uri: laura:PhysicalElement
+    in_subset:
+      - physical_properties
+    attributes:
+      middle:
+        range: Position
+        description: >-
+          Longitudinal midpoint (centre) of the element.
+          Also accepted as ``position`` or ``centre`` in YAML.
+        aliases:
+          - position
+          - centre
+      datum:
+        range: Position
+        description: Datum reference position.
+      rotation:
+        range: Rotation
+        description: Local rotation in the global frame.
+      global_rotation:
+        range: Rotation
+        description: Accumulated global rotation including parent-frame contributions.
+      error:
+        range: ElementPositionError
+        description: Alignment errors.
+      survey:
+        range: ElementSurvey
+        description: Survey-measured position and rotation.
+      length:
+        range: float
+        ifabsent: float(0)
+        description: Effective length along the beam axis [m].
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      physical_angle:
+        range: float
+        ifabsent: float(0)
+        description: >-
+          Bending angle in the horizontal plane [rad].
+          Derived from ``magnetic.angle`` when available.
+        unit:
+          ucum_code: rad
+      reference_placement:
+        range: ReferencePlacement
+        description: >-
+          Place this element relative to another element's frame instead of
+          using absolute world coordinates.  Mutually exclusive with
+          ``middle``/``position``/``centre`` and ``s``.
+        in_subset:
+          - physical_properties
+      s:
+        range: float
+        description: >-
+          Arc-length position [m] along the design trajectory (s=0 at the
+          global origin along +Z).  Alternative to absolute world coordinates
+          (``middle``/``position``/``centre``) and ``reference_placement``.
+          Converted to {x,y,z} by LAURA during lattice assembly.
+        unit:
+          ucum_code: m
+      s_point:
+        range: string
+        ifabsent: string(middle)
+        description: >-
+          Which point of the element the ``s`` value refers to:
+          ``start``, ``middle``, or ``end``.  Defaults to ``middle``.
