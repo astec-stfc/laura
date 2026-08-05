@@ -1,0 +1,1646 @@
+# metamodel_version: 1.11.0
+# version: 0.1.0
+enum ApertureShapeEnum
+  {
+    circular
+    rectangular
+    elliptical
+  }
+
+enum BendingPlaneEnum
+  {
+    Horizontal
+    Vertical
+    Combined
+  }
+
+enum ControlTypeEnum
+  {
+    scalar
+    binary
+    state
+    string
+    waveform
+    statistical
+  }
+
+enum HardwareClassEnum
+  {
+    Magnet
+    Diagnostic
+    RF
+    Vacuum
+    Laser
+    Plasma
+    Feedback
+    Marker
+    Aperture
+    Stage
+    Lighting
+    Shutter
+    Wakefield
+    TwissMatch
+    Drift
+    Generic
+    Monitor
+    Simulation
+  }
+
+enum IOTypeEnum
+  {
+    current
+    voltage
+    phase
+    setpoint
+    on_off_state
+    open_closed_state
+    position
+    rotation
+    power
+    pressure
+    charge
+    absolute_time
+    relative_time
+    shot_number
+    value
+    waveform
+    magnetic_field
+  }
+
+enum LaserPolarizationEnum
+  {
+    linear
+    circular
+    elliptical
+  }
+
+enum LaserProfileTypeEnum
+  {
+    gaussian
+    laguerre__HYPHEN_MINUS__gaussian
+    flattened__HYPHEN_MINUS__gaussian
+    file
+  }
+
+type AcceleratorElement
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareType: String
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+  }
+
+type Aperture
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    aperture: ApertureElement
+    hardwareType: String
+  }
+
+type ApertureElement
+  {
+    numberOfElements: Int
+    horizontalSize: Float
+    verticalSize: Float
+    shape: ApertureShapeEnum
+    radius: Float
+    negativeExtent: Float
+    positiveExtent: Float
+  }
+
+type BAMDiagnosticElement
+  {
+    type: String
+  }
+
+type BeamArrivalMonitor
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: DiagnosticSimulationElement
+    diagnostic: BAMDiagnosticElement
+    hardwareType: String
+  }
+
+type BeamPositionMonitor
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: DiagnosticSimulationElement
+    diagnostic: BPMDiagnosticElement
+    hardwareType: String
+  }
+
+type BLMDiagnosticElement
+  {
+    type: String
+  }
+
+type BPMDiagnosticElement
+  {
+    type: String
+  }
+
+type BunchLengthMonitor
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: DiagnosticSimulationElement
+    diagnostic: BLMDiagnosticElement
+    hardwareType: String
+  }
+
+type Camera
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: DiagnosticSimulationElement
+    diagnostic: CameraDiagnosticElement
+    hardwareType: String
+  }
+
+type CameraDiagnosticElement
+  {
+    type: String
+    xPixels: Int
+    yPixels: Int
+    rotation: Float
+    flippedHorizontally: Boolean
+    flippedVertically: Boolean
+    screenName: String
+    hasLed: Boolean
+    pixelResultsIndices: CameraPixelResultsIndices
+    pixelResultsNames: CameraPixelResultsNames
+    mask: CameraMask
+    sensor: CameraSensor
+  }
+
+type CameraMask
+  {
+    middle: [Float]
+    radius: [Float]
+    maximum: [Float]
+    useMaximumValues: Boolean
+  }
+
+type CameraPixelResultsIndices
+  {
+    x: Int
+    y: Int
+    xSigma: Int
+    ySigma: Int
+    covariance: Int
+  }
+
+type CameraPixelResultsNames
+  {
+    x: String
+    y: String
+    xSigma: String
+    ySigma: String
+    covariance: String
+  }
+
+type CameraSensor
+  {
+    xPixels: Int
+    yPixels: Int
+    xScaleFactor: Int
+    yScaleFactor: Int
+    beamPixelAverage: Float
+    middle: [Float]
+    xPixelsToMm: Float
+    yPixelsToMm: Float
+    minimum: [Float]
+    maximum: [Float]
+    bitDepth: Int
+    operatingMiddle: [Float]
+    mechanicalMiddle: [Float]
+  }
+
+type ChannelNames
+  {
+    ch1: String
+    ch2: String
+    ch3: String
+    ch4: String
+    ch5: String
+    ch6: String
+    ch7: String
+    ch8: String
+  }
+
+type ChargeDiagnostic
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: DiagnosticSimulationElement
+    diagnostic: ChargeDiagnosticElement
+    hardwareType: String
+  }
+
+type ChargeDiagnosticElement
+  {
+    type: String
+  }
+
+type Collimator
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    aperture: ApertureElement
+    hardwareType: String
+  }
+
+type ControlsInformation
+  {
+    variables: [ControlVariable]
+  }
+
+type ControlVariable
+  {
+    identifier: String
+    dtype: String
+    protocol: String
+    units: String
+    description: String
+    readOnly: Boolean
+    value: String
+    controlType: ControlTypeEnum
+    target: String
+    expression: String
+    states: String
+    readback: String
+    setpoint: String
+    update: String
+    dynamics: String
+  }
+
+type DegaussableElement
+  {
+    tolerance: Float
+    values: [Float]
+    steps: Int
+  }
+
+type Diagnostic
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareType: String
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    diagnostic: DiagnosticElement
+    simulation: DiagnosticSimulationElement
+  }
+
+type DiagnosticElement
+  {
+    _placeholder: Boolean
+  }
+
+type DiagnosticSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    outputFilename: String
+  }
+
+type Drift
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    hardwareType: String
+    simulation: DriftSimulationElement
+  }
+
+type DriftSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    lscBins: Int
+    lscInterpolate: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    useStupakov: Int
+    csrdz: Float
+    lscHighFrequencyCutoffStart: Float
+    lscHighFrequencyCutoffEnd: Float
+    lscLowFrequencyCutoffStart: Float
+    lscLowFrequencyCutoffEnd: Float
+  }
+
+type ElectricalElement
+  {
+    minI: Float
+    maxI: Float
+    readTolerance: Float
+  }
+
+type Element
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareType: String
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+  }
+
+type ElementPositionError
+  {
+    position: Position
+    rotation: Rotation
+  }
+
+type ElementSurvey
+  {
+    position: Position
+    rotation: Rotation
+  }
+
+type FaradayCupMonitor
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: DiagnosticSimulationElement
+    diagnostic: ChargeDiagnosticElement
+    hardwareType: String
+  }
+
+type FieldIntegral
+  {
+    coefficients: [Float]
+  }
+
+type IntegratedCurrentTransformer
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: DiagnosticSimulationElement
+    diagnostic: ChargeDiagnosticElement
+    hardwareType: String
+  }
+
+type Laser
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    laser: LaserElement
+    hardwareType: String
+  }
+
+type LaserAttenuator
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    maximum: Float
+    minimum: Float
+    hardwareType: String
+  }
+
+type LaserElement
+  {
+    initialPosition: Float
+    waist: Float
+    wavelength: Float
+    pulseEnergy: Float
+    pulseDurationFwhm: Float
+    focalPosition: Float
+    cepPhase: Float
+    polarization: LaserPolarizationEnum
+    profileType: LaserProfileTypeEnum
+    laguerrePolynomialOrderP: Int
+    flatness: Int
+  }
+
+type LaserEnergyMeter
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    laser: LaserEnergyMeterElement
+    hardwareType: String
+  }
+
+type LaserEnergyMeterElement
+  {
+    _placeholder: Boolean
+  }
+
+type LaserHalfWavePlate
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    laser: LaserHalfWavePlateElement
+    hardwareType: String
+  }
+
+type LaserHalfWavePlateElement
+  {
+    _placeholder: Boolean
+  }
+
+type LaserMirror
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    laser: LaserMirrorElement
+    hardwareType: String
+  }
+
+type LaserMirrorElement
+  {
+    stepMax: Float
+    sense: LaserMirrorSense
+    verticalChannel: Int
+    horizontalChannel: Int
+  }
+
+type LaserMirrorSense
+  {
+    left: Float
+    right: Float
+    up: Float
+    down: Float
+  }
+
+type Lighting
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    lights: LightingElement
+    hardwareType: String
+  }
+
+type LightingElement
+  {
+    _placeholder: Boolean
+  }
+
+type LinearSaturationFit
+  {
+    m: Float
+    iMax: Float
+    f: Float
+    a: Float
+    i0: Float
+    d: Float
+    l: Float
+  }
+
+type LLRFTiming
+  {
+    start: Float
+    end: Float
+  }
+
+type LLRFTimings
+  {
+    klystronForward: LLRFTiming
+    klystronReverse: LLRFTiming
+    cavityForward: LLRFTiming
+    cavityReverse: LLRFTiming
+    cavityProbe: LLRFTiming
+  }
+
+type LowLevelRF
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    llrf: LowLevelRFElement
+    hardwareType: String
+  }
+
+type LowLevelRFElement
+  {
+    trace: Trace
+    maxAmplitude: Float
+    channelNames: ChannelNames
+    crestPhase: Float
+    timings: LLRFTimings
+  }
+
+type MachineLayout
+  {
+    name: String!
+    masterLattice: String
+    sections: [String]
+  }
+
+type MachineModel
+  {
+    elements: [AcceleratorElement]
+    sections: [SectionLattice]
+    layouts: [MachineLayout]
+  }
+
+type Magnet
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareType: String
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    magnetic: MagneticElement
+    degauss: DegaussableElement
+    simulation: MagnetSimulationElement
+  }
+
+type MagneticElement
+  {
+    order: Int
+    skew: Boolean
+    length: Float
+    multipoles: Multipoles
+    systematicMultipoles: Multipoles
+    randomMultipoles: Multipoles
+    fieldIntegralCoefficients: FieldIntegral
+    linearSaturationCoefficients: LinearSaturationFit
+    settleTime: Float
+    entranceEdgeAngle: String
+    exitEdgeAngle: String
+    gap: Float
+    bore: Float
+    plane: BendingPlaneEnum
+    width: Float
+    tilt: Float
+    edgeFieldIntegral: Float
+    fringeFieldCoefficient: Float
+    gradient: Float
+    angle: Float
+  }
+
+type MagnetSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    nKicks: Int
+    fieldAmplitude: Float
+    nSlices: Int
+    smooth: Int
+    edgeFieldIntegral: Float
+    edge1Effects: Boolean
+    edge2Effects: Boolean
+    srEnable: Boolean
+    isrEnable: Boolean
+    csrEnable: Boolean
+    csrBins: Int
+    integrationOrder: Int
+    nonlinear: Boolean
+    smoothingHalfWidth: Int
+    edgeOrder: Int
+    deltaL: Float
+    smoothPoints: Float
+  }
+
+type ManufacturerElement
+  {
+    manufacturer: String
+    serialNumber: String
+  }
+
+type Marker
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    hardwareType: String
+  }
+
+type Multipole
+  {
+    order: Int
+    normal: Float
+    skew: Float
+    radius: Float
+  }
+
+type Multipoles
+  {
+    k0L: Multipole
+    k1L: Multipole
+    k2L: Multipole
+    k3L: Multipole
+    k4L: Multipole
+  }
+
+type PhotonIntensityMonitorDiagnostic
+  {
+    type: String
+    intensity: Float
+  }
+
+type PhotonMonitor
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    diagnostic: DiagnosticElement
+    simulation: DiagnosticSimulationElement
+    intensity: PhotonIntensityMonitorDiagnostic
+    hardwareType: String
+    hardwareModel: String
+  }
+
+type PhysicalAcceleratorElement
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareType: String
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+  }
+
+type PhysicalElement
+  {
+    middle: Position
+    datum: Position
+    rotation: Rotation
+    globalRotation: Rotation
+    error: ElementPositionError
+    survey: ElementSurvey
+    length: Float
+    physicalAngle: Float
+    referencePlacement: ReferencePlacement
+    s: Float
+    sPoint: String
+  }
+
+type PID
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    pid: PIDElement
+    hardwareType: String
+  }
+
+type PIDElement
+  {
+    kp: Float
+    ki: Float
+    kd: Float
+    forwardChannel: Int
+    probeChannel: Int
+    enable: String
+    disable: String
+    phaseRange: PIDPhaseRange
+    phaseWeightRange: PIDWeightRange
+  }
+
+type PIDPhaseRange
+  {
+    min: Float
+    max: Float
+  }
+
+type PIDWeightRange
+  {
+    min: Float
+    max: Float
+  }
+
+type Plasma
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    plasma: PlasmaElement
+    laser: LaserElement
+    hardwareType: String
+    simulation: PlasmaSimulationElement
+  }
+
+type PlasmaElement
+  {
+    density: Float
+    species: String
+    rampUp: Float
+    plateau: Float
+    rampDown: Float
+    rampDecayLength: Float
+    densityProfile: Boolean
+    parabolicCoefficient: Float
+  }
+
+type PlasmaSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    wakefieldModel: String
+    bunchPusher: String
+    dtBunch: String
+    nOut: Int
+    minLongitudinalPosition: Float
+    maxLongitudinalPosition: Float
+    nLongitudinal: Int
+    nRadial: Int
+    plasmaParticlesPerCell: Int
+    rMax: Float
+    rMaxPlasma: Float
+    dzFields: Float
+    plasmaPusher: String
+  }
+
+type Position
+  {
+    x: Float
+    y: Float
+    z: Float
+  }
+
+type PowerSupply
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    hardwareType: String
+  }
+
+type ReferenceElement
+  {
+    drawings: [String]
+    designFiles: [String]
+  }
+
+type ReferencePlacement
+  {
+    element: String!
+    point: String
+    offset: Position
+    worldOffset: Position
+    sOffset: Float
+  }
+
+type RFCavity
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    cavity: RFCavityElement
+    hardwareType: String
+    simulation: RFCavitySimulationElement
+  }
+
+type RFCavityElement
+  {
+    cellLength: Float
+    couplingCellLength: Float
+    designGamma: Float
+    designPower: Float
+    frequency: Float
+    nCells: Float
+    crest: Float
+    phase: Float
+    shuntImpedance: Float
+    modeNumerator: Float
+    modeDenominator: Int
+    structureType: String
+    attenuationConstant: Float
+    powerCalibration: [Float]
+    gradientCalibration: [Float]
+  }
+
+type RFCavitySimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    tColumn: String
+    zColumn: String
+    wxColumn: String
+    wyColumn: String
+    wzColumn: String
+    nKicks: Int
+    lscBins: Int
+    changeP0: Int
+    end1Focus: Int
+    end2Focus: Int
+    bodyFocusModel: String
+    currentBins: Int
+    interpolateCurrentBins: Int
+    smoothCurrentBins: Int
+    smooth: Int
+    ezPeak: Float
+    fieldFileName: String
+    wakefile: String
+    zwakefile: String
+    trwakefile: String
+    fieldAmplitude: Float!
+  }
+
+type RFDeflectingCavity
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: RFCavitySimulationElement
+    cavity: RFDeflectingCavityElement
+    hardwareType: String
+  }
+
+type RFDeflectingCavityElement
+  {
+    cellLength: Float
+    couplingCellLength: Float
+    crest: Float
+    designGamma: Float
+    designPower: Float
+    frequency: Float
+    nCells: Float
+    phase: Float
+    shuntImpedance: Float
+    modeNumerator: Float
+    modeDenominator: Int
+  }
+
+type RFHeartbeat
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    heartbeat: RFHeartbeatElement
+    hardwareType: String
+  }
+
+type RFHeartbeatElement
+  {
+    _placeholder: Boolean
+  }
+
+type RFModulator
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    modulator: RFModulatorElement
+    hardwareType: String
+  }
+
+type RFModulatorElement
+  {
+    _placeholder: Boolean
+  }
+
+type RFProtection
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    protection: RFProtectionElement
+    hardwareType: String
+  }
+
+type RFProtectionElement
+  {
+    protType: String
+  }
+
+type Rotation
+  {
+    phi: Float
+    psi: Float
+    theta: Float
+  }
+
+type Screen
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: DiagnosticSimulationElement
+    diagnostic: ScreenDiagnosticElement
+    hardwareType: String
+  }
+
+type ScreenDiagnosticElement
+  {
+    type: String
+    hasCamera: Boolean
+    cameraName: String
+    devices: [String]
+  }
+
+type SectionLattice
+  {
+    name: String!
+    masterLattice: String
+    elements: [String]
+  }
+
+type Shutter
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    shutter: ShutterElement
+    hardwareType: String
+  }
+
+type ShutterElement
+  {
+    interlocks: [String]
+  }
+
+type SimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+  }
+
+type Stage
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    hardwareType: String
+  }
+
+type StandardElement
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareType: String
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+  }
+
+type Trace
+  {
+    dataSize: Int
+    dataCount: Int
+    dataChunkSize: Int
+    numberOfStartZeros: Int
+  }
+
+type TwissMatch
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    hardwareType: String
+    simulation: TwissMatchSimulationElement
+  }
+
+type TwissMatchSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    betaX: Float
+    betaY: Float
+    alphaX: Float
+    alphaY: Float
+    etaX: Float
+    etaY: Float
+    etaXp: Float
+    etaYp: Float
+    fromBeam: Boolean
+  }
+
+type VacuumGauge
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    hardwareType: String
+  }
+
+type Valve
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    simulation: SimulationElement
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    valve: ValveElement
+    hardwareType: String
+  }
+
+type ValveElement
+  {
+    _placeholder: Boolean
+  }
+
+type Wakefield
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    cavity: WakefieldElement
+    hardwareType: String
+    simulation: WakefieldSimulationElement
+  }
+
+type WakefieldElement
+  {
+    cellLength: Float
+    nCells: Float
+    couplingCellLength: Float
+  }
+
+type WakefieldSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    tColumn: String
+    zColumn: String
+    wxColumn: String
+    wyColumn: String
+    wzColumn: String
+    allowLongBeam: Boolean
+    bunchedBeam: Boolean
+    changeMomentum: Boolean
+    factor: Float
+    interpolate: Boolean
+    scaleKick: Float
+    scaleFieldEx: Float
+    scaleFieldEy: Float
+    scaleFieldEz: Float
+    scaleFieldHx: Float
+    scaleFieldHy: Float
+    scaleFieldHz: Float
+    equalGrid: Float
+    interpolationMethod: Int
+    smooth: Float
+    subbins: Int
+  }
+
+type WallCurrentMonitor
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: DiagnosticSimulationElement
+    diagnostic: ChargeDiagnosticElement
+    hardwareType: String
+  }
+

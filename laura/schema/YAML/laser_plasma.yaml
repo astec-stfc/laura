@@ -1,0 +1,285 @@
+id: https://w3id.org/laura/schema/laser_plasma
+name: laura_laser_plasma_schema
+title: LAURA Laser and Plasma Model Chunk
+description: >-
+  Laser and plasma schema classes used by accelerator elements.
+version: "0.1.0"
+license: Apache Software License 2.0
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+imports:
+  - linkml:types
+
+classes:
+
+  # -- Laser + plasma objects -----------------------------------
+
+
+  Plasma:
+    is_a: PhysicalAcceleratorElement
+    description: Laser-driven plasma-accelerator stage.
+    class_uri: laura:Plasma
+    slot_usage:
+      hardware_type:
+        equals_string: Plasma
+      simulation:
+        range: PlasmaSimulationElement
+    attributes:
+      plasma:
+        range: PlasmaElement
+        description: Plasma channel parameters.
+      laser:
+        range: LaserElement
+        description: Laser driving the plasma stage.
+
+  LaserEnergyMeter:
+    is_a: StandardElement
+    description: Laser pulse-energy diagnostic (photodiode / pyroelectric).
+    class_uri: laura:LaserEnergyMeter
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserEnergyMeter
+    attributes:
+      laser:
+        range: LaserEnergyMeterElement
+        description: Energy-meter instrument parameters.
+
+  LaserHalfWavePlate:
+    is_a: StandardElement
+    description: Half-wave plate for laser polarisation rotation.
+    class_uri: laura:LaserHalfWavePlate
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserHalfWavePlate
+    attributes:
+      laser:
+        range: LaserHalfWavePlateElement
+        description: Half-wave plate parameters.
+
+  LaserMirror:
+    is_a: StandardElement
+    description: Laser steering or focusing mirror.
+    class_uri: laura:LaserMirror
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserMirror
+    attributes:
+      laser:
+        range: LaserMirrorElement
+        description: Mirror steering parameters.
+
+  LaserMirrorElement:
+    description: Mirror steering parameters for a laser mirror.
+    class_uri: laura:LaserMirrorElement
+    attributes:
+      step_max:
+        range: float
+        description: Maximum step size for mirror adjustment.
+      sense:
+        range: LaserMirrorSense
+        description: Mirror sense/interlock configuration.
+      vertical_channel:
+        range: integer
+        description: Vertical control channel index.
+      horizontal_channel:
+        range: integer
+        description: Horizontal control channel index.
+
+  LaserMirrorSense:
+    description: Mirror sense switch values.
+    class_uri: laura:LaserMirrorSense
+    attributes:
+      left:
+        range: float
+        description: Left sense value.
+        aliases: [left_sense]
+      right:
+        range: float
+        description: Right sense value.
+        aliases: [right_sense]
+      up:
+        range: float
+        description: Up sense value.
+        aliases: [up_sense]
+      down:
+        range: float
+        description: Down sense value.
+        aliases: [down_sense]
+
+  LaserAttenuator:
+    is_a: StandardElement
+    description: Laser power attenuator (waveplate + polariser combination).
+    class_uri: laura:LaserAttenuator
+    in_subset:
+      - laser_properties
+    slot_usage:
+      hardware_type:
+        equals_string: LaserAttenuator
+    attributes:
+      maximum:
+        range: float
+        description: Maximum attenuation angle [deg].
+        unit:
+          ucum_code: deg
+      minimum:
+        range: float
+        description: Minimum attenuation angle [deg].
+        unit:
+          ucum_code: deg
+
+  # -- Laser + plasma elements -----------------------------------
+
+  LaserElement:
+    description: >-
+      Laser-beam parameters (wavelength, pulse energy, profile, etc.) for
+      a laser element or laser-driven plasma stage.
+    class_uri: laura:LaserElement
+    in_subset:
+      - laser_properties
+    attributes:
+      initial_position:
+        range: float
+        description: Initial longitudinal position of the laser pulse [m].
+        ifabsent: float(0)
+        unit:
+          ucum_code: m
+      waist:
+        range: float
+        description: Laser beam waist (1/e^2 radius) [m].
+        ifabsent: float(0)
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      wavelength:
+        range: float
+        description: Laser wavelength [m].
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      pulse_energy:
+        range: float
+        description: Laser pulse energy [J].
+        minimum_value: 0.0
+        unit:
+          ucum_code: J
+      pulse_duration_fwhm:
+        range: float
+        description: Pulse duration at FWHM [s].
+        minimum_value: 0.0
+        unit:
+          ucum_code: s
+      focal_position:
+        range: float
+        description: Focal (waist) position along the propagation axis [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+      cep_phase:
+        range: float
+        description: Carrier-envelope phase [rad].
+        ifabsent: float(0)
+        unit:
+          ucum_code: rad
+      polarization:
+        range: LaserPolarizationEnum
+        description: Laser polarization state.
+      profile_type:
+        range: LaserProfileTypeEnum
+        description: Transverse intensity profile model.
+        ifabsent: string(gaussian)
+      laguerre_polynomial_order_p:
+        range: integer
+        description: >-
+          Radial Laguerre-Gaussian mode index p (for
+          ``profile_type = laguerre-gaussian``).
+        ifabsent: int(0)
+        minimum_value: 0
+      flatness:
+        range: integer
+        description: >-
+          Flatness order N of a flattened-Gaussian profile
+          (for ``profile_type = flattened-gaussian``).
+        ifabsent: int(6)
+        minimum_value: 1
+
+  LaserEnergyMeterElement:
+    description: Laser energy-meter sub-model (no additional fields).
+    class_uri: laura:LaserEnergyMeterElement
+
+  LaserHalfWavePlateElement:
+    description: Half-wave plate sub-model (no additional fields).
+    class_uri: laura:LaserHalfWavePlateElement
+
+  # -- Plasma sub-model -------------------------------------------------------
+
+  PlasmaElement:
+    description: Plasma channel parameters for a laser-driven plasma-accelerator stage.
+    class_uri: laura:PlasmaElement
+    attributes:
+      density:
+        range: float
+        description: "Plasma (electron) number density [m^-^3]."
+        minimum_value: 0.0
+        unit:
+          ucum_code: m-3
+      species:
+        range: string
+        description: "Plasma species name (e.g., ``electron``)."
+        ifabsent: string(electron)
+      ramp_up:
+        range: float
+        description: Entrance density-ramp length [m].
+        ifabsent: float(0.001)
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      plateau:
+        range: float
+        description: Flat-top plateau length [m].
+        ifabsent: float(0.001)
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      ramp_down:
+        range: float
+        description: Exit density-ramp length [m].
+        ifabsent: float(0.001)
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      ramp_decay_length:
+        range: float
+        description: Exponential decay length of the density ramp [m].
+        ifabsent: float(0.001)
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      density_profile:
+        range: boolean
+        description: >-
+          If True, use a user-defined profile; if False, use a flat-top
+          model.
+        ifabsent: "False"
+      parabolic_coefficient:
+        range: float
+        description: Parabolic coefficient for a transverse density profile.
+        ifabsent: float(0)

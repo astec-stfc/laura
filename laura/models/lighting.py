@@ -1,5 +1,5 @@
-from .baseModels import IgnoreExtra
+from ._generated import _LightingElementBase
 
 
-class LightingElement(IgnoreExtra):
+class LightingElement(_LightingElementBase):
     """Lighting info model."""

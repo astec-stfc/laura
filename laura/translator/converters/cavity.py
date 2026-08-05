@@ -25,13 +25,13 @@ class RFCavityTranslator(BaseElementTranslator):
     simulation: RFCavitySimulationElement
     """Cavity simulation element"""
 
-    wakefile: str = None
+    wakefile: str | None = None
     """Name of wakefile associated with the cavity."""
 
-    trwakefile: str = None
+    trwakefile: str | None = None
     """Name of transverse wakefile associated with the cavity."""
 
-    zwakefile: str = None
+    zwakefile: str | None = None
     """Name of longitudinal wakefile associated with the cavity."""
 
     @computed_field
@@ -76,7 +76,7 @@ class RFCavityTranslator(BaseElementTranslator):
 
     def set_wakefield_column_names(self, wakefield_file_name: str) -> None:
         """
-        Set the column names for the wakefield file, based on `wakefield_definition.
+        Set the column names for the wakefield file, based on ``wakefield_definition``.
 
         Parameters
         ----------

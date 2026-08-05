@@ -1,0 +1,12 @@
+sections:
+  DEMO:
+    - GUN_RF_CAVITY
+    - INJ_SOL_01
+    - INJ_QUAD_01
+    - INJ_QUAD_02
+    - INJ_QUAD_03
+    - INJ_QUAD_04
+    - INJ_WCM_01
+    - INJ_BPM_01
+    - INJ_BAM_01
+    - LINAC_RF_CAVITY

@@ -3,17 +3,24 @@
 Element Definition
 ==================
 
-Accelerator elements in :mod:`LAURA` are based on a hierarchical structure. All elements must define some common
-properties in order to identify their type, machine_area, and other fields.
-From this base level, additional details can be added progressively depending on the element type and its
-intended use.
+Accelerator elements in :mod:`LAURA` are based on a hierarchical structure defined by a LinkML
+ontology; see :ref:`schema` for what that ontology contains and how it reaches the Python
+classes described here.
+All elements must define some common properties in order to identify their type,
+``machine_area``, and other fields.
+From this base level, additional details can be added progressively depending on
+the element type and its intended use.
 
-These generic classes are outlined below; refer to :numref:`fig-element-structure` for an inheritance diagram.
+The class hierarchy is illustrated in the
+`element class diagram <element-er.html>`_
+and described in detail in :doc:`element-hierarchy`;
+:numref:`fig-element-structure` gives an overview of how an element is composed.
 
 .. _fig-element-structure:
 .. figure:: assets/element-structure.png
 
-   Class structure of :mod:`LAURA` elements.
+   Composition of a :mod:`LAURA` element: the ``baseElement`` → ``Element`` →
+   ``PhysicalBaseElement`` spine, and the sub-models each layer attaches.
 
 
 .. _base-element:
@@ -21,27 +28,33 @@ These generic classes are outlined below; refer to :numref:`fig-element-structur
 Base-level element
 ------------------
 
-All elements in a :mod:`LAURA` lattice derive from the :py:class:`baseElement <laura.models.element.baseElement>`
-class. At a minimum, each element must define:
+All elements in a :mod:`LAURA` lattice derive from the
+:py:class:`baseElement <laura.models.element.baseElement>` class
+(schema: ``AcceleratorElement``).
+At a minimum, each element must define:
 
 * ``name: str``: The (unique) name of the element.
-* ``hardware_class: str``: The generic type of the element. 
-* ``hardware_type: str``: The element type. For example, a ``Quadrupole`` has ``hardware_type='Quadrupole'`` and ``hardware_class='Magnet'``. 
+* ``hardware_class: HardwareClassEnum``: The generic category of the element. One of ``Magnet``, ``Diagnostic``, ``RF``, ``Vacuum``, ``Laser``, ``Plasma``, ``Feedback``, ``Marker``, ``Aperture``, ``Stage``, ``Lighting``, ``Shutter``, ``Wakefield``, ``TwissMatch``, ``Drift``, ``Monitor``, ``Simulation`` or ``Generic``.
+* ``hardware_type: str``: The element type, and the key used to select a Python class when loading YAML. For example, a ``Quadrupole`` has ``hardware_type='Quadrupole'`` and ``hardware_class='Magnet'``.
 * ``machine_area: str``: Used for dividing the lattice into sections based on position.
 
 The following additional properties can also be provided:
 
 * ``hardware_model: str``: A specific model type of an element, for example the manufacturer name.
 * ``virtual_name: str``: The name of the element in the virtual control system (if it exists).
-* ``alias: str | list``: Alternative name(s) for the element.
-* ``subelement: bool``: Represents whether the element 'belongs' to another, i.e. if they overlap in physical space, such as a wakefield attached to a cavity or a solenoid magnet around an RF photoinjector.
+* ``alias: str | list``: Alternative name(s) for the element. Accepts a single comma-separated string or a list; ``name_alias`` is an input alias for this field.
+* ``subelement: str | None``: The name of the element this one 'belongs' to, i.e. that it overlaps in physical space -- such as a wakefield attached to a cavity or a solenoid magnet around an RF photoinjector. A sub-element is excluded when computing the total length of a beamline. Passing ``True`` instead of a name marks the element as a sub-element without naming a parent.
+
+An element may also declare how it is wired to the rest of the machine, through ``inputs``,
+``outputs``, ``upstream`` and ``downstream``. These four describe the control/signal graph and
+are covered in :ref:`signal-connectivity`.
 
 While most elements that are typically considered part of an accelerator lattice are defined with reference to a
 fiducial position, and therefore are described in physical space with respect to that position, not all
 elements supported by the :mod:`LAURA` standard need to have their position defined.
 Objects that control lighting, low-level RF modules, RF modulators, or feedback systems, are all examples of
 elements that derive from :py:class:`baseElement <laura.models.element.baseElement>`
-but do not have a physical position defined.
+(schema: ``StandardElement``) but do not have a physical position defined.
 
 **Example:** Creating a basic element without physical position:
 
@@ -66,15 +79,18 @@ but do not have a physical position defined.
         hardware_class="Diagnostic",
         hardware_type="BPM",
         machine_area="LINAC-1",
-        subelement=True
+        subelement="QUAD-01"       # or True, to mark it without naming a parent
     )
+
+    embedded_bpm.is_subelement()   # True
 
 .. _physical-element:
 
 Physical element
 ----------------
 
-The :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>` class derives from
+The :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>` class
+(schema: ``PhysicalAcceleratorElement``) derives from
 :py:class:`baseElement <laura.models.element.baseElement>`, with the additional ``physical`` property based on
 the :py:class:`PhysicalElement <laura.models.physical.PhysicalElement>` class.
 This allows the position and rotation of the element in Cartesian co-ordinates to be defined. 
@@ -82,12 +98,15 @@ Furthermore, elements can be specified with ``error`` and ``survey`` attributes,
 
 The full specification of an element position therefore consists of:
 
-* ``position: Position(x, y, z)`` -- this refers to the middle of the element.
-* ``global_rotation: Rotation(phi, psi, theta)``
+* ``middle: Position(x, y, z)`` -- the middle of the element. ``position`` and ``centre`` are accepted as input aliases.
+* ``datum: Position(x, y, z)`` -- the element's mechanical datum (fiducial) point.
+* ``rotation: Rotation(phi, psi, theta)`` -- the element's own rotation.
+* ``global_rotation: Rotation(phi, psi, theta)`` -- the rotation of the local frame the element sits in.
 * ``length: float``
-* ``angle: float`` -- this is a simplified way of retrieving the bend angle in the X-Z plane.
-* ``error: ElementError(position=Position(x, y, z), rotation=Rotation(phi, psi, theta))`` -- see :py:class:`ElementError <laura.models.physical.ElementError>`; the reference position for an error is the middle of the element.
+* ``angle: float`` -- a simplified way of retrieving the bend angle in the X-Z plane.
+* ``error: ElementError(position=Position(x, y, z), rotation=Rotation(phi, psi, theta))`` -- see :py:class:`ElementError <laura.models.physical.ElementError>` (``ElementPositionError`` in the schema); the reference position for an error is the middle of the element.
 * ``survey: ElementSurvey(position=Position(x, y, z), rotation=Rotation(phi, psi, theta))`` -- see :py:class:`ElementSurvey <laura.models.physical.ElementSurvey>`.
+* ``reference_placement: ReferencePlacement`` and ``s: float`` -- alternatives to giving ``middle`` directly; see :ref:`positioning-modes`.
 
 **Example:** Creating elements with physical properties:
 
@@ -116,19 +135,96 @@ The full specification of an element position therefore consists of:
     print(f"Quad start: {quad.physical.start.z}")  # 9.75
     print(f"Quad end: {quad.physical.end.z}")      # 10.25
 
+.. _positioning-modes:
+
+Positioning modes
+~~~~~~~~~~~~~~~~~
+
+An element's longitudinal placement can be expressed in three mutually exclusive ways.
+Whichever is used, the lattice resolves all of them to a common set of global
+``middle`` coordinates plus an arc-length ``s`` when a section is assembled
+(:py:meth:`SectionLattice.resolve_positions <laura.models.elementList.SectionLattice.resolve_positions>`),
+so downstream code -- geometry, drift creation, translation -- never has to care which
+form was used on disk.
+
+**Global coordinates** (``middle``) -- the traditional form. Cartesian, absolute, and
+independent of every other element:
+
+.. code-block:: yaml
+
+    physical:
+      length: 0.3
+      middle: [0.0, 0.0, 15.0]
+
+**Arc length** (``s``) -- a scalar distance along the design orbit from the start of the
+section. The design orbit is integrated through the bending elements, so ``s`` and the
+global coordinates are interconvertible. ``s_point`` selects which part of the element
+the value refers to (``start``, ``middle`` -- the default -- or ``end``):
+
+.. code-block:: yaml
+
+    physical:
+      length: 0.3
+      s: 15.0
+      s_point: middle
+
+**Relative placement** (``reference_placement``) -- the element is positioned in the frame
+of another named element, which is the natural way to describe "1 m downstream of the
+dipole exit" without recomputing coordinates whenever the dipole moves. Exactly one offset
+may be given (or none, for zero offset):
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Key
+     - Meaning
+   * - ``element``
+     - Name of the reference element.
+   * - ``point``
+     - Which point of the reference element to measure from: ``start``, ``middle``, or ``end`` (the default).
+   * - ``offset``
+     - Full 3-D offset in the reference element's **local** frame.
+   * - ``world_offset``
+     - Full 3-D offset in **global world** coordinates.
+   * - ``s_offset``
+     - Scalar offset along the local beam direction; equivalent to ``offset: [0, 0, s_offset]``.
+
+.. code-block:: yaml
+
+    physical:
+      length: 0.3
+      reference_placement:
+        element: INJ-MAG-DIP-01
+        point: end
+        s_offset: 1.0
+
+Because a resolved element carries both ``middle`` and ``s``, a machine can be re-exported in
+any of the three forms regardless of how it was written; see :ref:`interfaces`.
+
+.. note::
+
+   Combining ``reference_placement`` with ``middle`` or ``s`` is rejected at construction
+   (a pydantic ``ValidationError`` wrapping a ``ValueError``). ``middle`` and ``s`` together
+   *are* permitted -- ``middle`` stays authoritative and ``s`` is treated as an informational
+   value -- because a default YAML export records both.
+
 .. _element-class:
 
 Element
 -------
 
-On top of the :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>`, additional information
-pertaining to a given element can be specified in the :py:class:`Element <laura.models.element.Element>` class,
+On top of the :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>`,
+additional information pertaining to a given element can be specified in the
+:py:class:`Element <laura.models.element.Element>` class
+(schema: ``StandardElement`` / ``Element``),
 which defines the following additional properties (described in more detail in :ref:`auxiliary`):
 
 * ``simulation: SimulationElement`` -- see :ref:`simulation-element`.
 * ``controls: ControlsInformation`` -- see :ref:`controls-information`.
 * ``manufacturer: ManufacturerElement`` -- see :ref:`electrical-and-manufacturer`.
 * ``electrical: ElectricalElement`` -- see :ref:`electrical-and-manufacturer`.
+* ``reference: ReferenceElement`` -- see :ref:`electrical-and-manufacturer`.
 
 **Example:** Complete element definition with all properties:
 
@@ -148,17 +244,16 @@ which defines the following additional properties (described in more detail in :
             "middle": [0, 0, 15.0],
         },
         magnetic=Quadrupole_Magnet(
-            k1l=5.2,  # Normalized gradient
+            k1l=5.2,  # Integrated normalised gradient
             length=0.31 # Magnetic length
         ),
         electrical={
-            "maxI": 250.0,
-            "minI": 0.0,
+            "max_i": 250.0,
+            "min_i": 0.0,
             "read_tolerance": 0.01
         },
         manufacturer={
             "manufacturer": "Sigma Phi",
-            "model": "QF-250",
             "serial_number": "2023-001"
         },
         simulation=MagnetSimulationElement(
@@ -179,25 +274,15 @@ which defines the following additional properties (described in more detail in :
     )
 
     # Direct attribute access across nested models
-    print(quad.k1l)            # 5.2 (finds magnetic.k1)
+    print(quad.k1l)            # 5.2 (finds magnetic.k1l)
 
-For more examples of creating elements and combining them into lattices, see :ref:`examples`.
-Elements can be organized into :ref:`section-lattice` and :ref:`machine-layout` structures as
-described in :ref:`lattice`. Once defined, elements can be exported to simulation codes using
-the :ref:`translator` module.
-
-**Alternative:** Element definition using dictionaries:
+**Alternative:** the same element defined entirely with dictionaries. :mod:`LAURA` converts
+each nested mapping into the appropriate model class, so the two forms are equivalent:
 
 .. code-block:: python
 
     from laura.models.element import Quadrupole
 
-    # Same quadrupole using dictionary notation
-    # LAURA automatically converts dictionaries to appropriate class instances
-    from laura.models.element import Quadrupole
-
-    # Same quadrupole using dictionary notation
-    # LAURA automatically converts dictionaries to appropriate class instances
     quad = Quadrupole(
         name="QUAD-MATCH-01",
         machine_area="MATCHING",
@@ -214,21 +299,19 @@ the :ref:`translator` module.
             "length": 0.31,
         },
         electrical={
-            "maxI": 250.0,
-            "minI": 0.0,
+            "max_i": 250.0,
+            "min_i": 0.0,
             "read_tolerance": 0.01,
         },
         manufacturer={
             "manufacturer": "Sigma Phi",
-            "model": "QF-250",
             "serial_number": "2023-001",
-            "manufacture_date": "2023-06-15"
         },
         simulation={
             "field_amplitude": 5.2,
-            "slice_method": "DRIFT_KICK_DRIFT",
             "n_slices": 10,
-            "field_reference_position": "middle"
+            "n_kicks": 10,
+            "field_reference_position": "middle",
         },
         controls={
             "variables": {
@@ -249,42 +332,49 @@ the :ref:`translator` module.
         }
     )
 
-    # Dictionary notation works for partial definitions too
+Dictionary notation works for partial definitions too:
+
+.. code-block:: python
+
     from laura.models.element import RFCavity
 
     cavity = RFCavity(
         name="CAV-L1-01",
-        hardware_class="RFCavity",
         machine_area="LINAC-1",
         physical={
             "length": 1.0,
             "middle": [0, 0, 25.0],
         },
         cavity={
-            "frequency": 2.856e9,
-            "q0": 10000,
-            "r_over_q": 100,
-            "cavity_type": "StandingWave"
+            "frequency": 2.998e9,
+            "n_cells": 30,
+            "cell_length": 0.0333,
+            "structure_type": "TravellingWave",
+            "shunt_impedance": 55.0,
         },
         simulation={
-            "field_amplitude": 25e6,  # 25 MV/m
-            "phase": 0.0, # degrees, crest is at 0.0
-            "field_definition": {
-                "filename": "cavity_field.hdf5",
-                "field_type": "1DElectroDynamic",
-                "frequency": 2.856e9
-            }
+            "field_amplitude": 25e6,          # V/m
+            "field_definition": "cavity_field.hdf5",
+            "field_reference_position": "start",
         }
     )
 
-    # Mixed notation also works
-    from laura.models.element import Element
+.. note::
+
+   ``simulation.field_definition`` and ``simulation.wakefield_definition`` are **file paths**
+   (strings), not field objects. The file is read and converted to the target code's format
+   during translation; see :ref:`translator-fields`.
+
+Mixed notation also works -- a nested value may be given as a model instance, a dictionary,
+or (for positions and rotations) a plain list:
+
+.. code-block:: python
+
+    from laura.models.element import Screen
     from laura.models.physical import Position
 
-    screen = Element(
+    screen = Screen(
         name="SCREEN-01",
-        hardware_class="Diagnostic",
-        hardware_type="Screen",
         machine_area="INJECTOR",
         physical={
             "length": 0.01,
@@ -293,8 +383,183 @@ the :ref:`translator` module.
     )
 
 This flexibility allows for easy element creation from configuration files (YAML/JSON) or programmatic
-generation. See :ref:`examples` for more patterns of element creation and :ref:`lattice` for combining
-elements into larger structures.
+generation. For more examples of creating elements and combining them into lattices, see
+:ref:`examples`. Elements can be organised into :ref:`section-lattice` and :ref:`machine-layout`
+structures as described in :ref:`lattice`. Once defined, elements can be exported to simulation
+codes using the :ref:`translator` module.
+
+.. _signal-connectivity:
+
+Signal Connectivity
+===================
+
+A lattice is an ordered thing: the beam meets the gun, then the solenoid, then the first
+quadrupole. But the hardware that makes those elements work is wired up quite differently. A
+power supply sits in a rack and feeds a magnet somewhere along the beamline; a klystron drives a
+cavity through a waveguide run; a feedback loop reads a cavity probe and trims the modulator
+that drives it. None of that is described by beam order, and none of it is derivable from
+s-position.
+
+:mod:`LAURA` therefore stores a second, independent graph on the base element. It is described
+by four slots, which split cleanly into *what flows* and *what is connected*:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Slot
+     - Meaning
+   * - ``inputs``
+     - The **kinds of signal** this element consumes, as an unordered set of ``IOTypeEnum`` values. Types, not values, and not element names.
+   * - ``outputs``
+     - The kinds of signal this element produces.
+   * - ``upstream``
+     - The **names of elements** feeding this one -- those whose ``outputs`` supply its ``inputs``.
+   * - ``downstream``
+     - The names of elements this one feeds; by convention, the inverse of ``upstream``.
+
+The available signal types are ``current``, ``voltage``, ``power``, ``phase``, ``charge``,
+``magnetic_field``, ``pressure``, ``position``, ``rotation``, ``setpoint``, ``on_off_state``,
+``open_closed_state``, ``absolute_time``, ``relative_time``, ``shot_number``, ``value`` and
+``waveform``.
+
+Reading the two together is what makes a link meaningful: an edge from ``A`` to ``B`` carries
+whatever lies in the intersection of ``A.outputs`` and ``B.inputs``.
+
+Example: an RF drive chain
+--------------------------
+
+The following is drawn from ``examples/testing/sample_rf_control_elements.yaml``, which is a
+complete runnable machine description:
+
+.. code-block:: yaml
+
+    GUN_RF_POWER_SUPPLY:
+      name: GUN_RF_POWER_SUPPLY
+      hardware_class: RF
+      hardware_type: PowerSupply
+      machine_area: DEMO
+      inputs: [setpoint]
+      outputs: [current, voltage]
+      upstream: []
+      downstream: [GUN_KLYSTRON_MODULATOR]
+
+    GUN_KLYSTRON_MODULATOR:
+      name: GUN_KLYSTRON_MODULATOR
+      hardware_class: RF
+      hardware_type: RFModulator
+      machine_area: DEMO
+      inputs: [current, voltage]
+      outputs: [power, phase]
+      upstream: [GUN_RF_POWER_SUPPLY, GUN_RF_PID]
+      downstream: [GUN_RF_CAVITY]
+
+    GUN_RF_PID:
+      name: GUN_RF_PID
+      hardware_class: Feedback
+      hardware_type: PID
+      machine_area: DEMO
+      inputs: [setpoint, phase]
+      outputs: [phase]
+      upstream: [GUN_RF_CAVITY]
+      downstream: [GUN_KLYSTRON_MODULATOR, GUN_RF_CAVITY]
+
+    GUN_RF_CAVITY:
+      name: GUN_RF_CAVITY
+      hardware_class: RFCavity
+      hardware_type: RFCavity
+      machine_area: DEMO
+      inputs: [power, phase]
+      outputs: [voltage]
+      upstream: [GUN_KLYSTRON_MODULATOR, GUN_RF_PID]
+      downstream: [INJ_SOL_01]
+      physical:
+        middle: {x: 0.0, y: 0.0, z: 0.10}
+        length: 0.20
+
+Which reads as:
+
+.. code-block:: text
+
+    GUN_RF_POWER_SUPPLY  --current,voltage-->  GUN_KLYSTRON_MODULATOR
+    GUN_KLYSTRON_MODULATOR  --power,phase-->   GUN_RF_CAVITY
+    GUN_RF_CAVITY  --(measured)-->  GUN_RF_PID  --phase-->  GUN_KLYSTRON_MODULATOR
+
+A power supply drives a modulator, which drives a cavity, and a PID closes the loop back onto
+the modulator by trimming its phase.
+
+Two properties to know before writing traversal code
+-----------------------------------------------------
+
+**The graph is not acyclic.** ``GUN_RF_PID`` is downstream of ``GUN_RF_CAVITY`` and also lists
+that cavity in its own ``downstream``. That is a feedback loop, correctly described -- not a
+mistake. Track visited nodes or your traversal will not terminate.
+
+**Symmetry is a convention, not a constraint.** The two directions are stored rather than
+derived, so nothing enforces that ``A.downstream`` containing ``B`` implies ``B.upstream``
+contains ``A``. In the example above ``GUN_RF_CAVITY`` lists ``INJ_SOL_01`` in ``downstream``
+(a hand-off to the next section) while ``INJ_SOL_01.upstream`` names only its own power supply.
+Follow one direction consistently rather than assuming the inverse link exists.
+
+Traversing the graph
+--------------------
+
+The links are plain lists of names, so there is deliberately no graph API on
+:py:class:`LAURA <laura.laura.LAURA>` for this -- a few lines of ``collections.deque`` covers it:
+
+.. code-block:: python
+
+    from collections import deque
+
+    def signals_between(machine, source: str, dest: str) -> list[str]:
+        """Signal types flowing source -> dest: its outputs ∩ dest's inputs."""
+        return sorted(set(machine[source].outputs) & set(machine[dest].inputs))
+
+    def find_path(machine, start: str, goal: str) -> list[str] | None:
+        """Shortest ``downstream`` path from *start* to *goal*, or None."""
+        queue, seen = deque([[start]]), {start}
+        while queue:
+            path = queue.popleft()
+            if path[-1] == goal:
+                return path
+            for nxt in machine[path[-1]].downstream:
+                if nxt in seen or nxt not in machine.elements:
+                    continue
+                seen.add(nxt)                     # the cycle guard
+                queue.append(path + [nxt])
+        return None
+
+Answering "what drives this cavity, and with what?" is then a single loop over ``upstream``:
+
+.. code-block:: python
+
+    cavity = machine["LINAC_RF_CAVITY"]
+    for name in cavity.upstream:
+        print(name, "supplies", signals_between(machine, name, cavity.name))
+
+    # LINAC_KLYSTRON_MODULATOR supplies ['phase', 'power']
+    # LINAC_RF_PID supplies ['phase']
+
+and the reverse question -- which magnet a given power supply actually drives -- falls out of
+``downstream``:
+
+.. code-block:: python
+
+    for name, elem in sorted(machine.elements.items()):
+        if elem.hardware_type != "PowerSupply":
+            continue
+        for driven in elem.downstream:
+            print(name, "-->", driven, signals_between(machine, name, driven))
+
+    # INJ_QUAD_01_PSU --> INJ_QUAD_01 ['current']
+    # INJ_SOL_01_PSU --> INJ_SOL_01 ['current']
+
+A complete, runnable version of all of the above -- including a breadth-first walk that proves
+the feedback cycle terminates -- is in ``examples/testing/signal_graph_example.py``:
+
+.. code-block:: bash
+
+    python examples/testing/signal_graph_example.py
 
 .. _auxiliary:
 
@@ -316,17 +581,20 @@ required for simulation codes, it is helpful to assign to each :py:class:`Elemen
 simulation-specific parameters. At the base level, all
 :py:class:`SimulationElement <laura.models.simulation.SimulationElement>` classes contain:
 
-* ``field_definition: Optional[str]`` -- string pointing to a field definition, such as a fieldmap for an RF cavity or magnet.
-* ``wakefield_definition: Optional[str]`` -- string pointing to a wakefield definition, such as the geometric wakefield associated with a cavity cell.
+* ``field_definition: Optional[str]`` -- path to a field definition, such as a fieldmap for an RF cavity or magnet.
+* ``wakefield_definition: Optional[str]`` -- path to a wakefield definition, such as the geometric wakefield associated with a cavity cell.
+* ``wakefield_enable: bool`` -- whether the wakefield named by ``wakefield_definition`` is applied. Set ``False`` to track the element without its wakefield while keeping the definition itself (default ``True``).
 * ``field_reference_position: str`` -- the reference position for the field file, i.e. ``start``, ``middle``, ``end``.
-* ``scale_field: float | bool`` -- if this has a numerical value, the field strength in the file is to be scaled by this factor. 
+* ``scale_field: float`` -- multiplicative factor applied to the field strength in the file (default ``1``).
 
 Element-specific child classes are also derived from this and associated with those elements; see
 :py:class:`MagnetSimulationElement <laura.models.simulation.MagnetSimulationElement>`,
 :py:class:`DriftSimulationElement <laura.models.simulation.DriftSimulationElement>`,
 :py:class:`DiagnosticSimulationElement <laura.models.simulation.DiagnosticSimulationElement>`,
 :py:class:`RFCavitySimulationElement <laura.models.simulation.RFCavitySimulationElement>`,
-:py:class:`WakefieldSimulationElement <laura.models.simulation.WakefieldSimulationElement>`.
+:py:class:`WakefieldSimulationElement <laura.models.simulation.WakefieldSimulationElement>`,
+:py:class:`PlasmaSimulationElement <laura.models.simulation.PlasmaSimulationElement>`,
+:py:class:`TwissMatchSimulationElement <laura.models.simulation.TwissMatchSimulationElement>`.
 
 .. _controls-information:
 
@@ -518,9 +786,15 @@ The attributes of these classes are as follows:
 Electrical
 ~~~~~~~~~~
 
-* ``minI: float`` -- minimum current that the power source can deliver.
-* ``maxI: float`` -- maximum current that the power source can deliver.
-* ``read_tolerance: float`` -- read current tolerance.
+* ``min_i: float`` -- minimum current that the power source can deliver [A].
+* ``max_i: float`` -- maximum current that the power source can deliver [A].
+* ``read_tolerance: float`` -- read-back vs. set-point tolerance fraction (default ``0.1``, i.e. 10 %).
+
+.. note::
+
+   ``minI``, ``maxI`` and ``ri_tolerance`` are accepted as *input* aliases (in Python keyword
+   arguments and in YAML) for backwards compatibility, but attribute access always uses the
+   canonical names above -- ``element.maxI`` raises ``AttributeError``.
 
 Manufacturer
 ~~~~~~~~~~~~

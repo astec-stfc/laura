@@ -1,7 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, List, Any, Literal
-from warnings import warn
-from ...utils.classes import getGrids
+from ...utils.classes import get_grid_size
 
 
 class opal_header(BaseModel):
@@ -10,7 +9,7 @@ class opal_header(BaseModel):
 
     See `OPAL manual`_ for more details.
 
-    .. OPAL manual: https://amas.web.psi.ch/opal/Documentation/master/OPAL_Manual.html
+    .. _OPAL manual: https://amas.web.psi.ch/opal/Documentation/master/OPAL_Manual.html
     """
 
     model_config = ConfigDict(
@@ -372,9 +371,6 @@ class opal_fieldsolver(opal_header):
     space_charge_mode: str = "False"
     """Space charge mode"""
 
-    grids: getGrids | None = None
-    """Space charge grids"""
-
     sample_interval: int = 1
     """Downsampling interval calculated as 2 ** (3 * sample_interval)"""
 
@@ -439,7 +435,6 @@ class opal_fieldsolver(opal_header):
     (P3M + GREENSF=STANDARD only)."""
 
     def model_post_init(self, context: Any, /) -> None:
-        self.grids = getGrids()
         self.opaldict = {"input_particle_definition": "FNAME"}
         self.exclude.extend(
             ["npart", "space_charge_mode", "grids", "sample_interval",

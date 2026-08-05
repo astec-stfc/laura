@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, computed_field
 from typing import List
 import numpy as np
-from ...utils.classes import getGrids
+from ...utils.classes import get_grid_size
 from ...utils.functions import chop
 
 def orthonormalize(M):
@@ -476,9 +476,6 @@ class gpt_spacecharge(gpt_element):
     Class for preparing space charge calculations in GPT via `spacecharge`.
     """
 
-    grids: getGrids = None
-    """Class for calculating the required number of space charge grids"""
-
     ngrids: int | None = None
     """Number of space charge grids"""
 
@@ -496,8 +493,7 @@ class gpt_spacecharge(gpt_element):
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
-        self.grids = getGrids()
-        self.exclude.extend(["cathode", "grids", "ngrids", "space_charge_mode"])
+        self.exclude.extend(["cathode", "ngrids", "space_charge_mode"])
 
     def space_charge_enabled(self) -> bool:
         """
@@ -528,9 +524,7 @@ class gpt_spacecharge(gpt_element):
             return output
         if isinstance(self.space_charge_mode, str) and self.cathode:
             if self.ngrids is None:
-                self.ngrids = self.grids.getGridSizes(
-                    (self.npart / self.sample_interval)
-                )
+                self.ngrids = get_grid_size(self.npart / self.sample_interval)
             output += 'spacecharge3Dmesh("Cathode","RestMaxGamma",1000);\n'
         elif (
             isinstance(self.space_charge_mode, str)

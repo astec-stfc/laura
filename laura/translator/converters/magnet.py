@@ -147,7 +147,7 @@ class MagnetTranslator(BaseElementTranslator):
         Error in first-order magnetic strength
 
         Currently returns zero...
-        # TODO relate these to systematic_ and random_multipoles
+        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
 
         Returns
         -------
@@ -163,7 +163,7 @@ class MagnetTranslator(BaseElementTranslator):
         Error in second-order magnetic strength
 
         Currently returns zero...
-        # TODO relate these to systematic_ and random_multipoles
+        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
 
         Returns
         -------
@@ -179,7 +179,7 @@ class MagnetTranslator(BaseElementTranslator):
         Error in third-order magnetic strength
 
         Currently returns zero...
-        # TODO relate these to systematic_ and random_multipoles
+        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
 
         Returns
         -------
@@ -252,7 +252,7 @@ class MagnetTranslator(BaseElementTranslator):
         str
             String representation of the element for ASTRA
         """
-        field_ref_pos = self.get_field_reference_position()
+        field_ref_pos = self.get_field_reference_position(if_none="middle")
         astradict = dict(
             [
                 ["Q_pos", {"value": field_ref_pos[2] + self.dz, "default": 0}],
@@ -292,12 +292,12 @@ class MagnetTranslator(BaseElementTranslator):
                         "type": "not_zero",
                     },
                 ],
-                ["Q_smooth", {"value": self.simulation.smooth, "default": None}],
+                ["Q_smooth", {"value": self.simulation.smooth, "default": 2}],
                 [
                     "Q_bore",
                     {"value": self.magnetic.bore, "default": 0.037, "type": "not_zero"},
                 ],
-                ["Q_noscale", {"value": self.simulation.scale_field}],
+                ["Q_noscale", {"value": bool(self.simulation.scale_field)}],
                 # TODO figure out multipoles
                 # ["Q_mult_a", {"type": "list", "value": self.multipoles}],
             ]
@@ -355,8 +355,10 @@ class MagnetTranslator(BaseElementTranslator):
             String representation of the element for CSRTrack
         """
         z = self.physical.middle.z
+        s_comment = f"! quad{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
         return (
-            """quadrupole{\nposition{rho="""
+            s_comment
+            + """quadrupole{\nposition{rho="""
             + str(z)
             + """, psi=0.0, marker=quad"""
             + str(n)
@@ -538,7 +540,7 @@ class DipoleTranslator(BaseElementTranslator):
     def k3l(self, value: float) -> None:
         setattr(getattr(self.magnetic.multipoles, "K3L"), "normal", value)
 
-    # TODO relate these to systematic_ and random_multipoles
+    # TODO relate these to systematic_multipoles and random_multipoles
     @computed_field
     @property
     def dk1(self) -> float:
@@ -758,8 +760,10 @@ class DipoleTranslator(BaseElementTranslator):
         """
         z1 = self.physical.start.z
         z2 = self.physical.end.z
+        s_comment = f"! dipole{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
         return (
-            """dipole{\nposition{rho="""
+            s_comment
+            + """dipole{\nposition{rho="""
             + str(z1)
             + """, psi="""
             + str(chop(self.physical.rotation.theta + self.e1))
@@ -1037,7 +1041,7 @@ class SolenoidTranslator(BaseElementTranslator):
                     [
                         "MaxB",
                         {
-                            "value": self.get_field_amplitude / self.magnetic.length,
+                            "value": self.magnetic.field_amplitude,
                             "default": 0,
                         },
                     ],

@@ -54,14 +54,15 @@ def _dipole(**magnetic):
 
 
 def _cavity(field_amplitude, phase=0.0, structure="StandingWave"):
-    mode = (
-        {"mode_numerator": 1.0, "mode_denominator": 3}
-        if structure == "TravellingWave"
-        else {}
-    )
+    cavity = {"phase": phase, "structure_Type": structure}
+    if structure.lower() == "travellingwave":
+        # RFCavityElement requires a mode for travelling-wave structures. This
+        # went unnoticed while the check read `.lower ==` (comparing a bound
+        # method to a string, so never true); it is a real constraint.
+        cavity |= {"mode_numerator": 2, "mode_denominator": 3}
     cav = RFCavity(
         name="C1", machine_area="L02",
-        cavity={"phase": phase, "structure_type": structure, **mode},
+        cavity=cavity,
         simulation={"field_amplitude": field_amplitude},
     )
     return RFCavityTranslator.model_validate(cav.model_dump())

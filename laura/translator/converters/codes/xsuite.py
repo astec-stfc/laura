@@ -1,17 +1,28 @@
-import os
+from __future__ import annotations
+
 import numpy as np
-import yaml
 from pydantic import BaseModel, ConfigDict
 from pydantic_core import PydanticUndefinedType
-from typing import Dict, List
-import xtrack as xt
-from xtrack.beam_elements.elements import _HasKnlKsl
+from typing import Any, Dict, List, TYPE_CHECKING
+try:
+    import xtrack as xt
+    from xtrack.beam_elements.elements import _HasKnlKsl
+    _XTRACK_AVAILABLE = True
+except ImportError as _err:
+    _XTRACK_AVAILABLE = False
+    xt = None  # type: ignore[assignment]
+    _HasKnlKsl = object  # type: ignore[misc, assignment]
+
+if TYPE_CHECKING:
+    import xtrack as xt  # type: ignore[no-redef]
+    from xtrack.beam_elements.elements import _HasKnlKsl  # type: ignore[no-redef]
 from laura.models.elementList import (
     SectionLattice,
     MachineLayout,
     ElementList,
 )
 from . import magnetic_orders
+from .. import keyword_conversion_rules_xsuite as keyword_conversion_rules
 from ...utils.functions import introspect_model_defaults
 from ...conversion_rules.codes import xsuite_conversion
 from warnings import warn
@@ -19,19 +30,6 @@ from warnings import warn
 type_conversion_rules_xsuite_reversed = (
     xsuite_conversion.xsuite_conversion_rules_reverse
 )
-
-
-try:
-    _FastLoader = yaml.CSafeLoader
-except AttributeError:
-    _FastLoader = yaml.SafeLoader
-
-with open(
-    os.path.dirname(os.path.abspath(__file__))
-    + "/../../conversion_rules/keywords/keyword_conversion_rules_Xsuite.yaml",
-    "r",
-) as infile:
-    keyword_conversion_rules = yaml.load(infile, Loader=_FastLoader)
 
 
 class XsuiteLatticeConverter(BaseModel):
@@ -46,7 +44,7 @@ class XsuiteLatticeConverter(BaseModel):
 
     machine_area: str = "Lattice"
 
-    line: xt.Line
+    line: Any
     """Xsuite line"""
 
     elements: Dict = {}
@@ -139,19 +137,24 @@ class XsuiteLatticeConverter(BaseModel):
         """
         Compute midpoints for many elements.
 
-        Inputs
-        - survey_positions: (N,3) array of start positions P0 for each element
-        - survey_rotations: (N,3,3) array of rotations R0 for each element
-          (R0 maps local->global)
-        - elements: sequence of element-objects or dicts, each must provide:
-            - length: float
-            - angle: float   # bending angle in radians; if absent treated as 0
-          Accepts any object where `getattr(el,'length')` and `getattr(el,'angle',0.0)` work,
-          or dict-like with keys 'length' and 'angle'.
-        - local_axes_map: see element_midpoint_global
+        Inputs:
 
-        Returns
-        - mids: (N,3) ndarray of midpoint positions
+        - ``survey_positions``: (N,3) array of start positions P0 for each element
+        - ``survey_rotations``: (N,3,3) array of rotations R0 for each element
+          (R0 maps local->global)
+        - ``elements``: sequence of element-objects or dicts, each must provide:
+
+          - ``length``: float
+          - ``angle``: float (bending angle in radians; if absent treated as 0)
+
+          Accepts any object where ``getattr(el,'length')`` and ``getattr(el,'angle',0.0)`` work,
+          or dict-like with keys ``'length'`` and ``'angle'``.
+
+        - ``local_axes_map``: see ``element_midpoint_global``
+
+        Returns:
+
+        - ``mids``: (N,3) ndarray of midpoint positions
         """
         elem_pos = {}
         yhat = np.array([0, 1, 0])  # assuming horizontal bending plane
