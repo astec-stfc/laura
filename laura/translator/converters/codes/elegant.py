@@ -171,6 +171,7 @@ class ElegantLatticeImporter(BaseModel):
                         if abs(physical_angle) > 1e-9:
                             v["physical"]["physical_angle"] = physical_angle
                     self.elements.update({k: getattr(LAURA_elements, vtype)(**v)})
+        return self.elements
 
     def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:
         """Build a named :class:`SectionLattice` from imported elements.
@@ -189,34 +190,29 @@ class ElegantLatticeImporter(BaseModel):
         if not self.elements:
             self.create_laura_element_dictionary()
         if section is None:
-            names = list(self.elements.keys())
+            names = list(self.elements)
             if not names:
                 raise ValueError("No elements were imported; cannot build a section.")
             section = {self._default_name(): [names[0], names[-1]]}
-        secname = list(section.keys())
-        assert len(secname) == 1
-        secelements = list(section.values())[0]
-        assert len(secelements) >= 2
-        appending = False
-        order = []
-        elems = {}
-        for name, elem in self.elements.items():
-            if name == secelements[0]:
-                appending = True
-            if appending:
-                order.append(name)
-                elems.update({name: elem})
-            if name == secelements[1]:
-                appending = False
-        if not order:
-            raise KeyError(
-                f"element {secelements[0]} not found in lattice; could not construct section"
-            )
+        if len(section) != 1:
+            raise ValueError("A section definition must contain exactly one section.")
+        secname, bounds = next(iter(section.items()))
+        if len(bounds) != 2:
+            raise ValueError("A section definition must contain first and last elements.")
+        names = list(self.elements)
+        try:
+            first, last = names.index(bounds[0]), names.index(bounds[1])
+        except ValueError as exc:
+            missing = bounds[0] if bounds[0] not in self.elements else bounds[1]
+            raise KeyError(f"element {missing} not found in lattice") from exc
+        if first > last:
+            raise ValueError("The first section element must precede the last.")
+        elems = dict(list(self.elements.items())[first : last + 1])
         seclat = SectionLattice(
-            order=order, elements=ElementList(elements=elems), name=secname[0]
+            order=list(elems), elements=ElementList(elements=elems), name=secname
         )
         seclat.resolve_positions(self.elements)
-        return {secname[0]: seclat}
+        return {secname: seclat}
 
     def create_layout(
         self, name: Optional[str] = None, sections: Optional[Dict] = None
@@ -234,7 +230,7 @@ class ElegantLatticeImporter(BaseModel):
             :meth:`create_section`).
         """
         if sections is None:
-            layout_sections = self.create_section(None)
+            layout_sections = self.create_section()
         else:
             layout_sections = {}
             for secname, secpos in sections.items():

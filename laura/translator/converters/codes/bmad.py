@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Dict, Any, List, Literal
+from typing import Dict, Any, List, Literal, Optional, Union
 from collections import Counter
 from warnings import warn
 from . import magnetic_orders
@@ -11,6 +11,7 @@ from laura.models.element import (
     Vertical_Corrector,
     Horizontal_Corrector,
 )
+from ....Exporters.YAML import export_machine_combined_file, PositionMode
 import math
 
 _SILENTLY_SKIPPED_TYPES = ("Drift", "Beginning_Ele")
@@ -244,7 +245,12 @@ class BmadLatticeImporter(BaseModel):
             "length": length,
         }
 
-    def create_element_dictionary(self, universe: int) -> None:
+    def create_element_dictionary(self, universe: int) -> Dict[str, Dict[str, Element]]:
+        return self.create_laura_element_dictionary(universe)
+
+    def create_laura_element_dictionary(
+        self, universe: int
+    ) -> Dict[str, Dict[str, Element]]:
         for b in self.names_numbered[universe].keys():
             for i, nam in enumerate(self.names_numbered[universe][b]):
                 etype = self.types[universe][b][i]
@@ -413,11 +419,13 @@ class BmadLatticeImporter(BaseModel):
                         self.laura_elems[universe][b].update(
                             {nam: getattr(LAURA_elements, hardware_type)(**elems[nam])}
                         )
+        return self.laura_elems[universe]
 
     def create_section(self, universe: int, branch: str) -> Dict[str, SectionLattice]:
-        if not self.elements:
-            self.create_element_dictionary(universe)
+        if not self.laura_elems[universe][branch]:
+            self.create_laura_element_dictionary(universe)
         elems = self.laura_elems[universe][branch]
+        self.elements = elems
         order = [n for n, e in elems.items() if not e.is_subelement()]
         seclat = SectionLattice(
             order=order, elements=ElementList(elements=elems), name=branch
@@ -432,8 +440,18 @@ class BmadLatticeImporter(BaseModel):
                     elem.physical.global_rotation = parent.physical.global_rotation
         return {branch: seclat}
 
-    def create_layout(self, universe: int) -> Dict[str, MachineLayout]:
+    def create_layout(
+        self, universe: int, name: Optional[str] = None
+    ) -> MachineLayout:
         layout = {}
         for branch in list(self.names_numbered[universe].keys()):
-            layout.update(**self.create_section(universe, branch))
-        return {str(universe): MachineLayout(name=str(universe), sections=layout)}
+            layout.update(self.create_section(universe, branch))
+        return MachineLayout(name=name or str(universe), sections=layout)
+
+    def export_yaml(
+        self,
+        path: str,
+        source: Union[SectionLattice, MachineLayout],
+        position_mode: PositionMode = "s",
+    ) -> None:
+        export_machine_combined_file(path, source, position_mode=position_mode)

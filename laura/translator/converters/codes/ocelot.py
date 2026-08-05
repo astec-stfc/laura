@@ -2,25 +2,35 @@ from __future__ import annotations
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
-from typing import Any, Dict, Literal, TYPE_CHECKING
+from typing import Any, Dict, Literal, Optional, Union
 from scipy.spatial.transform import Rotation
-try:
-    from ocelot.cpbd.magnetic_lattice import MagneticLattice
-    _OCELOT_AVAILABLE = True
-except ImportError:
-    _OCELOT_AVAILABLE = False
-    MagneticLattice = None  # type: ignore[assignment, misc]
-
-if TYPE_CHECKING:
-    from ocelot.cpbd.magnetic_lattice import MagneticLattice  # type: ignore[no-redef]
 import laura.models.element as LAURA_elements
+from laura.models.elementList import SectionLattice, MachineLayout, ElementList
 from . import magnetic_orders
 from .. import keyword_conversion_rules_ocelot as keyword_conversion_rules
 from ...utils.functions import introspect_model_defaults
-from ...conversion_rules.codes import ocelot_conversion
+from ....Exporters.YAML import export_machine_combined_file, PositionMode
 from warnings import warn
 
-type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+
+def _switch_dict(type_rules: Dict[str, type]) -> Dict[str, str]:
+    """Reverse Ocelot's many-to-one type map without ambiguous winners."""
+    switch = {
+        native_type.__name__.lower(): laura_type
+        for laura_type, native_type in type_rules.items()
+        if native_type.__name__.lower() != "drift"
+    }
+    switch.update(
+        {
+            "aperture": "Aperture",
+            "hcor": "Horizontal_Corrector",
+            "marker": "Marker",
+            "monitor": "Monitor",
+            "undulator": "Wiggler",
+            "vcor": "Vertical_Corrector",
+        }
+    )
+    return switch
 
 
 class OcelotLatticeImporter(BaseModel):
@@ -36,7 +46,7 @@ class OcelotLatticeImporter(BaseModel):
     machine_area: str = "Lattice"
 
     magnetic_lattice: Any
-    """Name of ELEGANT parameters file"""
+    """Ocelot ``MagneticLattice`` instance to import."""
 
     position_mode: Literal["s", "cartesian"] = "s"
     """How element positions are resolved from the Ocelot lattice:
@@ -54,16 +64,22 @@ class OcelotLatticeImporter(BaseModel):
     laura_elements: Dict = {}
     """Dictionary containing converted element objects"""
 
+    def _default_name(self) -> str:
+        return self.name
+
     def magnetic_lattice_to_elements(self):
         return self.lattice_to_cartesian_with_rotation(self.magnetic_lattice.sequence)
 
     def create_element_dictionary(self):
+        return self.create_laura_element_dictionary()
+
+    def create_laura_element_dictionary(self):
+        from ...conversion_rules.codes.ocelot_conversion import (
+            ocelot_conversion_rules,
+        )
+
         self.laura_elements = {}
-        strip_chars = "'>"
-        switch_dict = {
-            f"{str(y).lower().split('.')[-1].strip(strip_chars)}_{x}": x
-            for x, y in type_conversion_rules_Ocelot.items()
-        }
+        switch_dict = _switch_dict(ocelot_conversion_rules)
 
         sequence = list(self.magnetic_lattice.sequence)
         cartesian = (
@@ -91,28 +107,25 @@ class OcelotLatticeImporter(BaseModel):
                 ]
                 phys_common = {"position": pos, "global_rotation": rot, "length": length}
 
-            typeconv = str(type(elem)).lower().split(".")[-1].strip("'>")
+            typeconv = type(elem).__name__.lower()
             if typeconv == "drift":
                 continue
-            key = None
-            for k, v in switch_dict.items():
-                if v == k.split("_")[-1] and typeconv in k:
-                    key = k
-            if not key:
+            sftype = switch_dict.get(typeconv)
+            if not sftype:
                 warn(
-                    f"Could not find element type {type(elem)} for {elem.id}; "
-                    f"setting as drift"
+                    f"Could not parse Ocelot element type {type(elem)} for "
+                    f"{elem.id!r}; skipping."
                 )
-                key = "drift_drift"
+                continue
             newobj = {
                 "name": elem.id,
-                "hardware_type": switch_dict[key],
+                "hardware_type": sftype,
                 "machine_area": self.machine_area,
                 "physical": dict(phys_common),
             }
             try:
                 merged = (
-                    keyword_conversion_rules[switch_dict[key].lower()]
+                    keyword_conversion_rules[sftype.lower()]
                     | keyword_conversion_rules["general"]
                 )
             except KeyError:
@@ -120,11 +133,8 @@ class OcelotLatticeImporter(BaseModel):
             for sfparam, oceparam in merged.items():
                 if hasattr(elem, oceparam):
                     newobj.update({sfparam: getattr(elem, oceparam)})
-            sftype = switch_dict[key]
             try:
-                if sftype == "Kicker":
-                    classname = "Combined_Corrector"
-                elif "Cavity" not in sftype:
+                if "Cavity" not in sftype:
                     classname = (
                         sftype if hasattr(LAURA_elements, sftype) else sftype.capitalize()
                     )
@@ -199,11 +209,56 @@ class OcelotLatticeImporter(BaseModel):
             self.laura_elements.update(
                 {elem.id: getattr(LAURA_elements, newobj["hardware_type"])(**newobj)}
             )
+        return self.laura_elements
 
-    def save_lattice_file(self, filename: str, directory: str):
+    def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:
         if not self.laura_elements:
-            self.create_framework_element_dictionary()
-        save_lattice_file(self.laura_elements, filename, directory)
+            self.create_laura_element_dictionary()
+        if section is None:
+            names = list(self.laura_elements)
+            if not names:
+                raise ValueError("No elements were imported; cannot build a section.")
+            section = {self._default_name(): [names[0], names[-1]]}
+        if len(section) != 1:
+            raise ValueError("A section definition must contain exactly one section.")
+        secname, bounds = next(iter(section.items()))
+        if len(bounds) != 2:
+            raise ValueError("A section definition must contain first and last elements.")
+        names = list(self.laura_elements)
+        try:
+            first, last = names.index(bounds[0]), names.index(bounds[1])
+        except ValueError as exc:
+            missing = bounds[0] if bounds[0] not in self.laura_elements else bounds[1]
+            raise KeyError(f"element {missing} not found in lattice") from exc
+        if first > last:
+            raise ValueError("The first section element must precede the last.")
+        elems = dict(list(self.laura_elements.items())[first : last + 1])
+        seclat = SectionLattice(
+            order=list(elems), elements=ElementList(elements=elems), name=secname
+        )
+        seclat.resolve_positions(self.laura_elements)
+        return {secname: seclat}
+
+    def create_layout(
+        self, name: Optional[str] = None, sections: Optional[Dict] = None
+    ) -> MachineLayout:
+        if sections is None:
+            layout_sections = self.create_section()
+        else:
+            layout_sections = {}
+            for secname, bounds in sections.items():
+                layout_sections.update(self.create_section({secname: bounds}))
+        return MachineLayout(
+            name=name or self._default_name(), sections=layout_sections
+        )
+
+    def export_yaml(
+        self,
+        path: str,
+        source: Union[SectionLattice, MachineLayout],
+        position_mode: PositionMode = "s",
+    ) -> None:
+        export_machine_combined_file(path, source, position_mode=position_mode)
 
     @staticmethod
     def lattice_to_cartesian_with_rotation(elements) -> Dict:
@@ -317,11 +372,3 @@ class OcelotLatticeImporter(BaseModel):
             (p, r) for p, r in zip(np.array(positions), np.array(rotations))
         ]
         return {e: pr for e, pr in zip(elems, positions_and_rotations)}
-
-    @staticmethod
-    def _convert_k_to_kl(v) -> dict:
-        newk = {}
-        for n in range(1, 9):
-            if hasattr(v, f"k{n}") and hasattr(v, "l"):
-                newk.update({f"k{n}l": getattr(v, f"k{n}") * getattr(v, "l")})
-        return newk
