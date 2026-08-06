@@ -429,6 +429,16 @@ class TestControlsSchemaExport:
         assert reloaded.controls.variables["SETI"].description == "Custom override"
         assert reloaded.controls.variables["READI"].identifier == "Q1:READI"
 
+    def test_export_elements_accepts_flat_schema_root(self, tmp_path):
+        elem = self._make_quad(tmp_path, tmp_path)
+        dest = tmp_path / "dest"
+
+        export_elements(str(dest), [elem], collapse_schema=True, schema_root=str(tmp_path))
+
+        output_dir = dest / "Magnet" / "Quadrupole"
+        assert (output_dir / "_schema.yaml").exists()
+        assert "schema" in yaml.safe_load((output_dir / "Q1.yaml").read_text())["controls"]
+
     def test_combined_export_embeds_schema_and_is_standalone(self, tmp_path):
         schema_root = tmp_path / "root"
         schema_dir = schema_root / "Magnet" / "Quadrupole"

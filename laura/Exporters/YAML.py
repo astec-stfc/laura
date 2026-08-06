@@ -19,6 +19,13 @@ _log = logging.getLogger("laura.exporter.yaml")
 PositionMode = Literal["global", "s", "reference"]
 
 
+def _schema_base_dirs(schema_root: Union[str, None], ele: PhysicalElement):
+    """Try flat schema roots before the legacy per-element directory layout."""
+    if schema_root is None:
+        return (None,)
+    return (schema_root, os.path.join(schema_root, ele.subdirectory))
+
+
 def represent_tuple(dumper, data):
     return dumper.represent_sequence("tag:yaml.org,2002:seq", data)
 
@@ -36,12 +43,6 @@ def _clean_export_data(data: dict, ele: PhysicalElement) -> dict:
     # --- Computed fields on PhysicalElement ---
     if "physical" in data and isinstance(data["physical"], dict):
         data["physical"].pop("_physical_angle", None)
-        # exclude_defaults=True can silently drop 'middle' when it equals the
-        # all-zero Position() default (e.g. an element sitting at the global
-        # origin). If 's' is present, 'middle' must be too — otherwise this
-        # element alone round-trips as s-only and conflicts with sibling
-        # elements that do have 'middle', tripping the mixed-coordinate-
-        # system check on reload.
         phys_dict = data["physical"]
         if "s" in phys_dict and "middle" not in phys_dict and ele.physical.middle is not None:
             phys_dict["middle"] = ele.physical.middle.model_dump(exclude_defaults=True)
@@ -78,11 +79,15 @@ def _collapse_dump_controls(
     controls = dump.get("controls")
     if not isinstance(controls, dict) or not controls.get("schema"):
         return
-    base_dir = os.path.join(schema_root, ele.subdirectory) if schema_root else None
-    try:
-        schema_variables = get_controls_schema_variables(controls["schema"], base_dir)
-    except FileNotFoundError as exc:
-        warn(f"Cannot collapse controls schema for {ele.name}: {exc}")
+    error = None
+    for base_dir in _schema_base_dirs(schema_root, ele):
+        try:
+            schema_variables = get_controls_schema_variables(controls["schema"], base_dir)
+            break
+        except FileNotFoundError as exc:
+            error = exc
+    else:
+        warn(f"Cannot collapse controls schema for {ele.name}: {error}")
         dump["controls"] = {
             k: v for k, v in controls.items() if k not in ("schema", "identifier_pattern")
         }
@@ -108,11 +113,15 @@ def _copy_controls_schema(
     if dest_path in copied:
         return
     copied.add(dest_path)
-    base_dir = os.path.join(schema_root, ele.subdirectory) if schema_root else None
-    try:
-        src_path = resolve_controls_schema_path(schema_ref, base_dir)
-    except FileNotFoundError as exc:
-        warn(f"Cannot copy controls schema for {ele.name}: {exc}")
+    error = None
+    for base_dir in _schema_base_dirs(schema_root, ele):
+        try:
+            src_path = resolve_controls_schema_path(schema_ref, base_dir)
+            break
+        except FileNotFoundError as exc:
+            error = exc
+    else:
+        warn(f"Cannot copy controls schema for {ele.name}: {error}")
         return
     if os.path.abspath(src_path) == os.path.abspath(dest_path):
         return
@@ -324,15 +333,17 @@ def export_machine_combined_file(
                 schema_ref = controls["schema"]
                 combined_key = os.path.join(elem.subdirectory, schema_ref)
                 if combined_key not in embedded_schemas:
-                    base_dir = (
-                        os.path.join(schema_root, elem.subdirectory) if schema_root else None
-                    )
-                    try:
-                        embedded_schemas[combined_key] = get_controls_schema_variables(
-                            schema_ref, base_dir
-                        )
-                    except FileNotFoundError as exc:
-                        warn(f"Cannot embed controls schema for {elem.name}: {exc}")
+                    error = None
+                    for base_dir in _schema_base_dirs(schema_root, elem):
+                        try:
+                            embedded_schemas[combined_key] = get_controls_schema_variables(
+                                schema_ref, base_dir
+                            )
+                            break
+                        except FileNotFoundError as exc:
+                            error = exc
+                    else:
+                        warn(f"Cannot embed controls schema for {elem.name}: {error}")
                         embedded_schemas[combined_key] = None
                 if embedded_schemas.get(combined_key) is not None:
                     live_variables = elem.controls.variables if elem.controls is not None else None
@@ -343,9 +354,6 @@ def export_machine_combined_file(
                         live_variables=live_variables,
                     )
                 else:
-                    # Schema couldn't be found -- variables are already fully
-                    # expanded, so drop the dangling reference rather than
-                    # leave a `schema` key that won't resolve on reload.
                     dump["controls"] = {
                         k: v for k, v in controls.items()
                         if k not in ("schema", "identifier_pattern")
