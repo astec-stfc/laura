@@ -389,7 +389,7 @@ class SectionLattice(BaseLatticeModel):
                     _log.error("Drift calculation error near element '%s': %s", e[0], exc)
                     _log.debug("Position data: %s", d)
                     raise exc
-                if round(length, 16) > 0:
+                if length > 1e-12:
                     elementno += 1
                     name = self.name + "_drift_" + str(elementno)
                     x, y, z = [(a + b) / 2.0 for a, b in zip(d[0], d[1])]
@@ -568,7 +568,10 @@ class SectionLattice(BaseLatticeModel):
                 return s - L
             return s  # 'start'
 
-        s_elems_sorted = sorted(s_elems, key=_s_start)
+        # Equal entrance positions can differ by floating-point noise (for
+        # example a zero-length marker immediately before a cavity). Preserve
+        # beamline order for those ties so the marker is not moved to the exit.
+        s_elems_sorted = sorted(s_elems, key=lambda elem: round(_s_start(elem), 12))
 
         current_s = 0.0
         current_pos = np.zeros(3)

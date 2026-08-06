@@ -6,7 +6,7 @@ elegant:
   Beam_Position_Monitor: watch
   Beam_Arrival_Monitor: moni
   Bunch_Length_Monitor: moni
-  Screen: watch
+  Screen: mark
   Collimator: ecol
   Solenoid: sole
   Wall_Current_Monitor: moni
@@ -14,7 +14,7 @@ elegant:
   Faraday_Cup_Monitor: moni
   Diagnostic: moni
   RFCavity: rfcw
-  RFDeflectingCavity: rfdf
+  RFDeflectingCavity: rftm110
   Longitudinal_Wakefield: wake
   FEL_Modulator: lsrmdltr
   Scatter: scatter

@@ -4,7 +4,12 @@ from collections import Counter
 from warnings import warn
 from . import magnetic_orders
 import laura.models.element as LAURA_elements
-from laura.models.elementList import SectionLattice, MachineLayout, ElementList
+from laura.models.elementList import (
+    SectionLattice,
+    MachineLayout,
+    MachineModel,
+    ElementList,
+)
 from laura.models.element import (
     Element,
     Combined_Corrector,
@@ -536,10 +541,138 @@ class BmadLatticeImporter(BaseModel):
             functional_definitions=self.functional_definitions,
         )
 
+    def create_machine_model(self, min_section_length: int = 5) -> MachineModel:
+        """Build a model with one layout per Tao universe.
+
+        Tao branches become sections. Branches containing fewer than
+        ``min_section_length`` imported lattice elements are omitted, and
+        elements with the same name and placement are shared between layouts.
+        When Tao gives the same name a different position, orientation, or
+        arc-length in another layout, a layout-specific ``name__layout`` copy
+        is created because :class:`MachineModel` stores one placement per name.
+        """
+        if min_section_length < 1:
+            raise ValueError("min_section_length must be at least 1.")
+
+        layout_names = {}
+        if self.floorplan_init:
+            text = Path(self.floorplan_init).read_text()
+            layout_names = {
+                int(universe): Path(filename).stem
+                for universe, filename in re.findall(
+                    r"design_lattice\((\d+)\)%file\s*=\s*['\"]([^'\"]+)['\"]",
+                    text,
+                    re.I,
+                )
+            }
+
+        elements = {}
+        section_definitions = {}
+        layout_definitions = {}
+        skipped_sections = []
+
+        def same_placement(left, right) -> bool:
+            a, b = left.physical, right.physical
+            if (a.middle is None) != (b.middle is None):
+                return False
+            middle_matches = a.middle is None or all(
+                math.isclose(x, y, abs_tol=1e-9)
+                for x, y in zip(a.middle.array, b.middle.array)
+            )
+            s_matches = (a.s is None and b.s is None) or (
+                a.s is not None
+                and b.s is not None
+                and math.isclose(a.s, b.s, abs_tol=1e-9)
+            )
+            return (
+                middle_matches
+                and s_matches
+                and math.isclose(a.length, b.length, abs_tol=1e-12)
+                and all(
+                    math.isclose(x, y, abs_tol=1e-12)
+                    for x, y in zip(a.rotation_matrix.flat, b.rotation_matrix.flat)
+                )
+                and all(
+                    math.isclose(x, y, abs_tol=1e-12)
+                    for x, y in zip(
+                        a.end_rotation_matrix.flat, b.end_rotation_matrix.flat
+                    )
+                )
+            )
+
+        for universe in sorted(self.branches):
+            default_name = (
+                Path(self.lattice_file).stem if self.lattice_file else str(universe)
+            )
+            layout_name = layout_names.get(universe, default_name)
+            if layout_name in layout_definitions:
+                layout_name = f"{layout_name}_{universe}"
+            layout = self.create_layout(universe, name=layout_name)
+            layout_sections = []
+            for source_name, section in layout.sections.items():
+                if len(section.order) < min_section_length:
+                    skipped_sections.append(f"{layout_name}/{source_name}")
+                    continue
+                section_name = source_name
+                if section_name in section_definitions:
+                    section_name = f"{layout_name}_{section_name}"
+                renamed = {}
+                for element_name, element in section.elements.elements.items():
+                    existing = elements.get(element_name)
+                    parent_renamed = element.subelement in renamed and renamed[
+                        element.subelement
+                    ] != element.subelement
+                    if existing is None or (
+                        same_placement(existing, element) and not parent_renamed
+                    ):
+                        output_name = element_name
+                        elements.setdefault(output_name, element)
+                    else:
+                        output_name = f"{element_name}__{layout_name}"
+                        suffix = 2
+                        while output_name in elements:
+                            output_name = f"{element_name}__{layout_name}_{suffix}"
+                            suffix += 1
+                        updates = {"name": output_name}
+                        if parent_renamed:
+                            updates["subelement"] = renamed[element.subelement]
+                        element = element.model_copy(update=updates)
+                        elements[output_name] = element
+                    renamed[element_name] = output_name
+                section_definitions[section_name] = [
+                    renamed[name] for name in section.order
+                ]
+                layout_sections.append(section_name)
+            if layout_sections:
+                layout_definitions[layout_name] = layout_sections
+
+        if skipped_sections:
+            warn(
+                "Skipped BMAD branches shorter than min_section_length="
+                f"{min_section_length}: {', '.join(skipped_sections)}"
+            )
+        if not layout_definitions:
+            raise ValueError(
+                "No BMAD layouts meet min_section_length="
+                f"{min_section_length}."
+            )
+
+        source = self.floorplan_init or self.lattice_file
+        return MachineModel(
+            elements=elements,
+            section={"sections": section_definitions},
+            layout={
+                "layouts": layout_definitions,
+                "default_layout": next(iter(layout_definitions)),
+            },
+            master_lattice=str(Path(source).resolve().parent),
+            functional_definitions=self.functional_definitions,
+        )
+
     def export_yaml(
         self,
         path: str,
-        source: Union[SectionLattice, MachineLayout],
+        source: Union[SectionLattice, MachineLayout, MachineModel],
         position_mode: PositionMode = "s",
     ) -> None:
         export_machine_combined_file(path, source, position_mode=position_mode)

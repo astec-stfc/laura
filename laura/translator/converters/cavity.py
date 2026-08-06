@@ -135,7 +135,7 @@ class RFCavityTranslator(BaseElementTranslator):
         self.start_write()
         wholestring = ""
         etype = self._convertType_Elegant(self.hardware_type)
-        if not self._wakefield_active():
+        if self.hardware_type == "RFCavity" and not self._wakefield_active():
             etype = "rfca"
             # if self.simulation.field_definition is not None:
             # etype = "rftmez0"
@@ -149,18 +149,42 @@ class RFCavityTranslator(BaseElementTranslator):
             )
             self.set_wakefield_column_names(wakefield_file_name)
         string = self.name + ": " + etype
-        for key, value in self.full_dump(resolve=self._resolve_functional).items():
+        preferred = {
+            "n_kicks": (
+                "simulation_n_kicks"
+                if self.simulation.n_kicks
+                else "cavity_n_cells"
+            )
+        }
+        for output, direct, nested in (
+            ("wakefile", "wakefile", "simulation_wakefile"),
+            ("zwakefile", "zwakefile", "simulation_zwakefile"),
+            ("trwakefile", "trwakefile", "simulation_trwakefile"),
+            ("tcolumn", "tcolumn", "simulation_t_column"),
+            ("zcolumn", "zcolumn", "simulation_z_column"),
+            ("wxcolumn", "wxcolumn", "simulation_wx_column"),
+            ("wycolumn", "wycolumn", "simulation_wy_column"),
+            ("wzcolumn", "wzcolumn", "simulation_wz_column"),
+        ):
+            preferred[output] = direct if getattr(self, direct) is not None else nested
+        emitted = set()
+        for source_key, value in self.full_dump(
+            resolve=self._resolve_functional
+        ).items():
+            converted_key = self._convertKeyword_Elegant(
+                source_key, updated_type=self.hardware_type
+            ).lower()
+            if preferred.get(converted_key, source_key) != source_key:
+                continue
+            if converted_key in emitted:
+                continue
             if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convertKeyword_Elegant(key, updated_type=self.hardware_type)
-                in elements_Elegant[etype]
+                source_key not in {"name", "type", "commandtype"}
+                and converted_key in elements_Elegant[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Elegant(
-                        key, updated_type=self.hardware_type
-                    ).lower()
+                    key = converted_key
+                    emitted.add(key)
                     # rftmez0 uses frequency instead of freq
                     if etype == "rftmez0" and key == "freq":
                         key = "frequency"
@@ -192,6 +216,8 @@ class RFCavityTranslator(BaseElementTranslator):
                             )
                         elif functional:
                             value = self._elegant_value(value)
+                    elif key == "voltage" and functional:
+                        value = self._elegant_value(value)
                     # If using rftmez0 or similar
                     if key == "ez_peak":
                         value = (
@@ -204,7 +230,11 @@ class RFCavityTranslator(BaseElementTranslator):
                         value = value
 
                     # In CAVITY NKICK = n_cells
-                    if key == "n_kicks" and self.get_cells() > 1:
+                    if (
+                        key == "n_kicks"
+                        and source_key == "cavity_n_cells"
+                        and self.get_cells() > 1
+                    ):
                         value = 3 * self.get_cells()
 
                     if key == "n_bins" and not functional and value > 0:
@@ -321,13 +351,6 @@ class RFCavityTranslator(BaseElementTranslator):
                     setattr(
                         obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
                     )
-        # Cheetah selects between two cavity transfer maps via `cavity_type`.
-        # Its "traveling_wave" branch is a pure travelling-wave map (edge
-        # focusing plus adiabatic damping, no ponderomotive/RF focusing),
-        # whereas ELEGANT (body_focus_model=SRS), Ocelot (CavityAtom) and the
-        # MAD-X backend (rsmatrix) all apply *standing-wave*
-        # Rosenzweig-Serafini focusing even to travelling-wave structures.
-        # Pinned to "standing_wave" so Cheetah stays consistent with them.
         if hasattr(obj, "cavity_type"):
             obj.cavity_type = "standing_wave"
         return obj

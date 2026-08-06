@@ -17,6 +17,11 @@ general:
   lsc_enable: lsc
   tilt_angle: tilt
   wakefield_definition: wakefile
+  wakefield_enable: zwake
+  t_column: tcolumn
+  wz_column: wzcolumn
+  wx_column: wxcolumn
+  wy_column: wycolumn
 dipole:
   isr_enable: isr
   sr_enable: synch_rad

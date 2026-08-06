@@ -203,12 +203,17 @@ class field(BaseModel):
             **kwargs,
         )
         if filename is not None:
+            reader_options = {
+                name: value
+                for name, value in kwargs.items()
+                if name == "column_map" or name.lower().endswith("_column")
+            }
             self.read_field_file(
                 filename,
                 field_type=field_type,
                 frequency=frequency,
                 cavity_type=cavity_type,
-                **kwargs,
+                **reader_options,
             )
 
     @model_validator(mode="before")
@@ -300,6 +305,14 @@ class field(BaseModel):
             The frequency of the field, if applicable.
         normalize_b: bool
             Normalize Bx and By with respect to Bz (True by default)
+        **kwargs
+            Format-specific reader options. For SDDS files, columns matching
+            LAURA field names are loaded automatically. Use
+            ``column_map={"Wz": "W"}`` or per-field overrides such as
+            ``wz_column="W"`` and ``t_column="T"`` for non-standard names.
+            SDDS supports coordinates, electric and magnetic components,
+            wake components, and gradient; see
+            :func:`~laura.translator.utils.fields.sdds.read_SDDS_field_file`.
         Returns
         -------
         None:
@@ -320,7 +333,9 @@ class field(BaseModel):
                 )
             elif fext.lower() in [".sdds"]:
                 # print('Field: read_field_file: SDDS', filename, fext.lower())
-                sdds.read_SDDS_field_file(self, filename, field_type=field_type)
+                sdds.read_SDDS_field_file(
+                    self, filename, field_type=field_type, **kwargs
+                )
             elif fext.lower() in [".gdf"]:
                 # print('Field: read_field_file: GPT', filename, fext.lower())
                 gdf.read_gdf_field_file(

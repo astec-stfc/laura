@@ -59,11 +59,11 @@ class MachineModelTranslator(MachineModel):
 
     def format_string(seld, string: str):
         fulltext = ""
-        for s in string.split(', '):
+        for s in string.strip().split(', '):
             if len((fulltext + s).splitlines()[-1]) > 60:
                 fulltext += "&\n"
             fulltext += s + ", "
-        return fulltext
+        return fulltext[:-2] + "\n"
 
     def to_elegant(self, string: str = "", charge: float = None) -> str:
         for latt in self.lattices.values():

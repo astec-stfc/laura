@@ -17,12 +17,19 @@ from laura.models.baseModels import (  # noqa: E402
     set_functional_definitions,
     set_resolve_functional,
 )
-from laura.models.element import Quadrupole, RFCavity, NonLinearLens  # noqa: E402
+from laura.models.element import (  # noqa: E402
+    Quadrupole,
+    RFCavity,
+    RFDeflectingCavity,
+    Screen,
+    NonLinearLens,
+)
 from laura.translator.converters.magnet import (  # noqa: E402
     MagnetTranslator,
     NonLinearLensTranslator,
 )
 from laura.translator.converters.cavity import RFCavityTranslator  # noqa: E402
+from laura.translator.converters.converter import translate_elements  # noqa: E402
 from laura.translator.utils.functions import (  # noqa: E402
     elegant_functional_definitions,
 )
@@ -104,6 +111,34 @@ class TestElegantSymbolic:
         set_functional_definitions({"cav1_phase": 30.0})
         out = _cavity(1e6, phase="cav1_phase").to_elegant()
         assert 'phase = "90 cav1_phase -"' in out
+
+    def test_deflecting_cavity_keeps_type_and_quotes_voltage(self):
+        set_functional_definitions({"V_HERFX": 1e6})
+        cavity = RFDeflectingCavity(
+            name="HERFX",
+            machine_area="L04",
+            simulation={"field_amplitude": "V_HERFX"},
+        )
+        out = RFCavityTranslator.model_validate(cavity.model_dump()).to_elegant()
+        assert out.startswith("HERFX: rftm110")
+        assert 'voltage = "V_HERFX"' in out
+
+    def test_cavity_emits_n_kicks_once(self):
+        cavity = RFCavity(
+            name="C1",
+            machine_area="L04",
+            cavity={"n_cells": 7},
+            simulation={"n_kicks": 25},
+        )
+        out = RFCavityTranslator.model_validate(cavity.model_dump()).to_elegant()
+        assert out.count("n_kicks =") == 1
+        assert "n_kicks = 25" in out
+
+    def test_screen_exports_as_marker(self):
+        screen = Screen(name="SCR", machine_area="L04")
+        assert translate_elements([screen])["SCR"].to_elegant().startswith(
+            "SCR: mark"
+        )
 
     def test_header_lists_all_definitions(self):
         set_functional_definitions({"a": 1, "b": 2.5})
