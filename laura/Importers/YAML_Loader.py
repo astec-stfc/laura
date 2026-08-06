@@ -191,6 +191,7 @@ def filter_top_level(elem: dict, exclude_keys: List[str] | None = None) -> dict:
         return {k: v for k, v in elem.items() if k not in exclude_keys}
     return {k: v for k, v in elem.items()}
 
+
 def interpret_YAML_Element(elem: dict, exclude_set=None):
     hw_type = elem.get("hardware_type")
     if not hw_type:

@@ -492,3 +492,44 @@ class TestReadYAMLElementFiles:
         # Each element should appear in the raw dicts
         for i in range(3):
             assert f"Q{i}" in names
+
+
+# ---------------------------------------------------------------------------
+# element_list directory scanning
+# ---------------------------------------------------------------------------
+
+class TestElementListDirectoryScan:
+    """A directory given as element_list holds one file per element. Aggregate files
+    living alongside them must not be mistaken for elements."""
+
+    @staticmethod
+    def _machine(directory):
+        return LAURA(
+            element_list=str(directory),
+            layout={"default_layout": "line1", "layouts": {"line1": ["SEC"]}},
+            section={"sections": {"SEC": ["Q1"]}},
+        )
+
+    def test_summary_file_is_not_loaded_as_an_element(self, tmp_path):
+        _write_element_yaml(str(tmp_path), _make_quad(name="Q1"))
+        # an aggregate of the whole machine, not a single-element file
+        with open(tmp_path / "summary.yaml", "w") as fh:
+            yaml.dump({"Q1": {"name": "Q1", "hardware_type": "Quadrupole"}}, fh)
+
+        machine = self._machine(tmp_path)
+
+        assert "Q1" in machine.elements
+        # named after its filename, because fast_get_element_metadata finds no
+        # top-level name and falls back to the basename
+        assert "summary" not in machine.elements
+
+    def test_real_elements_are_still_found_beside_a_summary(self, tmp_path):
+        for name in ["Q1", "Q2", "Q3"]:
+            _write_element_yaml(str(tmp_path), _make_quad(name=name))
+        with open(tmp_path / "summary.yaml", "w") as fh:
+            yaml.dump({"anything": 1}, fh)
+
+        machine = self._machine(tmp_path)
+
+        assert {"Q1", "Q2", "Q3"}.issubset(set(machine.elements))
+        assert len([k for k in machine.elements if k.startswith("summary")]) == 0
