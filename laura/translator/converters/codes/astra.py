@@ -18,7 +18,7 @@ section_header_text_ASTRA = {
 }
 
 astra_unsupported = [
-    "TwissMatch"
+    "TwissMatch",
     "MatrixTransform",
     "Laser",
     "Plasma",
