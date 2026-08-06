@@ -60,6 +60,14 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
 | [Element](Element.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [TwissMatch](TwissMatch.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [MatrixTransform](MatrixTransform.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [ElectrostaticSeparator](ElectrostaticSeparator.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [ACDipole](ACDipole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [HorizontalACDipole](HorizontalACDipole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [VerticalACDipole](VerticalACDipole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [Wire](Wire.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [BeamBeam](BeamBeam.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [RFMultipole](RFMultipole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Stage](Stage.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [VacuumGauge](VacuumGauge.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Laser](Laser.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
@@ -74,6 +82,7 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
 | [Magnet](Magnet.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [RFCavity](RFCavity.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [RFDeflectingCavity](RFDeflectingCavity.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [CrabCavity](CrabCavity.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Wakefield](Wakefield.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [LowLevelRF](LowLevelRF.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [RFModulator](RFModulator.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |

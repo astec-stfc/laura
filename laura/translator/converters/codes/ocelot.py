@@ -20,6 +20,21 @@ from ...utils.functions import introspect_model_defaults
 from ...conversion_rules.codes import ocelot_conversion
 from warnings import warn
 
+ocelot_unsupported = [
+    "Cleaner",
+    "Scatter",
+    "APContour",
+    "Center",
+    "Wakefield",
+    "Laser",
+    "Plasma",
+    "MatrixTransform",
+    "TwissMatch",
+    "Decapole",
+    "ActivePlasmaLens",
+    "CrabCavity",
+]
+
 type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
 
 

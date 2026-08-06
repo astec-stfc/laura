@@ -60,7 +60,7 @@ URI: [laura:PhotonIntensityMonitorDiagnostic](https://w3id.org/laura/PhotonInten
 
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
-| [PhotonMonitor](PhotonMonitor.md) | [intensity](intensity.md) | range | [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md) |
+| [PhotonMonitor](PhotonMonitor.md) | [diagnostic](diagnostic.md) | range | [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md) |
 
 
 
@@ -140,9 +140,9 @@ attributes:
     name: intensity
     description: Measured photon intensity.
     from_schema: https://w3id.org/laura/schema/diagnostics
+    rank: 1000
     ifabsent: float(0.0)
     domain_of:
-    - PhotonMonitor
     - PhotonIntensityMonitorDiagnostic
     range: float
 class_uri: laura:PhotonIntensityMonitorDiagnostic
@@ -182,10 +182,10 @@ attributes:
     name: intensity
     description: Measured photon intensity.
     from_schema: https://w3id.org/laura/schema/diagnostics
+    rank: 1000
     ifabsent: float(0.0)
     owner: PhotonIntensityMonitorDiagnostic
     domain_of:
-    - PhotonMonitor
     - PhotonIntensityMonitorDiagnostic
     range: float
 class_uri: laura:PhotonIntensityMonitorDiagnostic

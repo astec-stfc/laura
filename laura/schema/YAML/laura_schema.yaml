@@ -111,6 +111,16 @@ enums:
         description: Beam monitor element.
       Simulation:
         description: Simulation element.
+      ElectrostaticSeparator:
+        description: Electrostatic deflecting separator.
+      ACDipole:
+        description: AC dipole / tune exciter.
+      Wire:
+        description: Current-carrying wire for beam-beam compensation.
+      BeamBeam:
+        description: Weak-strong beam-beam interaction.
+      RFMultipole:
+        description: RF-driven multipole kick.
 
   LaserPolarizationEnum:
     description: Polarization state of a laser beam.

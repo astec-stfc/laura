@@ -187,6 +187,7 @@ class TestDipole:
     def test_reserved_angle_edge_resolves(self):
         # "angle/2" references the bend angle and always resolves numerically
         set_functional_definitions({"bend1": 0.1})
+        set_resolve_functional(True)
         dt = self._dipole(k0l="bend1", exit_edge_angle="angle/2")
         assert "e2 = 0.05" in dt.to_elegant()
 

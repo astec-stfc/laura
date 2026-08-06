@@ -538,6 +538,8 @@ attributes:
     domain_of:
     - MagnetSimulationElement
     - RFCavitySimulationElement
+    - ACDipoleSimulationElement
+    - RFMultipoleSimulationElement
     range: float
     any_of:
     - range: float

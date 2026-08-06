@@ -25,6 +25,8 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
 
       RFCavity <|-- RFDeflectingCavity
         click RFDeflectingCavity href "../RFDeflectingCavity/"
+      RFCavity <|-- CrabCavity
+        click CrabCavity href "../CrabCavity/"
       
 
       RFCavity : alias
@@ -187,6 +189,7 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
             * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
                 * **RFCavity**
                     * [RFDeflectingCavity](RFDeflectingCavity.md)
+                    * [CrabCavity](CrabCavity.md)
 
 
 ## Class Properties
@@ -290,6 +293,7 @@ attributes:
     domain_of:
     - RFCavity
     - RFDeflectingCavity
+    - CrabCavity
     - Wakefield
     range: RFCavityElement
 class_uri: laura:RFCavity
@@ -324,6 +328,7 @@ attributes:
     domain_of:
     - RFCavity
     - RFDeflectingCavity
+    - CrabCavity
     - Wakefield
     range: RFCavityElement
   physical:

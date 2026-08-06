@@ -161,7 +161,7 @@ classes:
       hardware_model:
         ifabsent: string(Photon_Monitor)
     attributes:
-      intensity:
+      diagnostic:
         range: PhotonIntensityMonitorDiagnostic
         description: Instrument-specific diagnostic parameters.
         in_subset:

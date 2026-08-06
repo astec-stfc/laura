@@ -15,6 +15,7 @@ URI: [laura:tilt](https://w3id.org/laura/tilt)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
+| [ElectrostaticSeparatorSimulationElement](ElectrostaticSeparatorSimulationElement.md) | Simulation attributes for a static electrostatic separator |  no  |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
 | [DipoleMagnet](DipoleMagnet.md) |  |  no  |
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
@@ -34,7 +35,7 @@ URI: [laura:tilt](https://w3id.org/laura/tilt)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [MagneticElement](MagneticElement.md), [CorrectorMagnet](CorrectorMagnet.md) |
+| Domain Of | [ElectrostaticSeparatorSimulationElement](ElectrostaticSeparatorSimulationElement.md), [MagneticElement](MagneticElement.md), [CorrectorMagnet](CorrectorMagnet.md) |
 
 ### Cardinality and Requirements
 
@@ -73,6 +74,7 @@ URI: [laura:tilt](https://w3id.org/laura/tilt)
 ```yaml
 name: tilt
 domain_of:
+- ElectrostaticSeparatorSimulationElement
 - MagneticElement
 - Corrector_Magnet
 range: string
