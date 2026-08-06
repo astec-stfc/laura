@@ -101,3 +101,65 @@ class TestMadxImporter:
         layout = importer.create_layout()
         assert layout.name == "TESTLINE"
         assert len(layout.sections) == 1
+
+
+def test_source_import_retains_deferred_strength(tmp_path):
+    pytest.importorskip("cpymad")
+    source = tmp_path / "line.madx"
+    source.write_text(
+        "beam, particle=electron, energy=1;\n"
+        "quad_k1l = 0.3;\n"
+        "q: quadrupole, l=0.5, k1 := quad_k1l / 0.5;\n"
+        "line: sequence, l=1; q, at=0.5; endsequence;\n"
+    )
+
+    importer = MadxLatticeImporter(source_file=str(source))
+    elements = importer.create_laura_element_dictionary()
+    layout = importer.create_layout()
+
+    assert importer.functional_definitions == {"quad_k1l": pytest.approx(0.3)}
+    assert elements["q"].magnetic.multipoles.K1L.normal == "quad_k1l"
+    assert layout.functional_definitions == {"quad_k1l": pytest.approx(0.3)}
+
+
+def test_source_import_numbers_occurrences_and_integrates_direct_strength(tmp_path):
+    pytest.importorskip("cpymad")
+    source = tmp_path / "repeated.madx"
+    source.write_text(
+        "beam, particle=electron, energy=1;\n"
+        "quad_k1 = 0.4;\n"
+        "q: quadrupole, l=0.5, k1 := quad_k1;\n"
+        "bpm: monitor;\n"
+        "line: sequence, l=2; q, at=0.5; bpm, at=1; q, at=1.5; endsequence;\n"
+    )
+
+    importer = MadxLatticeImporter(source_file=str(source))
+    elements = importer.create_laura_element_dictionary()
+
+    assert list(elements) == ["line_start", "q.1", "bpm", "q.2", "line_end"]
+    assert elements["bpm"].hardware_type == "Beam_Position_Monitor"
+    assert elements["q.1"].magnetic.multipoles.K1L.normal == "quad_k1"
+    assert importer.functional_definitions == {"quad_k1": pytest.approx(0.2)}
+
+
+def test_source_import_folds_dipedges_into_dipole(tmp_path):
+    pytest.importorskip("cpymad")
+    source = tmp_path / "edges.madx"
+    source.write_text(
+        "beam, particle=electron, energy=1;\n"
+        "edge: dipedge, h=0.2, e1=0.03, hgap=0.01, fint=0.4;\n"
+        "bend: sbend, l=1, angle=0.2;\n"
+        "line: sequence, l=2; edge, at=0.5; bend, at=1; "
+        "edge, at=1.5; endsequence;\n"
+    )
+
+    elements = MadxLatticeImporter(
+        source_file=str(source)
+    ).create_laura_element_dictionary()
+    bend = elements["bend"]
+
+    assert not any(name.startswith("edge") for name in elements)
+    assert bend.magnetic.entrance_edge_angle == pytest.approx(0.03)
+    assert bend.magnetic.exit_edge_angle == pytest.approx(0.03)
+    assert bend.magnetic.gap == pytest.approx(0.02)
+    assert bend.magnetic.edge_field_integral == pytest.approx(0.4)

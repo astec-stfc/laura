@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from typing import Dict, Any, List, Literal, Optional, Union
 from collections import Counter
 from warnings import warn
@@ -13,6 +13,8 @@ from laura.models.element import (
 )
 from ....Exporters.YAML import export_machine_combined_file, PositionMode
 import math
+import re
+from pathlib import Path
 
 _SILENTLY_SKIPPED_TYPES = ("Drift", "Beginning_Ele")
 
@@ -67,8 +69,11 @@ def rotation_angles(forward):
 
 class BmadLatticeImporter(BaseModel):
 
-    floorplan_init: str
+    floorplan_init: Optional[str] = None
     """Name of Tao init file which produces floor coordinates"""
+
+    lattice_file: Optional[str] = None
+    """Original BMAD lattice file, used instead of ``floorplan_init``."""
 
     libtao: str = None
     """libtao.so file"""
@@ -90,6 +95,8 @@ class BmadLatticeImporter(BaseModel):
 
     elements: Dict = {}
     """Dictionary containing converted LAURA element objects"""
+
+    functional_definitions: Dict[str, Union[int, float]] = {}
 
     n_universes: int = 1
 
@@ -117,11 +124,74 @@ class BmadLatticeImporter(BaseModel):
 
     branches: Dict[int, List[str]] = {}
 
+    deferred_parameters: Dict[str, Dict[str, str]] = {}
+
+    @model_validator(mode="after")
+    def _check_input(self):
+        if (self.floorplan_init is None) == (self.lattice_file is None):
+            raise ValueError("Give exactly one of floorplan_init or lattice_file.")
+        return self
+
+    def _read_functional_definitions(self) -> None:
+        if not self.lattice_file:
+            return
+        text = Path(self.lattice_file).read_text()
+        text = re.sub(r"!.*", "", text).replace("&\n", " ")
+        statements = [statement.strip() for statement in re.split(r";|\n", text)]
+        values = {}
+        deferred = {}
+        for statement in statements:
+            scalar = re.fullmatch(
+                r"([A-Za-z_][\w.]*)\s*=\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][-+]?\d+)?)",
+                statement,
+            )
+            if scalar:
+                values[scalar.group(1)] = float(scalar.group(2))
+                continue
+            element = re.match(r"([^:]+):\s*[^,]+,(.*)", statement, re.S)
+            if not element:
+                continue
+            for attribute, expression in re.findall(
+                r"([A-Za-z_][\w.]*)\s*:=\s*([^,]+)", element.group(2)
+            ):
+                deferred.setdefault(element.group(1).strip().lower(), {})[
+                    attribute.upper()
+                ] = expression.strip()
+        used = {
+            token
+            for parameters in deferred.values()
+            for expression in parameters.values()
+            for token in re.findall(r"[A-Za-z_][\w.]*", expression)
+        }
+        self.deferred_parameters = deferred
+        self.functional_definitions = {
+            name: value for name, value in values.items() if name in used
+        }
+
+    def _symbol(self, element: str, attribute: str, length=0.0) -> str | None:
+        expression = self.deferred_parameters.get(element.lower(), {}).get(attribute)
+        if not expression:
+            return None
+        compact = expression.lower().replace(" ", "").replace("(", "").replace(")", "")
+        for name in self.functional_definitions:
+            if compact == name.lower():
+                return name
+            if length and compact.startswith(name.lower() + "/"):
+                try:
+                    if math.isclose(float(compact.split("/", 1)[1]), length):
+                        return name
+                except ValueError:
+                    pass
+        return None
+
     def model_post_init(self, __context: Any) -> None:
         from pytao import Tao, TaoCommandError
 
+        self._read_functional_definitions()
+
         tao = Tao(
-            f"-init {self.floorplan_init} -noplot",
+            f"-{'lat' if self.lattice_file else 'init'} "
+            f"{self.lattice_file or self.floorplan_init} -noplot",
             so_lib=self.libtao,
         )
         while True:
@@ -273,23 +343,37 @@ class BmadLatticeImporter(BaseModel):
                             "vertical_kick": parameters["VKICK"],
                         },
                     }
+                    for attribute, target in (
+                        ("HKICK", "horizontal_kick"),
+                        ("VKICK", "vertical_kick"),
+                    ):
+                        symbol = self._symbol(nam.split(".", 1)[0], attribute)
+                        if symbol:
+                            elem_data["magnetic"][target] = symbol
+                            (hcor if attribute == "HKICK" else vcor)[target] = symbol
                 elif etype in magnetic_orders:
                     hardware_type = etype
                     order = magnetic_orders[hardware_type]
                     try:
+                        normal = self._symbol(
+                            nam.split(".", 1)[0], f"K{order}", length
+                        ) or parameters[f"K{order}"] * length
                         kl = {
                             "multipoles": {
                                 f"K{order}L": {
-                                    "normal": parameters[f"K{order}"] * length,
+                                    "normal": normal,
                                     "order": order,
                                 },
                             },
                         }
                     except KeyError:
+                        angle = self._symbol(
+                            nam.split(".", 1)[0], "ANGLE"
+                        ) or parameters["ANGLE"]
                         kl = {
                             "multipoles": {
                                 f"K{order}L": {
-                                    "normal": parameters["ANGLE"],
+                                    "normal": angle,
                                     "order": order,
                                 },
                             },
@@ -428,7 +512,8 @@ class BmadLatticeImporter(BaseModel):
         self.elements = elems
         order = [n for n, e in elems.items() if not e.is_subelement()]
         seclat = SectionLattice(
-            order=order, elements=ElementList(elements=elems), name=branch
+            order=order, elements=ElementList(elements=elems), name=branch,
+            functional_definitions=self.functional_definitions,
         )
         seclat.resolve_positions(elems)
         for name, elem in elems.items():
@@ -446,7 +531,10 @@ class BmadLatticeImporter(BaseModel):
         layout = {}
         for branch in list(self.names_numbered[universe].keys()):
             layout.update(self.create_section(universe, branch))
-        return MachineLayout(name=name or str(universe), sections=layout)
+        return MachineLayout(
+            name=name or str(universe), sections=layout,
+            functional_definitions=self.functional_definitions,
+        )
 
     def export_yaml(
         self,

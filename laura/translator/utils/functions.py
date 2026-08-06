@@ -36,9 +36,7 @@ def elegant_functional_definitions(definitions: Dict | None = None) -> str:
         # Resolution mode: values are baked in as numbers, so no rpn store needed.
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
-    return "".join(
-        f"% {value} sto {name}\n" for name, value in definitions.items() if value
-    )
+    return "".join(f"% {value} sto {name}\n" for name, value in definitions.items())
 
 
 def madx_functional_definitions(definitions: Dict | None = None) -> str:
@@ -70,9 +68,7 @@ def madx_functional_definitions(definitions: Dict | None = None) -> str:
         # Resolution mode: values are baked in as numbers, so no header needed.
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
-    return "".join(
-        f"{name} = {value};\n" for name, value in definitions.items() if value
-    )
+    return "".join(f"{name} = {value};\n" for name, value in definitions.items())
 
 
 def sanitize_string(string: str) -> str:

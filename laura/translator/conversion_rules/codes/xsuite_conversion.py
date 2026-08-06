@@ -62,7 +62,7 @@ xsuite_conversion_rules = {
     "Beam_Arrival_Monitor": Drift_xs,
     "Bunch_Length_Monitor": Drift_xs,
     "Screen": ParticlesMonitor_xs,
-    "Marker": ParticlesMonitor_xs,
+    "Marker": Marker_xs,
     "Rcollimator": Drift_xs,
     "Collimator": Drift_xs,
     "Monitor": Marker_xs,

@@ -4,6 +4,9 @@ import pytest
 xt = pytest.importorskip("xtrack")
 
 from laura.translator.converters.codes.xsuite import XsuiteLatticeImporter
+from laura.models.element import Combined_Corrector, Marker
+from laura.models.elementList import ElementList, SectionLattice
+from laura.translator.converters.section import SectionLatticeTranslator
 
 
 def test_xsuite_importer_uses_common_s_lifecycle():
@@ -28,6 +31,42 @@ def test_xsuite_importer_uses_common_s_lifecycle():
     assert elements["cavity"].cavity.phase == pytest.approx(30)
     assert layout.sections["test"].order == list(elements)
     assert elements["quad"].physical.middle.z == pytest.approx(1.25)
+
+
+def test_xsuite_importer_retains_environment_reference(tmp_path):
+    env = xt.Environment()
+    env["quad_k1l"] = 0.3
+    env.new("quad", xt.Quadrupole, length=0.5, k1="quad_k1l / 0.5")
+    line = env.new_line(components=["quad"])
+    source = tmp_path / "line.json"
+    line.to_json(source)
+
+    importer = XsuiteLatticeImporter(source_file=str(source), name="test")
+    elements = importer.create_element_dictionary()
+    layout = importer.create_layout()
+
+    assert importer.functional_definitions == {"quad_k1l": pytest.approx(0.3)}
+    assert elements["quad"].magnetic.multipoles.K1L.normal == "quad_k1l"
+    assert layout.functional_definitions == {"quad_k1l": pytest.approx(0.3)}
+    assert layout.sections["test"].functional_definitions == {
+        "quad_k1l": pytest.approx(0.3)
+    }
+
+
+def test_xsuite_environment_json_builds_one_section_per_line(tmp_path):
+    env = xt.Environment()
+    env["quad_k1l"] = 0.3
+    env.new("q1", xt.Quadrupole, length=0.5, k1="quad_k1l / 0.5")
+    env.new("q2", xt.Quadrupole, length=0.5, k1="quad_k1l / 0.5")
+    env.new_line(name="section_a", components=["q1"])
+    env.new_line(name="section_b", components=["q2"])
+    source = tmp_path / "environment.json"
+    env.to_json(source)
+
+    layout = XsuiteLatticeImporter(source_file=str(source)).create_layout()
+
+    assert list(layout.sections) == ["section_a", "section_b"]
+    assert layout.functional_definitions == {"quad_k1l": pytest.approx(0.3)}
 
 
 def test_xsuite_importer_maps_monitors_and_transverse_limits():
@@ -81,3 +120,40 @@ def test_xsuite_importer_maps_monitors_and_transverse_limits():
     )
     assert any("LimitPolygon" in message and "bounding size" in message for message in messages)
     assert any("LongitudinalLimitRect" in message and "skipping" in message for message in messages)
+
+
+def test_laura_xsuite_json_preserves_ambiguous_types_and_definitions(tmp_path):
+    elements = {
+        "marker": Marker(
+            name="marker", machine_area="test", physical={"s": 0, "length": 0}
+        ),
+        "corrector": Combined_Corrector(
+            name="corrector",
+            machine_area="test",
+            physical={"s": 0.5, "length": 0.1},
+            magnetic={
+                "length": 0.1,
+                "horizontal_kick": 0.02,
+                "vertical_kick": 0.03,
+            },
+        ),
+    }
+    section = SectionLattice(
+        name="line",
+        order=list(elements),
+        elements=ElementList(elements=elements),
+        functional_definitions={"unused_zero": 0},
+    )
+    section.resolve_positions(elements)
+    translator = SectionLatticeTranslator.from_section(section)
+    translator.directory = str(tmp_path)
+    translator.to_xsuite(beam_length=1, save=True)
+
+    importer = XsuiteLatticeImporter(source_file=str(tmp_path / "line.json"))
+    imported = importer.create_element_dictionary()
+
+    assert imported["marker"].hardware_type == "Marker"
+    assert imported["corrector"].hardware_type == "Combined_Corrector"
+    assert imported["corrector"].magnetic.horizontal_kick == pytest.approx(0.02)
+    assert imported["corrector"].magnetic.vertical_kick == pytest.approx(0.03)
+    assert importer.functional_definitions == {"unused_zero": 0}

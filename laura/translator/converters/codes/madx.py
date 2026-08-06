@@ -1,9 +1,12 @@
 import os
+import re
+from collections import Counter
+from pathlib import Path
 from typing import Dict, Literal, Optional, Union
 from warnings import warn
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, PrivateAttr, model_validator
 
 import laura.models.element as LAURA_elements
 from laura.models.elementList import SectionLattice, MachineLayout, ElementList
@@ -27,7 +30,7 @@ def _switch_dict() -> Dict[str, str]:
     switch = {y: x for x, y in type_conversion_rules_Madx.items()}
     switch.update(
         {
-            "monitor": "Monitor",
+            "monitor": "Beam_Position_Monitor",
             "marker": "Marker",
             "rcollimator": "Collimator",
         }
@@ -37,12 +40,18 @@ def _switch_dict() -> Dict[str, str]:
 
 class MadxLatticeImporter(BaseModel):
 
-    twiss_file: str
+    twiss_file: Optional[str] = None
     """Path to a MAD-X TWISS TFS table (``SELECT, flag=twiss, column=...;``
     before running ``TWISS``).
     Provides both element parameters and -- via its own ``S`` column,
     MAD-X's cumulative arc-length at the *exit* of each element --
     ``position_mode="s"`` positioning."""
+
+    source_file: Optional[str] = None
+    """Original MAD-X input file, used instead of ``twiss_file``."""
+
+    sequence: Optional[str] = None
+    """Sequence to import from ``source_file``; defaults to its sole sequence."""
 
     survey_file: Optional[str] = None
     """Path to a MAD-X SURVEY TFS table. Only read for ``position_mode="floor"``."""
@@ -69,25 +78,198 @@ class MadxLatticeImporter(BaseModel):
     """Dictionary containing converted
     :class:`~laura.models.element.Element` objects"""
 
+    functional_definitions: Dict[str, Union[int, float]] = {}
+
     lattice_name: Optional[str] = None
     """Best-effort lattice name, parsed from the TWISS file's own
     ``SEQUENCE`` header parameter. Used as the default section/layout name
     in :meth:`create_section`/:meth:`create_layout` when not given
     explicitly."""
 
+    deferred_parameters: Dict[str, Dict[str, str]] = {}
+    _source_functional_definitions: Dict[str, float] = PrivateAttr(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _check_input(self):
+        if (self.twiss_file is None) == (self.source_file is None):
+            raise ValueError("Give exactly one of twiss_file or source_file.")
+        return self
+
     def _default_name(self) -> str:
         if self.lattice_name:
             return self.lattice_name
-        return os.path.splitext(os.path.basename(self.twiss_file))[0]
+        return os.path.splitext(os.path.basename(self.twiss_file or self.source_file))[0]
+
+    @staticmethod
+    def _single_symbol(expression: str | None, definitions: Dict, length=0.0) -> str | None:
+        if not isinstance(expression, str) or not expression:
+            return None
+        compact = expression.lower().replace(" ", "").replace("(", "").replace(")", "")
+        for name in definitions:
+            if compact == name.lower():
+                return name
+            if compact in {
+                f"{name.lower()}*1e-06",
+                f"1e-06*{name.lower()}",
+                f"90-{name.lower()}/360",
+            }:
+                return name
+            if length and compact.startswith(name.lower() + "/"):
+                try:
+                    if np.isclose(float(compact.split("/", 1)[1]), length):
+                        return name
+                except ValueError:
+                    pass
+        return None
+
+    def _source_rows(self) -> list:
+        try:
+            from cpymad.madx import Madx
+        except ImportError as exc:
+            raise ImportError(
+                "cpymad is required for MAD-X source import. Install with: "
+                'pip install "laura-accelerator[madx]"'
+            ) from exc
+
+        madx = Madx(stdout=False)
+        madx.call(self.source_file)
+        sequences = list(madx.sequence.keys())
+        if self.sequence:
+            sequence = self.sequence.lower()
+            if sequence not in sequences:
+                raise KeyError(f"MAD-X sequence {self.sequence!r} was not found.")
+        elif len(sequences) == 1:
+            sequence = sequences[0]
+        else:
+            raise ValueError(
+                f"MAD-X source defines {sequences}; set sequence to choose one."
+            )
+        self.lattice_name = sequence
+
+        self.deferred_parameters = {}
+        rows = []
+        used = set()
+        declared = set(
+            re.findall(
+                r"(?im)^\s*([A-Za-z_][\w.]*)\s*(?::=|=)",
+                Path(self.source_file).read_text(),
+            )
+        )
+        native_elements = list(madx.sequence[sequence].elements)
+        totals = Counter(element.name for element in native_elements)
+        seen = Counter()
+        for element in native_elements:
+            seen[element.name] += 1
+            name = (
+                f"{element.name}.{seen[element.name]}"
+                if totals[element.name] > 1
+                else element.name
+            ).replace("$", "_")
+            length = float(element.length)
+            row = {
+                "name": name,
+                "keyword": element.base_type.name,
+                "l": length,
+                "s": float(element.position) + length,
+            }
+            for name, parameter in element.cmdpar.items():
+                if parameter.inform:
+                    row[name] = parameter.value
+                if parameter.inform > 1 and isinstance(parameter.expr, str):
+                    self.deferred_parameters.setdefault(row["name"], {})[name] = parameter.expr
+                    used.update(re.findall(r"[A-Za-z_][\w.]*", parameter.expr))
+            rows.append(row)
+        self._source_functional_definitions = {
+            name: float(madx.globals[name])
+            for name in used | declared
+            if name in madx.globals
+        }
+        self.functional_definitions = dict(self._source_functional_definitions)
+        return self._merge_dipedges(rows)
+
+    def _merge_dipedges(self, rows: list) -> list:
+        """Fold MAD-X thin edge elements into their adjacent thick dipole."""
+        bends = {"sbend", "rbend"}
+        merged = set()
+        for index, edge in enumerate(rows):
+            if str(edge["keyword"]).lower() != "dipedge":
+                continue
+            target = None
+            edge_parameter = None
+            if index + 1 < len(rows):
+                candidate = rows[index + 1]
+                if (
+                    str(candidate["keyword"]).lower() in bends
+                    and np.isclose(edge["s"], candidate["s"] - candidate["l"])
+                ):
+                    target, edge_parameter = candidate, "e1"
+            if target is None and index:
+                candidate = rows[index - 1]
+                if (
+                    str(candidate["keyword"]).lower() in bends
+                    and np.isclose(edge["s"], candidate["s"])
+                ):
+                    target, edge_parameter = candidate, "e2"
+            if target is None:
+                continue
+
+            target[edge_parameter] = edge.get("e1", 0.0)
+            for source, destination, scale in (
+                ("hgap", "gap", 2.0),
+                ("fint", "fint", 1.0),
+                ("tilt", "tilt", 1.0),
+            ):
+                if source not in edge:
+                    continue
+                value = float(edge[source]) * scale
+                if destination in target and not np.isclose(target[destination], value):
+                    warn(
+                        f"MAD-X dipedge values differ across {target['name']!r}; "
+                        f"keeping its first {destination} value."
+                    )
+                else:
+                    target[destination] = value
+            expression = self.deferred_parameters.get(edge["name"], {}).get("e1")
+            if expression:
+                self.deferred_parameters.setdefault(target["name"], {})[
+                    edge_parameter
+                ] = expression
+            self.deferred_parameters.pop(edge["name"], None)
+            merged.add(edge["name"])
+        return [row for row in rows if row["name"] not in merged]
 
     def create_element_dictionary(self) -> Dict:
-        tfs = TFSFile()
-        tfs.read_file(self.twiss_file)
-        self.lattice_name = tfs.headers.get("sequence")
+        if self.source_file:
+            rows = self._source_rows()
+        else:
+            tfs = TFSFile()
+            tfs.read_file(self.twiss_file)
+            self.lattice_name = tfs.headers.get("sequence")
+            rows = tfs.rows()
 
         switch_dict = _switch_dict()
+        source_definitions = self._source_functional_definitions
+        scaled_definitions = {}
+        conflicting_definitions = set()
+        for row in rows:
+            length = row.get("l", 0.0)
+            for param, expression in self.deferred_parameters.get(str(row["name"]), {}).items():
+                symbol = self._single_symbol(expression, source_definitions, length)
+                compact = expression.lower().replace(" ", "").replace("(", "").replace(")", "")
+                if symbol and param in {"k0", "k1", "k2", "k3", "ks"} and compact == symbol.lower():
+                    value = source_definitions[symbol] * length
+                    if symbol in scaled_definitions and not np.isclose(scaled_definitions[symbol], value):
+                        conflicting_definitions.add(symbol)
+                    scaled_definitions[symbol] = value
+        self.functional_definitions.update(
+            {
+                name: value
+                for name, value in scaled_definitions.items()
+                if name not in conflicting_definitions
+            }
+        )
         self.madx_data = {}
-        for row in tfs.rows():
+        for row in rows:
             name = str(row["name"])
             elemtype = str(row["keyword"]).lower()
             if elemtype in _SILENTLY_SKIPPED_TYPES:
@@ -126,6 +308,8 @@ class MadxLatticeImporter(BaseModel):
             for param, val in row.items():
                 if param in ("name", "keyword", "s"):
                     continue
+                if param == "hgap" and "magnetic" in entry:
+                    entry["magnetic"]["gap"] = 2 * float(val)
                 if param in _RAW_KEYS:
                     entry[param] = val
                 if val in (None, "", 0):
@@ -137,6 +321,20 @@ class MadxLatticeImporter(BaseModel):
                         entry[subk][param] = val
                     elif param in kwele and kwele[param] in model_fields[subk]:
                         entry[subk][kwele[param]] = val
+            for param, expression in self.deferred_parameters.get(name, {}).items():
+                symbol = self._single_symbol(
+                    expression, source_definitions, row.get("l", 0)
+                )
+                if not symbol or symbol in conflicting_definitions:
+                    continue
+                if param in _RAW_KEYS:
+                    entry[param] = symbol
+                for subk in model_fields:
+                    if not isinstance(model_fields[subk], dict):
+                        continue
+                    target = param if param in model_fields[subk] else kwele.get(param)
+                    if target in model_fields[subk]:
+                        entry[subk][target] = symbol
             self.madx_data[name] = entry
         return self.madx_data
 
@@ -186,8 +384,8 @@ class MadxLatticeImporter(BaseModel):
             for n in range(4):
                 key = f"k{n}"
                 if key in v:
-                    raw = float(v[key])
-                    knl = raw if n == 0 else raw * length
+                    raw = v[key]
+                    knl = raw if isinstance(raw, str) or n == 0 else float(raw) * length
                     multi[f"K{n}L"] = {"order": n, "normal": knl}
             if multi:
                 v["magnetic"].setdefault("multipoles", {}).update(multi)
@@ -200,14 +398,21 @@ class MadxLatticeImporter(BaseModel):
             elif htype == "Vertical_Corrector":
                 v["magnetic"]["vertical_kick"] = v.get("kick", 0.0)
             if htype == "Solenoid" and "ks" in v:
-                v["magnetic"].setdefault("fields", {})["S0L"] = float(v["ks"]) * length
+                v["magnetic"].setdefault("fields", {})["S0L"] = (
+                    v["ks"] if isinstance(v["ks"], str) else float(v["ks"]) * length
+                )
 
         if "cavity" in v and "phase" in v["cavity"]:
-            v["cavity"]["phase"] = 90 - 360 * float(v["cavity"]["phase"])
+            if not isinstance(v["cavity"]["phase"], str):
+                v["cavity"]["phase"] = 90 - 360 * float(v["cavity"]["phase"])
         if "cavity" in v and "frequency" in v["cavity"]:
-            v["cavity"]["frequency"] = float(v["cavity"]["frequency"]) * 1e6
+            if not isinstance(v["cavity"]["frequency"], str):
+                v["cavity"]["frequency"] = float(v["cavity"]["frequency"]) * 1e6
         if "simulation" in v and "field_amplitude" in v["simulation"]:
-            v["simulation"]["field_amplitude"] = float(v["simulation"]["field_amplitude"]) * 1e6
+            if not isinstance(v["simulation"]["field_amplitude"], str):
+                v["simulation"]["field_amplitude"] = (
+                    float(v["simulation"]["field_amplitude"]) * 1e6
+                )
 
         return v
 
@@ -285,7 +490,8 @@ class MadxLatticeImporter(BaseModel):
             raise ValueError("The first section element must precede the last.")
         elems = dict(list(self.elements.items())[first : last + 1])
         seclat = SectionLattice(
-            order=list(elems), elements=ElementList(elements=elems), name=secname
+            order=list(elems), elements=ElementList(elements=elems), name=secname,
+            functional_definitions=self.functional_definitions,
         )
         seclat.resolve_positions(self.elements)
         return {secname: seclat}
@@ -314,6 +520,7 @@ class MadxLatticeImporter(BaseModel):
         return MachineLayout(
             name=name or self._default_name(),
             sections=layout_sections,
+            functional_definitions=self.functional_definitions,
         )
 
     def export_yaml(

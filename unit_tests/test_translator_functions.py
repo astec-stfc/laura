@@ -143,19 +143,18 @@ class TestFunctionalDefinitionHeaders:
         set_functional_definitions({}, merge=False)
         set_resolve_functional(False)
 
-    def test_elegant_header_skips_zero_values(self):
+    def test_elegant_header_keeps_zero_values(self):
         header = elegant_functional_definitions()
         assert "quad1_k1l" in header
-        assert "zero_def" not in header
-        assert header == "% -2 sto quad1_k1l\n% 90 sto cav1_phase\n"
+        assert header == "% -2 sto quad1_k1l\n% 90 sto cav1_phase\n% 0 sto zero_def\n"
 
     def test_elegant_header_empty_in_resolve_mode(self):
         set_resolve_functional(True)
         assert elegant_functional_definitions() == ""
 
-    def test_madx_header_skips_zero_values(self):
+    def test_madx_header_keeps_zero_values(self):
         header = madx_functional_definitions()
-        assert header == "quad1_k1l = -2;\ncav1_phase = 90;\n"
+        assert header == "quad1_k1l = -2;\ncav1_phase = 90;\nzero_def = 0;\n"
 
     def test_madx_header_empty_in_resolve_mode(self):
         set_resolve_functional(True)

@@ -1,21 +1,32 @@
 import os
+import re
+import subprocess
+import tempfile
+from pathlib import Path
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, PrivateAttr, model_validator
 from typing import Dict, Literal, Optional, Union
 from ...utils.elegant import SDDSFile
 import laura.models.element as LAURA_elements
 from laura.models.elementList import SectionLattice, MachineLayout, ElementList
 from ...utils.elegant.sdds_classes_APS import SDDS_Floor, SDDS_Params
 from ....Exporters.YAML import export_machine_combined_file, PositionMode
+from .. import keyword_conversion_rules_elegant
 
 
 class ElegantLatticeImporter(BaseModel):
 
-    params_file: str
+    params_file: Optional[str] = None
     """Name of ELEGANT parameters file"""
 
-    floor_file: str
+    floor_file: Optional[str] = None
     """Name of ELEGANT floor file"""
+
+    source_file: Optional[str] = None
+    """Original ELEGANT lattice file, used instead of SDDS output files."""
+
+    beamline: Optional[str] = None
+    """Optional beamline selector for source import."""
 
     position_mode: Literal["s", "floor"] = "s"
     """How element positions are resolved from the ELEGANT floor file:
@@ -41,6 +52,8 @@ class ElegantLatticeImporter(BaseModel):
     """Dictionary containing converted
     :class:`~laura.models.element.Element` objects"""
 
+    functional_definitions: Dict[str, Union[int, float]] = {}
+
     lattice_name: Optional[str] = None
     """Best-effort lattice name parsed from the floor file's own ELEGANT
     description (``&floor_coordinates``'s ``"...lattice: Linac.lte"``);
@@ -48,6 +61,19 @@ class ElegantLatticeImporter(BaseModel):
     description didn't match that format. Used as the default section/layout
     name in :meth:`create_section`/:meth:`create_layout` when not given
     explicitly."""
+
+    _source_outputs: Dict[str, tuple] = PrivateAttr(default_factory=dict)
+    _source_tmp: object = PrivateAttr(default=None)
+    _source_expressions: Dict[str, Dict[str, str]] = PrivateAttr(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _check_input(self):
+        outputs = self.params_file is not None and self.floor_file is not None
+        if outputs == (self.source_file is not None):
+            raise ValueError(
+                "Give either source_file or both params_file and floor_file."
+            )
+        return self
 
     def _default_name(self) -> str:
         """Best-effort name for an auto-derived section/layout.
@@ -58,11 +84,147 @@ class ElegantLatticeImporter(BaseModel):
         """
         if self.lattice_name:
             return self.lattice_name
-        return os.path.splitext(os.path.basename(self.params_file))[0]
+        return os.path.splitext(os.path.basename(self.params_file or self.source_file))[0]
+
+    def _prepare_source(self) -> None:
+        if self._source_outputs:
+            return
+        text = Path(self.source_file).read_text()
+        text = re.sub(r"!.*", "", text).replace("&\n", " ")
+        self.functional_definitions = {
+            name: float(value)
+            for value, name in re.findall(
+                r"(?im)^\s*%\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][-+]?\d+)?)\s+sto\s+(\S+)",
+                text,
+            )
+        }
+        for element, parameters in re.findall(
+            r"(?im)^\s*([^\s:%]+)\s*:\s*[^,\n]+,(.*)$", text
+        ):
+            expressions = {
+                name.lower(): value
+                for name, value in re.findall(r'(\w+)\s*=\s*"([^"]+)"', parameters)
+                if any(definition in value.split() for definition in self.functional_definitions)
+            }
+            if expressions:
+                self._source_expressions[element.lower()] = expressions
+        line_bodies = dict(
+            re.findall(
+                r"(?im)^\s*([^\s:]+)\s*:\s*line\s*=\s*\(([^)]*)\)", text
+            )
+        )
+        beamlines = list(line_bodies)
+        if self.beamline:
+            matches = [name for name in beamlines if name.lower() == self.beamline.lower()]
+            if not matches:
+                raise KeyError(f"ELEGANT beamline {self.beamline!r} was not found.")
+            beamlines = matches
+        else:
+            referenced = {
+                re.sub(r"^(?:\d+\*)?-?", "", member.strip()).lower()
+                for body in line_bodies.values()
+                for member in body.split(",")
+            }
+            roots = [name for name in beamlines if name.lower() not in referenced]
+            beamlines = roots or beamlines
+        if len(beamlines) == 1:
+            members = [
+                re.sub(r"^(?:\d+\*)?-?", "", member.strip())
+                for member in line_bodies[beamlines[0]].split(",")
+            ]
+            lookup = {name.lower(): name for name in line_bodies}
+            if members and all(member.lower() in lookup for member in members):
+                self.lattice_name = beamlines[0]
+                beamlines = list(dict.fromkeys(lookup[member.lower()] for member in members))
+        if not beamlines:
+            raise ValueError("No ELEGANT LINE definitions were found in source_file.")
+
+        self._source_tmp = tempfile.TemporaryDirectory(prefix="laura-elegant-")
+        directory = Path(self._source_tmp.name)
+        for name in beamlines:
+            root = directory / name
+            command = directory / f"{name}.ele"
+            command.write_text(
+                "&run_setup\n"
+                f' lattice = "{Path(self.source_file).resolve()}",\n'
+                f' use_beamline = "{name}",\n'
+                f' rootname = "{root}",\n'
+                " p_central_mev = 100,\n"
+                f' parameters = "{root}.param",\n'
+                "&end\n"
+                "&run_control\n n_steps = 1,\n&end\n"
+                "&bunched_beam\n n_particles_per_bunch = 1,\n&end\n"
+                "&floor_coordinates\n"
+                f' filename = "{root}.flr",\n'
+                "&end\n"
+                "&track\n&end\n"
+            )
+            try:
+                subprocess.run(
+                    ["elegant", str(command)],
+                    cwd=directory,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+            except FileNotFoundError as exc:
+                raise ImportError(
+                    "The elegant executable is required for ELEGANT source import."
+                ) from exc
+            except subprocess.CalledProcessError as exc:
+                raise ValueError(
+                    f"ELEGANT could not load beamline {name!r}: {exc.stderr or exc.stdout}"
+                ) from exc
+            self._source_outputs[name] = (f"{root}.param", f"{root}.flr")
+
+    def _select_source_output(self, name: str) -> None:
+        self.params_file, self.floor_file = self._source_outputs[name]
+        self.elegant_data = {}
+        self.floor_data = {}
+        self.elements = {}
+
+    def _source_section(self, name: str) -> SectionLattice:
+        self._select_source_output(name)
+        self.create_laura_element_dictionary()
+        bounds = [next(iter(self.elements)), next(reversed(self.elements))]
+        return next(iter(self.create_section({name: bounds}).values()))
 
     def create_element_dictionary(self):
+        if self.source_file and not self.params_file:
+            self._prepare_source()
+            self._select_source_output(next(iter(self._source_outputs)))
         params = SDDS_Params(self.params_file)
         self.elegant_data, filenames = params.create_element_dictionary()
+        for name, data in self.elegant_data.items():
+            expressions = self._source_expressions.get(name.split(".", 1)[0].lower(), {})
+            length = data.get("magnetic", {}).get(
+                "length", data.get("physical", {}).get("length", data.get("l", 0.0))
+            )
+            for parameter in ("k0", "k1", "k2", "k3", "angle"):
+                expression = expressions.get(parameter)
+                if expression and self._rpn_symbol(
+                    expression, 0.0 if parameter == "angle" else length
+                ):
+                    data[parameter] = expressions[parameter]
+            rules = keyword_conversion_rules_elegant["general"]
+            element_type = data["hardware_type"].lower()
+            if element_type in keyword_conversion_rules_elegant:
+                rules = keyword_conversion_rules_elegant[element_type] | rules
+            source_to_laura = {source.lower(): target for target, source in rules.items()}
+            for parameter, expression in expressions.items():
+                tokens = expression.strip('"').split()
+                supported = self._rpn_symbol(expression) or (
+                    len(tokens) == 3
+                    and tokens[0] == "90"
+                    and tokens[2] == "-"
+                    and self._rpn_symbol(tokens[1])
+                )
+                if not supported:
+                    continue
+                target = source_to_laura.get(parameter, parameter)
+                for nested in data.values():
+                    if isinstance(nested, dict) and target in nested:
+                        nested[target] = expression
         return self.elegant_data, filenames
 
     def update_floor_coordinates(self):
@@ -209,7 +371,8 @@ class ElegantLatticeImporter(BaseModel):
             raise ValueError("The first section element must precede the last.")
         elems = dict(list(self.elements.items())[first : last + 1])
         seclat = SectionLattice(
-            order=list(elems), elements=ElementList(elements=elems), name=secname
+            order=list(elems), elements=ElementList(elements=elems), name=secname,
+            functional_definitions=self.functional_definitions,
         )
         seclat.resolve_positions(self.elements)
         return {secname: seclat}
@@ -229,7 +392,13 @@ class ElegantLatticeImporter(BaseModel):
             spanning the whole imported lattice is used (see
             :meth:`create_section`).
         """
-        if sections is None:
+        if self.source_file and sections is None:
+            self._prepare_source()
+            layout_sections = {
+                beamline: self._source_section(beamline)
+                for beamline in self._source_outputs
+            }
+        elif sections is None:
             layout_sections = self.create_section()
         else:
             layout_sections = {}
@@ -238,6 +407,7 @@ class ElegantLatticeImporter(BaseModel):
         return MachineLayout(
             name=name or self._default_name(),
             sections=layout_sections,
+            functional_definitions=self.functional_definitions,
         )
 
     def export_yaml(
@@ -266,31 +436,56 @@ class ElegantLatticeImporter(BaseModel):
         """
         export_machine_combined_file(path, source, position_mode=position_mode)
 
-    @staticmethod
-    def _convert_k_to_kl(v) -> dict:
+    def _rpn_symbol(self, value, length=0.0) -> str | None:
+        if not isinstance(value, str):
+            return None
+        tokens = value.strip('"').split()
+        for name in self.functional_definitions:
+            if tokens == [name]:
+                return name
+            if length and len(tokens) == 3 and tokens[0] == name and tokens[2] == "/":
+                try:
+                    if np.isclose(float(tokens[1]), length):
+                        return name
+                except ValueError:
+                    pass
+        return None
+
+    def _convert_k_to_kl(self, v) -> dict:
         multi = {}
         if "angle" in v:
-            v["k0"] = v["angle"] / float(v["magnetic"]["length"])
-            v["physical"]["physical_angle"] = -v["angle"]
+            symbol = self._rpn_symbol(v["angle"])
+            if symbol:
+                v["k0"] = symbol
+            else:
+                v["k0"] = v["angle"] / float(v["magnetic"]["length"])
+                v["physical"]["physical_angle"] = -v["angle"]
         for n in range(0, 9):
             if f"k{n}" in v and (
                 "length" in v["magnetic"] or "length" in v["physical"]
             ):
                 try:
-                    knl = float(v[f"k{n}"]) * float(v["magnetic"]["length"])
+                    length = float(v["magnetic"]["length"])
                 except KeyError:
-                    knl = float(v[f"k{n}"]) * float(v["physical"]["length"])
+                    length = float(v["physical"]["length"])
+                symbol = self._rpn_symbol(v[f"k{n}"], length)
+                knl = symbol or float(v[f"k{n}"]) * length
                 multi.update({f"K{n}L": {"order": n, "normal": knl}})
                 del v[f"k{n}"]
         if "magnetic" in v:
             v["magnetic"].update({"multipoles": multi})
         return v
 
-    @staticmethod
-    def _convert_ele_phase_to_phase(v) -> dict:
+    def _convert_ele_phase_to_phase(self, v) -> dict:
         if "cavity" in v:
             if "phase" in v["cavity"]:
-                v["cavity"]["phase"] = 90 - v["cavity"]["phase"]
+                value = v["cavity"]["phase"]
+                tokens = value.strip('"').split() if isinstance(value, str) else []
+                if len(tokens) == 3 and tokens[0] == "90" and tokens[2] == "-":
+                    symbol = self._rpn_symbol(tokens[1])
+                    v["cavity"]["phase"] = symbol or value
+                else:
+                    v["cavity"]["phase"] = 90 - value
         return v
 
     @staticmethod

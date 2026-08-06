@@ -809,6 +809,7 @@ class SectionLatticeTranslator(SectionLattice):
             return False
 
         line = env.new_line()
+        element_types = {}
         for i, element in enumerate(list(elem_dict.values())):
             if not element.subelement:
                 name, component, properties = element.to_xsuite(beam_length=beam_length)
@@ -817,6 +818,11 @@ class SectionLatticeTranslator(SectionLattice):
                     line.append(element.name)
                 else:
                     line.append(element.name, component(**properties))
+                element_types[element.name] = element.hardware_type
+        line.metadata["laura_element_types"] = element_types
+        line.metadata["laura_functional_definitions"] = dict(
+            self.functional_definitions or IgnoreExtra.functional_definitions
+        )
         if isinstance(particle_ref, xt.Particles):
             line.particle_ref = particle_ref
         if save:
@@ -933,10 +939,6 @@ class SectionLatticeTranslator(SectionLattice):
         seqstring += fulltext
         seqstring += "ENDSEQUENCE;\n"
         if has_beam:
-            # USE is only meaningful once a BEAM has been declared for the
-            # sequence -- MAD-X aborts with "USE - sequence without beam"
-            # otherwise. Without a beam this is a plain sequence definition,
-            # to be USEd by the caller after it issues its own BEAM.
             seqstring += f"USE, PERIOD={sanitize_string(self.name)};"
         return seqstring
 

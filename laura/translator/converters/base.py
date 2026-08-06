@@ -207,6 +207,11 @@ class BaseElementTranslator(PhysicalBaseElement):
         self.start_write()
         wholestring = ""
         etype = self._convertType_Elegant(self.hardware_type)
+        if etype == "drift" and self.hardware_type != "Drift":
+            warn(
+                f"Elegant does not support {self.hardware_type!r}; "
+                f"{self.name!r} was exported as a drift."
+            )
         string = self.name + ": " + etype
         keys = []
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
@@ -223,9 +228,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                     elif value == "angle/2":
                         value = self.magnetic.KnL(0) / 2
                     elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                        # When rendering symbolically, carry a functional strength
-                        # through to ELEGANT as the normalized k = KnL/length (an
-                        # rpn expression); otherwise use the computed numeric value.
                         expr = (
                             None
                             if self._resolve_functional
@@ -233,9 +235,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                         )
                         value = expr if expr is not None else getattr(self, f"{key}")
                     elif key == "angle":
-                        # Dipole bend angle: carry a functional definition through
-                        # symbolically (ELEGANT ANGLE is the integrated KnL(0)); it
-                        # is quoted by _elegant_value below.
                         raw = (
                             None
                             if self._resolve_functional
@@ -436,6 +435,15 @@ class BaseElementTranslator(PhysicalBaseElement):
                     elif value == "angle/2":
                         value = self.magnetic.KnL(0) / 2
                 properties.update({key: value})
+        if self.hardware_type.lower() == "dipole":
+            properties.update(
+                {
+                    "edge_entry_fint": self.magnetic.edge_field_integral,
+                    "edge_exit_fint": self.magnetic.edge_field_integral,
+                    "edge_entry_hgap": self.magnetic.half_gap,
+                    "edge_exit_hgap": self.magnetic.half_gap,
+                }
+            )
         return self.name, obj, properties
 
     def to_genesis(self, index: int) -> str:
@@ -846,7 +854,10 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _convertType_Elegant(self, etype: str) -> str:
         """Converts the element type to the corresponding Elegant type using predefined rules."""
-        return self._convert_type(etype, type_conversion_rules_Elegant, etype)
+        converted = self._convert_type(etype, type_conversion_rules_Elegant, etype)
+        if converted.lower() not in elements_Elegant:
+            return "drift"
+        return converted
 
     def _convertKeyword_Elegant(self, keyword: str, updated_type: str = "") -> str:
         """Converts a keyword to its corresponding Elegant keyword using predefined rules."""

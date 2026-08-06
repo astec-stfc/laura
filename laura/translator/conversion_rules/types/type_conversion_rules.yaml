@@ -25,7 +25,7 @@ elegant:
   Cleaner: clean
   APContour: apcontour
   Watch_Point: watch
-  Marker: watch
+  Marker: mark
   Wakefield: wake
   Horizontal_Corrector: hkick
   Vertical_Corrector: vkick

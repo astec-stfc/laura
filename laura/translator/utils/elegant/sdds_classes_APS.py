@@ -170,6 +170,9 @@ class SDDS_Params:
                 )
             elif elemtype in list(type_conversion_rules_Elegant.values()):
                 switch_dict = {y: x for x, y in type_conversion_rules_Elegant.items()}
+                switch_dict.update(
+                    {"watch": "Beam_Position_Monitor", "mark": "Marker", "marker": "Marker"}
+                )
                 sfconvert.update(
                     {
                         k: {
@@ -256,6 +259,8 @@ class SDDS_Params:
                         | keyword_conversion_rules_elegant["general"]
                     )
                 kwele = {y: x for x, y in merged.items()}
+                if param == "hgap" and "magnetic" in sfconvert[k]:
+                    sfconvert[k]["magnetic"]["gap"] = 2 * v["ParameterValue"][i]
                 for subk in model_fields:
                     val = (
                         v["ParameterValueString"][i]

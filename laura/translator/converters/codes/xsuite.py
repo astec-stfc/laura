@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
 from warnings import warn
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, PrivateAttr, model_validator
 
 import laura.models.element as LAURA_elements
 from laura.models.elementList import ElementList, MachineLayout, SectionLattice
@@ -70,8 +72,16 @@ class XsuiteLatticeImporter(BaseModel):
 
     machine_area: str = "Lattice"
 
-    line: Any
+    line: Any = None
     """Xtrack line. Xtrack is only required when the importer is used."""
+
+    source_file: Optional[str] = None
+    """Xtrack ``Line``/``Environment`` JSON file, used instead of ``line``."""
+
+    line_name: Optional[str] = None
+    """Optional line selector for an Environment containing multiple lines."""
+
+    functional_definitions: Dict[str, Union[int, float]] = {}
 
     position_mode: Literal["s", "survey"] = "s"
     """Use Xtrack's cumulative arc length by default, or its global survey."""
@@ -81,6 +91,87 @@ class XsuiteLatticeImporter(BaseModel):
     layouts: Dict = {}
     initial_position: List[float] = [0, 0, 0]
     initial_rotation: List[float] = [0, 0, 0]
+    _expressions: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _source_lines: Dict[str, Any] = PrivateAttr(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _load_source(self):
+        if (self.line is None) == (self.source_file is None):
+            raise ValueError("Give exactly one of line or source_file.")
+        if self.source_file:
+            try:
+                import xtrack as xt
+            except ImportError as exc:
+                raise ImportError(
+                    "xsuite is not installed. Install with: "
+                    'pip install "laura-accelerator[xsuite]"'
+                ) from exc
+            source_class = json.loads(Path(self.source_file).read_text()).get("__class__")
+            loaded = (
+                xt.Environment.from_json(
+                    self.source_file, classes=(xt.ParticlesMonitor,)
+                )
+                if source_class == "Environment"
+                else xt.Line.from_json(
+                    self.source_file, classes=(xt.ParticlesMonitor,)
+                )
+            )
+            object.__setattr__(self, "line", loaded)
+            object.__setattr__(self, "source_file", None)
+        if hasattr(self.line, "lines") and not hasattr(self.line, "element_names"):
+            names = list(self.line.lines)
+            if self.line_name:
+                if self.line_name not in names:
+                    raise KeyError(f"Xtrack line {self.line_name!r} was not found.")
+                names = [self.line_name]
+            self._source_lines = {name: self.line.lines[name] for name in names}
+            object.__setattr__(self, "line", self._source_lines[names[0]])
+        self._read_functional_definitions()
+        return self
+
+    def _read_functional_definitions(self) -> None:
+        """Keep independent Environment variables used by element expressions."""
+        vars = getattr(self.line, "vars", None)
+        if vars is None:
+            return
+        manager = self.line.env._var_management_to_dict().get("_var_manager", [])
+        self._expressions = {
+            target: expression
+            for target, expression in manager
+            if target.startswith("element_refs[")
+        }
+        names = {
+            part.split("']", 1)[0]
+            for expression in self._expressions.values()
+            for part in expression.split("vars['")[1:]
+        }
+        definitions = dict(self.functional_definitions)
+        definitions.update(
+            getattr(self.line, "metadata", {}).get(
+                "laura_functional_definitions", {}
+            )
+        )
+        definitions.update({
+            name: float(self.line.varval[name])
+            for name in names
+            if name not in {"t_turn_s", "__vary_default"}
+        })
+        object.__setattr__(self, "functional_definitions", definitions)
+
+    def _symbol(self, element_name: str, field: str, length: float = 0.0) -> str | None:
+        """Recognise expressions emitted by LAURA for a single scalar variable."""
+        try:
+            expr = self._expressions[f"element_refs['{element_name}'].{field}"]
+        except KeyError:
+            return None
+        for name in self.functional_definitions:
+            token = f"vars['{name}']"
+            if expr == token or (
+                length and expr.replace("(", "").replace(")", "").replace(" ", "")
+                == f"{token}/{length}".replace(" ", "")
+            ):
+                return name
+        return None
 
     def _physical(self, index: int, length: float, table, survey) -> dict:
         if self.position_mode == "s":
@@ -105,8 +196,7 @@ class XsuiteLatticeImporter(BaseModel):
             "length": length,
         }
 
-    @staticmethod
-    def _multipoles(native, length: float, native_type: str) -> dict:
+    def _multipoles(self, element_name: str, native, length: float, native_type: str) -> dict:
         normal = [float(value) for value in getattr(native, "knl", [])]
         skew = [float(value) for value in getattr(native, "ksl", [])]
         if native_type in _MAGNET_ORDERS:
@@ -131,7 +221,7 @@ class XsuiteLatticeImporter(BaseModel):
                 "LAURA stores multipoles only through K4L; "
                 "higher Xtrack orders were skipped."
             )
-        return {
+        result = {
             f"K{order}L": {
                 "order": order,
                 "normal": float(normal[order]) if order < len(normal) else 0.0,
@@ -139,15 +229,44 @@ class XsuiteLatticeImporter(BaseModel):
             }
             for order in range(highest)
         }
+        for order in range(highest):
+            symbol = self._symbol(element_name, f"k{order}", length)
+            if symbol:
+                result[f"K{order}L"]["normal"] = symbol
+            symbol = self._symbol(element_name, f"k{order}s", length)
+            if symbol:
+                result[f"K{order}L"]["skew"] = symbol
+        return result
 
-    def _element_data(self, native, native_type: str, length: float) -> dict:
+    def _element_data(
+        self,
+        element_name: str,
+        native,
+        native_type: str,
+        length: float,
+        laura_type: str | None = None,
+    ) -> dict:
+        if laura_type in {
+            "Combined_Corrector",
+            "Horizontal_Corrector",
+            "Vertical_Corrector",
+        }:
+            normal = list(getattr(native, "knl", []))
+            skew = list(getattr(native, "ksl", []))
+            return {
+                "magnetic": {
+                    "length": length,
+                    "horizontal_kick": -float(normal[0]) if normal else 0.0,
+                    "vertical_kick": float(skew[0]) if skew else 0.0,
+                }
+            }
         if native_type in _MAGNET_ORDERS or native_type in {
             "Multipole",
             "Magnet",
         }:
             magnetic = {
                 "length": length,
-                "multipoles": self._multipoles(native, length, native_type),
+                "multipoles": self._multipoles(element_name, native, length, native_type),
             }
             if native_type in {"Bend", "RBend"}:
                 for source, target in {
@@ -157,30 +276,41 @@ class XsuiteLatticeImporter(BaseModel):
                     "edge_entry_hgap": "gap",
                 }.items():
                     if hasattr(native, source):
-                        magnetic[target] = float(getattr(native, source))
+                        value = self._symbol(element_name, source) or float(
+                            getattr(native, source)
+                        )
+                        magnetic[target] = 2 * value if target == "gap" else value
             return {"magnetic": magnetic}
         if native_type in {"Solenoid", "UniformSolenoid"}:
+            strength = self._symbol(element_name, "ks", length)
             return {
                 "magnetic": {
                     "length": length,
-                    "fields": {"S0L": float(getattr(native, "ks", 0.0)) * length},
+                    "fields": {
+                        "S0L": strength or float(getattr(native, "ks", 0.0)) * length
+                    },
                 }
             }
         if native_type == "NonLinearLens":
             return {
                 "magnetic": {
                     "length": length,
-                    "integrated_strength": float(native.knll),
-                    "dimensional_parameter": float(native.cnll),
+                    "integrated_strength": self._symbol(element_name, "knll")
+                    or float(native.knll),
+                    "dimensional_parameter": self._symbol(element_name, "cnll")
+                    or float(native.cnll),
                 }
             }
         if native_type == "Cavity":
             return {
                 "cavity": {
-                    "phase": float(native.lag),
+                    "phase": self._symbol(element_name, "lag") or float(native.lag),
                     "frequency": float(native.frequency),
                 },
-                "simulation": {"field_amplitude": float(native.voltage)},
+                "simulation": {
+                    "field_amplitude": self._symbol(element_name, "voltage")
+                    or float(native.voltage)
+                },
             }
         if native_type == "LimitEllipse":
             return {
@@ -248,12 +378,17 @@ class XsuiteLatticeImporter(BaseModel):
             )
 
         self.elements = {}
+        stored_types = getattr(self.line, "metadata", {}).get(
+            "laura_element_types", {}
+        )
         for index, element_name in enumerate(self.line.element_names):
             native = self.line.element_dict[element_name]
             native_type = type(native).__name__
             if native_type == "Drift":
                 continue
-            laura_type = _TYPE_MAP.get(native_type)
+            stored_type = stored_types.get(element_name)
+            laura_type = getattr(LAURA_elements, stored_type, None) if stored_type else None
+            laura_type = laura_type or _TYPE_MAP.get(native_type)
             if laura_type is None:
                 warn(
                     f"Could not parse Xtrack element type {native_type!r} for "
@@ -261,7 +396,7 @@ class XsuiteLatticeImporter(BaseModel):
                 )
                 continue
 
-            warning = _LOSSY_CONVERSIONS.get(native_type)
+            warning = None if stored_type else _LOSSY_CONVERSIONS.get(native_type)
             if native_type == "LimitRect" and (
                 not np.isclose(native.min_x, -native.max_x)
                 or not np.isclose(native.min_y, -native.max_y)
@@ -278,7 +413,9 @@ class XsuiteLatticeImporter(BaseModel):
                 "name": element_name,
                 "machine_area": self.machine_area,
                 "physical": self._physical(index, length, table, survey),
-                **self._element_data(native, native_type, length),
+                **self._element_data(
+                    element_name, native, native_type, length, stored_type
+                ),
             }
             self.elements[element_name] = laura_type(**data)
         return self.elements
@@ -314,6 +451,7 @@ class XsuiteLatticeImporter(BaseModel):
             order=list(elements),
             elements=ElementList(elements=elements),
             name=section_name,
+            functional_definitions=self.functional_definitions,
         )
         lattice.resolve_positions(self.elements)
         self.sections[section_name] = lattice
@@ -322,13 +460,28 @@ class XsuiteLatticeImporter(BaseModel):
     def create_layout(
         self, name: Optional[str] = None, sections: Optional[Dict] = None
     ) -> MachineLayout:
-        if sections is None:
+        if self._source_lines and sections is None:
+            layout_sections = {}
+            for line_name, line in self._source_lines.items():
+                object.__setattr__(self, "line", line)
+                self._read_functional_definitions()
+                self.elements = {}
+                self.create_laura_element_dictionary()
+                names = list(self.elements)
+                layout_sections.update(
+                    self.create_section({line_name: [names[0], names[-1]]})
+                )
+        elif sections is None:
             layout_sections = self.create_section()
         else:
             layout_sections = {}
             for section_name, bounds in sections.items():
                 layout_sections.update(self.create_section({section_name: bounds}))
-        layout = MachineLayout(name=name or self.name, sections=layout_sections)
+        layout = MachineLayout(
+            name=name or self.name,
+            sections=layout_sections,
+            functional_definitions=self.functional_definitions,
+        )
         self.layouts[layout.name] = layout
         return layout
 
