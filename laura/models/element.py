@@ -1493,7 +1493,7 @@ class Wire(PhysicalBaseElement, _WireBase):
     hardware_type: str = Field(default="Wire", frozen=True)
     """Wire hardware type."""
 
-    hardware_class: str = Field(default="Magnet", frozen=True)
+    hardware_class: str = Field(default="Diagnostic", frozen=True)
     """Wire hardware class."""
 
     simulation: Optional[WireSimulationElement] = None
