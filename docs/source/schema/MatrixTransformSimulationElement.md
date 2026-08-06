@@ -22,6 +22,8 @@ URI: [laura:MatrixTransformSimulationElement](https://w3id.org/laura/MatrixTrans
       SimulationElement <|-- MatrixTransformSimulationElement
         click SimulationElement href "../SimulationElement/"
       
+      MatrixTransformSimulationElement : apply
+        
       MatrixTransformSimulationElement : c_matrix
         
           
@@ -88,6 +90,7 @@ URI: [laura:MatrixTransformSimulationElement](https://w3id.org/laura/MatrixTrans
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
+| [apply](apply.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether to apply the transfer map | direct |
 | [c_matrix](c_matrix.md) | 0..1 <br/> [MatrixValue](MatrixValue.md) | C-matrix (zeroth-order transfer vector) | direct |
 | [r_matrix](r_matrix.md) | 0..1 <br/> [MatrixValue](MatrixValue.md) | R-matrix (first-order transfer matrix) | direct |
 | [t_matrix](t_matrix.md) | 0..1 <br/> [MatrixValue](MatrixValue.md) | T-matrix (second-order transfer tensor) | direct |
@@ -159,6 +162,15 @@ description: Zero-, first-, and second-order transfer-map coefficients for a mat
 from_schema: https://w3id.org/laura/schema
 is_a: SimulationElement
 attributes:
+  apply:
+    name: apply
+    description: Whether to apply the transfer map.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: 'False'
+    domain_of:
+    - MatrixTransformSimulationElement
+    range: boolean
   c_matrix:
     name: c_matrix
     description: C-matrix (zeroth-order transfer vector).
@@ -199,6 +211,16 @@ description: Zero-, first-, and second-order transfer-map coefficients for a mat
 from_schema: https://w3id.org/laura/schema
 is_a: SimulationElement
 attributes:
+  apply:
+    name: apply
+    description: Whether to apply the transfer map.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: 'False'
+    owner: MatrixTransformSimulationElement
+    domain_of:
+    - MatrixTransformSimulationElement
+    range: boolean
   c_matrix:
     name: c_matrix
     description: C-matrix (zeroth-order transfer vector).

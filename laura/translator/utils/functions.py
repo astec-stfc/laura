@@ -266,7 +266,7 @@ def checkValue(self, d, default=None):
         )
 
 
-def tw_cavity_energy_gain(cavity: "laura.translator.converters.cavity.RFCavityTranslator"):
+def tw_cavity_energy_gain(cavity):
     """
     Estimate energy gain in a travelling-wave RF cavity.
 

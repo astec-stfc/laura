@@ -29,10 +29,6 @@ def _schema_class_names() -> dict[str, str]:
     for path in sorted(SCHEMA_DIR.glob("*.yaml")):
         doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         for class_name, class_def in (doc.get("classes") or {}).items():
-            # LinkML's universal ``linkml:Any`` class is a range marker, not a
-            # generated Pydantic model.  MatrixValue uses it so dense matrices
-            # and named coefficient mappings can be validated by the
-            # hand-written NumPy validators.
             if (class_def or {}).get("class_uri") == "linkml:Any":
                 continue
             found[class_name] = path.name

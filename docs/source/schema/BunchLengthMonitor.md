@@ -286,6 +286,7 @@ attributes:
     - Camera
     - Screen
     - ChargeDiagnostic
+    - PhotonMonitor
     range: BLMDiagnosticElement
 class_uri: laura:BunchLengthMonitor
 
@@ -320,6 +321,7 @@ attributes:
     - Camera
     - Screen
     - ChargeDiagnostic
+    - PhotonMonitor
     range: BLMDiagnosticElement
   physical:
     name: physical

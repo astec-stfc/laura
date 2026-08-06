@@ -196,7 +196,7 @@ URI: [laura:IntegratedCurrentTransformer](https://w3id.org/laura/IntegratedCurre
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [diagnostic](diagnostic.md) | 0..1 <br/> [ChargeDiagnosticElement](ChargeDiagnosticElement.md) | Instrument-specific diagnostic parameters | [Diagnostic](Diagnostic.md), [ChargeDiagnostic](ChargeDiagnostic.md) |
+| [diagnostic](diagnostic.md) | 0..1 <br/> [ChargeDiagnosticElement](ChargeDiagnosticElement.md) | Instrument-specific diagnostic parameters | [ChargeDiagnostic](ChargeDiagnostic.md), [Diagnostic](Diagnostic.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
@@ -307,6 +307,7 @@ attributes:
     - Camera
     - Screen
     - ChargeDiagnostic
+    - PhotonMonitor
     range: ChargeDiagnosticElement
   physical:
     name: physical

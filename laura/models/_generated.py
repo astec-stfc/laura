@@ -1126,6 +1126,8 @@ class _MatrixTransformSimulationElementBase(_SimulationElementBase):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MatrixTransformSimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation'})
 
+    apply: Optional[bool] = Field(default=False, description="""Whether to apply the transfer map.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MatrixTransformSimulationElement'], 'ifabsent': 'False'} })
+    """Whether to apply the transfer map."""
     c_matrix: Optional[Any] = Field(default=None, description="""C-matrix (zeroth-order transfer vector).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MatrixTransformSimulationElement']} })
     """C-matrix (zeroth-order transfer vector)."""
     r_matrix: Optional[Any] = Field(default=None, description="""R-matrix (first-order transfer matrix).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MatrixTransformSimulationElement']} })
@@ -1955,8 +1957,7 @@ class _PhotonIntensityMonitorDiagnosticBase(_DiagnosticElementBase):
                        'CameraDiagnosticElement'],
          'ifabsent': 'string(I0)'} })
     """Photon intensity monitor type. Accepted in YAML as ``intensity_monitor_type``."""
-    intensity: float = Field(default=0.0, description="""Measured photon intensity.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhotonMonitor', 'PhotonIntensityMonitorDiagnostic'],
-         'ifabsent': 'float(0.0)'} })
+    intensity: float = Field(default=0.0, description="""Measured photon intensity.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhotonIntensityMonitorDiagnostic'], 'ifabsent': 'float(0.0)'} })
     """Measured photon intensity."""
 
 
@@ -4796,7 +4797,8 @@ class _DiagnosticBase(_PhysicalAcceleratorElementBase):
                        'BunchLengthMonitor',
                        'Camera',
                        'Screen',
-                       'ChargeDiagnostic'],
+                       'ChargeDiagnostic',
+                       'PhotonMonitor'],
          'in_subset': ['diagnostic_properties']} })
     """Instrument-specific diagnostic parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
@@ -4853,7 +4855,8 @@ class _BeamPositionMonitorBase(_DiagnosticBase):
                        'BunchLengthMonitor',
                        'Camera',
                        'Screen',
-                       'ChargeDiagnostic'],
+                       'ChargeDiagnostic',
+                       'PhotonMonitor'],
          'in_subset': ['diagnostic_properties']} })
     """Instrument-specific diagnostic parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
@@ -4912,7 +4915,8 @@ class _BeamArrivalMonitorBase(_DiagnosticBase):
                        'BunchLengthMonitor',
                        'Camera',
                        'Screen',
-                       'ChargeDiagnostic'],
+                       'ChargeDiagnostic',
+                       'PhotonMonitor'],
          'in_subset': ['diagnostic_properties']} })
     """Instrument-specific diagnostic parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
@@ -4971,7 +4975,8 @@ class _BunchLengthMonitorBase(_DiagnosticBase):
                        'BunchLengthMonitor',
                        'Camera',
                        'Screen',
-                       'ChargeDiagnostic'],
+                       'ChargeDiagnostic',
+                       'PhotonMonitor'],
          'in_subset': ['diagnostic_properties']} })
     """Instrument-specific diagnostic parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
@@ -5030,7 +5035,8 @@ class _CameraBase(_DiagnosticBase):
                        'BunchLengthMonitor',
                        'Camera',
                        'Screen',
-                       'ChargeDiagnostic'],
+                       'ChargeDiagnostic',
+                       'PhotonMonitor'],
          'in_subset': ['diagnostic_properties']} })
     """Instrument-specific diagnostic parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
@@ -5089,7 +5095,8 @@ class _ScreenBase(_DiagnosticBase):
                        'BunchLengthMonitor',
                        'Camera',
                        'Screen',
-                       'ChargeDiagnostic'],
+                       'ChargeDiagnostic',
+                       'PhotonMonitor'],
          'in_subset': ['diagnostic_properties']} })
     """Instrument-specific diagnostic parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
@@ -5148,7 +5155,8 @@ class _ChargeDiagnosticBase(_DiagnosticBase):
                        'BunchLengthMonitor',
                        'Camera',
                        'Screen',
-                       'ChargeDiagnostic'],
+                       'ChargeDiagnostic',
+                       'PhotonMonitor'],
          'in_subset': ['diagnostic_properties']} })
     """Instrument-specific diagnostic parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
@@ -5207,7 +5215,8 @@ class _WallCurrentMonitorBase(_ChargeDiagnosticBase):
                        'BunchLengthMonitor',
                        'Camera',
                        'Screen',
-                       'ChargeDiagnostic'],
+                       'ChargeDiagnostic',
+                       'PhotonMonitor'],
          'in_subset': ['diagnostic_properties']} })
     """Instrument-specific diagnostic parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
@@ -5266,7 +5275,8 @@ class _FaradayCupMonitorBase(_ChargeDiagnosticBase):
                        'BunchLengthMonitor',
                        'Camera',
                        'Screen',
-                       'ChargeDiagnostic'],
+                       'ChargeDiagnostic',
+                       'PhotonMonitor'],
          'in_subset': ['diagnostic_properties']} })
     """Instrument-specific diagnostic parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
@@ -5325,7 +5335,8 @@ class _IntegratedCurrentTransformerBase(_ChargeDiagnosticBase):
                        'BunchLengthMonitor',
                        'Camera',
                        'Screen',
-                       'ChargeDiagnostic'],
+                       'ChargeDiagnostic',
+                       'PhotonMonitor'],
          'in_subset': ['diagnostic_properties']} })
     """Instrument-specific diagnostic parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
@@ -5380,16 +5391,14 @@ class _PhotonMonitorBase(_DiagnosticBase):
                         'hardware_type': {'equals_string': 'Photon_Monitor',
                                           'name': 'hardware_type'}}})
 
-    intensity: Optional[_PhotonIntensityMonitorDiagnosticBase] = Field(default=None, description="""Instrument-specific diagnostic parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhotonMonitor', 'PhotonIntensityMonitorDiagnostic'],
-         'in_subset': ['diagnostic_properties']} })
-    """Instrument-specific diagnostic parameters."""
-    diagnostic: Optional[_DiagnosticElementBase] = Field(default=None, description="""Instrument-specific diagnostic parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Diagnostic',
+    diagnostic: Optional[_PhotonIntensityMonitorDiagnosticBase] = Field(default=None, description="""Instrument-specific diagnostic parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Diagnostic',
                        'BeamPositionMonitor',
                        'BeamArrivalMonitor',
                        'BunchLengthMonitor',
                        'Camera',
                        'Screen',
-                       'ChargeDiagnostic'],
+                       'ChargeDiagnostic',
+                       'PhotonMonitor'],
          'in_subset': ['diagnostic_properties']} })
     """Instrument-specific diagnostic parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],

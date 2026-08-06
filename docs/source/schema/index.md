@@ -166,6 +166,7 @@ Name: laura_schema
 | [alpha_y](alpha_y.md) | Vertical alpha |
 | [angle](angle.md) | Integrated bending angle [rad] |
 | [aperture](aperture.md) | Aperture geometry parameters |
+| [apply](apply.md) | Whether to apply the transfer map |
 | [attenuation_constant](attenuation_constant.md) | Attenuation constant ? of a travelling-wave structure [Np/m] |
 | [beam_pixel_average](beam_pixel_average.md) | Average pixel value for beam detection |
 | [beta_x](beta_x.md) | Horizontal beta |
@@ -293,7 +294,7 @@ Name: laura_schema
 | [inputs](inputs.md) | Signal types this element consumes (e |
 | [integrated_strength](integrated_strength.md) | Integrated lens strength (MAD-X ``knll``) |
 | [integration_order](integration_order.md) | Order of the symplectic integrator |
-| [intensity](intensity.md) | Instrument-specific diagnostic parameters |
+| [intensity](intensity.md) | Measured photon intensity |
 | [interaction_length](interaction_length.md) | Effective interaction length [m] |
 | [interlocks](interlocks.md) | Names of the interlocks guarding this shutter |
 | [interpolate](interpolate.md) | Interpolate points in wake file |

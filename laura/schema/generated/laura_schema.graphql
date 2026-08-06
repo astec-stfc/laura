@@ -1101,6 +1101,7 @@ type MatrixTransformSimulationElement
     wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
+    apply: Boolean
     cMatrix: MatrixValue
     rMatrix: MatrixValue
     tMatrix: MatrixValue
@@ -1148,9 +1149,8 @@ type PhotonMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
-    diagnostic: DiagnosticElement
     simulation: DiagnosticSimulationElement
-    intensity: PhotonIntensityMonitorDiagnostic
+    diagnostic: PhotonIntensityMonitorDiagnostic
     hardwareType: String
     hardwareModel: String
   }

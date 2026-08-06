@@ -846,6 +846,8 @@ export interface TwissMatchSimulationElement extends SimulationElement {
  * Zero-, first-, and second-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
  */
 export interface MatrixTransformSimulationElement extends SimulationElement {
+    /** Whether to apply the transfer map. */
+    apply?: boolean,
     /** C-matrix (zeroth-order transfer vector). */
     c_matrix?: MatrixValue,
     /** R-matrix (first-order transfer matrix). */
@@ -1463,7 +1465,7 @@ export interface IntegratedCurrentTransformer extends ChargeDiagnostic {
  */
 export interface PhotonMonitor extends Diagnostic {
     /** Instrument-specific diagnostic parameters. */
-    intensity?: PhotonIntensityMonitorDiagnostic,
+    diagnostic?: PhotonIntensityMonitorDiagnostic,
 }
 
 

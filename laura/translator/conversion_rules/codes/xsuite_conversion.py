@@ -13,9 +13,9 @@ try:
     from xtrack.beam_elements import Multipole as Multipole_xs
     from xtrack.beam_elements import Magnet as Magnet_xs
     from xtrack.beam_elements import Marker as Marker_xs
+    from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
     from xtrack.beam_elements import SecondOrderTaylorMap as SecondOrderTaylorMap_xs
     from xtrack.beam_elements import CrabCavity as CrabCavity_xs
-    from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
     _XSUITE_AVAILABLE = True
 except ImportError as _err:
     raise ImportError(

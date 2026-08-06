@@ -131,6 +131,7 @@ from .simulation import (
     BeamBeamSimulationElement,
     RFMultipoleSimulationElement,
 )
+# Re-export from utils for backwards compatibility
 flatten = flatten_dict
 string_with_quotes = StringWithQuotes
 flow_list = FlowList
@@ -258,9 +259,6 @@ class Element(baseElement, _ElementBase):
         reference: :class:`~laura.models.reference.ReferenceElement` | None: Reference information for the element.
     """
 
-    # Override the generated base-class type so that dicts are validated as
-    # ManufacturerElement (which coerces int serial_number → str) rather than the
-    # bare _ManufacturerElementBase which only accepts strings.
     manufacturer: Optional[ManufacturerElement] = Field(default=None)
 
     controls: ControlsInformation | None = None
@@ -991,6 +989,9 @@ class Plasma(PhysicalBaseElement, _PlasmaBase):
 
     simulation: Optional[PlasmaSimulationElement] = None
     """Plasma simulation attributes."""
+
+    laser: Optional[LaserElement] = None
+    """Laser attributes."""
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)

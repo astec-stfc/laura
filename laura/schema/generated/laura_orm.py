@@ -7604,6 +7604,7 @@ class MatrixTransformSimulationElement(SimulationElement):
     __tablename__ = 'MatrixTransformSimulationElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    apply = Column(Boolean())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7618,7 +7619,7 @@ class MatrixTransformSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"MatrixTransformSimulationElement(id={self.id},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},c_matrix_id={self.c_matrix_id},r_matrix_id={self.r_matrix_id},t_matrix_id={self.t_matrix_id},)"
+        return f"MatrixTransformSimulationElement(id={self.id},apply={self.apply},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},c_matrix_id={self.c_matrix_id},r_matrix_id={self.r_matrix_id},t_matrix_id={self.t_matrix_id},)"
 
 
 
@@ -11027,10 +11028,8 @@ class PhotonMonitor(Diagnostic):
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
-    intensity_id = Column(Integer(), ForeignKey('PhotonIntensityMonitorDiagnostic.id'))
-    intensity = relationship("PhotonIntensityMonitorDiagnostic", uselist=False, foreign_keys=[intensity_id])
-    diagnostic_id = Column(Integer(), ForeignKey('DiagnosticElement.id'))
-    diagnostic = relationship("DiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic_id = Column(Integer(), ForeignKey('PhotonIntensityMonitorDiagnostic.id'))
+    diagnostic = relationship("PhotonIntensityMonitorDiagnostic", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
@@ -11069,7 +11068,7 @@ class PhotonMonitor(Diagnostic):
     
 
     def __repr__(self):
-        return f"PhotonMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},intensity_id={self.intensity_id},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"PhotonMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 

@@ -7892,6 +7892,13 @@
       "additionalProperties": false,
       "description": "Zero-, first-, and second-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.",
       "properties": {
+        "apply": {
+          "description": "Whether to apply the transfer map.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "c_matrix": {
           "anyOf": [
             {
@@ -9042,7 +9049,7 @@
         "diagnostic": {
           "anyOf": [
             {
-              "$ref": "#/$defs/DiagnosticElement"
+              "$ref": "#/$defs/PhotonIntensityMonitorDiagnostic"
             },
             {
               "type": "null"
@@ -9099,17 +9106,6 @@
             "array",
             "null"
           ]
-        },
-        "intensity": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhotonIntensityMonitorDiagnostic"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Instrument-specific diagnostic parameters."
         },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",

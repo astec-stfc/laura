@@ -4,8 +4,8 @@ instance into an RF-Track Python object.
 
 Unlike Ocelot/Cheetah/Xsuite (``ocelot_conversion.py`` and siblings), RF-Track
 element constructors take strictly *positional* arguments with heterogeneous
-signatures per element type, so a flat
-``hardware_type -> class`` dict is not enough — each entry
+signatures per element type (see ``RFTrack/RFTrack_API_notes.md`` in the repo
+root), so a flat ``hardware_type -> class`` dict is not enough — each entry
 here is a small builder function instead of a bare class.
 
 Each builder has a matching entry in ``rftrack_repr_rules`` (see bottom of

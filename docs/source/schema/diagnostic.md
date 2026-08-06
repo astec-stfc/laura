@@ -39,7 +39,7 @@ URI: [laura:diagnostic](https://w3id.org/laura/diagnostic)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [Diagnostic](Diagnostic.md), [BeamPositionMonitor](BeamPositionMonitor.md), [BeamArrivalMonitor](BeamArrivalMonitor.md), [BunchLengthMonitor](BunchLengthMonitor.md), [Camera](Camera.md), [Screen](Screen.md), [ChargeDiagnostic](ChargeDiagnostic.md) |
+| Domain Of | [Diagnostic](Diagnostic.md), [BeamPositionMonitor](BeamPositionMonitor.md), [BeamArrivalMonitor](BeamArrivalMonitor.md), [BunchLengthMonitor](BunchLengthMonitor.md), [Camera](Camera.md), [Screen](Screen.md), [ChargeDiagnostic](ChargeDiagnostic.md), [PhotonMonitor](PhotonMonitor.md) |
 
 ### Cardinality and Requirements
 
@@ -85,6 +85,7 @@ domain_of:
 - Camera
 - Screen
 - ChargeDiagnostic
+- PhotonMonitor
 range: string
 
 ```
