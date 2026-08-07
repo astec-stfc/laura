@@ -405,15 +405,19 @@ classes:
       beta_x:
         range: float
         description: Horizontal beta.
+        ifabsent: float(1.0)
       beta_y:
         range: float
         description: Vertical beta.
+        ifabsent: float(1.0)
       alpha_x:
         range: float
         description: Horizontal alpha.
+        ifabsent: float(0.0)
       alpha_y:
         range: float
         description: Vertical alpha.
+        ifabsent: float(0.0)
       eta_x:
         range: float
         description: Horizontal dispersion.
@@ -438,7 +442,7 @@ classes:
   MatrixTransformSimulationElement:
     is_a: SimulationElement
     description: >-
-      Zero-, first-, and second-order transfer-map coefficients for a matrix
+      Zero- through third-order transfer-map coefficients for a matrix
       transform element. Each coefficient collection accepts the dense form or
       the named coefficient mapping understood by the Python model.
     class_uri: laura:MatrixTransformSimulationElement
@@ -456,6 +460,14 @@ classes:
       t_matrix:
         range: MatrixValue
         description: T-matrix (second-order transfer tensor).
+      u_matrix:
+        range: MatrixValue
+        description: U-matrix (third-order transfer tensor).
+      spin_taylor:
+        range: MatrixValue
+        description: >-
+          Sparse quaternion Taylor terms. Each term stores a quaternion
+          component index, coefficient, and six orbital exponents.
 
   ElectrostaticSeparatorSimulationElement:
     is_a: SimulationElement

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, Optional, Union
 from warnings import warn
 
 import numpy as np
@@ -52,6 +52,8 @@ _MAGNET_ORDERS = {
     "Octupole": 3,
 }
 _LOSSY_CONVERSIONS = {
+    "DipoleEdge": "no adjacent Bend/RBend was found, so its edge-focusing "
+    "parameters (e1, hgap, fint) were not represented",
     "BeamPositionMonitor": "sampling and turn configuration was not represented",
     "BeamProfileMonitor": "sampling and profile-bin configuration was not represented",
     "BeamSizeMonitor": "beam-size statistics were reduced to a Screen",
@@ -88,14 +90,9 @@ class XsuiteLatticeImporter(BaseModel):
 
     functional_definitions: Dict[str, Union[int, float]] = {}
 
-    position_mode: Literal["s", "survey"] = "s"
-    """Use Xtrack's cumulative arc length by default, or its global survey."""
-
     elements: Dict = {}
     sections: Dict = {}
     layouts: Dict = {}
-    initial_position: List[float] = [0, 0, 0]
-    initial_rotation: List[float] = [0, 0, 0]
     _expressions: Dict[str, str] = PrivateAttr(default_factory=dict)
     _source_lines: Dict[str, Any] = PrivateAttr(default_factory=dict)
 
@@ -178,26 +175,10 @@ class XsuiteLatticeImporter(BaseModel):
                 return name
         return None
 
-    def _physical(self, index: int, length: float, table, survey) -> dict:
-        if self.position_mode == "s":
-            return {
-                "s": float(table.s_end[index]),
-                "s_point": "end",
-                "length": length,
-            }
-
-        start = np.array([survey.X[index], survey.Y[index], survey.Z[index]])
-        end = np.array(
-            [survey.X[index + 1], survey.Y[index + 1], survey.Z[index + 1]]
-        )
-        rotation = [
-            float((survey.phi[index] + survey.phi[index + 1]) / 2),
-            float((survey.psi[index] + survey.psi[index + 1]) / 2),
-            float((survey.theta[index] + survey.theta[index + 1]) / 2),
-        ]
+    def _physical(self, index: int, length: float, table) -> dict:
         return {
-            "middle": ((start + end) / 2).tolist(),
-            "global_rotation": rotation,
+            "s": float(table.s_end[index]),
+            "s_point": "end",
             "length": length,
         }
 
@@ -250,6 +231,7 @@ class XsuiteLatticeImporter(BaseModel):
         native_type: str,
         length: float,
         laura_type: str | None = None,
+        edges: Dict[str, Any] | None = None,
     ) -> dict:
         if laura_type in {
             "Combined_Corrector",
@@ -274,16 +256,21 @@ class XsuiteLatticeImporter(BaseModel):
                 "multipoles": self._multipoles(element_name, native, length, native_type),
             }
             if native_type in {"Bend", "RBend"}:
-                for source, target in {
-                    "edge_entry_angle": "entrance_edge_angle",
-                    "edge_exit_angle": "exit_edge_angle",
-                    "edge_entry_fint": "edge_field_integral",
-                    "edge_entry_hgap": "gap",
-                }.items():
+                entry_edge = (edges or {}).get("entry")
+                exit_edge = (edges or {}).get("exit")
+                field_map = {
+                    "edge_entry_angle": ("entrance_edge_angle", "e1", entry_edge),
+                    "edge_exit_angle": ("exit_edge_angle", "e1", exit_edge),
+                    "edge_entry_fint": ("edge_field_integral", "fint", entry_edge or exit_edge),
+                    "edge_entry_hgap": ("gap", "hgap", entry_edge or exit_edge),
+                }
+                for source, (target, edge_attr, fallback_edge) in field_map.items():
                     if hasattr(native, source):
                         value = self._symbol(element_name, source) or float(
                             getattr(native, source)
                         )
+                        if value == 0.0 and fallback_edge is not None:
+                            value = float(getattr(fallback_edge, edge_attr, 0.0))
                         magnetic[target] = 2 * value if target == "gap" else value
             return {"magnetic": magnetic}
         if native_type in {"Solenoid", "UniformSolenoid"}:
@@ -371,25 +358,34 @@ class XsuiteLatticeImporter(BaseModel):
             ) from exc
 
         table = self.line.get_table()
-        survey = None
-        if self.position_mode == "survey":
-            survey = self.line.survey(
-                X0=self.initial_position[0],
-                Y0=self.initial_position[1],
-                Z0=self.initial_position[2],
-                theta0=self.initial_rotation[0],
-                phi0=self.initial_rotation[1],
-                psi0=self.initial_rotation[2],
-            )
 
         self.elements = {}
         stored_types = getattr(self.line, "metadata", {}).get(
             "laura_element_types", {}
         )
-        for index, element_name in enumerate(self.line.element_names):
+        element_names = list(self.line.element_names)
+        absorbed_edges: Dict[str, Dict[str, Any]] = {}
+        skip_indices: set = set()
+        for index, element_name in enumerate(element_names):
+            native = self.line.element_dict[element_name]
+            if type(native).__name__ != "DipoleEdge":
+                continue
+            for neighbor_index in (index - 1, index + 1):
+                if not (0 <= neighbor_index < len(element_names)):
+                    continue
+                neighbor = self.line.element_dict[element_names[neighbor_index]]
+                if type(neighbor).__name__ in {"Bend", "RBend"}:
+                    side = "entry" if str(getattr(native, "side", "entry")) == "entry" else "exit"
+                    absorbed_edges.setdefault(element_names[neighbor_index], {})[side] = native
+                    skip_indices.add(index)
+                    break
+
+        for index, element_name in enumerate(element_names):
             native = self.line.element_dict[element_name]
             native_type = type(native).__name__
             if native_type == "Drift":
+                continue
+            if index in skip_indices:
                 continue
             stored_type = stored_types.get(element_name)
             laura_type = getattr(LAURA_elements, stored_type, None) if stored_type else None
@@ -417,9 +413,14 @@ class XsuiteLatticeImporter(BaseModel):
             data = {
                 "name": element_name,
                 "machine_area": self.machine_area,
-                "physical": self._physical(index, length, table, survey),
+                "physical": self._physical(index, length, table),
                 **self._element_data(
-                    element_name, native, native_type, length, stored_type
+                    element_name,
+                    native,
+                    native_type,
+                    length,
+                    stored_type,
+                    absorbed_edges.get(element_name),
                 ),
             }
             self.elements[element_name] = laura_type(**data)

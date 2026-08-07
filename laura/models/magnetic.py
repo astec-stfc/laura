@@ -21,6 +21,7 @@ from ._generated import (
     _MagneticElementBase,
     _SolenoidFieldsBase,
     _SolenoidMagnetBase,
+    _CombinedSolenoidQuadrupoleMagnetBase,
     _NonLinearLensMagnetBase,
     _CorrectorMagnetBase,
     _WigglerMagnetBase,
@@ -741,17 +742,36 @@ class SolenoidFields(solenoidFieldsData, _SolenoidFieldsBase):
         return self.ser_model() == other
 
 
+class CombinedSolenoidQuadrupole_Magnet(
+    MagneticElement, _CombinedSolenoidQuadrupoleMagnetBase
+):
+    """Coaxial quadrupole and solenoid field components."""
+
+    order: int = Field(repr=False, default=1, frozen=True)
+    """Sol-quad multipole order."""
+
+    solenoid_fields: SolenoidFields = Field(default_factory=SolenoidFields)
+    """Solenoid fields."""
+
+    def __init__(self, /, **data: Any) -> None:
+        super().__init__(**data)
+        if "ks" in data:
+            self.ks = data["ks"]
+
+    @property
+    def ks(self) -> Union[int, float, str]:
+        return self.solenoid_fields.S0L
+
+    @ks.setter
+    def ks(self, value: Union[int, float, str]) -> None:
+        self.solenoid_fields.S0L = value
+
+
 class Solenoid_Magnet(_SolenoidMagnetBase, IgnoreExtra):
     """
     Solenoid magnet including higher order fields.
     """
 
-    # _SolenoidMagnetBase pulls in ConfiguredBaseModel's serialize_by_alias=True.
-    # Fields below use `alias=` (bidirectional) rather than the generated
-    # classes' input-only `validation_alias=`, so with serialize_by_alias on,
-    # model_dump() would emit YAML aliases (e.g. "mag_set_max_wait_time")
-    # instead of field names -- breaking flatten_dict()-based full_dump() and
-    # every export path that reads dumps by field name. Pin it back off.
     model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")

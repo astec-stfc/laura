@@ -113,6 +113,7 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
 | [VerticalCorrector](VerticalCorrector.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [CombinedCorrector](CombinedCorrector.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Solenoid](Solenoid.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Wiggler](Wiggler.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [NonLinearLens](NonLinearLens.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 

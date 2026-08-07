@@ -1,7 +1,7 @@
 # Class: MatrixTransformSimulationElement 
 
 
-_Zero-, first-, and second-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model._
+_Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model._
 
 
 
@@ -52,6 +52,17 @@ URI: [laura:MatrixTransformSimulationElement](https://w3id.org/laura/MatrixTrans
         
       MatrixTransformSimulationElement : scale_field
         
+      MatrixTransformSimulationElement : spin_taylor
+        
+          
+    
+        
+        
+        MatrixTransformSimulationElement --> "0..1" MatrixValue : spin_taylor
+        click MatrixValue href "../MatrixValue/"
+    
+
+        
       MatrixTransformSimulationElement : t_matrix
         
           
@@ -59,6 +70,17 @@ URI: [laura:MatrixTransformSimulationElement](https://w3id.org/laura/MatrixTrans
         
         
         MatrixTransformSimulationElement --> "0..1" MatrixValue : t_matrix
+        click MatrixValue href "../MatrixValue/"
+    
+
+        
+      MatrixTransformSimulationElement : u_matrix
+        
+          
+    
+        
+        
+        MatrixTransformSimulationElement --> "0..1" MatrixValue : u_matrix
         click MatrixValue href "../MatrixValue/"
     
 
@@ -94,6 +116,8 @@ URI: [laura:MatrixTransformSimulationElement](https://w3id.org/laura/MatrixTrans
 | [c_matrix](c_matrix.md) | 0..1 <br/> [MatrixValue](MatrixValue.md) | C-matrix (zeroth-order transfer vector) | direct |
 | [r_matrix](r_matrix.md) | 0..1 <br/> [MatrixValue](MatrixValue.md) | R-matrix (first-order transfer matrix) | direct |
 | [t_matrix](t_matrix.md) | 0..1 <br/> [MatrixValue](MatrixValue.md) | T-matrix (second-order transfer tensor) | direct |
+| [u_matrix](u_matrix.md) | 0..1 <br/> [MatrixValue](MatrixValue.md) | U-matrix (third-order transfer tensor) | direct |
+| [spin_taylor](spin_taylor.md) | 0..1 <br/> [MatrixValue](MatrixValue.md) | Sparse quaternion Taylor terms | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
@@ -156,9 +180,9 @@ URI: [laura:MatrixTransformSimulationElement](https://w3id.org/laura/MatrixTrans
 <details>
 ```yaml
 name: MatrixTransformSimulationElement
-description: Zero-, first-, and second-order transfer-map coefficients for a matrix
-  transform element. Each coefficient collection accepts the dense form or the named
-  coefficient mapping understood by the Python model.
+description: Zero- through third-order transfer-map coefficients for a matrix transform
+  element. Each coefficient collection accepts the dense form or the named coefficient
+  mapping understood by the Python model.
 from_schema: https://w3id.org/laura/schema
 is_a: SimulationElement
 attributes:
@@ -190,6 +214,23 @@ attributes:
   t_matrix:
     name: t_matrix
     description: T-matrix (second-order transfer tensor).
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    domain_of:
+    - MatrixTransformSimulationElement
+    range: MatrixValue
+  u_matrix:
+    name: u_matrix
+    description: U-matrix (third-order transfer tensor).
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    domain_of:
+    - MatrixTransformSimulationElement
+    range: MatrixValue
+  spin_taylor:
+    name: spin_taylor
+    description: Sparse quaternion Taylor terms. Each term stores a quaternion component
+      index, coefficient, and six orbital exponents.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
@@ -205,9 +246,9 @@ class_uri: laura:MatrixTransformSimulationElement
 <details>
 ```yaml
 name: MatrixTransformSimulationElement
-description: Zero-, first-, and second-order transfer-map coefficients for a matrix
-  transform element. Each coefficient collection accepts the dense form or the named
-  coefficient mapping understood by the Python model.
+description: Zero- through third-order transfer-map coefficients for a matrix transform
+  element. Each coefficient collection accepts the dense form or the named coefficient
+  mapping understood by the Python model.
 from_schema: https://w3id.org/laura/schema
 is_a: SimulationElement
 attributes:
@@ -242,6 +283,25 @@ attributes:
   t_matrix:
     name: t_matrix
     description: T-matrix (second-order transfer tensor).
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    owner: MatrixTransformSimulationElement
+    domain_of:
+    - MatrixTransformSimulationElement
+    range: MatrixValue
+  u_matrix:
+    name: u_matrix
+    description: U-matrix (third-order transfer tensor).
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    owner: MatrixTransformSimulationElement
+    domain_of:
+    - MatrixTransformSimulationElement
+    range: MatrixValue
+  spin_taylor:
+    name: spin_taylor
+    description: Sparse quaternion Taylor terms. Each term stores a quaternion component
+      index, coefficient, and six orbital exponents.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: MatrixTransformSimulationElement

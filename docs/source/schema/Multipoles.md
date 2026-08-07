@@ -122,6 +122,9 @@ URI: [laura:MultipoleList](https://w3id.org/laura/MultipoleList)
 | [OctupoleMagnet](OctupoleMagnet.md) | [multipoles](multipoles.md) | range | [Multipoles](Multipoles.md) |
 | [OctupoleMagnet](OctupoleMagnet.md) | [systematic_multipoles](systematic_multipoles.md) | range | [Multipoles](Multipoles.md) |
 | [OctupoleMagnet](OctupoleMagnet.md) | [random_multipoles](random_multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md) | [multipoles](multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md) | [systematic_multipoles](systematic_multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md) | [random_multipoles](random_multipoles.md) | range | [Multipoles](Multipoles.md) |
 
 
 

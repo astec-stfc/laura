@@ -153,6 +153,7 @@ attributes:
     description: Horizontal beta.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
+    ifabsent: float(1.0)
     domain_of:
     - TwissMatchSimulationElement
     range: float
@@ -161,6 +162,7 @@ attributes:
     description: Vertical beta.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
+    ifabsent: float(1.0)
     domain_of:
     - TwissMatchSimulationElement
     range: float
@@ -169,6 +171,7 @@ attributes:
     description: Horizontal alpha.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
+    ifabsent: float(0.0)
     domain_of:
     - TwissMatchSimulationElement
     range: float
@@ -177,6 +180,7 @@ attributes:
     description: Vertical alpha.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
+    ifabsent: float(0.0)
     domain_of:
     - TwissMatchSimulationElement
     range: float
@@ -244,6 +248,7 @@ attributes:
     description: Horizontal beta.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
+    ifabsent: float(1.0)
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement
@@ -253,6 +258,7 @@ attributes:
     description: Vertical beta.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
+    ifabsent: float(1.0)
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement
@@ -262,6 +268,7 @@ attributes:
     description: Horizontal alpha.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
+    ifabsent: float(0.0)
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement
@@ -271,6 +278,7 @@ attributes:
     description: Vertical alpha.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
+    ifabsent: float(0.0)
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement

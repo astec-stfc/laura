@@ -1,0 +1,100 @@
+drift:
+  l: double
+sbend:
+  l: double
+  angle: double
+  k0: double
+  k1: double
+  e1: double
+  e2: double
+  gap: double
+  tilt: double
+rbend:
+  l: double
+  angle: double
+  k0: double
+  k1: double
+  e1: double
+  e2: double
+  gap: double
+  tilt: double
+quadrupole:
+  l: double
+  k1: double
+  tilt: double
+sextupole:
+  l: double
+  k2: double
+  tilt: double
+octupole:
+  l: double
+  k3: double
+  tilt: double
+decapole:
+  l: double
+  k4: double
+  tilt: double
+hkicker:
+  l: double
+  kick: double
+vkicker:
+  l: double
+  kick: double
+kicker:
+  l: double
+  hkick: double
+  vkick: double
+rfcavity:
+  l: double
+  phi0: double
+  rf_frequency: double
+  voltage: double
+  n_cell: integer
+  cavity_type: string
+lcavity:
+  l: double
+  phi0: double
+  rf_frequency: double
+  voltage: double
+  n_cell: integer
+  cavity_type: string
+wiggler:
+  l: double
+  b_max: double
+  l_period: double
+  n_period: integer
+solenoid:
+  l: double
+  bs_field: double
+sol_quad:
+  l: double
+  k1: double
+  bs_field: double
+elseparator:
+  l: double
+  e_field: double
+  hkick: double
+  vkick: double
+  tilt: double
+match:
+  l: double
+taylor:
+  l: double
+ecollimator:
+  l: double
+  x1_limit: double
+  x2_limit: double
+  y1_limit: double
+  y2_limit: double
+rcollimator:
+  l: double
+  x1_limit: double
+  x2_limit: double
+  y1_limit: double
+  y2_limit: double
+marker:
+  l: double
+monitor:
+  l: double
+instrument:
+  l: double

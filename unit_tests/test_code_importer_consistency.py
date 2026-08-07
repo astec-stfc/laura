@@ -37,12 +37,6 @@ def test_importers_share_the_same_lifecycle():
             if isinstance(node, ast.FunctionDef) and node.name == "create_layout"
         )
         assert ast.unparse(create_layout.returns) == "MachineLayout"
-        position_mode = next(
-            node
-            for node in importer.body
-            if isinstance(node, ast.AnnAssign) and node.target.id == "position_mode"
-        )
-        assert ast.literal_eval(position_mode.value) == "s"
 
 
 def test_ocelot_type_collisions_have_explicit_generic_winners():

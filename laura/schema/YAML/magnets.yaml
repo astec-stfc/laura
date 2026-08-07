@@ -279,6 +279,30 @@ classes:
         equals_string: Solenoid
         ifabsent: Solenoid
 
+  CombinedSolenoidQuadrupole_Magnet:
+    is_a: MagneticElement
+    description: Combined solenoid and quadrupole magnetic field.
+    class_uri: laura:CombinedSolenoidQuadrupole_Magnet
+    slot_usage:
+      order:
+        ifabsent: int(1)
+        equals_number: 1
+    attributes:
+      solenoid_fields:
+        range: SolenoidFields
+        description: Nominal integrated axial solenoid field components.
+
+  CombinedSolenoidQuadrupole:
+    is_a: Magnet
+    description: Magnet combining coaxial solenoid and quadrupole fields.
+    class_uri: laura:CombinedSolenoidQuadrupole
+    slot_usage:
+      magnetic:
+        range: CombinedSolenoidQuadrupole_Magnet
+      hardware_type:
+        equals_string: CombinedSolenoidQuadrupole
+        ifabsent: CombinedSolenoidQuadrupole
+
   # -- Wiggler / undulator ------------------------------------------------------
 
   Wiggler_Magnet:

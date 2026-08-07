@@ -33,6 +33,8 @@ URI: [laura:Magnet](https://w3id.org/laura/Magnet)
         click Octupole href "../Octupole/"
       Magnet <|-- Solenoid
         click Solenoid href "../Solenoid/"
+      Magnet <|-- CombinedSolenoidQuadrupole
+        click CombinedSolenoidQuadrupole href "../CombinedSolenoidQuadrupole/"
       Magnet <|-- Wiggler
         click Wiggler href "../Wiggler/"
       Magnet <|-- NonLinearLens
@@ -214,6 +216,7 @@ URI: [laura:Magnet](https://w3id.org/laura/Magnet)
                     * [Sextupole](Sextupole.md)
                     * [Octupole](Octupole.md)
                     * [Solenoid](Solenoid.md)
+                    * [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md)
                     * [Wiggler](Wiggler.md)
                     * [NonLinearLens](NonLinearLens.md)
 

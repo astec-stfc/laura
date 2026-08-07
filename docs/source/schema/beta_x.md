@@ -44,6 +44,7 @@ URI: [laura:beta_x](https://w3id.org/laura/beta_x)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(1.0)` |
 | Owner | [TwissMatchSimulationElement](TwissMatchSimulationElement.md) |
 
 
@@ -89,6 +90,7 @@ name: beta_x
 description: Horizontal beta.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(1.0)
 owner: TwissMatchSimulationElement
 domain_of:
 - TwissMatchSimulationElement

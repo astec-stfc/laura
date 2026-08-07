@@ -78,6 +78,7 @@ URI: [laura:hardware_type](https://w3id.org/laura/hardware_type)
 | [VerticalCorrector](VerticalCorrector.md) | Vertical steering corrector |  yes  |
 | [CombinedCorrector](CombinedCorrector.md) | Combined horizontal/vertical steering corrector, naming the two single-plane ... |  yes  |
 | [Solenoid](Solenoid.md) | Solenoid focusing magnet |  yes  |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | Magnet combining coaxial solenoid and quadrupole fields |  yes  |
 | [Wiggler](Wiggler.md) | Wiggler / undulator insertion device |  yes  |
 | [NonLinearLens](NonLinearLens.md) | Non-linear integrable-optics lens |  yes  |
 

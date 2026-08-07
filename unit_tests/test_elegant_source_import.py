@@ -109,3 +109,48 @@ def test_create_machine_model_uses_top_level_lines_and_minimum_section_length(
     assert model.sections["long_b"].order[0] == "a1"
     assert len(model.elements) == 11
     assert importer._source_section_blocks("layout_a", 6) == [("layout_a", 7)]
+
+
+def test_create_machine_model_renames_colliding_elements_at_different_placements(
+    monkeypatch,
+):
+    importer = ElegantLatticeImporter(source_file="unused.lte")
+    importer._source_roots = ["layout_a", "layout_b"]
+    importer._source_lines = {
+        "layout_a": ["shared", "a2", "a3"],
+        "layout_b": ["shared", "b2", "b3"],
+    }
+
+    def section(name):
+        element_names = {
+            "layout_a": ["shared", "a2", "a3"],
+            "layout_b": ["shared", "b2", "b3"],
+        }[name]
+        elements = {
+            element_name: Marker(
+                name=element_name,
+                machine_area=name,
+                physical={
+                    "middle": {
+                        "z": index
+                        + (10 if name == "layout_b" and element_name == "shared" else 0)
+                    }
+                },
+            )
+            for index, element_name in enumerate(element_names)
+        }
+        return SectionLattice(
+            name=name,
+            order=element_names,
+            elements=ElementList(elements=elements),
+        )
+
+    monkeypatch.setattr(ElegantLatticeImporter, "_prepare_source", lambda self: None)
+    monkeypatch.setattr(ElegantLatticeImporter, "_source_section", lambda self, name: section(name))
+
+    model = importer.create_machine_model(min_section_length=1)
+
+    assert model.sections["layout_a"].order[0] == "shared"
+    assert model.sections["layout_b"].order[0] == "shared__layout_b"
+    assert model.elements["shared"].physical.middle.z == pytest.approx(0)
+    assert model.elements["shared__layout_b"].physical.middle.z == pytest.approx(10)

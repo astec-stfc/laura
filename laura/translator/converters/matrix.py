@@ -37,6 +37,10 @@ class MatrixTransformTranslator(BaseElementTranslator):
                 string += linestr
             return fullstr, string
 
+        if self.length:
+            wholestring, string = split_lines(
+                wholestring, string, f", L = {self.length}"
+            )
         if not np.array_equal(self.simulation.c_matrix, np.zeros(6)):
             for i, val in enumerate(self.simulation.c_matrix):
                 if val != 0:

@@ -187,6 +187,7 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | [VerticalCorrector](VerticalCorrector.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [CombinedCorrector](CombinedCorrector.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Solenoid](Solenoid.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Wiggler](Wiggler.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [NonLinearLens](NonLinearLens.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 

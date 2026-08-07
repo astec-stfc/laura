@@ -7075,6 +7075,96 @@ class SolenoidDownstream(Base):
     
 
 
+class CombinedSolenoidQuadrupoleAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole_alias'
+
+    CombinedSolenoidQuadrupole_name = Column(Text(), ForeignKey('CombinedSolenoidQuadrupole.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole_alias(CombinedSolenoidQuadrupole_name={self.CombinedSolenoidQuadrupole_name},alias={self.alias},)"
+
+
+
+    
+
+
+class CombinedSolenoidQuadrupoleInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole_inputs'
+
+    CombinedSolenoidQuadrupole_name = Column(Text(), ForeignKey('CombinedSolenoidQuadrupole.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole_inputs(CombinedSolenoidQuadrupole_name={self.CombinedSolenoidQuadrupole_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class CombinedSolenoidQuadrupoleOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole_outputs'
+
+    CombinedSolenoidQuadrupole_name = Column(Text(), ForeignKey('CombinedSolenoidQuadrupole.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole_outputs(CombinedSolenoidQuadrupole_name={self.CombinedSolenoidQuadrupole_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class CombinedSolenoidQuadrupoleUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole_upstream'
+
+    CombinedSolenoidQuadrupole_name = Column(Text(), ForeignKey('CombinedSolenoidQuadrupole.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole_upstream(CombinedSolenoidQuadrupole_name={self.CombinedSolenoidQuadrupole_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class CombinedSolenoidQuadrupoleDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole_downstream'
+
+    CombinedSolenoidQuadrupole_name = Column(Text(), ForeignKey('CombinedSolenoidQuadrupole.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole_downstream(CombinedSolenoidQuadrupole_name={self.CombinedSolenoidQuadrupole_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class WigglerAlias(Base):
     """
     None
@@ -7599,7 +7689,7 @@ class TwissMatchSimulationElement(SimulationElement):
 
 class MatrixTransformSimulationElement(SimulationElement):
     """
-    Zero-, first-, and second-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+    Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
     """
     __tablename__ = 'MatrixTransformSimulationElement'
 
@@ -7616,10 +7706,14 @@ class MatrixTransformSimulationElement(SimulationElement):
     r_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[r_matrix_id])
     t_matrix_id = Column(Integer(), ForeignKey('MatrixValue.id'))
     t_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[t_matrix_id])
+    u_matrix_id = Column(Integer(), ForeignKey('MatrixValue.id'))
+    u_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[u_matrix_id])
+    spin_taylor_id = Column(Integer(), ForeignKey('MatrixValue.id'))
+    spin_taylor = relationship("MatrixValue", uselist=False, foreign_keys=[spin_taylor_id])
     
 
     def __repr__(self):
-        return f"MatrixTransformSimulationElement(id={self.id},apply={self.apply},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},c_matrix_id={self.c_matrix_id},r_matrix_id={self.r_matrix_id},t_matrix_id={self.t_matrix_id},)"
+        return f"MatrixTransformSimulationElement(id={self.id},apply={self.apply},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},c_matrix_id={self.c_matrix_id},r_matrix_id={self.r_matrix_id},t_matrix_id={self.t_matrix_id},u_matrix_id={self.u_matrix_id},spin_taylor_id={self.spin_taylor_id},)"
 
 
 
@@ -8196,6 +8290,55 @@ class OctupoleMagnet(MagneticElement):
 
     def __repr__(self):
         return f"Octupole_Magnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class CombinedSolenoidQuadrupoleMagnet(MagneticElement):
+    """
+    Combined solenoid and quadrupole magnetic field.
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole_Magnet'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    order = Column(Integer())
+    skew = Column(Boolean())
+    length = Column(Float())
+    settle_time = Column(Float())
+    entrance_edge_angle = Column(Text())
+    exit_edge_angle = Column(Text())
+    gap = Column(Float())
+    bore = Column(Float())
+    plane = Column(Enum('Horizontal', 'Vertical', 'Combined', name='BendingPlaneEnum'))
+    width = Column(Float())
+    tilt = Column(Float())
+    edge_field_integral = Column(Float())
+    fringe_field_coefficient = Column(Float())
+    gradient = Column(Float())
+    angle = Column(Float())
+    solenoid_fields_id = Column(Integer(), ForeignKey('SolenoidFields.id'))
+    solenoid_fields = relationship("SolenoidFields", uselist=False, foreign_keys=[solenoid_fields_id])
+    multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id])
+    systematic_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id])
+    random_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id])
+    field_integral_coefficients_id = Column(Integer(), ForeignKey('FieldIntegral.id'))
+    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id])
+    linear_saturation_coefficients_id = Column(Integer(), ForeignKey('LinearSaturationFit.id'))
+    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id])
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole_Magnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},solenoid_fields_id={self.solenoid_fields_id},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -11404,6 +11547,73 @@ class Solenoid(Magnet):
 
     def __repr__(self):
         return f"Solenoid(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class CombinedSolenoidQuadrupole(Magnet):
+    """
+    Magnet combining coaxial solenoid and quadrupole fields.
+    """
+    __tablename__ = 'CombinedSolenoidQuadrupole'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    magnetic_id = Column(Integer(), ForeignKey('CombinedSolenoidQuadrupole_Magnet.id'))
+    magnetic = relationship("CombinedSolenoidQuadrupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
+    degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "CombinedSolenoidQuadrupoleAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: CombinedSolenoidQuadrupoleAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "CombinedSolenoidQuadrupoleInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: CombinedSolenoidQuadrupoleInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "CombinedSolenoidQuadrupoleOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: CombinedSolenoidQuadrupoleOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="CombinedSolenoidQuadrupole_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="CombinedSolenoidQuadrupole_downstream")
+    
+
+    def __repr__(self):
+        return f"CombinedSolenoidQuadrupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 

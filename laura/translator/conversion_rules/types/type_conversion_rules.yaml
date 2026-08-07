@@ -158,6 +158,27 @@ madx:
   Wire: wire
   BeamBeam: beambeam
   RFMultipole: rfmultipole
+bmad:
+  Dipole: sbend
+  Quadrupole: quadrupole
+  Sextupole: sextupole
+  Octupole: octupole
+  Decapole: decapole
+  Beam_Position_Monitor: monitor
+  Diagnostic: instrument
+  Collimator: ecollimator
+  Solenoid: solenoid
+  CombinedSolenoidQuadrupole: sol_quad
+  Drift: drift
+  RFCavity: rfcavity
+  Horizontal_Corrector: hkicker
+  Vertical_Corrector: vkicker
+  Combined_Corrector: kicker
+  Wiggler: wiggler
+  Marker: marker
+  TwissMatch: match
+  MatrixTransform: taylor
+  ElectrostaticSeparator: elseparator
 name:
   dia-bpm: beam_position_monitor
   dia-bam: beam_arrival_monitor

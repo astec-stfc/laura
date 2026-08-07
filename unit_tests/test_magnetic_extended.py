@@ -5,6 +5,7 @@ import numpy as np
 
 from laura.models.magnetic import (
     MagneticElement,
+    CombinedSolenoidQuadrupole_Magnet,
     Dipole_Magnet,
     Quadrupole_Magnet,
     Sextupole_Magnet,
@@ -194,6 +195,38 @@ class TestSolenoidMagnet:
         sol = Solenoid_Magnet()
         sol.ks = 2.0
         assert sol.ks == pytest.approx(2.0)
+
+
+# ---------------------------------------------------------------------------
+# CombinedSolenoidQuadrupole
+# ---------------------------------------------------------------------------
+
+class TestCombinedSolenoidQuadrupoleMagnet:
+    def test_default(self):
+        sq = CombinedSolenoidQuadrupole_Magnet()
+        assert sq.order == 1
+        assert sq.KnL(1) == 0.0
+        assert sq.ks == 0.0
+
+    def test_ks_property(self):
+        # ks is handled in CombinedSolenoidQuadrupole_Magnet.__init__, not as
+        # a Pydantic field -- mirrors Solenoid_Magnet's own ks handling.
+        sq = CombinedSolenoidQuadrupole_Magnet(ks=1.5)
+        assert sq.ks == pytest.approx(1.5)
+
+    def test_ks_setter(self):
+        sq = CombinedSolenoidQuadrupole_Magnet()
+        sq.ks = 2.0
+        assert sq.ks == pytest.approx(2.0)
+
+    def test_quad_strength_and_ks_together(self):
+        # k1l (quad strength, via the inherited MagneticElement.__init__)
+        # and ks (solenoid field, via this class's own __init__) must both
+        # be settable from the constructor at once.
+        sq = CombinedSolenoidQuadrupole_Magnet(length=2.0, k1l=0.6, ks=0.8)
+        assert sq.KnL(1) == pytest.approx(0.6)
+        assert sq.ks == pytest.approx(0.8)
+        assert sq.solenoid_fields.S0L == pytest.approx(0.8)
 
 
 # ---------------------------------------------------------------------------

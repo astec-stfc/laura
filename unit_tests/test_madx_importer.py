@@ -142,6 +142,76 @@ def test_source_import_numbers_occurrences_and_integrates_direct_strength(tmp_pa
     assert importer.functional_definitions == {"quad_k1": pytest.approx(0.2)}
 
 
+def test_source_import_follows_call_statements(tmp_path):
+    pytest.importorskip("cpymad")
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "definitions.madx").write_text(
+        "qk1 = 0.3;\nq: quadrupole, l = 0.5, k1 = qk1;\n"
+    )
+    source = tmp_path / "main.madx"
+    source.write_text(
+        'call, file = "sub/definitions.madx";\n'
+        "beam, particle=electron, energy=1;\n"
+        "line: sequence, l=1; q, at=0.5; endsequence;\n"
+    )
+
+    importer = MadxLatticeImporter(source_file=str(source))
+    elements = importer.create_laura_element_dictionary()
+
+    assert elements["q"].magnetic.KnL(1) == pytest.approx(0.15)
+
+
+def test_declared_constants_in_called_files_are_preserved(tmp_path):
+    """A constant declared only in a call'd file, and not referenced by any
+    element's deferred expression, must still show up in
+    functional_definitions -- the `declared` scan used to only read
+    source_file's own text, silently missing anything declared in a file it
+    calls (same bug shape as the fixed Bmad _read_functional_definitions
+    gap, narrower impact: doesn't affect any actual element parameter,
+    since those are always resolved from the live-loaded cpymad model
+    regardless of which file declared the symbol)."""
+    pytest.importorskip("cpymad")
+    (tmp_path / "sub.madx").write_text("unused_const = 3.14;\n")
+    source = tmp_path / "main.madx"
+    source.write_text(
+        'call, file = "sub.madx";\n'
+        "beam, particle=electron, energy=1;\n"
+        "q: quadrupole, l=0.5, k1=0.4;\n"
+        "line: sequence, l=1; q, at=0.5; endsequence;\n"
+    )
+
+    importer = MadxLatticeImporter(source_file=str(source))
+    importer.create_laura_element_dictionary()
+
+    assert importer.functional_definitions["unused_const"] == pytest.approx(3.14)
+
+
+def test_create_machine_model_builds_one_layout_per_sequence(tmp_path):
+    pytest.importorskip("cpymad")
+    source = tmp_path / "two_sequences.madx"
+    source.write_text(
+        "beam, particle=electron, energy=1;\n"
+        "q1: quadrupole, l=0.5, k1=0.4;\n"
+        "line1: sequence, l=1; q1, at=0.5; endsequence;\n"
+        "q2: quadrupole, l=0.5, k1=0.6;\n"
+        "line2: sequence, l=1; q2, at=0.5; endsequence;\n"
+    )
+
+    importer = MadxLatticeImporter(source_file=str(source))
+    model = importer.create_machine_model(min_section_length=1)
+
+    assert set(model.lattices) == {"line1", "line2"}
+    assert model.elements["q1"].magnetic.KnL(1) == pytest.approx(0.2)
+    assert model.elements["q2"].magnetic.KnL(1) == pytest.approx(0.3)
+
+
+def test_create_machine_model_requires_source_file_for_multiple_sequences(tmp_path):
+    importer = MadxLatticeImporter(twiss_file=_TWISS)
+    model = importer.create_machine_model(min_section_length=1)
+
+    assert list(model.lattices) == ["TESTLINE"]
+
+
 def test_source_import_folds_dipedges_into_dipole(tmp_path):
     pytest.importorskip("cpymad")
     source = tmp_path / "edges.madx"

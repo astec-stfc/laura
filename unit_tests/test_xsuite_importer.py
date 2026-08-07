@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 
 
@@ -120,6 +122,80 @@ def test_xsuite_importer_maps_monitors_and_transverse_limits():
     )
     assert any("LimitPolygon" in message and "bounding size" in message for message in messages)
     assert any("LongitudinalLimitRect" in message and "skipping" in message for message in messages)
+
+
+def test_dipole_edge_adjacent_to_bend_is_merged_not_dropped():
+    """A DipoleEdge immediately bracketing a Bend (the shape produced by,
+    e.g., MAD-X-to-Xtrack conversion, where edge focusing is split into
+    separate elements rather than baked into the Bend's own edge_entry_*/
+    edge_exit_* attributes) must have its e1/hgap/fint folded into that
+    Bend's entrance_edge_angle/exit_edge_angle/gap/edge_field_integral --
+    mirroring how the MAD-X importer already folds standalone `dipedge`
+    elements into their dipole. No warning, no leftover Marker for the
+    edge: the data is fully preserved on the Bend, not discarded."""
+    line = xt.Line(
+        elements=[
+            xt.DipoleEdge(k=0.1, e1=0.05, hgap=0.02, fint=0.4, side="entry"),
+            xt.Bend(k0=0.1, length=1.0),
+            xt.DipoleEdge(k=0.1, e1=0.03, hgap=0.02, fint=0.4, side="exit"),
+        ],
+        element_names=["entry_edge", "bend", "exit_edge"],
+    )
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        elements = XsuiteLatticeImporter(line=line).create_element_dictionary()
+
+    assert list(elements) == ["bend"]
+    bend = elements["bend"]
+    assert bend.magnetic.entrance_edge_angle == pytest.approx(0.05)
+    assert bend.magnetic.exit_edge_angle == pytest.approx(0.03)
+    assert bend.magnetic.gap == pytest.approx(0.04)
+    assert bend.magnetic.edge_field_integral == pytest.approx(0.4)
+
+
+def test_dipole_edge_with_own_bend_data_is_not_overridden():
+    """When the Bend already carries its own non-zero edge attributes (the
+    normal shape for a LAURA-exported lattice), that data wins -- there's
+    no adjacent DipoleEdge in this case, but the merge logic must not
+    require one to leave the Bend's own values alone."""
+    line = xt.Line(
+        elements=[
+            xt.Bend(
+                k0=0.1,
+                length=1.0,
+                edge_entry_angle=0.07,
+                edge_exit_angle=0.08,
+                edge_entry_hgap=0.03,
+                edge_entry_fint=0.5,
+            ),
+        ],
+        element_names=["bend"],
+    )
+
+    bend = XsuiteLatticeImporter(line=line).create_element_dictionary()["bend"]
+
+    assert bend.magnetic.entrance_edge_angle == pytest.approx(0.07)
+    assert bend.magnetic.exit_edge_angle == pytest.approx(0.08)
+    assert bend.magnetic.gap == pytest.approx(0.06)
+    assert bend.magnetic.edge_field_integral == pytest.approx(0.5)
+
+
+def test_orphan_dipole_edge_conversion_is_flagged():
+    """A DipoleEdge with no adjacent Bend/RBend has nothing to merge into --
+    it must still warn and fall back to a bare Marker, like any other
+    lossy conversion, rather than silently dropping the edge data."""
+    line = xt.Line(
+        elements=[xt.DipoleEdge(k=0.1, e1=0.05, hgap=0.02, fint=0.4), xt.Marker()],
+        element_names=["edge", "marker"],
+    )
+
+    with pytest.warns(UserWarning, match="DipoleEdge.*edge-focusing"):
+        elements = XsuiteLatticeImporter(line=line).create_element_dictionary()
+
+    assert elements["edge"].hardware_type == "Marker"
+
+    assert elements["edge"].hardware_type == "Marker"
 
 
 def test_laura_xsuite_json_preserves_ambiguous_types_and_definitions(tmp_path):

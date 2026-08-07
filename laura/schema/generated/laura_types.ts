@@ -54,6 +54,7 @@ export type HorizontalCorrectorName = string;
 export type VerticalCorrectorName = string;
 export type CombinedCorrectorName = string;
 export type SolenoidName = string;
+export type CombinedSolenoidQuadrupoleName = string;
 export type WigglerName = string;
 export type NonLinearLensName = string;
 export type AcceleratorElementName = string;
@@ -843,7 +844,7 @@ export interface TwissMatchSimulationElement extends SimulationElement {
 
 
 /**
- * Zero-, first-, and second-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+ * Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
  */
 export interface MatrixTransformSimulationElement extends SimulationElement {
     /** Whether to apply the transfer map. */
@@ -854,6 +855,10 @@ export interface MatrixTransformSimulationElement extends SimulationElement {
     r_matrix?: MatrixValue,
     /** T-matrix (second-order transfer tensor). */
     t_matrix?: MatrixValue,
+    /** U-matrix (third-order transfer tensor). */
+    u_matrix?: MatrixValue,
+    /** Sparse quaternion Taylor terms. Each term stores a quaternion component index, coefficient, and six orbital exponents. */
+    spin_taylor?: MatrixValue,
 }
 
 
@@ -1946,6 +1951,22 @@ export interface SolenoidMagnet {
  * Solenoid focusing magnet.
  */
 export interface Solenoid extends Magnet {
+}
+
+
+/**
+ * Combined solenoid and quadrupole magnetic field.
+ */
+export interface CombinedSolenoidQuadrupoleMagnet extends MagneticElement {
+    /** Nominal integrated axial solenoid field components. */
+    solenoid_fields?: SolenoidFields,
+}
+
+
+/**
+ * Magnet combining coaxial solenoid and quadrupole fields.
+ */
+export interface CombinedSolenoidQuadrupole extends Magnet {
 }
 
 

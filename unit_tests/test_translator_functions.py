@@ -17,6 +17,7 @@ from laura.translator.utils.functions import (
     path_function,
     elegant_functional_definitions,
     madx_functional_definitions,
+    number_repeated_names,
     tw_cavity_energy_gain,
     _rotation_matrix,
 )
@@ -29,6 +30,10 @@ class TestSanitizeString:
 
     def test_no_hyphens_unchanged(self):
         assert sanitize_string("abc") == "abc"
+
+
+def test_number_repeated_names_only_suffixes_duplicates():
+    assert number_repeated_names(["Q", "K", "q"]) == ["Q.1", "K", "q.2"]
 
 
 class TestCounter:

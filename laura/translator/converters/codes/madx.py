@@ -1,16 +1,24 @@
 import os
 import re
-from collections import Counter
 from pathlib import Path
-from typing import Dict, Literal, Optional, Union
+from typing import Dict, Optional, Union
 from warnings import warn
 
 import numpy as np
 from pydantic import BaseModel, PrivateAttr, model_validator
 
 import laura.models.element as LAURA_elements
-from laura.models.elementList import SectionLattice, MachineLayout, ElementList
-from ...utils.functions import introspect_model_defaults
+from laura.models.elementList import (
+    SectionLattice,
+    MachineLayout,
+    MachineModel,
+    ElementList,
+)
+from ...utils.functions import (
+    introspect_model_defaults,
+    merge_layout_elements,
+    number_repeated_names,
+)
 from ...utils.madx.TFSFile import TFSFile
 from .. import type_conversion_rules_Madx, keyword_conversion_rules_madx
 from ....Exporters.YAML import export_machine_combined_file, PositionMode
@@ -18,6 +26,27 @@ from ....Exporters.YAML import export_machine_combined_file, PositionMode
 _SILENTLY_SKIPPED_TYPES = ("drift",)
 
 _RAW_KEYS = ("k0", "k1", "k2", "k3", "angle", "l", "kick", "hkick", "vkick", "ks")
+
+
+def _read_lattice_text(path: Path, _seen: Optional[set] = None) -> str:
+    """Read a MAD-X source file, inlining any ``call, file=...;`` statements
+    it contains (recursively), so text-based scans (e.g. for declared
+    constant names) see included files too.
+    """
+    seen = _seen if _seen is not None else set()
+    path = path.resolve()
+    if path in seen:
+        return ""
+    seen.add(path)
+    text = re.sub(r"!.*", "", path.read_text())
+
+    def _inline(match: "re.Match") -> str:
+        called = (path.parent / match.group(1).strip().strip("'\"")).resolve()
+        if not called.is_file():
+            return match.group(0)
+        return _read_lattice_text(called, seen)
+
+    return re.sub(r"(?i)\bcall\s*,\s*file\s*=\s*([^;]+);", _inline, text)
 
 
 def _switch_dict() -> Dict[str, str]:
@@ -42,10 +71,7 @@ class MadxLatticeImporter(BaseModel):
 
     twiss_file: Optional[str] = None
     """Path to a MAD-X TWISS TFS table (``SELECT, flag=twiss, column=...;``
-    before running ``TWISS``).
-    Provides both element parameters and -- via its own ``S`` column,
-    MAD-X's cumulative arc-length at the *exit* of each element --
-    ``position_mode="s"`` positioning."""
+    before running ``TWISS``)."""
 
     source_file: Optional[str] = None
     """Original MAD-X input file, used instead of ``twiss_file``."""
@@ -53,26 +79,8 @@ class MadxLatticeImporter(BaseModel):
     sequence: Optional[str] = None
     """Sequence to import from ``source_file``; defaults to its sole sequence."""
 
-    survey_file: Optional[str] = None
-    """Path to a MAD-X SURVEY TFS table. Only read for ``position_mode="floor"``."""
-
-    position_mode: Literal["s", "floor"] = "s"
-    """How element positions are resolved from MAD-X:
-
-    ``"s"`` (default): each element is given cumulative
-    arc-length ``s`` (``physical.s``, ``s_point="end"``).
-
-    ``"floor"``: the legacy behaviour -- each element's global ``middle``
-    and rotation are taken directly from :attr:`survey_file`, bypassing
-    LAURA's trajectory integration entirely.
-    """
-
     madx_data: Dict = {}
     """Dictionary containing data about the MAD-X lattice, keyed by element name."""
-
-    floor_data: Dict = {}
-    """Dictionary containing floor positions for the MAD-X lattice
-    (``position_mode="floor"`` only)."""
 
     elements: Dict = {}
     """Dictionary containing converted
@@ -122,7 +130,12 @@ class MadxLatticeImporter(BaseModel):
                     pass
         return None
 
-    def _source_rows(self) -> list:
+    def _load_madx(self):
+        """Parse ``source_file`` into a fresh ``cpymad`` ``Madx`` instance.
+
+        MAD-X's own ``call, file="...";`` statements resolve relative
+        filenames against the *process's* working directory.
+        """
         try:
             from cpymad.madx import Madx
         except ImportError as exc:
@@ -132,18 +145,13 @@ class MadxLatticeImporter(BaseModel):
             ) from exc
 
         madx = Madx(stdout=False)
-        madx.call(self.source_file)
-        sequences = list(madx.sequence.keys())
-        if self.sequence:
-            sequence = self.sequence.lower()
-            if sequence not in sequences:
-                raise KeyError(f"MAD-X sequence {self.sequence!r} was not found.")
-        elif len(sequences) == 1:
-            sequence = sequences[0]
-        else:
-            raise ValueError(
-                f"MAD-X source defines {sequences}; set sequence to choose one."
-            )
+        source = Path(self.source_file).resolve()
+        with madx.chdir(str(source.parent)):
+            madx.call(str(source))
+        return madx
+
+    def _rows_for_sequence(self, madx, sequence: str) -> list:
+        """Extract element rows for one already-loaded MAD-X sequence."""
         self.lattice_name = sequence
 
         self.deferred_parameters = {}
@@ -152,19 +160,15 @@ class MadxLatticeImporter(BaseModel):
         declared = set(
             re.findall(
                 r"(?im)^\s*([A-Za-z_][\w.]*)\s*(?::=|=)",
-                Path(self.source_file).read_text(),
+                _read_lattice_text(Path(self.source_file)),
             )
         )
         native_elements = list(madx.sequence[sequence].elements)
-        totals = Counter(element.name for element in native_elements)
-        seen = Counter()
-        for element in native_elements:
-            seen[element.name] += 1
-            name = (
-                f"{element.name}.{seen[element.name]}"
-                if totals[element.name] > 1
-                else element.name
-            ).replace("$", "_")
+        numbered_names = number_repeated_names(
+            [element.name for element in native_elements]
+        )
+        for element, numbered_name in zip(native_elements, numbered_names):
+            name = numbered_name.replace("$", "_")
             length = float(element.length)
             row = {
                 "name": name,
@@ -186,6 +190,22 @@ class MadxLatticeImporter(BaseModel):
         }
         self.functional_definitions = dict(self._source_functional_definitions)
         return self._merge_dipedges(rows)
+
+    def _source_rows(self, madx=None) -> list:
+        if madx is None:
+            madx = self._load_madx()
+        sequences = list(madx.sequence.keys())
+        if self.sequence:
+            sequence = self.sequence.lower()
+            if sequence not in sequences:
+                raise KeyError(f"MAD-X sequence {self.sequence!r} was not found.")
+        elif len(sequences) == 1:
+            sequence = sequences[0]
+        else:
+            raise ValueError(
+                f"MAD-X source defines {sequences}; set sequence to choose one."
+            )
+        return self._rows_for_sequence(madx, sequence)
 
     def _merge_dipedges(self, rows: list) -> list:
         """Fold MAD-X thin edge elements into their adjacent thick dipole."""
@@ -238,9 +258,9 @@ class MadxLatticeImporter(BaseModel):
             merged.add(edge["name"])
         return [row for row in rows if row["name"] not in merged]
 
-    def create_element_dictionary(self) -> Dict:
+    def create_element_dictionary(self, madx=None) -> Dict:
         if self.source_file:
-            rows = self._source_rows()
+            rows = self._source_rows(madx)
         else:
             tfs = TFSFile()
             tfs.read_file(self.twiss_file)
@@ -338,30 +358,6 @@ class MadxLatticeImporter(BaseModel):
             self.madx_data[name] = entry
         return self.madx_data
 
-    def update_floor_coordinates(self):
-        if not self.survey_file:
-            raise ValueError("survey_file must be given for position_mode='floor'.")
-        tfs = TFSFile()
-        tfs.read_file(self.survey_file)
-        self.floor_data = {}
-        rows = tfs.rows()
-        for i, row in enumerate(rows):
-            name = str(row["name"])
-            end = [row.get("x", 0.0), row.get("y", 0.0), row.get("z", 0.0)]
-            end_rotation = [row.get("phi", 0.0), row.get("psi", 0.0), row.get("theta", 0.0)]
-            if i == 0:
-                start, start_rotation = end, end_rotation
-            else:
-                prev = rows[i - 1]
-                start = [prev.get("x", 0.0), prev.get("y", 0.0), prev.get("z", 0.0)]
-                start_rotation = [prev.get("phi", 0.0), prev.get("psi", 0.0), prev.get("theta", 0.0)]
-            self.floor_data[name] = {
-                "start": start,
-                "start_rotation": start_rotation,
-                "end": end,
-                "end_rotation": end_rotation,
-            }
-
     @staticmethod
     def _convert_raw_fields(v: dict) -> dict:
         """Turn TWISS's raw per-length/per-element attributes into LAURA's
@@ -419,40 +415,19 @@ class MadxLatticeImporter(BaseModel):
     def create_laura_element_dictionary(self):
         if not self.madx_data:
             self.create_element_dictionary()
-        if self.position_mode == "floor" and not self.floor_data:
-            self.update_floor_coordinates()
         self.elements = {}
-
-        def calculate_middle_from_start(start_pos, end_pos):
-            start = np.array(start_pos)
-            end = np.array(end_pos)
-            return (start + end) / 2
 
         for k, v in self.madx_data.items():
             vtype = v["hardware_type"]
             elem_length = v.get("l", 0.0)
             v = self._convert_raw_fields(v)
 
-            if self.position_mode == "s":
-                s_val = v.get("s", 0.0)
-                if "physical" in v:
-                    v["physical"].update({"s": s_val, "s_point": "end", "length": elem_length})
-                else:
-                    v["physical"] = {"s": s_val, "s_point": "end", "length": elem_length}
+            s_val = v.get("s", 0.0)
+            physical = {"s": s_val, "s_point": "end", "length": elem_length}
+            if "physical" in v:
+                v["physical"].update(physical)
             else:
-                floor = self.floor_data[k]
-                if elem_length > 0:
-                    centre = calculate_middle_from_start(floor["start"], floor["end"])
-                else:
-                    centre = np.array(floor["start"])
-                rotation = floor["end_rotation"]
-                middle = {p: c for p, c in zip(["x", "y", "z"], centre.tolist())}
-                if "physical" in v:
-                    v["physical"].update(
-                        {"middle": middle, "global_rotation": rotation, "length": elem_length}
-                    )
-                else:
-                    v["physical"] = {"middle": middle, "global_rotation": rotation, "length": elem_length}
+                v["physical"] = physical
 
             self.elements.update({k: getattr(LAURA_elements, vtype)(**v)})
         return self.elements
@@ -521,6 +496,103 @@ class MadxLatticeImporter(BaseModel):
             name=name or self._default_name(),
             sections=layout_sections,
             functional_definitions=self.functional_definitions,
+        )
+
+    def create_machine_model(self, min_section_length: int = 5) -> MachineModel:
+        """Build a model with one layout per MAD-X sequence.
+
+        Only usable with ``source_file`` -- a single ``twiss_file`` table
+        only ever describes one already-selected sequence, so that case
+        falls back to a single-layout model wrapping :meth:`create_layout`.
+        Each sequence becomes its own layout with a single section spanning
+        it. Sequences importing fewer than ``min_section_length`` elements
+        are omitted, and elements with the same name and placement are
+        shared between layouts. When MAD-X gives the same name a different
+        position, orientation, or arc-length in another sequence, a
+        sequence-specific ``name__sequence`` copy is created because
+        :class:`MachineModel` stores one placement per name.
+        """
+        if min_section_length < 1:
+            raise ValueError("min_section_length must be at least 1.")
+
+        if not self.source_file:
+            layout = self.create_layout()
+            return MachineModel(
+                elements={
+                    element.name: element
+                    for section in layout.sections.values()
+                    for element in section.elements.list()
+                },
+                section={
+                    "sections": {
+                        name: section.order for name, section in layout.sections.items()
+                    }
+                },
+                layout={
+                    "layouts": {layout.name: list(layout.sections)},
+                    "default_layout": layout.name,
+                },
+                functional_definitions=self.functional_definitions,
+            )
+
+        madx = self._load_madx()
+        sequences = list(madx.sequence.keys())
+        if not sequences:
+            raise ValueError(f"MAD-X source {self.source_file!r} defines no sequences.")
+
+        elements = {}
+        section_definitions = {}
+        layout_definitions = {}
+        skipped_sections = []
+        all_functional_definitions = {}
+
+        for sequence in sequences:
+            self.sequence = sequence
+            self.madx_data = {}
+            self.elements = {}
+            self.create_element_dictionary(madx)
+            all_functional_definitions.update(self.functional_definitions)
+            layout = self.create_layout(name=sequence)
+            layout_sections = []
+            for source_name, section in layout.sections.items():
+                if len(section.order) < min_section_length:
+                    skipped_sections.append(f"{sequence}/{source_name}")
+                    continue
+                section_name = source_name
+                if section_name in section_definitions:
+                    section_name = f"{sequence}_{section_name}"
+                merge_layout_elements(
+                    elements,
+                    section_definitions,
+                    section_name,
+                    section.elements.elements.items(),
+                    section.order,
+                    sequence,
+                )
+                layout_sections.append(section_name)
+            if layout_sections:
+                layout_definitions[sequence] = layout_sections
+
+        if skipped_sections:
+            warn(
+                "Skipped MAD-X sequences shorter than min_section_length="
+                f"{min_section_length}: {', '.join(skipped_sections)}"
+            )
+        if not layout_definitions:
+            raise ValueError(
+                "No MAD-X sequences meet min_section_length="
+                f"{min_section_length}."
+            )
+
+        return MachineModel(
+            elements=elements,
+            section={"sections": section_definitions},
+            layout={
+                "layouts": layout_definitions,
+                "default_layout": next(iter(layout_definitions)),
+            },
+            master_lattice=str(Path(self.source_file).resolve().parent),
+            functional_definitions=all_functional_definitions,
         )
 
     def export_yaml(

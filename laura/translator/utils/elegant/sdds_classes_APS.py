@@ -1,13 +1,6 @@
-import re
-from itertools import groupby
-import numpy as np
 from warnings import warn
 
-try:
-    from counter import Counter
-except ImportError:
-    from ..functions import Counter
-from ..functions import chop, introspect_model_defaults
+from ..functions import introspect_model_defaults
 from .SDDSFile import SDDSFile
 from ...converters import (
     type_conversion_rules_aliases,
@@ -17,101 +10,6 @@ from ...converters import (
 )
 import laura.models.element as LAURA_elements
 
-
-class SDDS_Floor:
-
-    duplicates: list = []
-
-    lattice_name: str = None
-    """Best-effort lattice/beamline name, parsed from ELEGANT's own
-    ``&floor_coordinates`` description string (``"...lattice: Linac.lte"``).
-    ``None`` if the description doesn't match that format (e.g. a
-    hand-written description, or an ASCII SDDS file without one)."""
-
-    sdds_position_columns = [
-        "ElementName",
-        "X",
-        "Y",
-        "Z",
-    ]
-
-    sdds_angle_columns = [
-        "ElementName",
-        "phi",
-        "psi",
-        "theta",
-    ]
-
-    sdds_s_columns = [
-        "ElementName",
-        "s",
-    ]
-
-    def __init__(self, filename: str = None, page: int = 0, prefix: str = "."):
-        [
-            setattr(self, c, [])
-            for c in (self.sdds_position_columns + self.sdds_angle_columns)
-        ]
-        self.prefix = prefix
-        self.counter = Counter()
-        if filename is not None:
-            self.floor_data = self.import_sdds_floor_file(filename, page)
-
-    def get_duplicate_element_names(self) -> list:
-        return [k for k, g in groupby(sorted(self.ElementName)) if len(list(g)) > 1]
-
-    def number_element(self, elem):
-        if elem not in self.duplicates:
-            return elem
-        no = self.counter.counter(elem)
-        self.counter.add(elem)
-        return elem + self.prefix + str(no)
-
-    def import_sdds_floor_file(self, filename: str, page: int = 0, index=1) -> list:
-        elegantObject = SDDSFile(index=index)
-        elegantObject.read_file(filename, page=page)
-        elegantData = elegantObject.data
-        match = re.search(r"lattice:\s*(\S+?)(?:\.lte)?\s*$", elegantObject.description)
-        self.lattice_name = match.group(1) if match else None
-        has_s = "s" in elegantData
-        columns = self.sdds_position_columns + self.sdds_angle_columns
-        if has_s:
-            columns = columns + ["s"]
-        for a in columns:
-            if np.array(elegantData[a]).ndim > 1:
-                setattr(self, a, elegantData[a][page])
-            else:
-                setattr(self, a, elegantData[a])
-        self.counter = Counter()
-        self.duplicates = self.get_duplicate_element_names()
-        self.ElementName = [self.number_element(e) for e in self.ElementName]
-        # print(self.ElementName)
-        # exit()
-        rawpositiondata = {
-            e: list(map(float, chop([x, y, z], 1e-12)))
-            for e, x, y, z in list(
-                zip(*[getattr(self, a) for a in self.sdds_position_columns])
-            )
-        }
-        rawangledata = {
-            e: list(map(float, chop([phi, psi, theta], 1e-12)))
-            for e, phi, psi, theta in list(
-                zip(*[getattr(self, a) for a in self.sdds_angle_columns])
-            )
-        }
-        self.data = {
-            e: {"end": rawpositiondata[e], "end_rotation": rawangledata[e]}
-            for e in self.ElementName
-        }
-        if has_s:
-            rawsdata = dict(zip(self.ElementName, map(float, self.s)))
-            for e in self.ElementName:
-                self.data[e]["s"] = rawsdata[e]
-
-    def __getitem__(self, key):
-        if key in self.data:
-            return self.data[key]
-        print(f"{key} missing!")
 
 
 class SDDS_Params:
@@ -239,7 +137,7 @@ class SDDS_Params:
                         resolve_optional=True,
                     )
             except AttributeError:
-                print(f"type {sftype} not recognized")
+                warn(f"Elegant type {sftype!r} for {k!r} not recognized; setting as drift.")
                 sfconvert.update(
                     {
                         k: {

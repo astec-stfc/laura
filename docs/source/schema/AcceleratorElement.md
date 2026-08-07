@@ -253,6 +253,8 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [CombinedCorrector](CombinedCorrector.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Solenoid](Solenoid.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Solenoid](Solenoid.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Wiggler](Wiggler.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Wiggler](Wiggler.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [NonLinearLens](NonLinearLens.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |

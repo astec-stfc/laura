@@ -116,6 +116,7 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | [VerticalCorrector](VerticalCorrector.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [CombinedCorrector](CombinedCorrector.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Solenoid](Solenoid.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Wiggler](Wiggler.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [NonLinearLens](NonLinearLens.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 

@@ -1105,6 +1105,8 @@ type MatrixTransformSimulationElement
     cMatrix: MatrixValue
     rMatrix: MatrixValue
     tMatrix: MatrixValue
+    uMatrix: MatrixValue
+    spinTaylor: MatrixValue
   }
 
 scalar MatrixValue

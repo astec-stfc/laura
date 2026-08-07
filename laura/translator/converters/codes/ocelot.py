@@ -1,23 +1,15 @@
 from __future__ import annotations
 
-import numpy as np
 from pydantic import BaseModel, ConfigDict
-from typing import Any, Dict, TYPE_CHECKING, Literal, Optional, Union
-from scipy.spatial.transform import Rotation
-try:
-    from ocelot.cpbd.magnetic_lattice import MagneticLattice
-    _OCELOT_AVAILABLE = True
-except ImportError:
-    _OCELOT_AVAILABLE = False
-    MagneticLattice = None  # type: ignore[assignment, misc]
+from typing import Any, Dict, TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
-    from ocelot.cpbd.magnetic_lattice import MagneticLattice  # type: ignore[no-redef]
+    from ocelot.cpbd.magnetic_lattice import MagneticLattice
 import laura.models.element as LAURA_elements
 from laura.models.elementList import SectionLattice, MachineLayout, ElementList
 from . import magnetic_orders
 from .. import keyword_conversion_rules_ocelot as keyword_conversion_rules
-from ...utils.functions import introspect_model_defaults
+from ...utils.functions import introspect_model_defaults, number_repeated_names
 from ....Exporters.YAML import export_machine_combined_file, PositionMode
 from warnings import warn
 
@@ -56,8 +48,6 @@ ocelot_unsupported = [
     "CrabCavity",
 ]
 
-type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
-
 
 class OcelotLatticeImporter(BaseModel):
 
@@ -74,27 +64,11 @@ class OcelotLatticeImporter(BaseModel):
     magnetic_lattice: Any
     """Ocelot ``MagneticLattice`` instance to import."""
 
-    position_mode: Literal["s", "cartesian"] = "s"
-    """How element positions are resolved from the Ocelot lattice:
-
-    ``"s"`` (default): each element is given the cumulative arc-length
-    (``physical.s``, ``s_point="end"``) obtained by summing ``elem.l`` in
-    sequence order. LAURA integrates the design orbit itself (see
-    :meth:`~laura.models.elementList.SectionLattice._resolve_s_coordinates`)
-    to produce global ``middle``/rotation.
-
-    ``"cartesian"``: the legacy behaviour -- global ``middle``/rotation are
-    computed directly by :meth:`lattice_to_cartesian_with_rotation`.
-    """
-
     laura_elements: Dict = {}
     """Dictionary containing converted element objects"""
 
     def _default_name(self) -> str:
         return self.name
-
-    def magnetic_lattice_to_elements(self):
-        return self.lattice_to_cartesian_with_rotation(self.magnetic_lattice.sequence)
 
     def create_element_dictionary(self):
         return self.create_laura_element_dictionary()
@@ -108,30 +82,13 @@ class OcelotLatticeImporter(BaseModel):
         switch_dict = _switch_dict(ocelot_conversion_rules)
 
         sequence = list(self.magnetic_lattice.sequence)
-        cartesian = (
-            self.magnetic_lattice_to_elements()
-            if self.position_mode == "cartesian"
-            else {}
-        )
+        numbered_ids = number_repeated_names([elem.id for elem in sequence])
 
         cumulative_s = 0.0
-        for elem in sequence:
+        for elem, numbered_id in zip(sequence, numbered_ids):
             length = float(getattr(elem, "l", 0.0))
-
-            if self.position_mode == "s":
-                cumulative_s += length
-                phys_common = {"s": cumulative_s, "s_point": "end", "length": length}
-            else:
-                pos_and_rot = cartesian.get(elem)
-                if pos_and_rot is None:
-                    continue
-                pos = pos_and_rot[0][::-1]
-                rot = [
-                    float(pos_and_rot[1][0]),
-                    float(pos_and_rot[1][2]),
-                    float(pos_and_rot[1][1]),
-                ]
-                phys_common = {"position": pos, "global_rotation": rot, "length": length}
+            cumulative_s += length
+            phys_common = {"s": cumulative_s, "s_point": "end", "length": length}
 
             typeconv = type(elem).__name__.lower()
             if typeconv == "drift":
@@ -140,11 +97,11 @@ class OcelotLatticeImporter(BaseModel):
             if not sftype:
                 warn(
                     f"Could not parse Ocelot element type {type(elem)} for "
-                    f"{elem.id!r}; skipping."
+                    f"{numbered_id!r}; skipping."
                 )
                 continue
             newobj = {
-                "name": elem.id,
+                "name": numbered_id,
                 "hardware_type": sftype,
                 "machine_area": self.machine_area,
                 "physical": dict(phys_common),
@@ -171,7 +128,7 @@ class OcelotLatticeImporter(BaseModel):
                 )
                 newobj["hardware_type"] = classname
             except AttributeError:
-                warn(f"Ocelot type {sftype!r} for {elem.id!r} not recognized; skipping.")
+                warn(f"Ocelot type {sftype!r} for {numbered_id!r} not recognized; skipping.")
                 continue
             for subk in ["magnetic", "cavity", "simulation", "diagnostic", "physical"]:
                 if subk in model_fields and subk not in newobj:
@@ -233,7 +190,7 @@ class OcelotLatticeImporter(BaseModel):
                                     except AttributeError:
                                         pass
             self.laura_elements.update(
-                {elem.id: getattr(LAURA_elements, newobj["hardware_type"])(**newobj)}
+                {numbered_id: getattr(LAURA_elements, newobj["hardware_type"])(**newobj)}
             )
         return self.laura_elements
 
@@ -285,116 +242,3 @@ class OcelotLatticeImporter(BaseModel):
         position_mode: PositionMode = "s",
     ) -> None:
         export_machine_combined_file(path, source, position_mode=position_mode)
-
-    @staticmethod
-    def lattice_to_cartesian_with_rotation(elements) -> Dict:
-        """
-        Compute Cartesian coordinates [x, y, z] of accelerator lattice elements
-        and the global rotation (Euler angles) at the MIDPOINT of each element.
-        """
-
-        x, y, z = 0.0, 0.0, 0.0
-        theta_h = 0.0
-        theta_v = 0.0
-        elems, positions, rotations = [], [], []
-        cumulative_R = np.eye(3)
-
-        for elem in elements:
-            if (
-                "bend" not in str(type(elem)).lower()
-                or abs(getattr(elem, "angle", 0.0)) < 1e-9
-            ):
-                # --- Drift ---
-                L = elem.l
-                # Direction vector
-                dx = L * np.cos(theta_v) * np.cos(theta_h)
-                dy = L * np.sin(theta_v)
-                dz = L * np.cos(theta_v) * np.sin(theta_h)
-
-                # Midpoint is halfway along the segment
-                mid_x = x + dx / 2
-                mid_y = y + dy / 2
-                mid_z = z + dz / 2
-
-                # Store midpoint
-                euler_angles = Rotation.from_matrix(cumulative_R).as_euler(
-                    "zyx", degrees=False
-                )
-                elems.append(elem)
-                positions.append(np.array([mid_x, mid_y, mid_z]))
-                rotations.append(euler_angles)
-
-                # Move to exit for next element
-                x += dx
-                y += dy
-                z += dz
-
-            else:
-                # --- Dipole Bend ---
-                L, phi, tilt = elem.l, elem.angle, elem.tilt
-
-                if np.isclose(tilt, 0):  # Horizontal bend (x-z plane)
-                    R_bend = Rotation.from_euler("y", phi).as_matrix()
-                    R_half = Rotation.from_euler("y", phi / 2).as_matrix()
-
-                    R_geom = L / phi  # bending radius
-
-                    # Center of curvature
-                    cx = x - R_geom * np.sin(theta_h)
-                    cz = z + R_geom * np.cos(theta_h)
-
-                    # Midpoint (half of bend angle)
-                    theta_mid = theta_h + phi / 2
-                    mid_x = cx + R_geom * np.sin(theta_mid)
-                    mid_y = y
-                    mid_z = cz - R_geom * np.cos(theta_mid)
-
-                    # Rotation halfway through bend
-                    R_mid = cumulative_R @ R_half
-
-                    euler_angles = Rotation.from_matrix(R_mid).as_euler(
-                        "zyx", degrees=False
-                    )
-                    elems.append(elem)
-                    positions.append(np.array([mid_x, mid_y, mid_z]))
-                    rotations.append(euler_angles)
-
-                    # Update to exit of element
-                    theta_h += phi
-                    x = cx + R_geom * np.sin(theta_h)
-                    z = cz - R_geom * np.cos(theta_h)
-                    cumulative_R = cumulative_R @ R_bend
-
-                elif np.isclose(tilt, np.pi / 2):  # Vertical bend (x-y plane)
-                    R_bend = Rotation.from_euler("x", -phi).as_matrix()
-                    R_half = Rotation.from_euler("x", -phi / 2).as_matrix()
-                    R_geom = L / phi
-
-                    cy = y - R_geom * np.cos(theta_v)
-
-                    # Midpoint
-                    theta_mid = theta_v + phi / 2
-                    mid_y = cy + R_geom * np.cos(theta_mid)
-                    mid_x = x
-                    mid_z = z
-                    R_mid = cumulative_R @ R_half
-
-                    euler_angles = Rotation.from_matrix(R_mid).as_euler(
-                        "zyx", degrees=False
-                    )
-                    elems.append(elem)
-                    positions.append(np.array([mid_x, mid_y, mid_z]))
-                    rotations.append(euler_angles)
-
-                    # Exit of element
-                    theta_v += phi
-                    y = cy + R_geom * np.cos(theta_v)
-                    cumulative_R = cumulative_R @ R_bend
-
-                else:
-                    raise ValueError(f"Unrecognized tilt angle {tilt} for {elem.id}")
-
-        positions_and_rotations = [
-            (p, r) for p, r in zip(np.array(positions), np.array(rotations))
-        ]
-        return {e: pr for e, pr in zip(elems, positions_and_rotations)}

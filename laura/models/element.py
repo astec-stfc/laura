@@ -67,6 +67,7 @@ from ._generated import (
     _SextupoleBase,
     _OctupoleBase,
     _SolenoidBase,
+    _CombinedSolenoidQuadrupoleBase,
     _NonLinearLensBase,
     _WigglerBase,
     _HorizontalCorrectorBase,
@@ -83,6 +84,7 @@ from .magnetic import (
     Sextupole_Magnet,
     Octupole_Magnet,
     Solenoid_Magnet,
+    CombinedSolenoidQuadrupole_Magnet,
     NonLinearLens_Magnet,
     Wiggler_Magnet,
     Corrector_Magnet,
@@ -511,6 +513,24 @@ class Solenoid(Magnet, _SolenoidBase):
     """Magnetic attributes of the solenoid."""
 
 
+class CombinedSolenoidQuadrupole(Magnet, _CombinedSolenoidQuadrupoleBase):
+    """
+    Magnet combining coaxial solenoid and quadrupole fields.
+
+    Attributes:
+        hardware_type (str): The hardware type of the solenoid.
+        magnetic (:class:`~laura.models.magnetic.Solenoid_Magnet`): The magnetic attributes of the solenoid.
+        """
+
+    hardware_type: str = Field(default="CombinedSolenoidQuadrupole", frozen=True)
+    """Sol-quad hardware type."""
+
+    magnetic: CombinedSolenoidQuadrupole_Magnet = Field(
+        default_factory=CombinedSolenoidQuadrupole_Magnet
+    )
+    """Magnetic attributes of the sol-quad."""
+
+
 class NonLinearLens(Magnet, _NonLinearLensBase):
     """
     Non-linear lens element.
@@ -573,7 +593,7 @@ class TwissMatch(PhysicalBaseElement, _TwissMatchBase):
 
 class MatrixTransform(PhysicalBaseElement, _MatrixTransformBase):
     """
-    Matrix transform element. Applies an instantaneous matrix kick to the beam, up to 2nd order.
+    Matrix transform element. Applies an instantaneous matrix kick to the beam, up to 3rd order.
 
     Attributes:
         hardware_type (str): The hardware type of the element.

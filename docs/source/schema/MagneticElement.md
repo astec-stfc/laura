@@ -27,6 +27,8 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
         click SextupoleMagnet href "../SextupoleMagnet/"
       MagneticElement <|-- OctupoleMagnet
         click OctupoleMagnet href "../OctupoleMagnet/"
+      MagneticElement <|-- CombinedSolenoidQuadrupoleMagnet
+        click CombinedSolenoidQuadrupoleMagnet href "../CombinedSolenoidQuadrupoleMagnet/"
       
       MagneticElement : angle
         
@@ -135,6 +137,7 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
     * [QuadrupoleMagnet](QuadrupoleMagnet.md)
     * [SextupoleMagnet](SextupoleMagnet.md)
     * [OctupoleMagnet](OctupoleMagnet.md)
+    * [CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md)
 
 
 ## Class Properties

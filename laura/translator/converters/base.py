@@ -15,10 +15,12 @@ from ..converters import (
     type_conversion_rules_Genesis,
     type_conversion_rules_Opal,
     type_conversion_rules_Madx,
+    type_conversion_rules_Bmad,
     elements_Elegant,
     elements_Genesis,
     elements_Opal,
     elements_Madx,
+    elements_Bmad,
     keyword_conversion_rules_elegant,
     keyword_conversion_rules_genesis,
     keyword_conversion_rules_ocelot,
@@ -27,6 +29,7 @@ from ..converters import (
     keyword_conversion_rules_wake_t,
     keyword_conversion_rules_opal,
     keyword_conversion_rules_madx,
+    keyword_conversion_rules_bmad,
 )
 from ..utils.fields import field
 from ..utils.functions import expand_substitution, checkValue, sanitize_string
@@ -71,6 +74,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             "wake_t": keyword_conversion_rules_wake_t,
             "genesis": keyword_conversion_rules_genesis,
             "opal": keyword_conversion_rules_opal,
+            "bmad": keyword_conversion_rules_bmad,
         }
         for code, rules in rules_by_code.items():
             self.conversion_rules[code] = (
@@ -1081,6 +1085,36 @@ class BaseElementTranslator(PhysicalBaseElement):
             elif stripped in element.keys():
                 return stripped
         return keyword
+
+    def _convertType_Bmad(self, etype: str) -> str:
+        """Convert a LAURA hardware type to its canonical Bmad element key."""
+        converted = self._convert_type(etype, type_conversion_rules_Bmad, etype)
+        return converted if converted.lower() in elements_Bmad else "drift"
+
+    def _convertKeyword_Bmad(self, keyword: str, updated_type: str = "") -> str:
+        """Convert a LAURA field name to its Bmad attribute name."""
+        hardware_type = updated_type or self.hardware_type
+        key = hardware_type.lower()
+        conversion_rules = (
+            keyword_conversion_rules_bmad[key]
+            | keyword_conversion_rules_bmad["general"]
+            if key in keyword_conversion_rules_bmad
+            else self.conversion_rules["bmad"]
+        )
+        element = elements_Bmad[self._convertType_Bmad(hardware_type).lower()]
+        return self._convert_keyword(
+            keyword,
+            conversion_rules,
+            element,
+            strip_prefixes=(
+                "",
+                "simulation_",
+                "cavity_",
+                "magnetic_",
+                "aperture_",
+                "physical_",
+            ),
+        )
 
     def _write_ASTRA_dictionary(self, d: dict, n: int | None = 1) -> str:
         """
