@@ -33,6 +33,18 @@ URI: [laura:SimulationElement](https://w3id.org/laura/SimulationElement)
         click PlasmaSimulationElement href "../PlasmaSimulationElement/"
       SimulationElement <|-- TwissMatchSimulationElement
         click TwissMatchSimulationElement href "../TwissMatchSimulationElement/"
+      SimulationElement <|-- MatrixTransformSimulationElement
+        click MatrixTransformSimulationElement href "../MatrixTransformSimulationElement/"
+      SimulationElement <|-- ElectrostaticSeparatorSimulationElement
+        click ElectrostaticSeparatorSimulationElement href "../ElectrostaticSeparatorSimulationElement/"
+      SimulationElement <|-- ACDipoleSimulationElement
+        click ACDipoleSimulationElement href "../ACDipoleSimulationElement/"
+      SimulationElement <|-- WireSimulationElement
+        click WireSimulationElement href "../WireSimulationElement/"
+      SimulationElement <|-- BeamBeamSimulationElement
+        click BeamBeamSimulationElement href "../BeamBeamSimulationElement/"
+      SimulationElement <|-- RFMultipoleSimulationElement
+        click RFMultipoleSimulationElement href "../RFMultipoleSimulationElement/"
       
       SimulationElement : field_definition
         
@@ -60,6 +72,12 @@ URI: [laura:SimulationElement](https://w3id.org/laura/SimulationElement)
     * [DiagnosticSimulationElement](DiagnosticSimulationElement.md)
     * [PlasmaSimulationElement](PlasmaSimulationElement.md)
     * [TwissMatchSimulationElement](TwissMatchSimulationElement.md)
+    * [MatrixTransformSimulationElement](MatrixTransformSimulationElement.md)
+    * [ElectrostaticSeparatorSimulationElement](ElectrostaticSeparatorSimulationElement.md)
+    * [ACDipoleSimulationElement](ACDipoleSimulationElement.md)
+    * [WireSimulationElement](WireSimulationElement.md)
+    * [BeamBeamSimulationElement](BeamBeamSimulationElement.md)
+    * [RFMultipoleSimulationElement](RFMultipoleSimulationElement.md)
 
 
 ## Class Properties

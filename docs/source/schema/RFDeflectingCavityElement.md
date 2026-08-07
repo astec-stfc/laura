@@ -81,6 +81,7 @@ URI: [laura:RFDeflectingCavityElement](https://w3id.org/laura/RFDeflectingCavity
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [RFDeflectingCavity](RFDeflectingCavity.md) | [cavity](cavity.md) | range | [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
+| [CrabCavity](CrabCavity.md) | [cavity](cavity.md) | range | [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 
 
@@ -243,6 +244,8 @@ attributes:
     ifabsent: float(2998500000.0)
     owner: RFDeflectingCavityElement
     domain_of:
+    - ACDipoleSimulationElement
+    - RFMultipoleSimulationElement
     - RFCavityElement
     - RFDeflectingCavityElement
     range: float
@@ -272,6 +275,8 @@ attributes:
     ifabsent: float(0.0)
     owner: RFDeflectingCavityElement
     domain_of:
+    - ACDipoleSimulationElement
+    - RFMultipoleSimulationElement
     - RFCavityElement
     - RFDeflectingCavityElement
     range: float

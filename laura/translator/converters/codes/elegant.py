@@ -20,6 +20,12 @@ from ...utils.fields import field
 from ....Exporters.YAML import export_machine_combined_file, PositionMode
 from .. import keyword_conversion_rules_elegant
 
+elegant_unsupported = [
+    "Plasma",
+    "Decapole",
+    "ActivePlasmaLens",
+    "CrabCavity",
+]
 
 class ElegantLatticeImporter(BaseModel):
 

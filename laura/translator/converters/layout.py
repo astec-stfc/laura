@@ -22,17 +22,27 @@ class MachineLayoutTranslator(MachineLayout):
                 "master_lattice": layout.model_copy().master_lattice,
                 "functional_definitions": layout.functional_definitions,
                 "resolve_functional": layout.resolve_functional,
+                "revolution_frequency": layout.revolution_frequency,
             }
         )
+
+    def _section_translator(self, section) -> SectionLatticeTranslator:
+        """
+        Build a :class:`SectionLatticeTranslator` for ``section``, falling back
+        to this layout's own ``revolution_frequency`` if the section does not
+        define its own.
+        """
+        translator = SectionLatticeTranslator.from_section(section)
+        if translator.revolution_frequency is None:
+            translator.revolution_frequency = self.revolution_frequency
+        return translator
 
     def to_astra(self) -> Dict[str, str]:
         lattices = {}
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_astra()
+                    section.name: self._section_translator(section).to_astra()
                 }
             )
         return lattices
@@ -83,9 +93,34 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_ocelot(save=save)
+                    section.name: self._section_translator(section).to_ocelot(save=save)
+                }
+            )
+        return lattices
+
+    def to_rftrack(self, P_Q: float = float("nan"), save: bool = False) -> Dict[str, object]:
+        """
+        Create one RF-Track ``Lattice`` per section in this layout.
+
+        Parameters
+        ----------
+        P_Q: float
+            Beam reference momentum-over-charge [MV/c], forwarded to every
+            section's ``to_rftrack(P_Q=...)``.
+        save: bool
+            Forwarded to every section's ``to_rftrack(save=...)``; see
+            ``SectionLatticeTranslator.to_rftrack``.
+
+        Returns
+        -------
+        Dict[str, object]
+            ``{section_name: RF_Track.Lattice, ...}``
+        """
+        lattices = {}
+        for section in self.sections.values():
+            lattices.update(
+                {
+                    section.name: self._section_translator(section).to_rftrack(P_Q=P_Q, save=save)
                 }
             )
         return lattices
@@ -124,9 +159,7 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_cheetah(save=save)
+                    section.name: self._section_translator(section).to_cheetah(save=save)
                 }
             )
         return lattices
@@ -138,9 +171,7 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_xsuite(
+                    section.name: self._section_translator(section).to_xsuite(
                         beam_length=beam_length,
                         env=env,
                         particle_ref=particle_ref,

@@ -12,6 +12,11 @@ import laura.models.element as LAURA_elements
 from laura.models.elementList import ElementList, MachineLayout, SectionLattice
 from ....Exporters.YAML import PositionMode, export_machine_combined_file
 
+xsuite_unsupported = [
+    "Laser",
+    "Wakefield",
+    "ActivePlasmaLens",
+]
 
 _TYPE_MAP = {
     "Bend": LAURA_elements.Dipole,

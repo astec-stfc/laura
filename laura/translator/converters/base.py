@@ -170,6 +170,48 @@ class BaseElementTranslator(PhysicalBaseElement):
             return self._rpn(raw, length, "/")
         return f"{raw} / {length}"
 
+    def _raw_edge_angle(self, which: str, code: str) -> str | None:
+        """
+        Return a symbolic expression for a dipole edge angle (``which`` is
+        ``"entrance_edge_angle"`` or ``"exit_edge_angle"``) if it should be
+        carried through to the target code symbolically, otherwise None (in
+        which case the caller should fall back to the resolved number, e.g.
+        via :attr:`DipoleTranslator.e1 <laura.translator.converters.magnet.DipoleTranslator.e1>`).
+
+        The stored value may be:
+
+        * a plain number -- returns None (nothing symbolic to do).
+        * an expression referencing the reserved ``angle`` token (e.g.
+          ``"angle"``/``"angle/2"``, see :attr:`DipoleTranslator.angle
+          <laura.translator.converters.magnet.DipoleTranslator.angle>`) -- if
+          the bend angle itself is defined functionally, the token is
+          substituted with that functional name, producing a valid expression
+          (rpn for ELEGANT, infix for other codes, e.g. ``"bend1 / 2"``);
+          otherwise returns None (the bend angle is a plain number, so the
+          edge angle should be resolved numerically as usual).
+        * the name of a functional definition -- returned as a bare reference
+          (rpn-quoted for ELEGANT).
+        """
+        magnetic = getattr(self, "magnetic", None)
+        value = getattr(magnetic, which, None) if magnetic else None
+        if not isinstance(value, str):
+            return None
+        if "angle" in value:
+            raw = self._raw_multipole_strength(0)
+            if raw is None:
+                return None
+            if value == "angle":
+                return self._rpn(raw) if code == "elegant" else raw
+            if value == "angle/2":
+                return self._rpn(raw, 2, "/") if code == "elegant" else f"{raw} / 2"
+            # Any other expression referencing "angle": substitute the token
+            # (infix codes only -- ELEGANT rpn doesn't support arbitrary
+            # substitution into an infix expression here).
+            return value.replace("angle", raw) if code != "elegant" else self._rpn(raw)
+        if self.is_functional(value):
+            return self._rpn(value) if code == "elegant" else value
+        return None
+
     def _elegant_value(self, value: Any) -> Any:
         """
         Render a value for an ELEGANT keyword. A functional parameter is emitted
@@ -223,7 +265,23 @@ class BaseElementTranslator(PhysicalBaseElement):
             ):
                 if value is not None:
                     key = self._convertKeyword_Elegant(key)
-                    if value == "angle":
+                    if value in ("angle", "angle/2") and key in ("e1", "e2"):
+                        # Dipole edge angle referencing the reserved "angle"
+                        # token: carry a functional bend angle through
+                        # symbolically (as an rpn expression); otherwise
+                        # resolve numerically as before.
+                        raw = (
+                            None
+                            if self._resolve_functional
+                            else self._raw_edge_angle(
+                                "entrance_edge_angle" if key == "e1" else "exit_edge_angle",
+                                "elegant",
+                            )
+                        )
+                        value = raw if raw is not None else (
+                            self.magnetic.KnL(0) if value == "angle" else self.magnetic.KnL(0) / 2
+                        )
+                    elif value == "angle":
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
                         value = self.magnetic.KnL(0) / 2
@@ -816,7 +874,25 @@ class BaseElementTranslator(PhysicalBaseElement):
                 if value is not None:
                     key = self._convertKeyword_Madx(key)
                     deferred = False
-                    if value == "angle":
+                    if value in ("angle", "angle/2") and key in ("e1", "e2"):
+                        # Dipole edge angle referencing the reserved "angle"
+                        # token: carry a functional bend angle through
+                        # symbolically (as a deferred expression); otherwise
+                        # resolve numerically as before.
+                        raw = (
+                            None
+                            if self._resolve_functional
+                            else self._raw_edge_angle(
+                                "entrance_edge_angle" if key == "e1" else "exit_edge_angle",
+                                "madx",
+                            )
+                        )
+                        if raw is not None:
+                            value = raw
+                            deferred = True
+                        else:
+                            value = self.magnetic.KnL(0) if value == "angle" else self.magnetic.KnL(0) / 2
+                    elif value == "angle":
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
                         value = self.magnetic.KnL(0) / 2

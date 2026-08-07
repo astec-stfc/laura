@@ -1,12 +1,7 @@
----
-search:
-  boost: 5.0
----
-
-# Slot: ri_tolerance 
+# Slot: n_particles 
 
 
-_Read-back vs. set-point tolerance fraction (default 0.1 = 10 %)._
+_Number of particles in the opposing bunch._
 
 
 
@@ -14,7 +9,7 @@ _Read-back vs. set-point tolerance fraction (default 0.1 = 10 %)._
 
 
 
-URI: [laura:ri_tolerance](https://w3id.org/laura/ri_tolerance)
+URI: [laura:n_particles](https://w3id.org/laura/n_particles)
 <!-- no inheritance hierarchy -->
 
 
@@ -25,7 +20,7 @@ URI: [laura:ri_tolerance](https://w3id.org/laura/ri_tolerance)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits for a beamline element |  no  |
+| [BeamBeamSimulationElement](BeamBeamSimulationElement.md) | Simulation attributes for a weak-strong beam-beam interaction |  no  |
 
 
 
@@ -39,7 +34,7 @@ URI: [laura:ri_tolerance](https://w3id.org/laura/ri_tolerance)
 | Property | Value |
 | --- | --- |
 | Range | [Float](Float.md) |
-| Domain Of | [ElectricalElement](ElectricalElement.md) |
+| Domain Of | [BeamBeamSimulationElement](BeamBeamSimulationElement.md) |
 
 ### Cardinality and Requirements
 
@@ -49,7 +44,8 @@ URI: [laura:ri_tolerance](https://w3id.org/laura/ri_tolerance)
 
 | Property | Value |
 | --- | --- |
-| Owner | [ElectricalElement](ElectricalElement.md) |
+| If Absent | `float(0.0)` |
+| Owner | [BeamBeamSimulationElement](BeamBeamSimulationElement.md) |
 
 
 
@@ -58,11 +54,6 @@ URI: [laura:ri_tolerance](https://w3id.org/laura/ri_tolerance)
 
 
 
-
-## Aliases
-
-
-* read_tolerance
 
 
 
@@ -85,8 +76,8 @@ URI: [laura:ri_tolerance](https://w3id.org/laura/ri_tolerance)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:ri_tolerance |
-| native | laura:ri_tolerance |
+| self | laura:n_particles |
+| native | laura:n_particles |
 
 
 
@@ -95,15 +86,14 @@ URI: [laura:ri_tolerance](https://w3id.org/laura/ri_tolerance)
 
 <details>
 ```yaml
-name: ri_tolerance
-description: Read-back vs. set-point tolerance fraction (default 0.1 = 10 %).
+name: n_particles
+description: Number of particles in the opposing bunch.
 from_schema: https://w3id.org/laura/schema
-aliases:
-- read_tolerance
 rank: 1000
-owner: ElectricalElement
+ifabsent: float(0.0)
+owner: BeamBeamSimulationElement
 domain_of:
-- ElectricalElement
+- BeamBeamSimulationElement
 range: float
 
 ```

@@ -134,6 +134,9 @@ class BaseLatticeModel(ModelBase):
     rendered as their definition name (a string); when True they are presented as
     resolved numbers. See :func:`~laura.models.baseModels.set_resolve_functional`."""
 
+    revolution_frequency: float | None = None
+    """The ring's revolution frequency [Hz], if this lattice is (part of) a closed ring."""
+
     _functional_source: str | None = None
 
     def model_post_init(self, __context) -> None:
@@ -1158,6 +1161,9 @@ class MachineModel(ModelBase):
     than as their definition names."""
 
     _functional_source: str | None = None
+
+    revolution_frequency: float | None = None
+    """The ring's revolution frequency [Hz], if this machine is (part of) a closed ring."""
 
     _layouts: List[str] = None
 

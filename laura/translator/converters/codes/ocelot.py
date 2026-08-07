@@ -41,6 +41,23 @@ def _switch_dict(type_rules: Dict[str, type]) -> Dict[str, str]:
     )
     return switch
 
+ocelot_unsupported = [
+    "Cleaner",
+    "Scatter",
+    "APContour",
+    "Center",
+    "Wakefield",
+    "Laser",
+    "Plasma",
+    "MatrixTransform",
+    "TwissMatch",
+    "Decapole",
+    "ActivePlasmaLens",
+    "CrabCavity",
+]
+
+type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+
 
 class OcelotLatticeImporter(BaseModel):
 

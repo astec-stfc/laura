@@ -1,7 +1,7 @@
-# Slot: plasma 
+# Class: Plasma 
 
 
-_Plasma channel parameters._
+_Laser-driven plasma-accelerator stage._
 
 
 
@@ -9,42 +9,225 @@ _Plasma channel parameters._
 
 
 
-URI: [laura:plasma](https://w3id.org/laura/plasma)
-<!-- no inheritance hierarchy -->
+URI: [laura:Plasma](https://w3id.org/laura/Plasma)
 
 
 
 
 
-## Applicable Classes
+```mermaid
+ classDiagram
+    class Plasma
+    click Plasma href "../Plasma/"
+      PhysicalAcceleratorElement <|-- Plasma
+        click PhysicalAcceleratorElement href "../PhysicalAcceleratorElement/"
+      
+      Plasma : alias
+        
+      Plasma : controls
+        
+          
+    
+        
+        
+        Plasma --> "0..1" ControlsInformation : controls
+        click ControlsInformation href "../ControlsInformation/"
+    
 
-| Name | Description | Modifies Slot |
-| --- | --- | --- |
-| [Plasma](Plasma.md) | Laser-driven plasma-accelerator stage |  no  |
+        
+      Plasma : downstream
+        
+          
+    
+        
+        
+        Plasma --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
+      Plasma : electrical
+        
+          
+    
+        
+        
+        Plasma --> "0..1" ElectricalElement : electrical
+        click ElectricalElement href "../ElectricalElement/"
+    
+
+        
+      Plasma : hardware_class
+        
+          
+    
+        
+        
+        Plasma --> "1" HardwareClassEnum : hardware_class
+        click HardwareClassEnum href "../HardwareClassEnum/"
+    
+
+        
+      Plasma : hardware_model
+        
+      Plasma : hardware_type
+        
+      Plasma : inputs
+        
+          
+    
+        
+        
+        Plasma --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
+      Plasma : laser
+        
+          
+    
+        
+        
+        Plasma --> "0..1" LaserElement : laser
+        click LaserElement href "../LaserElement/"
+    
+
+        
+      Plasma : machine_area
+        
+      Plasma : manufacturer
+        
+          
+    
+        
+        
+        Plasma --> "0..1" ManufacturerElement : manufacturer
+        click ManufacturerElement href "../ManufacturerElement/"
+    
+
+        
+      Plasma : name
+        
+      Plasma : outputs
+        
+          
+    
+        
+        
+        Plasma --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
+      Plasma : physical
+        
+          
+    
+        
+        
+        Plasma --> "0..1" PhysicalElement : physical
+        click PhysicalElement href "../PhysicalElement/"
+    
+
+        
+      Plasma : plasma
+        
+          
+    
+        
+        
+        Plasma --> "0..1" PlasmaElement : plasma
+        click PlasmaElement href "../PlasmaElement/"
+    
+
+        
+      Plasma : reference
+        
+          
+    
+        
+        
+        Plasma --> "0..1" ReferenceElement : reference
+        click ReferenceElement href "../ReferenceElement/"
+    
+
+        
+      Plasma : simulation
+        
+          
+    
+        
+        
+        Plasma --> "0..1" PlasmaSimulationElement : simulation
+        click PlasmaSimulationElement href "../PlasmaSimulationElement/"
+    
+
+        
+      Plasma : subelement
+        
+      Plasma : upstream
+        
+          
+    
+        
+        
+        Plasma --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
+      Plasma : virtual_name
+        
+      
+```
 
 
 
 
 
+## Inheritance
+* [AcceleratorElement](AcceleratorElement.md)
+    * [StandardElement](StandardElement.md)
+        * [Element](Element.md)
+            * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
+                * **Plasma**
 
-## Properties
 
-### Type and Range
+## Class Properties
 
 | Property | Value |
 | --- | --- |
-| Range | [PlasmaElement](PlasmaElement.md) |
-| Domain Of | [Plasma](Plasma.md) |
+| Class URI | [laura:Plasma](https://w3id.org/laura/Plasma) |
 
-### Cardinality and Requirements
 
-| Property | Value |
-| --- | --- |
-### Slot Characteristics
+## Slots
 
-| Property | Value |
-| --- | --- |
-| Owner | [Plasma](Plasma.md) |
+| Name | Cardinality and Range | Description | Inheritance |
+| ---  | --- | --- | --- |
+| [plasma](plasma.md) | 0..1 <br/> [PlasmaElement](PlasmaElement.md) | Plasma channel parameters | direct |
+| [laser](laser.md) | 0..1 <br/> [LaserElement](LaserElement.md) | Laser driving the plasma stage | direct |
+| [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
+| [simulation](simulation.md) | 0..1 <br/> [PlasmaSimulationElement](PlasmaSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
+| [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
+| [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
+| [controls](controls.md) | 0..1 <br/> [ControlsInformation](ControlsInformation.md) | Control-system process-variable definitions | [StandardElement](StandardElement.md) |
+| [reference](reference.md) | 0..1 <br/> [ReferenceElement](ReferenceElement.md) | Links to design drawings and files | [StandardElement](StandardElement.md) |
+| [name](name.md) | 1 <br/> [String](String.md) | Unique element name within the machine | [AcceleratorElement](AcceleratorElement.md) |
+| [hardware_class](hardware_class.md) | 1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
+| [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for ELEMENT_REGISTRY dispatch | [AcceleratorElement](AcceleratorElement.md) |
+| [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | [AcceleratorElement](AcceleratorElement.md) |
+| [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | [AcceleratorElement](AcceleratorElement.md) |
+| [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
+| [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
+| [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element consumes (e | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element produces (e | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements feeding this one, whose ``outputs`` supply its ``inputs`` | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements this one feeds; the inverse of ``upstream`` | [AcceleratorElement](AcceleratorElement.md) |
+
+
+
 
 
 
@@ -75,24 +258,284 @@ URI: [laura:plasma](https://w3id.org/laura/plasma)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:plasma |
-| native | laura:plasma |
+| self | laura:Plasma |
+| native | laura:Plasma |
+
+
 
 
 
 
 ## LinkML Source
 
+<!-- TODO: investigate https://stackoverflow.com/questions/37606292/how-to-create-tabbed-code-blocks-in-mkdocs-or-sphinx -->
+
+### Direct
+
 <details>
 ```yaml
-name: plasma
-description: Plasma channel parameters.
+name: Plasma
+description: Laser-driven plasma-accelerator stage.
 from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: Plasma
-domain_of:
-- Plasma
-range: PlasmaElement
+is_a: PhysicalAcceleratorElement
+slot_usage:
+  hardware_type:
+    name: hardware_type
+    equals_string: Plasma
+  simulation:
+    name: simulation
+    range: PlasmaSimulationElement
+attributes:
+  plasma:
+    name: plasma
+    description: Plasma channel parameters.
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    domain_of:
+    - Plasma
+    range: PlasmaElement
+  laser:
+    name: laser
+    description: Laser driving the plasma stage.
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    domain_of:
+    - Laser
+    - Plasma
+    - LaserEnergyMeter
+    - LaserHalfWavePlate
+    - LaserMirror
+    - Wiggler
+    range: LaserElement
+class_uri: laura:Plasma
+
+```
+</details>
+
+### Induced
+
+<details>
+```yaml
+name: Plasma
+description: Laser-driven plasma-accelerator stage.
+from_schema: https://w3id.org/laura/schema
+is_a: PhysicalAcceleratorElement
+slot_usage:
+  hardware_type:
+    name: hardware_type
+    equals_string: Plasma
+  simulation:
+    name: simulation
+    range: PlasmaSimulationElement
+attributes:
+  plasma:
+    name: plasma
+    description: Plasma channel parameters.
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - Plasma
+    range: PlasmaElement
+  laser:
+    name: laser
+    description: Laser driving the plasma stage.
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    owner: Plasma
+    domain_of:
+    - Laser
+    - Plasma
+    - LaserEnergyMeter
+    - LaserHalfWavePlate
+    - LaserMirror
+    - Wiggler
+    range: LaserElement
+  physical:
+    name: physical
+    description: Position, rotation, and length data.
+    in_subset:
+    - physical_properties
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - PhysicalAcceleratorElement
+    range: PhysicalElement
+  simulation:
+    name: simulation
+    description: Simulation / tracking attributes.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - StandardElement
+    range: PlasmaSimulationElement
+  electrical:
+    name: electrical
+    description: Power-supply electrical limits.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - StandardElement
+    range: ElectricalElement
+  manufacturer:
+    name: manufacturer
+    description: Manufacturer and serial-number data.
+    from_schema: https://w3id.org/laura/schema
+    owner: Plasma
+    domain_of:
+    - ManufacturerElement
+    - StandardElement
+    range: ManufacturerElement
+  controls:
+    name: controls
+    description: Control-system process-variable definitions.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - StandardElement
+    range: ControlsInformation
+  reference:
+    name: reference
+    description: Links to design drawings and files.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - StandardElement
+    range: ReferenceElement
+  name:
+    name: name
+    description: Unique element name within the machine.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    identifier: true
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    - SectionLattice
+    - MachineLayout
+    range: string
+    required: true
+  hardware_class:
+    name: hardware_class
+    description: Functional category (e.g., ``Magnet``, ``Diagnostic``).
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    range: HardwareClassEnum
+    required: true
+  hardware_type:
+    name: hardware_type
+    description: Python class name used for ELEMENT_REGISTRY dispatch.  Identifies
+      the concrete subclass to instantiate when loading from YAML.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: string(Generic)
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    range: string
+    equals_string: Plasma
+  hardware_model:
+    name: hardware_model
+    description: Model or variant name within the hardware type (e.g., ``Generic``,
+      ``TESLA``).
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: string(Generic)
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    range: string
+  machine_area:
+    name: machine_area
+    description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    range: string
+  virtual_name:
+    name: virtual_name
+    description: Alternative internal name used by the control system when the physical
+      name is inaccessible.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: string()
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    range: string
+  alias:
+    name: alias
+    description: Human-readable aliases for the element. Populated from ``name_alias``
+      in YAML. Accepts a single string or a list of strings.
+    from_schema: https://w3id.org/laura/schema
+    aliases:
+    - name_alias
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    range: string
+    multivalued: true
+  subelement:
+    name: subelement
+    description: If set, this element is a logical sub-component of the named parent
+      element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    range: string
+  inputs:
+    name: inputs
+    description: Signal types this element consumes (e.g. ``[current, voltage]``).
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: Signal types this element produces (e.g. ``[power, phase]``).
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: Names of elements feeding this one, whose ``outputs`` supply its
+      ``inputs``.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: Names of elements this one feeds; the inverse of ``upstream``.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+class_uri: laura:Plasma
 
 ```
 </details></div>

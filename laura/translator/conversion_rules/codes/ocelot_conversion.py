@@ -14,6 +14,7 @@ try:
         TDCavity,
         Aperture,
         Drift,
+        Matrix,
     )
     _OCELOT_AVAILABLE = True
 except ImportError as _err:
@@ -28,6 +29,7 @@ ocelot_conversion_rules = {
     "Quadrupole": Quadrupole,
     "Sextupole": Sextupole,
     "Octupole": Octupole,
+    "Decapole": Drift,
     "Beam_Position_Monitor": Marker,
     "Beam_Arrival_Monitor": Drift,
     "Bunch_Length_Monitor": Drift,
@@ -39,13 +41,14 @@ ocelot_conversion_rules = {
     "Integrated_Current_Transformer": Drift,
     "Faraday_Cup_Monitor": Drift,
     "RFDeflectingCavity": TDCavity,
+    "CrabCavity": TDCavity,
     "RFCavity": Cavity,
     "Aperture": Aperture,
     "Shutter": Drift,
     "Valve": Drift,
     "Bellows": Drift,
     "Cleaner": Drift,
-    "lscrift": Drift,
+    "lscdrift": Drift,
     "csrdrift": Drift,
     "edrift": Drift,
     "Drift": Drift,
@@ -66,4 +69,5 @@ ocelot_conversion_rules = {
     "Plasma": Drift,
     "Diagnostic": Marker,
     "TwissMatch": Monitor,
+    "MatrixTransform": Matrix,
 }

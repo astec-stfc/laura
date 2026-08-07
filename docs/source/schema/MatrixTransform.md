@@ -1,12 +1,7 @@
----
-search:
-  boost: 10.0
----
-
-# Class: MagnetBaseElement 
+# Class: MatrixTransform 
 
 
-_Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement`` in the schema to avoid collision with the ``magnetic`` composition-model class; maps to ``Magnet`` in Python.)_
+_Transfer-map element with zero-, first-, and second-order coefficients._
 
 
 
@@ -14,7 +9,7 @@ _Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseE
 
 
 
-URI: [laura:MagnetBaseElement](https://w3id.org/laura/MagnetBaseElement)
+URI: [laura:MatrixTransform](https://w3id.org/laura/MatrixTransform)
 
 
 
@@ -22,123 +17,145 @@ URI: [laura:MagnetBaseElement](https://w3id.org/laura/MagnetBaseElement)
 
 ```mermaid
  classDiagram
-    class MagnetBaseElement
-    click MagnetBaseElement href "../MagnetBaseElement/"
-      PhysicalAcceleratorElement <|-- MagnetBaseElement
+    class MatrixTransform
+    click MatrixTransform href "../MatrixTransform/"
+      PhysicalAcceleratorElement <|-- MatrixTransform
         click PhysicalAcceleratorElement href "../PhysicalAcceleratorElement/"
       
-      MagnetBaseElement : alias
+      MatrixTransform : alias
         
-      MagnetBaseElement : controls
+      MatrixTransform : controls
         
           
     
         
         
-        MagnetBaseElement --> "0..1" ControlsInformation : controls
+        MatrixTransform --> "0..1" ControlsInformation : controls
         click ControlsInformation href "../ControlsInformation/"
     
 
         
-      MagnetBaseElement : degauss
+      MatrixTransform : downstream
         
           
     
         
         
-        MagnetBaseElement --> "0..1" DegaussableElement : degauss
-        click DegaussableElement href "../DegaussableElement/"
+        MatrixTransform --> "*" AcceleratorElement : downstream
+        click AcceleratorElement href "../AcceleratorElement/"
     
 
         
-      MagnetBaseElement : electrical
+      MatrixTransform : electrical
         
           
     
         
         
-        MagnetBaseElement --> "0..1" ElectricalElement : electrical
+        MatrixTransform --> "0..1" ElectricalElement : electrical
         click ElectricalElement href "../ElectricalElement/"
     
 
         
-      MagnetBaseElement : hardware_class
+      MatrixTransform : hardware_class
         
           
     
         
         
-        MagnetBaseElement --> "1" HardwareClassEnum : hardware_class
+        MatrixTransform --> "1" HardwareClassEnum : hardware_class
         click HardwareClassEnum href "../HardwareClassEnum/"
     
 
         
-      MagnetBaseElement : hardware_model
+      MatrixTransform : hardware_model
         
-      MagnetBaseElement : hardware_type
+      MatrixTransform : hardware_type
         
-      MagnetBaseElement : machine_area
-        
-      MagnetBaseElement : magnetic
+      MatrixTransform : inputs
         
           
     
         
         
-        MagnetBaseElement --> "0..1" MagneticElement : magnetic
-        click MagneticElement href "../MagneticElement/"
+        MatrixTransform --> "*" IOTypeEnum : inputs
+        click IOTypeEnum href "../IOTypeEnum/"
     
 
         
-      MagnetBaseElement : manufacturer
+      MatrixTransform : machine_area
+        
+      MatrixTransform : manufacturer
         
           
     
         
         
-        MagnetBaseElement --> "0..1" ManufacturerElement : manufacturer
+        MatrixTransform --> "0..1" ManufacturerElement : manufacturer
         click ManufacturerElement href "../ManufacturerElement/"
     
 
         
-      MagnetBaseElement : name
+      MatrixTransform : name
         
-      MagnetBaseElement : physical
+      MatrixTransform : outputs
         
           
     
         
         
-        MagnetBaseElement --> "0..1" PhysicalElement : physical
+        MatrixTransform --> "*" IOTypeEnum : outputs
+        click IOTypeEnum href "../IOTypeEnum/"
+    
+
+        
+      MatrixTransform : physical
+        
+          
+    
+        
+        
+        MatrixTransform --> "0..1" PhysicalElement : physical
         click PhysicalElement href "../PhysicalElement/"
     
 
         
-      MagnetBaseElement : reference
+      MatrixTransform : reference
         
           
     
         
         
-        MagnetBaseElement --> "0..1" ReferenceElement : reference
+        MatrixTransform --> "0..1" ReferenceElement : reference
         click ReferenceElement href "../ReferenceElement/"
     
 
         
-      MagnetBaseElement : simulation
+      MatrixTransform : simulation
         
           
     
         
         
-        MagnetBaseElement --> "0..1" MagnetSimulationElement : simulation
-        click MagnetSimulationElement href "../MagnetSimulationElement/"
+        MatrixTransform --> "0..1" MatrixTransformSimulationElement : simulation
+        click MatrixTransformSimulationElement href "../MatrixTransformSimulationElement/"
     
 
         
-      MagnetBaseElement : subelement
+      MatrixTransform : subelement
         
-      MagnetBaseElement : virtual_name
+      MatrixTransform : upstream
+        
+          
+    
+        
+        
+        MatrixTransform --> "*" AcceleratorElement : upstream
+        click AcceleratorElement href "../AcceleratorElement/"
+    
+
+        
+      MatrixTransform : virtual_name
         
       
 ```
@@ -152,36 +169,38 @@ URI: [laura:MagnetBaseElement](https://w3id.org/laura/MagnetBaseElement)
     * [StandardElement](StandardElement.md)
         * [Element](Element.md)
             * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
-                * **MagnetBaseElement**
+                * **MatrixTransform**
 
 
 ## Class Properties
 
 | Property | Value |
 | --- | --- |
-| Class URI | [laura:MagnetBaseElement](https://w3id.org/laura/MagnetBaseElement) |
+| Class URI | [laura:MatrixTransform](https://w3id.org/laura/MatrixTransform) |
 
 
 ## Slots
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [magnetic](magnetic.md) | 0..1 <br/> [MagneticElement](MagneticElement.md) | Magnetic field parameters | direct |
-| [degauss](degauss.md) | 0..1 <br/> [DegaussableElement](DegaussableElement.md) | Degaussing-cycle parameters | direct |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
-| [simulation](simulation.md) | 0..1 <br/> [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
+| [simulation](simulation.md) | 0..1 <br/> [MatrixTransformSimulationElement](MatrixTransformSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
 | [controls](controls.md) | 0..1 <br/> [ControlsInformation](ControlsInformation.md) | Control-system process-variable definitions | [StandardElement](StandardElement.md) |
 | [reference](reference.md) | 0..1 <br/> [ReferenceElement](ReferenceElement.md) | Links to design drawings and files | [StandardElement](StandardElement.md) |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique element name within the machine | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_class](hardware_class.md) | 1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
-| [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for MODEL_REGISTRY dispatch | [AcceleratorElement](AcceleratorElement.md) |
+| [hardware_type](hardware_type.md) | 0..1 <br/> [String](String.md) | Python class name used for ELEMENT_REGISTRY dispatch | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_model](hardware_model.md) | 0..1 <br/> [String](String.md) | Model or variant name within the hardware type (e | [AcceleratorElement](AcceleratorElement.md) |
 | [machine_area](machine_area.md) | 0..1 <br/> [String](String.md) | Machine area label grouping related elements (e | [AcceleratorElement](AcceleratorElement.md) |
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element consumes (e | [AcceleratorElement](AcceleratorElement.md) |
+| [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element produces (e | [AcceleratorElement](AcceleratorElement.md) |
+| [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements feeding this one, whose ``outputs`` supply its ``inputs`` | [AcceleratorElement](AcceleratorElement.md) |
+| [downstream](downstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements this one feeds; the inverse of ``upstream`` | [AcceleratorElement](AcceleratorElement.md) |
 
 
 
@@ -215,8 +234,8 @@ URI: [laura:MagnetBaseElement](https://w3id.org/laura/MagnetBaseElement)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:MagnetBaseElement |
-| native | laura:MagnetBaseElement |
+| self | laura:MatrixTransform |
+| native | laura:MatrixTransform |
 
 
 
@@ -231,36 +250,18 @@ URI: [laura:MagnetBaseElement](https://w3id.org/laura/MagnetBaseElement)
 
 <details>
 ```yaml
-name: MagnetBaseElement
-description: Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement``
-  in the schema to avoid collision with the ``magnetic`` composition-model class;
-  maps to ``Magnet`` in Python.)
+name: MatrixTransform
+description: Transfer-map element with zero-, first-, and second-order coefficients.
 from_schema: https://w3id.org/laura/schema
 is_a: PhysicalAcceleratorElement
 slot_usage:
+  hardware_type:
+    name: hardware_type
+    equals_string: MatrixTransform
   simulation:
     name: simulation
-    range: MagnetSimulationElement
-attributes:
-  magnetic:
-    name: magnetic
-    description: Magnetic field parameters.
-    in_subset:
-    - magnetic_properties
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    domain_of:
-    - MagnetBaseElement
-    range: MagneticElement
-  degauss:
-    name: degauss
-    description: Degaussing-cycle parameters.
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    domain_of:
-    - MagnetBaseElement
-    range: DegaussableElement
-class_uri: laura:MagnetBaseElement
+    range: MatrixTransformSimulationElement
+class_uri: laura:MatrixTransform
 
 ```
 </details>
@@ -269,37 +270,18 @@ class_uri: laura:MagnetBaseElement
 
 <details>
 ```yaml
-name: MagnetBaseElement
-description: Base class for all magnetic focusing and bending elements. (Named ``MagnetBaseElement``
-  in the schema to avoid collision with the ``magnetic`` composition-model class;
-  maps to ``Magnet`` in Python.)
+name: MatrixTransform
+description: Transfer-map element with zero-, first-, and second-order coefficients.
 from_schema: https://w3id.org/laura/schema
 is_a: PhysicalAcceleratorElement
 slot_usage:
+  hardware_type:
+    name: hardware_type
+    equals_string: MatrixTransform
   simulation:
     name: simulation
-    range: MagnetSimulationElement
+    range: MatrixTransformSimulationElement
 attributes:
-  magnetic:
-    name: magnetic
-    description: Magnetic field parameters.
-    in_subset:
-    - magnetic_properties
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    owner: MagnetBaseElement
-    domain_of:
-    - MagnetBaseElement
-    range: MagneticElement
-  degauss:
-    name: degauss
-    description: Degaussing-cycle parameters.
-    from_schema: https://w3id.org/laura/schema
-    rank: 1000
-    owner: MagnetBaseElement
-    domain_of:
-    - MagnetBaseElement
-    range: DegaussableElement
   physical:
     name: physical
     description: Position, rotation, and length data.
@@ -307,7 +289,7 @@ attributes:
     - physical_properties
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
@@ -316,16 +298,16 @@ attributes:
     description: Simulation / tracking attributes.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - StandardElement
-    range: MagnetSimulationElement
+    range: MatrixTransformSimulationElement
   electrical:
     name: electrical
     description: Power-supply electrical limits.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - StandardElement
     range: ElectricalElement
@@ -333,7 +315,7 @@ attributes:
     name: manufacturer
     description: Manufacturer and serial-number data.
     from_schema: https://w3id.org/laura/schema
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - ManufacturerElement
     - StandardElement
@@ -343,7 +325,7 @@ attributes:
     description: Control-system process-variable definitions.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - StandardElement
     range: ControlsInformation
@@ -352,7 +334,7 @@ attributes:
     description: Links to design drawings and files.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - StandardElement
     range: ReferenceElement
@@ -362,7 +344,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     identifier: true
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - AcceleratorElement
     - SectionLattice
@@ -374,22 +356,23 @@ attributes:
     description: Functional category (e.g., ``Magnet``, ``Diagnostic``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - AcceleratorElement
     range: HardwareClassEnum
     required: true
   hardware_type:
     name: hardware_type
-    description: Python class name used for MODEL_REGISTRY dispatch.  Identifies the
-      concrete subclass to instantiate when loading from YAML.
+    description: Python class name used for ELEMENT_REGISTRY dispatch.  Identifies
+      the concrete subclass to instantiate when loading from YAML.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string(Generic)
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - AcceleratorElement
     range: string
+    equals_string: MatrixTransform
   hardware_model:
     name: hardware_model
     description: Model or variant name within the hardware type (e.g., ``Generic``,
@@ -397,7 +380,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string(Generic)
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - AcceleratorElement
     range: string
@@ -406,7 +389,7 @@ attributes:
     description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - AcceleratorElement
     range: string
@@ -417,7 +400,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string()
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - AcceleratorElement
     range: string
@@ -429,7 +412,7 @@ attributes:
     aliases:
     - name_alias
     rank: 1000
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - AcceleratorElement
     range: string
@@ -440,11 +423,52 @@ attributes:
       element.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: MagnetBaseElement
+    owner: MatrixTransform
     domain_of:
     - AcceleratorElement
     range: string
-class_uri: laura:MagnetBaseElement
+  inputs:
+    name: inputs
+    description: Signal types this element consumes (e.g. ``[current, voltage]``).
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: MatrixTransform
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  outputs:
+    name: outputs
+    description: Signal types this element produces (e.g. ``[power, phase]``).
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: MatrixTransform
+    domain_of:
+    - AcceleratorElement
+    range: IOTypeEnum
+    multivalued: true
+  upstream:
+    name: upstream
+    description: Names of elements feeding this one, whose ``outputs`` supply its
+      ``inputs``.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: MatrixTransform
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+  downstream:
+    name: downstream
+    description: Names of elements this one feeds; the inverse of ``upstream``.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: MatrixTransform
+    domain_of:
+    - AcceleratorElement
+    range: AcceleratorElement
+    multivalued: true
+class_uri: laura:MatrixTransform
 
 ```
 </details></div>

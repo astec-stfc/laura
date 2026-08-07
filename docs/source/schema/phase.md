@@ -20,6 +20,8 @@ URI: [laura:phase](https://w3id.org/laura/phase)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
+| [ACDipoleSimulationElement](ACDipoleSimulationElement.md) | Simulation attributes for an AC dipole / tune exciter |  yes  |
+| [RFMultipoleSimulationElement](RFMultipoleSimulationElement.md) | Simulation attributes for a thin RF multipole kick |  yes  |
 | [RFCavityElement](RFCavityElement.md) | RF cavity accelerating-structure parameters |  no  |
 | [RFDeflectingCavityElement](RFDeflectingCavityElement.md) | Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for... |  no  |
 
@@ -35,7 +37,7 @@ URI: [laura:phase](https://w3id.org/laura/phase)
 | Property | Value |
 | --- | --- |
 | Range | [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) |
-| Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
+| Domain Of | [ACDipoleSimulationElement](ACDipoleSimulationElement.md), [RFMultipoleSimulationElement](RFMultipoleSimulationElement.md), [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
 
@@ -120,6 +122,8 @@ from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: float(0.0)
 domain_of:
+- ACDipoleSimulationElement
+- RFMultipoleSimulationElement
 - RFCavityElement
 - RFDeflectingCavityElement
 range: float

@@ -1,12 +1,7 @@
----
-search:
-  boost: 5.0
----
-
-# Slot: magnetic_length 
+# Slot: interaction_length 
 
 
-_Magnetic (effective) length [m]._
+_Effective interaction length [m]._
 
 
 
@@ -14,9 +9,7 @@ _Magnetic (effective) length [m]._
 
 
 
-URI: [laura:magnetic_length](https://w3id.org/laura/magnetic_length)
-Alias: length
-
+URI: [laura:interaction_length](https://w3id.org/laura/interaction_length)
 <!-- no inheritance hierarchy -->
 
 
@@ -27,9 +20,7 @@ Alias: length
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
-| [DipoleMagnet](DipoleMagnet.md) |  |  no  |
-| [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
+| [WireSimulationElement](WireSimulationElement.md) | Simulation attributes for a compensating wire |  no  |
 
 
 
@@ -43,7 +34,7 @@ Alias: length
 | Property | Value |
 | --- | --- |
 | Range | [Float](Float.md) |
-| Domain Of | [MagneticElement](MagneticElement.md) |
+| Domain Of | [WireSimulationElement](WireSimulationElement.md) |
 
 ### Cardinality and Requirements
 
@@ -53,15 +44,8 @@ Alias: length
 
 | Property | Value |
 | --- | --- |
-| If Absent | `float(0)` |
-| Owner | [MagneticElement](MagneticElement.md) |
-
-
-### Value Constraints
-
-| Property | Value |
-| --- | --- |
-| Minimum Value | 0 |
+| If Absent | `float(0.0)` |
+| Owner | [WireSimulationElement](WireSimulationElement.md) |
 
 
 <details>
@@ -102,8 +86,8 @@ Alias: length
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:magnetic_length |
-| native | laura:magnetic_length |
+| self | laura:interaction_length |
+| native | laura:interaction_length |
 
 
 
@@ -112,17 +96,15 @@ Alias: length
 
 <details>
 ```yaml
-name: magnetic_length
-description: Magnetic (effective) length [m].
+name: interaction_length
+description: Effective interaction length [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: float(0)
-alias: length
-owner: MagneticElement
+ifabsent: float(0.0)
+owner: WireSimulationElement
 domain_of:
-- MagneticElement
+- WireSimulationElement
 range: float
-minimum_value: 0.0
 unit:
   ucum_code: m
 

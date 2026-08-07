@@ -1,4 +1,4 @@
-from pydantic import computed_field
+from pydantic import computed_field, model_validator
 import numpy as np
 from .base import BaseElementTranslator
 from laura.models.RF import RFCavityElement
@@ -33,6 +33,31 @@ class RFCavityTranslator(BaseElementTranslator):
 
     zwakefile: str | None = None
     """Name of longitudinal wakefile associated with the cavity."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def preserve_cavity_subtype_and_madx_defaults(cls, data):
+        """Rebuild the specialised cavity payload needed by each exporter.
+
+        ``translate_elements`` passes a serialised element dictionary to its
+        translators. MAD-X ``TWCAVITY`` does not use the ASTRA-only mode
+        fraction, so supply its neutral value when the serialized payload has
+        none. Deflecting versus accelerating output is selected from
+        ``hardware_type``, not from the payload model class.
+        """
+        if not isinstance(data, dict) or not isinstance(data.get("cavity"), dict):
+            return data
+
+        payload = dict(data)
+        cavity = dict(payload["cavity"])
+        if str(cavity.get("structure_type", "")).lower() == "travellingwave":
+            if cavity.get("mode_numerator") is None:
+                cavity["mode_numerator"] = 1
+            if cavity.get("mode_denominator") is None:
+                cavity["mode_denominator"] = 1
+            payload["cavity"] = RFCavityElement(**cavity)
+
+        return payload
 
     @computed_field
     @property
@@ -156,6 +181,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 else "cavity_n_cells"
             )
         }
+        keys = []
         for output, direct, nested in (
             ("wakefile", "wakefile", "simulation_wakefile"),
             ("zwakefile", "zwakefile", "simulation_zwakefile"),
@@ -189,7 +215,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     if etype == "rftmez0" and key == "freq":
                         key = "frequency"
                     functional = self.is_functional(value)
-                    if self.hardware_type in ["RFCavity", "RFDeflectingCavity"]:
+                    if self.hardware_type in ["RFCavity", "RFDeflectingCavity", "CrabCavity"]:
                         if key == "phase":
                             if etype == "rftmez0":
                                 # If using rftmez0 or similar
@@ -243,15 +269,17 @@ class RFCavityTranslator(BaseElementTranslator):
                         )
                     value = 1 if value is True else value
                     value = 0 if value is False else value
-                    # print("elegant cavity", key, value)
-                    tmpstring = ", " + key + " = " + str(value)
-                    # if len(string + tmpstring) > 156:
-                    #     wholestring += string + ",&\n"
-                    #     print(wholestring)
-                    #     string = ""
-                    #     string += tmpstring[2::]
-                    # else:
-                    string += tmpstring
+                    if key not in keys:
+                        # print("elegant cavity", key, value)
+                        tmpstring = ", " + key + " = " + str(value)
+                        # if len(string + tmpstring) > 156:
+                        #     wholestring += string + ",&\n"
+                        #     print(wholestring)
+                        #     string = ""
+                        #     string += tmpstring[2::]
+                        # else:
+                        string += tmpstring
+                    keys.append(key)
         wholestring += string + ";\n"
         return wholestring
 
@@ -502,6 +530,10 @@ class RFCavityTranslator(BaseElementTranslator):
         ``lag = (90 - phase) / 360`` -- the same +90 degree convention used for
         ELEGANT, expressed as a fraction of 360 degrees rather than degrees.
 
+        A travelling-wave cavity (``cavity.structure_Type == "TravellingWave"``)
+        is written as a MAD-X ``TWCAVITY`` rather than the standing-wave
+        ``RFCAVITY``.
+
         Parameters
         ----------
         at: float, optional
@@ -515,6 +547,8 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convertType_Madx(self.hardware_type)
+        if self.structure_type == "TravellingWave" and etype == "rfcavity":
+            etype = "twcavity"
         string = sanitize_string(self.name) + ": " + etype
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (

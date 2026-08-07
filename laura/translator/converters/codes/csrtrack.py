@@ -1,6 +1,27 @@
 from pydantic import BaseModel, Field
 from typing import Dict, List, Any, Literal
 
+csrtrack_unsupported = [
+    "TwissMatch",
+    "MatrixTransform",
+    "Laser",
+    "Plasma",
+    "Sextupole",
+    "Octupole",
+    "Decapole",
+    "Combined_Corrector",
+    "Vertical_Corrector",
+    "Horizontal_Corrector",
+    "Wiggler",
+    "Solenoid",
+    "RFCavity",
+    "RFDeflectingCavity",
+    "RCollimator",
+    "Collimator",
+    "Wakefield",
+    "ActivePlasmaLens",
+    "CrabCavity",
+]
 
 class csrtrack_element(BaseModel):
     """
