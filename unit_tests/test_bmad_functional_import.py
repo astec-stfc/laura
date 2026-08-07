@@ -1,7 +1,8 @@
 import pytest
+from pathlib import Path
 from types import SimpleNamespace
 
-from laura.translator.converters.codes.bmad import BmadLatticeImporter
+from laura.translator.converters.codes.bmad import BmadLatticeImporter, BmadTaoInit
 from laura.models.element import Marker
 from laura.models.elementList import ElementList, MachineLayout, SectionLattice
 
@@ -25,6 +26,43 @@ def test_bmad_parser_retains_only_deferred_assignments(tmp_path):
     assert BmadLatticeImporter._symbol(importer, "q_fixed", "K1", 0.5) is None
 
 
+def test_minimal_tao_init(tmp_path):
+    output = tmp_path / "tao.init"
+
+    result = BmadTaoInit(
+        lattice_file="../lattices/ring.bmad", lines=["injection", "collision"]
+    ).write(output)
+
+    assert result == output
+    assert output.read_text() == (
+        "&tao_design_lattice\n"
+        "  n_universes = 2\n"
+        "  design_lattice(1)%file = '../lattices/ring.bmad@injection'\n"
+        "  design_lattice(2)%file = '../lattices/ring.bmad@collision'\n"
+        "/\n"
+    )
+
+
+def test_lattice_importer_generates_tao_init(tmp_path):
+    lattice = tmp_path / "ring.bmad"
+    lattice.write_text("use, injection\n")
+    importer = SimpleNamespace(
+        tao_init=None,
+        lattice_file=str(lattice),
+        lines=["injection"],
+        _generated_tao_init=None,
+    )
+
+    generated = Path(BmadLatticeImporter._tao_init_path(importer))
+
+    assert generated.read_text() == (
+        "&tao_design_lattice\n"
+        "  n_universes = 1\n"
+        f"  design_lattice(1)%file = '{lattice.resolve()}@injection'\n"
+        "/\n"
+    )
+
+
 def test_create_machine_model_uses_universes_and_reuses_elements(tmp_path):
     init = tmp_path / "floorplan.init"
     init.write_text(
@@ -33,7 +71,7 @@ def test_create_machine_model_uses_universes_and_reuses_elements(tmp_path):
         'design_lattice(3)%file = "../Lines/short.bmad"\n'
     )
     importer = SimpleNamespace(
-        floorplan_init=str(init),
+        tao_init=str(init),
         lattice_file=None,
         branches={1: ["LINE1_1"], 2: ["LINE1_2"], 3: ["LINE1_3"]},
         functional_definitions={},

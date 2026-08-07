@@ -1,4 +1,4 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, model_validator
 from typing import Dict, Any, List, Literal, Optional, Union
 from collections import Counter
 from warnings import warn
@@ -19,6 +19,7 @@ from laura.models.element import (
 from ....Exporters.YAML import export_machine_combined_file, PositionMode
 import math
 import re
+import tempfile
 from pathlib import Path
 
 _SILENTLY_SKIPPED_TYPES = ("Drift", "Beginning_Ele")
@@ -72,13 +73,51 @@ def rotation_angles(forward):
     return pitch, roll, yaw
 
 
+class BmadTaoInit(BaseModel):
+    """Minimal Tao init file for one Bmad lattice and optional line selections."""
+
+    lattice_file: str
+    lines: List[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _check_lines(self):
+        if any(not line.strip() for line in self.lines):
+            raise ValueError("Bmad line names cannot be empty.")
+        return self
+
+    def render(self) -> str:
+        targets = [
+            f"{self.lattice_file}@{line}" for line in self.lines
+        ] or [self.lattice_file]
+        entries = "\n".join(
+            "  design_lattice({})%file = '{}'".format(
+                index, target.replace("'", "''")
+            )
+            for index, target in enumerate(targets, 1)
+        )
+        return (
+            "&tao_design_lattice\n"
+            f"  n_universes = {len(targets)}\n"
+            f"{entries}\n"
+            "/\n"
+        )
+
+    def write(self, path: str | Path) -> Path:
+        path = Path(path)
+        path.write_text(self.render())
+        return path
+
+
 class BmadLatticeImporter(BaseModel):
 
-    floorplan_init: Optional[str] = None
-    """Name of Tao init file which produces floor coordinates"""
+    tao_init: Optional[str] = None
+    """Name of Tao init file which produces."""
 
     lattice_file: Optional[str] = None
-    """Original BMAD lattice file, used instead of ``floorplan_init``."""
+    """Original BMAD lattice file, used instead of ``tao_init``."""
+
+    lines: List[str] = Field(default_factory=list)
+    """Bmad lines to load as separate Tao universes from ``lattice_file``."""
 
     libtao: str = None
     """libtao.so file"""
@@ -131,11 +170,26 @@ class BmadLatticeImporter(BaseModel):
 
     deferred_parameters: Dict[str, Dict[str, str]] = {}
 
+    _generated_tao_init: Any = PrivateAttr(default=None)
+
     @model_validator(mode="after")
     def _check_input(self):
-        if (self.floorplan_init is None) == (self.lattice_file is None):
-            raise ValueError("Give exactly one of floorplan_init or lattice_file.")
+        if (self.tao_init is None) == (self.lattice_file is None):
+            raise ValueError("Give exactly one of tao_init or lattice_file.")
+        if self.tao_init and self.lines:
+            raise ValueError("lines can only be used with lattice_file.")
         return self
+
+    def _tao_init_path(self) -> str:
+        if self.tao_init:
+            return self.tao_init
+        self._generated_tao_init = tempfile.TemporaryDirectory(prefix="laura-bmad-")
+        path = Path(self._generated_tao_init.name) / "tao.init"
+        return str(
+            BmadTaoInit(
+                lattice_file=str(Path(self.lattice_file).resolve()), lines=self.lines
+            ).write(path)
+        )
 
     def _read_functional_definitions(self) -> None:
         if not self.lattice_file:
@@ -194,11 +248,7 @@ class BmadLatticeImporter(BaseModel):
 
         self._read_functional_definitions()
 
-        tao = Tao(
-            f"-{'lat' if self.lattice_file else 'init'} "
-            f"{self.lattice_file or self.floorplan_init} -noplot",
-            so_lib=self.libtao,
-        )
+        tao = Tao(f"-init {self._tao_init_path()} -noplot", so_lib=self.libtao)
         while True:
             try:
                 tao.universe(str(self.n_universes))
@@ -555,8 +605,8 @@ class BmadLatticeImporter(BaseModel):
             raise ValueError("min_section_length must be at least 1.")
 
         layout_names = {}
-        if self.floorplan_init:
-            text = Path(self.floorplan_init).read_text()
+        if self.tao_init:
+            text = Path(self.tao_init).read_text()
             layout_names = {
                 int(universe): Path(filename).stem
                 for universe, filename in re.findall(
@@ -657,7 +707,7 @@ class BmadLatticeImporter(BaseModel):
                 f"{min_section_length}."
             )
 
-        source = self.floorplan_init or self.lattice_file
+        source = self.tao_init or self.lattice_file
         return MachineModel(
             elements=elements,
             section={"sections": section_definitions},
