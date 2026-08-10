@@ -1,6 +1,5 @@
 from .base import BaseElementTranslator
 from laura.models.simulation import TwissMatchSimulationElement
-from torch import tensor, float64
 from typing import Dict
 import numpy as np
 
@@ -69,6 +68,7 @@ class TwissMatchTranslator(BaseElementTranslator):
             An Cheetah object representing the element, initialized with its properties.
         """
         from ..conversion_rules.codes import cheetah_conversion
+        from torch import tensor, float64
 
         type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
@@ -96,13 +96,14 @@ class TwissMatchTranslator(BaseElementTranslator):
             BDSIM object
         """
         from ..conversion_rules.codes import bdsim_conversion
+        from .matrix import _bdsim_rmatrix
 
-        type_conversion_rules_BDSIM = bdsim_conversion.bdsim_conversion_rules
-        obj = type_conversion_rules_BDSIM["MatrixTransform"]
-        elem_dict = {"l": self.physical.length}
-        if not np.array_equal(self.simulation.r_matrix, np.eye(6)):
-            for i, row in enumerate(self.simulation.r_matrix):
-                for j, col in enumerate(row):
-                    if i < 4 and j < 4:
-                        elem_dict.update({f"rmat{i + 1}{j + 1}": col})
-        return obj(**elem_dict)
+        if not self.physical.length:
+            from pybdsim.Builder import ThinRmat
+
+            obj = ThinRmat
+        else:
+            obj = bdsim_conversion.bdsim_conversion_rules["MatrixTransform"]
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        keywords.update(_bdsim_rmatrix(self.simulation.r_matrix))
+        return obj(**keywords)

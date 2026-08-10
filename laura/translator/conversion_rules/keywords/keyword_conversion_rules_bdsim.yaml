@@ -1,4 +1,6 @@
 general:
+  dx: offsetX
+  dy: offsetY
   edge_field_integral: fint
   half_gap: hgap
   horizontal_size: xsize
@@ -17,6 +19,12 @@ rfcavity:
   field_amplitude: gradient
 rfdeflectingcavity:
   field_amplitude: gradient
-undulator:
-  peak_magnetic_field: B
+wiggler:
+  peak_magnetic_field: b
   period: undulatorPeriod
+fel_modulator:
+  peak_magnetic_field: b
+  period: undulatorPeriod
+wirescanner:
+  wire_diameter: wireDiameter
+  wire_length: wireLength

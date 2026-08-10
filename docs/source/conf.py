@@ -18,12 +18,43 @@
 import os
 import sys
 import subprocess
+import importlib
+import pkgutil
 
-# docs/ is at project_root/docs
-# add project root:
-sys.path.insert(0, os.path.abspath(".."))
-# also add project_root/laura so Python can find the inner package dir
-sys.path.insert(0, os.path.abspath("../laura"))
+# This file is docs/source/conf.py, so the project root is two levels up.
+# Resolve it from __file__ rather than the working directory, which differs
+# between a local `sphinx-build` and a Read the Docs build.
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, _PROJECT_ROOT)
+
+
+def _preimport_laura() -> None:
+    """Import every ``laura`` submodule before Sphinx starts.
+
+    ``sphinx-autodoc-typehints`` resolves ``if TYPE_CHECKING:`` blocks by
+    re-importing modules with ``typing.TYPE_CHECKING`` forced True. Any
+    pydantic model class built while that flag is set fails to construct
+    (``PydanticSchemaGenerationError`` on ``__pydantic_extra__``), which
+    previously left ``laura.translator.converters.base`` and the ASTRA /
+    Ocelot / OPAL code writers undocumented. Importing them here -- before
+    that machinery is active -- puts them in ``sys.modules``, and autodoc
+    reuses the cached module instead of re-importing it.
+
+    Failures are ignored: modules needing an absent optional dependency
+    (Ocelot, Xsuite, openpyxl, ...) fall back to ``autodoc_mock_imports``.
+    """
+    try:
+        import laura
+    except Exception:
+        return
+    for info in pkgutil.walk_packages(laura.__path__, prefix="laura."):
+        try:
+            importlib.import_module(info.name)
+        except Exception:
+            pass
+
+
+_preimport_laura()
 
 
 def get_git_revision_hash(short: bool = True) -> str:
@@ -76,9 +107,6 @@ def setup(app):
 #     app.add_css_file("my_theme.css")
 
 
-# set relative path to the documented project
-sys.path.insert(0, os.path.abspath("../../"))
-
 # set project name, author and copyright
 author = "James Jones, Alex Brynes, Matthew King, Mark Johnson"
 copyright = "2025, STFC ASTeC"
@@ -97,12 +125,17 @@ extensions = [
     "sphinx_autodoc_typehints",
     # "sphinxcontrib.autodoc_pydantic",
     "sphinx.ext.mathjax",  # enables math rendering
+    "myst_parser",         # enables Markdown source files
+    "sphinxcontrib.mermaid",  # enables Mermaid diagrams in Markdown files
     # "myst_nb",
 ]
 
 
 # set sphinx options
-source_suffix = ".rst"  # use reStructedText files for sphinx pages
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "myst",
+}
 master_doc = "index"  # name for the root document
 exclude_patterns = ["_build"]  # patterns to exclude when looking for source files
 templates_path = ["_templates"]  # list of paths that contain extra templates
@@ -110,6 +143,10 @@ add_function_parentheses = True  # display function and method names with parent
 add_module_names = False  # don't include module names before object names
 pygments_style = "sphinx"  # style for highlighting of source code
 bibtex_bibfiles = ["references.bib"]
+
+# MyST-Parser options
+myst_heading_anchors = 3  # auto-generate heading anchors for h1/h2/h3
+myst_fence_as_directive = {"mermaid"}  # treat ```mermaid fences as sphinxcontrib.mermaid directives
 
 # set automodapi options
 automodapi_toctreedirnm = (
@@ -150,8 +187,14 @@ autodoc_pydantic_field_doc_policy = "both"  # shows docstrings and Field descrip
 # autodoc_typehints = "none"
 
 autodoc_mock_imports = [
-    # "laura.models.elementList",  # or whichever module fails
-    "pydantic",  # mock dependencies if needed
+    "Importers",       # legacy absolute-import path used in CATAP_Loader.py
+    "laura.models.PV",  # legacy module that no longer exists
+    "IPython",          # optional dependency for SimFrame_Loader
+    "ocelot",           # optional accelerator-code dependency
+    "xsuite",           # optional accelerator-code dependency
+    "xtrack",           # optional accelerator-code dependency (used by xsuite converters)
+    "cheetah",          # optional accelerator-code dependency
+    "wake_t",           # optional accelerator-code dependency
 ]
 
 numfig = True
@@ -188,6 +231,22 @@ autodoc_pydantic_settings_show_config_summary = False
 autodoc_pydantic_field_list_validators = False
 autodoc_pydantic_model_show_validator_members = False
 
+suppress_warnings = [
+    # Ambiguous python cross-references: bare `set` / `type` in docstrings match
+    # several autodoc'd members (gpt_setfile.set, SDDSObject.type, ...).
+    "ref.python",
+    "myst.xref_missing",    # .md files link to .yaml files which Sphinx cannot resolve as cross-references
+    "ref.any",              # suppress any-role cross-reference parse failures
+    "ref.c",                # .yaml paths in markdown links are misidentified as C cross-references
+    "ref.cpp",              # .yaml paths in markdown links are misidentified as C++ cross-references
+]
+
+# NOTE: the build also emits ~100 "duplicate object description of
+# laura.models.element.<Class>.hardware_type/hardware_model" warnings. These are
+# cosmetic -- the rendered HTML contains exactly one anchor per name -- and are
+# NOT covered by the "ref.python" entry above: sphinx.domains.python logs them
+# without a `type=`, so suppress_warnings has no handle on them at all.
+
 # nb_execution_mode = "off"  # options: "off", "auto", "force"
 
 
@@ -200,9 +259,9 @@ intersphinx_mapping = {
 
 # set HTML output options
 html_theme = "sphinx_rtd_theme"  # set HTML themse (read the docs theme)
-html_logo = "icon.png"  # set logo for top-left corner of HTML pages
-html_favicon = "favicon.ico"  # set HTML favicon
-html_static_path = ["_static"]  # path to custom static files
+# html_logo = "icon.png"  # set logo for top-left corner of HTML pages (file not present)
+# html_favicon = "favicon.ico"  # set HTML favicon (file not present)
+html_static_path = []  # no custom static files currently
 
 # set mathjax equation rendering options
 mathjax3_config = {"chtml": {"displayAlign": "left", "displayIndent": "2em"}}

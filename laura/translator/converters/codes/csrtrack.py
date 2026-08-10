@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Dict, List, Any, Literal
 
 csrtrack_unsupported = [
-    "TwissMatch"
+    "TwissMatch",
     "MatrixTransform",
     "Laser",
     "Plasma",
@@ -16,7 +16,6 @@ csrtrack_unsupported = [
     "Solenoid",
     "RFCavity",
     "RFDeflectingCavity",
-    "RCollimator",
     "Collimator",
     "Wakefield",
     "ActivePlasmaLens",
@@ -90,16 +89,6 @@ class csrtrack_element(BaseModel):
                     output += key + "=" + self.CSRTrack_str(getattr(self, key)) + "\n"
         output += "}\n"
         return output
-
-
-# class csrtrack_online_monitor(csrtrack_element):
-#
-#     def __init__(self, marker="", **kwargs):
-#         super(csrtrack_online_monitor, self).__init__(
-#             "online_monitor", "csrtrack_online_monitor", **kwargs
-#         )
-#         self.header = "online_monitor"
-#         self.end_time_marker = marker + "b"
 
 
 class csrtrack_forces(csrtrack_element):

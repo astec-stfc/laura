@@ -1,10 +1,237 @@
+import math
 import re
 import os
+from collections import Counter as OccurrenceCounter
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
-from laura.models.element import Magnet
-from typing import Any, Dict, Type, get_args, get_origin, Union, Literal
+from laura.utils.dict_utils import numpy_scalar_to_python
+from laura.models.baseModels import IgnoreExtra
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, get_args, get_origin
+from .fields import field
+
+
+def number_repeated_names(names: list[str]) -> list[str]:
+    """Append ``.n`` only to names that occur more than once."""
+    keys = [name.lower() for name in names]
+    totals = OccurrenceCounter(keys)
+    seen = OccurrenceCounter()
+    numbered = []
+    for name, key in zip(names, keys):
+        seen[key] += 1
+        numbered.append(f"{name}.{seen[key]}" if totals[key] > 1 else name)
+    return numbered
+
+
+def same_element_placement(left: Any, right: Any) -> bool:
+    """True if two :class:`~laura.models.element.Element` objects occupy the
+    same physical placement (position, orientation, length).
+
+    Used by ``create_machine_model`` on the reverse-direction importers
+    (Bmad/Elegant/MAD-X) to decide whether a name shared across independent
+    layouts is a genuine share (e.g. a common injector line) or a name
+    collision that needs a per-layout copy.
+    """
+    a, b = left.physical, right.physical
+    if (a.middle is None) != (b.middle is None):
+        return False
+    middle_matches = a.middle is None or all(
+        math.isclose(x, y, abs_tol=1e-9) for x, y in zip(a.middle.array, b.middle.array)
+    )
+    s_matches = (a.s is None and b.s is None) or (
+        a.s is not None and b.s is not None and math.isclose(a.s, b.s, abs_tol=1e-9)
+    )
+    return (
+        middle_matches
+        and s_matches
+        and math.isclose(a.length, b.length, abs_tol=1e-12)
+        and all(
+            math.isclose(x, y, abs_tol=1e-12)
+            for x, y in zip(a.rotation_matrix.flat, b.rotation_matrix.flat)
+        )
+        and all(
+            math.isclose(x, y, abs_tol=1e-12)
+            for x, y in zip(a.end_rotation_matrix.flat, b.end_rotation_matrix.flat)
+        )
+    )
+
+
+def merge_layout_elements(
+    elements: Dict[str, Any],
+    section_definitions: Dict[str, List[str]],
+    section_name: str,
+    members: Iterable[Tuple[str, Any]],
+    order: List[str],
+    suffix: str,
+) -> None:
+    """Merge one section's elements into a cross-layout ``elements`` dict,
+    mutating both ``elements`` and ``section_definitions[section_name]``.
+
+    Shared by every reverse-direction importer's ``create_machine_model``
+    (Bmad/Elegant/MAD-X). An element already present under the same name is
+    reused as-is when it occupies the same placement
+    (:func:`same_element_placement`); otherwise it's copied under a
+    ``name__suffix`` name (numbered further on repeat collisions), because
+    :class:`~laura.models.elementList.MachineModel` stores one placement per
+    name. A subelement (``element.is_subelement()``) whose parent was
+    renamed is renamed to match and re-pointed at the parent's new name,
+    even when its own placement happens to coincide with an existing
+    element's -- this only ever applies to Bmad's Kicker H/V-corrector
+    split; it's a no-op for importers that never set ``subelement``.
+
+    Parameters
+    ----------
+    members:
+        Every element to consider for merging, in no particular order
+        (``(name, element)`` pairs) -- for Bmad this includes subelements
+        excluded from ``order``.
+    order:
+        The section's visible element order (the names that end up in
+        ``section_definitions[section_name]``, translated through any
+        rename).
+    suffix:
+        Appended (as ``name__suffix``) to a renamed copy's name -- typically
+        the layout/universe/sequence name.
+    """
+    renamed: Dict[str, str] = {}
+    for element_name, element in members:
+        existing = elements.get(element_name)
+        parent_renamed = (
+            element.subelement in renamed
+            and renamed[element.subelement] != element.subelement
+        )
+        if existing is None or (
+            same_element_placement(existing, element) and not parent_renamed
+        ):
+            output_name = element_name
+            elements.setdefault(output_name, element)
+        else:
+            output_name = f"{element_name}__{suffix}"
+            index = 2
+            while output_name in elements:
+                output_name = f"{element_name}__{suffix}_{index}"
+                index += 1
+            updates = {"name": output_name}
+            if parent_renamed:
+                updates["subelement"] = renamed[element.subelement]
+            elements[output_name] = element.model_copy(update=updates)
+        renamed[element_name] = output_name
+    section_definitions[section_name] = [renamed[name] for name in order]
+
+
+def elegant_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the ELEGANT rpn-store header declaring every functional definition for
+    the lattice, e.g.::
+
+        % -2 sto quad1_k1l
+        % 90 sto cav1_phase
+
+    Element keywords that reference a functional parameter are written as quoted
+    rpn variable references (e.g. ``VOLT="V_L02.01"``), which ELEGANT resolves
+    against these stored values.
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        The ``% <value> sto <name>`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no rpn store needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(
+        f"% {value} sto {name}\n" for name, value in definitions.items()
+    )
+
+
+def madx_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the MAD-X variable-declaration header assigning every functional
+    definition for the lattice, e.g.::
+
+        quad1_k1l = -2;
+        cav1_phase = 90;
+
+    Element keywords that reference a functional parameter are written as
+    infix expressions (e.g. ``k1 := quad1_k1l / 0.1``), which MAD-X resolves
+    against these variable assignments (and keeps updated as deferred
+    expressions, ``:=``, wherever a symbolic value is used).
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        A ``<name> = <value>;`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no header needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(f"{name} = {value};\n" for name, value in definitions.items())
+
+def bdsim_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the gmad variable-declaration block assigning every functional
+    definition for the lattice, e.g.::
+
+        quad1_k1l = -2;
+        cav1_phase = 90;
+
+    The syntax matches MAD-X's, but gmad has no deferred-assignment operator:
+    expressions such as ``k1=quad1_k1l/0.1`` are evaluated when BDSIM parses
+    the file, so this block must be included *before* the component
+    definitions. :meth:`SectionLatticeTranslator.to_bdsim
+    <laura.translator.converters.section.SectionLatticeTranslator.to_bdsim>`
+    writes it to ``<section>_variables.gmad``.
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        A ``<name> = <value>;`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no header needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(f"{name} = {value};\n" for name, value in definitions.items())
+
+
+def sanitize_string(string: str) -> str:
+    """
+    Replaces hyphens in a string with underscores.
+
+    Parameters
+    ----------
+    string: str
+        Any string
+
+    Returns
+    -------
+    str
+        A string with hyphens replaced with underscores
+    """
+    return string.replace("-", "_")
 
 
 class Counter(dict):
@@ -12,25 +239,25 @@ class Counter(dict):
         super().__init__()
         self.sub = sub
 
-    def counter(self, type):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
+    def counter(self, typ):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
             return 1
-        return self[type] + 1
+        return self[typ] + 1
 
-    def value(self, type):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
+    def value(self, typ):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
             return 1
-        return self[type]
+        return self[typ]
 
-    def add(self, type, n=1):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
-            self[type] = n
+    def add(self, typ, n=1):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
+            self[typ] = n
         else:
-            self[type] += n
-        return self[type]
+            self[typ] += n
+        return self[typ]
 
 
 def convert_numpy_types(v):
@@ -41,29 +268,9 @@ def convert_numpy_types(v):
             return [convert_numpy_types(li) for li in v]
         except TypeError:
             return float(v)
-    elif isinstance(v, (np.float64, np.float32, np.float16)):
-        return float(v)
-    elif isinstance(
-        v,
-        (
-            np.int_,
-            np.intc,
-            np.intp,
-            np.int8,
-            np.int16,
-            np.int32,
-            np.int64,
-            np.uint8,
-            np.uint16,
-            np.uint32,
-            np.uint64,
-        ),
-    ):
-        return int(v)
     elif isinstance(v, field):
         return convert_numpy_types(v.model_dump())
-    else:
-        return v
+    return numpy_scalar_to_python(v)
 
 
 def _rotation_matrix(theta):
@@ -84,118 +291,24 @@ def chop(expr, delta=1e-8):
         return [chop(x, delta) for x in expr]
 
 
-def lattice_to_cartesian(elements):
-    """
-    Compute Cartesian coordinates [x, y, z] of accelerator lattice elements
-    from a sequence of drifts and dipoles in 3D.
-
-    Parameters
-    ----------
-    elements : list of tuples
-        Each element is defined as:
-          ("drift", L)
-          ("dipole_h", L, phi)   # horizontal bend (x-z plane)
-          ("dipole_v", L, phi)   # vertical bend (x-y plane)
-        where L = length, phi = bending angle in radians.
-
-    Returns
-    -------
-    positions : list of tuples
-        Cartesian coordinates (x, y, z) for element ends.
-    """
-
-    x, y, z = 0.0, 0.0, 0.0  # starting point
-    theta_h = 0.0  # azimuth angle in horizontal (x-z)
-    theta_v = 0.0  # elevation angle in vertical (x-y)
-    positions = [(x, y, z)]
-
-    for elem in elements:
-        cond1 = elem.hardware_type.lower() != "dipole"
-        cond2 = False
-        if isinstance(elem, Magnet):
-            if abs(elem.magnetic.angle) > 1e-9:
-                cond2 = True
-        if cond1 and cond2:
-            L = elem.physical.length
-            dx = L * np.cos(theta_v) * np.cos(theta_h)
-            dy = L * np.sin(theta_v)
-            dz = L * np.cos(theta_v) * np.sin(theta_h)
-            x, y, z = x + dx, y + dy, z + dz
-            positions.append((x, y, z))
-        else:  # horizontal bend in x-z plane
-            L, phi, tilt = elem.physical.length, elem.magnetic.angle, elem.magnetic.tilt
-            if np.isclose(tilt, 0):
-                R = L / phi
-                cx = x - R * np.sin(theta_h)
-                cz = z + R * np.cos(theta_h)
-                theta_h_new = theta_h + phi
-                x = cx + R * np.sin(theta_h_new)
-                z = cz - R * np.cos(theta_h_new)
-                theta_h = theta_h_new
-            elif np.isclose(tilt, np.pi / 2):
-                R = L / phi
-                cy = y - R * np.sin(theta_v)
-                cz = z + R * np.cos(theta_v)
-                theta_v_new = theta_v + phi
-                y = cy + R * np.sin(theta_v_new)
-                z = cz - R * np.cos(theta_v_new)
-                theta_v = theta_v_new
-            else:
-                raise ValueError(f"Unrecognised tilt angle {tilt} for {elem.name}")
-            positions.append((x, y, z))
-    return positions
-
-
-def sanitize_kwargs(model_cls: type[BaseModel], data: dict[str, Any]) -> dict[str, Any]:
-    sanitized = {}
-    for field_name, field in model_cls.model_fields.items():
-        value = data.get(field_name, None)
-        annotation = field.annotation
-        origin = get_origin(annotation)
-        args = get_args(annotation)
-
-        if value is None:
-            # Allow None if explicitly part of the annotation
-            if origin is Union and type(None) in args:
-                sanitized[field_name] = None
-            continue
-
-        if origin is Union:
-            # Handle Union of types (including Optional)
-            non_none_args = [arg for arg in args if arg is not type(None)]
-            if any(_is_valid_type(value, arg) for arg in non_none_args):
-                sanitized[field_name] = value
-        elif origin is Literal:
-            # Handle Literal values
-            if value in args:
-                sanitized[field_name] = value
-        elif _is_valid_type(value, annotation):
-            # Simple direct type match
-            sanitized[field_name] = value
-
-    return sanitized
-
-
-def _is_valid_type(value: Any, annotation: Any) -> bool:
-    """
-    Helper to check if a value matches a type annotation.
-    Handles edge cases like Literal at the leaf level.
-    """
-    origin = get_origin(annotation)
-    if origin is Literal:
-        return value in get_args(annotation)
-    return isinstance(value, annotation)
-
-
-def get_field_default(field: FieldInfo) -> Any:
+def get_field_default(fiel: FieldInfo) -> Any:
     """Get the default value or instance from a field definition."""
-    if callable(field.default_factory):
+    if callable(fiel.default_factory):
         try:
-            return field.default_factory()
+            return fiel.default_factory()
         except Exception:
             return "FACTORY_ERROR"
-    if field.default is not None:
-        return field.default
+    if fiel.default is not None:
+        return fiel.default
+    return None
+
+
+def _unwrap_optional_basemodel(annotation: Any) -> Optional[Type[BaseModel]]:
+    """Return ``X`` if ``annotation`` is ``Optional[X]`` for a BaseModel ``X``, else ``None``."""
+    if get_origin(annotation) is Union:
+        non_none = [a for a in get_args(annotation) if a is not type(None)]
+        if len(non_none) == 1 and isinstance(non_none[0], type) and issubclass(non_none[0], BaseModel):
+            return non_none[0]
     return None
 
 
@@ -204,12 +317,25 @@ def introspect_model_defaults(
     flatten: bool = False,
     parent_key: str = "",
     separator: str = "_",
+    resolve_optional: bool = False,
 ) -> Dict[str, Any]:
-    """Recursively introspect a Pydantic model class, extracting default values (including nested)."""
+    """Recursively introspect a Pydantic model class, extracting default values (including nested).
+
+    Parameters
+    ----------
+    resolve_optional: bool
+        A field typed ``Optional[SomeModel]`` with no ``default_factory`` (e.g.
+        ``physical: Optional[PhysicalElement] = None``) has a class-level
+        default of ``None`` -- there is no instance to recurse into. When
+        ``False`` (the default, preserving prior behaviour) such a field's
+        entry is just ``None``. When ``True``, its declared type is unwrapped
+        and introspected directly (using ``SomeModel``'s own field defaults)
+        instead of stopping at ``None``.
+    """
     result = {}
 
-    for field_name, field in model_cls.model_fields.items():
-        default_value = get_field_default(field)
+    for field_name, fiel in model_cls.model_fields.items():
+        default_value = get_field_default(fiel)
 
         # If the default value is a BaseModel (e.g., from default_factory), recurse
         if isinstance(default_value, BaseModel):
@@ -220,23 +346,43 @@ def introspect_model_defaults(
                     f"{parent_key}{separator}{field_name}" if parent_key else field_name
                 ),
                 separator=separator,
+                resolve_optional=resolve_optional,
             )
             if flatten:
                 result.update(nested)
             else:
                 result[field_name] = nested
-        else:
-            key = (
-                f"{parent_key}{separator}{field_name}"
-                if (flatten and parent_key)
-                else field_name
-            )
-            result[key] = default_value
+            continue
+
+        if default_value is None and resolve_optional:
+            inner_cls = _unwrap_optional_basemodel(fiel.annotation)
+            if inner_cls is not None:
+                nested = introspect_model_defaults(
+                    inner_cls,
+                    flatten=flatten,
+                    parent_key=(
+                        f"{parent_key}{separator}{field_name}" if parent_key else field_name
+                    ),
+                    separator=separator,
+                    resolve_optional=resolve_optional,
+                )
+                if flatten:
+                    result.update(nested)
+                else:
+                    result[field_name] = nested
+                continue
+
+        key = (
+            f"{parent_key}{separator}{field_name}"
+            if (flatten and parent_key)
+            else field_name
+        )
+        result[key] = default_value
 
     return result
 
 
-def isevaluable(self, s):
+def isevaluable(s):
     try:
         eval(s)
         return True
@@ -245,11 +391,6 @@ def isevaluable(self, s):
 
 
 def path_function(a):
-    # a_drive, a_tail = os.path.splitdrive(os.path.abspath(a))
-    # b_drive, b_tail = os.path.splitdrive(os.path.abspath(b))
-    # if (a_drive == b_drive):
-    #     return os.path.relpath(a, b)
-    # else:
     if a:
         return os.path.abspath(a)
     return "./"
@@ -262,7 +403,7 @@ def expand_substitution(self, param, master_lattice="./", subs=None, elements=No
         regex = re.compile(r"\$(.*?)\$")
         s = re.search(regex, param)
         if s:
-            if isevaluable(self, s.group(1)) is True:
+            if isevaluable(s.group(1)):
                 replaced_str = str(eval(re.sub(regex, str(eval(s.group(1))), param)))
             else:
                 replaced_str = re.sub(regex, s.group(1), param)

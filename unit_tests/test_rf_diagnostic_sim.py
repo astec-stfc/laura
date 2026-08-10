@@ -36,6 +36,45 @@ from laura.models.electrical import ElectricalElement
 from laura.models.laser import LaserElement
 from laura.models.plasma import PlasmaElement
 from laura.models.control import ControlVariable, ControlsInformation
+from laura.models.baseModels import set_functional_definitions
+
+
+# ---------------------------------------------------------------------------
+# Functional parameters (RF / simulation)
+# ---------------------------------------------------------------------------
+
+class TestFunctionalParametersRF:
+    @pytest.fixture(autouse=True)
+    def _defs(self):
+        set_functional_definitions(
+            {"cav1_phase": 90.0, "famp": 5e6}, merge=False
+        )
+        yield
+        set_functional_definitions({}, merge=False)
+
+    def test_cavity_phase_string(self):
+        cav = RFCavityElement(phase="cav1_phase")
+        assert cav.phase == "cav1_phase"
+        assert cav.resolved("phase") == pytest.approx(90.0)
+
+    def test_cavity_phase_float_still_works(self):
+        cav = RFCavityElement(phase=12.5)
+        assert cav.resolved("phase") == pytest.approx(12.5)
+
+    def test_deflecting_cavity_phase_string(self):
+        cav = RFDeflectingCavityElement(phase="cav1_phase")
+        assert cav.phase == "cav1_phase"
+        assert cav.resolved("phase") == pytest.approx(90.0)
+
+    def test_sim_field_amplitude_string(self):
+        sim = RFCavitySimulationElement(field_amplitude="famp")
+        assert sim.field_amplitude == "famp"
+        assert sim.resolved("field_amplitude") == pytest.approx(5e6)
+
+    def test_undefined_raises(self):
+        cav = RFCavityElement(phase="missing")
+        with pytest.raises(KeyError):
+            cav.resolved("phase")
 
 # ---------------------------------------------------------------------------
 # RF Models
@@ -45,7 +84,7 @@ from laura.models.control import ControlVariable, ControlsInformation
 class TestRFCavityElement:
     def test_defaults(self):
         cav = RFCavityElement()
-        assert cav.structure_Type == "StandingWave"
+        assert cav.structure_type == "StandingWave"
         assert cav.frequency == pytest.approx(2998500000.0)
         assert cav.phase == pytest.approx(0.0)
         assert cav.n_cells == 1
@@ -129,7 +168,7 @@ class TestSimulationModels:
     def test_simulation_element_defaults(self):
         se = SimulationElement()
         assert se.field_definition is None
-        assert se.scale_field is False
+        assert se.scale_field == 1.0
 
     def test_magnet_simulation(self):
         ms = MagnetSimulationElement()
@@ -148,6 +187,16 @@ class TestSimulationModels:
         assert ae.horizontal_size == pytest.approx(0.03)
         assert ae.shape == "elliptical"
 
+    def test_twiss_match_defaults_to_identity(self):
+        twiss = TwissMatchSimulationElement()
+
+        np.testing.assert_array_equal(twiss.r_matrix, np.eye(6))
+        assert "r_matrix" in repr(twiss)
+
+    def test_twiss_match_rejects_non_positive_beta(self):
+        with pytest.raises(ValueError, match="greater than zero"):
+            TwissMatchSimulationElement(beta_x=0)
+
 
 # ---------------------------------------------------------------------------
 # Electrical
@@ -157,8 +206,8 @@ class TestSimulationModels:
 class TestElectricalElement:
     def test_defaults(self):
         ee = ElectricalElement()
-        assert ee.minI is not None or ee.minI == 0
-        assert ee.maxI is not None or ee.maxI == 0
+        assert ee.min_i is not None or ee.min_i == 0
+        assert ee.max_i is not None or ee.max_i == 0
 
 
 # ---------------------------------------------------------------------------

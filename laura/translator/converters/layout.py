@@ -1,8 +1,13 @@
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 from textwrap import wrap
 from laura.models.elementList import MachineLayout
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
+from ..utils.functions import elegant_functional_definitions, sanitize_string
+
+if TYPE_CHECKING:
+    from ocelot.cpbd.magnetic_lattice import MagneticLattice
+    from cheetah import Segment
 
 
 class MachineLayoutTranslator(MachineLayout):
@@ -15,17 +20,29 @@ class MachineLayoutTranslator(MachineLayout):
                 "name": layout.model_copy().name,
                 "sections": layout.model_copy().sections,
                 "master_lattice": layout.model_copy().master_lattice,
+                "functional_definitions": layout.functional_definitions,
+                "resolve_functional": layout.resolve_functional,
+                "revolution_frequency": layout.revolution_frequency,
             }
         )
+
+    def _section_translator(self, section) -> SectionLatticeTranslator:
+        """
+        Build a :class:`SectionLatticeTranslator` for ``section``, falling back
+        to this layout's own ``revolution_frequency`` if the section does not
+        define its own.
+        """
+        translator = SectionLatticeTranslator.from_section(section)
+        if translator.revolution_frequency is None:
+            translator.revolution_frequency = self.revolution_frequency
+        return translator
 
     def to_astra(self) -> Dict[str, str]:
         lattices = {}
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_astra()
+                    section.name: self._section_translator(section).to_astra()
                 }
             )
         return lattices
@@ -54,7 +71,7 @@ class MachineLayoutTranslator(MachineLayout):
         lstring = "&\n".join(
             wrap(lstring, 80, break_long_words=False, break_on_hyphens=False)
         )
-        return string + lstring
+        return elegant_functional_definitions(self.functional_definitions) + string + lstring
 
     def to_genesis(self, string: str = "") -> str:
         for section in self.sections.values():
@@ -66,8 +83,8 @@ class MachineLayoutTranslator(MachineLayout):
                 verbose=section.verbose,
             )
 
-            for d in elem_dict.values():
-                string += d.to_genesis()
+            for i, d in enumerate(elem_dict.values()):
+                string += d.to_genesis(index=i)
 
             string += f"\n{section.name}: LINE = " + "{"
             for elem in section_with_drifts.keys():
@@ -80,9 +97,63 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
+                    section.name: self._section_translator(section).to_ocelot(save=save)
+                }
+            )
+        return lattices
+
+    def to_rftrack(self, P_Q: float = float("nan"), save: bool = False) -> Dict[str, object]:
+        """
+        Create one RF-Track ``Lattice`` per section in this layout.
+
+        Parameters
+        ----------
+        P_Q: float
+            Beam reference momentum-over-charge [MV/c], forwarded to every
+            section's ``to_rftrack(P_Q=...)``.
+        save: bool
+            Forwarded to every section's ``to_rftrack(save=...)``; see
+            ``SectionLatticeTranslator.to_rftrack``.
+
+        Returns
+        -------
+        Dict[str, object]
+            ``{section_name: RF_Track.Lattice, ...}``
+        """
+        lattices = {}
+        for section in self.sections.values():
+            lattices.update(
+                {
+                    section.name: self._section_translator(section).to_rftrack(P_Q=P_Q, save=save)
+                }
+            )
+        return lattices
+
+    def to_rftrack(self, P_Q: float = float("nan"), save: bool = False) -> Dict[str, object]:
+        """
+        Create one RF-Track ``Lattice`` per section in this layout.
+
+        Parameters
+        ----------
+        P_Q: float
+            Beam reference momentum-over-charge [MV/c], forwarded to every
+            section's ``to_rftrack(P_Q=...)``.
+        save: bool
+            Forwarded to every section's ``to_rftrack(save=...)``; see
+            ``SectionLatticeTranslator.to_rftrack``.
+
+        Returns
+        -------
+        Dict[str, object]
+            ``{section_name: RF_Track.Lattice, ...}``
+        """
+        lattices = {}
+        for section in self.sections.values():
+            lattices.update(
+                {
                     section.name: SectionLatticeTranslator.from_section(
                         section
-                    ).to_ocelot(save=save)
+                    ).to_rftrack(P_Q=P_Q, save=save)
                 }
             )
         return lattices
@@ -92,9 +163,7 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_cheetah(save=save)
+                    section.name: self._section_translator(section).to_cheetah(save=save)
                 }
             )
         return lattices
@@ -104,9 +173,7 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_bdsim(save=save)
+                    section.name: self._section_translator(section).to_bdsim(save=save)
                 }
             )
         return lattices
@@ -118,14 +185,25 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_xsuite(
+                    section.name: self._section_translator(section).to_xsuite(
                         beam_length=beam_length,
                         env=env,
                         particle_ref=particle_ref,
                         save=save,
                     )
+                }
+            )
+        return lattices
+
+    def to_madx(self, beam: Dict[str, Dict[str, Any]] | None = None) -> Dict[str, str]:
+        lattices = {}
+        for section in self.sections.values():
+            b = beam[section.name] if isinstance(beam, Dict) and section.name in beam.keys() else None
+            lattices.update(
+                {
+                    sanitize_string(section.name): SectionLatticeTranslator.from_section(
+                        section
+                    ).to_madx(beam=b)
                 }
             )
         return lattices

@@ -21,6 +21,7 @@ class DriftTranslator(BaseElementTranslator):
         See `Elegant manual LSC drift`_ and `Elegant manual CSR drift`_
 
         .. _Elegant manual CSR drift: https://ops.aps.anl.gov/manuals/elegant_latest/elegantsu133.html#x144-14300010.23
+        .. _Elegant manual LSC drift: https://ops.aps.anl.gov/manuals/elegant_latest/elegantsu134.html
 
         Returns
         -------

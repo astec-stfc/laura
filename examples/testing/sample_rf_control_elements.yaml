@@ -1,0 +1,315 @@
+# Sample LAURA input showing inputs/outputs and upstream/downstream links.
+# This file is intentionally small and graph-oriented.
+# Top-level keys are element names, similar to summary.json.
+#
+# ---------------------------------------------------------------------------
+# What inputs/outputs and upstream/downstream mean
+# ---------------------------------------------------------------------------
+# Together these four fields describe the CONTROL/SIGNAL graph -- what each
+# piece of hardware is wired to, and what flows along the wire. This is a
+# separate graph from the beam path: beam ordering comes from the layout and
+# s-position files (sample_rf_control_layouts.yaml), not from here.
+#
+#   inputs / outputs
+#       WHAT kind of signal an element consumes and produces, as unordered
+#       sets drawn from IOTypeEnum (laura/schema/YAML/controls.yaml -- e.g.
+#       setpoint, current, voltage, power, phase, magnetic_field, charge).
+#       They are types, not values and not element names.
+#
+#   upstream / downstream
+#       WHICH elements are on either side, by name. A link is meaningful when
+#       the upstream element's `outputs` intersect this element's `inputs`.
+#
+# Read together, the GUN chain below says:
+#
+#   GUN_RF_POWER_SUPPLY  --current,voltage-->  GUN_KLYSTRON_MODULATOR
+#   GUN_KLYSTRON_MODULATOR  --power,phase-->   GUN_RF_CAVITY
+#   GUN_RF_CAVITY  --(measured)-->  GUN_RF_PID  --phase-->  GUN_KLYSTRON_MODULATOR
+#
+# i.e. a PSU drives a modulator, which drives a cavity, and a PID closes the
+# loop back onto the modulator by trimming its phase.
+#
+# Two properties worth knowing before you write traversal code:
+#
+#   * The graph is NOT acyclic. GUN_RF_PID is downstream of GUN_RF_CAVITY and
+#     also lists it in its own `downstream` -- that is a feedback loop, not a
+#     mistake. Track visited nodes or you will not terminate.
+#   * Symmetry is a convention, not a rule. GUN_RF_CAVITY lists INJ_SOL_01 in
+#     `downstream` (a beam-path hand-off to the next section) while
+#     INJ_SOL_01.upstream names only its PSU. Follow one direction
+#     consistently rather than assuming the inverse link exists.
+#
+# For a runnable walk over this file, including the
+# LINAC_KLYSTRON_MODULATOR -> LINAC_RF_CAVITY case, see
+# examples/testing/signal_graph_example.py.
+
+GUN_RF_POWER_SUPPLY:
+  name: GUN_RF_POWER_SUPPLY
+  hardware_class: RF
+  hardware_type: PowerSupply
+  hardware_model: GenericPowerSupply
+  machine_area: DEMO
+  inputs: [setpoint]
+  outputs: [current, voltage]
+  upstream: []
+  downstream: [GUN_KLYSTRON_MODULATOR]
+
+GUN_KLYSTRON_MODULATOR:
+  name: GUN_KLYSTRON_MODULATOR
+  hardware_class: RF
+  hardware_type: RFModulator
+  hardware_model: Thales
+  machine_area: DEMO
+  inputs: [current, voltage]
+  outputs: [power, phase]
+  upstream: [GUN_RF_POWER_SUPPLY, GUN_RF_PID]
+  downstream: [GUN_RF_CAVITY]
+
+GUN_RF_PID:
+  name: GUN_RF_PID
+  hardware_class: Feedback
+  hardware_type: PID
+  hardware_model: RF
+  machine_area: DEMO
+  inputs: [setpoint, phase]
+  outputs: [phase]
+  upstream: [GUN_RF_CAVITY]
+  downstream: [GUN_KLYSTRON_MODULATOR, GUN_RF_CAVITY]
+
+GUN_RF_CAVITY:
+  name: GUN_RF_CAVITY
+  hardware_class: RFCavity
+  hardware_type: RFCavity
+  hardware_model: SBand
+  machine_area: DEMO
+  inputs: [power, phase]
+  outputs: [voltage]
+  upstream: [GUN_KLYSTRON_MODULATOR, GUN_RF_PID]
+  downstream: [INJ_SOL_01]
+  physical:
+    datum: {x: 0.0, y: 0.0, z: 0.00}
+    middle: {x: 0.0, y: 0.0, z: 0.10}
+    length: 0.20
+
+LINAC_RF_POWER_SUPPLY:
+  name: LINAC_RF_POWER_SUPPLY
+  hardware_class: RF
+  hardware_type: PowerSupply
+  hardware_model: GenericPowerSupply
+  machine_area: DEMO
+  inputs: [setpoint]
+  outputs: [current, voltage]
+  upstream: []
+  downstream: [LINAC_KLYSTRON_MODULATOR]
+
+LINAC_KLYSTRON_MODULATOR:
+  name: LINAC_KLYSTRON_MODULATOR
+  hardware_class: RF
+  hardware_type: RFModulator
+  hardware_model: Thales
+  machine_area: DEMO
+  inputs: [current, voltage]
+  outputs: [power, phase]
+  upstream: [LINAC_RF_POWER_SUPPLY, LINAC_RF_PID]
+  downstream: [LINAC_RF_CAVITY]
+
+LINAC_RF_PID:
+  name: LINAC_RF_PID
+  hardware_class: Feedback
+  hardware_type: PID
+  hardware_model: RF
+  machine_area: DEMO
+  inputs: [setpoint, phase]
+  outputs: [phase]
+  upstream: [LINAC_RF_CAVITY]
+  downstream: [LINAC_KLYSTRON_MODULATOR, LINAC_RF_CAVITY]
+
+LINAC_RF_CAVITY:
+  name: LINAC_RF_CAVITY
+  hardware_class: RFCavity
+  hardware_type: RFCavity
+  hardware_model: SBand
+  machine_area: DEMO
+  inputs: [power, phase]
+  outputs: [voltage]
+  upstream: [LINAC_KLYSTRON_MODULATOR, LINAC_RF_PID]
+  downstream: []
+  physical:
+    datum: {x: 0.0, y: 0.0, z: 6.10}
+    middle: {x: 0.0, y: 0.0, z: 6.30}
+    length: 0.40
+
+INJ_SOL_01_PSU:
+  name: INJ_SOL_01_PSU
+  hardware_class: Magnet
+  hardware_type: PowerSupply
+  hardware_model: GenericPowerSupply
+  machine_area: DEMO
+  inputs: [setpoint]
+  outputs: [current]
+  upstream: []
+  downstream: [INJ_SOL_01]
+
+INJ_QUAD_01_PSU:
+  name: INJ_QUAD_01_PSU
+  hardware_class: Magnet
+  hardware_type: PowerSupply
+  hardware_model: GenericPowerSupply
+  machine_area: DEMO
+  inputs: [setpoint]
+  outputs: [current]
+  upstream: []
+  downstream: [INJ_QUAD_01]
+
+INJ_QUAD_02_PSU:
+  name: INJ_QUAD_02_PSU
+  hardware_class: Magnet
+  hardware_type: PowerSupply
+  hardware_model: GenericPowerSupply
+  machine_area: DEMO
+  inputs: [setpoint]
+  outputs: [current]
+  upstream: []
+  downstream: [INJ_QUAD_02]
+
+INJ_QUAD_03_PSU:
+  name: INJ_QUAD_03_PSU
+  hardware_class: Magnet
+  hardware_type: PowerSupply
+  hardware_model: GenericPowerSupply
+  machine_area: DEMO
+  inputs: [setpoint]
+  outputs: [current]
+  upstream: []
+  downstream: [INJ_QUAD_03]
+
+INJ_QUAD_04_PSU:
+  name: INJ_QUAD_04_PSU
+  hardware_class: Magnet
+  hardware_type: PowerSupply
+  hardware_model: GenericPowerSupply
+  machine_area: DEMO
+  inputs: [setpoint]
+  outputs: [current]
+  upstream: []
+  downstream: [INJ_QUAD_04]
+
+INJ_SOL_01:
+  name: INJ_SOL_01
+  hardware_class: Magnet
+  hardware_type: Solenoid
+  hardware_model: Generic
+  machine_area: DEMO
+  inputs: [current]
+  outputs: [magnetic_field]
+  upstream: [INJ_SOL_01_PSU]
+  downstream: []
+  physical:
+    datum: {x: 0.0, y: 0.0, z: 0.30}
+    middle: {x: 0.0, y: 0.0, z: 0.45}
+    length: 0.30
+
+INJ_QUAD_01:
+  name: INJ_QUAD_01
+  hardware_class: Magnet
+  hardware_type: Quadrupole
+  hardware_model: Generic
+  machine_area: DEMO
+  inputs: [current]
+  outputs: [magnetic_field]
+  upstream: [INJ_QUAD_01_PSU]
+  downstream: []
+  physical:
+    datum: {x: 0.0, y: 0.0, z: 0.70}
+    middle: {x: 0.0, y: 0.0, z: 0.76}
+    length: 0.12
+
+INJ_QUAD_02:
+  name: INJ_QUAD_02
+  hardware_class: Magnet
+  hardware_type: Quadrupole
+  hardware_model: Generic
+  machine_area: DEMO
+  inputs: [current]
+  outputs: [magnetic_field]
+  upstream: [INJ_QUAD_02_PSU]
+  downstream: []
+  physical:
+    datum: {x: 0.0, y: 0.0, z: 1.00}
+    middle: {x: 0.0, y: 0.0, z: 1.06}
+    length: 0.12
+
+INJ_QUAD_03:
+  name: INJ_QUAD_03
+  hardware_class: Magnet
+  hardware_type: Quadrupole
+  hardware_model: Generic
+  machine_area: DEMO
+  inputs: [current]
+  outputs: [magnetic_field]
+  upstream: [INJ_QUAD_03_PSU]
+  downstream: []
+  physical:
+    datum: {x: 0.0, y: 0.0, z: 1.30}
+    middle: {x: 0.0, y: 0.0, z: 1.36}
+    length: 0.12
+
+INJ_QUAD_04:
+  name: INJ_QUAD_04
+  hardware_class: Magnet
+  hardware_type: Quadrupole
+  hardware_model: Generic
+  machine_area: DEMO
+  inputs: [current]
+  outputs: [magnetic_field]
+  upstream: [INJ_QUAD_04_PSU]
+  downstream: []
+  physical:
+    datum: {x: 0.0, y: 0.0, z: 1.60}
+    middle: {x: 0.0, y: 0.0, z: 1.66}
+    length: 0.12
+
+INJ_WCM_01:
+  name: INJ_WCM_01
+  hardware_class: Diagnostic
+  hardware_type: Wall_Current_Monitor
+  hardware_model: Generic
+  machine_area: DEMO
+  inputs: [value]
+  outputs: [charge]
+  upstream: []
+  downstream: []
+  physical:
+    datum: {x: 0.0, y: 0.0, z: 2.00}
+    middle: {x: 0.0, y: 0.0, z: 2.05}
+    length: 0.10
+
+INJ_BPM_01:
+  name: INJ_BPM_01
+  hardware_class: Diagnostic
+  hardware_type: Beam_Position_Monitor
+  hardware_model: Stripline
+  machine_area: DEMO
+  inputs: [value]
+  outputs: [position]
+  upstream: []
+  downstream: []
+  physical:
+    datum: {x: 0.0, y: 0.0, z: 2.40}
+    middle: {x: 0.0, y: 0.0, z: 2.45}
+    length: 0.10
+
+INJ_BAM_01:
+  name: INJ_BAM_01
+  hardware_class: Diagnostic
+  hardware_type: Beam_Arrival_Monitor
+  hardware_model: DESY
+  machine_area: DEMO
+  inputs: [value]
+  outputs: [relative_time]
+  upstream: []
+  downstream: []
+  physical:
+    datum: {x: 0.0, y: 0.0, z: 2.80}
+    middle: {x: 0.0, y: 0.0, z: 2.85}
+    length: 0.10

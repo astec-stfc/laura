@@ -1,0 +1,123 @@
+id: https://w3id.org/laura/schema/machine
+name: laura_machine_schema
+title: LAURA Machine Model Chunk
+description: >-
+  Section, layout and whole-machine container classes.
+version: "0.1.0"
+license: GPL-3.0-or-later
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+# This is a chunk of the LAURA schema, not a standalone model: classes here
+# refer to slots and base classes defined in laura_schema.yaml, which imports
+# this file. Always generate from laura_schema.yaml, never from this file.
+imports:
+  - linkml:types
+
+enums:
+
+  BeampipeShapeEnum:
+    description: Cross-sectional shape of a beam-pipe aperture.
+    permissible_values:
+      circular:    {}
+      rectangular: {}
+      elliptical:  {}
+
+classes:
+
+  SectionLattice:
+    description: >-
+      An ordered list of element names defining a contiguous beamline
+      section.
+    class_uri: laura:SectionLattice
+    attributes:
+      name:
+        identifier: true
+        range: string
+        description: Unique section name.
+      master_lattice:
+        range: string
+        description: Name of the master lattice this section belongs to.
+      elements:
+        multivalued: true
+        range: string
+        description: Ordered list of element names in this section.
+      beampipe_aperture_type:
+        range: BeampipeShapeEnum
+        description: Cross-sectional beam pipe aperture shape.
+      beampipe_size:
+        range: float
+        any_of:
+          - range: float
+          - range: float
+            multivalued: true
+        description: >-
+          Size of beam pipe [m]. A single value for a circular aperture, or two
+          values (horizontal, vertical) for a rectangular or elliptical one.
+      beampipe_material:
+        range: string
+        description: Beam pipe material
+
+  MachineLayout:
+    description: >-
+      An ordered list of section names defining a beamline layout
+      (a contiguous sequence of sections).
+    class_uri: laura:MachineLayout
+    attributes:
+      name:
+        identifier: true
+        range: string
+        description: Unique layout name.
+      master_lattice:
+        range: string
+        description: Name of the master lattice this layout belongs to.
+      sections:
+        multivalued: true
+        range: string
+        description: Ordered list of section names.
+
+  MachineModel:
+    description: >-
+      Top-level container for a complete accelerator lattice: elements,
+      sections, layouts, and named lattice configurations.
+    class_uri: laura:MachineModel
+    attributes:
+      elements:
+        multivalued: true
+        range: AcceleratorElement
+        description: All elements in the machine, keyed by name.
+      sections:
+        multivalued: true
+        range: SectionLattice
+        description: All named beamline sections.
+      layouts:
+        multivalued: true
+        range: MachineLayout
+        description: All named beamline layouts.
+      beampipe_aperture_type:
+        range: BeampipeShapeEnum
+        description: Cross-sectional beam pipe aperture shape.
+      beampipe_size:
+        range: float
+        any_of:
+          - range: float
+          - range: float
+            multivalued: true
+        description: >-
+          Size of beam pipe [m]. A single value for a circular aperture, or two
+          values (horizontal, vertical) for a rectangular or elliptical one.
+      beampipe_material:
+        range: string
+        description: Beam pipe material

@@ -261,21 +261,66 @@ class SDDSArray(munch.Munch):
 
 
 class SDDSFile(object):
+    """
+    ``indexed=True`` (used by the elegant variant) gives each instance its own
+    SDDS library slot (``index % 20``) so multiple SDDSFile objects can be
+    live at once; the default slot (0 / None) is used otherwise.
+    """
 
-    def __init__(self, index=1, ascii=False):
+    def __init__(self, index=1, ascii=False, indexed=False):
         super().__init__()
         self._types = SDDS_Types
         self._columns = munch.Munch()
         self._parameters = munch.Munch()
         self._index = index
-        try:
-            self._sddsObject = sdds.SDDS(0)
-        except:
-            self._sddsObject = sdds.sdds.SDDS()
+        self._indexed = indexed
+        self._sddsObject = self._new_sdds_object(cleared=False)
         if ascii:
             self._sddsObject.mode = self._sddsObject.SDDS_ASCII
         else:
             self._sddsObject.mode = self._sddsObject.SDDS_BINARY
+        # (text, contents) header pair, e.g. ("floor coordinates--input: foo.ele
+        # lattice: bar.lte", "floor coordinates") -- populated by read_file().
+        self.file_description = ("", "")
+
+    @property
+    def description(self) -> str:
+        """The file-level SDDS description string (empty if not set/read)."""
+        return self.file_description[0]
+
+    def _new_sdds_object(self, cleared: bool):
+        if self._indexed:
+            slot = self.index % 20
+            try:
+                return sdds.SDDS(slot)
+            except Exception:
+                return sdds.sdds.SDDS(slot)
+        if cleared:
+            try:
+                return sdds.SDDS(None)
+            except Exception:
+                return sdds.sdds.SDDS(None)
+        try:
+            return sdds.SDDS(0)
+        except Exception:
+            return sdds.sdds.SDDS()
+
+    def _new_sdds_object(self, cleared: bool):
+        if self._indexed:
+            slot = self.index % 20
+            try:
+                return sdds.SDDS(slot)
+            except Exception:
+                return sdds.sdds.SDDS(slot)
+        if cleared:
+            try:
+                return sdds.SDDS(None)
+            except Exception:
+                return sdds.sdds.SDDS(None)
+        try:
+            return sdds.SDDS(0)
+        except Exception:
+            return sdds.sdds.SDDS()
 
     @property
     def index(self):
@@ -289,10 +334,7 @@ class SDDSFile(object):
     def clear(self):
         self._columns = munch.Munch()
         self._parameters = munch.Munch()
-        try:
-            self._sddsObject = sdds.SDDS(None)
-        except:
-            self._sddsObject = sdds.sdds.SDDS(None)
+        self._sddsObject = self._new_sdds_object(cleared=True)
 
     def column_names(self):
         return self._columns.keys()
@@ -461,6 +503,7 @@ class SDDSFile(object):
     def read_file(self, filename, page=-1):
         self._sddsObject.load(filename)
         sddsref = self._sddsObject
+        self.file_description = tuple(getattr(sddsref, "description", ("", "")))
         for col in range(len(sddsref.columnName)):
             symbol, unit, description, formatString, type, fieldLength = (
                 sddsref.columnDefinition[col]

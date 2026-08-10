@@ -1,101 +1,243 @@
+# Keys are pybdsim.Builder class names (see conversion_rules/codes/
+# bdsim_conversion.py), so they must match those class names exactly -- this
+# file is looked up by `obj.__name__`. Values are the gmad keywords that
+# element accepts (BDSIM manual, "Beamline Elements"); `tilt` is valid on
+# every element. pybdsim's Marker takes only a name -- it has no **kwargs, so
+# passing any other keyword (including a beam-pipe aperture) raises TypeError.
+Decapole:
+  k4: float
+  l: float
+  material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
 Drift:
   l: float
+  offsetX: float
+  offsetY: float
+  tilt: float
   vacuumMaterial: str
-Ecol:
+ECol:
+  horizontalWidth: float
   l: float
+  material: str
+  minimumKineticEnergy: float
+  offsetX: float
+  offsetY: float
+  tilt: float
+  xsize: float
+  xsizeOut: float
+  ysize: float
+  ysizeOut: float
+HKicker:
+  B: float
+  hkick: float
+  l: float
+  material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
+JCol:
+  horizontalWidth: float
+  l: float
+  material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
   xsize: float
   ysize: float
-  xsizeOut: float
-  ysizeOut: float
-  material: str
-  horizontalWidth: float
-  minimumKineticEnergy: float
 Kicker:
-  l: float
   hkick: float
+  l: float
+  material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
   vkick: float
 Laser:
   l: float
-  wavelength: float
+  offsetX: float
+  offsetY: float
+  tilt: float
+  waveLength: float
   x: float
   y: float
   z: float
+Marker: {}
+Multipole:
+  knl: float
+  ksl: float
+  l: float
+  material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
 Octupole:
-  l: float
   k3: float
+  l: float
   material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
 Quadrupole:
-  l: float
   k1: float
-  material: str
-RBend:
   l: float
+  material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
+RBend:
+  B: float
   angle: float
   e1: float
   e2: float
-  k1: float
   fint: float
-  fintx: float
   fintK2: float
+  fintx: float
   fintxK2: float
   h1: float
   h2: float
-  hgap: float
-  tilt: float
-  material: str
-  B: float
-  yokeOnInside: bool
   hStyle: bool
-RCol:
+  hgap: float
+  k1: float
   l: float
-  xsize: float
-  ysize: float
-  xsizeOut: float
-  ysizeOut: float
   material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
+  yokeOnInside: bool
+RCol:
   horizontalWidth: float
-  minimumKineticEnergy: float
-RFCavity:
   l: float
+  material: str
+  minimumKineticEnergy: float
+  offsetX: float
+  offsetY: float
+  tilt: float
+  xsize: float
+  xsizeOut: float
+  ysize: float
+  ysizeOut: float
+RFCavity:
   E: float
-  gradient: float
+  cavityModel: str
   frequency: float
+  gradient: float
+  l: float
+  material: str
+  offsetX: float
+  offsetY: float
   phase: float
   tOffset: float
-  material: str
-  cavityModel: str
-SBend:
+  tilt: float
+Rmat:
   l: float
+  offsetX: float
+  offsetY: float
+  r11: float
+  r12: float
+  r13: float
+  r14: float
+  r21: float
+  r22: float
+  r23: float
+  r24: float
+  r31: float
+  r32: float
+  r33: float
+  r34: float
+  r41: float
+  r42: float
+  r43: float
+  r44: float
+  tilt: float
+SBend:
+  B: float
   angle: float
   e1: float
   e2: float
-  k1: float
   fint: float
-  fintx: float
   fintK2: float
+  fintx: float
   fintxK2: float
   h1: float
   h2: float
-  hgap: float
-  tilt: float
-  material: str
-  B: float
-  yokeOnInside: bool
   hStyle: bool
+  hgap: float
+  k1: float
+  l: float
+  material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
+  yokeOnInside: bool
 Sextupole:
-  l: float
   k2: float
+  l: float
   material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
 Solenoid:
-  l: float
-  ks: float
   B: float
-  material: str
   horizontalWidth: float
-Undulator:
+  ks: float
   l: float
-  B: float
-  undulatorPeriod: float
+  material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
+ThinMultipole:
+  knl: float
+  ksl: float
+  offsetX: float
+  offsetY: float
+  tilt: float
+ThinRmat:
+  offsetX: float
+  offsetY: float
+  r11: float
+  r12: float
+  r13: float
+  r14: float
+  r21: float
+  r22: float
+  r23: float
+  r24: float
+  r31: float
+  r32: float
+  r33: float
+  r34: float
+  r41: float
+  r42: float
+  r43: float
+  r44: float
+  tilt: float
+Undulator:
+  b: float
+  l: float
+  material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
   undulatorGap: float
   undulatorMagnetHeight: float
+  undulatorPeriod: float
+VKicker:
+  B: float
+  l: float
   material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
+  vkick: float
+WireScanner:
+  l: float
+  material: str
+  offsetX: float
+  offsetY: float
+  tilt: float
+  wireAngle: float
+  wireDiameter: float
+  wireLength: float
+  wireOffset: float

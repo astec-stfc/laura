@@ -1,13 +1,38 @@
-munch>=2.5.0
-numpy>=2.1.1
+pydantic>=2
+pyyaml>=6
+numpy>=1.26
+scipy>=1.15
 pandas>=2.2.2
-pydantic>=2.8.2
-PyYAML>=6.0.2
-vg>=2.0.0
-xsuite>=0.40.0
-ocelot-desy>=25.06.0
+munch>=4
 pydantic-core>=2.41.5
-pytao>=0.5.5
-cheetah-accelerator>=0.7.5
-wake_t>=0.8.0
-pybdsim>=3.6.1
+easygdf
+h5py
+# Lattice conversion backends — install individually or all at once:
+# pip install "laura-accelerator[conversion]"
+# pip install "laura-accelerator[xsuite]"
+# pip install "laura-accelerator[ocelot]"
+# pip install "laura-accelerator[cheetah]"
+# pip install "laura-accelerator[wake_t]"
+# pip install "laura-accelerator[bmad]"
+# pip install "laura-accelerator[madx]"
+# pip install "laura-accelerator[gpt]"
+
+# ── Schema work only ─────────────────────────────────────────────────────────
+# None of the following are needed to *run* LAURA, so they are deliberately not
+# in the runtime list above. Install them all with:
+#   pip install "laura-accelerator[schema,rdf,sql]"
+#
+# linkml, linkml-runtime  — REGENERATE laura/models/_generated.py and the JSON
+#     Schema / OWL / SHACL / GraphQL artefacts:
+#         python laura/schema/generate_pydantic.py
+#     _generated.py is committed, so LAURA never imports linkml at runtime.
+#     linkml pins its own pydantic/jsonschema versions, so prefer a separate
+#     environment for regeneration rather than your working env.
+# jsonschema  — the optional `validate=True` load path, which checks element
+#     dicts against laura/schema/generated/laura_element.schema.json.
+# rdflib      — RDF / linked-data export (laura.Exporters.RDF).
+# sqlalchemy  — SQL export (laura.Exporters.SQL + schema/generated/laura_orm.py).
+#
+# Without jsonschema / rdflib / sqlalchemy the unit tests still pass, but ~50 of
+# them skip rather than run — see the [test] extra in pyproject.toml.
+# pip install "laura-accelerator[schema]"

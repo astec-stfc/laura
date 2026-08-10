@@ -1,19 +1,27 @@
-from ocelot.cpbd.elements import (
-    Solenoid,
-    SBend,
-    Quadrupole,
-    Sextupole,
-    Octupole,
-    Monitor,
-    Marker,
-    Cavity,
-    Hcor,
-    Undulator,
-    TDCavity,
-    Aperture,
-    Drift,
-    Matrix,
-)
+try:
+    from ocelot.cpbd.elements import (
+        Solenoid,
+        SBend,
+        Quadrupole,
+        Sextupole,
+        Octupole,
+        Monitor,
+        Marker,
+        Cavity,
+        Hcor,
+        Vcor,
+        Undulator,
+        TDCavity,
+        Aperture,
+        Drift,
+        Matrix,
+    )
+    _OCELOT_AVAILABLE = True
+except ImportError as _err:
+    raise ImportError(
+        "ocelot-desy is not installed. "
+        "Install with: pip install \"laura-accelerator[ocelot]\""
+    ) from _err
 
 ocelot_conversion_rules = {
     "Dipole": SBend,
@@ -33,6 +41,7 @@ ocelot_conversion_rules = {
     "Integrated_Current_Transformer": Drift,
     "Faraday_Cup_Monitor": Drift,
     "RFDeflectingCavity": TDCavity,
+    "CrabCavity": TDCavity,
     "RFCavity": Cavity,
     "Aperture": Aperture,
     "Shutter": Drift,
@@ -52,6 +61,8 @@ ocelot_conversion_rules = {
     "Charge": Marker,
     "Wakefield": Marker,
     "Watch_Point": Monitor,
+    "Horizontal_Corrector": Hcor,
+    "Vertical_Corrector": Vcor,
     "Combined_Corrector": Hcor,
     "Marker": Marker,
     "Laser": Drift,

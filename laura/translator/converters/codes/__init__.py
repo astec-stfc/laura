@@ -15,7 +15,9 @@ from .csrtrack import csrtrack_unsupported
 from .elegant import elegant_unsupported
 from .genesis import genesis_unsupported
 from .gpt import gpt_unsupported
+from .madx import madx_unsupported
 from .ocelot import ocelot_unsupported
 from .opal import opal_unsupported
+from .rftrack import rftrack_unsupported
 from .wake_t import wake_t_unsupported
 from .xsuite import xsuite_unsupported

@@ -1,0 +1,130 @@
+# Injector beamline — reference_placement positioning.
+#
+# Elements are placed relative to a named reference element rather than
+# specifying absolute coordinates.  Three offset styles are demonstrated:
+#
+#   s_offset    — scalar displacement [m] along the local beam direction.
+#                 Most convenient for sequential beamline layout.
+#
+#   offset      — full 3-D vector [x, y, z] in the reference element's
+#                 LOCAL frame at the chosen reference point.  Use this when
+#                 you need transverse or combined offsets in the beam frame.
+#
+#   world_offset — full 3-D vector [x, y, z] in the GLOBAL coordinate
+#                  system.  Use this when you have a survey-measured
+#                  absolute shift.
+#
+# The ``point`` key (default "end") selects which point of the reference
+# element the placement originates from: "start", "middle", or "end".
+#
+# The final positions match positioning_global_elements.yaml exactly.
+# GUN_CAVITY is the only anchor element given absolute coordinates.
+
+GUN_CAVITY:
+  name: GUN_CAVITY
+  hardware_type: RFCavity
+  machine_area: INJ
+  physical:
+    middle: {x: 0.0, y: 0.0, z: 0.10}   # anchor — absolute global position
+    length: 0.20
+
+INJ_SOL_01:
+  name: INJ_SOL_01
+  hardware_type: Solenoid
+  machine_area: INJ
+  physical:
+    # s_offset: place this element's middle 0.25 m downstream of GUN_CAVITY's exit.
+    # GUN_CAVITY end = 0.20 m  →  middle = 0.20 + 0.25 = 0.45 m ✓
+    reference_placement:
+      element: GUN_CAVITY
+      s_offset: 0.25          # along local beam direction from GUN_CAVITY end
+    length: 0.30
+
+INJ_QUAD_01:
+  name: INJ_QUAD_01
+  hardware_type: Quadrupole
+  machine_area: INJ
+  magnetic:
+    length: 0.12
+    k1l: 1.0
+  physical:
+    # Place 0.16 m downstream of INJ_SOL_01's exit (0.60 m).
+    # 0.60 + 0.16 = 0.76 m ✓
+    reference_placement:
+      element: INJ_SOL_01
+      s_offset: 0.16
+    length: 0.12
+
+INJ_QUAD_02:
+  name: INJ_QUAD_02
+  hardware_type: Quadrupole
+  machine_area: INJ
+  magnetic:
+    length: 0.12
+    k1l: -1.0
+  physical:
+    # offset [x, y, z] in INJ_QUAD_01's LOCAL frame.
+    # z=0.24 m downstream of exit, x=y=0 (on-axis).
+    # Equivalent to s_offset: 0.24 for a straight, on-axis beamline.
+    # In a curved lattice the local and global frames would differ.
+    reference_placement:
+      element: INJ_QUAD_01
+      offset: [0.0, 0.0, 0.24]   # [x, y, z] in local reference frame
+    length: 0.12
+
+INJ_QUAD_03:
+  name: INJ_QUAD_03
+  hardware_type: Quadrupole
+  machine_area: INJ
+  magnetic:
+    length: 0.12
+    k1l: 1.0
+  physical:
+    # world_offset: shift already expressed in global coordinates.
+    # INJ_QUAD_02 end = 1.12 m; world [0, 0, 0.24] → middle = 1.36 m ✓
+    reference_placement:
+      element: INJ_QUAD_02
+      world_offset: [0.0, 0.0, 0.24]   # [x, y, z] in global frame
+    length: 0.12
+
+INJ_BPM_01:
+  name: INJ_BPM_01
+  hardware_type: Beam_Position_Monitor
+  machine_area: INJ
+  physical:
+    # s_offset from QUAD_03 exit (1.42 m) → 1.42 + 0.18 = 1.60 m ✓
+    reference_placement:
+      element: INJ_QUAD_03
+      s_offset: 0.18
+    length: 0.10
+
+# --- Additional demo: off-axis transverse placement ---
+#
+# A screen placed 5 mm off-axis (horizontal) at the BPM exit face.
+# This shows how to combine a reference_placement with a transverse shift.
+#
+# INJ_SCREEN_01:
+#   name: INJ_SCREEN_01
+#   hardware_class: Diagnostic
+#   hardware_type: Marker
+#   machine_area: INJ
+#   physical:
+#     reference_placement:
+#       element: INJ_BPM_01
+#       offset: [0.005, 0.0, 0.0]   # 5 mm horizontal in the local beam frame
+#     length: 0.0
+#
+# --- ``point`` key: choosing the reference attachment point ---
+#
+# By default (point: end) placement originates from the EXIT face of the
+# reference element.  Use point: start or point: middle as needed:
+#
+#   reference_placement:
+#     element: INJ_QUAD_01
+#     point: middle          # offset from the centre of INJ_QUAD_01
+#     s_offset: 0.18
+#
+#   reference_placement:
+#     element: INJ_QUAD_01
+#     point: start           # offset from the entrance face
+#     s_offset: 0.24

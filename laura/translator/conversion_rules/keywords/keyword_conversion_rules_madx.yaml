@@ -1,0 +1,38 @@
+combined_corrector:
+  hangle: hkick
+  vangle: vkick
+crabcavity:
+  field_amplitude: volt
+  frequency: freq
+  phase: lag
+dipole:
+  angle: angle
+  edge_field_integral: fint
+  half_gap: hgap
+general:
+  edge_field_integral: fint
+  entrance_edge_angle: e1
+  exit_edge_angle: e2
+  half_gap: hgap
+  horizontal_size: xsize
+  length: l
+  magnetic_length: l
+  tilt_angle: tilt
+  vertical_size: ysize
+horizontal_corrector:
+  hangle: kick
+nonlinearlens:
+  dimensional_parameter: cnll
+  integrated_strength: knll
+rfcavity:
+  field_amplitude: volt
+  frequency: freq
+  phase: lag
+rfdeflectingcavity:
+  field_amplitude: volt
+  frequency: freq
+  phase: lag
+solenoid:
+  ks: ks
+vertical_corrector:
+  vangle: kick

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel", "setuptools_scm"]
+requires = ["setuptools>=77", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -18,24 +18,25 @@ maintainers = [
 ]
 
 dependencies = [
-    "pydantic>=2", 
-    "pyyaml>=6", 
+    "pydantic>=2",
+    "pyyaml>=6",
     "numpy>=1.26",
     "scipy>=1.15",
+    "pandas>=2.2.2",
     "munch>=4",
-    "xsuite>=0.40.0",
-    "ocelot-desy>=25.06.0",
     "pydantic-core>=2.41.5",
-    "pytao>=0.5.5",
-    "cheetah-accelerator>=0.7.5",
-    "wake_t>=0.8.0",
-    "pybdsim>=3.6.1",
+    "easygdf",
+    "h5py",
 ]
 
-requires-python = ">= 3.10"
+requires-python = ">= 3.11"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 classifiers = [
-    "Programming Language :: Python :: 3.10",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 
 [tool.setuptools_scm]
@@ -45,9 +46,57 @@ local_scheme = "no-local-version" # removes +untagged suffix
 
 [project.optional-dependencies]
 
+# Individual simulation-code extras
+xsuite = [
+    "xsuite>=0.50.0; sys_platform != 'win32'",
+]
+
+ocelot = [
+    "ocelot-desy>=25.06.0",
+]
+
+cheetah = [
+    "cheetah-accelerator>=0.7.5",
+]
+
+wake_t = [
+    "wake_t>=0.8.0",
+]
+
+bmad = [
+    "pytao>=0.5.5",
+]
+
+bdsim = [
+    "pybdsim>=3.6.1",
+]
+
+madx = [
+    "cpymad>=1.16.0",
+]
+
+gpt = [
+]
+
+# All lattice-conversion backends in one go
+# Install with: pip install "laura-accelerator[conversion]"
+conversion = [
+    "xsuite>=0.50.0; sys_platform != 'win32'",
+    "ocelot-desy>=25.06.0",
+    "cheetah-accelerator>=0.7.5",
+    "wake_t>=0.8.0",
+    "pytao>=0.5.5",
+    "cpymad>=1.16.0",
+    "pybdsim>=3.6.1",
+    "easygdf",
+]
+
 test = [
     "pytest",
     "pytest-cov",
+    "rdflib>=7.0",
+    "sqlalchemy>=2.0",
+    "jsonschema>=4.0",
 ]
 
 docs = [
@@ -56,6 +105,53 @@ docs = [
     "myst-nb",
     "sphinx_autodoc_typehints>=3",
     "sphinxcontrib-bibtex",
+    "myst-parser",
+    "sphinxcontrib-mermaid",
+]
+
+# LinkML schema tooling — generates JSON Schema, OWL, SHACL, docs, etc.
+# Install with: pip install "laura-accelerator[schema]"
+schema = [
+    "linkml>=1.8",
+    "linkml-runtime>=1.8",
+    "jsonschema>=4.0",
+]
+
+# RDF / Linked-Data export support
+# Install with: pip install "laura-accelerator[rdf]"
+rdf = [
+    "rdflib>=7.0",
+]
+
+# SQL export support (laura.Exporters.SQL + laura/schema/generated/laura_orm.py)
+# Install with: pip install "laura-accelerator[sql]"
+sql = [
+    "sqlalchemy>=2.0",
+]
+
+# Everything — conversion backends, docs, schema tooling, and RDF support
+# Install with: pip install "laura-accelerator[full]"
+full = [
+    "xsuite>=0.50.0; sys_platform != 'win32'",
+    "ocelot-desy>=25.06.0",
+    "cheetah-accelerator>=0.7.5",
+    "wake_t>=0.8.0",
+    "pytao>=0.5.5",
+    "cpymad>=1.16.0",
+    "easygdf",
+    "sphinx>=8",
+    "sphinx-rtd-theme",
+    "myst-nb",
+    "sphinx_autodoc_typehints>=3",
+    "sphinxcontrib-bibtex",
+    "myst-parser",
+    "sphinxcontrib-mermaid",
+    "linkml>=1.8",
+    "linkml-runtime>=1.8",
+    "jsonschema>=4.0",
+    "rdflib>=7.0",
+    "sqlalchemy>=2.0",
+    "pybdsim>=3.6.1",
 ]
 
 [project.urls]
@@ -63,7 +159,17 @@ Homepage = "https://github.com/astec-stfc/laura"
 Repository = "https://github.com/astec-stfc/laura.git"
 Issues = "https://github.com/astec-stfc/laura/-/issues/"
 
+[tool.setuptools.packages.find]
+include = ["laura*"]
+
+[tool.setuptools.package-data]
+"laura.schema.generated" = ["*.owl", "*.graphql", "*.json", "*.ttl", "*.ts", "*.sql"]
+
 [tool.pytest.ini_options]
+addopts = "-m 'not slow'"
+markers = [
+    "slow: slow tests excluded by default (run with -m slow or --no-header -o addopts='')",
+]
 filterwarnings = [
     "ignore:Pydantic serializer warnings:UserWarning",
 ]

@@ -2,7 +2,6 @@ genesis_unsupported = [
     "Dipole",
     "Sextupole",
     "Octupole",
-    "RCollimator",
     "Collimator",
     "Solenoid",
     "RFCavity",

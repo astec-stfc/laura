@@ -1,0 +1,389 @@
+id: https://w3id.org/laura/schema/rf
+name: laura_rf_schema
+title: LAURA RF Model Chunk
+description: >-
+  RF cavity, wakefield, LLRF, and protection-system schema classes.
+version: "0.1.0"
+license: GPL-3.0-or-later
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+imports:
+  - linkml:types
+
+classes:
+
+  # -- RF & Feedback elements -------------------------------------------------
+
+  RFCavity:
+    is_a: PhysicalAcceleratorElement
+    description: Accelerating RF cavity.
+    class_uri: laura:RFCavity
+    slot_usage:
+      hardware_type:
+        equals_string: RFCavity
+      simulation:
+        range: RFCavitySimulationElement
+    attributes:
+      cavity:
+        range: RFCavityElement
+        description: RF structure parameters.
+        in_subset:
+          - rf_properties
+
+  RFDeflectingCavity:
+    is_a: RFCavity
+    description: Transverse-deflecting (streak) RF cavity.
+    class_uri: laura:RFDeflectingCavity
+    slot_usage:
+      hardware_type:
+        equals_string: RFDeflectingCavity
+    attributes:
+      cavity:
+        range: RFDeflectingCavityElement
+        description: RF structure parameters.
+        in_subset:
+          - rf_properties
+
+  CrabCavity:
+    is_a: RFCavity
+    description: Transverse-deflecting crab cavity for crossing-angle compensation.
+    class_uri: laura:CrabCavity
+    slot_usage:
+      hardware_type:
+        equals_string: CrabCavity
+    attributes:
+      cavity:
+        range: RFDeflectingCavityElement
+        description: Crab-cavity RF structure parameters.
+        in_subset:
+          - rf_properties
+
+  Wakefield:
+    is_a: PhysicalAcceleratorElement
+    description: "Passive wakefield structure (dielectric, corrugated, etc.)."
+    class_uri: laura:Wakefield
+    slot_usage:
+      hardware_type:
+        equals_string: Wakefield
+      simulation:
+        range: WakefieldSimulationElement
+    attributes:
+      cavity:
+        range: WakefieldElement
+        description: Wakefield structure parameters.
+
+  LowLevelRF:
+    is_a: StandardElement
+    description: Low-level RF (LLRF) controller.
+    class_uri: laura:LowLevelRF
+    slot_usage:
+      hardware_type:
+        equals_string: Low_Level_RF
+    attributes:
+      llrf:
+        range: LowLevelRFElement
+        description: LLRF parameters.
+
+  RFModulator:
+    is_a: StandardElement
+    description: RF modulator (klystron driver) element.
+    class_uri: laura:RFModulator
+    slot_usage:
+      hardware_type:
+        equals_string: RFModulator
+    attributes:
+      modulator:
+        range: RFModulatorElement
+        description: Modulator parameters.
+
+  RFProtection:
+    is_a: StandardElement
+    description: RF protection system element.
+    class_uri: laura:RFProtection
+    slot_usage:
+      hardware_type:
+        equals_string: RFProtection
+    attributes:
+      protection:
+        range: RFProtectionElement
+        description: RF protection parameters.
+
+  RFHeartbeat:
+    is_a: StandardElement
+    description: RF timing heartbeat / signal-monitor element.
+    class_uri: laura:RFHeartbeat
+    slot_usage:
+      hardware_type:
+        equals_string: RFHeartbeat
+    attributes:
+      heartbeat:
+        range: RFHeartbeatElement
+        description: RF heartbeat parameters.
+
+  PID:
+    is_a: StandardElement
+    description: Proportional-integral-derivative (PID) feedback controller.
+    class_uri: laura:PID
+    slot_usage:
+      hardware_type:
+        equals_string: PID
+    attributes:
+      pid:
+        range: PIDElement
+        description: PID gain parameters.
+
+  RFCavityElement:
+    description: RF cavity accelerating-structure parameters.
+    class_uri: laura:RFCavityElement
+    in_subset:
+      - rf_properties
+    slots:
+      - cell_length
+      - coupling_cell_length
+      - design_gamma
+      - design_power
+      - frequency
+      - n_cells
+      - crest
+      - phase
+      - shunt_impedance
+      - mode_numerator
+      - mode_denominator
+    attributes:
+      structure_type:
+        range: string
+        description: >-
+          RF structure type (e.g., ``SW`` standing-wave, ``TW``
+          travelling-wave).
+        ifabsent: string(StandingWave)
+        aliases:
+          - structure_Type
+      attenuation_constant:
+        range: float
+        description: Attenuation constant ? of a travelling-wave structure [Np/m].
+        ifabsent: float(0)
+      power_calibration:
+        range: float
+        multivalued: true
+        description: Calibration constant relating measured power to cavity gradient.
+      gradient_calibration:
+        range: float
+        multivalued: true
+        description: "Calibration relating measured signal to gradient [MV/m per a.u.]."
+
+  WakefieldElement:
+    description: Passive wakefield structure parameters.
+    class_uri: laura:WakefieldElement
+    in_subset:
+      - rf_properties
+    slots:
+      - cell_length
+      - n_cells
+      - coupling_cell_length
+
+  RFDeflectingCavityElement:
+    description: >-
+      Transverse-deflecting RF cavity parameters -- a subset of
+      RFCavityElement for streak-mode operation.
+    class_uri: laura:RFDeflectingCavityElement
+    in_subset:
+      - rf_properties
+    slots:
+      - cell_length
+      - coupling_cell_length
+      - crest
+      - design_gamma
+      - design_power
+      - frequency
+      - n_cells
+      - phase
+      - shunt_impedance
+      - mode_numerator
+      - mode_denominator
+
+  PIDElement:
+    description: PID feedback-controller parameters.
+    class_uri: laura:PIDElement
+    attributes:
+      Kp:
+        range: float
+        description: Proportional gain.
+      Ki:
+        range: float
+        description: Integral gain.
+      Kd:
+        range: float
+        description: Derivative gain.
+      forward_channel:
+        range: integer
+        description: Forward channel index.
+      probe_channel:
+        range: integer
+        description: Probe channel index.
+      enable:
+        range: string
+        description: Enable command/value.
+      disable:
+        range: string
+        description: Disable command/value.
+      phase_range:
+        range: PIDPhaseRange
+        description: Phase tuning range.
+      phase_weight_range:
+        range: PIDWeightRange
+        description: Phase weighting range.
+
+  PIDPhaseRange:
+    description: Numeric min/max range for PID phase control.
+    class_uri: laura:PIDPhaseRange
+    attributes:
+      min:
+        range: float
+        description: Minimum value.
+      max:
+        range: float
+        description: Maximum value.
+
+  PIDWeightRange:
+    is_a: PIDPhaseRange
+    description: Numeric min/max range for PID phase weighting.
+    class_uri: laura:PIDWeightRange
+
+  Trace:
+    description: LLRF trace metadata.
+    class_uri: laura:Trace
+    attributes:
+      data_size:
+        range: integer
+        description: Number of points in a trace.
+        aliases: [trace_data_size]
+      data_count:
+        range: integer
+        description: Number of one-record trace entries.
+        aliases: [one_trace_data_count]
+      data_chunk_size:
+        range: integer
+        description: Chunk size for one-record traces.
+        aliases: [one_trace_data_chunk_size]
+      number_of_start_zeros:
+        range: integer
+        description: Number of leading zeros in a trace.
+        aliases: [trace_num_of_start_zeros]
+
+  ChannelNames:
+    description: Names for LLRF channels 1..8.
+    class_uri: laura:ChannelNames
+    attributes:
+      ch1:
+        range: string
+        ifabsent: string()
+        aliases: [CH1]
+      ch2:
+        range: string
+        ifabsent: string()
+        aliases: [CH2]
+      ch3:
+        range: string
+        ifabsent: string()
+        aliases: [CH3]
+      ch4:
+        range: string
+        ifabsent: string()
+        aliases: [CH4]
+      ch5:
+        range: string
+        ifabsent: string()
+        aliases: [CH5]
+      ch6:
+        range: string
+        ifabsent: string()
+        aliases: [CH6]
+      ch7:
+        range: string
+        ifabsent: string()
+        aliases: [CH7]
+      ch8:
+        range: string
+        ifabsent: string()
+        aliases: [CH8]
+
+  LLRFTiming:
+    description: Start/end window timing definition.
+    class_uri: laura:LLRFTiming
+    attributes:
+      start:
+        range: float
+        description: Start time.
+      end:
+        range: float
+        description: End time.
+
+  LLRFTimings:
+    description: Collection of timing windows for key LLRF channels.
+    class_uri: laura:LLRFTimings
+    attributes:
+      klystron_forward:
+        range: LLRFTiming
+        description: Timing for klystron forward power.
+      klystron_reverse:
+        range: LLRFTiming
+        description: Timing for klystron reverse power.
+      cavity_forward:
+        range: LLRFTiming
+        description: Timing for cavity forward power.
+      cavity_reverse:
+        range: LLRFTiming
+        description: Timing for cavity reverse power.
+      cavity_probe:
+        range: LLRFTiming
+        description: Timing for cavity probe.
+
+  LowLevelRFElement:
+    description: Low-level RF (LLRF) system parameters.
+    class_uri: laura:LowLevelRFElement
+    attributes:
+      trace:
+        range: Trace
+        description: Trace metadata.
+      max_amplitude:
+        range: float
+        description: Maximum allowed amplitude.
+        aliases: [MAX_AMPLITUDE]
+      channel_names:
+        range: ChannelNames
+        description: Channel labels.
+      crest_phase:
+        range: float
+        description: Cavity crest phase.
+      timings:
+        range: LLRFTimings
+        description: Timing windows for LLRF channels.
+
+  RFModulatorElement:
+    description: RF modulator (klystron driver) parameters.
+    class_uri: laura:RFModulatorElement
+
+  RFProtectionElement:
+    description: RF protection system parameters.
+    class_uri: laura:RFProtectionElement
+    attributes:
+      prot_type:
+        range: string
+        description: Protection system type.
+
+  RFHeartbeatElement:
+    description: RF heartbeat / timing-monitor element parameters.
+    class_uri: laura:RFHeartbeatElement

@@ -1,0 +1,8 @@
+sections:
+  INJ_LINE:
+    - GUN_CAVITY
+    - INJ_SOL_01
+    - INJ_QUAD_01
+    - INJ_QUAD_02
+    - INJ_QUAD_03
+    - INJ_BPM_01

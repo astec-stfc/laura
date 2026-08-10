@@ -9,8 +9,6 @@ general:
   vertical_size: y_max
   output_filename: filename
   csr_bins: bins
-  hangle: hkick
-  vangle: vkick
   csrdz: dz
   field_file_name: inputfile
   change_momentum: change_p0
@@ -19,6 +17,11 @@ general:
   lsc_enable: lsc
   tilt_angle: tilt
   wakefield_definition: wakefile
+  wakefield_enable: zwake
+  t_column: tcolumn
+  wz_column: wzcolumn
+  wx_column: wxcolumn
+  wy_column: wycolumn
 dipole:
   isr_enable: isr
   sr_enable: synch_rad
@@ -60,6 +63,10 @@ rfdeflectingcavity:
   frequency: frequency
   field_amplitude: voltage
   n_cells: n_kicks
+crabcavity:
+  frequency: frequency
+  field_amplitude: voltage
+  n_cells: n_kicks
 rftmez0:
   field_amplitude: ez_peak
 solenoid:
@@ -97,9 +104,13 @@ wiggler:
   peak_field: B
   strength: K
   poles: poles
-kicker:
-  horizontal_kick: hkick
-  vertical_kick: vkick
+horizontal_corrector:
+  hangle: kick
+vertical_corrector:
+  vangle: kick
+combined_corrector:
+  hangle: hkick
+  vangle: vkick
 rcollimator:
   horizontal_size: x_max
   vertical_size: y_max

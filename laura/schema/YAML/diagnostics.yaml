@@ -1,0 +1,542 @@
+id: https://w3id.org/laura/schema/diagnostics
+name: laura_diagnostics_schema
+title: LAURA Diagnostics Model Chunk
+description: >-
+  Diagnostic instrument schema classes, including camera-analysis sub-models.
+version: "0.1.0"
+license: GPL-3.0-or-later
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+imports:
+  - linkml:types
+
+classes:
+
+# -- Diagnostics Objects ------------------------------------------------------------
+
+  Diagnostic:
+    is_a: PhysicalAcceleratorElement
+    description: Base class for all beam-diagnostic instruments.
+    class_uri: laura:Diagnostic
+    slot_usage:
+      simulation:
+        range: DiagnosticSimulationElement
+    attributes:
+      diagnostic:
+        range: DiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  BeamPositionMonitor:
+    is_a: Diagnostic
+    description: Beam-position monitor (BPM).
+    class_uri: laura:BeamPositionMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Beam_Position_Monitor
+    attributes:
+      diagnostic:
+        range: BPMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  BeamArrivalMonitor:
+    is_a: Diagnostic
+    description: Beam-arrival-time monitor (BAM).
+    class_uri: laura:BeamArrivalMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Beam_Arrival_Monitor
+    attributes:
+      diagnostic:
+        range: BAMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  BunchLengthMonitor:
+    is_a: Diagnostic
+    description: "Bunch-length monitor (BLM / CDR detector)."
+    class_uri: laura:BunchLengthMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Bunch_Length_Monitor
+    attributes:
+      diagnostic:
+        range: BLMDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  Camera:
+    is_a: Diagnostic
+    description: Camera-based beam-profile monitor.
+    class_uri: laura:Camera
+    slot_usage:
+      hardware_type:
+        equals_string: Camera
+    attributes:
+      diagnostic:
+        range: CameraDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  Screen:
+    is_a: Diagnostic
+    description: Scintillator or OTR screen with an associated camera.
+    class_uri: laura:Screen
+    slot_usage:
+      hardware_type:
+        equals_string: Screen
+    attributes:
+      diagnostic:
+        range: ScreenDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  WireScanner:
+    is_a: Diagnostic
+    description: >-
+      Intercepting wire scanner for transverse profile measurement.
+    class_uri: laura:WireScanner
+    slot_usage:
+      hardware_type:
+        equals_string: WireScanner
+      material:
+        # BDSIM's wirescanner requires the wire material. Carbon is the usual
+        # choice for a scanning wire; set it explicitly where it matters.
+        ifabsent: string(carbon)
+    attributes:
+      diagnostic:
+        range: WireScannerDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  ChargeDiagnostic:
+    is_a: Diagnostic
+    description: Base class for charge-measurement diagnostics.
+    class_uri: laura:ChargeDiagnostic
+    slot_usage:
+      hardware_type:
+        equals_string: ChargeDiagnostic
+    attributes:
+      diagnostic:
+        range: ChargeDiagnosticElement
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+  WallCurrentMonitor:
+    is_a: ChargeDiagnostic
+    description: Wall-current monitor (WCM) for non-destructive charge measurement.
+    class_uri: laura:WallCurrentMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Wall_Current_Monitor
+
+  FaradayCupMonitor:
+    is_a: ChargeDiagnostic
+    description: Faraday cup for destructive charge measurement.
+    class_uri: laura:FaradayCupMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Faraday_Cup_Monitor
+
+  IntegratedCurrentTransformer:
+    is_a: ChargeDiagnostic
+    description: >-
+      Integrated current transformer (ICT) for non-destructive single-shot
+      charge measurement.
+    class_uri: laura:IntegratedCurrentTransformer
+    slot_usage:
+      hardware_type:
+        equals_string: Integrated_Current_Transformer
+
+  PhotonMonitor:
+    is_a: Diagnostic
+    description: Photon intensity monitor.
+    class_uri: laura:PhotonMonitor
+    slot_usage:
+      hardware_type:
+        equals_string: Photon_Monitor
+      hardware_model:
+        ifabsent: string(Photon_Monitor)
+    attributes:
+      diagnostic:
+        range: PhotonIntensityMonitorDiagnostic
+        description: Instrument-specific diagnostic parameters.
+        in_subset:
+          - diagnostic_properties
+
+# -- Diagnostics Elements ------------------------------------------------------------
+
+  DiagnosticElement:
+    description: >-
+      Base class for diagnostic instrument sub-models.  Concrete sub-models
+      extend this with instrument-specific fields.
+    class_uri: laura:DiagnosticElement
+
+  BPMDiagnosticElement:
+    is_a: DiagnosticElement
+    description: Beam-position monitor (BPM) diagnostic data.
+    class_uri: laura:BPMDiagnosticElement
+    in_subset:
+      - diagnostic_properties
+    attributes:
+      type:
+        range: string
+        description: >-
+          BPM type (e.g., ``Stripline``, ``Cavity``, ``Button``).
+          Accepted in YAML as ``bpm_type``.
+        ifabsent: string(Stripline)
+        aliases:
+          - bpm_type
+
+  BAMDiagnosticElement:
+    is_a: DiagnosticElement
+    description: Beam-arrival monitor (BAM) diagnostic data.
+    class_uri: laura:BAMDiagnosticElement
+    in_subset:
+      - diagnostic_properties
+    attributes:
+      type:
+        range: string
+        description: BAM type. Accepted in YAML as ``bam_type``.
+        ifabsent: string(DESY)
+        aliases:
+          - bam_type
+
+  PhotonIntensityMonitorDiagnostic:
+    is_a: DiagnosticElement
+    description: Photon intensity monitor diagnostic data.
+    class_uri: laura:PhotonIntensityMonitorDiagnostic
+    in_subset:
+      - diagnostic_properties
+    attributes:
+      type:
+        range: string
+        description: >-
+          Photon intensity monitor type. Accepted in YAML as
+          ``intensity_monitor_type``.
+        ifabsent: string(I0)
+        aliases:
+          - intensity_monitor_type
+      intensity:
+        range: float
+        ifabsent: float(0.0)
+        description: Measured photon intensity.
+
+  BLMDiagnosticElement:
+    is_a: DiagnosticElement
+    description: Bunch-length monitor (BLM) diagnostic data.
+    class_uri: laura:BLMDiagnosticElement
+    in_subset:
+      - diagnostic_properties
+    attributes:
+      type:
+        range: string
+        description: "BLM type (e.g., ``CDR``). Accepted in YAML as ``blm_type``."
+        ifabsent: string(CDR)
+        aliases:
+          - blm_type
+
+  WireScannerDiagnosticElement:
+    is_a: DiagnosticElement
+    description: >-
+      Intercepting wire-scanner diagnostic: a thin wire swept through the beam to
+      measure its transverse profile. Distinct from a Wire element, which carries
+      a current to act on the beam rather than to intercept it.
+    class_uri: laura:WireScannerDiagnosticElement
+    in_subset:
+      - diagnostic_properties
+    attributes:
+      wire_diameter:
+        range: float
+        ifabsent: float(0.0)
+        description: Diameter of the scanning wire [m].
+        minimum_value: 0
+        unit:
+          ucum_code: m
+      wire_length:
+        range: float
+        ifabsent: float(0.0)
+        description: Length of the scanning wire [m].
+        minimum_value: 0
+        unit:
+          ucum_code: m
+
+  ScreenDiagnosticElement:
+    is_a: DiagnosticElement
+    description: Scintillator or OTR screen diagnostic data.
+    class_uri: laura:ScreenDiagnosticElement
+    in_subset:
+      - diagnostic_properties
+    attributes:
+      type:
+        range: string
+        description: Screen type (e.g., ``OTR``, ``YAG``).
+        ifabsent: string(CLARA_HV_MOVER)
+        aliases:
+          - screen_type
+      has_camera:
+        range: boolean
+        description: Whether the screen has an associated camera.
+        ifabsent: "True"
+      camera_name:
+        range: string
+        description: Name of the associated camera element.
+        ifabsent: string()
+      devices:
+        range: string
+        multivalued: true
+        description: List of attached devices.
+
+  ChargeDiagnosticElement:
+    is_a: DiagnosticElement
+    description: Charge-measurement diagnostic data (base for ICT, FCM, WCM).
+    class_uri: laura:ChargeDiagnosticElement
+    in_subset:
+      - diagnostic_properties
+    attributes:
+      type:
+        range: string
+        description: >-
+          Charge-diagnostic type. Accepted in YAML as ``charge_type``.
+        aliases:
+          - charge_type
+
+  # -- Camera sub-models (components of CameraDiagnosticElement) ---------------
+
+  CameraPixelResultsIndices:
+    description: >-
+      Indices into camera pixel-analysis result arrays.
+    class_uri: laura:CameraPixelResultsIndices
+    attributes:
+      x:
+        range: integer
+        description: Beam centroid index in x.
+        ifabsent: int(0)
+        aliases: [X_POS]
+      y:
+        range: integer
+        description: Beam centroid index in y.
+        ifabsent: int(1)
+        aliases: [Y_POS]
+      x_sigma:
+        range: integer
+        description: Beam sigma index in x.
+        ifabsent: int(2)
+        aliases: [X_SIGMA_POS]
+      y_sigma:
+        range: integer
+        description: Beam sigma index in y.
+        ifabsent: int(3)
+        aliases: [Y_SIGMA_POS]
+      covariance:
+        range: integer
+        description: Beam covariance index.
+        ifabsent: int(4)
+        aliases: [COV_POS]
+
+  CameraPixelResultsNames:
+    description: >-
+      Names of camera pixel-analysis result arrays.
+    class_uri: laura:CameraPixelResultsNames
+    attributes:
+      x:
+        range: string
+        description: Beam centroid name in x.
+        ifabsent: string(X)
+        aliases: [X_NAME]
+      y:
+        range: string
+        description: Beam centroid name in y.
+        ifabsent: string(Y)
+        aliases: [Y_NAME]
+      x_sigma:
+        range: string
+        description: Beam sigma name in x.
+        ifabsent: string(X_SIGMA)
+        aliases: [X_SIGMA_NAME]
+      y_sigma:
+        range: string
+        description: Beam sigma name in y.
+        ifabsent: string(Y_SIGMA)
+        aliases: [Y_SIGMA_NAME]
+      covariance:
+        range: string
+        description: Beam covariance name.
+        ifabsent: string(COV)
+        aliases: [COV_NAME]
+
+  CameraMask:
+    description: >-
+      Camera analysis mask parameters.
+    class_uri: laura:CameraMask
+    attributes:
+      middle:
+        range: float
+        multivalued: true
+        description: Center of the mask in pixels [x, y].
+      radius:
+        range: float
+        multivalued: true
+        description: Mask radius in pixels [x, y].
+      maximum:
+        range: float
+        multivalued: true
+        description: Maximum mask radius in pixels [x, y].
+      use_maximum_values:
+        range: boolean
+        description: If True, use maximum mask radius constraints.
+        ifabsent: "True"
+        aliases: [USE_MASK_RAD_LIMITS]
+
+  CameraSensor:
+    description: >-
+      Camera sensor hardware configuration.
+    class_uri: laura:CameraSensor
+    attributes:
+      x_pixels:
+        range: integer
+        description: Raw sensor pixel count in x.
+        ifabsent: int(2160)
+        aliases: [BINARY_NUM_PIX_X]
+      y_pixels:
+        range: integer
+        description: Raw sensor pixel count in y.
+        ifabsent: int(2560)
+        aliases: [BINARY_NUM_PIX_Y]
+      x_scale_factor:
+        range: integer
+        description: Pixel binning factor in x.
+        ifabsent: int(2)
+        aliases: [X_PIX_SCALE_FACTOR]
+      y_scale_factor:
+        range: integer
+        description: Pixel binning factor in y.
+        ifabsent: int(2)
+        aliases: [Y_PIX_SCALE_FACTOR]
+      beam_pixel_average:
+        range: float
+        description: Average pixel value for beam detection.
+        ifabsent: float(97.2)
+        aliases: [AVG_PIXEL_VALUE_FOR_BEAM]
+      middle:
+        range: float
+        multivalued: true
+        description: Sensor optical center in pixels [x, y].
+      x_pixels_to_mm:
+        range: float
+        description: Pixel-to-mm scale factor in x.
+        ifabsent: float(0.0134)
+      y_pixels_to_mm:
+        range: float
+        description: Pixel-to-mm scale factor in y.
+        ifabsent: float(0.0134)
+      minimum:
+        range: float
+        multivalued: true
+        description: Minimum pixel positions [x, y].
+      maximum:
+        range: float
+        multivalued: true
+        description: Maximum pixel positions [x, y].
+      bit_depth:
+        range: integer
+        description: Camera bit depth.
+        ifabsent: int(16)
+      operating_middle:
+        range: float
+        multivalued: true
+        description: Operating center positions in pixels [x, y].
+      mechanical_middle:
+        range: float
+        multivalued: true
+        description: Mechanical center of the camera in pixels [x, y].
+
+  CameraDiagnosticElement:
+    is_a: DiagnosticElement
+    description: >-
+      Camera diagnostic data, including sensor parameters, analysis mask,
+      and pixel-to-mm scale factors.
+    class_uri: laura:CameraDiagnosticElement
+    in_subset:
+      - diagnostic_properties
+    attributes:
+      type:
+        range: string
+        description: >-
+          Camera type / model string (e.g., ``PCO``, ``Manta``).
+          Accepted in YAML as ``CAM_TYPE``.
+        aliases:
+          - CAM_TYPE
+      x_pixels:
+        range: integer
+        description: Image width reported by the control system [pix].
+        ifabsent: int(1080)
+        aliases:
+          - ARRAY_DATA_NUM_PIX_X
+          - epics_x_pixels
+      y_pixels:
+        range: integer
+        description: Image height reported by the control system [pix].
+        ifabsent: int(1280)
+        aliases:
+          - ARRAY_DATA_NUM_PIX_Y
+          - epics_y_pixels
+      rotation:
+        range: float
+        description: Camera rotation relative to the screen plane [deg].
+        ifabsent: float(0)
+        unit:
+          ucum_code: deg
+      flipped_horizontally:
+        range: boolean
+        description: True if the image is mirrored left-right.
+        ifabsent: "True"
+        aliases:
+          - IMAGE_FLIP_LR
+      flipped_vertically:
+        range: boolean
+        description: True if the image is mirrored top-bottom.
+        ifabsent: "False"
+        aliases:
+          - IMAGE_FLIP_UD
+      screen_name:
+        range: string
+        description: Name of the screen element to which this camera is attached.
+      has_led:
+        range: boolean
+        description: True if the camera mount includes an LED backlight.
+        ifabsent: "True"
+      pixel_results_indices:
+        range: CameraPixelResultsIndices
+        description: Indices of pixel analysis result arrays.
+      pixel_results_names:
+        range: CameraPixelResultsNames
+        description: Names of pixel analysis result arrays.
+      mask:
+        range: CameraMask
+        description: Camera analysis mask configuration.
+      sensor:
+        range: CameraSensor
+        description: Camera sensor hardware configuration.

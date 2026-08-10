@@ -4,7 +4,6 @@ wake_t_unsupported = [
     "Octupole",
     "Decapole",
     "Solenoid",
-    "RCollimator",
     "Wakefield",
     "Wiggler",
     "Collimator",

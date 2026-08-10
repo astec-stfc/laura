@@ -1,18 +1,27 @@
-from xtrack.beam_elements import Solenoid as Solenoid_xs
-from xtrack.beam_elements import Bend as Bend_xs
-from xtrack.beam_elements import DipoleEdge as DipoleEdge_xs
-from xtrack.beam_elements import Quadrupole as Quadrupole_xs
-from xtrack.beam_elements import Sextupole as Sextupole_xs
-from xtrack.beam_elements import Octupole as Octupole_xs
-from xtrack.beam_elements import Drift as Drift_xs
-from xtrack.beam_elements import NonLinearLens as NonLinearLens_xs
-from xtrack.beam_elements import Cavity as Cavity_xs
-from xtrack.beam_elements import UniformSolenoid as UniformSolenoid_xs
-from xtrack.beam_elements import Multipole as Multipole_xs
-from xtrack.beam_elements import Marker as Marker_xs
-from xtrack.beam_elements import SecondOrderTaylorMap as SecondOrderTaylorMap_xs
-from xtrack.beam_elements import CrabCavity as CrabCavity_xs
-from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
+try:
+    from xtrack.beam_elements import Solenoid as Solenoid_xs
+    from xtrack.beam_elements import Bend as Bend_xs
+    from xtrack.beam_elements import RBend as RBend_xs
+    from xtrack.beam_elements import DipoleEdge as DipoleEdge_xs
+    from xtrack.beam_elements import Quadrupole as Quadrupole_xs
+    from xtrack.beam_elements import Sextupole as Sextupole_xs
+    from xtrack.beam_elements import Octupole as Octupole_xs
+    from xtrack.beam_elements import Drift as Drift_xs
+    from xtrack.beam_elements import NonLinearLens as NonLinearLens_xs
+    from xtrack.beam_elements import Cavity as Cavity_xs
+    from xtrack.beam_elements import UniformSolenoid as UniformSolenoid_xs
+    from xtrack.beam_elements import Multipole as Multipole_xs
+    from xtrack.beam_elements import Magnet as Magnet_xs
+    from xtrack.beam_elements import Marker as Marker_xs
+    from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
+    from xtrack.beam_elements import SecondOrderTaylorMap as SecondOrderTaylorMap_xs
+    from xtrack.beam_elements import CrabCavity as CrabCavity_xs
+    _XSUITE_AVAILABLE = True
+except ImportError as _err:
+    raise ImportError(
+        "xsuite is not installed. "
+        "Install with: pip install \"laura-accelerator[xsuite]\""
+    ) from _err
 
 from laura.models.element import (
     Dipole,
@@ -31,6 +40,7 @@ from laura.models.element import (
 
 xsuite_conversion_rules_reverse = {
     Bend_xs: Dipole,
+    RBend_xs: Dipole,
     DipoleEdge_xs: Marker,
     Solenoid_xs: Solenoid,
     Quadrupole_xs: Quadrupole,
@@ -41,6 +51,7 @@ xsuite_conversion_rules_reverse = {
     UniformSolenoid_xs: Solenoid,
     NonLinearLens_xs: NonLinearLens,
     Multipole_xs: Magnet,
+    Magnet_xs: Magnet,
     Marker_xs: Marker,
     SecondOrderTaylorMap_xs: MatrixTransform,
     CrabCavity_xs: CrabCavity,
@@ -57,7 +68,7 @@ xsuite_conversion_rules = {
     "Beam_Arrival_Monitor": Drift_xs,
     "Bunch_Length_Monitor": Drift_xs,
     "Screen": ParticlesMonitor_xs,
-    "Marker": ParticlesMonitor_xs,
+    "Marker": Marker_xs,
     "Rcollimator": Drift_xs,
     "Collimator": Drift_xs,
     "Monitor": Marker_xs,
@@ -73,9 +84,9 @@ xsuite_conversion_rules = {
     "Cleaner": Drift_xs,
     "Drift": Drift_xs,
     "NonLinearLens": NonLinearLens_xs,
-    "Combined_Corrector": Bend_xs,
-    "Horizontal_Corrector": Bend_xs,
-    "Vertical_Corrector": Bend_xs,
+    "Combined_Corrector": Magnet_xs,
+    "Horizontal_Corrector": Magnet_xs,
+    "Vertical_Corrector": Magnet_xs,
     "Scatter": Marker_xs,
     "APContour": Marker_xs,
     "Center": Marker_xs,

@@ -1,0 +1,92 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch makes the in-flight run irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # setuptools_scm needs history to derive a version
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[full]"
+
+      - name: Run tests
+        run: pytest unit_tests -v
+
+  import-without-extras:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # setuptools_scm needs history to derive a version
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install without any extra
+        run: pip install -e .
+
+      - name: Import the translator with no backend installed
+        run: |
+          python -c "import laura"
+          python -c "from laura.translator.converters.converter import translate_elements"
+          python -c "import laura.translator.converters.codes"
+          python -c "import laura.translator.converters.section"
+
+  downstream-simba:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out laura (this PR)
+        uses: actions/checkout@v4
+        with:
+          path: laura
+          fetch-depth: 0
+
+      - name: Check out simba (main)
+        uses: actions/checkout@v4
+        with:
+          repository: astec-stfc/simba
+          ref: main
+          path: simba
+          fetch-depth: 0
+          # Only needed if simba is private; drop otherwise.
+          # token: ${{ secrets.SIMBA_CHECKOUT_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install simba, then this PR's laura over the top
+        run: |
+          pip install -e "./simba[test]"
+          pip install -e "./laura"
+
+      - name: Show which laura is actually in use
+        run: python -c "import laura; print(laura.__file__)"
+
+      - name: Run simba's test suite
+        run: pytest simba/unit_tests -v

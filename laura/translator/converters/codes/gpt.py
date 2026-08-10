@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, computed_field
 from typing import List
 import numpy as np
-from ...utils.classes import getGrids
+from ...utils.classes import get_grid_size
 from ...utils.functions import chop
 
 gpt_unsupported = [
@@ -16,6 +16,77 @@ gpt_unsupported = [
     "CrabCavity",
 ]
 
+def orthonormalize(M):
+    """
+    Enforce orthonormal rotation matrix using Gram-Schmidt.
+    """
+
+    x = M[:, 0]
+    y = M[:, 1]
+
+    x = x / np.linalg.norm(x)
+
+    y = y - np.dot(x, y) * x
+    y = y / np.linalg.norm(y)
+
+    z = np.cross(x, y)
+
+    return np.column_stack((x, y, z))
+
+def Rx(a):
+    c, s = np.cos(a), np.sin(a)
+    return np.array([
+        [1, 0, 0],
+        [0, c, -s],
+        [0, s,  c]
+    ])
+
+
+def Ry(a):
+    c, s = np.cos(a), np.sin(a)
+    return np.array([
+        [ c, 0, s],
+        [ 0, 1, 0],
+        [-s, 0, c]
+    ])
+
+
+def Rz(a):
+    c, s = np.cos(a), np.sin(a)
+    return np.array([
+        [c, -s, 0],
+        [s,  c, 0],
+        [0,  0, 1]
+    ])
+
+
+def euler_to_matrix(psi, phi, theta):
+    """
+    Consistent with GPT right-handed convention.
+    Using intrinsic X→Y→Z (adjust if needed).
+    """
+    return Rz(theta) @ Ry(phi) @ Rx(psi)
+
+def matrix_to_euler(M):
+    """
+    Inverse of:
+    M = Rz(theta) @ Ry(phi) @ Rx(psi)
+    Returns psi, phi, theta
+    """
+
+    phi = np.arcsin(-M[2,0])
+
+    if abs(np.cos(phi)) > 1e-12:
+        psi   = np.arctan2(M[2,1], M[2,2])
+        theta = np.arctan2(M[1,0], M[0,0])
+    else:
+        # Gimbal lock fallback
+        psi   = 0.0
+        theta = np.arctan2(-M[0,1], M[1,1])
+
+    return psi, phi, theta
+
+
 class gpt_ccs(BaseModel):
 
     model_config = ConfigDict(
@@ -26,12 +97,32 @@ class gpt_ccs(BaseModel):
     )
 
     name: str
-
     position: List[float] = [0.0, 0.0, 0.0]
-
     rotation: List[float] = [0.0, 0.0, 0.0]
 
     intersect: float = 0.0
+
+    # ----------------------------
+    # Basic accessors
+    # ----------------------------
+
+    @property
+    def origin(self):
+        return np.array(self.position)
+
+    @property
+    def M(self):
+        """Rotation matrix of this CCS (ECS→parent)."""
+        psi, phi, theta = self.rotation
+        return euler_to_matrix(psi, phi, theta)
+
+    @property
+    def name_as_str(self):
+        return '"' + self.name + '"'
+
+    # ----------------------------
+    # Proper rigid-body transform
+    # ----------------------------
 
     @computed_field
     @property
@@ -107,7 +198,10 @@ class gpt_ccs(BaseModel):
         return '"' + ccs_label + '"', value_text.strip(",")
 
     def gpt_coordinates(
-        self, position: list | np.ndarray, rotation: list | np.ndarray
+            self,
+            position: list | np.ndarray,
+            angle: float = 0.0,
+            tilt: float = 0.0,
     ) -> str:
         """
         Get the GPT coordinates for a given position and rotation
@@ -125,12 +219,132 @@ class gpt_ccs(BaseModel):
             A GPT-formatted position string.
         """
         x, y, z = chop(position, 1e-6)
-        psi, phi, theta = rotation
         output = ""
         for c in [-x, y, z]:
             output += str(c) + ", "
-        output += "cos(" + str(theta) + "), 0, -sin(" + str(theta) + "), 0, 1 ,0"
+        if np.isclose(tilt, np.pi/2):
+            output += f"0, cos({angle}), -sin({angle}), -sin({tilt}), cos({tilt}) ,0"
+        else:
+            output += f"cos({angle}), 0, -sin({angle}), -sin({tilt}), cos({tilt}) ,0"
         return output
+
+
+#
+# class gpt_ccs(BaseModel):
+#
+#     model_config = ConfigDict(
+#         extra="allow",
+#         arbitrary_types_allowed=True,
+#         validate_assignment=True,
+#         populate_by_name=True,
+#     )
+#
+#     name: str
+#
+#     position: List[float] = [0.0, 0.0, 0.0]
+#
+#     rotation: List[float] = [0.0, 0.0, 0.0]
+#
+#     intersect: float = 0.0
+#
+#     @computed_field
+#     @property
+#     def psi(self) -> float:
+#         return self.rotation[0]
+#
+#     @computed_field
+#     @property
+#     def phi(self) -> float:
+#         return self.rotation[1]
+#
+#     @computed_field
+#     @property
+#     def theta(self) -> float:
+#         return self.rotation[2]
+#
+#     @computed_field
+#     @property
+#     def x(self) -> float:
+#         return self.position[0]
+#
+#     @computed_field
+#     @property
+#     def y(self) -> float:
+#         return self.position[1]
+#
+#     @computed_field
+#     @property
+#     def z(self) -> float:
+#         return self.position[2]
+#
+#     def relative_position(
+#         self, position: np.ndarray | list, rotation: np.ndarray | list
+#     ) -> tuple:
+#         x, y, z = position
+#         pitch, yaw, roll = rotation
+#         length = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2 + (z - self.z) ** 2)
+#         finalrot = np.array([pitch - self.psi, yaw - self.phi, roll - self.theta])
+#         finalpos = np.array([0, 0, abs(self.intersect) + length])
+#         return finalpos, finalrot
+#
+#     @property
+#     def name_as_str(self):
+#         return '"' + self.name + '"'
+#
+#     def ccs_text(self, position, rotation):
+#         finalpos, finalrot = self.relative_position(position, rotation)
+#         x, y, z = finalpos
+#         psi, phi, theta = finalrot
+#         ccs_label = ""
+#         value_text = ""
+#         if abs(x) > 0:
+#             ccs_label += "x"
+#             value_text += "," + str(x)
+#         if abs(y) > 0:
+#             ccs_label += "y"
+#             value_text += "," + str(y)
+#         if abs(z) > 0:
+#             ccs_label += "z"
+#             value_text += "," + str(z)
+#         if abs(psi) > 0:
+#             ccs_label += "X"
+#             value_text += "," + str(psi)
+#         if abs(phi) > 0:
+#             ccs_label += "Y"
+#             value_text += "," + str(phi)
+#         if abs(theta) > 0:
+#             ccs_label += "Z"
+#             value_text += "," + str(theta)
+#         if ccs_label == "" and value_text == "":
+#             ccs_label = "z"
+#             value_text = "," + str(0)
+#         return '"' + ccs_label + '"', value_text.strip(",")
+#
+#     def gpt_coordinates(
+#         self, position: list | np.ndarray, rotation: list | np.ndarray
+#     ) -> str:
+#         """
+#         Get the GPT coordinates for a given position and rotation
+#
+#         Parameters
+#         ----------
+#         position: list | np.ndarray
+#             The lattice position.
+#         rotation: float
+#             The element rotation
+#
+#         Returns
+#         -------
+#         str
+#             A GPT-formatted position string.
+#         """
+#         x, y, z = chop(position, 1e-6)
+#         psi, phi, theta = rotation
+#         output = ""
+#         for c in [-x, y, z]:
+#             output += str(c) + ", "
+#         output += "cos(" + str(theta) + "), 0, -sin(" + str(theta) + "), 0, 1 ,0"
+#         return output
 
 
 class gpt_element(BaseModel):
@@ -274,9 +488,6 @@ class gpt_spacecharge(gpt_element):
     Class for preparing space charge calculations in GPT via `spacecharge`.
     """
 
-    grids: getGrids = None
-    """Class for calculating the required number of space charge grids"""
-
     ngrids: int | None = None
     """Number of space charge grids"""
 
@@ -294,16 +505,13 @@ class gpt_spacecharge(gpt_element):
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
-        self.grids = getGrids()
-        self.exclude.extend(["cathode", "grids", "ngrids", "space_charge_mode"])
+        self.exclude.extend(["cathode", "ngrids", "space_charge_mode"])
 
     def write_GPT(self, *args, **kwargs) -> str:
         output = ""
         if isinstance(self.space_charge_mode, str) and self.cathode:
             if self.ngrids is None:
-                self.ngrids = self.grids.getGridSizes(
-                    (self.npart / self.sample_interval)
-                )
+                self.ngrids = get_grid_size(self.npart / self.sample_interval)
             output += 'spacecharge3Dmesh("Cathode","RestMaxGamma",1000);\n'
         elif (
             isinstance(self.space_charge_mode, str)

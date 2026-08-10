@@ -60,6 +60,33 @@ def test_section_lattice_create_drifts(section_lattice):
     assert isinstance(drifts, dict)
 
 
+def test_section_lattice_ignores_floating_point_gaps(section_lattice):
+    first, second = section_lattice.elements.list()
+    first.physical.middle.z = 0.5
+    first.physical.length = 1.0
+    second.physical.middle.z = 1.5 + 9e-16
+    second.physical.length = 1.0
+
+    assert list(section_lattice.createDrifts()) == ["elem1", "elem2"]
+
+
+def test_s_coordinate_ties_preserve_beamline_order(section_lattice):
+    marker, cavity = section_lattice.elements.list()
+    marker.physical.middle = None
+    marker.physical.length = 0.0
+    marker.physical.s = 0.175001
+    marker.physical.s_point = "end"
+    cavity.physical.middle = None
+    cavity.physical.length = 1.0
+    cavity.physical.s = 1.175001
+    cavity.physical.s_point = "end"
+
+    section_lattice.resolve_positions(section_lattice.elements.elements)
+
+    assert marker.physical.middle.z == pytest.approx(0.175001)
+    assert cavity.physical.start.z == pytest.approx(0.175001)
+
+
 def test_section_lattice_get_s_values(section_lattice):
     s_values = section_lattice.get_s_values(as_dict=True)
     print(s_values)

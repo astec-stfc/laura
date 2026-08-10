@@ -1,72 +1,186 @@
-from pydantic import BaseModel
-from typing import Dict, Any, List
-from collections import Counter
+from pydantic import BaseModel, Field, PrivateAttr, model_validator
+from typing import Dict, Any, List, Optional, Union
+from warnings import warn
 from . import magnetic_orders
 import laura.models.element as LAURA_elements
-from laura.models.elementList import SectionLattice, MachineLayout, ElementList
+from laura.models.elementList import (
+    SectionLattice,
+    MachineLayout,
+    MachineModel,
+    ElementList,
+)
 from laura.models.element import (
     Element,
     Combined_Corrector,
     Vertical_Corrector,
     Horizontal_Corrector,
 )
+from ....Exporters.YAML import export_machine_combined_file, PositionMode
+from .. import keyword_conversion_rules_bmad, type_conversion_rules_Bmad
+from ...utils.functions import number_repeated_names, merge_layout_elements
 import math
+from itertools import permutations
+import numpy as np
+import re
+import tempfile
+from pathlib import Path
+
+_SILENTLY_SKIPPED_TYPES = ("Drift", "Pipe", "Beginning_Ele")
+
+_CAVITY_TYPES = ("Lcavity", "RFCavity")
+
+_COLLIMATOR_TYPES = ("ECollimator", "RCollimator")
 
 
-def norm(v):
-    n = math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2])
-    if n == 0:
-        return (0.0, 0.0, 0.0)
-    return (v[0] / n, v[1] / n, v[2] / n)
-
-
-def cross(a, b):
-    return (
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0],
+def _switch_dict() -> Dict[str, str]:
+    """Bmad element key -> LAURA hardware type."""
+    switch = {
+        native_type.lower(): laura_type
+        for laura_type, native_type in type_conversion_rules_Bmad.items()
+    }
+    switch.update(
+        {
+            "lcavity": "RFCavity",
+            "match": "MatrixTransform",
+            "rbend": "Dipole",
+            "rcollimator": "Collimator",
+        }
     )
+    return switch
 
 
-def dot(a, b):
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+def _native_keyword(hardware_type: str, laura_field: str) -> str:
+    """Return the Tao/Bmad spelling for a LAURA field."""
+    rules = keyword_conversion_rules_bmad["general"]
+    key = hardware_type.lower()
+    if key in keyword_conversion_rules_bmad:
+        rules = keyword_conversion_rules_bmad[key] | rules
+    return rules.get(laura_field, laura_field).upper()
 
 
-def deg(r):
-    return math.degrees(r)
+def _read_lattice_text(path: Path, _seen: Optional[set] = None) -> str:
+    """Read a Bmad lattice file, inlining any ``call, file = ...`` statements
+    it contains.
+
+    Bmad resolves a ``call``'d filename relative to the directory of the file
+    containing the ``call`` -- mirror that here so functional parameter
+    definitions declared in a called file are still found.
+    """
+    seen = _seen if _seen is not None else set()
+    path = path.resolve()
+    if path in seen:
+        return ""
+    seen.add(path)
+    text = re.sub(r"!.*", "", path.read_text())
+
+    def _inline(match: "re.Match") -> str:
+        called = (path.parent / match.group(1).strip("'\"")).resolve()
+        if not called.is_file():
+            return match.group(0)
+        return _read_lattice_text(called, seen)
+
+    return re.sub(r"(?im)^\s*call\s*,\s*file\s*=\s*([^\s;]+)\s*;?\s*$", _inline, text)
 
 
-def rotation_angles(forward):
-    f = norm(forward)
-    # yaw (heading around Y): atan2(x, z)
-    yaw = math.atan2(f[0], f[2])
+def _taylor_matrices(taylor: Dict[str, Any]):
+    """Convert a Bmad orbital Taylor map of order <= 3 to C/R/T/U arrays."""
+    c_matrix = np.zeros(6)
+    r_matrix = np.zeros((6, 6))
+    t_matrix = np.zeros((6, 6, 6))
+    u_matrix = np.zeros((6, 6, 6, 6))
+    ref = np.zeros(6)
+    for section in taylor["data"]:
+        ref[section["index"] - 1] = section["ref"]
 
-    # pitch (elevation): atan2(y, sqrt(x^2+z^2))
-    pitch = math.atan2(f[1], math.sqrt(f[0] * f[0] + f[2] * f[2]))
+    for section in taylor["data"]:
+        output = section["index"] - 1
+        for term in section["data"]:
+            powers = [int(term[f"exp{i}"]) for i in range(1, 7)]
+            degree = sum(powers)
+            coefficient = term["coef"]
+            if degree > 3:
+                raise ValueError(f"contains an orbital term of order {degree}")
+            indices = [index for index, power in enumerate(powers) for _ in range(power)]
+            if degree == 0:
+                c_matrix[output] += coefficient
+            elif degree == 1:
+                r_matrix[output, indices[0]] += coefficient
+            else:
+                unique_indices = set(permutations(indices))
+                tensor = t_matrix if degree == 2 else u_matrix
+                for tensor_indices in unique_indices:
+                    tensor[(output, *tensor_indices)] += coefficient / len(unique_indices)
 
-    # build a local right/up so we can compute roll.
-    # choose world_up = (0,1,0)
-    world_up = (0.0, 1.0, 0.0)
+    t_feeddown = np.einsum("ijk,k->ij", t_matrix, ref)
+    u_feeddown = np.einsum("ijkl,l->ijk", u_matrix, ref)
+    c_matrix = (
+        c_matrix
+        - r_matrix @ ref
+        + t_feeddown @ ref
+        - np.einsum("ijkl,j,k,l->i", u_matrix, ref, ref, ref)
+    )
+    r_matrix = (
+        r_matrix
+        - 2 * t_feeddown
+        + 3 * np.einsum("ijkl,k,l->ij", u_matrix, ref, ref)
+    )
+    t_matrix = t_matrix - 3 * u_feeddown
+    return c_matrix, r_matrix, t_matrix, u_matrix
 
-    right = norm(cross(world_up, f))
-    up = cross(f, right)  # orthogonal up for the object frame
 
-    # roll = signed angle around forward that rotates object's up -> world_up
-    cr = cross(up, world_up)
-    roll = math.atan2(dot(cr, f), dot(up, world_up))
-    return pitch, roll, yaw
+class BmadTaoInit(BaseModel):
+    """Minimal Tao init file for one Bmad lattice and optional line selections."""
+
+    lattice_file: str
+    lines: List[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _check_lines(self):
+        if any(not line.strip() for line in self.lines):
+            raise ValueError("Bmad line names cannot be empty.")
+        return self
+
+    def render(self) -> str:
+        targets = [
+            f"{self.lattice_file}@{line}" for line in self.lines
+        ] or [self.lattice_file]
+        entries = "\n".join(
+            "  design_lattice({})%file = '{}'".format(
+                index, target.replace("'", "''")
+            )
+            for index, target in enumerate(targets, 1)
+        )
+        return (
+            "&tao_design_lattice\n"
+            f"  n_universes = {len(targets)}\n"
+            f"{entries}\n"
+            "/\n"
+        )
+
+    def write(self, path: str | Path) -> Path:
+        path = Path(path)
+        path.write_text(self.render())
+        return path
 
 
 class BmadLatticeImporter(BaseModel):
 
-    floorplan_init: str
-    """Name of Tao init file which produces floor coordinates"""
+    tao_init: Optional[str] = None
+    """Name of Tao init file which produces."""
 
-    libtao: str = None
+    lattice_file: Optional[str] = None
+    """Original BMAD lattice file, used instead of ``tao_init``."""
+
+    lines: List[str] = Field(default_factory=list)
+    """Bmad lines to load as separate Tao universes from ``lattice_file``."""
+
+    libtao: Optional[str] = None
     """libtao.so file"""
 
     elements: Dict = {}
     """Dictionary containing converted LAURA element objects"""
+
+    functional_definitions: Dict[str, Union[int, float]] = {}
 
     n_universes: int = 1
 
@@ -78,11 +192,8 @@ class BmadLatticeImporter(BaseModel):
 
     lengths: Dict[int, Dict[str, List[float]]] = {}
 
-    xpos: Dict[int, Dict[str, List[float]]] = {}
-
-    ypos: Dict[int, Dict[str, List[float]]] = {}
-
-    zpos: Dict[int, Dict[str, List[float]]] = {}
+    spos: Dict[int, Dict[str, List[float]]] = {}
+    """Cumulative arc-length at the *exit* of each element (Bmad's ``ele.s``)."""
 
     params: Dict[int, Dict[str, List[Dict[str, Any]]]] = {}
 
@@ -90,13 +201,87 @@ class BmadLatticeImporter(BaseModel):
 
     branches: Dict[int, List[str]] = {}
 
+    deferred_parameters: Dict[str, Dict[str, str]] = {}
+
+    _generated_tao_init: Any = PrivateAttr(default=None)
+
+    @model_validator(mode="after")
+    def _check_input(self):
+        if (self.tao_init is None) == (self.lattice_file is None):
+            raise ValueError("Give exactly one of tao_init or lattice_file.")
+        if self.tao_init and self.lines:
+            raise ValueError("lines can only be used with lattice_file.")
+        return self
+
+    def _tao_init_path(self) -> str:
+        if self.tao_init:
+            return self.tao_init
+        self._generated_tao_init = tempfile.TemporaryDirectory(prefix="laura-bmad-")
+        path = Path(self._generated_tao_init.name) / "tao.init"
+        return str(
+            BmadTaoInit(
+                lattice_file=str(Path(self.lattice_file).resolve()), lines=self.lines
+            ).write(path)
+        )
+
+    def _read_functional_definitions(self) -> None:
+        if not self.lattice_file:
+            return
+        text = _read_lattice_text(Path(self.lattice_file))
+        text = text.replace("&\n", " ")
+        statements = [statement.strip() for statement in re.split(r";|\n", text)]
+        values = {}
+        deferred = {}
+        for statement in statements:
+            scalar = re.fullmatch(
+                r"([A-Za-z_][\w.]*)\s*=\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][-+]?\d+)?)",
+                statement,
+            )
+            if scalar:
+                values[scalar.group(1)] = float(scalar.group(2))
+                continue
+            element = re.match(r"([^:]+):\s*[^,]+,(.*)", statement, re.S)
+            if not element:
+                continue
+            for attribute, expression in re.findall(
+                r"([A-Za-z_][\w.]*)\s*:=\s*([^,]+)", element.group(2)
+            ):
+                deferred.setdefault(element.group(1).strip().lower(), {})[
+                    attribute.upper()
+                ] = expression.strip()
+        used = {
+            token
+            for parameters in deferred.values()
+            for expression in parameters.values()
+            for token in re.findall(r"[A-Za-z_][\w.]*", expression)
+        }
+        self.deferred_parameters = deferred
+        self.functional_definitions = {
+            name: value for name, value in values.items() if name in used
+        }
+
+    def _symbol(self, element: str, attribute: str, length=0.0) -> str | None:
+        expression = self.deferred_parameters.get(element.lower(), {}).get(attribute)
+        if not expression:
+            return None
+        compact = expression.lower().replace(" ", "").replace("(", "").replace(")", "")
+        for name in self.functional_definitions:
+            if compact == name.lower():
+                return name
+            if length and compact.startswith(name.lower() + "/"):
+                try:
+                    if math.isclose(float(compact.split("/", 1)[1]), length):
+                        return name
+                except ValueError:
+                    pass
+        return None
+
     def model_post_init(self, __context: Any) -> None:
         from pytao import Tao, TaoCommandError
 
-        tao = Tao(
-            f"-init {self.floorplan_init} -noplot",
-            so_lib=self.libtao,
-        )
+        self._read_functional_definitions()
+
+        tao = Tao(f"-init {self._tao_init_path()} -noplot", so_lib=self.libtao)
         while True:
             try:
                 tao.universe(str(self.n_universes))
@@ -112,37 +297,42 @@ class BmadLatticeImporter(BaseModel):
                 self.names_numbered.update({self.n_universes: {}})
                 self.types.update({self.n_universes: {}})
                 self.lengths.update({self.n_universes: {}})
-                self.xpos.update({self.n_universes: {}})
-                self.ypos.update({self.n_universes: {}})
-                self.zpos.update({self.n_universes: {}})
+                self.spos.update({self.n_universes: {}})
                 self.params.update({self.n_universes: {}})
                 self.laura_elems.update({self.n_universes: {}})
                 for ind, b in enumerate(self.branches[self.n_universes]):
                     kwa = {
                         "ix_uni": str(self.n_universes),
-                        "ix_branch": b.replace(f"_{self.n_universes}", ""),
+                        "ix_branch": str(ind),
                     }
                     names = [i for i in tao.lat_list("*", "ele.name", **kwa)]
-                    names_numbered = [
-                        f"{x}.{(c := Counter(names[:i + 1]))[x]}"
-                        for i, x in enumerate(names)
-                    ]
+                    names_numbered = number_repeated_names(names)
                     types = [i for i in tao.lat_list("*", "ele.key", **kwa)]
                     lengths = [i for i in tao.lat_list("*", "ele.l", **kwa)]
-                    xpos = [i for i in tao.lat_list("*", "orbit.floor.x", **kwa)]
-                    ypos = [i for i in tao.lat_list("*", "orbit.floor.y", **kwa)]
-                    zpos = [i for i in tao.lat_list("*", "orbit.floor.z", **kwa)]
-                    params = [
-                        tao.ele_gen_attribs(f"{str(self.n_universes)}@{ind}>>{i}")
-                        for i in range(len(names))
-                    ]
+                    spos = [i for i in tao.lat_list("*", "ele.s", **kwa)]
+                    params = []
+                    for i, etype in enumerate(types):
+                        element_id = f"{self.n_universes}@{ind}>>{i}"
+                        attributes = tao.ele_gen_attribs(element_id)
+                        if etype == "Match":
+                            matrix = tao.ele_mat6(element_id, who="mat6")
+                            attributes["_MAT6"] = [
+                                matrix[str(row)] for row in range(1, 7)
+                            ]
+                            attributes["_VEC0"] = tao.ele_mat6(
+                                element_id, who="vec0"
+                            )["vec0"]
+                        elif etype == "Taylor":
+                            attributes["_TAYLOR"] = tao.ele_taylor(element_id)
+                            attributes["_SPIN_TAYLOR"] = tao.ele_spin_taylor(
+                                element_id
+                            )
+                        params.append(attributes)
                     self.names[self.n_universes].update({b: names})
                     self.names_numbered[self.n_universes].update({b: names_numbered})
                     self.types[self.n_universes].update({b: types})
                     self.lengths[self.n_universes].update({b: lengths})
-                    self.xpos[self.n_universes].update({b: xpos})
-                    self.ypos[self.n_universes].update({b: ypos})
-                    self.zpos[self.n_universes].update({b: zpos})
+                    self.spos[self.n_universes].update({b: spos})
                     self.params[self.n_universes].update({b: params})
                     self.laura_elems[self.n_universes].update({b: {}})
                 self.n_universes += 1
@@ -153,184 +343,308 @@ class BmadLatticeImporter(BaseModel):
             for k in range(1, self.n_universes)
         }
 
-    def create_element_dictionary(self, universe: int) -> None:
+    def _physical_common(self, universe: int, b: str, i: int) -> dict:
+        """Build this element's shared ``physical`` sub-dict (position + length).
+
+        Bmad's own cumulative arc-length is handed straight to LAURA as
+        ``physical.s``/``s_point``, fed into ``resolve_positions()``.
+        """
+        return {
+            "s": self.spos[universe][b][i],
+            "s_point": "end",
+            "length": float(self.lengths[universe][b][i]),
+        }
+
+    def create_element_dictionary(self, universe: int) -> Dict[str, Dict[str, Element]]:
+        return self.create_laura_element_dictionary(universe)
+
+    def create_laura_element_dictionary(
+        self, universe: int
+    ) -> Dict[str, Dict[str, Element]]:
+        switch_dict = _switch_dict()
         for b in self.names_numbered[universe].keys():
             for i, nam in enumerate(self.names_numbered[universe][b]):
-                end_x = self.xpos[universe][b][i]
-                end_y = self.ypos[universe][b][i]
-                end_z = self.zpos[universe][b][i]
-
-                # Get the start position (end of previous element, or origin if first)
-                if i > 0:
-                    start_x = self.xpos[universe][b][i - 1]
-                    start_y = self.ypos[universe][b][i - 1]
-                    start_z = self.zpos[universe][b][i - 1]
-                else:
-                    # First element starts at origin (or you might have a specific starting point)
-                    start_x = 0.0
-                    start_y = 0.0
-                    start_z = 0.0
-
-                # Calculate middle position as the average of start and end
-                middle = [
-                    (start_x + end_x) / 2.0,
-                    (start_y + end_y) / 2.0,
-                    (start_z + end_z) / 2.0,
-                ]
-
-                # Calculate the beam direction at the START of this element
-                # This is the direction the beam is traveling when it enters the element
-                if i > 1:
-                    # Direction from the element before last to the last element
-                    # This gives us the exit direction of the previous element
-                    forward = (
-                        self.xpos[universe][b][i - 1] - self.xpos[universe][b][i - 2],
-                        self.ypos[universe][b][i - 1] - self.ypos[universe][b][i - 2],
-                        self.zpos[universe][b][i - 1] - self.zpos[universe][b][i - 2],
-                    )
-                elif i == 1:
-                    # For the second element, use direction from origin to first element's end
-                    forward = (
-                        self.xpos[universe][b][0],
-                        self.ypos[universe][b][0],
-                        self.zpos[universe][b][0],
-                    )
-                else:
-                    # For the first element, assume initial direction along z-axis
-                    # (or you might have a specific initial direction)
-                    forward = (0.0, 0.0, 1.0)
-
-                # Calculate rotation angles from the forward direction at element start
-                pitch, roll, yaw = rotation_angles(forward)
+                etype = self.types[universe][b][i]
+                mapped_type = switch_dict.get(etype.lower())
+                length = float(self.lengths[universe][b][i])
+                phys_common = self._physical_common(universe, b, i)
 
                 elem_data = {}
                 parameters = self.params[universe][b][i]
-                if self.types[universe][b][i] == "Kicker":
-                    hardware_class = "Magnet"
-                    hardware_type = "Combined_Corrector"
+                if etype == "Kicker":
+                    hardware_type = mapped_type
                     horizontal = nam + "_H"
                     vertical = nam + "_V"
-                    hcor = {
-                        "magnetic": {
-                            "order": 0,
-                            "length": self.lengths[universe][b][i],
-                            "kl": parameters["HKICK"],
-                        }
-                    }
-                    vcor = {
-                        "magnetic": {
-                            "order": 0,
-                            "length": float(self.lengths[universe][b][i]),
-                            "kl": parameters["VKICK"],
-                        }
-                    }
+                    hkick = _native_keyword(hardware_type, "horizontal_kick")
+                    vkick = _native_keyword(hardware_type, "vertical_kick")
+                    hcor = {"length": length, "horizontal_kick": parameters[hkick]}
+                    vcor = {"length": length, "vertical_kick": parameters[vkick]}
                     elem_data = {
                         "hardware_type": hardware_type,
-                        "Horizontal_Corrector": horizontal,
-                        "Vertical_Corrector": vertical,
-                        "hcor": hcor,
-                        "vcor": vcor,
+                        "magnetic": {
+                            "length": length,
+                            "horizontal_kick": parameters[hkick],
+                            "vertical_kick": parameters[vkick],
+                        },
                     }
-                elif self.types[universe][b][i] in magnetic_orders:
-                    hardware_type = self.types[universe][b][i]
-                    hardware_class = "Magnet"
+                    for attribute, target in (
+                        (hkick, "horizontal_kick"),
+                        (vkick, "vertical_kick"),
+                    ):
+                        symbol = self._symbol(nam.split(".", 1)[0], attribute)
+                        if symbol:
+                            elem_data["magnetic"][target] = symbol
+                            (hcor if attribute == "HKICK" else vcor)[target] = symbol
+                elif etype in ("HKicker", "VKicker"):
+                    target = (
+                        "horizontal_kick" if etype == "HKicker" else "vertical_kick"
+                    )
+                    kick = _native_keyword(mapped_type, target)
+                    elem_data = {
+                        "hardware_type": mapped_type,
+                        "magnetic": {
+                            "length": length,
+                            target: self._symbol(
+                                nam.split(".", 1)[0], kick
+                            ) or parameters[kick],
+                        },
+                    }
+                elif etype in magnetic_orders:
+                    hardware_type = mapped_type
+                    order = magnetic_orders[hardware_type]
                     try:
+                        normal = self._symbol(
+                            nam.split(".", 1)[0], f"K{order}", length
+                        ) or parameters[f"K{order}"] * length
                         kl = {
                             "multipoles": {
-                                f"K{magnetic_orders[hardware_type]}L": {
-                                    "normal": parameters[
-                                        f"K{magnetic_orders[hardware_type]}"
-                                    ]
-                                    * self.lengths[universe][b][i],
-                                    "order": magnetic_orders[hardware_type],
+                                f"K{order}L": {
+                                    "normal": normal,
+                                    "order": order,
                                 },
                             },
                         }
                     except KeyError:
+                        angle = self._symbol(
+                            nam.split(".", 1)[0], "ANGLE"
+                        ) or parameters["ANGLE"]
                         kl = {
                             "multipoles": {
-                                f"K{magnetic_orders[hardware_type]}L": {
-                                    "normal": parameters["ANGLE"],
-                                    "order": magnetic_orders[hardware_type],
+                                f"K{order}L": {
+                                    "normal": angle,
+                                    "order": order,
                                 },
                             },
-                            "entrance_edge_angle": parameters["E1"],
-                            "exit_edge_angle": parameters["E2"],
+                            "entrance_edge_angle": parameters[
+                                _native_keyword(hardware_type, "entrance_edge_angle")
+                            ],
+                            "exit_edge_angle": parameters[
+                                _native_keyword(hardware_type, "exit_edge_angle")
+                            ],
                         }
-                    if "GAP" in parameters:
-                        kl.update({"GAP": parameters["GAP"]})
+                    gap = _native_keyword(hardware_type, "gap")
+                    if gap in parameters:
+                        kl.update({"gap": parameters[gap]})
                     elem_data = {
                         "hardware_type": hardware_type,
-                        "magnetic": {
-                            "order": magnetic_orders[hardware_type],
-                            "length": float(self.lengths[universe][b][i]),
-                            **kl,
+                        "magnetic": {"order": order, "length": length, **kl},
+                    }
+                elif etype in _CAVITY_TYPES:
+                    hardware_type = mapped_type
+                    n_cells = parameters.get(
+                        _native_keyword(hardware_type, "n_cells"), 1
+                    ) or 1
+                    elem_data = {
+                        "hardware_type": hardware_type,
+                        "cavity": {
+                            "phase": parameters.get(
+                                _native_keyword(hardware_type, "phase"), 0.0
+                            ) * 360.0,
+                            "frequency": parameters[
+                                _native_keyword(hardware_type, "frequency")
+                            ],
+                            "n_cells": n_cells,
+                            "cell_length": length / n_cells,
+                            "structure_type": str(
+                                parameters.get(
+                                    _native_keyword(hardware_type, "structure_type"),
+                                    "Standing_Wave",
+                                )
+                            ).replace("_", ""),
+                        },
+                        "simulation": {
+                            "field_amplitude": parameters[
+                                _native_keyword(hardware_type, "field_amplitude")
+                            ]
                         },
                     }
-                elif self.types[universe][b][i] == "Marker":
-                    hardware_class = "Simulation"
-                    hardware_type = "Marker"
-                    markelem = {
-                        "physical": {
-                            "position": middle,
-                            "global_rotation": [
-                                pitch,
-                                roll,
-                                yaw,
-                            ],
-                            "length": float(self.lengths[universe][b][i]),
+                elif etype == "Wiggler":
+                    b_max = parameters.get(
+                        _native_keyword(mapped_type, "peak_magnetic_field"), 0.0
+                    )
+                    l_period = parameters.get(
+                        _native_keyword(mapped_type, "period"), 0.0
+                    )
+                    elem_data = {
+                        "hardware_type": mapped_type,
+                        "magnetic": {
+                            "length": length,
+                            "peak_magnetic_field": b_max,
+                            "period": l_period,
+                            "num_periods": int(
+                                parameters.get(
+                                    _native_keyword(mapped_type, "num_periods"), 0
+                                )
+                            ),
+                            "strength": 0.934 * b_max * (l_period * 100.0),
                         },
+                    }
+                elif etype == "Solenoid":
+                    bs_field = parameters.get(
+                        _native_keyword(mapped_type, "ks"), 0.0
+                    )
+                    elem_data = {
+                        "hardware_type": mapped_type,
+                        "magnetic": {
+                            "length": length,
+                            "fields": {"S0L": bs_field * length},
+                        },
+                    }
+                elif etype == "Sol_Quad":
+                    k1 = _native_keyword(mapped_type, "k1l")
+                    bs_field = _native_keyword(mapped_type, "ks")
+                    elem_data = {
+                        "hardware_type": mapped_type,
+                        "magnetic": {
+                            "length": length,
+                            "k1l": self._symbol(
+                                nam.split(".", 1)[0], k1, length
+                            ) or parameters.get(k1, 0.0) * length,
+                            "solenoid_fields": {
+                                "S0L": parameters.get(bs_field, 0.0) * length
+                            },
+                        },
+                    }
+                elif etype == "ELSeparator":
+                    field = parameters.get(
+                        _native_keyword(mapped_type, "field_amplitude"), 0.0
+                    )
+                    hkick = parameters.get(
+                        _native_keyword(mapped_type, "horizontal_kick"), 0.0
+                    )
+                    vkick = parameters.get(
+                        _native_keyword(mapped_type, "vertical_kick"), 0.0
+                    )
+                    kick = math.hypot(hkick, vkick)
+                    if kick:
+                        horizontal_field = field * hkick / kick
+                        vertical_field = field * vkick / kick
+                    else:
+                        tilt = parameters.get("TILT", 0.0)
+                        horizontal_field = field * math.sin(tilt)
+                        vertical_field = field * math.cos(tilt)
+                    elem_data = {
+                        "hardware_type": mapped_type,
+                        "simulation": {
+                            "horizontal_field": horizontal_field,
+                            "vertical_field": vertical_field,
+                        },
+                    }
+                elif etype == "Match":
+                    elem_data = {
+                        "hardware_type": mapped_type,
+                        "simulation": {
+                            "apply": True,
+                            "c_matrix": parameters["_VEC0"],
+                            "r_matrix": parameters["_MAT6"],
+                        },
+                    }
+                elif etype == "Taylor":
+                    try:
+                        c_matrix, r_matrix, t_matrix, u_matrix = _taylor_matrices(
+                            parameters["_TAYLOR"]
+                        )
+                    except ValueError as exc:
+                        warn(f"Could not import Bmad Taylor element {nam!r}: {exc}.")
+                        continue
+                    elem_data = {
+                        "hardware_type": mapped_type,
+                        "simulation": {
+                            "apply": True,
+                            "c_matrix": c_matrix,
+                            "r_matrix": r_matrix,
+                            "t_matrix": t_matrix,
+                            "u_matrix": u_matrix,
+                            "spin_taylor": parameters["_SPIN_TAYLOR"],
+                        },
+                    }
+                elif etype in _COLLIMATOR_TYPES:
+                    x1 = _native_keyword(mapped_type, "x1_limit")
+                    x2 = _native_keyword(mapped_type, "x2_limit")
+                    y1 = _native_keyword(mapped_type, "y1_limit")
+                    y2 = _native_keyword(mapped_type, "y2_limit")
+                    elem_data = {
+                        "hardware_type": mapped_type,
+                        "aperture": {
+                            "horizontal_size": (
+                                parameters.get(x1, 0.0)
+                                + parameters.get(x2, 0.0)
+                            ),
+                            "vertical_size": (
+                                parameters.get(y1, 0.0)
+                                + parameters.get(y2, 0.0)
+                            ),
+                        },
+                    }
+                elif etype in ("Marker", "Monitor", "Instrument"):
+                    markelem = {
+                        "physical": dict(phys_common),
                         "name": nam,
-                        "hardware_class": hardware_class,
-                        "hardware_type": hardware_type,
+                        "hardware_type": mapped_type,
                         "machine_area": "test",
                     }
                     self.laura_elems[universe][b].update(
-                        {
-                            nam: getattr(LAURA_elements, self.types[universe][b][i])(
-                                **markelem
-                            )
-                        }
+                        {nam: getattr(LAURA_elements, markelem["hardware_type"])(**markelem)}
                     )
+                elif etype not in _SILENTLY_SKIPPED_TYPES:
+                    warn(
+                        f"Could not parse Bmad element type {etype!r} for "
+                        f"{nam!r}; skipping."
+                    )
+
                 if elem_data:
                     elems = {
                         nam: {
-                            "physical": {
-                                "position": middle,
-                                "global_rotation": [
-                                    pitch,
-                                    roll,
-                                    yaw,
-                                ],
-                                "length": float(self.lengths[universe][b][i]),
-                            },
+                            "physical": dict(phys_common),
                             "name": nam,
-                            "hardware_class": hardware_class,
-                            "hardware_type": hardware_type,
                             "machine_area": "test",
+                            **elem_data,
                         }
                     }
-                    elems[nam].update(**elem_data)
-                    if self.types[universe][b][i] == "Kicker":
-                        helem = elems.copy()
+                    if etype == "Kicker":
+                        helem = dict(elems[nam])
+                        helem["physical"] = dict(phys_common)
                         helem.update(
                             {
                                 "name": horizontal,
                                 "hardware_type": "Horizontal_Corrector",
                                 "magnetic": hcor,
+                                "subelement": nam,
                             }
                         )
-                        velem = elems.copy()
+                        velem = dict(elems[nam])
+                        velem["physical"] = dict(phys_common)
                         velem.update(
                             {
                                 "name": vertical,
                                 "hardware_type": "Vertical_Corrector",
                                 "magnetic": vcor,
+                                "subelement": nam,
                             }
                         )
                         comb = Combined_Corrector(**elems[nam])
-                        hori = Horizontal_Corrector(**elems[nam])
-                        vert = Vertical_Corrector(**elems[nam])
+                        hori = Horizontal_Corrector(**helem)
+                        vert = Vertical_Corrector(**velem)
                         self.laura_elems[universe][b].update(
                             {
                                 nam: comb,
@@ -338,33 +652,131 @@ class BmadLatticeImporter(BaseModel):
                                 vertical: vert,
                             },
                         )
-                    elif self.types[universe][b][i] in magnetic_orders:
-                        if self.types[universe][b][i] in ["RBend", "SBend"]:
-                            self.types[universe][b][i] = "Dipole"
-                            elems[nam]["hardware_type"] = "Dipole"
-                            elems[nam]["physical"]["physical_angle"] = -elems[nam][
-                                "magnetic"
-                            ]["multipoles"]["K0L"]["normal"]
+                    else:
+                        hardware_type = elems[nam]["hardware_type"]
                         self.laura_elems[universe][b].update(
-                            {
-                                nam: getattr(
-                                    LAURA_elements, self.types[universe][b][i]
-                                )(**elems[nam])
-                            }
+                            {nam: getattr(LAURA_elements, hardware_type)(**elems[nam])}
                         )
+        return self.laura_elems[universe]
 
     def create_section(self, universe: int, branch: str) -> Dict[str, SectionLattice]:
-        if not self.elements:
-            self.create_element_dictionary(universe)
-        order = list(self.laura_elems[universe][branch].keys())
+        if not self.laura_elems[universe][branch]:
+            self.create_laura_element_dictionary(universe)
         elems = self.laura_elems[universe][branch]
+        self.elements = elems
+        order = [n for n, e in elems.items() if not e.is_subelement()]
         seclat = SectionLattice(
-            order=order, elements=ElementList(elements=elems), name=branch
+            order=order, elements=ElementList(elements=elems), name=branch,
+            functional_definitions=self.functional_definitions,
         )
+        seclat.resolve_positions(elems)
+        for name, elem in elems.items():
+            if elem.is_subelement():
+                parent = elems.get(elem.subelement)
+                if parent is not None and parent.physical.middle is not None:
+                    elem.physical.s = parent.physical.s
+                    elem.physical.s_point = parent.physical.s_point
+                    elem.physical.middle = parent.physical.middle
+                    elem.physical.rotation = parent.physical.rotation
+                    elem.physical.global_rotation = parent.physical.global_rotation
         return {branch: seclat}
 
-    def create_layout(self, universe: int) -> Dict[str, MachineLayout]:
+    def create_layout(
+        self, universe: int, name: Optional[str] = None
+    ) -> MachineLayout:
         layout = {}
         for branch in list(self.names_numbered[universe].keys()):
-            layout.update(**self.create_section(universe, branch))
-        return {str(universe): MachineLayout(name=str(universe), sections=layout)}
+            layout.update(self.create_section(universe, branch))
+        return MachineLayout(
+            name=name or str(universe), sections=layout,
+            functional_definitions=self.functional_definitions,
+        )
+
+    def create_machine_model(self, min_section_length: int = 5) -> MachineModel:
+        """Build a model with one layout per Tao universe.
+
+        Tao branches become sections. Branches containing fewer than
+        ``min_section_length`` imported lattice elements are omitted, and
+        elements with the same name and placement are shared between layouts.
+        When Tao gives the same name a different position, orientation, or
+        arc-length in another layout, a layout-specific ``name__layout`` copy
+        is created because :class:`MachineModel` stores one placement per name.
+        """
+        if min_section_length < 1:
+            raise ValueError("min_section_length must be at least 1.")
+
+        layout_names = {}
+        if self.tao_init:
+            text = Path(self.tao_init).read_text()
+            layout_names = {
+                int(universe): Path(filename).stem
+                for universe, filename in re.findall(
+                    r"design_lattice\((\d+)\)%file\s*=\s*['\"]([^'\"]+)['\"]",
+                    text,
+                    re.I,
+                )
+            }
+
+        elements = {}
+        section_definitions = {}
+        layout_definitions = {}
+        skipped_sections = []
+
+        for universe in sorted(self.branches):
+            default_name = (
+                Path(self.lattice_file).stem if self.lattice_file else str(universe)
+            )
+            layout_name = layout_names.get(universe, default_name)
+            if layout_name in layout_definitions:
+                layout_name = f"{layout_name}_{universe}"
+            layout = self.create_layout(universe, name=layout_name)
+            layout_sections = []
+            for source_name, section in layout.sections.items():
+                if len(section.order) < min_section_length:
+                    skipped_sections.append(f"{layout_name}/{source_name}")
+                    continue
+                section_name = source_name
+                if section_name in section_definitions:
+                    section_name = f"{layout_name}_{section_name}"
+                merge_layout_elements(
+                    elements,
+                    section_definitions,
+                    section_name,
+                    section.elements.elements.items(),
+                    section.order,
+                    layout_name,
+                )
+                layout_sections.append(section_name)
+            if layout_sections:
+                layout_definitions[layout_name] = layout_sections
+
+        if skipped_sections:
+            warn(
+                "Skipped BMAD branches shorter than min_section_length="
+                f"{min_section_length}: {', '.join(skipped_sections)}"
+            )
+        if not layout_definitions:
+            raise ValueError(
+                "No BMAD layouts meet min_section_length="
+                f"{min_section_length}."
+            )
+
+        source = self.tao_init or self.lattice_file
+        return MachineModel(
+            elements=elements,
+            section={"sections": section_definitions},
+            layout={
+                "layouts": layout_definitions,
+                "default_layout": next(iter(layout_definitions)),
+            },
+            master_lattice=str(Path(source).resolve().parent),
+            functional_definitions=self.functional_definitions,
+        )
+
+    def export_yaml(
+        self,
+        path: str,
+        source: Union[SectionLattice, MachineLayout, MachineModel],
+        position_mode: PositionMode = "s",
+    ) -> None:
+        export_machine_combined_file(path, source, position_mode=position_mode)

@@ -1,0 +1,47 @@
+general:
+  length: l
+  entrance_edge_angle: e1
+  exit_edge_angle: e2
+  gap: gap
+  tilt_angle: tilt
+dipole:
+  angle: angle
+quadrupole:
+  k1l: k1
+sextupole:
+  k2l: k2
+octupole:
+  k3l: k3
+decapole:
+  k4l: k4
+horizontal_corrector:
+  horizontal_kick: kick
+vertical_corrector:
+  vertical_kick: kick
+combined_corrector:
+  horizontal_kick: hkick
+  vertical_kick: vkick
+rfcavity:
+  phase: phi0
+  frequency: rf_frequency
+  field_amplitude: voltage
+  n_cells: n_cell
+  structure_type: cavity_type
+wiggler:
+  peak_magnetic_field: b_max
+  period: l_period
+  num_periods: n_period
+solenoid:
+  ks: bs_field
+combinedsolenoidquadrupole:
+  k1l: k1
+  ks: bs_field
+electrostaticseparator:
+  field_amplitude: e_field
+  horizontal_kick: hkick
+  vertical_kick: vkick
+collimator:
+  x1_limit: x1_limit
+  x2_limit: x2_limit
+  y1_limit: y1_limit
+  y2_limit: y2_limit

@@ -1,0 +1,4 @@
+default_layout: DEMO_LAYOUT
+layouts:
+  DEMO_LAYOUT:
+    - DEMO

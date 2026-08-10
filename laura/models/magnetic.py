@@ -2,7 +2,9 @@ import numpy as np
 from .constants import speed_of_light, pi
 from pydantic import (
     BaseModel,
+    ConfigDict,
     model_serializer,
+    model_validator,
     Field,
     field_validator,
     NonNegativeInt,
@@ -11,7 +13,24 @@ from pydantic import (
     computed_field,
 )
 from typing import ClassVar, Dict, Any, List, Union
-from .baseModels import IgnoreExtra, T
+from .baseModels import IgnoreExtra, T, resolve_functional_parameter, FunctionalMixin
+from ._generated import (
+    _MultipoleBase,
+    _FieldIntegralBase,
+    _LinearSaturationFitBase,
+    _MagneticElementBase,
+    _SolenoidFieldsBase,
+    _SolenoidMagnetBase,
+    _CombinedSolenoidQuadrupoleMagnetBase,
+    _NonLinearLensMagnetBase,
+    _CorrectorMagnetBase,
+    _WigglerMagnetBase,
+    _DipoleMagnetBase,
+    _QuadrupoleMagnetBase,
+    _SextupoleMagnetBase,
+    _OctupoleMagnetBase,
+    _DecapoleMagnetBase,
+)
 
 
 def Power(a, b):
@@ -22,26 +41,42 @@ def Sqrt(a):
     return Power(a, 0.5)
 
 
+def _coerce_field_integral(v: Union[str, List, dict, Any, None]) -> Any:
+    if isinstance(v, str):
+        return FieldIntegral(coefficients=list(map(float, v.split(","))))
+    if isinstance(v, (list, tuple)):
+        return FieldIntegral(coefficients=list(v))
+    if isinstance(v, dict):
+        return FieldIntegral(**v)
+    if isinstance(v, FieldIntegral):
+        return v
+    if v is None:
+        return None
+    raise ValueError("field_integral_coefficients should be a string or a list of floats")
+
+
 Pi = pi
 Degree = pi / 180.0
 
 
-class Multipole(BaseModel):
+def _is_set(value: Any) -> bool:
+    """True if a (possibly functional) strength value is non-trivial: any string
+    functional definition counts as set; numbers count if non-zero."""
+    if isinstance(value, str):
+        return True
+    return abs(value) > 0
+
+
+class Multipole(_MultipoleBase, FunctionalMixin):
     """
     Single order magnetic multipole model.
+
+    ``normal``/``skew`` accept the name of a functional definition as well as a
+    number; that widening and the ``functional`` marker both come from the
+    schema slot, so nothing needs restating here.
     """
 
-    order: NonNegativeInt = 0
-    """Multipole order (0=dipole, 1=quadrupole, etc.)."""
-
-    normal: float = 0.0
-    """Normal component of the multipole strength."""
-
-    skew: float = 0.0
-    """Skew component of the multipole strength."""
-
-    radius: float = 0.0
-    """Reference radius for the multipole strength."""
+    pass
 
 
 multipoles = {
@@ -58,6 +93,8 @@ class Multipoles(MultipolesData):
 
     @field_validator("*", mode="before")
     def validate_Multipole(cls, v: Union[List, dict]) -> Multipole:
+        if v is None:
+            return Multipole()
         if isinstance(v, (list, tuple)):
             if len(v) == 2:
                 return Multipole(order=v[0], normal=v[1])
@@ -79,8 +116,8 @@ class Multipoles(MultipolesData):
                 + getattr(self, "K" + str(i) + "L").__str__()
                 + ")"
                 for i in range(0, 5)
-                if abs(getattr(self, "K" + str(i) + "L").normal) > 0
-                or abs(getattr(self, "K" + str(i) + "L").skew) > 0
+                if _is_set(getattr(self, "K" + str(i) + "L").normal)
+                or _is_set(getattr(self, "K" + str(i) + "L").skew)
             ]
         )
 
@@ -104,7 +141,8 @@ class Multipoles(MultipolesData):
             order (int): The order of the multipole (0=dipole, 1=quadrupole, etc.).
 
         Returns:
-            Union[int, float]: The normal component of the multipole strength.
+            Union[int, float, str]: The normal component of the multipole strength,
+            as stored (a number, or the name of a functional definition).
         """
         return getattr(self, "K" + str(order) + "L").normal
 
@@ -116,24 +154,19 @@ class Multipoles(MultipolesData):
             order (int): The order of the multipole (0=dipole, 1=quadrupole, etc.).
 
         Returns:
-            Union[int, float]: The skew component of the multipole strength.
+            Union[int, float, str]: The skew component of the multipole strength,
+            as stored (a number, or the name of a functional definition).
         """
         return getattr(self, "K" + str(order) + "L").skew
 
     def __eq__(self, other) -> bool:
         return self.ser_model() == other
 
-    def __neq__(self, other) -> bool:
-        return not self.__eq__(other)
 
-
-class FieldIntegral(BaseModel):
+class FieldIntegral(_FieldIntegralBase):
     """
     Field integral coefficients model.
     """
-
-    coefficients: List[Union[int, float]] = [0]
-    """Integrated field coefficients."""
 
     def currentToK(self, current: float, energy: float) -> float:
         """
@@ -161,7 +194,7 @@ class FieldIntegral(BaseModel):
         return iter(self.coefficients)
 
 
-class LinearSaturationFit(BaseModel):
+class LinearSaturationFit(_LinearSaturationFitBase):
     """
     Linear + saturation fit coefficients model.
     """
@@ -171,13 +204,6 @@ class LinearSaturationFit(BaseModel):
     # field is never interpreted as a coefficient.
     _COEFF_KEYS: ClassVar[list] = ["m", "I_max", "f", "a", "I0", "d", "L"]
 
-    m: float = 0
-    I_max: NonNegativeFloat = 0
-    f: float = 0
-    a: float = 0
-    I0: float = 0
-    d: float = 0
-    L: NonNegativeFloat = 0
     # Magnet order (0 = dipole/corrector, 1 = quadrupole, …).
     # Set by MagneticElement after construction; excluded from serialisation.
     order: int = Field(default=1, exclude=True)
@@ -329,19 +355,16 @@ class LinearSaturationFit(BaseModel):
         return iter([getattr(self, k) for k in self._COEFF_KEYS])
 
 
-class MagneticElement(IgnoreExtra):
+class MagneticElement(_MagneticElementBase, FunctionalMixin):
     """
     Magnetic info model.
     """
 
-    order: int = Field(repr=False, default=-1, frozen=True)
-    """Magnetic order"""
+    entrance_edge_angle: float | str | None = 0.0
+    """Entrance edge angle"""
 
-    skew: bool = False
-    """Flag to indicate if the multipole is skew."""
-
-    length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
-    """Magnetic length [m]."""
+    exit_edge_angle: float | str | None = 0.0
+    """Exit edge angle"""
 
     multipoles: Multipoles | None = Multipoles()
     """Magnetic multipoles."""
@@ -352,51 +375,30 @@ class MagneticElement(IgnoreExtra):
     random_multipoles: Multipoles | None = Multipoles()
     """Random magnetic multipoles."""
 
-    field_integral_coefficients: FieldIntegral | None = None  # FieldIntegral()
-    """Field integral coefficients."""
+    linear_saturation_coefficients: LinearSaturationFit | None = None
+    """Linear saturation fit coefficients (typed to allow order assignment)."""
 
-    linear_saturation_coefficients: LinearSaturationFit | None = (
-        None  # LinearSaturationFit()
+    # field_integral_coefficients, settle_time, gap, bore, plane, width, tilt,
+    # edge_field_integral, fringe_field_coefficient and gradient all come from
+    # _MagneticElementBase. The two edge angles are widened and marked here
+    # because the schema types them as plain floats.
+    entrance_edge_angle: float | str = Field(
+        default=0.0,
+        json_schema_extra={"functional": True, "reserved_contains": "angle"},
     )
-    """Linear saturation fit coefficients."""
+    """Entrance edge angle in degrees. May be a number, an expression referencing
+    the bend angle (any string containing the reserved token ``angle``, e.g.
+    ``"angle"`` or ``"angle/2"``), or the name of a functional definition (see
+    :ref:`functional-parameters`)."""
 
-    settle_time: float | None = (
-        None  # Field(alias="mag_set_max_wait_time", default=45.0)
+    exit_edge_angle: float | str = Field(
+        default=0.0,
+        json_schema_extra={"functional": True, "reserved_contains": "angle"},
     )
-    """
-    Maximum time to wait for the magnet current to settle [s].
-    #TODO move to electrical?
-    """
-
-    entrance_edge_angle: float | str = Field(default=0.0)
-    """Entrance edge angle in degrees; can be "angle" which uses the bend angle."""
-
-    exit_edge_angle: float | str = Field(default=0.0)
-    """Exit edge angle in degrees; can be "angle" which uses the bend angle."""
-
-    gap: float = Field(default=0.032)
-    """Magnetic gap [m]."""
-
-    bore: float = Field(default=0.037)
-    """Magnetic bore radius [m]."""
-
-    plane: str = Field(default="horizontal")
-    """Magnetic field plane: 'horizontal' or 'vertical'."""
-
-    width: float = Field(default=0.2)
-    """Width of magnet [m]."""
-
-    tilt: float = Field(default=0.0)
-    """Tilt angle of magnet [degrees]."""
-
-    edge_field_integral: float = Field(default=0.5)
-    """Edge field integral."""
-
-    fringe_field_coefficient: float = Field(default=0.0)
-    """Fringe field coefficient."""
-
-    gradient: float | None = None
-    """Magnetic gradient."""
+    """Exit edge angle in degrees. May be a number, an expression referencing the
+    bend angle (any string containing the reserved token ``angle``, e.g.
+    ``"angle"`` or ``"angle/2"``), or the name of a functional definition (see
+    :ref:`functional-parameters`)."""
 
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)
@@ -410,62 +412,77 @@ class MagneticElement(IgnoreExtra):
         )
         if self.multipoles is None and needs_multipoles:
             object.__setattr__(self, "multipoles", Multipoles())
-        if "kl" in data:
+        # Test the value, not just key presence: a round-tripped model_dump()
+        # carries `angle: None` for every non-dipole, which would otherwise build
+        # a Multipole(normal=None) and fail validation.
+        if data.get("kl") is not None:
             self.kl = data["kl"]
-        if "angle" in data and self.order == 0:
+        if data.get("angle") is not None and self.order == 0:
             self.kl = data["angle"]
         if self.multipoles is not None:
-            if "kl" in data or "angle" in data:
+            if data.get("kl") is not None or data.get("angle") is not None:
+                # Use the raw input value so that a string functional definition
+                # is stored verbatim rather than resolved at construction time.
+                raw_kl = data["kl"] if data.get("kl") is not None else data["angle"]
                 if self.skew:
                     setattr(
                         self.multipoles,
                         "K" + str(self.order) + "L",
-                        Multipole(skew=self.kl, order=self.order),
+                        Multipole(skew=raw_kl, order=self.order),
                     )
                 else:
                     setattr(
                         self.multipoles,
                         "K" + str(self.order) + "L",
-                        Multipole(normal=self.kl, order=self.order),
+                        Multipole(normal=raw_kl, order=self.order),
                     )
             for i in range(0, 5):
-                if f"k{i}l" in data:
+                if data.get(f"k{i}l") is not None:
                     setattr(
                         self.multipoles,
                         f"K{i}L",
                         Multipole(normal=data[f"k{i}l"], order=i),
                     )
+        # `angle` is only meaningful for dipoles (order 0); keep it mirroring
+        # the K0L multipole strength regardless of how it was set (k0l=, kl=, angle=).
+        if self.order == 0:
+            pass  # angle is derived from K0L; nothing to mirror.
+
+    @field_validator("plane", mode="before")
+    @classmethod
+    def validate_plane(cls, v) -> str:
+        if isinstance(v, str):
+            return v.capitalize()
+        return v
 
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
     def validate_field_integral_coefficients(
         cls, v: Union[str, List, dict | None]
     ) -> FieldIntegral | None:
-        if isinstance(v, str):
-            return FieldIntegral(coefficients=list(map(float, v.split(","))))
-        elif isinstance(v, (list, tuple)):
-            return FieldIntegral(coefficients=list(v))
-        elif isinstance(v, dict):
-            return FieldIntegral(**v)
-        elif isinstance(v, FieldIntegral):
-            return v
-        elif v is None:
-            return None
-        else:
-            raise ValueError(
-                "field_integral_coefficients should be a string or a list of floats"
-            )
+        return _coerce_field_integral(v)
 
     # @debug
     def KnL(self, order: int = None) -> Union[int, float]:
         """
-        Get the integrated strength (KnL) of the multipole for a given order.
+        Get the integrated strength (KnL) of the multipole for a given order,
+        resolved to a number. This is the value to use for computation; a
+        functional definition (stored as a string on the multipole) is resolved
+        here, while the raw configured value remains available via
+        :attr:`kl` / :meth:`Multipoles.normal`.
 
         Args:
             order (int, optional): The order of the multipole. Defaults to None, which uses self.order.
 
         Returns:
             Union[int, float]: The integrated strength (KnL) of the multipole.
+        """
+        return resolve_functional_parameter(self.kl_raw(order), force=True)
+
+    def kl_raw(self, order: int = None) -> Union[int, float, str]:
+        """
+        Get the integrated strength as stored — a number, or the name of a
+        functional definition — without resolving it.
         """
         if self.multipoles is None:
             return 0
@@ -483,11 +500,15 @@ class MagneticElement(IgnoreExtra):
         Returns:
             Union[int, float]: The normalized strength (Kn) of the multipole.
         """
-        return self.knl(order) / self.length
+        return self.KnL(order) / self.length
 
     @property
-    def kl(self) -> Union[int, float]:
-        return self.KnL(self.order)
+    def kl(self) -> Union[int, float, str]:
+        """Integrated strength as configured. By default (global resolution mode
+        off) this is the value as stored — a number, or the name of a functional
+        definition; with resolution mode on it is the resolved number. Use
+        :meth:`KnL` for the resolved number regardless of mode."""
+        return resolve_functional_parameter(self.kl_raw(self.order))
 
     @kl.setter
     def kl(self, kl: float = 0) -> None:
@@ -516,7 +537,7 @@ class MagneticElement(IgnoreExtra):
         if self.gradient is not None:
             return self.gradient
         Brho = 3.3356 * momentum / (1e9)
-        return self.kl * Brho / self.length
+        return self.KnL(self.order) * Brho / self.length
 
     def currentToK(self, *args, **kwargs):
         return self.linear_saturation_coefficients.currentToK(*args, **kwargs)
@@ -527,18 +548,32 @@ class MagneticElement(IgnoreExtra):
     def KLToCurrent(self, *args, **kwargs):
         return self.linear_saturation_coefficients.KLToCurrent(*args, **kwargs)
 
+    def currentToAngle(self, current: float, momentum: float) -> float:
+        """Convert current to bend angle in degrees."""
+        output_dict = self.linear_saturation_coefficients.currentToK(
+            current=current, momentum=momentum
+        )
+        return output_dict["KL"] * 360 / (2.0 * np.pi) / 1000
 
-class Dipole_Magnet(MagneticElement):
+
+class Dipole_Magnet(MagneticElement, _DipoleMagnetBase):
     """
     Dipole magnet with magnetic order 0.
     """
 
-    order: int = Field(repr=False, default=0, frozen=True)
+    order: int = Field(repr=False, default=0)
     """Magnetic order of the dipole."""
 
+    # `angle` is deliberately not a schema slot (see magnetic.yaml): it is
+    # derived from multipoles.K0L here, so a symbolic bend angle survives
+    # round-tripping and reads follow the global resolution mode.
     @property
-    def angle(self) -> float:
-        return self.KnL(order=0)
+    def angle(self) -> Union[int, float, str]:
+        """Bend angle as configured. By default (global resolution mode off) this
+        is the value as stored -- a number, or the name of a functional
+        definition; with resolution mode on it is the resolved number. Use
+        ``KnL(0)`` for the resolved number regardless of mode."""
+        return resolve_functional_parameter(self.kl_raw(0))
 
     @angle.setter
     def angle(self, value: float) -> None:
@@ -588,9 +623,16 @@ class Dipole_Magnet(MagneticElement):
         Returns
             float: The dipole bend radius
         """
+        # rho is a derived numeric quantity: always resolve the bend angle, but
+        # degrade gracefully to 0 if a functional definition is not yet available
+        # (e.g. a bare model_dump before the lattice is built).
+        try:
+            angle = self.KnL(0)
+        except KeyError:
+            return 0
         return (
-            self.length / self.angle
-            if self.length is not None and abs(self.angle) > 1e-9
+            self.length / angle
+            if self.length is not None and abs(angle) > 1e-9
             else 0
         )
 
@@ -608,12 +650,12 @@ class Dipole_Magnet(MagneticElement):
         return self.rho * Brho / self.length
 
 
-class Quadrupole_Magnet(MagneticElement):
+class Quadrupole_Magnet(MagneticElement, _QuadrupoleMagnetBase):
     """
     Quadrupole with magnetic order 1.
     """
 
-    order: int = Field(repr=False, default=1, frozen=True)
+    order: int = Field(repr=False, default=1)
     """Magnetic order of the quadrupole."""
 
     @property
@@ -625,12 +667,12 @@ class Quadrupole_Magnet(MagneticElement):
         self.kl = value
 
 
-class Sextupole_Magnet(MagneticElement):
+class Sextupole_Magnet(MagneticElement, _SextupoleMagnetBase):
     """
     Sextupole magnet with magnetic order 2.
     """
 
-    order: int = Field(repr=False, default=2, frozen=True)
+    order: int = Field(repr=False, default=2)
     """Magnetic order of the sextupole."""
 
     @property
@@ -642,12 +684,12 @@ class Sextupole_Magnet(MagneticElement):
         self.kl = value
 
 
-class Octupole_Magnet(MagneticElement):
+class Octupole_Magnet(MagneticElement, _OctupoleMagnetBase):
     """
     Octupole magnet with magnetic order 3.
     """
 
-    order: int = Field(repr=False, default=3, frozen=True)
+    order: int = Field(repr=False, default=3)
     """Magnetic order of the octupole."""
 
     @property
@@ -659,12 +701,12 @@ class Octupole_Magnet(MagneticElement):
         self.kl = value
 
 
-class Decapole_Magnet(MagneticElement):
+class Decapole_Magnet(MagneticElement, _DecapoleMagnetBase):
     """
     Decapole magnet with magnetic order 4.
     """
 
-    order: int = Field(repr=False, default=4, frozen=True)
+    order: int = Field(repr=False, default=4)
     """Magnetic order of the decapole."""
 
     @property
@@ -677,12 +719,16 @@ class Decapole_Magnet(MagneticElement):
 
 
 solenoidFields = {
-    "S" + str(no) + "L": (float, Field(default=0, repr=False)) for no in range(0, 13)
+    "S" + str(no) + "L": (
+        Union[float, str],
+        Field(default=0, repr=False, json_schema_extra={"functional": True}),
+    )
+    for no in range(0, 13)
 }
 solenoidFieldsData = create_model("solenoidFieldsData", **solenoidFields)
 
 
-class SolenoidFields(solenoidFieldsData):
+class SolenoidFields(solenoidFieldsData, _SolenoidFieldsBase):
     """Magnetic multipoles model."""
 
     # def __str__(self):
@@ -706,25 +752,52 @@ class SolenoidFields(solenoidFieldsData):
             # if abs(getattr(self, k)) > 0
         }
 
-    def normal(self, order: int) -> Union[int, float]:
+    def normal(self, order: int) -> Union[int, float, str]:
+        """The solenoid field of a given order as stored (a number, or the name
+        of a functional definition); resolved on demand via
+        :attr:`Solenoid_Magnet.field_amplitude`."""
         return getattr(self, "S" + str(order) + "L")
 
     def __eq__(self, other: Any) -> bool:
         return self.ser_model() == other
 
-    def __neq__(self, other: Any) -> bool:
-        return not self.__eq__(other)
+
+class CombinedSolenoidQuadrupole_Magnet(
+    MagneticElement, _CombinedSolenoidQuadrupoleMagnetBase
+):
+    """Coaxial quadrupole and solenoid field components."""
+
+    order: int = Field(repr=False, default=1, frozen=True)
+    """Sol-quad multipole order."""
+
+    solenoid_fields: SolenoidFields = Field(default_factory=SolenoidFields)
+    """Solenoid fields."""
+
+    def __init__(self, /, **data: Any) -> None:
+        super().__init__(**data)
+        if "ks" in data:
+            self.ks = data["ks"]
+
+    @property
+    def ks(self) -> Union[int, float, str]:
+        return self.solenoid_fields.S0L
+
+    @ks.setter
+    def ks(self, value: Union[int, float, str]) -> None:
+        self.solenoid_fields.S0L = value
 
 
-class Solenoid_Magnet(IgnoreExtra):
+class Solenoid_Magnet(_SolenoidMagnetBase, IgnoreExtra):
     """
     Solenoid magnet including higher order fields.
     """
 
+    model_config = ConfigDict(serialize_by_alias=False)
+
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
     """Magnetic length [m]."""
 
-    order: int = Field(repr=False, default=0, frozen=True)
+    order: int = Field(repr=False, default=0)
     """Solenoid multipole order."""
 
     fields: SolenoidFields = SolenoidFields()
@@ -760,37 +833,38 @@ class Solenoid_Magnet(IgnoreExtra):
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
     def validate_field_integral_coefficients(cls, v: Union[str, List]) -> FieldIntegral:
-        if isinstance(v, str):
-            return FieldIntegral(coefficients=list(map(float, v.split(","))))
-        elif isinstance(v, (list, tuple)):
-            return FieldIntegral(coefficients=list(v))
-        elif isinstance(v, dict):
-            return FieldIntegral(**v)
-        elif isinstance(v, FieldIntegral):
-            return v
-        else:
+        result = _coerce_field_integral(v)
+        if result is None:
             raise ValueError(
                 "field_integral_coefficients should be a string or a list of floats"
             )
+        return result
 
     @property
     def field_amplitude(self) -> Union[int, float]:
-        return self.ks / self.length
+        """Solenoid field amplitude (ks / length), resolved to a number."""
+        return resolve_functional_parameter(self.ks, force=True) / self.length
 
     @field_amplitude.setter
     def field_amplitude(self, fa: float = 0) -> None:
         self.ks = fa * self.length
 
     @property
-    def ks(self) -> Union[int, float]:
-        return getattr(self.fields, "S" + str(self.order) + "L")
+    def ks(self) -> Union[int, float, str]:
+        """Solenoid strength as configured. By default (global resolution mode
+        off) this is the value as stored — a number, or the name of a functional
+        definition; with resolution mode on it is the resolved number. Use
+        :attr:`field_amplitude` for the resolved number regardless of mode."""
+        return resolve_functional_parameter(
+            getattr(self.fields, "S" + str(self.order) + "L")
+        )
 
     @ks.setter
     def ks(self, ks: float = 0) -> None:
         setattr(self.fields, "S" + str(self.order) + "L", ks)
 
 
-class NonLinearLens_Magnet(IgnoreExtra):
+class NonLinearLens_Magnet(_NonLinearLensMagnetBase, IgnoreExtra):
     """
     Non-linear lens magnet. See `MAD-X manual`_ and `PAC2011 article`_
 
@@ -798,31 +872,85 @@ class NonLinearLens_Magnet(IgnoreExtra):
     .. _PAC2011 article: https://proceedings.jacow.org/PAC2011/papers/wep070.pdf
     """
 
+    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
+    model_config = ConfigDict(serialize_by_alias=False)
+
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
     """Magnetic length of NLL [m]."""
 
-    integrated_strength: NonNegativeFloat = Field(default=0.0, alias="knll")
-    """Integrated strength of NLL."""
+    integrated_strength: Union[NonNegativeFloat, str] = Field(
+        default=0.0, alias="knll", json_schema_extra={"functional": True}
+    )
+    """Integrated strength of NLL. Stored verbatim: a number or a string naming a
+    functional definition (resolve via ``resolved("integrated_strength")``)."""
 
-    dimensional_parameter: float = Field(default=0.0, alias="cnll")
-    """Dimensional parameter of NLL."""
+    dimensional_parameter: Union[float, str] = Field(
+        default=0.0, alias="cnll", json_schema_extra={"functional": True}
+    )
+    """Dimensional parameter of NLL. Stored verbatim: a number or a string naming
+    a functional definition (resolve via ``resolved("dimensional_parameter")``)."""
 
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)
 
 
-class Wiggler_Magnet(IgnoreExtra):
+class Corrector_Magnet(_CorrectorMagnetBase, IgnoreExtra):
+    """
+    Corrector (steering) magnet.
+
+    Unlike :class:`Dipole_Magnet` -- whose single ``K0L`` multipole's ``normal``/
+    ``skew`` components denote the magnetic field's orientation, not a beam
+    plane -- a corrector's kick is stored as two explicitly-named, independent
+    kick angles, so a :class:`~laura.models.element.Horizontal_Corrector` or
+    :class:`~laura.models.element.Vertical_Corrector` populates only its own
+    plane, while a :class:`~laura.models.element.Combined_Corrector` can carry
+    both simultaneously.
+    """
+
+    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
+    model_config = ConfigDict(serialize_by_alias=False)
+
+    length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
+    """Magnetic length [m]."""
+
+    order: int = Field(repr=False, default=0, frozen=True)
+    """Corrector multipole order (0 = dipole-like kick)."""
+
+    tilt: float = Field(default=0.0)
+    """Tilt angle of the corrector [degrees]."""
+
+    horizontal_kick: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Horizontal kick angle [rad]. Stored verbatim: a number, or the name of a
+    functional definition."""
+
+    vertical_kick: Union[float, str] = Field(
+        default=0.0, json_schema_extra={"functional": True}
+    )
+    """Vertical kick angle [rad]. Stored verbatim: a number, or the name of a
+    functional definition."""
+
+
+class Wiggler_Magnet(_WigglerMagnetBase, IgnoreExtra):
     """
     Undulator magnet.
     """
+
+    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
+    model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
     """Magnetic length of wiggler [m].
     #TODO validate / check that length == period*num_periods.
     """
 
-    strength: NonNegativeFloat = Field(default=0.0, alias="K")
-    """Wiggler strength (K) parameter."""
+    strength: Union[NonNegativeFloat, str] = Field(
+        default=0.0, alias="K", json_schema_extra={"functional": True}
+    )
+    """Wiggler strength (K) parameter. Stored verbatim: a number or a string
+    naming a functional definition (resolved via :attr:`normalized_strength` /
+    ``resolved("strength")``)."""
 
     peak_magnetic_field: float = Field(default=0.0, alias="B")
     """Peak wiggler magnetic field [B]."""
@@ -863,10 +991,11 @@ class Wiggler_Magnet(IgnoreExtra):
             :attr:`~strength` / :math:`\\sqrt{2}`
         """
 
+        strength = self.resolved("strength")
         if not self.helical:
-            return self.strength / np.sqrt(2)
+            return strength / np.sqrt(2)
         else:
-            return self.strength
+            return strength
 
     @normalized_strength.setter
     def normalized_strength(self, aw: float) -> None:

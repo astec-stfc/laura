@@ -182,7 +182,13 @@ def main():
             print(f"Error: Excel file not found at {args.excel}")
             return
         print(f"Loading alternative magnet table from {args.excel}...")
-        import pandas
+        try:
+            import pandas
+        except ImportError as _err:
+            raise ImportError(
+                "pandas is not installed. "
+                "Install with: pip install pandas"
+            ) from _err
         import laura.Importers.Magnet_Table as mt
 
         mt.magnet_table = pandas.read_excel(

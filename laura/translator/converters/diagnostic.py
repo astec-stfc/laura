@@ -1,5 +1,6 @@
 from .base import BaseElementTranslator
 from laura.models.simulation import DiagnosticSimulationElement
+from laura.models.diagnostic import WireScanner_Diagnostic
 
 
 class DiagnosticTranslator(BaseElementTranslator):
@@ -56,3 +57,19 @@ class DiagnosticTranslator(BaseElementTranslator):
             + str(n)
             + """b}\n}\n"""
         )
+
+
+class WireScannerTranslator(DiagnosticTranslator):
+    """
+    Translator class for converting a :class:`~laura.models.element.WireScanner`
+    element instance into a string or object that can be understood by various
+    simulation codes.
+
+    Declares the ``diagnostic`` payload explicitly: the generic
+    :class:`DiagnosticTranslator` has no such field, so under ``extra="ignore"``
+    the wire geometry would be dropped during ``model_validate`` and never reach
+    the output. BDSIM's ``wirescanner`` requires it.
+    """
+
+    diagnostic: WireScanner_Diagnostic
+    """Wire-scanner diagnostic element."""

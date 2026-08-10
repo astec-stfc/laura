@@ -1,12 +1,59 @@
 from laura.models.simulation import ApertureElement
 from .base import BaseElementTranslator
-from ..converters import elements_Elegant
+from ..converters import elements_Elegant, elements_Madx
+from ..utils.functions import sanitize_string
 from warnings import warn
 from typing import Dict
 
 
 class ApertureTranslator(BaseElementTranslator):
     aperture: ApertureElement
+
+    def to_madx(self, at: float = None) -> str:
+        """
+        Generates a string representation of the object's properties in the MAD-X
+        format.
+
+        An elliptical or circular aperture (``aperture.shape in ["elliptical",
+        "circular"]``) is written as a MAD-X ``ECOLLIMATOR`` rather than the
+        default ``RCOLLIMATOR``.
+
+        Parameters
+        ----------
+        at: float, optional
+            S-position at which to place the element inside a MAD-X ``SEQUENCE``;
+            see :meth:`~laura.translator.converters.base.BaseElementTranslator.to_madx`.
+
+        Returns
+        -------
+        str
+            String representation of the element for MAD-X
+        """
+        self.start_write()
+        etype = self._convertType_Madx(self.hardware_type)
+        if self.aperture.shape in ["elliptical", "circular"] and etype == "rcollimator":
+            etype = "ecollimator"
+        string = sanitize_string(self.name) + ": " + etype
+        keys = []
+        for key, value in self.full_dump(resolve=self._resolve_functional).items():
+            if (
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convertKeyword_Madx(key) in elements_Madx[etype]
+            ):
+                if value is not None:
+                    key = self._convertKeyword_Madx(key)
+                    deferred = not self._resolve_functional and self.is_functional(value)
+                    value = 1 if value is True else value
+                    value = 0 if value is False else value
+                    if key not in keys:
+                        op = ":=" if deferred else "="
+                        string += f", {key} {op} {value}"
+                    keys.append(key)
+        if at is not None:
+            string += f", at = {at}"
+        return string + ";\n"
 
     def _write_ASTRA_Common(self, dic: dict) -> dict:
         """
@@ -129,7 +176,7 @@ class ApertureTranslator(BaseElementTranslator):
             self.aperture.number_of_elements += 1
             dic = self._write_ASTRA_Circular()
             return self._write_ASTRA_dictionary(dic, n)
-        elif self.aperture.shape in ["planar", "rectangular"]:
+        elif self.aperture.shape == "rectangular":
             text = ""
             if (
                 self.aperture.horizontal_size is not None
@@ -179,7 +226,7 @@ class ApertureTranslator(BaseElementTranslator):
             return text
         else:
             raise ValueError(
-                "shape must be in ['elliptical', 'planar', 'circular', 'rectangular', 'scraper']"
+                "shape must be in ['circular', 'elliptical', 'rectangular', 'scraper']"
             )
 
     def to_elegant(self) -> str:
@@ -239,8 +286,6 @@ class ApertureTranslator(BaseElementTranslator):
             BDSIM object
         """
         from ..conversion_rules.codes import bdsim_conversion
-        from ..utils.bdsim import aperture_params
-        import inspect
 
         def get_bdsim_drift(name) -> object:
             if self.verbose:
@@ -262,7 +307,7 @@ class ApertureTranslator(BaseElementTranslator):
                     from pybdsim.Builder import RCol
 
                     obj = RCol
-                elif self.aperture.shape in ["scraper", "planar"]:
+                elif self.aperture.shape == "scraper":
                     from pybdsim.Builder import JCol
 
                     obj = JCol
@@ -272,14 +317,4 @@ class ApertureTranslator(BaseElementTranslator):
                 obj = get_bdsim_drift(self.name)
         else:
             obj = get_bdsim_drift(self.name)
-        elem_dict = {}
-        elem_dict.update(**aperture_params(section_aperture))
-        sig = inspect.signature(obj)
-        required = [name for name, param in sig.parameters.items() if name != "kwargs"]
-        for key, value in self.full_dump().items():
-            if key in required or self._convertKeyword_BDSIM(key) in required:
-                elem_dict.update({self._convertKeyword_BDSIM(key): value})
-        elem_dict.update({"name": self.name.replace("-", "_")})
-        if self.material is not None:
-            elem_dict.update({"material": self.material})
-        return obj(**elem_dict)
+        return obj(**self._bdsim_keywords(obj, section_aperture))

@@ -1,26 +1,32 @@
-from cheetah.accelerator import (  # noqa: F401
-    BPM,
-    Aperture,
-    Cavity,
-    CustomTransferMap,
-    Dipole,
-    Drift,
-    Element,
-    HorizontalCorrector,
-    Marker,
-    Quadrupole,
-    RBend,
-    Screen,
-    Segment,
-    Sextupole,
-    Solenoid,
-    SpaceChargeKick,
-    TransverseDeflectingCavity,
-    Undulator,
-    VerticalCorrector,
-    CombinedCorrector,
-    CustomTransferMap,
-)
+try:
+    from cheetah.accelerator import (  # noqa: F401
+        BPM,
+        Aperture,
+        Cavity,
+        CombinedCorrector,
+        CustomTransferMap,
+        Dipole,
+        Drift,
+        Element,
+        HorizontalCorrector,
+        Marker,
+        Quadrupole,
+        RBend,
+        Screen,
+        Segment,
+        Sextupole,
+        Solenoid,
+        SpaceChargeKick,
+        TransverseDeflectingCavity,
+        Undulator,
+        VerticalCorrector,
+    )
+    _CHEETAH_AVAILABLE = True
+except ImportError as _err:
+    raise ImportError(
+        "cheetah-accelerator is not installed. "
+        "Install with: pip install \"laura-accelerator[cheetah]\""
+    ) from _err
 
 cheetah_conversion_rules = {
     "Dipole": Dipole,
@@ -41,6 +47,7 @@ cheetah_conversion_rules = {
     "Faraday_Cup_Monitor": Drift,
     "RFCavity": Cavity,
     "RFDeflectingCavity": TransverseDeflectingCavity,
+    "CrabCavity": TransverseDeflectingCavity,
     "Aperture": Aperture,
     "Shutter": Drift,
     "Valve": Drift,
@@ -50,6 +57,8 @@ cheetah_conversion_rules = {
     "Drift": Drift,
     "csrdrift": Drift,
     "Kicker": CombinedCorrector,
+    "Horizontal_Corrector": HorizontalCorrector,
+    "Vertical_Corrector": VerticalCorrector,
     "Combined_Corrector": CombinedCorrector,
     "Marker": Screen,
     "Wakefield": Drift,

@@ -1,0 +1,466 @@
+id: https://w3id.org/laura/schema
+name: laura_schema
+title: LAURA Accelerator Element Schema
+description: >-
+  Linked Data schema for the LAURA (Lattice Architecture for a Unified
+  Representation of Accelerators) accelerator element model.  Covers all element
+  types, their physical, magnetic, diagnostic, RF, and control-system properties.
+version: "0.1.0"
+license: GPL-3.0-or-later
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+imports:
+  - linkml:types
+  - geometry
+  - controls
+  - elements
+  - machine
+  - simulation
+  - magnetic
+  - rf
+  - diagnostics
+  - laser_plasma
+  - magnets
+
+subsets:
+
+  physical_properties:
+    description: Slots relevant to the physical placement or geometry of an element.
+
+  magnetic_properties:
+    description: Slots specific to magnetic elements.
+
+  rf_properties:
+    description: Slots specific to RF cavity elements.
+
+  diagnostic_properties:
+    description: Slots specific to beam-diagnostic instruments.
+
+  laser_properties:
+    description: Slots specific to laser-related elements.
+
+  functional_parameters:
+    description: >-
+      Slots whose value may be the name of a functional definition (a symbolic
+      parameter resolved against the lattice's functional_definitions) as well
+      as a plain number. Membership is what functional_references() looks for
+      when collecting the symbols an element refers to.
+
+  bend_angle_reference:
+    description: >-
+      Slots that additionally accept an expression referencing the dipole bend
+      angle -- any string containing the reserved token "angle", e.g. "angle" or
+      "angle/2". Such values are not functional-definition names and are skipped
+      when collecting references.
+
+# --- Enumerations -------------------------------------------------------------
+
+enums:
+
+  HardwareClassEnum:
+    description: >-
+      High-level category organising elements by function within the
+      accelerator.  Corresponds to the YAML ``hardware_class`` field.
+    permissible_values:
+      Magnet:
+        description: Magnetic focusing or bending element.
+      Diagnostic:
+        description: Beam-diagnostic instrument.
+      RF:
+        description: Radio-frequency accelerating or deflecting structure.
+      Vacuum:
+        description: Vacuum instrumentation (gauges, valves).
+      Laser:
+        description: Laser optical element or complete laser system.
+      Plasma:
+        description: Plasma-based accelerating stage.
+      Feedback:
+        description: Control-system feedback element.
+      Marker:
+        description: Virtual survey marker with no physical aperture.
+      Aperture:
+        description: Mechanical aperture or collimator.
+      Stage:
+        description: Motorised positioning stage.
+      Lighting:
+        description: Experimental-hall lighting element.
+      Shutter:
+        description: Beam or laser shutter.
+      Wakefield:
+        description: Passive wakefield structure.
+      TwissMatch:
+        description: Virtual Twiss-parameter matching point.
+      Drift:
+        description: Drift element.
+      Generic:
+        description: Generic element.
+      Monitor:
+        description: Beam monitor element.
+      Simulation:
+        description: Simulation element.
+      ElectrostaticSeparator:
+        description: Electrostatic deflecting separator.
+      ACDipole:
+        description: AC dipole / tune exciter.
+      Wire:
+        description: Current-carrying wire for beam-beam compensation.
+      BeamBeam:
+        description: Weak-strong beam-beam interaction.
+      RFMultipole:
+        description: RF-driven multipole kick.
+
+  LaserPolarizationEnum:
+    description: Polarization state of a laser beam.
+    permissible_values:
+      linear:     {}
+      circular:   {}
+      elliptical: {}
+
+  LaserProfileTypeEnum:
+    description: Transverse intensity profile model for a laser beam.
+    permissible_values:
+      gaussian:           {}
+      laguerre-gaussian:  {}
+      flattened-gaussian: {}
+      file:               {}
+
+# --- Reusable Slots ----------------------------------------------------------
+
+slots:
+
+  # RF cavity / wakefield shared geometry
+  cell_length:
+    range: float
+    description: Length of a single cell [m].
+    ifabsent: float(0.03333333333333333)
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
+
+  coupling_cell_length:
+    range: float
+    description: Length of the coupling cell [m].
+    ifabsent: float(0.0)
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
+
+  n_cells:
+    range: float
+    description: Number of cells.
+    ifabsent: float(1)
+    minimum_value: 0
+
+  design_gamma:
+    range: float
+    description: Design Lorentz factor.
+    minimum_value: 1.0
+
+  design_power:
+    range: float
+    description: Design peak power [W].
+    ifabsent: float(25000000)
+    minimum_value: 0.0
+    unit:
+      ucum_code: W
+
+  frequency:
+    range: float
+    description: Operating frequency [Hz].
+    ifabsent: float(2998500000.0)
+    minimum_value: 0.0
+    unit:
+      ucum_code: Hz
+
+  crest:
+    range: float
+    description: On-crest phase offset providing maximum energy gain [deg].
+    ifabsent: float(0)
+    unit:
+      ucum_code: deg
+
+  phase:
+    range: float
+    any_of:
+      - range: float
+      - range: string
+    in_subset:
+      - functional_parameters
+    description: Operating phase offset [deg].
+    ifabsent: float(0.0)
+    unit:
+      ucum_code: deg
+
+  shunt_impedance:
+    range: float
+    description: Shunt impedance [M?/m].
+
+  mode_numerator:
+    range: float
+    description: Mode fraction numerator.
+
+  mode_denominator:
+    range: integer
+    description: Mode fraction denominator.
+
+  # Shared wake-file column labels
+  t_column:
+    range: string
+    description: Time column in the wake file.
+
+  z_column:
+    range: string
+    description: Longitudinal position column in the wake file.
+
+  wx_column:
+    range: string
+    description: Horizontal wake column in the wake file.
+
+  wy_column:
+    range: string
+    description: Vertical wake column in the wake file.
+
+  wz_column:
+    range: string
+    description: Longitudinal wake column in the wake file.
+
+  # Shared simulation numeric controls
+  n_kicks:
+    range: integer
+    description: Number of integration kicks.
+
+  lsc_bins:
+    range: integer
+    description: Number of bins used in longitudinal space-charge calculations.
+
+  field_amplitude:
+    range: float
+    any_of:
+      - range: float
+      - range: string
+    in_subset:
+      - functional_parameters
+    description: Field amplitude scaling.
+
+# --- Classes ------------------------------------------------------------------
+
+classes:
+
+  # -- Electrical -------------------------------------------------------------
+
+  ElectricalElement:
+    description: Power-supply electrical limits for a beamline element.
+    class_uri: laura:ElectricalElement
+    attributes:
+      min_i:
+        range: float
+        ifabsent: float(0)
+        description: Minimum current [A].
+        aliases:
+          - minI
+        unit:
+          ucum_code: A
+      max_i:
+        range: float
+        ifabsent: float(0)
+        description: Maximum current [A].
+        aliases:
+          - maxI
+        unit:
+          ucum_code: A
+      read_tolerance:
+        range: float
+        ifabsent: float(0.1)
+        description: >-
+          Read-back vs. set-point tolerance fraction (default 0.1 = 10 %).
+        aliases:
+          - ri_tolerance
+
+  # -- Manufacturer ----------------------------------------------------------
+
+  ManufacturerElement:
+    description: Manufacturer and serial-number metadata.
+    class_uri: laura:ManufacturerElement
+    attributes:
+      manufacturer:
+        range: string
+        ifabsent: string()
+        description: Name of the manufacturer.
+        slot_uri: schema:manufacturer
+      serial_number:
+        range: string
+        ifabsent: string()
+        description: Manufacturer serial number.
+        slot_uri: schema:serialNumber
+
+  # -- Reference documents ----------------------------------------------------
+
+  ReferenceElement:
+    description: Links to engineering drawings and design files.
+    class_uri: laura:ReferenceElement
+    attributes:
+      drawings:
+        multivalued: true
+        range: string
+        description: Engineering-drawing identifiers or URIs.
+      design_files:
+        multivalued: true
+        range: string
+        description: Design-file paths or URIs.
+
+# ===============================================================================
+# Element class hierarchy
+# ===============================================================================
+
+  # -- Root base element ------------------------------------------------------
+
+  AcceleratorElement:
+    description: >-
+      Root base class for all LAURA accelerator elements.  Every lattice
+      element is an instance of a concrete subclass identified by
+      ``hardware_type``.
+    tree_root: true
+    class_uri: laura:AcceleratorElement
+    attributes:
+      name:
+        identifier: true
+        required: true
+        range: string
+        description: Unique element name within the machine.
+      hardware_class:
+        range: HardwareClassEnum
+        required: true
+        description: >-
+          Functional category (e.g., ``Magnet``, ``Diagnostic``).
+      hardware_type:
+        range: string
+        ifabsent: string(Generic)
+        description: >-
+          Python class name used for ELEMENT_REGISTRY dispatch.  Identifies
+          the concrete subclass to instantiate when loading from YAML.
+      hardware_model:
+        range: string
+        ifabsent: string(Generic)
+        description: >-
+          Model or variant name within the hardware type
+          (e.g., ``Generic``, ``TESLA``).
+      machine_area:
+        range: string
+        description: >-
+          Machine area label grouping related elements
+          (e.g., ``LINAC``, ``BA1``).
+      virtual_name:
+        range: string
+        ifabsent: string()
+        description: >-
+          Alternative internal name used by the control system when the
+          physical name is inaccessible.
+      alias:
+        range: string
+        multivalued: true
+        description: >-
+          Human-readable aliases for the element. Populated from ``name_alias``
+          in YAML. Accepts a single string or a list of strings.
+        aliases:
+          - name_alias
+      subelement:
+        range: string
+        description: >-
+          If set, this element is a logical sub-component of the named
+          parent element.
+      # These four describe the control/signal graph, which is separate from
+      # beam-path ordering (that comes from the layout and s-position). The
+      # graph is directed, may contain feedback cycles, and its two directions
+      # are stored rather than derived -- symmetry is a convention, not a
+      # constraint. See examples/testing/sample_rf_control_elements.yaml for a
+      # worked example and signal_graph_example.py for traversal code.
+      inputs:
+        range: IOTypeEnum
+        description: >-
+          Signal types this element consumes (e.g. ``[current, voltage]``).
+        multivalued: true
+      outputs:
+        range: IOTypeEnum
+        description: >-
+          Signal types this element produces (e.g. ``[power, phase]``).
+        multivalued: true
+      upstream:
+        range: AcceleratorElement
+        description: >-
+          Names of elements feeding this one, whose ``outputs`` supply its
+          ``inputs``.
+        multivalued: true
+      downstream:
+        range: AcceleratorElement
+        description: >-
+          Names of elements this one feeds; the inverse of ``upstream``.
+        multivalued: true
+
+  # -- Standard element -------------------------------------------------------
+
+  StandardElement:
+    is_a: AcceleratorElement
+    description: >-
+      Accelerator element with control-system, electrical, manufacturer,
+      simulation, and reference sub-models.
+    class_uri: laura:StandardElement
+    attributes:
+      simulation:
+        range: SimulationElement
+        description: Simulation / tracking attributes.
+      electrical:
+        range: ElectricalElement
+        description: Power-supply electrical limits.
+      manufacturer:
+        range: ManufacturerElement
+        description: Manufacturer and serial-number data.
+      controls:
+        range: ControlsInformation
+        description: Control-system process-variable definitions.
+      reference:
+        range: ReferenceElement
+        description: Links to design drawings and files.
+
+  Element:
+    is_a: StandardElement
+    description: >-
+      Concrete schema counterpart of the Python ``Element`` wrapper class.
+      Inherits standard element composition fields.
+    class_uri: laura:Element
+
+  # -- Physical element -------------------------------------------------------
+
+  PhysicalAcceleratorElement:
+    is_a: Element
+    description: >-
+      Accelerator element with a well-defined physical position and
+      orientation in the beamline.
+    class_uri: laura:PhysicalAcceleratorElement
+    attributes:
+      physical:
+        range: PhysicalElement
+        description: Position, rotation, and length data.
+        in_subset:
+          - physical_properties
+      aperture:
+        range: ApertureElement
+        description: Aperture of the element.
+      material:
+        range: string
+        description: >-
+          Element material. 
+
+

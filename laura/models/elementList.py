@@ -1,6 +1,7 @@
+import logging
 import os
 import numpy as np
-from typing import List, Dict, Any, Union, Literal
+from typing import List, Dict, Any, Union, Literal, Optional
 from pydantic import (
     field_validator,
     BaseModel,
@@ -10,15 +11,97 @@ from pydantic import (
     NonNegativeFloat,
 )
 from warnings import warn
-
+from yaml import safe_load
 from ._functions import read_yaml
 from .element import baseElement, Drift, PhysicalBaseElement, Diagnostic
-from .physical import PhysicalElement, Position
-from .baseModels import ModelBase
+from .physical import PhysicalElement, Position, Rotation
+from .trajectory import Trajectory
+from ..utils.rotation_matrix import euler_angles_to_rotation_matrix, rotation_matrix_to_euler
+from .baseModels import (
+    ModelBase,
+    set_functional_definitions,
+    set_resolve_functional,
+    validate_functional_references,
+)
 from .exceptions import LatticeError
 import warnings
 
 from .simulation import DriftSimulationElement
+
+_log = logging.getLogger("laura.model")
+
+LatticeType = Literal["beam", "rf", "laser"]
+ALLOWED_LATTICE_TYPES = {"beam", "rf", "laser"}
+
+
+def normalise_lattice_type(
+    lattice_type: str | None,
+    *,
+    context: str,
+    default: LatticeType = "beam",
+) -> LatticeType:
+    """Validate and normalise lattice type labels across model layers."""
+    if lattice_type is None:
+        return default
+    if not isinstance(lattice_type, str):
+        raise TypeError(f"{context} type must be a string")
+
+    value = lattice_type.strip().lower()
+    if value not in ALLOWED_LATTICE_TYPES:
+        allowed = ", ".join(sorted(ALLOWED_LATTICE_TYPES))
+        raise ValueError(f"{context} type must be one of: {allowed}")
+
+    return value
+
+
+def load_functional_definitions(
+    value: Union[str, Dict, None], master_lattice: str | None = None
+) -> Dict[str, Union[int, float]]:
+    """
+    Resolve a ``functional_definitions`` specification into a plain dict.
+
+    The specification may be given directly as a mapping of names to numbers
+    (e.g. ``{"quad1_k1l": -2, "cav1_phase": 90}``), or as a path to a YAML file
+    holding such a mapping. The YAML may either be a flat mapping or nest the
+    mapping under a top-level ``functional_definitions`` key. Paths are resolved
+    relative to the working directory, then ``master_lattice``, then the package
+    directory (mirroring how :class:`MachineModel` resolves its layout/section
+    files).
+
+    Parameters
+    ----------
+    value: str | dict | None
+        The specification to resolve.
+    master_lattice: str | None
+        Optional base directory used to resolve a relative path.
+
+    Returns
+    -------
+    Dict[str, Union[int, float]]
+        The resolved functional definitions (empty if ``value`` is None/empty).
+    """
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        path = value
+        if not os.path.exists(path) and master_lattice:
+            candidate = os.path.join(master_lattice, value)
+            if os.path.exists(candidate):
+                path = candidate
+        if not os.path.exists(path):
+            candidate = os.path.abspath(os.path.dirname(__file__) + "/../" + value)
+            if os.path.exists(candidate):
+                path = candidate
+        if not os.path.exists(path):
+            raise ValueError(f"functional_definitions file {value} does not exist")
+        with open(path, "r") as f:
+            data = safe_load(f)
+        if isinstance(data, dict) and "functional_definitions" in data:
+            data = data["functional_definitions"]
+        return data or {}
+    raise ValueError("functional_definitions must be a path, dict, or None")
 
 
 def dot(a, b) -> float:
@@ -28,7 +111,7 @@ def dot(a, b) -> float:
 def chunks(li, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(li), n):
-        yield li[i : i + n]
+        yield li[i: i + n]
 
 
 class BaseLatticeModel(ModelBase):
@@ -47,34 +130,69 @@ class BaseLatticeModel(ModelBase):
     master_lattice: str | None = None
     """Top-level directory containing lattice files."""
 
-    def __add__(self, other: dict) -> dict:
-        copy = getattr(self, self._basename).copy()
-        copy.extend(other)
-        return copy
+    functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
+    """Functional definitions for the lattice, e.g.
+    ``{"quad1_k1l": -2, "cav1_phase": 90}``, or a path to a YAML file holding
+    such a mapping. Registered into the shared registry so that string-valued
+    element parameters can be resolved to numbers on demand."""
 
-    def __radd__(self, other: dict) -> dict:
-        copy = other.copy()
-        copy.extend(getattr(self, self._basename))
-        return copy
+    resolve_functional: bool = False
+    """Global resolution mode. When False (default), functional attributes are
+    rendered as their definition name (a string); when True they are presented as
+    resolved numbers. See :func:`~laura.models.baseModels.set_resolve_functional`."""
 
-    def __sub__(self, other):
-        copy = getattr(self, self._basename).copy()
-        if other in copy:
-            del copy[other]
-        return copy
+    revolution_frequency: float | None = None
+    """The ring's revolution frequency [Hz], if this lattice is (part of) a closed ring."""
 
-    def append(self, other: Any) -> None:
-        if not isinstance(other, list):
-            other = [other]
-        super().__init__(name=self.name, elements=self + other)
-        setattr(self, self._basename, self + other)
+    _functional_source: str | None = None
 
-    def remove(self, other: Any) -> None:
-        if other in getattr(self, self._basename):
-            copy = getattr(self, self._basename).copy()
-            copy.remove(other)
-            super().__init__(name=self.name, elements=copy)
-            getattr(self, self._basename).remove(other)
+    def model_post_init(self, __context) -> None:
+        self._functional_source = (
+            self.functional_definitions
+            if isinstance(self.functional_definitions, str)
+            else None
+        )
+        self.functional_definitions = load_functional_definitions(
+            self.functional_definitions, self.master_lattice
+        )
+        set_functional_definitions(self.functional_definitions)
+        set_resolve_functional(self.resolve_functional)
+        elements = getattr(self, "elements", None)
+        if isinstance(elements, ElementList):
+            validate_functional_references(
+                [e for e in elements.list() if isinstance(e, baseElement)],
+                self.functional_definitions,
+                self._functional_source,
+            )
+
+    # def __add__(self, other: dict) -> dict:
+    #     copy = getattr(self, self._basename).copy()
+    #     copy.extend(other)
+    #     return copy
+
+    # def __radd__(self, other: dict) -> dict:
+    #     copy = other.copy()
+    #     copy.extend(getattr(self, self._basename))
+    #     return copy
+
+    # def __sub__(self, other):
+    #     copy = getattr(self, self._basename).copy()
+    #     if other in copy:
+    #         del copy[other]
+    #     return copy
+
+    # def append(self, other: Any) -> None:
+    #     if not isinstance(other, list):
+    #         other = [other]
+    #     super().__init__(name=self.name, elements=self + other)
+    #     setattr(self, self._basename, self + other)
+
+    # def remove(self, other: Any) -> None:
+    #     if other in getattr(self, self._basename):
+    #         copy = getattr(self, self._basename).copy()
+    #         copy.remove(other)
+    #         super().__init__(name=self.name, elements=copy)
+    #         getattr(self, self._basename).remove(other)
 
     def __str__(self):
         return str({k: v.names() for k, v in getattr(self, self._basename).items()})
@@ -145,6 +263,9 @@ class SectionLattice(BaseLatticeModel):
     elements: ElementList = Field(default_factory=ElementList)
     """Container for elements."""
 
+    section_type: LatticeType = "beam"
+    """Logical lattice type of this section (beam/rf/laser)."""
+
     # other_elements: ElementList = ElementList(elements={})
     # TODO should we put this back in?
 
@@ -156,12 +277,17 @@ class SectionLattice(BaseLatticeModel):
     beampipe_size: NonNegativeFloat | List[NonNegativeFloat] | None = None
     """Size of beam pipe [optional]"""
 
-    beampipe_material: str | None = None
+    beampipe_material: Optional[str] = None
     """Beam pipe material [optional]; see `BDSIM manual`_ for more details.
 
     .. _BDSIM manual: https://bdsim-collaboration.github.io/bdsim/sphinx/index.html#"""
 
     _basename: str = "elements"
+
+    @field_validator("section_type", mode="before")
+    @classmethod
+    def validate_section_type(cls, value: str | None) -> LatticeType:
+        return normalise_lattice_type(value, context="section")
 
     @field_validator("elements", mode="before")
     @classmethod
@@ -292,17 +418,17 @@ class SectionLattice(BaseLatticeModel):
                     length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
                     vector = dot((d[1] - d[0]), [0, 0, 1])
                 except Exception as exc:
-                    print("Element with error = ", e[0])
-                    print(d)
+                    _log.error("Drift calculation error near element '%s': %s", e[0], exc)
+                    _log.debug("Position data: %s", d)
                     raise exc
-                if round(length, 16) > 0:
+                if length > 1e-12:
                     elementno += 1
                     name = self.name + "_drift_" + str(elementno)
                     x, y, z = [(a + b) / 2.0 for a, b in zip(d[0], d[1])]
                     newdrift = Drift(
                         name=name,
+                        hardware_class="Drift",
                         machine_area=newelements[e[0]].machine_area,
-                        hardware_class="drift",
                         physical=PhysicalElement(
                             length=abs(round(np.copysign(length, vector), 16)),
                             middle=Position(x=x, y=y, z=z),
@@ -352,6 +478,378 @@ class SectionLattice(BaseLatticeModel):
             return dict(zip([e.name for e in elems.values()], s))
         return list(s)
 
+    def get_resolved_s_values(
+        self, as_dict: bool = False, at_entrance: bool = False
+    ) -> list | dict:
+        """
+        Get true arc-length S values for the elements in the lattice, sourced
+        from the resolved :class:`~laura.models.trajectory.Trajectory` built by
+        :meth:`resolve_positions` (bend-aware, ``reference_placement``-aware).
+
+        Unlike :meth:`get_s_values` (a naive cumulative sum of element lengths),
+        this reads each element's already-resolved ``physical.s`` directly, and
+        projects synthetic drift elements (created by :meth:`createDrifts`,
+        which never get ``physical.s`` set) onto the nearest sibling's
+        trajectory via :meth:`~laura.models.trajectory.Trajectory.s_at_xyz`.
+
+        Falls back to :meth:`get_s_values` if no element in the section carries
+        a resolved trajectory (i.e. ``resolve_positions`` was never run).
+
+        Parameters
+        ----------
+        as_dict: bool, optional
+            If True, returns a dictionary with element names as keys and their
+            S values as values.
+        at_entrance: bool, optional
+            If True, returns each element's S value at its start rather than
+            its middle.
+
+        Returns
+        -------
+        list | dict
+            A list or dictionary of resolved S values for the elements in the
+            lattice, in the same order as :meth:`createDrifts`.
+        """
+        elems = self.createDrifts()
+
+        traj = None
+        for e in elems.values():
+            phys = getattr(e, "physical", None)
+            t = getattr(phys, "_trajectory", None) if phys is not None else None
+            if t is not None:
+                traj = t
+                break
+        if traj is None:
+            return self.get_s_values(as_dict=as_dict, at_entrance=at_entrance)
+
+        svals = []
+        for e in elems.values():
+            phys = e.physical
+            if phys.s is not None:
+                s_mid = phys.s
+            else:
+                s_mid = traj.s_at_xyz(phys.middle)
+            svals.append(s_mid - phys.length / 2.0 if at_entrance else s_mid)
+
+        if as_dict:
+            return dict(zip([e.name for e in elems.values()], svals))
+        return svals
+
+    # ── s-coordinate support ───────────────────────────────────────────────────
+
+    def _detect_coordinate_system(self, element_registry: dict) -> str:
+        """Return ``'s'``, ``'global'``, or ``'reference'`` for this section.
+
+        An element is treated as *pending-s* only when ``s`` is set but
+        ``middle`` is still ``None`` (i.e., not yet resolved).  Elements that
+        already have both ``s`` and ``middle`` (e.g. after a round-trip) are
+        treated as global.  This avoids false positives when a pre-resolved
+        model is reconstructed alongside elements using explicit xyz.
+
+        Raises :exc:`ValueError` if pending-s and explicit-xyz elements are
+        mixed (``reference_placement``-only elements are always allowed).
+        """
+        has_global = False
+        has_s_pending = False
+        for name in self.order:
+            elem = element_registry.get(name)
+            if elem is None or not hasattr(elem, "physical") or elem.physical is None:
+                continue
+            phys = elem.physical
+            if phys.reference_placement is not None:
+                continue
+            if phys.s is not None and phys.middle is None:
+                has_s_pending = True
+            elif phys.middle is not None:
+                has_global = True
+        if has_s_pending and has_global:
+            raise ValueError(
+                f"Section '{self.name}': cannot mix s-coordinate and global-coordinate "
+                "positioning.  All positioned elements must use the same system."
+            )
+        return "s" if has_s_pending else ("global" if has_global else "reference")
+
+    def _resolve_s_coordinates(self, element_registry: dict) -> Optional[Trajectory]:
+        """Integrate the design orbit and place all s-specified elements.
+
+        Elements are sorted by their s_start value and placed sequentially.
+        Straight-line drifts fill any gaps between elements.  For bent elements
+        the arc geometry from ``_physical_angle`` is used.
+
+        Returns the :class:`~laura.models.trajectory.Trajectory` built during
+        integration, or ``None`` if there are no s-specified elements.
+        """
+        s_elems = [
+            element_registry[n]
+            for n in self.order
+            if element_registry.get(n) is not None
+            and hasattr(element_registry[n], "physical")
+            and element_registry[n].physical is not None
+            and element_registry[n].physical.s is not None
+            and element_registry[n].physical.middle is None
+        ]
+        if not s_elems:
+            return None
+
+        def _s_start(elem: object) -> float:
+            phys = elem.physical
+            s, L, pt = phys.s, phys.length, phys.s_point
+            if pt == "middle":
+                return s - L / 2.0
+            if pt == "end":
+                return s - L
+            return s  # 'start'
+
+        # Equal entrance positions can differ by floating-point noise (for
+        # example a zero-length marker immediately before a cavity). Preserve
+        # beamline order for those ties so the marker is not moved to the exit.
+        s_elems_sorted = sorted(s_elems, key=lambda elem: round(_s_start(elem), 12))
+
+        current_s = 0.0
+        current_pos = np.zeros(3)
+        current_R = np.eye(3)
+
+        s_list: list[float] = [0.0]
+        pos_list: list[np.ndarray] = [np.zeros(3)]
+        rot_list: list[np.ndarray] = [np.eye(3)]
+
+        for elem in s_elems_sorted:
+            phys = elem.physical
+            L = phys.length
+            angle = phys._physical_angle
+            s_elem_start = _s_start(elem)
+            s_elem_end = s_elem_start + L
+
+            # Drift to element entry
+            if s_elem_start > current_s + 1e-12:
+                drift = s_elem_start - current_s
+                current_pos = current_pos + current_R @ np.array([0.0, 0.0, drift])
+                current_s = s_elem_start
+                s_list.append(current_s)
+                pos_list.append(current_pos.copy())
+                rot_list.append(current_R.copy())
+
+            # Compute middle and end positions
+            if abs(angle) < 1e-9:
+                mid_pos = current_pos + current_R @ np.array([0.0, 0.0, L / 2.0])
+                end_pos = current_pos + current_R @ np.array([0.0, 0.0, L])
+                exit_R = current_R.copy()
+            else:
+                # Arc in the bend plane using LAURA's Ry(-angle) convention.
+                rho = L / angle
+                half = angle / 2.0
+                local_mid = np.array([rho * (1.0 - np.cos(half)), 0.0, rho * np.sin(half)])
+                local_end = np.array([rho * (1.0 - np.cos(angle)), 0.0, rho * np.sin(angle)])
+                mid_pos = current_pos + current_R @ local_mid
+                end_pos = current_pos + current_R @ local_end
+                ct, st = np.cos(angle), np.sin(angle)
+                ry_neg = np.array([[ct, 0.0, st], [0.0, 1.0, 0.0], [-st, 0.0, ct]])
+                exit_R = current_R @ ry_neg
+
+            # Set world-frame middle on the element
+            phys.middle = Position.from_list(mid_pos.tolist())
+
+            # Inherit trajectory orientation when no explicit rotation given
+            if "rotation" not in phys.model_fields_set:
+                yaw, pitch, roll = rotation_matrix_to_euler(current_R)
+                phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
+                phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
+                phys._rotation_matrix_cache = None
+
+            s_list.extend([s_elem_start + L / 2.0, s_elem_end])
+            pos_list.extend([mid_pos, end_pos])
+            rot_list.extend([current_R.copy(), exit_R])
+
+            current_pos = end_pos
+            current_R = exit_R
+            current_s = s_elem_end
+
+        return Trajectory(np.array(s_list), np.array(pos_list), np.array(rot_list))
+
+    def _build_trajectory_and_assign_s(self, element_registry: dict) -> Optional[Trajectory]:
+        """Build a :class:`~laura.models.trajectory.Trajectory` from all resolved elements.
+
+        Walks elements in section order, traces the arc-length through start /
+        middle / end of each element, assigns the arc-length ``s`` value (at
+        middle) back onto each element's physical block, and attaches the
+        trajectory as ``phys._trajectory`` for bidirectional sync.
+        """
+        s_list: list[float] = [0.0]
+        pos_list: list[np.ndarray] = [np.zeros(3)]
+        rot_list: list[np.ndarray] = [np.eye(3)]
+
+        current_s = 0.0
+        prev_end: Optional[np.ndarray] = None
+
+        elements_to_wire: list[PhysicalElement] = []
+
+        for name in self.order:
+            elem = element_registry.get(name)
+            if elem is None or not hasattr(elem, "physical") or elem.physical is None:
+                continue
+            phys = elem.physical
+            if phys.middle is None:
+                continue
+            try:
+                start = phys.start
+                start_arr = np.array([start.x, start.y, start.z])
+            except RuntimeError:
+                continue
+
+            gap = float(np.linalg.norm(start_arr - prev_end)) if prev_end is not None else float(np.linalg.norm(start_arr))
+            s_elem_start = current_s + gap
+
+            mid_arr = np.array([phys.middle.x, phys.middle.y, phys.middle.z])
+            s_elem_mid = s_elem_start + phys.length / 2.0
+
+            try:
+                end = phys.end
+                end_arr = np.array([end.x, end.y, end.z])
+            except RuntimeError:
+                end_arr = mid_arr
+            s_elem_end = s_elem_start + phys.length
+
+            s_list.extend([s_elem_start, s_elem_mid, s_elem_end])
+            pos_list.extend([start_arr, mid_arr, end_arr])
+            rot_list.extend([phys.rotation_matrix, phys.rotation_matrix, phys.end_rotation_matrix])
+
+            # Assign s (bypasses sync since _trajectory not yet set). This is
+            # always the *middle* arc-length regardless of the s_point the
+            # element was originally specified with (e.g. an ELEGANT import
+            # using s_point="end") -- s_point must be reset to match, or a
+            # later s-mode YAML export would pair this middle-s value with a
+            # stale s_point, corrupting any re-import (e.g. resolving to
+            # `s - length` for "end" instead of `s - length/2` for "middle").
+            phys.s = s_elem_mid
+            phys.s_point = "middle"
+
+            current_s = s_elem_end
+            prev_end = end_arr
+            elements_to_wire.append(phys)
+
+        traj = Trajectory(np.array(s_list), np.array(pos_list), np.array(rot_list))
+        for phys in elements_to_wire:
+            phys._trajectory = traj
+        return traj
+
+    def resolve_positions(self, element_registry: dict) -> Optional[Trajectory]:
+        """Resolve all positioning modes and build the section trajectory.
+
+        Handles three positioning modes in order:
+
+        1. ``reference_placement`` — resolved first (same as the original
+           :meth:`resolve_reference_placements` method).
+        2. ``s``-coordinate — the design orbit is integrated from s=0 at
+           the global origin to place each element.
+        3. Global xyz (``middle``) — already resolved; s-values and trajectory
+           attachment are computed from the existing positions.
+
+        Mixing s and explicit-xyz positioning raises :exc:`ValueError`.
+
+        Returns the :class:`~laura.models.trajectory.Trajectory` for this
+        section, or ``None`` if no physical elements are present.
+        """
+        coord_sys = self._detect_coordinate_system(element_registry)
+
+        # Step 1: resolve reference_placements (unchanged logic)
+        self.resolve_reference_placements(element_registry)
+
+        # Step 2: resolve s-coordinates (integrates trajectory)
+        traj: Optional[Trajectory] = None
+        if coord_sys == "s":
+            traj = self._resolve_s_coordinates(element_registry)
+
+        # Step 3: build trajectory and assign s to all elements
+        traj = self._build_trajectory_and_assign_s(element_registry)
+        return traj
+
+    # ── end s-coordinate support ───────────────────────────────────────────────
+
+    def resolve_reference_placements(self, element_registry: dict) -> None:
+        """Resolve any ``reference_placement`` specs in this section.
+
+        Iterates elements in order and, for each one whose physical block
+        carries a ``reference_placement``, computes the world-frame ``middle``
+        position (and orientation) from the named reference element's frame.
+
+        Parameters
+        ----------
+        element_registry:
+            Mapping of element name → element object covering at minimum all
+            elements that might be referenced.  Typically ``MachineModel.elements``.
+        """
+        for name in self.order:
+            # Always operate on the registry object so mutations are visible
+            # to the caller — section.elements may hold Pydantic-copied instances.
+            elem = element_registry.get(name)
+            if elem is None or not hasattr(elem, "physical"):
+                continue
+            phys = elem.physical
+            if phys.reference_placement is None:
+                continue
+
+            rp = phys.reference_placement
+            ref_name = rp.element
+            if ref_name not in element_registry:
+                raise ValueError(
+                    f"reference_placement on '{name}' names element '{ref_name}' "
+                    f"which does not exist in the element registry."
+                )
+            ref_elem = element_registry[ref_name]
+            if not hasattr(ref_elem, "physical"):
+                raise ValueError(
+                    f"reference_placement on '{name}' names element '{ref_name}' "
+                    f"which has no physical data."
+                )
+            ref_phys = ref_elem.physical
+
+            # Reference point position and rotation matrix in world frame
+            if rp.point == "end":
+                ref_pos = ref_phys.end
+                ref_R = ref_phys.end_rotation_matrix
+            elif rp.point == "start":
+                ref_pos = ref_phys.start
+                ref_R = ref_phys.rotation_matrix   # entry frame = element rotation
+            else:  # "middle"
+                ref_pos = ref_phys.middle
+                ref_R = ref_phys.rotation_matrix
+
+            # Compute new world-frame middle position
+            if rp.offset is not None:
+                off = np.array([rp.offset.x, rp.offset.y, rp.offset.z])
+                delta = ref_R @ off
+            elif rp.world_offset is not None:
+                delta = np.array([rp.world_offset.x, rp.world_offset.y, rp.world_offset.z])
+            elif rp.s_offset is not None:
+                # s_offset is a scalar along the local beam direction (z-axis of ref frame)
+                delta = ref_R @ np.array([0.0, 0.0, rp.s_offset])
+            else:
+                delta = np.zeros(3)
+
+            new_mid = np.array([ref_pos.x, ref_pos.y, ref_pos.z]) + delta
+
+            # Clear reference_placement before writing middle — the model validator
+            # (validate_assignment=True) re-runs on every field write, so both
+            # fields must not be set at the same time.
+            phys.reference_placement = None
+            phys.middle = Position.from_list(new_mid)
+
+            # Determine resolved rotation matrix
+            if "rotation" not in phys.model_fields_set:
+                # No user-specified rotation: inherit reference frame orientation
+                resolved_R = ref_R
+            else:
+                # User-specified rotation is treated as an additional LOCAL rotation
+                # on top of the reference frame: R_world = ref_R @ R_user_local
+                ur = phys.rotation
+                R_user = euler_angles_to_rotation_matrix(ur.theta, ur.phi, ur.psi)
+                resolved_R = ref_R @ R_user
+
+            yaw, pitch, roll = rotation_matrix_to_euler(resolved_R)
+            phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
+            phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
+            phys._rotation_matrix_cache = None
+
 
 class MachineLayout(BaseLatticeModel):
     """
@@ -365,9 +863,43 @@ class MachineLayout(BaseLatticeModel):
     master_lattice: str | None = None
     """Directory containing lattice files. """
 
+    layout_type: LatticeType = "beam"
+    """Logical lattice type of this path (beam/rf/laser)."""
+
     _basename: str = "sections"
 
+    @field_validator("layout_type", mode="before")
+    @classmethod
+    def validate_layout_type(cls, value: str | None) -> LatticeType:
+        return normalise_lattice_type(value, context="layout")
+
+    @staticmethod
+    def _normalise_type_filter(
+        lattice_type: Union[str, list, None],
+        *,
+        context: str,
+    ) -> set[LatticeType] | None:
+        if lattice_type is None:
+            return None
+
+        if isinstance(lattice_type, str):
+            return {normalise_lattice_type(lattice_type, context=context)}
+
+        if isinstance(lattice_type, list):
+            return {
+                normalise_lattice_type(value, context=context)
+                for value in lattice_type
+            }
+
+        raise TypeError(f"{context} filter must be a str or list[str]")
+
     def model_post_init(self, __context):
+        super().model_post_init(__context)
+        self.functional_definitions = load_functional_definitions(
+            self.functional_definitions, self.master_lattice
+        )
+        set_functional_definitions(self.functional_definitions)
+        set_resolve_functional(self.resolve_functional)
         matrix = [v.elements.elements.values() for v in self.sections.values()]
         all_elems = [item for row in matrix for item in row]
         if len(all_elems) > 0:
@@ -383,16 +915,8 @@ class MachineLayout(BaseLatticeModel):
             all_elem_corrected = []
             for elem in all_elems_reversed:
                 if isinstance(elem, PhysicalBaseElement):
-                    vector = (
-                        not elem.physical.end.vector_angle(start_pos, [0, 0, -1])
-                        < -5e-6
-                    )
                     if not elem.is_subelement():
                         superelem = elem.name
-                    subelem = (
-                        elem.subelement == superelem if elem.is_subelement() else False
-                    )
-                    # if vector:
                     all_elem_corrected += [elem]
                     start_pos = elem.physical.start
             self._all_elements = list(reversed(all_elem_corrected))
@@ -531,6 +1055,7 @@ class MachineLayout(BaseLatticeModel):
         element_type: Union[str, list, None] = None,
         element_model: Union[str, list, None] = None,
         element_class: Union[str, list, None] = None,
+        section_type: Union[str, list, None] = None,
     ) -> List[str]:
         """
         Get all elements in the lattice, or filter them by type/model/class
@@ -556,6 +1081,7 @@ class MachineLayout(BaseLatticeModel):
             element_type=element_type,
             element_class=element_class,
             element_model=element_model,
+            section_type=section_type,
         )
 
     def elements_between(
@@ -565,6 +1091,7 @@ class MachineLayout(BaseLatticeModel):
         element_type: Union[str, list, None] = None,
         element_model: Union[str, list, None] = None,
         element_class: Union[str, list, None] = None,
+        section_type: Union[str, list, None] = None,
     ) -> List[str]:
         """
         Returns a list of all lattice elements (of a specified type) between
@@ -600,6 +1127,27 @@ class MachineLayout(BaseLatticeModel):
         first = self._lookup_index(start)
         last = self._lookup_index(end) + 1
         result = self._get_all_elements()[first:last]
+
+        filtered_section_types = self._normalise_type_filter(
+            section_type,
+            context="section",
+        )
+        if filtered_section_types is not None:
+            element_to_section = {
+                element_name: section_name
+                for section_name, section in self.sections.items()
+                for element_name in section.names
+            }
+            allowed_sections = {
+                name
+                for name, section in self.sections.items()
+                if section.section_type in filtered_section_types
+            }
+            result = [
+                ele
+                for ele in result
+                if element_to_section.get(ele.name) in allowed_sections
+            ]
 
         result = self._filter_element_list(result, element_type, "hardware_type")
         result = self._filter_element_list(result, element_model, "hardware_model")
@@ -644,23 +1192,39 @@ class MachineModel(ModelBase):
     beampipe_size: NonNegativeFloat | List[NonNegativeFloat] | None = None
     """Size of beam pipe [optional]"""
 
-    beampipe_material: str | None = None
+    beampipe_material: Optional[str] = None
     """Beam pipe material [optional]; see `BDSIM manual`_ for more details.
-    
+
     .. _BDSIM manual: https://bdsim-collaboration.github.io/bdsim/sphinx/index.html#"""
+
+    functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
+    """Mapping of functional-parameter names to their numeric values, or a path
+    to a YAML file holding such a mapping. Resolved at construction and shared
+    with every section, layout and element in the machine."""
+
+    resolve_functional: bool = False
+    """Whether functional parameters are rendered as resolved numbers rather
+    than as their definition names."""
+
+    _functional_source: str | None = None
+
+    revolution_frequency: float | None = None
+    """The ring's revolution frequency [Hz], if this machine is (part of) a closed ring."""
 
     _layouts: List[str] = None
 
-    _section_definitions: Dict = {}
+    _layout_metadata: Dict[str, Dict[str, LatticeType]] = {}
+
+    _section_definitions: Dict[str, Dict[str, Any]] = {}
 
     _default_path: str = None
 
     @field_validator("beampipe_size", mode="after")
     @classmethod
     def validate_beampipe_size(
-        cls,
-        v: NonNegativeFloat | List[NonNegativeFloat] | None,
-        info: ValidationInfo,
+            cls,
+            v: NonNegativeFloat | List[NonNegativeFloat] | None,
+            info: ValidationInfo,
     ) -> NonNegativeFloat | List[NonNegativeFloat] | None:
         beampipe_aperture_type = info.data.get(
             "beampipe_aperture_type"
@@ -707,6 +1271,104 @@ class MachineModel(ModelBase):
             )
         return None
 
+    @staticmethod
+    def _normalise_type_filter(
+        lattice_type: Union[str, list, None],
+        *,
+        context: str,
+    ) -> set[LatticeType] | None:
+        if lattice_type is None:
+            return None
+
+        if isinstance(lattice_type, str):
+            return {normalise_lattice_type(lattice_type, context=context)}
+
+        if isinstance(lattice_type, list):
+            return {
+                normalise_lattice_type(value, context=context)
+                for value in lattice_type
+            }
+
+        raise TypeError(f"{context} filter must be a str or list[str]")
+
+    @staticmethod
+    def _normalise_section_definitions(sections: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        normalised_sections = {}
+
+        for section_name, section_data in sections.items():
+            if isinstance(section_data, list):
+                elements = section_data
+                section_type = "beam"
+            elif isinstance(section_data, dict):
+                if "elements" not in section_data:
+                    raise KeyError(
+                        f"Section '{section_name}' must define an 'elements' list"
+                    )
+                elements = section_data["elements"]
+                section_type = normalise_lattice_type(
+                    section_data.get("type", section_data.get("section_type")),
+                    context=f"section '{section_name}'",
+                )
+            else:
+                raise TypeError(
+                    f"Section '{section_name}' must be a list or dict"
+                )
+
+            if not isinstance(elements, list):
+                raise TypeError(f"Section '{section_name}' elements must be a list")
+
+            normalised_sections[section_name] = {
+                "elements": elements,
+                "type": section_type,
+            }
+
+        return normalised_sections
+
+    @staticmethod
+    def _normalise_layout_metadata(
+        layout_metadata: Dict[str, Any] | None,
+    ) -> Dict[str, Dict[str, LatticeType]]:
+        if not layout_metadata:
+            return {}
+
+        normalised = {}
+        for layout_name, metadata in layout_metadata.items():
+            if isinstance(metadata, str):
+                layout_type = metadata
+            elif isinstance(metadata, dict):
+                layout_type = metadata.get("type")
+            else:
+                raise TypeError(
+                    f"layout_metadata['{layout_name}'] must be a string or dict"
+                )
+
+            normalised[layout_name] = {
+                "type": normalise_lattice_type(
+                    layout_type,
+                    context=f"layout '{layout_name}'",
+                )
+            }
+
+        return normalised
+
+    @staticmethod
+    def _section_elements_and_type(
+        section_name: str,
+        section_definition: Dict[str, Any],
+    ) -> tuple[list[str], LatticeType]:
+        if "elements" not in section_definition:
+            raise KeyError(f"Section '{section_name}' is missing 'elements'")
+
+        elements = section_definition["elements"]
+        if not isinstance(elements, list):
+            raise TypeError(f"Section '{section_name}' elements must be a list")
+
+        section_type = normalise_lattice_type(
+            section_definition.get("type"),
+            context=f"section '{section_name}'",
+        )
+        return elements, section_type
+
     @field_validator("layout", mode="before")
     @classmethod
     def validate_layout(cls, v: str | dict) -> str | dict:
@@ -718,7 +1380,7 @@ class MachineModel(ModelBase):
             ):
                 return os.path.abspath(os.path.dirname(__file__) + "/../" + v)
             else:
-                raise ValueError(f"Directory {v} does not exist")
+                return v
         elif isinstance(v, dict):
             if "layouts" not in v:
                 raise KeyError("layout must specify lines each with a list of sections")
@@ -737,7 +1399,7 @@ class MachineModel(ModelBase):
             ):
                 return os.path.abspath(os.path.dirname(__file__) + "/../" + v)
             else:
-                raise ValueError(f"Directory {v} does not exist")
+                return v
         elif isinstance(v, dict):
             if "sections" not in v:
                 raise KeyError(
@@ -750,6 +1412,16 @@ class MachineModel(ModelBase):
             )
 
     def model_post_init(self, __context):
+        self._functional_source = (
+            self.functional_definitions
+            if isinstance(self.functional_definitions, str)
+            else None
+        )
+        self.functional_definitions = load_functional_definitions(
+            self.functional_definitions, self.master_lattice
+        )
+        set_functional_definitions(self.functional_definitions)
+        set_resolve_functional(self.resolve_functional)
         if isinstance(self.layout, str):
             layout_file = self.layout
             if not os.path.exists(layout_file) and self.master_lattice:
@@ -758,6 +1430,9 @@ class MachineModel(ModelBase):
                     layout_file = candidate
             config = read_yaml(layout_file)
             self._layouts = config.layouts
+            self._layout_metadata = self._normalise_layout_metadata(
+                getattr(config, "layout_metadata", {})
+            )
             try:
                 self._default_path = config.default_layout
             except AttributeError:
@@ -765,6 +1440,7 @@ class MachineModel(ModelBase):
                 warn(message)
         elif self.layout is None:
             self._layouts = {}
+            self._layout_metadata = {}
             self._default_path = None
             warnings.warn("No layouts specified. Lattices will be empty.")
         else:
@@ -772,6 +1448,9 @@ class MachineModel(ModelBase):
                 if key not in self.layout:
                     raise KeyError("layout must specify layouts")
             self._layouts = self.layout["layouts"]
+            self._layout_metadata = self._normalise_layout_metadata(
+                self.layout.get("layout_metadata", {})
+            )
             if "default_layout" in self.layout:
                 self._default_path = self.layout["default_layout"]
         if isinstance(self.section, str):
@@ -781,18 +1460,33 @@ class MachineModel(ModelBase):
                 if os.path.exists(candidate):
                     section_file = candidate
             config = read_yaml(section_file)
-            self._section_definitions = config.sections
+            self._section_definitions = self._normalise_section_definitions(
+                config.sections
+            )
         elif self.section is None:
             self._section_definitions = {}
         else:
             if "sections" not in self.section:
                 raise KeyError("section must specify sections with a list of sections")
-            self._section_definitions = self.section["sections"]
+            self._section_definitions = self._normalise_section_definitions(
+                self.section["sections"]
+            )
         if len(self.elements) > 0:
+            # Validate functional references up-front (so the error names the
+            # source file), skipping lazy element stores to avoid forcing a load.
+            if not hasattr(self.elements, "get_metadata"):
+                validate_functional_references(
+                    [e for e in self.elements.values() if isinstance(e, baseElement)],
+                    self.functional_definitions,
+                    self._functional_source,
+                )
             if self.section:
-                self._build_layouts(self.elements)
+                self._build_layouts(self.elements)   # creates SectionLattice only
             else:
                 self._build_sections_from_elements(self.elements)
+            self._resolve_all_positions()             # resolve before MachineLayout
+            if self.section:
+                self._build_layout_objects()          # MachineLayout after positions ready
 
     def __add__(self, other) -> dict:
         copy = self.elements.copy()
@@ -896,32 +1590,56 @@ class MachineModel(ModelBase):
                 name=area,
                 elements=new_elements,
                 order=order,
+                section_type="beam",
                 master_lattice=self.master_lattice,
+                functional_definitions=self.functional_definitions,
+                resolve_functional=self.resolve_functional,
                 beampipe_aperture_type=self.beampipe_aperture_type,
                 beampipe_size=self.beampipe_size,
                 beampipe_material=self.beampipe_material,
             )
 
             if not self._section_definitions or area not in self._section_definitions:
-                self._section_definitions[area] = order
+                self._section_definitions[area] = {
+                    "elements": order,
+                    "type": "beam",
+                }
 
         self.lattices = {}
 
     def _build_layouts(self, elements):
+        """Build sections (and layout objects when no full-layout definitions exist)."""
+        self._build_sections_phase(elements)
+        # Layout objects (MachineLayout) require resolved positions so they are
+        # deferred to _build_layout_objects(), called after _resolve_all_positions().
+
+    def _build_sections_phase(self, elements):
+        """Create all SectionLattice objects without yet creating MachineLayout objects."""
         by_area, by_name = self._index_elements(elements)
 
         if self._section_definitions and not self._layouts:
-            # Sections are defined but no layouts — build sections directly
-            for area, elem_names in self._section_definitions.items():
+            # Sections only — no layout wrapper needed
+            for area, section_definition in self._section_definitions.items():
                 if area in self.sections:
                     continue
-
-                new_elements = [by_name[name] for name in elem_names if name in by_name]
+                elem_names, section_type = self._section_elements_and_type(
+                    area,
+                    section_definition,
+                )
+                new_elements = [
+                    by_name[name]
+                    for name in elem_names
+                    if name in by_name
+                ]
+                _log.debug("Section %s elements=(%s)", area, [elem.name for elem in new_elements])
                 self.sections[area] = SectionLattice(
                     name=area,
                     elements=new_elements,
                     order=elem_names,
+                    section_type=section_type,
                     master_lattice=self.master_lattice,
+                    functional_definitions=self.functional_definitions,
+                    resolve_functional=self.resolve_functional,
                     beampipe_aperture_type=self.beampipe_aperture_type,
                     beampipe_size=self.beampipe_size,
                     beampipe_material=self.beampipe_material,
@@ -932,35 +1650,82 @@ class MachineModel(ModelBase):
             for path, areas in self._layouts.items():
                 for area in areas:
                     if area in self._section_definitions:
-                        elem_names = self._section_definitions[area]
-
+                        elem_names, section_type = self._section_elements_and_type(
+                            area,
+                            self._section_definitions[area],
+                        )
                         new_elements = [
-                            by_name[name] for name in elem_names if name in by_name
+                            by_name[name]
+                            for name in elem_names
+                            if name in by_name
                         ]
-
+                        _log.debug("Section %s elements=(%s)", area, [elem.name for elem in new_elements])
                         self.sections[area] = SectionLattice(
                             name=area,
                             elements=new_elements,
                             order=elem_names,
+                            section_type=section_type,
                             master_lattice=self.master_lattice,
+                            functional_definitions=self.functional_definitions,
+                            resolve_functional=self.resolve_functional,
                             beampipe_aperture_type=self.beampipe_aperture_type,
                             beampipe_size=self.beampipe_size,
                             beampipe_material=self.beampipe_material,
                         )
 
-                if path not in self.lattices:
-                    self.lattices[path] = MachineLayout(
-                        name=path,
-                        sections={
-                            area: self.sections[area]
-                            for area in areas
-                            if area in self.sections
-                        },
-                        master_lattice=self.master_lattice,
-                    )
+    def _build_layout_objects(self):
+        """Create MachineLayout objects from already-resolved sections.
 
-            if len(self.lattices) == 1 and self._default_path is None:
-                self._default_path = next(iter(self.lattices))
+        Called after :meth:`_resolve_all_positions` so that element positions
+        are available when :class:`MachineLayout` ``model_post_init`` runs.
+        """
+        if not self._layouts:
+            return
+        for path, areas in self._layouts.items():
+            if path not in self.lattices:
+                layout_type = self._layout_metadata.get(path, {}).get("type", "beam")
+                self.lattices[path] = MachineLayout(
+                    name=path,
+                    sections={
+                        area: self.sections[area]
+                        for area in areas
+                        if area in self.sections
+                    },
+                    layout_type=layout_type,
+                    master_lattice=self.master_lattice,
+                    functional_definitions=self.functional_definitions,
+                    resolve_functional=self.resolve_functional,
+                )
+        if len(self.lattices) == 1 and self._default_path is None:
+            self._default_path = next(iter(self.lattices))
+
+    def _resolve_all_reference_placements(self) -> None:
+        """Resolve reference_placement specs across all sections."""
+        for section in self.sections.values():
+            section.resolve_reference_placements(self.elements)
+
+    def _resolve_all_positions(self) -> None:
+        """Resolve all positioning modes (reference_placement, s, global) for every section."""
+        for section in self.sections.values():
+            section.resolve_positions(self.elements)
+
+    def resolve_reference_placements(self) -> None:
+        """(Re-)resolve all reference_placement and s-coordinate specs.
+
+        Called automatically during construction.  Exposed publicly so that
+        callers who build the model incrementally can trigger a re-resolution
+        after adding new elements.
+        """
+        self._resolve_all_positions()
+
+    def resolve_positions(self) -> None:
+        """Re-resolve all positioning modes and rebuild section trajectories.
+
+        Equivalent to :meth:`resolve_reference_placements` but with a more
+        descriptive name.  Handles ``reference_placement``, ``s``-coordinates,
+        and global-xyz elements in one pass.
+        """
+        self._resolve_all_positions()
 
     def get_element(self, name: str) -> baseElement:
         """
@@ -982,6 +1747,7 @@ class MachineModel(ModelBase):
         element_type: Union[str, list, None] = None,
         element_model: Union[str, list, None] = None,
         element_class: Union[str, list, None] = None,
+        section_type: Union[str, list, None] = None,
     ) -> List[str]:
         """
         Get all elements in the lattice, or filter them by type/model/class
@@ -1007,7 +1773,38 @@ class MachineModel(ModelBase):
             element_type=element_type,
             element_class=element_class,
             element_model=element_model,
+            section_type=section_type,
         )
+
+    def get_sections_by_type(
+        self,
+        section_type: Union[str, list, None] = None,
+    ) -> Dict[str, SectionLattice]:
+        """Return sections filtered by section type."""
+        filtered_types = self._normalise_type_filter(section_type, context="section")
+        if filtered_types is None:
+            return self.sections
+
+        return {
+            name: section
+            for name, section in self.sections.items()
+            if section.section_type in filtered_types
+        }
+
+    def get_layouts_by_type(
+        self,
+        layout_type: Union[str, list, None] = None,
+    ) -> Dict[str, MachineLayout]:
+        """Return layouts filtered by layout type."""
+        filtered_types = self._normalise_type_filter(layout_type, context="layout")
+        if filtered_types is None:
+            return self.lattices
+
+        return {
+            name: layout
+            for name, layout in self.lattices.items()
+            if layout.layout_type in filtered_types
+        }
 
     def elements_between(
         self,
@@ -1017,6 +1814,7 @@ class MachineModel(ModelBase):
         element_model: Union[str, list, None] = None,
         element_class: Union[str, list, None] = None,
         path: str = None,
+        section_type: Union[str, list, None] = None,
     ) -> List[str]:
         """
         Returns a list of all lattice elements (of a specified type) between
@@ -1078,5 +1876,68 @@ class MachineModel(ModelBase):
             element_type=element_type,
             element_class=element_class,
             element_model=element_model,
+            section_type=section_type,
         )
         return elements
+
+    def export_rdf(
+        self,
+        path: str,
+        format: str = "turtle",
+        machine_name: str = "machine",
+    ) -> None:
+        """Serialise this machine model to an RDF file.
+
+        Requires the optional ``rdf`` dependency group::
+
+            pip install "laura-accelerator[rdf]"
+
+        Parameters
+        ----------
+        path:
+            Output file path (e.g. ``"machine.ttl"``).
+        format:
+            RDF serialisation format.  One of ``"turtle"`` (default),
+            ``"json-ld"``, ``"n-triples"`` / ``"nt"``, ``"xml"``.
+        machine_name:
+            Logical accelerator name embedded in element IRIs.
+            Default ``"machine"``.
+        """
+        from laura.Exporters.RDF import export_machine_rdf  # deferred import
+
+        export_machine_rdf(self, path=path, format=format, machine_name=machine_name)
+
+    def sparql(
+        self,
+        query: str,
+        machine_name: str = "machine",
+    ) -> list[dict]:
+        """Execute a SPARQL SELECT query over this machine model.
+
+        Builds an in-memory RDF graph from :attr:`elements` (lazily, on first
+        call) and runs the given SPARQL SELECT query against it using rdflib.
+
+        Standard PREFIX declarations for ``laura:``, ``schema:``, ``qudt:``,
+        ``rdf:``, ``rdfs:``, and ``xsd:`` are automatically prepended.
+
+        Requires the optional ``rdf`` dependency group::
+
+            pip install "laura-accelerator[rdf]"
+
+        Parameters
+        ----------
+        query:
+            SPARQL SELECT query string.
+        machine_name:
+            Logical accelerator name used when building element IRIs.
+            Default ``"machine"``.
+
+        Returns
+        -------
+        list[dict]
+            One dict per result row; keys are variable names, values are
+            Python native types.
+        """
+        from laura.query import LAURAQuery  # deferred import
+
+        return LAURAQuery(self, machine_name=machine_name).sparql(query)
