@@ -111,6 +111,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             A flattened dictionary containing the attributes of the element.
         """
         data = flatten_dict({**self.model_dump()}, parent_key="", separator="_")
+        data.pop("magnetic_gap", None)
         if resolve:
             defs = IgnoreExtra.functional_definitions
             data = {
