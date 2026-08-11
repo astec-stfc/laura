@@ -153,7 +153,7 @@ def repr_quadrupole(t, P_Q: float = float("nan"), **kwargs) -> tuple:
     )
 
 
-def _resolve_sbend_P_Q(t, P_Q: float) -> float:
+def _resolve_sbend_p_q(t, P_Q: float) -> float:
     if P_Q != P_Q:  # NaN check without importing math/numpy just for this
         warn(
             f"No P_Q (reference momentum/charge) supplied for dipole {t.name}; "
@@ -166,7 +166,7 @@ def _resolve_sbend_P_Q(t, P_Q: float) -> float:
 
 
 def _sbend_args(t, P_Q: float) -> tuple:
-    P_Q = _resolve_sbend_P_Q(t, P_Q)
+    P_Q = _resolve_sbend_p_q(t, P_Q)
     # `t.angle` (the DipoleTranslator's own computed property, `magnetic.KnL(0)`)
     # -- not `t.magnetic.angle`, the raw underlying model field, which defaults
     # to `None`/is not reliably populated (its own docstring says it's meant to
@@ -740,3 +740,17 @@ rftrack_repr_rules = {
     "Collimator": repr_drift,
     "Marker": repr_drift,
 }
+
+# ---------------------------------------------------------------------------
+# Backwards compatibility: names renamed for PEP 8. Served lazily with a
+# FutureWarning so downstream consumers (astec-stfc/simba) keep working.
+# ---------------------------------------------------------------------------
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "_resolve_sbend_P_Q": "_resolve_sbend_p_q",
+    },
+)

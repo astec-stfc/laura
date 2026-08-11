@@ -1,7 +1,8 @@
 from pydantic import Field, field_validator, create_model
 from typing import List, Type, Union
 
-from .baseModels import IgnoreExtra, T, ModelBase, FunctionalMixin
+from laura._compat import DeprecatedMethodAliases
+from .base_models import IgnoreExtra, T, ModelBase, FunctionalMixin
 from ._generated import (
     _RFCavityElementBase,
     _WakefieldElementBase,
@@ -163,6 +164,7 @@ llrffieldnames = [
     "cavity_reverse",
     "cavity_probe",
 ]
+llrf_timings_catap_names = ["kf", "kr", "cf", "cr", "cp"]
 cavitynames = ["LRRG", "HRRG", "L01", "CALIBRATION"]
 
 
@@ -183,10 +185,16 @@ class LLRFTimings(_LLRFTimingsBase):
     pass
 
 
-class Low_Level_RF_Element(_LowLevelRFElementBase, IgnoreExtra):
+class LowLevelRFElement(DeprecatedMethodAliases, _LowLevelRFElementBase, IgnoreExtra):
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "_create_LLRFChannels_Model": "_create_llrf_channels_model",
+    }
+    # one_record remains dynamic because CATAP payload keys depend on
+    # available cavity/channel combinations at runtime.
     one_record: LLRFChannelsBase
 
-    def _create_LLRFChannels_Model(self, fields: dict):
+    def _create_llrf_channels_model(self, fields: dict):
         inputs = {}
         for name in llrffieldnames:
             if "ONE_RECORD_" + str.upper(name) + "_POWER" in fields:
@@ -222,3 +230,15 @@ class RFProtectionElement(_RFProtectionElementBase):
 
 class RFHeartbeatElement(_RFHeartbeatElementBase):
     pass
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "Low_Level_RF_Element": "LowLevelRFElement",
+        "llrftimingsCATAPnames": "llrf_timings_catap_names",
+    },
+)

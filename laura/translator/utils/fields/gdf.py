@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 import easygdf
 from warnings import warn
-from .FieldParameter import FieldParameter
+from .field_parameter import FieldParameter
 from ..units import UnitValue
 from laura.models.constants import speed_of_light
 
@@ -10,7 +10,7 @@ from laura.models.constants import speed_of_light
 def write_gdf_field_file(self) -> str:
     """
     Generate the field data in a format that is suitable for GPT, based on the
-    :class:`~laura.translator.utils.fields.field` object provided.
+    :class:`~laura.translator.utils.fields.FieldMap` object provided.
     This is then written to a GDF file.
     The `field_type` parameter determines the format of the file.
 
@@ -18,7 +18,7 @@ def write_gdf_field_file(self) -> str:
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
 
     Returns
@@ -153,11 +153,11 @@ def read_gdf_field_file(
     normalize_b: bool = True,
 ):
     """
-    Read a GDF field file and convert it into a :class:`SimulationFramework.Modules.Fields.field` object
+    Read a GDF field file and convert it into a :class:`SimulationFramework.Modules.Fields.FieldMap` object
 
     Parameters
     ----------
-    self: :class:`~SimulationFramework.Modules.Fields.field`
+    self: :class:`~SimulationFramework.Modules.Fields.FieldMap`
         The field object to be updated.
     filename: str
         The path to the GDF field file

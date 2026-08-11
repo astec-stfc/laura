@@ -10,10 +10,10 @@ laura.translator.utils.fields package
 Submodules
 ----------
 
-laura.translator.utils.fields.FieldParameter module
----------------------------------------------------
+laura.translator.utils.fields.field_parameter module
+----------------------------------------------------
 
-.. automodule:: laura.translator.utils.fields.FieldParameter
+.. automodule:: laura.translator.utils.fields.field_parameter
    :members:
    :private-members:
    :show-inheritance:

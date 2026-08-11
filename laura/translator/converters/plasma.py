@@ -61,11 +61,11 @@ class PlasmaTranslator(BaseElementTranslator):
                 f"Supported models are {list(self.simulation.required_attrs.keys())[1:]}."
             )
         commondict = {
-            self._convertKeyword_WakeT(param): getattr(self, param)
+            self._convert_keyword_wake_t(param): getattr(self, param)
             for param in self.simulation.required_attrs["common"]
         }
         modeldict = {
-            self._convertKeyword_WakeT(param): getattr(self, param)
+            self._convert_keyword_wake_t(param): getattr(self, param)
             for param in self.simulation.required_attrs[self.simulation.wakefield_model]
         }
         if self.plasma.density_profile:

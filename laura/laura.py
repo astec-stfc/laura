@@ -12,24 +12,22 @@ from itertools import chain
 from math import copysign
 from typing import Any, Dict, List
 
+
 from pydantic import field_validator, model_validator
 from yaml.constructor import Constructor
 
 _log = logging.getLogger("laura.machine")
 
-import time
-
-import numpy as np
-
-from .Importers.YAML_Loader import (
+from ._compat import DeprecatedMethodAliases
+from .models.physical import PhysicalElement, Position
+from .models.element_list import MachineModel, BaseElement, dot, chunks
+from .models.element import Drift
+from .importers.yaml_loader import (
+    read_yaml_combined_file,
+    read_yaml_element_file,
     LazyElementDict,
     fast_get_element_metadata,
-    read_YAML_Combined_File,
-    read_YAML_Element_File,
 )
-from .models.element import Drift
-from .models.elementList import MachineModel, baseElement, chunks, dot
-from .models.physical import PhysicalElement, Position
 
 NON_ELEMENT_FILENAMES = {"summary.yaml", "summary.yml"}
 """Files to ignore when scanning an ``element_list`` directory. ``summary.yaml`` is an
@@ -70,14 +68,19 @@ def _lattice_root(lattice: Any) -> str | None:
 Constructor.add_constructor("tag:yaml.org,2002:bool", add_bool)
 
 
-class LAURA(MachineModel):
+class LAURA(DeprecatedMethodAliases, MachineModel):
     """
     LAURA Main Class
 
     The main class for handling a full particle accelerator lattice.
     """
 
-    element_list: str | List[baseElement]
+    _DEPRECATED_METHOD_ALIASES = {
+        "createDrifts": "create_drifts",
+    }
+    """Legacy names which are served by a ``FutureWarning``"""
+
+    element_list: str | List[BaseElement]
     """List containing all elements in the machine model, either as a path to a YAML file/directory 
     or as a list of element objects."""
 
@@ -132,12 +135,6 @@ class LAURA(MachineModel):
             elif os.path.isdir(os.path.abspath(os.path.dirname(__file__) + "/" + v)):
                 return os.path.abspath(os.path.dirname(__file__) + "/" + v)
             else:
-                # Not resolvable relative to the cwd or the laura package;
-                # defer to model_post_init, which resolves the path relative
-                # to master_lattice (the environment-independent anchor the
-                # framework always supplies). Raising here would break any
-                # environment where laura is not installed beside the lattice
-                # files (e.g. laura in site-packages during testing).
                 return v
         else:
             return v
@@ -165,8 +162,8 @@ class LAURA(MachineModel):
 
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
-                elems = read_YAML_Combined_File(el_list)
-                values = {y.name: y for y in elems if hasattr(y, "name")}
+                elems = read_yaml_combined_file(el_list)
+                values = {y.name: y for y in elems if hasattr(y, 'name')}
                 self.elements.update(values)
             elif os.path.isdir(el_list):
                 files = glob.glob(
@@ -188,20 +185,19 @@ class LAURA(MachineModel):
                     )
                 else:
                     elems = [
-                        read_YAML_Element_File(fn, exclude_keys=self.exclude_keys)
+                        read_yaml_element_file(fn, exclude_keys=self.exclude_keys)
                         for fn in files
                     ]
                     self.elements.update(
-                        {y.name: y for y in elems if isinstance(y, baseElement)}
+                        {y.name: y for y in elems if isinstance(y, BaseElement)}
                     )
         elif el_list:
             values = {y.name: y for y in el_list if hasattr(y, "name")}
             self.elements.update(values)
 
-        # Call super after populating elements so _build_layouts can work
         super().model_post_init(__context)
 
-    def createDrifts(
+    def create_drifts(
         self, end: str = None, start: str = None, path: str = None
     ) -> Dict:
         """
@@ -224,9 +220,6 @@ class LAURA(MachineModel):
         for name in elements:
             elem = self.elements[name]
             if elem.is_subelement():
-                # Co-located with another element (e.g. a solenoid wrapped
-                # around a cavity) -- excluded from s/drift calculations,
-                # matching MachineLayout.createDrifts in elementList.py.
                 continue
             originalelements[name] = elem
             pos = elem.physical.start.array
@@ -298,7 +291,7 @@ class LAURA(MachineModel):
         :param path: Name of the lattice path to use
         :return: Dictionary of element names and their s positions
         """
-        elements = self.createDrifts(start=start, end=end, path=path)
+        elements = self.create_drifts(start=start, end=end, path=path)
         start_and_end = [
             [name, elem.physical.length, elem.hardware_type == "Drift"]
             for name, elem in elements.items()

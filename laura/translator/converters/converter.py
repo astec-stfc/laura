@@ -15,9 +15,9 @@ from laura.models.element import (
     Plasma,
     Laser,
     Wiggler,
-    Combined_Corrector,
-    Horizontal_Corrector,
-    Vertical_Corrector,
+    CombinedCorrector,
+    HorizontalCorrector,
+    VerticalCorrector,
     NonLinearLens,
     TwissMatch,
     Screen,
@@ -82,9 +82,9 @@ def translate_elements(
             if isinstance(elem, Solenoid):
                 translator = SolenoidTranslator
             elif type(elem) in [
-                Combined_Corrector,
-                Horizontal_Corrector,
-                Vertical_Corrector,
+                CombinedCorrector,
+                HorizontalCorrector,
+                VerticalCorrector,
             ]:
                 translator = CorrectorTranslator
             elif isinstance(elem, Dipole):

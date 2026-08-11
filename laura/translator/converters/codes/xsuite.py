@@ -16,7 +16,7 @@ except ImportError as _err:
 if TYPE_CHECKING:
     import xtrack as xt  # type: ignore[no-redef]
     from xtrack.beam_elements.elements import _HasKnlKsl  # type: ignore[no-redef]
-from laura.models.elementList import (
+from laura.models.element_list import (
     SectionLattice,
     MachineLayout,
     ElementList,

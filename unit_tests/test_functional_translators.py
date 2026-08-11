@@ -13,7 +13,7 @@ import pytest
 pytest.importorskip("easygdf")
 pytest.importorskip("h5py")
 
-from laura.models.baseModels import (  # noqa: E402
+from laura.models.base_models import (  # noqa: E402
     set_functional_definitions,
     set_resolve_functional,
 )
@@ -135,7 +135,7 @@ class TestDirectReadResolution:
 class TestCascadeToTranslators:
     def test_section_translator_carries_definitions(self, tmp_path):
         from laura.models.element import Quadrupole, Marker
-        from laura.models.elementList import MachineModel
+        from laura.models.element_list import MachineModel
         from laura.translator.converters.section import SectionLatticeTranslator
 
         f = tmp_path / "defs.yaml"
@@ -197,7 +197,7 @@ class TestXsuite:
 
     def _line(self, elements, defs, beam_length=1, resolve=False):
         pytest.importorskip("xtrack")
-        from laura.models.elementList import SectionLattice
+        from laura.models.element_list import SectionLattice
         from laura.translator.converters.section import SectionLatticeTranslator
 
         section = SectionLattice(

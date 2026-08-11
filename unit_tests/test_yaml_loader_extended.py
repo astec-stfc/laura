@@ -1,4 +1,4 @@
-"""Extended tests for laura.Importers.YAML_Loader.
+"""Extended tests for laura.importers.YAML_Loader.
 
 Covers:
 - fast_get_element_metadata
@@ -19,16 +19,16 @@ import pytest
 import yaml
 
 from laura.models.element import Quadrupole, Marker, Dipole, ELEMENT_REGISTRY
-from laura.Exporters.YAML import export_as_yaml, export_machine_combined_file
-from laura.Importers.YAML_Loader import (
+from laura.exporters.yaml_exporter import export_as_yaml, export_machine_combined_file
+from laura.importers.yaml_loader import (
     fast_get_element_metadata,
     LazyElementDict,
     LazyAdapterDict,
     filter_top_level,
-    interpret_YAML_Element,
-    read_YAML_Element_File,
-    read_YAML_Element_Files,
-    read_YAML_Combined_File,
+    interpret_yaml_element,
+    read_yaml_element_file,
+    read_yaml_element_files,
+    read_yaml_combined_file,
 )
 from laura import LAURA
 
@@ -301,7 +301,7 @@ class TestValidateElementDict:
     def test_base_class_element_passes(self):
         """An element with both required fields (name, hardware_class) satisfies the root schema."""
         jsonschema = pytest.importorskip("jsonschema")
-        from laura.Importers.YAML_Loader import validate_element_dict
+        from laura.importers.yaml_loader import validate_element_dict
         # Root schema requires 'name' and 'hardware_class'; hardware_type is an unconstrained string
         base_elem = {"name": "BASE_ELEM", "hardware_class": "Generic", "hardware_type": "AcceleratorElement"}
         # Should not raise
@@ -314,14 +314,14 @@ class TestValidateElementDict:
         Validation only fails if 'name' or 'hardware_class' are missing.
         """
         jsonschema = pytest.importorskip("jsonschema")
-        from laura.Importers.YAML_Loader import validate_element_dict
+        from laura.importers.yaml_loader import validate_element_dict
         # Should not raise: name and hardware_class are both present
         validate_element_dict(self._valid_quad_dict())
 
     def test_missing_hardware_class_raises_validation_error(self):
         """An element missing the required 'hardware_class' field fails validation."""
         jsonschema = pytest.importorskip("jsonschema")
-        from laura.Importers.YAML_Loader import validate_element_dict
+        from laura.importers.yaml_loader import validate_element_dict
         bad = {"name": "QV", "hardware_type": "Quadrupole"}  # missing hardware_class
         with pytest.raises(jsonschema.ValidationError):
             validate_element_dict(bad)
@@ -329,19 +329,19 @@ class TestValidateElementDict:
     def test_missing_required_name_raises_validation_error(self):
         """An element missing the required 'name' field fails validation."""
         jsonschema = pytest.importorskip("jsonschema")
-        from laura.Importers.YAML_Loader import validate_element_dict
+        from laura.importers.yaml_loader import validate_element_dict
         bad = {"hardware_type": "AcceleratorElement"}  # missing 'name'
         with pytest.raises(jsonschema.ValidationError):
             validate_element_dict(bad)
 
     def test_missing_jsonschema_raises_import_error(self):
-        from laura.Importers.YAML_Loader import validate_element_dict
+        from laura.importers.yaml_loader import validate_element_dict
         with patch.dict("sys.modules", {"jsonschema": None}):
             with pytest.raises(ImportError, match="jsonschema"):
                 validate_element_dict(self._valid_quad_dict())
 
     def test_missing_schema_file_raises_file_not_found(self, tmp_path):
-        from laura.Importers import YAML_Loader as loader_mod
+        from laura.importers import yaml_loader as loader_mod
         original_path = loader_mod._SCHEMA_PATH
         loader_mod._get_json_schema.cache_clear()
         try:
@@ -353,7 +353,7 @@ class TestValidateElementDict:
             loader_mod._get_json_schema.cache_clear()
 
     def test_schema_is_cached_after_first_load(self):
-        from laura.Importers.YAML_Loader import _get_json_schema
+        from laura.importers.yaml_loader import _get_json_schema
         schema1 = _get_json_schema()
         schema2 = _get_json_schema()
         assert schema1 is schema2
@@ -376,14 +376,14 @@ class TestReadYAMLElementFileWithValidation:
         fpath = _write_element_yaml(str(tmp_path), q)
         pytest.importorskip("jsonschema")
         # Should not raise: exported YAML has name + hardware_class
-        elem = read_YAML_Element_File(fpath, validate=True)
+        elem = read_yaml_element_file(fpath, validate=True)
         assert elem is not None
 
     def test_validate_false_reads_element_successfully(self, tmp_path):
         """validate=False (default) loads an element without schema validation."""
         q = _make_quad("QV2", "SEC")
         fpath = _write_element_yaml(str(tmp_path), q)
-        elem = read_YAML_Element_File(fpath, validate=False)
+        elem = read_yaml_element_file(fpath, validate=False)
         assert elem is not None
         assert elem.name == "QV2"
 
@@ -392,7 +392,7 @@ class TestReadYAMLElementFileWithValidation:
         bad_path = str(tmp_path / "bad.yaml")
         with open(bad_path, "w") as fh:
             yaml.dump({"name": "BAD", "hardware_type": "NONESUCH_XYZ123"}, fh)
-        result = read_YAML_Element_File(bad_path, validate=False)
+        result = read_yaml_element_file(bad_path, validate=False)
         assert result is None
 
 
@@ -419,7 +419,7 @@ class TestReadYAMLCombinedFileWithValidation:
         export_machine_combined_file(path=export_path, machine=machine)
         summary = os.path.join(export_path, "summary.yaml")
         # Should not raise: all elements have name + hardware_class
-        elements = read_YAML_Combined_File(summary, validate=True)
+        elements = read_yaml_combined_file(summary, validate=True)
         assert len(elements) > 0
 
     def test_combined_file_loads_without_validation(self, tmp_path):
@@ -432,7 +432,7 @@ class TestReadYAMLCombinedFileWithValidation:
         export_path = str(tmp_path / "comb2")
         export_machine_combined_file(path=export_path, machine=machine)
         summary = os.path.join(export_path, "summary.yaml")
-        elements = read_YAML_Combined_File(summary, validate=False)
+        elements = read_yaml_combined_file(summary, validate=False)
         names = [e.name for e in elements if e is not None]
         assert "QD" in names or "MD" in names
 
@@ -445,7 +445,7 @@ class TestReadYAMLCombinedFileWithValidation:
         with open(bad_path, "w") as fh:
             yaml.dump(bad_data, fh)
         with pytest.raises(jsonschema.ValidationError):
-            read_YAML_Combined_File(bad_path, validate=True)
+            read_yaml_combined_file(bad_path, validate=True)
 
 
 # ---------------------------------------------------------------------------
@@ -460,7 +460,7 @@ class TestReadYAMLElementFiles:
         m = _make_marker("MF", "SEC")
         fq = _write_element_yaml(str(tmp_path), q)
         fm = _write_element_yaml(str(tmp_path), m)
-        dicts, filenames = read_YAML_Element_Files([fq, fm])
+        dicts, filenames = read_yaml_element_files([fq, fm])
         assert isinstance(dicts, list)
         assert isinstance(filenames, list)
         assert len(filenames) == 2
@@ -468,7 +468,7 @@ class TestReadYAMLElementFiles:
     def test_dicts_contain_raw_data(self, tmp_path):
         q = _make_quad("QF2", "SEC")
         fq = _write_element_yaml(str(tmp_path), q)
-        dicts, _ = read_YAML_Element_Files([fq])
+        dicts, _ = read_yaml_element_files([fq])
         # First dict in a multi-doc YAML split by '---' may be None/empty
         non_none = [d for d in dicts if d is not None]
         names = [d.get("name") for d in non_none if isinstance(d, dict)]
@@ -477,7 +477,7 @@ class TestReadYAMLElementFiles:
     def test_returns_raw_dicts_not_models(self, tmp_path):
         q = _make_quad("QF3", "S01")
         fq = _write_element_yaml(str(tmp_path), q)
-        dicts, _ = read_YAML_Element_Files([fq])
+        dicts, _ = read_yaml_element_files([fq])
         for d in dicts:
             if d is not None:
                 assert isinstance(d, dict)
@@ -485,7 +485,7 @@ class TestReadYAMLElementFiles:
     def test_multiple_files_returns_all(self, tmp_path):
         elements = [_make_quad(f"Q{i}", "S01") for i in range(3)]
         fpaths = [_write_element_yaml(str(tmp_path), e) for e in elements]
-        dicts, filenames = read_YAML_Element_Files(fpaths)
+        dicts, filenames = read_yaml_element_files(fpaths)
         assert len(filenames) == 3
         non_none = [d for d in dicts if d is not None and isinstance(d, dict)]
         names = {d.get("name") for d in non_none}

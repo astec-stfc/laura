@@ -10,15 +10,15 @@ import tempfile
 import pytest
 
 from laura import LAURA
-from laura.Exporters.YAML import export_machine
+from laura.exporters.yaml import export_machine
 from laura.laura import add_bool, flatten
-from laura.models.diagnostic import Screen_Diagnostic
+from laura.models.diagnostic import ScreenDiagnostic
 from laura.models.element import (
-    Beam_Position_Monitor,
-    Combined_Corrector,
+    BeamPositionMonitor,
+    CombinedCorrector,
     Dipole,
-    Faraday_Cup_Monitor,
-    Horizontal_Corrector,
+    FaradayCupMonitor,
+    HorizontalCorrector,
     Marker,
     Quadrupole,
     RFCavity,
@@ -27,7 +27,7 @@ from laura.models.element import (
     Shutter,
     Solenoid,
     Valve,
-    Vertical_Corrector,
+    VerticalCorrector,
 )
 
 
@@ -186,22 +186,22 @@ def full_machine():
             magnetic={"length": 0.2},
             physical={"length": 0.2, "middle": {"x": 0, "y": 0, "z": 2.0}},
         ),
-        Horizontal_Corrector(
+        HorizontalCorrector(
             name="HC1",
             machine_area="S1",
             physical={"middle": {"x": 0, "y": 0, "z": 2.5}},
         ),
-        Vertical_Corrector(
+        VerticalCorrector(
             name="VC1",
             machine_area="S1",
             physical={"middle": {"x": 0, "y": 0, "z": 3.0}},
         ),
-        Combined_Corrector(
+        CombinedCorrector(
             name="CC1",
             machine_area="S1",
             physical={"middle": {"x": 0, "y": 0, "z": 3.5}},
         ),
-        Beam_Position_Monitor(
+        BeamPositionMonitor(
             name="BPM1",
             machine_area="S1",
             physical={"middle": {"x": 0, "y": 0, "z": 4.0}},
@@ -210,14 +210,14 @@ def full_machine():
             name="SCR1",
             machine_area="S1",
             physical={"middle": {"x": 0, "y": 0, "z": 4.5}},
-            diagnostic=Screen_Diagnostic(camera_name="CAM1"),
+            diagnostic=ScreenDiagnostic(camera_name="CAM1"),
         ),
         RFCavity(
             name="RFC1",
             machine_area="S1",
             physical={"middle": {"x": 0, "y": 0, "z": 5.0}},
         ),
-        Faraday_Cup_Monitor(
+        FaradayCupMonitor(
             name="FCM1",
             machine_area="S1",
             physical={"middle": {"x": 0, "y": 0, "z": 5.5}},
@@ -232,20 +232,20 @@ def full_machine():
             machine_area="S1",
             physical={"middle": {"x": 0, "y": 0, "z": 6.5}},
         ),
-        Combined_Corrector(
+        CombinedCorrector(
             name="CC2",
             machine_area="S1",
             physical={"middle": {"x": 0, "y": 0, "z": 6.8}},
             Horizontal_Corrector="CC2_H",
             Vertical_Corrector="CC2_V",
         ),
-        Combined_Corrector(
+        CombinedCorrector(
             name="CC3",
             machine_area="S1",
             physical={"middle": {"x": 0, "y": 0, "z": 6.9}},
             Horizontal_Corrector="CC3_H",
         ),
-        Combined_Corrector(
+        CombinedCorrector(
             name="CC4",
             machine_area="S1",
             physical={"middle": {"x": 0, "y": 0, "z": 6.95}},

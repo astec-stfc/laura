@@ -11,7 +11,7 @@ Requires the ``sql`` optional dependency group::
 
 Public API::
 
-    from laura.Exporters.SQL import export_machine, load_machine_elements
+    from laura.exporters.SQL import export_machine, load_machine_elements
 
     # Persist to SQLite file
     machine_id = export_machine(machine, db_url="sqlite:///machine.db")
@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from laura.models.elementList import MachineModel
+    from laura.models.element_list import MachineModel
 
 # Path to the generated SQLAlchemy ORM module (never imported at package level so
 # sqlalchemy remains an optional dependency).

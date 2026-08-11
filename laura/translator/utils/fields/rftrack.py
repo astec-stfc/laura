@@ -1,5 +1,5 @@
 """
-Convert a :class:`~laura.translator.utils.fields.field` object's on-axis 1D
+Convert a :class:`~laura.translator.utils.fields.FieldMap` object's on-axis 1D
 samples into the plain-array form RF-Track's field-map constructors need
 (RF_Track_reference_manual.pdf §4.4).
 

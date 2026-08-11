@@ -4,7 +4,7 @@ from pydantic import (
     Field
 )
 from typing import Literal, Any, ClassVar, Union, Dict, List
-from .baseModels import IgnoreExtra, FunctionalMixin
+from .base_models import IgnoreExtra, FunctionalMixin
 from ._generated import (
     _ApertureElementBase,
     _SimulationElementBase,
@@ -22,7 +22,7 @@ from ._generated import (
     _BeamBeamSimulationElementBase,
     _RFMultipoleSimulationElementBase,
 )
-from ..translator.utils.fields import field
+from ..translator.utils.fields import FieldMap
 import numpy as np
 import re
 
@@ -38,10 +38,6 @@ class SimulationElement(_SimulationElementBase, FunctionalMixin):
     Simulation element model.
     """
 
-    # Everything else PR #4 declared here (field_definition, wakefield_definition,
-    # field_reference_position, scale_field) now comes from the generated schema
-    # base. wakefield_enable does not yet exist in the schema, so it stays an
-    # explicit override until it is added to laura_schema.yaml.
     wakefield_enable: bool = True
     """Flag to indicate whether the wakefield defined by
     :attr:`~wakefield_definition` is applied. Set to False to track the element
@@ -53,12 +49,10 @@ class MagnetSimulationElement(_MagnetSimulationElementBase, FunctionalMixin):
     Magnet simulation element model.
     """
 
-    field_definition: str | field | None = None
-    # Schema declares `smooth` as boolean but ASTRA uses an integer smoothing count (Q_smooth / S_smooth).
+    field_definition: str | FieldMap | None = None
+
     smooth: int | None = 2
 
-    # Schema types this as plain float; widened to accept the name of a
-    # functional definition, and marked so functional_references() finds it.
     field_amplitude: Union[float, str] = Field(
         default=0.0, json_schema_extra={"functional": True}
     )
@@ -109,11 +103,9 @@ class RFCavitySimulationElement(_RFCavitySimulationElementBase, FunctionalMixin)
     RF cavity simulation element model.
     """
 
-    field_definition: str | field | None = None
-    wakefield_definition: str | field | None = None
+    field_definition: str | FieldMap | None = None
+    wakefield_definition: str | FieldMap | None = None
 
-    # Schema types this as plain float; widened to accept the name of a
-    # functional definition, and marked so functional_references() finds it.
     field_amplitude: Union[float, str] = Field(
         default=0.0, json_schema_extra={"functional": True}
     )
@@ -126,7 +118,7 @@ class WakefieldSimulationElement(_WakefieldSimulationElementBase):
     Wakefield simulation element model.
     """
 
-    wakefield_definition: str | field | None = None
+    wakefield_definition: str | FieldMap | None = None
 
     pass
 

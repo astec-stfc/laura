@@ -83,7 +83,7 @@ class LazyElementDict(dict):
                 return val
         if key in self._filenames:
             # Only load when needed
-            elem = read_YAML_Element_File(self._filenames[key], exclude_keys=self._exclude_keys)
+            elem = read_yaml_element_file(self._filenames[key], exclude_keys=self._exclude_keys)
             super().__setitem__(key, elem)
             return elem
         raise KeyError(key)
@@ -385,7 +385,7 @@ def collapse_controls_schema(
     return resolved
 
 
-def interpret_YAML_Element(
+def interpret_yaml_element(
     elem: dict, exclude_set=None, base_dir: str | None = None, schema_map: dict | None = None
 ):
     hw_type = elem.get("hardware_type")
@@ -426,7 +426,7 @@ def interpret_YAML_Element(
         return None
 
 
-def read_YAML_Element_File(
+def read_yaml_element_file(
     filename: str,
     exclude_keys: List[str] | None = None,
     validate: bool = False,
@@ -449,14 +449,14 @@ def read_YAML_Element_File(
         data = yaml.load(stream, Loader=Loader)
     if validate:
         validate_element_dict(data)
-    return interpret_YAML_Element(
+    return interpret_yaml_element(
         data,
         exclude_set=exclude_set,
         base_dir=os.path.dirname(os.path.abspath(filename)),
     )
 
 
-def read_YAML_Element_Files(filenames: list):
+def read_yaml_element_files(filenames: list):
     data = ""
     for file in filenames:
         data += "\n---\n"
@@ -466,7 +466,7 @@ def read_YAML_Element_Files(filenames: list):
     return gen, filenames
 
 
-def read_YAML_Combined_File(
+def read_yaml_combined_file(
     filename: str,
     exclude_keys=None,
     validate: bool = False,
@@ -502,7 +502,7 @@ def read_YAML_Combined_File(
 
     _log.debug("Parsing %d elements from '%s'", len(elements), filename)
     results = [
-        interpret_YAML_Element(element, exclude_set, base_dir=base_dir, schema_map=schema_map)
+        interpret_yaml_element(element, exclude_set, base_dir=base_dir, schema_map=schema_map)
         for element in elements.values()
     ]
     loaded = sum(1 for r in results if r is not None)
@@ -513,3 +513,20 @@ def read_YAML_Combined_File(
         f" ({failed} failed — enable DEBUG for details)" if failed else "",
     )
     return results
+
+# ---------------------------------------------------------------------------
+# Backwards compatibility: names renamed for PEP 8. Served lazily with a
+# FutureWarning so downstream consumers (astec-stfc/simba) keep working.
+# ---------------------------------------------------------------------------
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "interpret_YAML_Element": "interpret_yaml_element",
+        "read_YAML_Combined_File": "read_yaml_combined_file",
+        "read_YAML_Element_File": "read_yaml_element_file",
+        "read_YAML_Element_Files": "read_yaml_element_files",
+    },
+)

@@ -3,12 +3,13 @@ ASTRA namelist generator.
 
 .. _ASTRA manual: https://www.desy.de/~mpyflo/Astra_dokumentation/
 """
+from laura._compat import DeprecatedMethodAliases
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, List, Any
 import numpy as np
 from ...utils.classes import get_grid_size
 
-section_header_text_ASTRA = {
+section_header_text_astra = {
     "&APERTURE": "LApert",
     "&CAVITY": "LEField",
     "&SOLENOID": "LBField",
@@ -34,10 +35,14 @@ astra_unsupported = [
 ]
 
 
-class astra_header(BaseModel):
+class AstraHeader(DeprecatedMethodAliases, BaseModel):
     """
     Generic class for generating ASTRA namelists
     """
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "write_ASTRA": "write_astra",
+    }
 
     model_config = ConfigDict(
         extra="allow",
@@ -82,7 +87,7 @@ class astra_header(BaseModel):
             return f"'{v}'"
         return str(v)
 
-    def write_ASTRA(self) -> str:
+    def write_astra(self) -> str:
         """
         Write the text for the ASTRA namelist based on its attributes.
 
@@ -103,7 +108,7 @@ class astra_header(BaseModel):
         return output
 
 
-class astra_newrun(astra_header):
+class AstraNewRun(AstraHeader):
     """
     Class for generating the &NEWRUN namelist for ASTRA. See `ASTRA manual`_ for more details.
     """
@@ -158,15 +163,7 @@ class astra_newrun(astra_header):
 
     h_min: float = 0.0
     """Minimum time step for the Runge-Kutta integration [ns], and the minimum
-    step for the space-charge calculation.
-
-    Zero is ASTRA's own default and hands the choice to the code: "during the
-    emission process from a cathode the time step is forced to H_min. If zero
-    H_min is set automatically based on the parameter N_min", i.e. sized so that
-    ~30 particles are emitted per step. Pinning it instead forces the whole bunch
-    out in one step whenever the bunch is shorter than that value -- for a 3 ps
-    photoinjector bunch against the previous 0.07 ns, the entire emission
-    happened in a single step."""
+    step for the space-charge calculation."""
 
     objectname: str = "newrun"
     """Name of object"""
@@ -196,15 +193,15 @@ class astra_newrun(astra_header):
             "toffset": "Toff",
         }
 
-    def write_ASTRA(self) -> str:
+    def write_astra(self) -> str:
         if not self.input_particle_definition:
             raise ValueError(
                 "input_particle_definition must be defined for astra_newrun"
             )
-        return super().write_ASTRA()
+        return super().write_astra()
 
 
-class astra_output(astra_header):
+class AstraOutput(AstraHeader):
     """
     Class for generating the &OUTPUT namelist for ASTRA. See `ASTRA manual`_ for more details.
     """
@@ -274,7 +271,7 @@ class astra_output(astra_header):
         # self.zemit = int((self.zstop - self.zstart) / 0.01)
         # self.screens = [e for e in self.section.elements.elements.values() if e.hardware_class == "Diagnostic"]
 
-    def write_ASTRA(self) -> str:
+    def write_astra(self) -> str:
         """
         Write the text for the ASTRA namelist based on its :attr:`~framework_dict`.
 
@@ -304,7 +301,7 @@ class astra_output(astra_header):
         return output
 
 
-class astra_charge(astra_header):
+class AstraCharge(AstraHeader):
     """
     Class for generating the &CHARGE namelist for ASTRA. See `ASTRA manual`_ for more details.
     """
@@ -320,22 +317,17 @@ class astra_charge(astra_header):
     space_charge_mode: str = "False"
     """Space charge mode"""
 
-    space_charge_2D: bool = True
+    space_charge_2d: bool = True
     """Enable 2D space charge calculations"""
 
-    space_charge_3D: bool = False
+    space_charge_3d: bool = False
     """Enable 3D space charge calculations"""
 
     cathode: bool = False
     """Flag to indicate whether the bunch was emitted from a cathode."""
 
     min_grid: float = 0.0
-    """Minimum longitudinal grid length during emission [m].
-
-    Zero is ASTRA's own default and means "work it out from H_min" -- the manual
-    says "if min_grid is zero it is set automatically according to Eq. (4.2)
-    based on the parameter H_min". A tiny but non-zero value silently disables
-    that."""
+    """Minimum longitudinal grid length during emission [m]."""
 
     n_min: int = 30
     """Minimum number of particles per time step for the Runge-Kutta integration."""
@@ -394,7 +386,7 @@ class astra_charge(astra_header):
             ["npart", "sample_interval", "space_charge_mode", "mirror_charge"]
         )
 
-    def write_ASTRA(self) -> str:
+    def write_astra(self) -> str:
         """
         Write the text for the ASTRA namelist based on its :attr:`~framework_dict`.
 
@@ -416,10 +408,10 @@ class astra_charge(astra_header):
                     output += f"{self.astradict[key]} = {self._astra_str(val)},\n"
                 else:
                     output += f"{key} = {self._astra_str(val)},\n"
-        if self.space_charge_2D and not self.space_charge_3D:
+        if self.space_charge_2d and not self.space_charge_3d:
             output += f"nrad = {self.grid_size},\n"
             output += f"nlong_in = {self.grid_size},\n"
-        elif self.space_charge_3D:
+        elif self.space_charge_3d:
             output += f"nxf = {self.grid_size},\n"
             output += f"nyf = {self.grid_size},\n"
             output += f"nzf = {self.grid_size},\n"
@@ -449,17 +441,14 @@ class astra_charge(astra_header):
             or self.space_charge_mode is None
             or self.space_charge_mode == "None"
         ):
-            # space_charge_2D maps to LSPCH, which is ASTRA's master switch for
-            # the space-charge calculation rather than a choice of algorithm, so
-            # it stays True here; LSPCH3D selects the 3D solver on top of it.
-            self.space_charge_3D = True
+            self.space_charge_3d = True
             if isinstance(self.space_charge_mode, str):
                 if "2d" in self.space_charge_mode.lower():
-                    self.space_charge_2D = True
-                    self.space_charge_3D = False
+                    self.space_charge_2d = True
+                    self.space_charge_3d = False
             return True
-        self.space_charge_2D = False
-        self.space_charge_3D = False
+        self.space_charge_2d = False
+        self.space_charge_3d = False
         return False
 
     @property
@@ -475,7 +464,7 @@ class astra_charge(astra_header):
         return get_grid_size(self.npart / self.sample_interval)
 
 
-class astra_errors(astra_header):
+class AstraErrors(AstraHeader):
     """
     Class for generating the &ERROR namelist for ASTRA. See `ASTRA manual`_ for more details.
     """
@@ -507,3 +496,18 @@ class astra_errors(astra_header):
             "global_errors": "errors",
             "generate_output": "lerror",
         }
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "astra_charge": "AstraCharge",
+        "astra_errors": "AstraErrors",
+        "astra_header": "AstraHeader",
+        "astra_newrun": "AstraNewRun",
+        "astra_output": "AstraOutput",
+        "section_header_text_ASTRA": "section_header_text_astra",
+    },
+)

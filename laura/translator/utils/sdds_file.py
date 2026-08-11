@@ -30,7 +30,7 @@ class MyEnumMeta(enum.EnumMeta):
             return True
 
 
-class SDDS_Types(enum.IntEnum, metaclass=MyEnumMeta):
+class SddsTypes(enum.IntEnum, metaclass=MyEnumMeta):
     SDDS_LONGDOUBLE = 1
     SDDS_DOUBLE = 2
     SDDS_REAL64 = 2
@@ -66,7 +66,7 @@ class SDDSObject(munch.Munch):
         description="",
     ):
         super().__init__()
-        self._types = SDDS_Types
+        self._types = SddsTypes
         self._name = name
         self._data = data
         self._unit = unit
@@ -269,7 +269,7 @@ class SDDSFile(object):
 
     def __init__(self, index=1, ascii=False, indexed=False):
         super().__init__()
-        self._types = SDDS_Types
+        self._types = SddsTypes
         self._columns = munch.Munch()
         self._parameters = munch.Munch()
         self._index = index
@@ -514,3 +514,13 @@ class SDDSFile(object):
     @property
     def data(self):
         return {k: v.data for k, v in {**self._parameters, **self._columns}.items()}
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "SDDS_Types": "SddsTypes",
+    },
+)

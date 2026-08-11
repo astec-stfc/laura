@@ -6,7 +6,7 @@ from pydantic.fields import FieldInfo
 
 from laura.models.element import Magnet
 from laura.utils.dict_utils import numpy_scalar_to_python
-from laura.models.baseModels import IgnoreExtra
+from laura.models.base_models import IgnoreExtra
 from typing import Any, Dict, Type, get_args, get_origin, Union, Literal
 from .fields import field
 
@@ -129,7 +129,7 @@ def convert_numpy_types(v):
             return [convert_numpy_types(li) for li in v]
         except TypeError:
             return float(v)
-    elif isinstance(v, field):
+    elif isinstance(v, FieldMap):
         return convert_numpy_types(v.model_dump())
     return numpy_scalar_to_python(v)
 
@@ -241,7 +241,7 @@ def expand_substitution(self, param, master_lattice="./", subs=None, elements=No
         return param
 
 
-def checkValue(self, d, default=None):
+def check_value(self, d, default=None):
     if isinstance(d, dict):
         if "type" in d and d["type"] == "list":
             if "default" in d:
@@ -291,3 +291,13 @@ def tw_cavity_energy_gain(cavity):
     delta_W = E_acc * L_total * np.cos(np.pi * cavity.phase / 180)
 
     return delta_W
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "checkValue": "check_value",
+    },
+)
