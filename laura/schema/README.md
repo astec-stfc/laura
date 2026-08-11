@@ -47,7 +47,7 @@ bash laura/schema/generate.sh
 | `generated/laura_ontology.owl` | `gen-owl` | OWL ontology for Protégé / reasoners |
 | `generated/laura_context.jsonld` | `gen-jsonld-context` | JSON-LD context for linked-data export |
 | `generated/laura_shacl.ttl` | `gen-shacl` | SHACL shapes for RDF validation |
-| `generated/laura_orm.py` | `generate_orm.py` | SQLAlchemy ORM used by `laura.Exporters.SQL` |
+| `generated/laura_orm.py` | `generate_orm.py` | SQLAlchemy ORM used by `laura.exporters.SQL` |
 | `generated/laura_schema.sql` | `gen-sqltables` | Plain SQL DDL |
 | `generated/laura_schema.graphql` | `gen-graphql` | GraphQL schema |
 | `generated/laura_types.ts` | `gen-typescript` | TypeScript types |
@@ -66,9 +66,9 @@ Pass `validate=True` to any YAML loading function to check the raw YAML
 against the JSON Schema before Pydantic parsing:
 
 ```python
-from laura.Importers.YAML_Loader import read_YAML_Element_File
+from laura.importers.yaml_loader import read_yaml_element_file
 
-element = read_YAML_Element_File("path/to/element.yaml", validate=True)
+element = read_yaml_element_file("path/to/element.yaml", validate=True)
 ```
 
 The JSON Schema file (`generated/laura_element.schema.json`) must exist

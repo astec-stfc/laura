@@ -3,12 +3,12 @@ from typing import Dict, Any, List
 from collections import Counter
 from . import magnetic_orders
 import laura.models.element as LAURA_elements
-from laura.models.elementList import SectionLattice, MachineLayout, ElementList
+from laura.models.element_list import SectionLattice, MachineLayout, ElementList
 from laura.models.element import (
     Element,
-    Combined_Corrector,
-    Vertical_Corrector,
-    Horizontal_Corrector,
+    CombinedCorrector,
+    VerticalCorrector,
+    HorizontalCorrector,
 )
 import math
 
@@ -325,9 +325,9 @@ class BmadLatticeImporter(BaseModel):
                                 "magnetic": vcor,
                             }
                         )
-                        comb = Combined_Corrector(**elems[nam])
-                        hori = Horizontal_Corrector(**helem)
-                        vert = Vertical_Corrector(**velem)
+                        comb = CombinedCorrector(**elems[nam])
+                        hori = HorizontalCorrector(**helem)
+                        vert = VerticalCorrector(**velem)
                         self.laura_elems[universe][b].update(
                             {
                                 nam: comb,

@@ -7,17 +7,17 @@ try:
 except ImportError:
     from ..functions import Counter
 from ..functions import chop, introspect_model_defaults
-from .SDDSFile import SDDSFile
+from .sdds_file import SDDSFile
 from ...converters import (
     type_conversion_rules_aliases,
-    type_conversion_rules_Elegant,
+    type_conversion_rules_elegant,
     keyword_conversion_rules_elegant,
     element_keywords,
 )
 import laura.models.element as LAURA_elements
 
 
-class SDDS_Floor:
+class SddsFloor:
 
     duplicates: list = []
 
@@ -92,7 +92,7 @@ class SDDS_Floor:
         print(f"{key} missing!")
 
 
-class SDDS_Params:
+class SddsParams:
 
     def __init__(self, filename: str, page: int = 0):
         self.filename = filename
@@ -148,8 +148,8 @@ class SDDS_Params:
                         }
                     }
                 )
-            elif elemtype in list(type_conversion_rules_Elegant.values()):
-                switch_dict = {y: x for x, y in type_conversion_rules_Elegant.items()}
+            elif elemtype in list(type_conversion_rules_elegant.values()):
+                switch_dict = {y: x for x, y in type_conversion_rules_elegant.items()}
                 sfconvert.update(
                     {
                         k: {
@@ -262,3 +262,15 @@ class SDDS_Params:
                         f"check path, file format and column data"
                     )
         return sfconvert, filenames
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "SDDS_Floor": "SddsFloor",
+        "SDDS_Params": "SddsParams",
+    },
+)

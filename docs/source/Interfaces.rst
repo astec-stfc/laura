@@ -14,12 +14,12 @@ archiving.
 Importers
 ---------
 
-:py:mod:`laura.Importers` reads element definitions into model objects.
+:py:mod:`laura.importers` reads element definitions into model objects.
 
 YAML
 ~~~~
 
-:py:mod:`laura.Importers.YAML_Loader` is the primary route, and the one used when a
+:py:mod:`laura.importers.yaml_loader` is the primary route, and the one used when a
 :py:class:`LAURA <laura.laura.LAURA>` machine is constructed from a lattice package. The
 loading pipeline -- dispatch on ``hardware_type``, lazy directory loading, optional JSON Schema
 validation -- is described in detail in :doc:`Architecture/yaml-pipeline`.
@@ -30,11 +30,11 @@ validation -- is described in detail in :doc:`Architecture/yaml-pipeline`.
 
    * - Function
      - Use
-   * - ``read_YAML_Element_File(path, exclude_keys, validate)``
+   * - ``read_yaml_element_file(path, exclude_keys, validate)``
      - One element per file.
-   * - ``read_YAML_Combined_File(path, exclude_keys, validate)``
+   * - ``read_yaml_combined_file(path, exclude_keys, validate)``
      - A combined ``summary.yaml`` (or ``.json``) holding many elements.
-   * - ``interpret_YAML_Element(dict)``
+   * - ``interpret_yaml_element(dict)``
      - Turn an already-parsed dictionary into the right element class.
    * - ``validate_element_dict(dict)``
      - Check a raw dictionary against the generated JSON Schema. Requires ``pip install "laura-accelerator[schema]"``.
@@ -42,13 +42,13 @@ validation -- is described in detail in :doc:`Architecture/yaml-pipeline`.
 SimFrame
 ~~~~~~~~
 
-:py:mod:`laura.Importers.SimFrame_Loader` converts lattices written for the ASTeC SimFrame
+:py:mod:`laura.importers.simframe_loader` converts lattices written for the ASTeC SimFrame
 framework into :mod:`LAURA` elements.
 
 .. warning::
 
-   :py:mod:`laura.Importers.CATAP_Loader`, :py:mod:`laura.Importers.MySafeLoader` and
-   :py:mod:`laura.Exporters.Export_CATAP_YAML` still use pre-package absolute imports
+   :py:mod:`laura.importers.catap_loader`, :py:mod:`laura.importers.my_safe_loader` and
+   :py:mod:`laura.exporters.export_catap_yaml` still use pre-package absolute imports
    (``from Importers... import``) and a ``laura.models.PV`` module that no longer exists.
    They cannot currently be imported, and are mocked out when this documentation is built.
 
@@ -57,19 +57,19 @@ framework into :mod:`LAURA` elements.
 Exporters
 ---------
 
-:py:mod:`laura.Exporters` writes a
-:py:class:`MachineModel <laura.models.elementList.MachineModel>` back out.
+:py:mod:`laura.exporters` writes a
+:py:class:`MachineModel <laura.models.element_list.MachineModel>` back out.
 
 YAML
 ~~~~
 
-:py:mod:`laura.Exporters.YAML` writes either one file per element, mirroring the
+:py:mod:`laura.exporters.yaml_exporter` writes either one file per element, mirroring the
 ``{hardware_class}/{hardware_type}/{name}.yaml`` directory layout, or a single combined
 summary file:
 
 .. code-block:: python
 
-    from laura.Exporters.YAML import (
+    from laura.exporters.yaml_exporter import (
         export_machine, export_machine_combined_file, export_as_yaml,
     )
 
@@ -115,20 +115,20 @@ reasoned over with the OWL ontology, or queried with SPARQL. Requires
 
 Accepted formats are ``"turtle"`` / ``"ttl"``, ``"json-ld"`` / ``"jsonld"``,
 ``"n-triples"`` / ``"nt"``, and ``"xml"`` / ``"rdfxml"``. The underlying functions are
-:py:func:`build_rdf_graph <laura.Exporters.RDF.build_rdf_graph>` and
-:py:func:`export_machine_rdf <laura.Exporters.RDF.export_machine_rdf>`.
+:py:func:`build_rdf_graph <laura.exporters.rdf_exporter.build_rdf_graph>` and
+:py:func:`export_machine_rdf <laura.exporters.rdf_exporter.export_machine_rdf>`.
 
 SQL
 ~~~
 
-:py:mod:`laura.Exporters.SQL` persists a machine to any SQLAlchemy-supported database, using
+:py:mod:`laura.exporters.sql_exporter` persists a machine to any SQLAlchemy-supported database, using
 the ORM generated from the same schema (``laura/schema/generated/laura_orm.py``). Tables are
 created if absent, and each export is a separate snapshot identified by an integer ID.
 Requires ``pip install "laura-accelerator[sql]"``.
 
 .. code-block:: python
 
-    from laura.Exporters.SQL import (
+    from laura.exporters.sql_exporter import (
         export_machine, load_machine_elements, load_machine_sections,
     )
 
@@ -140,7 +140,7 @@ Requires ``pip install "laura-accelerator[sql]"``.
 CATAP
 ~~~~~
 
-:py:mod:`laura.Exporters.CATAP` writes elements in the format used by the CATAP control-system
+:py:mod:`laura.exporters.catap_exporter` writes elements in the format used by the CATAP control-system
 abstraction layer, via ``export_machine(path, machine)`` or ``export_machine_dict(machine)``.
 
 .. _sparql-queries:

@@ -87,9 +87,9 @@ Corrector Translation
 ~~~~~~~~~~~~~~~~~~~~~
 
 :py:class:`CorrectorTranslator <laura.translator.converters.magnet.CorrectorTranslator>` handles
-:py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>`,
-:py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>`, and
-:py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` (see :ref:`corrector-magnet`
+:py:class:`HorizontalCorrector <laura.models.element.HorizontalCorrector>`,
+:py:class:`VerticalCorrector <laura.models.element.VerticalCorrector>`, and
+:py:class:`CombinedCorrector <laura.models.element.CombinedCorrector>` (see :ref:`corrector-magnet`
 for the underlying model). It does **not** extend
 :py:class:`MagnetTranslator <laura.translator.converters.magnet.MagnetTranslator>`, since that class's
 ``k1``/``k2``/``k3`` etc. and its ASTRA/CSRTrack/GPT writers all assume a multipole-based magnetic model
@@ -97,11 +97,11 @@ that a corrector no longer uses.
 
 Most codes' native kicker elements (Elegant's ``HKICK``/``VKICK``/``KICKER``, MAD-X's
 ``HKICKER``/``VKICKER``/``KICKER``, Genesis's ``corrector``) support both planes directly, so a
-:py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` translates as a single element
+:py:class:`CombinedCorrector <laura.models.element.CombinedCorrector>` translates as a single element
 there. Two codes need special handling because their native elements are single-plane only:
 
 * **Ocelot** has no combined-plane corrector, so a
-  :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` is *split* into an ``Hcor``
+  :py:class:`CombinedCorrector <laura.models.element.CombinedCorrector>` is *split* into an ``Hcor``
   immediately followed by a ``Vcor``, each given half the original element's length (so the pair has the
   same total length as the original single element).
   :py:meth:`to_ocelot <laura.translator.converters.magnet.CorrectorTranslator.to_ocelot>` therefore
@@ -113,7 +113,7 @@ there. Two codes need special handling because their native elements are single-
 * **Xsuite** has no dedicated corrector element at all; a corrector is represented as an
   ``xtrack.Multipole`` with the horizontal kick as ``knl[0]`` and the vertical kick as ``ksl[0]``, which
   naturally carries both planes of a
-  :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` in one element. Xtrack's
+  :py:class:`CombinedCorrector <laura.models.element.CombinedCorrector>` in one element. Xtrack's
   normal-multipole sign convention deflects toward *negative* x for a positive ``knl`` -- the opposite of
   the "positive kick deflects toward positive x/y" convention used by MAD-X/Ocelot/Cheetah (verified
   against each by direct particle tracking) -- so ``knl[0]`` is written as the *negated* horizontal kick;
@@ -167,7 +167,7 @@ Section Lattice Translator
 --------------------------
 
 The :py:class:`SectionLatticeTranslator <laura.translator.converters.section.SectionLatticeTranslator>` extends
-:py:class:`SectionLattice <laura.models.elementList.SectionLattice>` to provide complete lattice section translation
+:py:class:`SectionLattice <laura.models.element_list.SectionLattice>` to provide complete lattice section translation
 capabilities.
 
 Additional attributes for code-specific configuration:
@@ -198,7 +198,7 @@ Translation methods for complete lattice sections:
 
 The translator automatically:
 
-* Inserts drift spaces between elements using ``createDrifts()`` (except for :py:meth:`to_opal`,
+* Inserts drift spaces between elements using ``create_drifts()`` (except for :py:meth:`to_opal`,
   which places elements at absolute positions and relies on the target code to fill the gaps
   between them with implicit drifts)
 * Handles sub-elements and overlapping components
@@ -259,14 +259,14 @@ format.
 .. _madx-translator:
 
 MAD-X Translator
------------------
+----------------
 
 Unlike Elegant/Genesis (which build a ``LINE``) or OPAL (which uses ``ELEMEDGE`` positions),
 :py:meth:`SectionLatticeTranslator.to_madx <laura.translator.converters.section.SectionLatticeTranslator.to_madx>`
 generates a MAD-X ``SEQUENCE`` :cite:`MADX`, with each element placed at its absolute entrance s-position
 (``refer=entry``, the default). Passing ``refer="centre"`` places elements at their centre instead,
 which MAD-X requires before a ``MAKETHIN`` / ``TRACK``. Explicit ``drift`` elements are inserted
-between elements via ``createDrifts()`` and written into the sequence like any other element --
+between elements via ``create_drifts()`` and written into the sequence like any other element --
 the standard way of constructing a MAD-X lattice -- rather than relying on MAD-X's implicit
 gap-filling between elements placed without a contiguous ``at=``.
 
@@ -307,11 +307,11 @@ the MAD-X global afterwards (``madx.globals["name"] = ...``) updates every eleme
 
 .. note::
 
-   Correctors (:py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>`,
-   :py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>`,
-   :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>`) translate to native
+   Correctors (:py:class:`HorizontalCorrector <laura.models.element.HorizontalCorrector>`,
+   :py:class:`VerticalCorrector <laura.models.element.VerticalCorrector>`,
+   :py:class:`CombinedCorrector <laura.models.element.CombinedCorrector>`) translate to native
    ``HKICKER``/``VKICKER``/``KICKER`` elements, with the ``KICK``/``HKICK``/``VKICK`` attributes set
-   directly from :py:class:`Corrector_Magnet <laura.models.magnetic.Corrector_Magnet>`'s
+   directly from :py:class:`CorrectorMagnet <laura.models.magnetic.CorrectorMagnet>`'s
    ``horizontal_kick``/``vertical_kick`` (see :ref:`corrector-magnet`) -- MAD-X's ``KICK`` sign
    convention agrees with LAURA's (a positive kick deflects toward positive x/y), so no sign
    adjustment is needed, unlike for Xsuite (see
@@ -429,7 +429,7 @@ Machine Layout Translator
 -------------------------
 
 The :py:class:`MachineLayoutTranslator <laura.translator.converters.layout.MachineLayoutTranslator>` extends
-:py:class:`MachineLayout <laura.models.elementList.MachineLayout>` to translate complete beam paths consisting
+:py:class:`MachineLayout <laura.models.element_list.MachineLayout>` to translate complete beam paths consisting
 of multiple sections.
 
 Attributes:
@@ -486,7 +486,7 @@ Machine Model Translator
 ------------------------
 
 The :py:class:`MachineModelTranslator <laura.translator.converters.model.MachineModelTranslator>` extends
-:py:class:`MachineModel <laura.models.elementList.MachineModel>` to provide translation capabilities for
+:py:class:`MachineModel <laura.models.element_list.MachineModel>` to provide translation capabilities for
 the complete accelerator model, including all defined beam paths and sections.
 
 Attributes:

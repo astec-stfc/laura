@@ -51,7 +51,7 @@ class LaserTranslator(BaseElementTranslator):
         )
 
         additional_dict = {
-            self._convertKeyword_WakeT(param): getattr(self.laser, param)
+            self._convert_keyword_wake_t(param): getattr(self.laser, param)
             for param in self.additional_attrs
         }
         if self.profile_type == "gaussian":

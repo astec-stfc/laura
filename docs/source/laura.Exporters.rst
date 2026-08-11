@@ -1,7 +1,7 @@
-laura.Exporters package
+laura.exporters package
 =======================
 
-.. automodule:: laura.Exporters
+.. automodule:: laura.exporters
    :members:
    :undoc-members:
    :show-inheritance:
@@ -9,42 +9,42 @@ laura.Exporters package
 Submodules
 ----------
 
-laura.Exporters.CATAP module
-----------------------------
+laura.exporters.catap_exporter module
+-------------------------------------
 
-.. automodule:: laura.Exporters.CATAP
+.. automodule:: laura.exporters.catap_exporter
    :members:
    :undoc-members:
    :show-inheritance:
 
-laura.Exporters.Export\_CATAP\_YAML module
+laura.exporters.export\_catap\_yaml module
 ------------------------------------------
 
-.. automodule:: laura.Exporters.Export_CATAP_YAML
+.. automodule:: laura.exporters.export_catap_yaml
    :members:
    :undoc-members:
    :show-inheritance:
 
-laura.Exporters.RDF module
---------------------------
+laura.exporters.rdf_exporter module
+-----------------------------------
 
-.. automodule:: laura.Exporters.RDF
+.. automodule:: laura.exporters.rdf_exporter
    :members:
    :undoc-members:
    :show-inheritance:
 
-laura.Exporters.SQL module
---------------------------
+laura.exporters.sql_exporter module
+-----------------------------------
 
-.. automodule:: laura.Exporters.SQL
+.. automodule:: laura.exporters.sql_exporter
    :members:
    :undoc-members:
    :show-inheritance:
 
-laura.Exporters.YAML module
----------------------------
+laura.exporters.yaml_exporter module
+------------------------------------
 
-.. automodule:: laura.Exporters.YAML
+.. automodule:: laura.exporters.yaml_exporter
    :members:
    :undoc-members:
    :show-inheritance:

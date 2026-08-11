@@ -2,7 +2,7 @@ import logging
 import os
 import glob
 from yaml import load
-from Importers.MySafeLoader import MySafeLoader
+from laura.importers.my_safe_loader import MySafeLoader
 
 _log = logging.getLogger("laura.loader.catap")
 
@@ -79,7 +79,7 @@ def get_camera_pv_names(name):
     return ["-".join(a) for a in [substr, iocsubstr, ledsubstr]]
 
 
-def read_CATAP_YAML(filename):
+def read_catap_yaml(filename):
     """read a CATAP YAML file and convert to a pydantic model."""
     _log.debug("Reading CATAP YAML file: %s", filename)
     with ReplacePc(filename) as stream:
@@ -157,3 +157,17 @@ catap_path = os.path.join(
 
 catap_files = glob.glob(os.path.join(catap_path, "*", "CLA*.yaml"), recursive=True)
 catap_files += glob.glob(os.path.join(catap_path, "*", "CLA*.yml"), recursive=True)
+
+# ---------------------------------------------------------------------------
+# Backwards compatibility: names renamed for PEP 8. Served lazily with a
+# FutureWarning so downstream consumers (astec-stfc/simba) keep working.
+# ---------------------------------------------------------------------------
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "read_CATAP_YAML": "read_catap_yaml",
+    },
+)

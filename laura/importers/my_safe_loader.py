@@ -2,7 +2,7 @@ from yaml.reader import Reader
 from yaml.scanner import Scanner
 from yaml.parser import Parser
 from yaml.composer import Composer
-from Importers.MySafeConstructor import MySafeConstructor
+from laura.importers.my_safe_constructor import MySafeConstructor
 from yaml.resolver import Resolver
 
 

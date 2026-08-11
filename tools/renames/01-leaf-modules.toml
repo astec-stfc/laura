@@ -1,0 +1,73 @@
+[classes]
+
+# --- laura/translator/utils/fields ------------------------------------------
+field = "FieldMap"
+
+# --- laura/translator/utils/{SDDSFile,elegant} ------------------------------
+SDDS_Types = "SddsTypes"
+SDDS_Floor = "SddsFloor"
+SDDS_Params = "SddsParams"
+
+# --- ASTRA ------------------------------------------------------------------
+astra_header = "AstraHeader"
+astra_newrun = "AstraNewRun"     # ASTRA's &NEWRUN namelist
+astra_output = "AstraOutput"
+astra_charge = "AstraCharge"
+astra_errors = "AstraErrors"
+
+# --- CSRTrack ---------------------------------------------------------------
+csrtrack_element = "CsrTrackElement"
+csrtrack_forces = "CsrTrackForces"
+csrtrack_monitor = "CsrTrackMonitor"
+csrtrack_particles = "CsrTrackParticles"
+csrtrack_tracker = "CsrTrackTracker"
+csrtrack_track_step = "CsrTrackTrackStep"   # faithful but clumsy; see notes
+
+# --- GPT --------------------------------------------------------------------
+gpt_ccs = "GptCcs"
+gpt_element = "GptElement"
+gpt_charge = "GptCharge"
+gpt_accuracy = "GptAccuracy"
+gpt_tout = "GptTout"
+gpt_csr1d = "GptCsr1D"
+gpt_setfile = "GptSetFile"
+gpt_setreduce = "GptSetReduce"
+gpt_spacecharge = "GptSpaceCharge"
+gpt_scatterplate = "GptScatterPlate"
+gpt_forwardscatter = "GptForwardScatter"
+gpt_writefloorplan = "GptWriteFloorPlan"
+gpt_dtmaxt = "GptDtMaxT"
+gpt_dtmint = "GptDtMinT"
+gpt_Zminmax = "GptZMinMax"
+
+# --- OPAL -------------------------------------------------------------------
+opal_header = "OpalHeader"
+opal_option = "OpalOption"
+opal_distribution = "OpalDistribution"
+opal_fieldsolver = "OpalFieldSolver"
+opal_beam = "OpalBeam"
+opal_track = "OpalTrack"
+opal_run = "OpalRun"
+
+[functions]
+
+write_ASTRA = "write_astra"
+write_GPT = "write_gpt"
+write_Opal = "write_opal"
+write_CSRTrack = "write_csrtrack"
+CSRTrack_str = "csrtrack_str"
+checkValue = "check_value"
+
+read_HDF5_field_file = "read_hdf5_field_file"
+write_HDF5_field_file = "write_hdf5_field_file"
+read_SDDS_field_file = "read_sdds_field_file"
+write_SDDS_field_file = "write_sdds_field_file"
+
+M = "rotation_matrix"
+
+[globals]
+
+section_header_text_ASTRA = "section_header_text_astra"
+type_conversion_rules_Ocelot = "type_conversion_rules_ocelot"
+space_charge_2D = "space_charge_2d"
+space_charge_3D = "space_charge_3d"

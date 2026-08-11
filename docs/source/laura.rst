@@ -9,8 +9,8 @@ Subpackages
 
    laura.models
    laura.translator
-   laura.Importers
-   laura.Exporters
+   laura.importers
+   laura.exporters
    laura.schema
    laura.utils
 

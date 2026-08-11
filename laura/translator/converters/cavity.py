@@ -1,14 +1,14 @@
 from pydantic import computed_field
 import numpy as np
 from .base import BaseElementTranslator
-from laura.models.RF import RFCavityElement
+from laura.models.rf import RFCavityElement
 from laura.models.simulation import RFCavitySimulationElement
-from laura.translator.utils.fields import field
+from laura.translator.utils.fields import FieldMap
 
 from ..converters import (
-    elements_Elegant,
-    elements_Opal,
-    elements_Madx,
+    elements_elegant,
+    elements_opal,
+    elements_madx,
 )
 from ..utils.functions import sanitize_string
 
@@ -134,7 +134,7 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         wholestring = ""
-        etype = self._convertType_Elegant(self.hardware_type)
+        etype = self._convert_type_elegant(self.hardware_type)
         if not self._wakefield_active():
             etype = "rfca"
             # if self.simulation.field_definition is not None:
@@ -154,11 +154,11 @@ class RFCavityTranslator(BaseElementTranslator):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Elegant(key, updated_type=self.hardware_type)
-                in elements_Elegant[etype]
+                and self._convert_keyword_elegant(key, updated_type=self.hardware_type)
+                in elements_elegant[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Elegant(
+                    key = self._convert_keyword_elegant(
                         key, updated_type=self.hardware_type
                     ).lower()
                     # rftmez0 uses frequency instead of freq
@@ -247,10 +247,10 @@ class RFCavityTranslator(BaseElementTranslator):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Ocelot(key) in obj.__class__().element.__dict__
+                and self._convert_keyword_ocelot(key) in obj.__class__().element.__dict__
             ):
                 if value:
-                    key = self._convertKeyword_Ocelot(key).lower()
+                    key = self._convert_keyword_ocelot(key).lower()
                     if self.hardware_type in ["RFCavity", "RFDeflectingCavity"]:
                         if key == "v":
                             if self.structure_type == "TravellingWave":
@@ -292,9 +292,9 @@ class RFCavityTranslator(BaseElementTranslator):
         )._buffers
         for key, value in self.full_dump().items():
             if (key not in ["name", "type", "commandtype"]) and (
-                self._convertKeyword_Cheetah(key) in buffers
+                self._convert_keyword_cheetah(key) in buffers
             ):
-                key = self._convertKeyword_Cheetah(key)
+                key = self._convert_keyword_cheetah(key)
                 value = (
                     getattr(self, key)
                     if hasattr(self, key) and getattr(self, key) is not None
@@ -312,14 +312,14 @@ class RFCavityTranslator(BaseElementTranslator):
                 if isinstance(value, float):
                     dt = float64
                     setattr(
-                        obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
+                        obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
                 elif isinstance(value, int):
                     from torch import int64
 
                     dt = int64
                     setattr(
-                        obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
+                        obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
         # Cheetah selects between two cavity transfer maps via `cavity_type`.
         # Its "traveling_wave" branch is a pure travelling-wave map (edge
@@ -359,7 +359,7 @@ class RFCavityTranslator(BaseElementTranslator):
             "FILE_EFieLD",
             {"value": "'" + field_file_name + "'", "default": ""},
         ]
-        return self._write_ASTRA_dictionary(
+        return self._write_astra_dictionary(
             dict(
                 [
                     ["C_pos", {"value": field_ref_pos[2] + self.dz, "default": 0}],
@@ -448,9 +448,9 @@ class RFCavityTranslator(BaseElementTranslator):
         properties = {}
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (key not in ["name", "type", "commandtype"]) and (
-                self._convertKeyword_Xsuite(key) in list(obj.__dict__.keys())
+                self._convert_keyword_xsuite(key) in list(obj.__dict__.keys())
             ):
-                key = self._convertKeyword_Xsuite(key)
+                key = self._convert_keyword_xsuite(key)
                 functional = self.is_functional(value)
                 if key == "phase" and not functional:
                     value = np.radians(90 - value)
@@ -491,18 +491,18 @@ class RFCavityTranslator(BaseElementTranslator):
             String representation of the element for MAD-X
         """
         self.start_write()
-        etype = self._convertType_Madx(self.hardware_type)
+        etype = self._convert_type_madx(self.hardware_type)
         string = sanitize_string(self.name) + ": " + etype
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Madx(key, updated_type=self.hardware_type)
-                in elements_Madx[etype]
+                and self._convert_keyword_madx(key, updated_type=self.hardware_type)
+                in elements_madx[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Madx(
+                    key = self._convert_keyword_madx(
                         key, updated_type=self.hardware_type
                     )
                     functional = self.is_functional(value) and not self._resolve_functional
@@ -553,7 +553,7 @@ class RFCavityTranslator(BaseElementTranslator):
             A formatted string representing the object's properties in OPAL format.
         """
         self.start_write()
-        etype = self._convertType_Opal(self.hardware_type)
+        etype = self._convert_type_opal(self.hardware_type)
         if self.structure_type == "TravellingWave":
             etype = "travelingwave"
         wholestring = self.name.replace("-", "_") + ": " + etype
@@ -567,10 +567,10 @@ class RFCavityTranslator(BaseElementTranslator):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Opal(key) in elements_Opal[etype]
+                and self._convert_keyword_opal(key) in elements_opal[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Opal(key)
+                    key = self._convert_keyword_opal(key)
                     if key == "lag":
                         value = -value * np.pi / 180
                     if key == "freq":
@@ -582,7 +582,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     if val is not None:
                         tmpstring = ", " + key + " = " + str(val)
                         wholestring += tmpstring
-        if isinstance(self.simulation.field_definition, field):
+        if isinstance(self.simulation.field_definition, FieldMap):
             wholestring += (
                 ', fmapfn = "'
                 + self.generate_field_file_name(

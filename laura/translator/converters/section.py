@@ -11,22 +11,22 @@ if TYPE_CHECKING:
     from wake_t import Beamline
     from xtrack import Line
 
-from ...models.elementList import SectionLattice
-from ...models.RF import WakefieldElement
+from ...models.element_list import SectionLattice
+from ...models.rf import WakefieldElement
 from ...models.simulation import WakefieldSimulationElement, DiagnosticSimulationElement
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
 from .wake import WakefieldTranslator
-from .codes.gpt import gpt_ccs, gpt_Zminmax, gpt_dtmint
+from .codes.gpt import GptCcs, GptZMinMax, GptDtMinT
 from ..utils.functions import (
     tw_cavity_energy_gain,
     elegant_functional_definitions,
     madx_functional_definitions,
 )
-from ..utils.fields import field
-from ...models.baseModels import IgnoreExtra
+from ..utils.fields import FieldMap
+from ...models.base_models import IgnoreExtra
 from ..utils.functions import sanitize_string
 
 
@@ -40,19 +40,19 @@ class SectionLatticeTranslator(SectionLattice):
     """Directory to which files will be written."""
 
     astra_headers: Dict = {}
-    """Headers for ASTRA input file; see :class:`~laura.translator.converters.codes.astra.astra_header`
+    """Headers for ASTRA input file; see :class:`~laura.translator.converters.codes.astra.AstraHeader`
     and its child classes."""
 
     csrtrack_headers: Dict = {}
-    """Headers for CSRTrack input file; see :class:`~laura.translator.converters.codes.csrtrack.csrtrack_element`
+    """Headers for CSRTrack input file; see :class:`~laura.translator.converters.codes.csrtrack.CsrTrackElement`
     and its child classes.."""
 
     gpt_headers: Dict = {}
-    """Headers for GPT input file; see :class:`~laura.translator.converters.codes.astra.gpt_element`
+    """Headers for GPT input file; see :class:`~laura.translator.converters.codes.astra.GptElement`
     and its child classes.."""
 
     opal_headers: Dict = {}
-    """Headers for OPAL input file; see :class:`~laura.translator.converters.codes.opal.opal_header`
+    """Headers for OPAL input file; see :class:`~laura.translator.converters.codes.opal.OpalHeader`
     and its child classes..
     
     WARNING: OPAL not fully benchmarked / tested.
@@ -108,7 +108,7 @@ class SectionLatticeTranslator(SectionLattice):
         str
             An ASTRA-compatible input file.
         """
-        from .codes.astra import section_header_text_ASTRA
+        from .codes.astra import section_header_text_astra
 
         headers = [
             "&APERTURE",
@@ -128,7 +128,7 @@ class SectionLatticeTranslator(SectionLattice):
         )
         astrastr = ""
         for h in self.astra_headers.values():
-            astrastr += h.write_ASTRA()
+            astrastr += h.write_astra()
         for e in elem_dict.values():
             for key, count in counter.items():
                 if (key == "&APERTURE" and isinstance(e, ApertureTranslator)) or (
@@ -138,7 +138,7 @@ class SectionLatticeTranslator(SectionLattice):
                     if key not in written:
                         element_headers[
                             key
-                        ] += f"{section_header_text_ASTRA[key]} = True\n"
+                        ] += f"{section_header_text_astra[key]} = True\n"
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
@@ -146,7 +146,7 @@ class SectionLatticeTranslator(SectionLattice):
                     else:
                         counter[key] += 1
                     if hasattr(e.simulation, "wakefield_definition") and isinstance(
-                        e.simulation.wakefield_definition, (str, field)
+                        e.simulation.wakefield_definition, (str, FieldMap)
                     ):
                         w = WakefieldTranslator(
                             name=e.name + "_wake",
@@ -166,7 +166,7 @@ class SectionLatticeTranslator(SectionLattice):
                         if "&WAKE" not in written:
                             element_headers[
                                 "&WAKE"
-                            ] += f"{section_header_text_ASTRA['&WAKE']} = True\n"
+                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += e.cavity.n_cells
@@ -221,7 +221,7 @@ class SectionLatticeTranslator(SectionLattice):
         """
         fulltext = ""
         for header in self.gpt_headers.values():
-            fulltext += header.write_GPT()
+            fulltext += header.write_gpt()
         elem_dict = translate_elements(
             list(self.elements.elements.values()),
             master_lattice=self.master_lattice,
@@ -230,7 +230,7 @@ class SectionLatticeTranslator(SectionLattice):
         kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
-                ccs = gpt_ccs(
+                ccs = GptCcs(
                     name="wcs",
                     position=list(element.physical.start.model_dump().values()),
                     rotation=list(element.physical.global_rotation.model_dump().values()),
@@ -238,7 +238,7 @@ class SectionLatticeTranslator(SectionLattice):
             element.ccs = ccs
             fulltext += element.to_gpt(Brho, **kwargs)
             if element.hardware_type.lower() == "rfcavity" and isinstance(
-                element.simulation.wakefield_definition, field
+                element.simulation.wakefield_definition, FieldMap
             ):
                 w = WakefieldTranslator(
                     name=element.name + "_wake",
@@ -288,15 +288,15 @@ class SectionLatticeTranslator(SectionLattice):
         fulltext += (
             f'screen("wcs", "I", {lastelem.physical.end.z}, "wcs");\n'
         )
-        zminmax = gpt_Zminmax(
+        zminmax = GptZMinMax(
             ECS='"wcs", "I"',
             zmin=startz - 0.1,
             zmax=endz + 1,
         )
-        fulltext += zminmax.write_GPT()
+        fulltext += zminmax.write_gpt()
         if dtmin is not None:
-            dtmint = gpt_dtmint(dtmin=dtmin)
-            fulltext += dtmint.write_GPT()
+            dtmint = GptDtMinT(dtmin=dtmin)
+            fulltext += dtmint.write_gpt()
         return fulltext
 
     def to_opal(self, energy: float = 0, breakstr: str = "") -> str:
@@ -331,7 +331,7 @@ class SectionLatticeTranslator(SectionLattice):
             if k not in self.opal_headers:
                 raise KeyError(f"Header {k} must be defined for OPAL.")
         fulltext = ""
-        fulltext += self.opal_headers["option"].write_Opal()
+        fulltext += self.opal_headers["option"].write_opal()
         fulltext += f"{breakstr}\n// LATTICE\n"
         zstops = []
         elem_dict = translate_elements(
@@ -368,15 +368,15 @@ class SectionLatticeTranslator(SectionLattice):
                 fulltext += e.replace("-", "_") + ", "
         fulltext = fulltext[:-2] + ");\n"
 
-        fulltext += self.opal_headers["distribution"].write_Opal()
-        fulltext += self.opal_headers["fieldsolver"].write_Opal()
-        fulltext += self.opal_headers["beam"].write_Opal()
-        fulltext += self.opal_headers["track"].write_Opal()
-        fulltext += self.opal_headers["run"].write_Opal()
+        fulltext += self.opal_headers["distribution"].write_opal()
+        fulltext += self.opal_headers["fieldsolver"].write_opal()
+        fulltext += self.opal_headers["beam"].write_opal()
+        fulltext += self.opal_headers["track"].write_opal()
+        fulltext += self.opal_headers["run"].write_opal()
         fulltext += "ENDTRACK;\n\n Quit;\n"
         return fulltext
 
-    def format_string(seld, string: str):
+    def format_string(self, string: str):
         fulltext = ""
         for s in string.strip().split(', '):
             if len((fulltext + s).splitlines()[-1]) > 60:
@@ -420,7 +420,7 @@ class SectionLatticeTranslator(SectionLattice):
         str
             An ELEGANT-compatible lattice file.
         """
-        section_with_drifts = self.createDrifts(
+        section_with_drifts = self.create_drifts(
             csr_enable=self.csr_enable,
             lsc_enable=self.lsc_enable,
             lsc_bins=self.lsc_bins,
@@ -467,7 +467,7 @@ class SectionLatticeTranslator(SectionLattice):
         str
             A Genesis-compatible lattice file (v4).
         """
-        section_with_drifts = self.createDrifts()
+        section_with_drifts = self.create_drifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
@@ -567,7 +567,7 @@ class SectionLatticeTranslator(SectionLattice):
         from ocelot.cpbd.elements import Octupole, Undulator, Marker, Drift
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
-        section_with_drifts = self.createDrifts()
+        section_with_drifts = self.create_drifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
@@ -630,7 +630,7 @@ class SectionLatticeTranslator(SectionLattice):
         from ..conversion_rules.codes.rftrack_conversion import get_rftrack
 
         rft = get_rftrack()
-        section_with_drifts = self.createDrifts()
+        section_with_drifts = self.create_drifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
@@ -740,7 +740,7 @@ class SectionLatticeTranslator(SectionLattice):
         """
         from cheetah import Segment
 
-        section_with_drifts = self.createDrifts()
+        section_with_drifts = self.create_drifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
@@ -795,7 +795,7 @@ class SectionLatticeTranslator(SectionLattice):
                 self.functional_definitions or IgnoreExtra.functional_definitions
             ).items():
                 env[name] = value
-        section_with_drifts = self.createDrifts()
+        section_with_drifts = self.create_drifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
@@ -868,7 +868,7 @@ class SectionLatticeTranslator(SectionLattice):
             "screen" + str(counter["screen"]) + "b"
         )
         for h in self.csrtrack_headers.values():
-            csrtrackstr += h.write_CSRTrack()
+            csrtrackstr += h.write_csrtrack()
         return csrtrackstr
 
     def to_madx(
@@ -883,7 +883,7 @@ class SectionLatticeTranslator(SectionLattice):
         default) or, when ``refer`` is ``"centre"``/``"center"``, at their centre
         (required before a MAD-X ``MAKETHIN``/``TRACK``).
         Explicit ``drift`` elements are inserted between elements via
-        :meth:`createDrifts` and written into the sequence like any other
+        :meth:`create_drifts` and written into the sequence like any other
         element, which is the standard way of constructing a MAD-X lattice
         (rather than relying on MAD-X's implicit gap-filling between elements
         placed without a contiguous ``at=``).
@@ -903,7 +903,7 @@ class SectionLatticeTranslator(SectionLattice):
             declarations for any functional definitions used symbolically by
             the lattice's elements.
         """
-        section_with_drifts = self.createDrifts()
+        section_with_drifts = self.create_drifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
@@ -951,7 +951,7 @@ class SectionLatticeTranslator(SectionLattice):
         """
         from wake_t import Beamline
 
-        section_with_drifts = self.createDrifts()
+        section_with_drifts = self.create_drifts()
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,

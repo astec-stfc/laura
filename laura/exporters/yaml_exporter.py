@@ -2,7 +2,7 @@ import logging
 import os
 import yaml
 from typing import Union, Literal, Optional
-from ..models.elementList import MachineModel
+from ..models.element_list import MachineModel
 from ..models.element import PhysicalElement
 from ..models.magnetic import MagneticElement
 

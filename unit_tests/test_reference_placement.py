@@ -6,7 +6,7 @@ import numpy as np
 
 from laura.models.physical import Position, Rotation, PhysicalElement, ReferencePlacement
 from laura.models.element import Quadrupole, Dipole, Marker, PhysicalBaseElement
-from laura.models.elementList import SectionLattice, MachineModel
+from laura.models.element_list import SectionLattice, MachineModel
 
 
 # ---------------------------------------------------------------------------

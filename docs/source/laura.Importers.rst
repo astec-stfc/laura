@@ -1,7 +1,7 @@
-laura.Importers package
+laura.importers package
 =======================
 
-.. automodule:: laura.Importers
+.. automodule:: laura.importers
    :members:
    :undoc-members:
    :show-inheritance:
@@ -9,50 +9,50 @@ laura.Importers package
 Submodules
 ----------
 
-laura.Importers.CATAP\_Loader module
+laura.importers.catap\_loader module
 ------------------------------------
 
-.. automodule:: laura.Importers.CATAP_Loader
+.. automodule:: laura.importers.catap_loader
    :members:
    :undoc-members:
    :show-inheritance:
 
-laura.Importers.Magnet\_Table module
+laura.importers.magnet\_table module
 ------------------------------------
 
-.. automodule:: laura.Importers.Magnet_Table
+.. automodule:: laura.importers.magnet_table
    :members:
    :undoc-members:
    :show-inheritance:
 
-laura.Importers.MySafeConstructor module
-----------------------------------------
+laura.importers.my_safe_constructor module
+------------------------------------------
 
-.. automodule:: laura.Importers.MySafeConstructor
+.. automodule:: laura.importers.my_safe_constructor
    :members:
    :undoc-members:
    :show-inheritance:
 
-laura.Importers.MySafeLoader module
------------------------------------
+laura.importers.my_safe_loader module
+-------------------------------------
 
-.. automodule:: laura.Importers.MySafeLoader
+.. automodule:: laura.importers.my_safe_loader
    :members:
    :undoc-members:
    :show-inheritance:
 
-laura.Importers.SimFrame\_Loader module
+laura.importers.simframe\_loader module
 ---------------------------------------
 
-.. automodule:: laura.Importers.SimFrame_Loader
+.. automodule:: laura.importers.simframe_loader
    :members:
    :undoc-members:
    :show-inheritance:
 
-laura.Importers.YAML\_Loader module
+laura.importers.yaml\_loader module
 -----------------------------------
 
-.. automodule:: laura.Importers.YAML_Loader
+.. automodule:: laura.importers.yaml_loader
    :members:
    :undoc-members:
    :show-inheritance:

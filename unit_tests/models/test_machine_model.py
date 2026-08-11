@@ -1,9 +1,9 @@
-from laura.models.baseModels import Aliases
-from laura.models.elementList import (
+from laura.models.base_models import Aliases
+from laura.models.element_list import (
     ElementList,
     MachineLayout,
     MachineModel,
-    baseElement,
+    BaseElement,
 )
 from laura.models.element import PhysicalBaseElement, Element
 import unittest
@@ -59,7 +59,7 @@ class TestMachineModel(unittest.TestCase):
         for name, info in self.elements.items():
             with self.subTest(name=name):
                 self.assertIn(name, mm.elements)
-                self.assertIsInstance(mm.elements[name], baseElement)
+                self.assertIsInstance(mm.elements[name], BaseElement)
                 self.assertEqual(
                     mm.elements[name].name,
                     info["name"],
@@ -107,7 +107,7 @@ class TestMachineModel(unittest.TestCase):
         for name, info in self.elements.items():
             with self.subTest(name=name):
                 self.assertIn(name, mm.elements)
-                self.assertIsInstance(mm.elements[name], baseElement)
+                self.assertIsInstance(mm.elements[name], BaseElement)
                 self.assertEqual(
                     mm.elements[name].name,
                     info["name"],
@@ -157,7 +157,7 @@ class TestMachineModel(unittest.TestCase):
         for name, info in self.elements.items():
             with self.subTest(name=name):
                 self.assertIn(name, mm.elements)
-                self.assertIsInstance(mm.elements[name], baseElement)
+                self.assertIsInstance(mm.elements[name], BaseElement)
                 self.assertEqual(
                     mm.elements[name].name,
                     info["name"],
@@ -214,7 +214,7 @@ class TestMachineModel(unittest.TestCase):
         for name, info in self.elements.items():
             with self.subTest(name=name):
                 self.assertIn(name, mm.elements)
-                self.assertIsInstance(mm.elements[name], baseElement)
+                self.assertIsInstance(mm.elements[name], BaseElement)
                 self.assertEqual(
                     mm.elements[name].name,
                     info["name"],
@@ -278,7 +278,7 @@ class TestMachineModel(unittest.TestCase):
         for name, info in self.elements.items():
             with self.subTest(name=name):
                 self.assertIn(name, mm.elements)
-                self.assertIsInstance(mm.elements[name], baseElement)
+                self.assertIsInstance(mm.elements[name], BaseElement)
                 self.assertEqual(
                     mm.elements[name].name,
                     info["name"],

@@ -1,3 +1,4 @@
+from laura._compat import DeprecatedMethodAliases
 import numpy as np
 from .constants import speed_of_light, pi
 from pydantic import (
@@ -13,7 +14,7 @@ from pydantic import (
     computed_field,
 )
 from typing import ClassVar, Dict, Any, List, Union
-from .baseModels import IgnoreExtra, T, resolve_functional_parameter, FunctionalMixin
+from .base_models import IgnoreExtra, T, resolve_functional_parameter, FunctionalMixin
 from ._generated import (
     _MultipoleBase,
     _FieldIntegralBase,
@@ -27,12 +28,12 @@ from ._generated import (
 )
 
 
-def Power(a, b):
+def power(a, b):
     return a**b
 
 
-def Sqrt(a):
-    return Power(a, 0.5)
+def sqrt(a):
+    return power(a, 0.5)
 
 
 def _coerce_field_integral(v: Union[str, List, dict, Any, None]) -> Any:
@@ -86,7 +87,7 @@ class Multipoles(MultipolesData):
     """
 
     @field_validator("*", mode="before")
-    def validate_Multipole(cls, v: Union[List, dict]) -> Multipole:
+    def validate_multipole(cls, v: Union[List, dict]) -> Multipole:
         if v is None:
             return Multipole()
         if isinstance(v, (list, tuple)):
@@ -157,12 +158,16 @@ class Multipoles(MultipolesData):
         return self.ser_model() == other
 
 
-class FieldIntegral(_FieldIntegralBase):
+class FieldIntegral(DeprecatedMethodAliases, _FieldIntegralBase):
     """
     Field integral coefficients model.
     """
 
-    def currentToK(self, current: float, energy: float) -> float:
+    _DEPRECATED_METHOD_ALIASES = {
+        "currentToK": "current_to_k",
+    }
+
+    def current_to_k(self, current: float, energy: float) -> float:
         """
         Convert the current in the magnet to the normalized strength (K value).
         The method calculates the normalized strength (K value) of the magnetic field
@@ -188,10 +193,16 @@ class FieldIntegral(_FieldIntegralBase):
         return iter(self.coefficients)
 
 
-class LinearSaturationFit(_LinearSaturationFitBase):
+class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
     """
     Linear + saturation fit coefficients model.
     """
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "KLToCurrent": "kl_to_current",
+        "KToCurrent": "k_to_current",
+        "currentToK": "current_to_k",
+    }
 
     # Ordered list of calibration coefficient field names — used by
     # from_string / update_from_string so that the non-calibration `order`
@@ -229,7 +240,7 @@ class LinearSaturationFit(_LinearSaturationFitBase):
             assert len(v) == len(self._COEFF_KEYS)
             [setattr(self, k, v) for k, v in zip(self._COEFF_KEYS, v)]
 
-    def currentToK(self, current: float, momentum: float | None = None) -> Dict:
+    def current_to_k(self, current: float, momentum: float | None = None) -> Dict:
         """
         Convert the current in the magnet to the normalized strength (K value).
 
@@ -271,7 +282,7 @@ class LinearSaturationFit(_LinearSaturationFitBase):
         else:
             return {"gradient": gradient, "int_strength": int_strength}
 
-    def KLToCurrent(self, KL: float | dict, momentum: float) -> float:
+    def kl_to_current(self, KL: float | dict, momentum: float) -> float:
         """
         Convert the normalized strength (K value) of the magnetic field to the corresponding current.
 
@@ -295,9 +306,9 @@ class LinearSaturationFit(_LinearSaturationFitBase):
             elif "K" in KL:
                 KL = KL["K"] * L / 1000
         K = KL / (L / 1000) if L != 0 else 0.0
-        return self.KToCurrent(K, momentum)
+        return self.k_to_current(K, momentum)
 
-    def KToCurrent(self, K: float | dict, momentum: float) -> float:
+    def k_to_current(self, K: float | dict, momentum: float) -> float:
         """
         Convert the normalized strength (K value) of the magnetic field to the corresponding current.
         This method calculates the current required to produce a given normalized strength (K value)
@@ -330,7 +341,7 @@ class LinearSaturationFit(_LinearSaturationFitBase):
         if I_max == 0 or abs(linear_current) < I_max:
             return linear_current
         elif f == 0:
-            abs_current = I0 - Sqrt((abs_str - d) / a)
+            abs_current = I0 - sqrt((abs_str - d) / a)
             return np.sign(K) * abs_current
         else:
             p = (-6 * f * a * I0 - a**2) / (3 * f**2)
@@ -339,7 +350,7 @@ class LinearSaturationFit(_LinearSaturationFitBase):
                 + (18 * f * a**2 * I0)
                 + (27 * f**2 * (a * I0**2 + d - abs_str))
             ) / (27 * f**3)
-            r = Sqrt((p / 3) ** 3)
+            r = sqrt((p / 3) ** 3)
             theta = np.arccos(-q / (2 * r))
             r_cbrt = -(r ** (1 / 3))
             t3 = 2 * r_cbrt * np.cos((theta / 3) + 4 * Pi / 3)
@@ -351,10 +362,17 @@ class LinearSaturationFit(_LinearSaturationFitBase):
         )
 
 
-class MagneticElement(_MagneticElementBase, FunctionalMixin):
+class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalMixin):
     """
     Magnetic info model.
     """
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "KLToCurrent": "kl_to_current",
+        "KToCurrent": "k_to_current",
+        "currentToAngle": "current_to_angle",
+        "currentToK": "current_to_k",
+    }
 
     entrance_edge_angle: float | str | None = 0.0
     """Entrance edge angle"""
@@ -374,10 +392,6 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
     linear_saturation_coefficients: LinearSaturationFit | None = None
     """Linear saturation fit coefficients (typed to allow order assignment)."""
 
-    # field_integral_coefficients, settle_time, gap, bore, plane, width, tilt,
-    # edge_field_integral, fringe_field_coefficient and gradient all come from
-    # _MagneticElementBase. The two edge angles are widened and marked here
-    # because the schema types them as plain floats.
     entrance_edge_angle: float | str = Field(
         default=0.0,
         json_schema_extra={"functional": True, "reserved_contains": "angle"},
@@ -398,27 +412,19 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
 
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)
-        # Propagate the magnet order into the calibration fit so that
-        # currentToK / KToCurrent can apply the correct unit convention.
         if self.linear_saturation_coefficients is not None:
             self.linear_saturation_coefficients.order = self.order
-        # Auto-create multipoles if strength data is provided but multipoles is None
         needs_multipoles = any(
             k in data for k in ["kl", "angle", "k0l", "k1l", "k2l", "k3l"]
         )
         if self.multipoles is None and needs_multipoles:
             object.__setattr__(self, "multipoles", Multipoles())
-        # Test the value, not just key presence: a round-tripped model_dump()
-        # carries `angle: None` for every non-dipole, which would otherwise build
-        # a Multipole(normal=None) and fail validation.
         if data.get("kl") is not None:
             self.kl = data["kl"]
         if data.get("angle") is not None and self.order == 0:
             self.kl = data["angle"]
         if self.multipoles is not None:
             if data.get("kl") is not None or data.get("angle") is not None:
-                # Use the raw input value so that a string functional definition
-                # is stored verbatim rather than resolved at construction time.
                 raw_kl = data["kl"] if data.get("kl") is not None else data["angle"]
                 if self.skew:
                     setattr(
@@ -439,8 +445,6 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
                         f"K{i}L",
                         Multipole(normal=data[f"k{i}l"], order=i),
                     )
-        # `angle` is only meaningful for dipoles (order 0); keep it mirroring
-        # the K0L multipole strength regardless of how it was set (k0l=, kl=, angle=).
         if self.order == 0:
             pass  # angle is derived from K0L; nothing to mirror.
 
@@ -535,24 +539,24 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
         Brho = 3.3356 * momentum / (1e9)
         return self.KnL(self.order) * Brho / self.length
 
-    def currentToK(self, *args, **kwargs):
-        return self.linear_saturation_coefficients.currentToK(*args, **kwargs)
+    def current_to_k(self, *args, **kwargs):
+        return self.linear_saturation_coefficients.current_to_k(*args, **kwargs)
 
-    def KToCurrent(self, *args, **kwargs):
-        return self.linear_saturation_coefficients.KToCurrent(*args, **kwargs)
+    def k_to_current(self, *args, **kwargs):
+        return self.linear_saturation_coefficients.k_to_current(*args, **kwargs)
 
-    def KLToCurrent(self, *args, **kwargs):
-        return self.linear_saturation_coefficients.KLToCurrent(*args, **kwargs)
+    def kl_to_current(self, *args, **kwargs):
+        return self.linear_saturation_coefficients.kl_to_current(*args, **kwargs)
 
-    def currentToAngle(self, current: float, momentum: float) -> float:
+    def current_to_angle(self, current: float, momentum: float) -> float:
         """Convert current to bend angle in degrees."""
-        output_dict = self.linear_saturation_coefficients.currentToK(
+        output_dict = self.linear_saturation_coefficients.current_to_k(
             current=current, momentum=momentum
         )
         return output_dict["KL"] * 360 / (2.0 * np.pi) / 1000
 
 
-class Dipole_Magnet(MagneticElement):
+class DipoleMagnet(MagneticElement):
     """
     Dipole magnet with magnetic order 0.
     """
@@ -560,9 +564,6 @@ class Dipole_Magnet(MagneticElement):
     order: int = Field(repr=False, default=0)
     """Magnetic order of the dipole."""
 
-    # `angle` is deliberately not a schema slot (see magnetic.yaml): it is
-    # derived from multipoles.K0L here, so a symbolic bend angle survives
-    # round-tripping and reads follow the global resolution mode.
     @property
     def angle(self) -> Union[int, float, str]:
         """Bend angle as configured. By default (global resolution mode off) this
@@ -577,38 +578,38 @@ class Dipole_Magnet(MagneticElement):
             object.__setattr__(self, "multipoles", Multipoles())
         self.multipoles.K0L.normal = value
 
-    def currentToAngle(self, current: float, momentum: float) -> float:
+    def current_to_angle(self, current: float, momentum: float) -> float:
         """Convert current to bend angle in degrees."""
-        output_dict = self.linear_saturation_coefficients.currentToK(
+        output_dict = self.linear_saturation_coefficients.current_to_k(
             current=current, momentum=momentum
         )
         return output_dict["KL"] * 360 / (2.0 * np.pi) / 1000
 
-    def currentToK(self, *args, **kwargs):
+    def current_to_k(self, *args, **kwargs):
         output_dict = {
             k: v / 1000
-            for k, v in self.linear_saturation_coefficients.currentToK(
+            for k, v in self.linear_saturation_coefficients.current_to_k(
                 *args, **kwargs
             ).items()
         }
         output_dict.update({"degrees": output_dict["KL"] * 360 / (2.0 * np.pi)})
         return output_dict
 
-    def KToCurrent(self, K, momentum):
+    def k_to_current(self, K, momentum):
         """Reverse the /1000 scaling applied by currentToK."""
         if isinstance(K, dict):
             K = {k: v * 1000 for k, v in K.items() if isinstance(v, (int, float))}
         else:
             K = K * 1000
-        return self.linear_saturation_coefficients.KToCurrent(K, momentum)
+        return self.linear_saturation_coefficients.k_to_current(K, momentum)
 
-    def KLToCurrent(self, KL, momentum):
+    def kl_to_current(self, KL, momentum):
         """Reverse the /1000 scaling applied by currentToK."""
         if isinstance(KL, dict):
             KL = {k: v * 1000 for k, v in KL.items() if isinstance(v, (int, float))}
         else:
             KL = KL * 1000
-        return self.linear_saturation_coefficients.KLToCurrent(KL, momentum)
+        return self.linear_saturation_coefficients.kl_to_current(KL, momentum)
 
     @computed_field
     @property
@@ -619,9 +620,7 @@ class Dipole_Magnet(MagneticElement):
         Returns
             float: The dipole bend radius
         """
-        # rho is a derived numeric quantity: always resolve the bend angle, but
-        # degrade gracefully to 0 if a functional definition is not yet available
-        # (e.g. a bare model_dump before the lattice is built).
+
         try:
             angle = self.KnL(0)
         except KeyError:
@@ -646,7 +645,7 @@ class Dipole_Magnet(MagneticElement):
         return self.rho * Brho / self.length
 
 
-class Quadrupole_Magnet(MagneticElement):
+class QuadrupoleMagnet(MagneticElement):
     """
     Quadrupole with magnetic order 1.
     """
@@ -663,7 +662,7 @@ class Quadrupole_Magnet(MagneticElement):
         self.kl = value
 
 
-class Sextupole_Magnet(MagneticElement):
+class SextupoleMagnet(MagneticElement):
     """
     Sextupole magnet with magnetic order 2.
     """
@@ -680,7 +679,7 @@ class Sextupole_Magnet(MagneticElement):
         self.kl = value
 
 
-class Octupole_Magnet(MagneticElement):
+class OctupoleMagnet(MagneticElement):
     """
     Octupole magnet with magnetic order 3.
     """
@@ -697,17 +696,17 @@ class Octupole_Magnet(MagneticElement):
         self.kl = value
 
 
-solenoidFields = {
+solenoid_fields = {
     "S" + str(no) + "L": (
         Union[float, str],
         Field(default=0, repr=False, json_schema_extra={"functional": True}),
     )
     for no in range(0, 13)
 }
-solenoidFieldsData = create_model("solenoidFieldsData", **solenoidFields)
+solenoid_fields_data = create_model("solenoidFieldsData", **solenoid_fields)
 
 
-class SolenoidFields(solenoidFieldsData, _SolenoidFieldsBase):
+class SolenoidFields(solenoid_fields_data, _SolenoidFieldsBase):
     """Magnetic multipoles model."""
 
     # def __str__(self):
@@ -741,7 +740,7 @@ class SolenoidFields(solenoidFieldsData, _SolenoidFieldsBase):
         return self.ser_model() == other
 
 
-class Solenoid_Magnet(_SolenoidMagnetBase, IgnoreExtra):
+class SolenoidMagnet(_SolenoidMagnetBase, IgnoreExtra):
     """
     Solenoid magnet including higher order fields.
     """
@@ -824,7 +823,7 @@ class Solenoid_Magnet(_SolenoidMagnetBase, IgnoreExtra):
         setattr(self.fields, "S" + str(self.order) + "L", ks)
 
 
-class NonLinearLens_Magnet(_NonLinearLensMagnetBase, IgnoreExtra):
+class NonLinearLensMagnet(_NonLinearLensMagnetBase, IgnoreExtra):
     """
     Non-linear lens magnet. See `MAD-X manual`_ and `PAC2011 article`_
 
@@ -854,16 +853,16 @@ class NonLinearLens_Magnet(_NonLinearLensMagnetBase, IgnoreExtra):
         super().__init__(**data)
 
 
-class Corrector_Magnet(_CorrectorMagnetBase, IgnoreExtra):
+class CorrectorMagnet(_CorrectorMagnetBase, IgnoreExtra):
     """
     Corrector (steering) magnet.
 
-    Unlike :class:`Dipole_Magnet` -- whose single ``K0L`` multipole's ``normal``/
+    Unlike :class:`DipoleMagnet` -- whose single ``K0L`` multipole's ``normal``/
     ``skew`` components denote the magnetic field's orientation, not a beam
     plane -- a corrector's kick is stored as two explicitly-named, independent
-    kick angles, so a :class:`~laura.models.element.Horizontal_Corrector` or
-    :class:`~laura.models.element.Vertical_Corrector` populates only its own
-    plane, while a :class:`~laura.models.element.Combined_Corrector` can carry
+    kick angles, so a :class:`~laura.models.element.HorizontalCorrector` or
+    :class:`~laura.models.element.VerticalCorrector` populates only its own
+    plane, while a :class:`~laura.models.element.CombinedCorrector` can carry
     both simultaneously.
     """
 
@@ -892,7 +891,7 @@ class Corrector_Magnet(_CorrectorMagnetBase, IgnoreExtra):
     functional definition."""
 
 
-class Wiggler_Magnet(_WigglerMagnetBase, IgnoreExtra):
+class WigglerMagnet(_WigglerMagnetBase, IgnoreExtra):
     """
     Undulator magnet.
     """
@@ -987,3 +986,25 @@ class Wiggler_Magnet(_WigglerMagnetBase, IgnoreExtra):
     @poles.setter
     def poles(self, value: int) -> None:
         self.num_periods = int(value / 2)
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "Corrector_Magnet": "CorrectorMagnet",
+        "Dipole_Magnet": "DipoleMagnet",
+        "NonLinearLens_Magnet": "NonLinearLensMagnet",
+        "Octupole_Magnet": "OctupoleMagnet",
+        "Power": "power",
+        "Quadrupole_Magnet": "QuadrupoleMagnet",
+        "Sextupole_Magnet": "SextupoleMagnet",
+        "Solenoid_Magnet": "SolenoidMagnet",
+        "Sqrt": "sqrt",
+        "Wiggler_Magnet": "WigglerMagnet",
+        "solenoidFields": "solenoid_fields",
+        "solenoidFieldsData": "solenoid_fields_data",
+    },
+)

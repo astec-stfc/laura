@@ -1,3 +1,4 @@
+from laura._compat import DeprecatedMethodAliases
 from pydantic import BaseModel, ConfigDict, computed_field
 from typing import List
 import numpy as np
@@ -75,7 +76,11 @@ def matrix_to_euler(M):
     return psi, phi, theta
 
 
-class gpt_ccs(BaseModel):
+class GptCcs(DeprecatedMethodAliases, BaseModel):
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "M": "rotation_matrix",
+    }
 
     model_config = ConfigDict(
         extra="allow",
@@ -99,7 +104,7 @@ class gpt_ccs(BaseModel):
         return np.array(self.position)
 
     @property
-    def M(self):
+    def rotation_matrix(self):
         """Rotation matrix of this CCS (ECS→parent)."""
         psi, phi, theta = self.rotation
         return euler_to_matrix(psi, phi, theta)
@@ -335,10 +340,14 @@ class gpt_ccs(BaseModel):
 #         return output
 
 
-class gpt_element(BaseModel):
+class GptElement(DeprecatedMethodAliases, BaseModel):
     """
     Generic class for generating headers for GPT.
     """
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "write_GPT": "write_gpt",
+    }
 
     model_config = ConfigDict(
         extra="allow",
@@ -353,7 +362,7 @@ class gpt_element(BaseModel):
 
     exclude: List = ["exclude", "objectname", "objecttype", "particle_definition"]
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         """
         Write the text for the GPT namelist based on its
         :attr:`~objectdefaults`, :attr:`~objectname`.
@@ -373,7 +382,7 @@ class gpt_element(BaseModel):
         return output
 
 
-class gpt_setfile(gpt_element):
+class GptSetFile(GptElement):
     """
     Class for setting filenames in GPT via `setfile`.
     """
@@ -401,7 +410,7 @@ class gpt_setfile(gpt_element):
         self.exclude.extend(["time"])
 
 
-class gpt_charge(gpt_element):
+class GptCharge(GptElement):
     """
     Class for generating the `settotalcharge` namelist for GPT.
     """
@@ -418,14 +427,14 @@ class gpt_charge(gpt_element):
     objecttype: str = "gpt_charge"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         output = str(self.objectname) + "("
         output += str(self.set) + ","
         output += str(-1 * abs(self.charge)) + ");\n"
         return output
 
 
-class gpt_setreduce(gpt_element):
+class GptSetReduce(GptElement):
     """
     Class for reducing the number of particles via `setreduce`.
 
@@ -443,14 +452,14 @@ class gpt_setreduce(gpt_element):
     objecttype: str = "gpt_setreduce"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         output = str(self.objectname) + "("
         output += str(self.set) + ","
         output += str(self.setreduce) + ");\n"
         return output
 
 
-class gpt_accuracy(gpt_element):
+class GptAccuracy(GptElement):
     """
     Class for setting the accuracy of tracking via `accuracy` in GPT.
     """
@@ -464,14 +473,14 @@ class gpt_accuracy(gpt_element):
     accuracy: int = 6
     """Accuracy for GPT tracking"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         output = (
             "accuracy(" + str(self.accuracy) + ");\n"
         )  # 'setrmacrodist(\"beam\","u",1e-9,0) ;\n'
         return output
 
 
-class gpt_spacecharge(gpt_element):
+class GptSpaceCharge(GptElement):
     """
     Class for preparing space charge calculations in GPT via `spacecharge`.
     """
@@ -495,7 +504,7 @@ class gpt_spacecharge(gpt_element):
         super().model_post_init(__context)
         self.exclude.extend(["cathode", "ngrids", "space_charge_mode"])
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         output = ""
         if isinstance(self.space_charge_mode, str) and self.cathode:
             if self.ngrids is None:
@@ -516,7 +525,7 @@ class gpt_spacecharge(gpt_element):
         return output
 
 
-class gpt_tout(gpt_element):
+class GptTout(GptElement):
     """
     Class for setting up the beam dump rate via `tout`.
     """
@@ -539,7 +548,7 @@ class gpt_tout(gpt_element):
     objecttype: str = "gpt_tout"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         self.starttime = 0 if self.starttime < 0 else self.starttime
         output = str(self.objectname) + "("
         if self.starttime is not None:
@@ -551,7 +560,7 @@ class gpt_tout(gpt_element):
         return output
 
 
-class gpt_csr1d(gpt_element):
+class GptCsr1D(GptElement):
     """
     Class for preparing CSR calculations via `csr1d`.
     """
@@ -562,12 +571,12 @@ class gpt_csr1d(gpt_element):
     objecttype: str = "gpt_csr1d"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         output = str(self.objectname) + "();\n"
         return output
 
 
-class gpt_writefloorplan(gpt_element):
+class GptWriteFloorPlan(GptElement):
     """
     Class for writing the lattice floor plan via `writefloorplan`.
     """
@@ -581,12 +590,12 @@ class gpt_writefloorplan(gpt_element):
     objecttype: str = "gpt_writefloorplan"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         output = str(self.objectname) + "(" + self.filename + ");\n"
         return output
 
 
-class gpt_Zminmax(gpt_element):
+class GptZMinMax(GptElement):
     """
     Class for setting the boundaries in z for discarding particles via `Zminmax`
     """
@@ -606,7 +615,7 @@ class gpt_Zminmax(gpt_element):
     objecttype: str = "gpt_Zminmax"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs):
+    def write_gpt(self, *args, **kwargs):
         output = (
             str(self.objectname)
             + "("
@@ -620,7 +629,7 @@ class gpt_Zminmax(gpt_element):
         return output
 
 
-class gpt_forwardscatter(gpt_element):
+class GptForwardScatter(GptElement):
     """
     Class for scattering particles via `forwardscatter`.
     """
@@ -643,7 +652,7 @@ class gpt_forwardscatter(gpt_element):
     objecttype: str = "gpt_forwardscatter"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         output = (
             str(self.objectname)
             + "("
@@ -657,7 +666,7 @@ class gpt_forwardscatter(gpt_element):
         return output
 
 
-class gpt_scatterplate(gpt_element):
+class GptScatterPlate(GptElement):
     """
     Class for scattering particles off a plate via `scatterplate`.
     """
@@ -686,7 +695,7 @@ class gpt_scatterplate(gpt_element):
     objecttype: str = "gpt_scatterplate"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         output = (
             str(self.objectname)
             + "("
@@ -702,7 +711,7 @@ class gpt_scatterplate(gpt_element):
         return output
 
 
-class gpt_dtmaxt(gpt_element):
+class GptDtMaxT(GptElement):
     """
     Class for setting up minimum, maximmum temporal step sizes for tracking via `dtmaxt`.
     """
@@ -722,7 +731,7 @@ class gpt_dtmaxt(gpt_element):
     objecttype: str = "gpt_dtmaxt"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs) -> str:
+    def write_gpt(self, *args, **kwargs) -> str:
         output = (
             str(self.objectname)
             + "("
@@ -736,7 +745,7 @@ class gpt_dtmaxt(gpt_element):
         return output
 
 
-class gpt_dtmint(gpt_element):
+class GptDtMinT(GptElement):
     """
     Class for specifying the minimum timestep size via `dtmin`.
     """
@@ -750,6 +759,31 @@ class gpt_dtmint(gpt_element):
     objecttype: str = "gpt_dtmint"
     """Type of object"""
 
-    def write_GPT(self, *args, **kwargs):
+    def write_gpt(self, *args, **kwargs):
         output = str(self.objectname) + " = " + str(self.dtmin) + ";\n"
         return output
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "gpt_Zminmax": "GptZMinMax",
+        "gpt_accuracy": "GptAccuracy",
+        "gpt_ccs": "GptCcs",
+        "gpt_charge": "GptCharge",
+        "gpt_csr1d": "GptCsr1D",
+        "gpt_dtmaxt": "GptDtMaxT",
+        "gpt_dtmint": "GptDtMinT",
+        "gpt_element": "GptElement",
+        "gpt_forwardscatter": "GptForwardScatter",
+        "gpt_scatterplate": "GptScatterPlate",
+        "gpt_setfile": "GptSetFile",
+        "gpt_setreduce": "GptSetReduce",
+        "gpt_spacecharge": "GptSpaceCharge",
+        "gpt_tout": "GptTout",
+        "gpt_writefloorplan": "GptWriteFloorPlan",
+    },
+)

@@ -13,18 +13,18 @@ from laura.models.element import (
     Marker,
     Drift,
     RFCavity,
-    Beam_Position_Monitor,
+    BeamPositionMonitor,
     Screen,
     Solenoid,
     PhysicalBaseElement,
-    Horizontal_Corrector,
-    Vertical_Corrector,
+    HorizontalCorrector,
+    VerticalCorrector,
     Shutter,
     Aperture,
 )
 from laura.models.physical import Position
-from laura.models.elementList import MachineModel
-from laura.Exporters.YAML import export_machine, export_as_yaml
+from laura.models.element_list import MachineModel
+from laura.exporters.yaml_exporter import export_machine, export_as_yaml
 
 
 # ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ def rich_machine():
             magnetic={"length": 0.3, "k1l": -1.0},
             physical={"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 0.5}},
         ),
-        Beam_Position_Monitor(
+        BeamPositionMonitor(
             name="BPM1", machine_area="S1", hardware_class="Diagnostic",
             physical={"middle": {"x": 0.0, "y": 0.0, "z": 1.2}},
         ),
@@ -250,13 +250,13 @@ class TestLAURAAllProperties:
 
 class TestDriftsAndSPos:
     def test_create_drifts_returns_dict(self, fodo_machine):
-        drifts = fodo_machine.createDrifts()
+        drifts = fodo_machine.create_drifts()
         assert isinstance(drifts, dict)
         # Should contain original elements + inserted drifts
         assert len(drifts) >= 4
 
     def test_create_drifts_includes_originals(self, fodo_machine):
-        drifts = fodo_machine.createDrifts()
+        drifts = fodo_machine.create_drifts()
         assert "M1" in drifts
         assert "QF" in drifts
 

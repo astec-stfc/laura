@@ -19,7 +19,7 @@ and described in detail in :doc:`element-hierarchy`;
 .. _fig-element-structure:
 .. figure:: assets/element-structure.png
 
-   Composition of a :mod:`LAURA` element: the ``baseElement`` → ``Element`` →
+   Composition of a :mod:`LAURA` element: the ``BaseElement`` → ``Element`` →
    ``PhysicalBaseElement`` spine, and the sub-models each layer attaches.
 
 
@@ -29,7 +29,7 @@ Base-level element
 ------------------
 
 All elements in a :mod:`LAURA` lattice derive from the
-:py:class:`baseElement <laura.models.element.baseElement>` class
+:py:class:`BaseElement <laura.models.element.BaseElement>` class
 (schema: ``AcceleratorElement``).
 At a minimum, each element must define:
 
@@ -53,17 +53,17 @@ While most elements that are typically considered part of an accelerator lattice
 fiducial position, and therefore are described in physical space with respect to that position, not all
 elements supported by the :mod:`LAURA` standard need to have their position defined.
 Objects that control lighting, low-level RF modules, RF modulators, or feedback systems, are all examples of
-elements that derive from :py:class:`baseElement <laura.models.element.baseElement>`
+elements that derive from :py:class:`BaseElement <laura.models.element.BaseElement>`
 (schema: ``StandardElement``) but do not have a physical position defined.
 
 **Example:** Creating a basic element without physical position:
 
 .. code-block:: python
 
-    from laura.models.element import baseElement
+    from laura.models.element import BaseElement
 
     # RF modulator - no physical position needed
-    modulator = baseElement(
+    modulator = BaseElement(
         name="MOD-KLYS-01",
         hardware_class="RF",
         hardware_type="Modulator",
@@ -74,7 +74,7 @@ elements that derive from :py:class:`baseElement <laura.models.element.baseEleme
     )
 
     # BPM embedded in a quadrupole (subelement)
-    embedded_bpm = baseElement(
+    embedded_bpm = BaseElement(
         name="BPM-QUAD-01",
         hardware_class="Diagnostic",
         hardware_type="BPM",
@@ -91,7 +91,7 @@ Physical element
 
 The :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>` class
 (schema: ``PhysicalAcceleratorElement``) derives from
-:py:class:`baseElement <laura.models.element.baseElement>`, with the additional ``physical`` property based on
+:py:class:`BaseElement <laura.models.element.BaseElement>`, with the additional ``physical`` property based on
 the :py:class:`PhysicalElement <laura.models.physical.PhysicalElement>` class.
 This allows the position and rotation of the element in Cartesian co-ordinates to be defined. 
 Furthermore, elements can be specified with ``error`` and ``survey`` attributes, both of which define a ``position`` and ``rotation``.
@@ -143,7 +143,7 @@ Positioning modes
 An element's longitudinal placement can be expressed in three mutually exclusive ways.
 Whichever is used, the lattice resolves all of them to a common set of global
 ``middle`` coordinates plus an arc-length ``s`` when a section is assembled
-(:py:meth:`SectionLattice.resolve_positions <laura.models.elementList.SectionLattice.resolve_positions>`),
+(:py:meth:`SectionLattice.resolve_positions <laura.models.element_list.SectionLattice.resolve_positions>`),
 so downstream code -- geometry, drift creation, translation -- never has to care which
 form was used on disk.
 
@@ -231,7 +231,7 @@ which defines the following additional properties (described in more detail in :
 .. code-block:: python
 
     from laura.models.element import Quadrupole
-    from laura.models.magnetic import Quadrupole_Magnet
+    from laura.models.magnetic import QuadrupoleMagnet
     from laura.models.simulation import MagnetSimulationElement
     from laura.models.control import ControlsInformation, ControlVariable
 
@@ -489,7 +489,7 @@ A power supply drives a modulator, which drives a cavity, and a PID closes the l
 the modulator by trimming its phase.
 
 Two properties to know before writing traversal code
------------------------------------------------------
+----------------------------------------------------
 
 **The graph is not acyclic.** ``GUN_RF_PID`` is downstream of ``GUN_RF_CAVITY`` and also lists
 that cavity in its own ``downstream``. That is a feedback loop, correctly described -- not a
@@ -829,8 +829,8 @@ Multipole Magnet
 ----------------
 
 This class covers the majority of magnetic elements in many standard accelerator lattices, with various child
-classes such as :py:class:`Dipole_Magnet <laura.models.magnetic.Dipole_Magnet>` and
-:py:class:`Quadrupole_Magnet <laura.models.magnetic.Quadrupole_Magnet>` deriving from
+classes such as :py:class:`DipoleMagnet <laura.models.magnetic.DipoleMagnet>` and
+:py:class:`QuadrupoleMagnet <laura.models.magnetic.QuadrupoleMagnet>` deriving from
 :py:class:`MagneticElement <laura.models.magnetic.MagneticElement>`, which has the following properties:
 
 * ``order: int`` -- magnetic order, with ``dipole=0``, ``quadrupole=1``, and so on.
@@ -864,7 +864,7 @@ with each order defined as follows:
 
 The values in the ``multipoles`` attribute of the :py:class:`MagneticElement <laura.models.magnetic.MagneticElement>`
 class can be accessed via the ``KnL`` term, with ``n`` representing the magnetic order. So, to retrieve the normalized
-field strength of a :py:class:`Quadrupole_Magnet <laura.models.magnetic.Quadrupole_Magnet>`,
+field strength of a :py:class:`QuadrupoleMagnet <laura.models.magnetic.QuadrupoleMagnet>`,
 one can call ``quad.KnL(1)``. Alternatively, one can call the ``quad.kl`` property which will retrieve the
 normalized field strength of the nominal order for that magnet.
 
@@ -875,7 +875,7 @@ number (it is the computation accessor), while ``kl`` / ``k1l`` return the value
 .. _solenoid:
 
 Solenoid Magnet
-----------------
+---------------
 
 Solenoid magnets comprise a different class of magnets, although their implementation is similar to that of
 :ref:`multipole`. The important difference with respect to standard multipoles is that, rather than the
@@ -925,32 +925,32 @@ Both may be defined functionally (see :ref:`functional-parameters`).
 Corrector Magnet
 ----------------
 
-:py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>`,
-:py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>`, and
-:py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` are steering
+:py:class:`HorizontalCorrector <laura.models.element.HorizontalCorrector>`,
+:py:class:`VerticalCorrector <laura.models.element.VerticalCorrector>`, and
+:py:class:`CombinedCorrector <laura.models.element.CombinedCorrector>` are steering
 (kicker) magnets. Although they extend :py:class:`Dipole <laura.models.element.Dipole>`
-at the element level, they do **not** use :py:class:`Dipole_Magnet <laura.models.magnetic.Dipole_Magnet>`
+at the element level, they do **not** use :py:class:`DipoleMagnet <laura.models.magnetic.DipoleMagnet>`
 for their ``magnetic`` attribute -- a dipole's ``normal``/``skew`` multipole components denote the
 magnetic field's *orientation*, not a beam plane, and reusing them to mean "horizontal" and "vertical"
 would be opaque. Instead, correctors use
-:py:class:`Corrector_Magnet <laura.models.magnetic.Corrector_Magnet>`, which stores the two planes as
+:py:class:`CorrectorMagnet <laura.models.magnetic.CorrectorMagnet>`, which stores the two planes as
 two independent, explicitly-named fields:
 
 * ``horizontal_kick: float`` -- horizontal kick angle [rad].
 * ``vertical_kick: float`` -- vertical kick angle [rad].
 
-A :py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>` or
-:py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>` is expected to populate only its
-own plane; a :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` may set both
+A :py:class:`HorizontalCorrector <laura.models.element.HorizontalCorrector>` or
+:py:class:`VerticalCorrector <laura.models.element.VerticalCorrector>` is expected to populate only its
+own plane; a :py:class:`CombinedCorrector <laura.models.element.CombinedCorrector>` may set both
 simultaneously. Both fields may be defined functionally (see :ref:`functional-parameters`).
 
 .. note::
 
-   :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` also has
+   :py:class:`CombinedCorrector <laura.models.element.CombinedCorrector>` also has
    ``Horizontal_Corrector``/``Vertical_Corrector`` string fields. These are **not** where the kick
    strength lives -- they are name cross-references to separately-defined sibling elements, used for
    hardware/power-supply bookkeeping (see e.g. ``LAURA.get_correctors``). A
-   :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>`'s own kick strength always
+   :py:class:`CombinedCorrector <laura.models.element.CombinedCorrector>`'s own kick strength always
    comes from its own ``magnetic.horizontal_kick``/``magnetic.vertical_kick``.
 
 .. _functional-parameters:
@@ -970,10 +970,10 @@ The attributes that currently accept a functional definition are:
 * :py:class:`Multipole <laura.models.magnetic.Multipole>` ``normal`` and ``skew`` (and hence the magnet ``kl`` / ``k1l`` / ``KnL`` strengths, and the dipole ``angle``);
 * :py:class:`SolenoidFields <laura.models.magnetic.SolenoidFields>` ``SnL`` (and hence the solenoid ``ks`` / ``field_amplitude``);
 * :py:class:`MagneticElement <laura.models.magnetic.MagneticElement>` ``entrance_edge_angle`` and ``exit_edge_angle`` (see the note below on the reserved ``angle`` token);
-* :py:class:`NonLinearLens_Magnet <laura.models.magnetic.NonLinearLens_Magnet>` ``integrated_strength`` and ``dimensional_parameter``;
-* :py:class:`Corrector_Magnet <laura.models.magnetic.Corrector_Magnet>` ``horizontal_kick`` and ``vertical_kick``;
-* :py:class:`Wiggler_Magnet <laura.models.magnetic.Wiggler_Magnet>` ``strength``;
-* :py:class:`RFCavityElement <laura.models.RF.RFCavityElement>` and :py:class:`RFDeflectingCavityElement <laura.models.RF.RFDeflectingCavityElement>` ``phase``;
+* :py:class:`NonLinearLensMagnet <laura.models.magnetic.NonLinearLensMagnet>` ``integrated_strength`` and ``dimensional_parameter``;
+* :py:class:`CorrectorMagnet <laura.models.magnetic.CorrectorMagnet>` ``horizontal_kick`` and ``vertical_kick``;
+* :py:class:`WigglerMagnet <laura.models.magnetic.WigglerMagnet>` ``strength``;
+* :py:class:`RFCavityElement <laura.models.rf.RFCavityElement>` and :py:class:`RFDeflectingCavityElement <laura.models.rf.RFDeflectingCavityElement>` ``phase``;
 * :py:class:`RFCavitySimulationElement <laura.models.simulation.RFCavitySimulationElement>` ``field_amplitude``;
 * :py:class:`MagnetSimulationElement <laura.models.simulation.MagnetSimulationElement>` ``field_amplitude``.
 
@@ -1031,11 +1031,11 @@ A global flag controls whether the *configured* accessors render functional
 attributes as strings or as resolved numbers. It is **off by default** (render as
 strings) and is set from the top level via the ``resolve_functional`` option of a
 lattice container (see :ref:`functional-definitions`) or directly with
-:py:func:`set_resolve_functional <laura.models.baseModels.set_resolve_functional>`:
+:py:func:`set_resolve_functional <laura.models.base_models.set_resolve_functional>`:
 
 .. code-block:: python
 
-    from laura.models.baseModels import set_resolve_functional
+    from laura.models.base_models import set_resolve_functional
 
     set_resolve_functional(True)
     quad.magnetic.k1l   # -2.0 (now resolved)

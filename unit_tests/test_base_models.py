@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 from pydantic import BaseModel
 
-from laura.models.baseModels import (
+from laura.models.base_models import (
     convert_numpy_types,
     flow_list,
     string_with_quotes,
@@ -12,7 +12,7 @@ from laura.models.baseModels import (
     IgnoreExtra,
     NumpyModel,
     NumpyVectorModel,
-    objectList,
+    ObjectList,
     DeviceList,
     Aliases,
 )

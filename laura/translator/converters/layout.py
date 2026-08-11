@@ -1,6 +1,6 @@
 from typing import Dict, Any, TYPE_CHECKING
 from textwrap import wrap
-from laura.models.elementList import MachineLayout
+from laura.models.element_list import MachineLayout
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
 from ..utils.functions import elegant_functional_definitions, sanitize_string
@@ -39,7 +39,7 @@ class MachineLayoutTranslator(MachineLayout):
 
     def to_elegant(self, string: str = "", charge: float = None) -> str:
         for section in self.sections.values():
-            section_with_drifts = section.createDrifts()
+            section_with_drifts = section.create_drifts()
             elem_dict = translate_elements(
                 section_with_drifts.values(),
                 master_lattice=self.master_lattice,
@@ -62,7 +62,7 @@ class MachineLayoutTranslator(MachineLayout):
 
     def to_genesis(self, string: str = "") -> str:
         for section in self.sections.values():
-            section_with_drifts = section.createDrifts()
+            section_with_drifts = section.create_drifts()
             elem_dict = translate_elements(
                 section_with_drifts.values(),
                 master_lattice=self.master_lattice,

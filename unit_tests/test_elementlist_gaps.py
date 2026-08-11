@@ -5,7 +5,7 @@ branches, and ElementList's dict-attribute-gathering fallback in __getattr__."""
 
 import pytest
 
-from laura.models.elementList import (
+from laura.models.element_list import (
     normalise_lattice_type,
     load_functional_definitions,
     ElementList,

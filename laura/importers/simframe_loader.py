@@ -8,7 +8,7 @@ from pydantic import BaseModel, field_validator, ValidationInfo, Field
 
 _log = logging.getLogger("laura.loader.simframe")
 
-from .Magnet_Table import add_magnet_table_parameters
+from .magnet_table import add_magnet_table_parameters
 from ..models.element import (
     Quadrupole,
     Dipole,
@@ -17,23 +17,23 @@ from ..models.element import (
     Marker,
     Aperture,
     Collimator,
-    Beam_Position_Monitor,
-    Beam_Arrival_Monitor,
-    Bunch_Length_Monitor,
-    Wall_Current_Monitor,
-    Faraday_Cup_Monitor,
-    Integrated_Current_Transformer,
+    BeamPositionMonitor,
+    BeamArrivalMonitor,
+    BunchLengthMonitor,
+    WallCurrentMonitor,
+    FaradayCupMonitor,
+    IntegratedCurrentTransformer,
     Screen,
-    Combined_Corrector,
-    Horizontal_Corrector,
-    Vertical_Corrector,
+    CombinedCorrector,
+    HorizontalCorrector,
+    VerticalCorrector,
     Wakefield,
     RFCavity,
     RFDeflectingCavity,
     Shutter,
     Camera,
 )
-from ..models.diagnostic import Camera_Diagnostic_Type
+from ..models.diagnostic import camera_diagnostic_type
 
 with open(
         os.path.dirname(os.path.abspath(__file__)) + "/camera_assignments.yaml", "r"
@@ -45,7 +45,7 @@ with open(
             camera_types[s] = k
 
 
-class SimFrame_Conversion(BaseModel):
+class SimFrameConversion(BaseModel):
     typeclass: Any
     hardware_class: str
     hardware_type: Union[str, None] = Field(validate_default=True, default=None)
@@ -58,71 +58,71 @@ class SimFrame_Conversion(BaseModel):
 
 
 SimFrame_Elements = {
-    "quadrupole": SimFrame_Conversion(typeclass=Quadrupole, hardware_class="Magnet"),
-    "dipole": SimFrame_Conversion(typeclass=Dipole, hardware_class="Magnet"),
-    "sextupole": SimFrame_Conversion(typeclass=Sextupole, hardware_class="Magnet"),
-    "solenoid": SimFrame_Conversion(typeclass=Solenoid, hardware_class="Magnet"),
-    "marker": SimFrame_Conversion(typeclass=Marker, hardware_class="Simulation"),
-    "aperture": SimFrame_Conversion(typeclass=Aperture, hardware_class="Simulation"),
-    "collimator": SimFrame_Conversion(
+    "quadrupole": SimFrameConversion(typeclass=Quadrupole, hardware_class="Magnet"),
+    "dipole": SimFrameConversion(typeclass=Dipole, hardware_class="Magnet"),
+    "sextupole": SimFrameConversion(typeclass=Sextupole, hardware_class="Magnet"),
+    "solenoid": SimFrameConversion(typeclass=Solenoid, hardware_class="Magnet"),
+    "marker": SimFrameConversion(typeclass=Marker, hardware_class="Simulation"),
+    "aperture": SimFrameConversion(typeclass=Aperture, hardware_class="Simulation"),
+    "collimator": SimFrameConversion(
         typeclass=Collimator, hardware_class="Simulation"
     ),
-    "beam_position_monitor": SimFrame_Conversion(
-        typeclass=Beam_Position_Monitor, hardware_class="Diagnostic"
+    "beam_position_monitor": SimFrameConversion(
+        typeclass=BeamPositionMonitor, hardware_class="Diagnostic"
     ),
-    "beam_arrival_monitor": SimFrame_Conversion(
-        typeclass=Beam_Arrival_Monitor, hardware_class="Diagnostic"
+    "beam_arrival_monitor": SimFrameConversion(
+        typeclass=BeamArrivalMonitor, hardware_class="Diagnostic"
     ),
-    "bunch_length_monitor": SimFrame_Conversion(
-        typeclass=Bunch_Length_Monitor, hardware_class="Diagnostic"
+    "bunch_length_monitor": SimFrameConversion(
+        typeclass=BunchLengthMonitor, hardware_class="Diagnostic"
     ),
-    "wall_current_monitor": SimFrame_Conversion(
-        typeclass=Wall_Current_Monitor, hardware_class="Diagnostic"
+    "wall_current_monitor": SimFrameConversion(
+        typeclass=WallCurrentMonitor, hardware_class="Diagnostic"
     ),
-    "faraday_cup": SimFrame_Conversion(
-        typeclass=Faraday_Cup_Monitor, hardware_class="Diagnostic"
+    "faraday_cup": SimFrameConversion(
+        typeclass=FaradayCupMonitor, hardware_class="Diagnostic"
     ),
-    "integrated_current_transformer": SimFrame_Conversion(
-        typeclass=Integrated_Current_Transformer, hardware_class="Diagnostic"
+    "integrated_current_transformer": SimFrameConversion(
+        typeclass=IntegratedCurrentTransformer, hardware_class="Diagnostic"
     ),
-    "screen": SimFrame_Conversion(typeclass=Screen, hardware_class="Diagnostic"),
+    "screen": SimFrameConversion(typeclass=Screen, hardware_class="Diagnostic"),
     # 'rf_deflecting_cavity': SimFrame_Conversion(typeclass=Sextupole, PV_class='Magnet'),
-    "kicker": SimFrame_Conversion(
-        typeclass=Combined_Corrector, hardware_class="Magnet"
+    "kicker": SimFrameConversion(
+        typeclass=CombinedCorrector, hardware_class="Magnet"
     ),
-    "hkicker": SimFrame_Conversion(
-        typeclass=Horizontal_Corrector, hardware_class="Magnet"
+    "hkicker": SimFrameConversion(
+        typeclass=HorizontalCorrector, hardware_class="Magnet"
     ),
-    "vkicker": SimFrame_Conversion(
-        typeclass=Vertical_Corrector, hardware_class="Magnet"
+    "vkicker": SimFrameConversion(
+        typeclass=VerticalCorrector, hardware_class="Magnet"
     ),
     # 'monitor': SimFrame_Conversion(typeclass=Sextupole, PV_class='Magnet'),
-    "longitudinal_wakefield": SimFrame_Conversion(
+    "longitudinal_wakefield": SimFrameConversion(
         typeclass=Wakefield, hardware_class="Simulation"
     ),
-    "cavity": SimFrame_Conversion(typeclass=RFCavity, hardware_class="RF"),
-    "rf_deflecting_cavity": SimFrame_Conversion(
+    "cavity": SimFrameConversion(typeclass=RFCavity, hardware_class="RF"),
+    "rf_deflecting_cavity": SimFrameConversion(
         typeclass=RFDeflectingCavity, hardware_class="RF"
     ),
-    "shutter": SimFrame_Conversion(typeclass=Shutter, hardware_class="Vacuum"),
+    "shutter": SimFrameConversion(typeclass=Shutter, hardware_class="Vacuum"),
 }
 
 
-def get_SimFrame_YAML_filename(original, replacement):
+def get_simframe_yaml_filename(original, replacement):
     splitstr = original.replace("\\", "/").split("/")
     idx = splitstr.index("YAML")
     return "/".join(splitstr[:idx]) + "/" + replacement
 
 
-def get_SimFrame_MachineArea(name):
+def get_simframe_machine_area(name):
     return name.split("-")[1]
 
 
-def get_SimFrame_PV(name):
+def get_simframe_pv(name):
     return name
 
 
-def interpret_SimFrame_Element(name, elem):
+def interpret_simframe_element(name, elem):
     if "type" in elem and elem["type"] in SimFrame_Elements:
         # try:
         # print('type',elem['type'],'found')
@@ -132,7 +132,7 @@ def interpret_SimFrame_Element(name, elem):
         elem.update(
             {
                 "name": name,
-                "machine_area": get_SimFrame_MachineArea(name),
+                "machine_area": get_simframe_machine_area(name),
                 "hardware_class": SimFrame_Elements[elem["type"]].hardware_class,
             }
         )
@@ -144,7 +144,7 @@ def interpret_SimFrame_Element(name, elem):
     #     print('Error', name, e)
 
 
-def read_SimFrame_YAML(filename):
+def read_simframe_yaml(filename):
     # print('File:',filename)
     elemlist = {}
     with open(filename, "r") as stream:
@@ -152,12 +152,12 @@ def read_SimFrame_YAML(filename):
     for name, elem in data["elements"].items():
         if name == "filename":  # and isinstance(elem, str):
             if isinstance(elem, str):
-                newfilename = get_SimFrame_YAML_filename(filename, elem)
-                elemlist.update(read_SimFrame_YAML(newfilename))
+                newfilename = get_simframe_yaml_filename(filename, elem)
+                elemlist.update(read_simframe_yaml(newfilename))
             elif isinstance(elem, list):
                 for e in elem:
-                    newfilename = get_SimFrame_YAML_filename(filename, e)
-                    elemlist.update(read_SimFrame_YAML(newfilename))
+                    newfilename = get_simframe_yaml_filename(filename, e)
+                    elemlist.update(read_simframe_yaml(newfilename))
         elif "type" in elem and elem["type"] in SimFrame_Elements:
             if elem["type"] == "kicker":
                 helem = copy(elem)
@@ -168,14 +168,14 @@ def read_SimFrame_YAML(filename):
                 velem["type"] = "vkicker"
                 velem["mag_type"] = "VERTICAL_CORRECTOR"
                 vname = name.replace("HVCOR", "VCOR")
-                elemmodel = interpret_SimFrame_Element(hname, helem)
+                elemmodel = interpret_simframe_element(hname, helem)
                 elemlist.update({hname: elemmodel})
-                elemmodel = interpret_SimFrame_Element(vname, velem)
+                elemmodel = interpret_simframe_element(vname, velem)
                 elemlist.update({vname: elemmodel})
                 elem["Horizontal_Corrector"] = hname
                 elem["Vertical_Corrector"] = vname
             if elem["type"] == "screen":
-                elemmodel = interpret_SimFrame_Element(name, elem)
+                elemmodel = interpret_simframe_element(name, elem)
                 elemlist.update({name: elemmodel})
                 camtype = (
                     camera_types[elemmodel.name]
@@ -191,12 +191,12 @@ def read_SimFrame_YAML(filename):
                     hardware_model=camtype,
                     machine_area=elemmodel.machine_area,
                     physical=elemmodel.physical,
-                    diagnostic=Camera_Diagnostic_Type(type=camtype),
+                    diagnostic=camera_diagnostic_type(type=camtype),
                     controls=None,
                 )
                 elemlist.update({elemmodel.diagnostic.camera_name: elemmodelcam})
             else:
-                elemmodel = interpret_SimFrame_Element(name, elem)
+                elemmodel = interpret_simframe_element(name, elem)
                 elemlist.update({name: elemmodel})
         else:
             # pass
@@ -209,7 +209,7 @@ def read_SimFrame_YAML(filename):
                 if "type" in subelem and subelem["type"] in SimFrame_Elements:
                     # print('Subelement:', subelem)
                     subelem["subelement"] = True
-                    elemmodel = interpret_SimFrame_Element(subname, subelem)
+                    elemmodel = interpret_simframe_element(subname, subelem)
                     # print(subname, elemmodel)
                     elemlist.update({subname: elemmodel})
     # print('simframe',elemlist)
@@ -223,3 +223,22 @@ SF_files = [
     r"../../masterlattice/MasterLattice/YAML/CLA_FEBE.yaml",
     r"../../masterlattice/MasterLattice/YAML/CLA_SP1.yaml",
 ]
+
+# ---------------------------------------------------------------------------
+# Backwards compatibility: names renamed for PEP 8. Served lazily with a
+# FutureWarning so downstream consumers (astec-stfc/simba) keep working.
+# ---------------------------------------------------------------------------
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "SimFrame_Conversion": "SimFrameConversion",
+        "get_SimFrame_MachineArea": "get_simframe_machine_area",
+        "get_SimFrame_PV": "get_simframe_pv",
+        "get_SimFrame_YAML_filename": "get_simframe_yaml_filename",
+        "interpret_SimFrame_Element": "interpret_simframe_element",
+        "read_SimFrame_YAML": "read_simframe_yaml",
+    },
+)

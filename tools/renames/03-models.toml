@@ -1,0 +1,84 @@
+[options]
+
+no_attribute_rename = ["Horizontal_Corrector", "Vertical_Corrector"]
+
+[classes]
+
+# --- baseModels.py ----------------------------------------------------------
+objectList = "ObjectList"
+
+# --- element.py -------------------------------------------------------------
+baseElement = "BaseElement"
+Beam_Position_Monitor = "BeamPositionMonitor"
+Beam_Arrival_Monitor = "BeamArrivalMonitor"
+Bunch_Length_Monitor = "BunchLengthMonitor"
+Wall_Current_Monitor = "WallCurrentMonitor"
+Faraday_Cup_Monitor = "FaradayCupMonitor"
+Photon_Monitor = "PhotonMonitor"
+Integrated_Current_Transformer = "IntegratedCurrentTransformer"
+Horizontal_Corrector = "HorizontalCorrector"
+Vertical_Corrector = "VerticalCorrector"
+Combined_Corrector = "CombinedCorrector"
+
+Low_Level_RF = "LowLevelRF"
+
+# --- magnetic.py ------------------------------------------------------------
+Dipole_Magnet = "DipoleMagnet"
+Quadrupole_Magnet = "QuadrupoleMagnet"
+Sextupole_Magnet = "SextupoleMagnet"
+Octupole_Magnet = "OctupoleMagnet"
+Solenoid_Magnet = "SolenoidMagnet"
+Corrector_Magnet = "CorrectorMagnet"
+Wiggler_Magnet = "WigglerMagnet"
+NonLinearLens_Magnet = "NonLinearLensMagnet"
+
+# --- diagnostic.py ----------------------------------------------------------
+Beam_Position_Monitor_Diagnostic = "BeamPositionMonitorDiagnostic"
+Beam_Arrival_Monitor_Diagnostic = "BeamArrivalMonitorDiagnostic"
+Bunch_Length_Monitor_Diagnostic = "BunchLengthMonitorDiagnostic"
+Photon_Intensity_Monitor_Diagnostic = "PhotonIntensityMonitorDiagnostic"
+Camera_Diagnostic = "CameraDiagnostic"
+Screen_Diagnostic = "ScreenDiagnostic"
+
+Charge_Diagnostic = "ChargeDiagnosticElement"
+Camera_Sensor = "CameraSensor"
+Camera_Mask = "CameraMask"
+Camera_Pixel_Results_Indices = "CameraPixelResultsIndices"
+Camera_Pixel_Results_Names = "CameraPixelResultsNames"
+
+# --- RF.py ------------------------------------------------------------------
+Low_Level_RF_Element = "LowLevelRFElement"
+
+[functions]
+
+# --- element.py -------------------------------------------------------------
+YAML_filename = "yaml_filename"
+
+# --- elementList.py / laura.py ----------------------------------------------
+createDrifts = "create_drifts"
+
+# --- magnetic.py: K <-> current physics API (used by simba and the tests) ----
+KToCurrent = "k_to_current"
+KLToCurrent = "kl_to_current"
+currentToK = "current_to_k"
+currentToAngle = "current_to_angle"
+validate_Multipole = "validate_multipole"
+
+Power = "power"
+Sqrt = "sqrt"
+
+# --- diagnostic.py: camera factory functions --------------------------------
+Camera_Diagnostic_Type = "camera_diagnostic_type"
+Manta_Camera_Diagnostic = "manta_camera_diagnostic"
+Manta_Camera_Sensor = "manta_camera_sensor"
+PCO_Camera_Diagnostic = "pco_camera_diagnostic"
+PCO_Camera_Sensor = "pco_camera_sensor"
+
+# --- RF.py ------------------------------------------------------------------
+_create_LLRFChannels_Model = "_create_llrf_channels_model"
+
+[globals]
+
+solenoidFields = "solenoid_fields"
+solenoidFieldsData = "solenoid_fields_data"
+llrftimingsCATAPnames = "llrf_timings_catap_names"

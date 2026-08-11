@@ -1,6 +1,6 @@
 from typing import Dict, Any, TYPE_CHECKING
 from textwrap import wrap
-from laura.models.elementList import MachineModel
+from laura.models.element_list import MachineModel
 from .converter import translate_elements
 from .layout import MachineLayoutTranslator
 from ..utils.functions import elegant_functional_definitions, sanitize_string
@@ -57,7 +57,7 @@ class MachineModelTranslator(MachineModel):
             model.update({name: MachineLayoutTranslator.from_layout(latt).to_rftrack(P_Q=P_Q, save=save)})
         return model
 
-    def format_string(seld, string: str):
+    def format_string(self, string: str):
         fulltext = ""
         for s in string.split(', '):
             if len((fulltext + s).splitlines()[-1]) > 60:
@@ -68,7 +68,7 @@ class MachineModelTranslator(MachineModel):
     def to_elegant(self, string: str = "", charge: float = None) -> str:
         for latt in self.lattices.values():
             for section in latt.sections.values():
-                section_with_drifts = section.createDrifts()
+                section_with_drifts = section.create_drifts()
                 elem_dict = translate_elements(
                     section_with_drifts.values(),
                     master_lattice=self.master_lattice,
@@ -98,7 +98,7 @@ class MachineModelTranslator(MachineModel):
     def to_genesis(self, string: str = "") -> str:
         for latt in self.lattices.values():
             for section in latt.sections.values():
-                section_with_drifts = section.createDrifts()
+                section_with_drifts = section.create_drifts()
                 elem_dict = translate_elements(
                     section_with_drifts.values(),
                     master_lattice=self.master_lattice,

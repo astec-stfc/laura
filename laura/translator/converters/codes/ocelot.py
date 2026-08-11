@@ -20,7 +20,7 @@ from ...utils.functions import introspect_model_defaults
 from ...conversion_rules.codes import ocelot_conversion
 from warnings import warn
 
-type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
 
 
 class OcelotLatticeImporter(BaseModel):
@@ -50,7 +50,7 @@ class OcelotLatticeImporter(BaseModel):
         strip_chars = "'>"
         switch_dict = {
             f"{str(y).lower().split('.')[-1].strip(strip_chars)}_{x}": x
-            for x, y in type_conversion_rules_Ocelot.items()
+            for x, y in type_conversion_rules_ocelot.items()
         }
 
         for elem, pos_and_rot in elements.items():
@@ -311,3 +311,13 @@ class OcelotLatticeImporter(BaseModel):
             if hasattr(v, f"k{n}") and hasattr(v, "l"):
                 newk.update({f"k{n}l": getattr(v, f"k{n}") * getattr(v, "l")})
         return newk
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "type_conversion_rules_Ocelot": "type_conversion_rules_ocelot",
+    },
+)

@@ -5,15 +5,15 @@ from laura.models.magnetic import (
     FieldIntegral,
     LinearSaturationFit,
     MagneticElement,
-    Dipole_Magnet,
-    Quadrupole_Magnet,
-    Sextupole_Magnet,
-    Octupole_Magnet,
-    Solenoid_Magnet,
+    DipoleMagnet,
+    QuadrupoleMagnet,
+    SextupoleMagnet,
+    OctupoleMagnet,
+    SolenoidMagnet,
     SolenoidFields,
-    NonLinearLens_Magnet,
-    Wiggler_Magnet,
-    Corrector_Magnet,
+    NonLinearLensMagnet,
+    WigglerMagnet,
+    CorrectorMagnet,
 )
 from laura.models._generated import (
     _SolenoidMagnetBase,
@@ -39,13 +39,13 @@ def test_multipoles_operations():
 
 def test_field_integral_current_to_k():
     fi = FieldIntegral(coefficients=[1, 2, 3])
-    k = fi.currentToK(current=10, energy=100)
+    k = fi.current_to_k(current=10, energy=100)
     assert k > 0
 
 
 def test_linear_saturation_fit_current_to_k():
     lsf = LinearSaturationFit(m=1, I_max=10, f=0.1, a=0.2, I0=5, d=0.3, L=1)
-    result = lsf.currentToK(current=5, momentum=100)
+    result = lsf.current_to_k(current=5, momentum=100)
     assert "K" in result
     assert result["K"] > 0
 
@@ -59,39 +59,39 @@ def test_magnetic_element_properties():
 
 
 def test_dipole_magnet_properties():
-    dipole = Dipole_Magnet(length=2.0)
+    dipole = DipoleMagnet(length=2.0)
     dipole.angle = 0.1
     assert dipole.rho > 0
     assert dipole.field_strength(momentum=100) > 0
 
 
 def test_quadrupole_magnet_properties():
-    quad = Quadrupole_Magnet(length=1.0, k1l=0.2)
+    quad = QuadrupoleMagnet(length=1.0, k1l=0.2)
     assert quad.k1l == 0.2
 
 
 def test_sextupole_magnet_properties():
-    sext = Sextupole_Magnet(length=1.0, k2l=0.2)
+    sext = SextupoleMagnet(length=1.0, k2l=0.2)
     assert sext.k2l == 0.2
 
 
 def test_octupole_magnet_properties():
-    sext = Octupole_Magnet(length=1.0, k3l=0.2)
+    sext = OctupoleMagnet(length=1.0, k3l=0.2)
     assert sext.k3l == 0.2
 
 
 def test_solenoid_magnet_properties():
-    solenoid = Solenoid_Magnet(length=1.0, ks=0.3)
+    solenoid = SolenoidMagnet(length=1.0, ks=0.3)
     assert solenoid.ks == 0.3
 
 
 def test_nonlinear_lens_magnet():
-    lens = NonLinearLens_Magnet(length=1.0, integrated_strength=0.5)
+    lens = NonLinearLensMagnet(length=1.0, integrated_strength=0.5)
     assert lens.integrated_strength == 0.5
 
 
 def test_wiggler_magnet_properties():
-    wiggler = Wiggler_Magnet(length=2.0, strength=1.0, period=0.1, num_periods=10)
+    wiggler = WigglerMagnet(length=2.0, strength=1.0, period=0.1, num_periods=10)
     assert wiggler.normalized_strength > 0
     assert wiggler.poles == 20
 
@@ -111,10 +111,10 @@ class TestGeneratedBaseWiring:
     guards the wiring itself and the two traps that come with it."""
 
     def test_classes_inherit_generated_bases(self):
-        assert issubclass(Solenoid_Magnet, _SolenoidMagnetBase)
-        assert issubclass(Wiggler_Magnet, _WigglerMagnetBase)
-        assert issubclass(NonLinearLens_Magnet, _NonLinearLensMagnetBase)
-        assert issubclass(Corrector_Magnet, _CorrectorMagnetBase)
+        assert issubclass(SolenoidMagnet, _SolenoidMagnetBase)
+        assert issubclass(WigglerMagnet, _WigglerMagnetBase)
+        assert issubclass(NonLinearLensMagnet, _NonLinearLensMagnetBase)
+        assert issubclass(CorrectorMagnet, _CorrectorMagnetBase)
         assert issubclass(SolenoidFields, _SolenoidFieldsBase)
 
     def test_legacy_yaml_aliases_still_load(self):
@@ -122,18 +122,18 @@ class TestGeneratedBaseWiring:
         chunk doesn't list them), so the hand-written Field(alias=...)
         overrides must still be in effect, not shadowed by the generated
         field of the same name."""
-        sol = Solenoid_Magnet(magnetic_length=0.3, mag_set_max_wait_time=99.0)
+        sol = SolenoidMagnet(magnetic_length=0.3, mag_set_max_wait_time=99.0)
         assert sol.length == 0.3
         assert sol.settle_time == 99.0
 
-        wig = Wiggler_Magnet(K=1.5, B=0.8, lambdau=0.05, nwig=40, kx=0.1)
+        wig = WigglerMagnet(K=1.5, B=0.8, lambdau=0.05, nwig=40, kx=0.1)
         assert wig.strength == 1.5
         assert wig.peak_magnetic_field == 0.8
         assert wig.period == 0.05
         assert wig.num_periods == 40
         assert wig.quadratic_roll_off_x == 0.1
 
-        nll = NonLinearLens_Magnet(magnetic_length=0.2, knll=1.0, cnll=0.01)
+        nll = NonLinearLensMagnet(magnetic_length=0.2, knll=1.0, cnll=0.01)
         assert nll.integrated_strength == 1.0
         assert nll.dimensional_parameter == 0.01
 
@@ -141,13 +141,13 @@ class TestGeneratedBaseWiring:
         """The generated bases type these slots as plain float; the
         hand-written Union[float, str] override (for functional-definition
         names) must win, not the generated float-only field."""
-        wig = Wiggler_Magnet(K="wiggler_k_expr")
+        wig = WigglerMagnet(K="wiggler_k_expr")
         assert wig.strength == "wiggler_k_expr"
 
-        corr = Corrector_Magnet(horizontal_kick="hcorr_expr")
+        corr = CorrectorMagnet(horizontal_kick="hcorr_expr")
         assert corr.horizontal_kick == "hcorr_expr"
 
-        nll = NonLinearLens_Magnet(knll="nll_k_expr")
+        nll = NonLinearLensMagnet(knll="nll_k_expr")
         assert nll.integrated_strength == "nll_k_expr"
 
         fields = SolenoidFields(S0L="sol_expr")
@@ -162,22 +162,22 @@ class TestGeneratedBaseWiring:
         field names, silently breaking flatten_dict()-based full_dump() and
         any other export path keyed by field name. Each class pins
         serialize_by_alias back to False to prevent this."""
-        nll = NonLinearLens_Magnet(magnetic_length=0.1, knll=0.4, cnll=0.01)
+        nll = NonLinearLensMagnet(magnetic_length=0.1, knll=0.4, cnll=0.01)
         dumped = nll.model_dump()
         assert "integrated_strength" in dumped
         assert "knll" not in dumped
 
-        sol = Solenoid_Magnet(magnetic_length=0.3, mag_set_max_wait_time=99.0)
+        sol = SolenoidMagnet(magnetic_length=0.3, mag_set_max_wait_time=99.0)
         dumped = sol.model_dump()
         assert "settle_time" in dumped
         assert "mag_set_max_wait_time" not in dumped
 
-        wig = Wiggler_Magnet(K=1.5)
+        wig = WigglerMagnet(K=1.5)
         dumped = wig.model_dump()
         assert "strength" in dumped
         assert "K" not in dumped
 
-        corr = Corrector_Magnet(magnetic_length=0.1)
+        corr = CorrectorMagnet(magnetic_length=0.1)
         dumped = corr.model_dump()
         assert "length" in dumped
         assert "magnetic_length" not in dumped

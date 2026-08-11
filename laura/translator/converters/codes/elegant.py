@@ -1,10 +1,10 @@
 import numpy as np
 from pydantic import BaseModel
 from typing import Dict
-from ...utils.elegant import SDDSFile
+from ...utils.elegant import sdds_file
 import laura.models.element as LAURA_elements
-from laura.models.elementList import SectionLattice, MachineLayout, ElementList
-from ...utils.elegant.sdds_classes_APS import SDDS_Floor, SDDS_Params
+from laura.models.element_list import SectionLattice, MachineLayout, ElementList
+from ...utils.elegant.sdds_classes_aps import SddsFloor, SddsParams
 
 
 class ElegantLatticeImporter(BaseModel):
@@ -26,12 +26,12 @@ class ElegantLatticeImporter(BaseModel):
     :class:`~laura.models.element.Element` objects"""
 
     def create_element_dictionary(self):
-        params = SDDS_Params(self.params_file)
+        params = SddsParams(self.params_file)
         self.elegant_data, filenames = params.create_element_dictionary()
         return self.elegant_data, filenames
 
     def update_floor_coordinates(self):
-        flr = SDDS_Floor()
+        flr = SddsFloor()
         flr.import_sdds_floor_file(self.floor_file)
         self.floor_data = flr.data
 
