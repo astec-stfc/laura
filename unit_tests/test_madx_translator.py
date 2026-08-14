@@ -1,10 +1,7 @@
 """Tests for the MAD-X (cpymad) translator.
 
-Mirrors the pattern used for the Xsuite translator in
-``test_functional_translators.py``: build small element/lattice fixtures,
-translate them, and (where cpymad is available) actually feed the generated
-MAD-X input into a live ``cpymad.madx.Madx`` instance to verify it parses and
-behaves correctly.
+Build small element/lattice fixtures, translate them and feed the generated
+MAD-X input into ``cpymad`` for verification.
 """
 
 import pytest
@@ -56,9 +53,6 @@ def _dipole(**magnetic):
 def _cavity(field_amplitude, phase=0.0, structure="StandingWave"):
     cavity = {"phase": phase, "structure_Type": structure}
     if structure.lower() == "travellingwave":
-        # RFCavityElement requires a mode for travelling-wave structures. This
-        # went unnoticed while the check read `.lower ==` (comparing a bound
-        # method to a string, so never true); it is a real constraint.
         cavity |= {"mode_numerator": 2, "mode_denominator": 3}
     cav = RFCavity(
         name="C1", machine_area="L02",
@@ -181,7 +175,6 @@ class TestMadxCorrector:
 
 class TestMadxCavity:
     def test_cavity_units_and_lag_convention(self):
-        # 20 MV, on-crest (phase=0 -> lag=0.25, the sine-convention crest)
         out = _cavity(20e6, phase=0.0).to_madx()
         assert "volt = 20.0" in out
         assert "lag = 0.25" in out

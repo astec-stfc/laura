@@ -79,6 +79,7 @@ from .manufacturer import ManufacturerElement
 from .electrical import ElectricalElement
 from .physical import PhysicalElement, Rotation
 from .magnetic import (
+    MagneticElement,
     Dipole_Magnet,
     Quadrupole_Magnet,
     Sextupole_Magnet,
@@ -343,6 +344,9 @@ class Magnet(PhysicalBaseElement, _MagnetBase):
 
     hardware_class: str = Field(default="Magnet", frozen=True)
     """Magnet hardware class."""
+
+    magnetic: Optional[MagneticElement] = None
+    """Magnetic attributes [optional for a base-level magnet]."""
 
     simulation: Optional[MagnetSimulationElement] = None
     """Magnet simulation attributes."""

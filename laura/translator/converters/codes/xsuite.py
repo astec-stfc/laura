@@ -43,13 +43,34 @@ _TYPE_MAP = {
     "LimitRectEllipse": LAURA_elements.Collimator,
     "LimitRacetrack": LAURA_elements.Collimator,
     "LimitPolygon": LAURA_elements.Collimator,
+    "SecondOrderTaylorMap": LAURA_elements.MatrixTransform,
+    "CrabCavity": LAURA_elements.CrabCavity,
+    "Wire": LAURA_elements.Wire,
+    "RFMultipole": LAURA_elements.RFMultipole,
+    "BeamBeamBiGaussian2D": LAURA_elements.BeamBeam,
 }
+_AC_DIPOLE_PLANES = {
+    "h": LAURA_elements.Horizontal_AC_Dipole,
+    "v": LAURA_elements.Vertical_AC_Dipole,
+}
+# Xtrack fields holding a strength *per metre*, which LAURA stores integrated.
+_PER_METRE_FIELDS = (
+    tuple(f"k{order}" for order in range(5))
+    + tuple(f"k{order}s" for order in range(5))
+    + ("ks",)
+)
 _MAGNET_ORDERS = {
     "Bend": 0,
     "RBend": 0,
     "Quadrupole": 1,
     "Sextupole": 2,
     "Octupole": 3,
+}
+_ORDER_TYPES = {
+    0: LAURA_elements.Dipole,
+    1: LAURA_elements.Quadrupole,
+    2: LAURA_elements.Sextupole,
+    3: LAURA_elements.Octupole,
 }
 _LOSSY_CONVERSIONS = {
     "DipoleEdge": "no adjacent Bend/RBend was found, so its edge-focusing "
@@ -63,6 +84,13 @@ _LOSSY_CONVERSIONS = {
     "LimitRectEllipse": "the compound shape was reduced to its bounding size",
     "LimitRacetrack": "the racetrack shape was reduced to its bounding size",
     "LimitPolygon": "the polygon was reduced to its bounding size",
+    "ACDipole": "Xtrack's freq is a tune-like quantity (2*pi per turn) and was "
+    "stored as-is in simulation.frequency, which LAURA holds in Hz; multiply by "
+    "the ring's revolution_frequency to convert",
+    "BeamBeamBiGaussian2D": "the thin single-slice weak-strong model carries no "
+    "bunch length, so simulation.width was not set",
+    "SecondOrderTaylorMap": "Xtrack has no 3rd-order term, so simulation.u_matrix "
+    "and spin_taylor were not set",
 }
 
 
@@ -88,6 +116,10 @@ class XsuiteLatticeImporter(BaseModel):
     line_name: Optional[str] = None
     """Optional line selector for an Environment containing multiple lines."""
 
+    use_sliced: bool = False
+    """Import a sliced line's slices rather than the thick elements they came
+    from. Off by default -- see :meth:`_unsliced`."""
+
     functional_definitions: Dict[str, Union[int, float]] = {}
 
     elements: Dict = {}
@@ -95,6 +127,8 @@ class XsuiteLatticeImporter(BaseModel):
     layouts: Dict = {}
     _expressions: Dict[str, str] = PrivateAttr(default_factory=dict)
     _source_lines: Dict[str, Any] = PrivateAttr(default_factory=dict)
+    _conflicting_symbols: set = PrivateAttr(default_factory=set)
+    _raw_definitions: Dict[str, float] = PrivateAttr(default_factory=dict)
 
     @model_validator(mode="after")
     def _load_source(self):
@@ -126,10 +160,64 @@ class XsuiteLatticeImporter(BaseModel):
                 if self.line_name not in names:
                     raise KeyError(f"Xtrack line {self.line_name!r} was not found.")
                 names = [self.line_name]
-            self._source_lines = {name: self.line.lines[name] for name in names}
+            self._source_lines = {
+                name: self._unsliced(self.line.lines[name]) for name in names
+            }
             object.__setattr__(self, "line", self._source_lines[names[0]])
+        else:
+            object.__setattr__(self, "line", self._unsliced(self.line))
         self._read_functional_definitions()
         return self
+
+    @staticmethod
+    def _multipole_type(native):
+        """
+        Resolve a thin ``Multipole`` to a specific magnet class.
+        """
+        orders = [
+            order
+            for values in (getattr(native, "knl", []), getattr(native, "ksl", []))
+            for order, value in enumerate(values)
+            if value
+        ]
+        if not orders:
+            return LAURA_elements.Magnet
+        return _ORDER_TYPES.get(max(orders), LAURA_elements.Magnet)
+
+    @staticmethod
+    def _acdipole_type(element_name: str, native):
+        """Resolve an ``ACDipole`` to its horizontal or vertical LAURA class."""
+        plane = str(getattr(native, "plane", "")).strip().lower()
+        laura_type = _AC_DIPOLE_PLANES.get(plane)
+        if laura_type is None:
+            warn(
+                f"Xtrack ACDipole {element_name!r} has plane {plane!r}, which is "
+                "neither 'h' nor 'v'; importing it as a horizontal AC dipole."
+            )
+            laura_type = LAURA_elements.Horizontal_AC_Dipole
+        return laura_type
+
+    def _unsliced(self, line):
+        """Prefer the thick line a sliced Xtrack line was built from.
+
+        ``slice_thick_elements`` replaces each thick element with a sequence of
+        ``ThinSlice*``/``DriftSlice*``. Xtrack keeps the pre-slicing view on
+        ``_line_before_slicing`` (a shallow copy that shares this line's
+        element dict and variable management), so import that instead.
+
+        Set ``use_sliced=True`` to import the slices as they are.
+        """
+        if self.use_sliced:
+            return line
+        before = getattr(line, "_line_before_slicing", None)
+        if before is None or line.element_names == before.element_names:
+            return line
+        warn(
+            f"Xtrack line was sliced into {len(line.element_names)} elements; "
+            f"importing the {len(before.element_names)} thick elements it was "
+            "sliced from. Pass use_sliced=True to import the slices instead."
+        )
+        return before
 
     def _read_functional_definitions(self) -> None:
         """Keep independent Environment variables used by element expressions."""
@@ -159,6 +247,58 @@ class XsuiteLatticeImporter(BaseModel):
             if name not in {"t_turn_s", "__vary_default"}
         })
         object.__setattr__(self, "functional_definitions", definitions)
+        self._raw_definitions = dict(definitions)
+
+    def _bare_symbol(self, element_name: str, field: str) -> str | None:
+        """The variable name when ``field`` is driven by a bare ``vars['x']``."""
+        expr = self._expressions.get(f"element_refs['{element_name}'].{field}")
+        if not expr:
+            return None
+        return next(
+            (
+                name
+                for name in self.functional_definitions
+                if expr == f"vars['{name}']"
+            ),
+            None,
+        )
+
+    def _rescale_strength_symbols(self) -> None:
+        """Re-express per-metre strength variables as integrated strengths."""
+        scaled: Dict[str, float] = {}
+        conflicting: set = set()
+        lines = list(self._source_lines.values()) or [self.line]
+        for line in lines:
+            for element_name in line.element_names:
+                native = line.element_dict[element_name]
+                native_type = type(native).__name__
+                length = float(getattr(native, "length", 0.0) or 0.0)
+                if not length:
+                    continue
+                for field in _PER_METRE_FIELDS:
+                    symbol = self._bare_symbol(element_name, field)
+                    if symbol is None or symbol not in self._raw_definitions:
+                        continue
+                    factor = (
+                        -length
+                        if field == "k0" and native_type in {"Bend", "RBend"}
+                        else length
+                    )
+                    value = float(self._raw_definitions[symbol]) * factor
+                    if symbol in scaled and not np.isclose(scaled[symbol], value):
+                        conflicting.add(symbol)
+                    scaled[symbol] = value
+
+        self._conflicting_symbols = conflicting
+        definitions = dict(self.functional_definitions)
+        definitions.update(
+            {
+                name: value
+                for name, value in scaled.items()
+                if name not in conflicting
+            }
+        )
+        object.__setattr__(self, "functional_definitions", definitions)
 
     def _symbol(self, element_name: str, field: str, length: float = 0.0) -> str | None:
         """Recognise expressions emitted by LAURA for a single scalar variable."""
@@ -172,6 +312,8 @@ class XsuiteLatticeImporter(BaseModel):
                 length and expr.replace("(", "").replace(")", "").replace(" ", "")
                 == f"{token}/{length}".replace(" ", "")
             ):
+                if name in self._conflicting_symbols and expr == token:
+                    return None
                 return name
         return None
 
@@ -192,7 +334,11 @@ class XsuiteLatticeImporter(BaseModel):
             normal.extend([0.0] * max(missing, 0))
             skew.extend([0.0] * max(order + 1 - len(skew), 0))
             if native_type in {"Bend", "RBend"}:
-                normal[0] = -float(getattr(native, "angle", normal[0]))
+                k0 = getattr(native, "k0", None)
+                if k0 is None or isinstance(k0, str):
+                    normal[0] = -float(getattr(native, "angle", normal[0]))
+                else:
+                    normal[0] = -float(k0) * length
                 for component_order in (1, 2):
                     normal[component_order] += (
                         float(getattr(native, f"k{component_order}", 0.0)) * length
@@ -251,9 +397,20 @@ class XsuiteLatticeImporter(BaseModel):
             "Multipole",
             "Magnet",
         }:
+            multipoles = self._multipoles(element_name, native, length, native_type)
+            if native_type == "Multipole" and not any(
+                component["normal"] or component["skew"]
+                for component in multipoles.values()
+            ):
+                warn(
+                    f"Xtrack Multipole {element_name!r} has no non-zero knl/ksl "
+                    "component, so its order could not be determined; importing "
+                    "it as a generic Magnet with all multipole orders left at zero."
+                )
+                return {"magnetic": {"length": length}}
             magnetic = {
                 "length": length,
-                "multipoles": self._multipoles(element_name, native, length, native_type),
+                "multipoles": multipoles,
             }
             if native_type in {"Bend", "RBend"}:
                 entry_edge = (edges or {}).get("entry")
@@ -303,6 +460,69 @@ class XsuiteLatticeImporter(BaseModel):
                     "field_amplitude": self._symbol(element_name, "voltage")
                     or float(native.voltage)
                 },
+            }
+        if native_type == "SecondOrderTaylorMap":
+            return {
+                "simulation": {
+                    "c_matrix": np.array(native.k, dtype=float),
+                    "r_matrix": np.array(native.R, dtype=float),
+                    "t_matrix": np.array(native.T, dtype=float),
+                }
+            }
+        if native_type == "CrabCavity":
+            return {
+                "cavity": {
+                    "phase": self._symbol(element_name, "lag") or float(native.lag),
+                    "frequency": float(native.frequency),
+                },
+                "simulation": {
+                    "field_amplitude": self._symbol(element_name, "crab_voltage")
+                    or float(native.crab_voltage)
+                },
+            }
+        if native_type == "Wire":
+            return {
+                "simulation": {
+                    "current": self._symbol(element_name, "current")
+                    or float(native.current),
+                    "interaction_length": float(native.L_int),
+                    "horizontal_offset": float(native.xma),
+                    "vertical_offset": float(native.yma),
+                }
+            }
+        if native_type == "RFMultipole":
+            return {
+                "simulation": {
+                    "field_amplitude": self._symbol(element_name, "voltage")
+                    or float(native.voltage),
+                    "frequency": float(native.frequency),
+                    "phase": self._symbol(element_name, "lag") or float(native.lag),
+                    "knl": [float(value) for value in native.knl],
+                    "ksl": [float(value) for value in native.ksl],
+                    "pnl": [float(value) for value in native.pn],
+                    "psl": [float(value) for value in native.ps],
+                }
+            }
+        if native_type == "BeamBeamBiGaussian2D":
+            return {
+                "simulation": {
+                    "charge": float(native.other_beam_q0),
+                    "n_particles": float(native.other_beam_num_particles),
+                    "horizontal_offset": float(native.other_beam_shift_x),
+                    "vertical_offset": float(native.other_beam_shift_y),
+                    "horizontal_sigma": float(np.sqrt(native.other_beam_Sigma_11)),
+                    "vertical_sigma": float(np.sqrt(native.other_beam_Sigma_33)),
+                }
+            }
+        if native_type == "ACDipole":
+            return {
+                "simulation": {
+                    "field_amplitude": self._symbol(element_name, "volt")
+                    or float(native.volt),
+                    "frequency": float(native.freq),
+                    "phase": self._symbol(element_name, "lag") or float(native.lag),
+                    "ramp": [float(value) for value in native.ramp],
+                }
             }
         if native_type == "LimitEllipse":
             return {
@@ -364,6 +584,7 @@ class XsuiteLatticeImporter(BaseModel):
             "laura_element_types", {}
         )
         element_names = list(self.line.element_names)
+        self._rescale_strength_symbols()
         absorbed_edges: Dict[str, Dict[str, Any]] = {}
         skip_indices: set = set()
         for index, element_name in enumerate(element_names):
@@ -389,6 +610,10 @@ class XsuiteLatticeImporter(BaseModel):
                 continue
             stored_type = stored_types.get(element_name)
             laura_type = getattr(LAURA_elements, stored_type, None) if stored_type else None
+            if laura_type is None and native_type == "Multipole":
+                laura_type = self._multipole_type(native)
+            if laura_type is None and native_type == "ACDipole":
+                laura_type = self._acdipole_type(element_name, native)
             laura_type = laura_type or _TYPE_MAP.get(native_type)
             if laura_type is None:
                 warn(
@@ -410,10 +635,11 @@ class XsuiteLatticeImporter(BaseModel):
                 )
 
             length = float(getattr(native, "length", 0.0))
+            physical_length = length if getattr(native, "isthick", True) else 0.0
             data = {
                 "name": element_name,
                 "machine_area": self.machine_area,
-                "physical": self._physical(index, length, table),
+                "physical": self._physical(index, physical_length, table),
                 **self._element_data(
                     element_name,
                     native,
@@ -500,5 +726,4 @@ class XsuiteLatticeImporter(BaseModel):
         export_machine_combined_file(path, source, position_mode=position_mode)
 
 
-# Backwards-compatible public name used before the importer lifecycle was aligned.
 XsuiteLatticeConverter = XsuiteLatticeImporter

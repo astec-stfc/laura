@@ -1,11 +1,9 @@
 """Tests for the MAD-X TWISS TFS importer (``MadxLatticeImporter``).
 
-Mirrors the ELEGANT importer's own design: a single file (here, a MAD-X
-TWISS TFS table) supplies both element parameters and, via its own ``S``
+A MAD-X TWISS TFS table supplies both element parameters and, via its own ``S``
 column (MAD-X's cumulative arc-length at the exit of each element),
-``position_mode="s"`` positioning. Since no MAD-X binary/cpymad is available
-in this environment, the fixture is a hand-written TFS table exercising one
-element of each type/collision this importer handles specially.
+``position_mode="s"`` positioning. The fixture is a hand-written TFS table
+exercising one element of each type.
 """
 
 import os
@@ -164,12 +162,7 @@ def test_source_import_follows_call_statements(tmp_path):
 def test_declared_constants_in_called_files_are_preserved(tmp_path):
     """A constant declared only in a call'd file, and not referenced by any
     element's deferred expression, must still show up in
-    functional_definitions -- the `declared` scan used to only read
-    source_file's own text, silently missing anything declared in a file it
-    calls (same bug shape as the fixed Bmad _read_functional_definitions
-    gap, narrower impact: doesn't affect any actual element parameter,
-    since those are always resolved from the live-loaded cpymad model
-    regardless of which file declared the symbol)."""
+    functional_definitions."""
     pytest.importorskip("cpymad")
     (tmp_path / "sub.madx").write_text("unused_const = 3.14;\n")
     source = tmp_path / "main.madx"

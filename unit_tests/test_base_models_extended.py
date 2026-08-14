@@ -19,17 +19,11 @@ from laura.models._generated import _MagneticElementBase
 
 class TestFunctionalAnnotationsBendAngle:
     def test_flat_functional_marker_short_circuits(self):
-        # Dipole_Magnet's hand-written override sets a flat {"functional": True,
-        # "reserved_contains": "angle"} json_schema_extra directly, hitting the
-        # early-return branch rather than the in_subset-derived one below.
         field_info = Dipole_Magnet.model_fields["entrance_edge_angle"]
         meta = functional_annotations(field_info)
         assert meta == {"functional": True, "reserved_contains": "angle"}
 
     def test_bend_angle_marker_derived_from_in_subset(self):
-        # The LinkML-generated base instead expresses this via subset
-        # membership (in_subset: [functional_parameters, bend_angle_reference]),
-        # exercising the subset-parsing branch of functional_annotations.
         field_info = _MagneticElementBase.model_fields["entrance_edge_angle"]
         meta = functional_annotations(field_info)
         assert meta == {"functional": True, "reserved_contains": "angle"}
