@@ -24,9 +24,11 @@ def _switch_dict(type_rules: Dict[str, type]) -> Dict[str, str]:
     switch.update(
         {
             "aperture": "Aperture",
+            "bend": "Dipole",
             "hcor": "Horizontal_Corrector",
             "marker": "Marker",
-            "monitor": "Monitor",
+            "monitor": "Diagnostic",
+            "rbend": "Dipole",
             "undulator": "Wiggler",
             "vcor": "Vertical_Corrector",
         }
@@ -64,6 +66,9 @@ class OcelotLatticeImporter(BaseModel):
     magnetic_lattice: Any
     """Ocelot ``MagneticLattice`` instance to import."""
 
+    initial_twiss: Optional[Any] = None
+    """Optional Ocelot ``Twiss`` instance if found in the lattice file."""
+
     laura_elements: Dict = {}
     """Dictionary containing converted element objects"""
 
@@ -80,6 +85,25 @@ class OcelotLatticeImporter(BaseModel):
 
         self.laura_elements = {}
         switch_dict = _switch_dict(ocelot_conversion_rules)
+
+        if self.initial_twiss is not None:
+            twiss_name = getattr(self.initial_twiss, "id", "") or "initial_twiss"
+            self.laura_elements[twiss_name] = LAURA_elements.TwissMatch(
+                name=twiss_name,
+                machine_area=self.machine_area,
+                physical={"s": 0.0, "s_point": "end", "length": 0.0},
+                simulation={
+                    "beta_x": self.initial_twiss.beta_x,
+                    "beta_y": self.initial_twiss.beta_y,
+                    "alpha_x": self.initial_twiss.alpha_x,
+                    "alpha_y": self.initial_twiss.alpha_y,
+                    "eta_x": self.initial_twiss.Dx,
+                    "eta_y": self.initial_twiss.Dy,
+                    "eta_xp": self.initial_twiss.Dxp,
+                    "eta_yp": self.initial_twiss.Dyp,
+                    "from_beam": False,
+                },
+            )
 
         sequence = list(self.magnetic_lattice.sequence)
         numbered_ids = number_repeated_names([elem.id for elem in sequence])
@@ -144,16 +168,26 @@ class OcelotLatticeImporter(BaseModel):
                         ):
                             if "magnetic" not in newobj:
                                 newobj.update({"magnetic": {}})
-                            order = magnetic_orders[newobj["hardware_type"]]
-                            try:
-                                kl_value = (
-                                    getattr(elem.element, f"k{order}") * length
-                                )
-                            except AttributeError:
-                                kl_value = elem.element.angle
+                            if oceparam == "angle":
+                                order, kl_value = 0, elem.element.angle
+                            else:
+                                order = int(oceparam[1:])
+                                kl_value = getattr(elem.element, oceparam) * length
                             newobj["magnetic"].setdefault("multipoles", {})[
                                 f"K{order}L"
                             ] = {"normal": kl_value, "order": order}
+                        if oceparam == "angle" and newobj["hardware_type"] in (
+                            "Horizontal_Corrector",
+                            "Vertical_Corrector",
+                        ):
+                            if "magnetic" not in newobj:
+                                newobj["magnetic"] = {}
+                            key = (
+                                "horizontal_kick"
+                                if newobj["hardware_type"] == "Horizontal_Corrector"
+                                else "vertical_kick"
+                            )
+                            newobj["magnetic"][key] = elem.element.angle
                         if oceparam in model_fields[subk] and hasattr(elem, oceparam):
                             newobj[subk].update({oceparam: getattr(elem, oceparam)})
                         elif oceparam in kwele:

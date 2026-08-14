@@ -576,3 +576,43 @@ def test_environment_variables_are_scaled_across_every_line():
     assert layout.sections["line_a"].elements.elements["qa"].magnetic.KnL(
         1
     ) == pytest.approx(0.2 * 1.5)
+
+
+def test_initial_twiss_is_imported_as_twiss_match():
+    """An ``xtrack.TwissInit`` is the direct counterpart of Ocelot's separate
+    ``Twiss()`` object -- built independently and handed to
+    ``line.twiss(twiss_init=...)``, not part of ``Line``/``element_dict`` at
+    all, so it must be passed in explicitly."""
+    line = xt.Line(
+        elements=[xt.Quadrupole(length=0.5, k1=0.1)],
+        element_names=["q1"],
+    )
+    twiss_init = xt.TwissInit(
+        betx=9.42,
+        bety=22.19,
+        alfx=-0.66,
+        alfy=1.51,
+        dx=0.1,
+        dy=0.2,
+        dpx=0.01,
+        dpy=0.02,
+    )
+
+    importer = XsuiteLatticeImporter(line=line, initial_twiss=twiss_init, name="test")
+    elements = importer.create_laura_element_dictionary()
+
+    assert list(elements)[0] == "initial_twiss"
+    marker = elements["initial_twiss"]
+    assert marker.hardware_type == "TwissMatch"
+    assert marker.physical.s == pytest.approx(0.0)
+    assert marker.physical.length == pytest.approx(0.0)
+    assert marker.simulation.beta_x == pytest.approx(9.42)
+    assert marker.simulation.beta_y == pytest.approx(22.19)
+    assert marker.simulation.alpha_x == pytest.approx(-0.66)
+    assert marker.simulation.alpha_y == pytest.approx(1.51)
+    assert marker.simulation.eta_x == pytest.approx(0.1)
+    assert marker.simulation.eta_y == pytest.approx(0.2)
+    assert marker.simulation.eta_xp == pytest.approx(0.01)
+    assert marker.simulation.eta_yp == pytest.approx(0.02)
+    assert marker.simulation.from_beam is False
+    assert list(elements)[1] == "q1"

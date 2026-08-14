@@ -29,11 +29,11 @@ pytestmark = pytest.mark.skipif(
 @pytest.mark.parametrize(
     "relative_path, expected_elements",
     [
-        ("small_ring/small_ring.bmad", 57),
-        ("Dragt_PSR_small_ring/Dragt_PSR_small_ring.bmad", 35),
-        ("jlab_ep_collider/original_e_ring.bmad", 753),
-        ("jlab_ep_collider/original_p_ring.bmad", 495),
-        ("jlab_fel/bates.bmad", 112),
+        ("small_ring/small_ring.bmad", 58),
+        ("Dragt_PSR_small_ring/Dragt_PSR_small_ring.bmad", 36),
+        ("jlab_ep_collider/original_e_ring.bmad", 754),
+        ("jlab_ep_collider/original_p_ring.bmad", 496),
+        ("jlab_fel/bates.bmad", 113),
     ],
 )
 def test_documentation_lattice_matches_tao_s_positions(relative_path, expected_elements):
@@ -163,6 +163,49 @@ def test_native_taylor_and_sol_quad_import(tmp_path):
     assert sq.magnetic.ks == pytest.approx(
         importer.params[1][branch][sq_index]["BS_FIELD"] * 2
     )
+
+
+def test_beginning_ele_imports_as_twiss_match(tmp_path):
+    """Bmad always computes/propagates Twiss through a lattice starting from
+    the BEGINNING element's values (explicit `beginning[...]` statements
+    here; a ring's own closed periodic solution otherwise) -- the direct
+    counterpart of Ocelot's separate `Twiss()` object and ELEGANT's native
+    TWISS element. It used to be silently dropped alongside Drift/Pipe."""
+    lattice = tmp_path / "twiss.bmad"
+    lattice.write_text(
+        "parameter[particle] = electron\n"
+        "parameter[p0c] = 10e6\n"
+        "parameter[geometry] = open\n"
+        "beginning[beta_a] = 9.42\n"
+        "beginning[alpha_a] = -0.66\n"
+        "beginning[beta_b] = 22.19\n"
+        "beginning[alpha_b] = 1.51\n"
+        "beginning[eta_x] = 0.1\n"
+        "beginning[etap_x] = 0.01\n"
+        "beginning[eta_y] = 0.2\n"
+        "beginning[etap_y] = 0.02\n"
+        "d1: drift, l = 1.0\n"
+        "lat: line = (d1)\n"
+        "use, lat\n"
+    )
+    importer = BmadLatticeImporter(lattice_file=str(lattice), libtao=str(LIBTAO))
+    branch = next(iter(importer.names_numbered[1]))
+    elements = importer.create_laura_element_dictionary(1)[branch]
+
+    twiss = elements["BEGINNING"]
+    assert twiss.hardware_type == "TwissMatch"
+    assert twiss.physical.s == pytest.approx(0.0)
+    assert twiss.physical.length == pytest.approx(0.0)
+    assert twiss.simulation.beta_x == pytest.approx(9.42)
+    assert twiss.simulation.beta_y == pytest.approx(22.19)
+    assert twiss.simulation.alpha_x == pytest.approx(-0.66)
+    assert twiss.simulation.alpha_y == pytest.approx(1.51)
+    assert twiss.simulation.eta_x == pytest.approx(0.1)
+    assert twiss.simulation.eta_y == pytest.approx(0.2)
+    assert twiss.simulation.eta_xp == pytest.approx(0.01)
+    assert twiss.simulation.eta_yp == pytest.approx(0.02)
+    assert twiss.simulation.from_beam is False
+    assert next(iter(elements)) == "BEGINNING"
 
 
 def test_spin_single_resonance_terms_are_preserved():

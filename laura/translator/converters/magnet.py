@@ -1116,7 +1116,7 @@ class SolenoidTranslator(BaseElementTranslator):
             output = (
                 "map3D_B"
                 + '(" '
-                + ccs
+                + self.ccs.name
                 + '", '
                 + ccs_label
                 + ", "

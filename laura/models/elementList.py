@@ -1,5 +1,7 @@
 import logging
+import math
 import os
+from functools import cmp_to_key
 import numpy as np
 from typing import List, Dict, Any, Union, Literal, Optional
 from pydantic import field_validator, BaseModel, ValidationInfo, Field, PositiveInt
@@ -572,9 +574,16 @@ class SectionLattice(BaseLatticeModel):
             return s  # 'start'
 
         # Equal entrance positions can differ by floating-point noise (for
-        # example a zero-length marker immediately before a cavity). Preserve
-        # beamline order for those ties so the marker is not moved to the exit.
-        s_elems_sorted = sorted(s_elems, key=lambda elem: round(_s_start(elem), 12))
+        # example a zero-length marker immediately before a cavity).
+        # math.isclose's relative tolerance scales with magnitude instead of
+        # using one fixed absolute cutoff, so it stays robust.
+        def _compare_s_start(a: object, b: object) -> int:
+            sa, sb = _s_start(a), _s_start(b)
+            if math.isclose(sa, sb, rel_tol=1e-9, abs_tol=1e-9):
+                return 0
+            return -1 if sa < sb else 1
+
+        s_elems_sorted = sorted(s_elems, key=cmp_to_key(_compare_s_start))
 
         current_s = 0.0
         current_pos = np.zeros(3)

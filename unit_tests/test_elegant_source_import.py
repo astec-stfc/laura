@@ -6,6 +6,7 @@ import pytest
 from laura.translator.converters.codes.elegant import ElegantLatticeImporter
 from laura.translator.converters.model import MachineModelTranslator
 from laura.translator.utils.elegant.sdds_classes_APS import SDDS_Params
+import laura.models.element as LAURA_elements
 from laura.models.element import Marker
 from laura.models.elementList import ElementList, SectionLattice
 
@@ -56,6 +57,36 @@ def test_saved_lattice_parser_expands_repeated_elements(tmp_path):
     reader.elegantParams = params
     elements, _ = reader.create_element_dictionary()
     assert elements["K"]["hardware_type"] == "RFDeflectingCavity"
+
+
+def test_twiss_element_imports_beta_alpha_eta_and_from_beam(tmp_path):
+    """Test import of ELEGANT's native TWISS element."""
+    saved = tmp_path / "saved.lte"
+    saved.write_text(
+        "Q: QUAD,L=0.5,K1=2\n"
+        "T: TWISS,BETAX=9.42,ALPHAX=-0.66,BETAY=22.19,ALPHAY=1.51,"
+        "ETAX=0.1,ETAY=0.2,ETAXP=0.01,ETAYP=0.02,FROM_BEAM=0\n"
+        "S: LINE=(T,Q)\n"
+        'USE,"S"\n'
+    )
+
+    params = ElegantLatticeImporter._saved_lattice_params(str(saved))
+    assert params["T"]["ElementType"] == ["TWISS"]
+    reader = SDDS_Params(str(saved))
+    reader.elegantParams = params
+    elements, _ = reader.create_element_dictionary()
+
+    assert elements["T"]["hardware_type"] == "TwissMatch"
+    twiss = LAURA_elements.TwissMatch(**elements["T"])
+    assert twiss.simulation.beta_x == pytest.approx(9.42)
+    assert twiss.simulation.beta_y == pytest.approx(22.19)
+    assert twiss.simulation.alpha_x == pytest.approx(-0.66)
+    assert twiss.simulation.alpha_y == pytest.approx(1.51)
+    assert twiss.simulation.eta_x == pytest.approx(0.1)
+    assert twiss.simulation.eta_y == pytest.approx(0.2)
+    assert twiss.simulation.eta_xp == pytest.approx(0.01)
+    assert twiss.simulation.eta_yp == pytest.approx(0.02)
+    assert twiss.simulation.from_beam is False
 
 
 def test_machine_formatter_does_not_prefix_element_with_comma():

@@ -116,11 +116,13 @@ def _resolve_kind(code: str, lattice: Path, kind: str) -> str:
 
 
 def _load_ocelot_lattice(path: Path, variable: Optional[str]):
-    """Load a ``MagneticLattice`` from an Ocelot lattice *module*.
+    """Load a ``MagneticLattice`` and any initial ``Twiss`` from an Ocelot
+    lattice *module*.
 
     Pass ``--variable`` to name the lattice (or the cell sequence) explicitly;
     otherwise the first ``MagneticLattice`` in the module wins.
     """
+    from ocelot import Twiss
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
 
     spec = importlib.util.spec_from_file_location("laura_ocelot_lattice", path)
@@ -151,9 +153,13 @@ def _load_ocelot_lattice(path: Path, variable: Optional[str]):
                 "name one with --variable."
             )
 
+    twiss = next(
+        (value for value in vars(module).values() if isinstance(value, Twiss)), None
+    )
+
     if isinstance(candidate, MagneticLattice):
-        return candidate
-    return MagneticLattice(candidate)
+        return candidate, twiss
+    return MagneticLattice(candidate), twiss
 
 
 def _madx_strengths(data: dict, length: float) -> Dict[str, float]:
@@ -267,6 +273,23 @@ def _xsuite_strengths(native, native_type: str, length: float) -> Dict[str, floa
     return {}
 
 
+def _ocelot_strengths(element, native_type: str, length: float) -> Dict[str, float]:
+    """Integrated strengths an Ocelot element's own attributes imply."""
+    expected = {}
+    if native_type in {"SBend", "RBend", "Bend"}:
+        expected["K0L"] = float(getattr(element, "angle", 0.0) or 0.0)
+    for order in (1, 2, 3):
+        if native_type in {"SBend", "RBend", "Bend", "Quadrupole", "Sextupole", "Octupole"}:
+            k = getattr(element, f"k{order}", None)
+            if k:
+                expected[f"K{order}L"] = float(k) * length
+    if native_type == "Hcor":
+        expected["hkick"] = float(getattr(element, "angle", 0.0) or 0.0)
+    if native_type == "Vcor":
+        expected["vkick"] = float(getattr(element, "angle", 0.0) or 0.0)
+    return expected
+
+
 def load(args) -> Tuple[object, List[NativeElement], object, Optional[Dict[str, dict]]]:
     """Build the importer, read the native lattice, and resolve a layout.
 
@@ -318,19 +341,31 @@ def load(args) -> Tuple[object, List[NativeElement], object, Optional[Dict[str, 
             **{f"{'twiss' if kind == 'twiss' else 'source'}_file": str(lattice)},
             sequence=args.sequence,
         )
-        importer.create_element_dictionary()
-        native, strengths = [], {}
-        for name, data in importer.madx_data.items():
-            length = float(data.get("l", 0.0) or 0.0)
-            native.append(
-                NativeElement(
-                    name,
-                    str(data.get("hardware_type", "")),
-                    length,
-                    float(data.get("s", 0.0) or 0.0),
-                )
+        madx = None
+        if kind == "twiss":
+            from laura.translator.utils.madx.TFSFile import TFSFile
+
+            tfs = TFSFile()
+            tfs.read_file(str(lattice))
+            raw_rows = tfs.rows()
+        else:
+            madx = importer._load_madx()
+            raw_rows = importer._source_rows(madx)
+        native = [
+            NativeElement(
+                str(row["name"]),
+                str(row["keyword"]),
+                float(row.get("l", 0.0) or 0.0),
+                float(row.get("s", 0.0) or 0.0),
             )
-            strengths[name] = _madx_strengths(data, length)
+            for row in raw_rows
+        ]
+
+        importer.create_element_dictionary(madx)
+        strengths = {
+            name: _madx_strengths(data, float(data.get("l", 0.0) or 0.0))
+            for name, data in importer.madx_data.items()
+        }
         return importer, native, importer.create_layout(), strengths
 
     if args.code == "bmad":
@@ -364,21 +399,25 @@ def load(args) -> Tuple[object, List[NativeElement], object, Optional[Dict[str, 
     if args.code == "ocelot":
         from laura.translator.converters.codes.ocelot import OcelotLatticeImporter
 
-        magnetic_lattice = _load_ocelot_lattice(lattice, args.variable)
+        magnetic_lattice, twiss = _load_ocelot_lattice(lattice, args.variable)
         importer = OcelotLatticeImporter(
-            magnetic_lattice=magnetic_lattice, name=lattice.stem
+            magnetic_lattice=magnetic_lattice, initial_twiss=twiss, name=lattice.stem
         )
         sequence = list(magnetic_lattice.sequence)
-        native, cumulative = [], 0.0
+        native, strengths, cumulative = [], {}, 0.0
+        if twiss is not None:
+            native.append(
+                NativeElement(getattr(twiss, "id", "") or "initial_twiss", "Twiss", 0.0, 0.0)
+            )
         for element, name in zip(
             sequence, number_repeated_names([element.id for element in sequence])
         ):
             length = float(getattr(element, "l", 0.0) or 0.0)
             cumulative += length
-            native.append(
-                NativeElement(name, type(element).__name__, length, cumulative)
-            )
-        return importer, native, importer.create_layout(), None
+            native_type = type(element).__name__
+            native.append(NativeElement(name, native_type, length, cumulative))
+            strengths[name] = _ocelot_strengths(element.element, native_type, length)
+        return importer, native, importer.create_layout(), strengths
 
     if args.code == "xsuite":
         from laura.translator.converters.codes.xsuite import XsuiteLatticeImporter

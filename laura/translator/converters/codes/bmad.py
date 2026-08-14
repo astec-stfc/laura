@@ -25,7 +25,7 @@ import re
 import tempfile
 from pathlib import Path
 
-_SILENTLY_SKIPPED_TYPES = ("Drift", "Pipe", "Beginning_Ele")
+_SILENTLY_SKIPPED_TYPES = ("Drift", "Pipe")
 
 _CAVITY_TYPES = ("Lcavity", "RFCavity")
 
@@ -327,6 +327,8 @@ class BmadLatticeImporter(BaseModel):
                             attributes["_SPIN_TAYLOR"] = tao.ele_spin_taylor(
                                 element_id
                             )
+                        elif etype == "Beginning_Ele":
+                            attributes["_TWISS"] = tao.ele_twiss(element_id)
                         params.append(attributes)
                     self.names[self.n_universes].update({b: names})
                     self.names_numbered[self.n_universes].update({b: names_numbered})
@@ -606,6 +608,29 @@ class BmadLatticeImporter(BaseModel):
                     self.laura_elems[universe][b].update(
                         {nam: getattr(LAURA_elements, markelem["hardware_type"])(**markelem)}
                     )
+                elif etype == "Beginning_Ele":
+                    twiss = parameters.get("_TWISS", {})
+                    if twiss:
+                        markelem = {
+                            "physical": dict(phys_common),
+                            "name": nam,
+                            "hardware_type": "TwissMatch",
+                            "machine_area": "test",
+                            "simulation": {
+                                "beta_x": twiss["beta_a"],
+                                "beta_y": twiss["beta_b"],
+                                "alpha_x": twiss["alpha_a"],
+                                "alpha_y": twiss["alpha_b"],
+                                "eta_x": twiss["eta_x"],
+                                "eta_y": twiss["eta_y"],
+                                "eta_xp": twiss["etap_x"],
+                                "eta_yp": twiss["etap_y"],
+                                "from_beam": False,
+                            },
+                        }
+                        self.laura_elems[universe][b].update(
+                            {nam: LAURA_elements.TwissMatch(**markelem)}
+                        )
                 elif etype not in _SILENTLY_SKIPPED_TYPES:
                     warn(
                         f"Could not parse Bmad element type {etype!r} for "

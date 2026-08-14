@@ -110,6 +110,9 @@ class XsuiteLatticeImporter(BaseModel):
     line: Any = None
     """Xtrack line. Xtrack is only required when the importer is used."""
 
+    initial_twiss: Optional[Any] = None
+    """Optional ``xtrack.TwissInit`` instance."""
+
     source_file: Optional[str] = None
     """Xtrack ``Line``/``Environment`` JSON file, used instead of ``line``."""
 
@@ -580,6 +583,35 @@ class XsuiteLatticeImporter(BaseModel):
         table = self.line.get_table()
 
         self.elements = {}
+        if self.initial_twiss is not None:
+            optics = getattr(self.initial_twiss, "_temp_optics_data", None)
+            if optics is None:
+                warn(
+                    "initial_twiss has no readable optics data (already "
+                    "consumed by line.twiss(), or built via W_matrix instead "
+                    "of betx/alfx/...); skipping the TwissMatch marker."
+                )
+            else:
+                twiss_name = (
+                    getattr(self.initial_twiss, "element_name", None)
+                    or "initial_twiss"
+                )
+                self.elements[twiss_name] = LAURA_elements.TwissMatch(
+                    name=twiss_name,
+                    machine_area=self.machine_area,
+                    physical={"s": 0.0, "s_point": "end", "length": 0.0},
+                    simulation={
+                        "beta_x": optics["betx"],
+                        "beta_y": optics["bety"],
+                        "alpha_x": optics["alfx"],
+                        "alpha_y": optics["alfy"],
+                        "eta_x": optics["dx"],
+                        "eta_y": optics["dy"],
+                        "eta_xp": optics["dpx"],
+                        "eta_yp": optics["dpy"],
+                        "from_beam": False,
+                    },
+                )
         stored_types = getattr(self.line, "metadata", {}).get(
             "laura_element_types", {}
         )

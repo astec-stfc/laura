@@ -180,7 +180,7 @@ class SDDS_Params:
                         if param in ["k1", "k2", "k3", "angle", "l"]:
                             sfconvert[k].update({param: v["ParameterValue"][i]})
                         if param in model_fields[subk]:
-                            if val:
+                            if val is not None:
                                 sfconvert[k][subk].update({param: val})
                         elif param in kwele:
                             if kwele[param] in model_fields[subk]:

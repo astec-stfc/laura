@@ -20,12 +20,15 @@ from ...utils.functions import (
     number_repeated_names,
 )
 from ...utils.madx.TFSFile import TFSFile
+from . import magnetic_orders
 from .. import type_conversion_rules_Madx, keyword_conversion_rules_madx
 from ....Exporters.YAML import export_machine_combined_file, PositionMode
 
 _SILENTLY_SKIPPED_TYPES = ("drift",)
 
 _RAW_KEYS = ("k0", "k1", "k2", "k3", "angle", "l", "kick", "hkick", "vkick", "ks")
+
+_ORDER_TYPES = {order: name for name, order in magnetic_orders.items()}
 
 
 def _read_lattice_text(path: Path, _seen: Optional[set] = None) -> str:
@@ -62,6 +65,13 @@ def _switch_dict() -> Dict[str, str]:
             "monitor": "Beam_Position_Monitor",
             "marker": "Marker",
             "rcollimator": "Collimator",
+            "rbend": "Dipole",
+            "hmonitor": "Diagnostic",
+            "vmonitor": "Diagnostic",
+            "instrument": "Diagnostic",
+            "collimator": "Collimator",
+            "tkicker": "Combined_Corrector",
+            "placeholder": "Marker",
         }
     )
     return switch
@@ -153,6 +163,7 @@ class MadxLatticeImporter(BaseModel):
     def _rows_for_sequence(self, madx, sequence: str) -> list:
         """Extract element rows for one already-loaded MAD-X sequence."""
         self.lattice_name = sequence
+        madx.input(f"seqedit, sequence={sequence}; flatten; endedit;")
 
         self.deferred_parameters = {}
         rows = []
@@ -289,9 +300,62 @@ class MadxLatticeImporter(BaseModel):
             }
         )
         self.madx_data = {}
+        start_names = {
+            f"{(self.lattice_name or '').lower()}$start",
+            f"{(self.lattice_name or '').lower()}_start",
+        }
         for row in rows:
             name = str(row["name"])
             elemtype = str(row["keyword"]).lower()
+            if name.lower() in start_names and elemtype == "marker" and "betx" in row:
+                self.madx_data[name] = {
+                    "hardware_type": "TwissMatch",
+                    "name": name,
+                    "machine_area": "test",
+                    "l": 0.0,
+                    "s": 0.0,
+                    "simulation": {
+                        "beta_x": row["betx"],
+                        "beta_y": row["bety"],
+                        "alpha_x": row["alfx"],
+                        "alpha_y": row["alfy"],
+                        "eta_x": row.get("dx", 0.0),
+                        "eta_y": row.get("dy", 0.0),
+                        "eta_xp": row.get("dpx", 0.0),
+                        "eta_yp": row.get("dpy", 0.0),
+                        "from_beam": False,
+                    },
+                }
+                continue
+            if elemtype == "multipole":
+                knl = row.get("knl") or []
+                ksl = row.get("ksl") or []
+                orders = [
+                    order
+                    for values in (knl, ksl)
+                    for order, value in enumerate(values)
+                    if value
+                ]
+                sftype = _ORDER_TYPES.get(max(orders), "Magnet") if orders else "Magnet"
+                self.madx_data[name] = {
+                    "hardware_type": sftype,
+                    "name": name,
+                    "machine_area": "test",
+                    "l": 0.0,
+                    "s": row.get("s", 0.0),
+                    "magnetic": {
+                        "multipoles": {
+                            f"K{n}L": {
+                                "order": n,
+                                "normal": knl[n] if n < len(knl) else 0.0,
+                                "skew": ksl[n] if n < len(ksl) else 0.0,
+                            }
+                            for n in range(max(len(knl), len(ksl)))
+                            if (n < len(knl) and knl[n]) or (n < len(ksl) and ksl[n])
+                        }
+                    },
+                }
+                continue
             if elemtype in _SILENTLY_SKIPPED_TYPES:
                 continue
             if elemtype not in switch_dict:
@@ -332,7 +396,7 @@ class MadxLatticeImporter(BaseModel):
                     entry["magnetic"]["gap"] = 2 * float(val)
                 if param in _RAW_KEYS:
                     entry[param] = val
-                if val in (None, "", 0):
+                if val in (None, ""):
                     continue
                 for subk in model_fields:
                     if not isinstance(model_fields[subk], dict):
@@ -372,7 +436,7 @@ class MadxLatticeImporter(BaseModel):
 
         if "angle" in v:
             v["k0"] = v["angle"]
-            if "physical" in v:
+            if "physical" in v and not isinstance(v["angle"], str):
                 v["physical"]["physical_angle"] = v["angle"]
 
         if "magnetic" in v:
