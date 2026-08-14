@@ -284,6 +284,28 @@ class TestXsuite:
         line.vars["kq"] = 0.9
         assert line["Q1"].k1 == pytest.approx(0.3 / 0.5)
 
+    def test_exported_elements_keep_their_length(self):
+        """Regression test for a real bug found doing a full MAD-X -> ELEGANT
+        -> Ocelot -> Xsuite -> MAD-X round trip on a real LEIR lattice:
+        keyword_conversion_rules_Xsuite.yaml's `general` section mapped
+        LAURA's `length` to the native keyword `l` -- correct for MAD-X/
+        ELEGANT, but xtrack classes use `length`, not `l` ('l' is not even
+        an attribute on them). `BaseElementTranslator.to_xsuite()`'s generic
+        dispatch only writes a property when the converted keyword names a
+        real attribute on the target xtrack class, so `length` silently
+        never made it into `properties` for any element relying on the
+        generic path (every magnet not overriding to_xsuite itself) --
+        `component(**properties)` then fell back to xtrack's own default of
+        0. Every thick element built this way was silently zero-length
+        after export, which only surfaced 4 hops later as a MAD-X `SEQUENCE`
+        with `l = 0.0` and hundreds of real elements placed past its
+        declared length -- a fatal MAD-X error, nothing pointing back to the
+        actual cause."""
+        line = self._line(self._magnets(), {"kq": 0.3, "bend1": 0.1, "Vcav": 5e6})
+        assert line["Q1"].length == pytest.approx(0.5)
+        assert line["D1"].length == pytest.approx(0.5)
+        assert line["C1"].length == pytest.approx(1.0)
+
 
 class TestSolenoid:
     def test_solenoid_ks_symbolic_and_resolved(self, recwarn):

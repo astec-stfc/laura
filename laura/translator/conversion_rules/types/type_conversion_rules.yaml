@@ -149,6 +149,7 @@ madx:
   Scatter: marker
   APContour: marker
   Watch_Point: monitor
+  Diagnostic: monitor
   FEL_Modulator: drift
   MatrixTransform: matrix
   CrabCavity: crabcavity
@@ -197,8 +198,6 @@ aliases:
     Collimator:
       - rcol
     Combined_Corrector:
-      - vkick
-      - hkick
       - kicker
     Quadrupole:
       - quad

@@ -3,7 +3,10 @@ import shutil
 
 import pytest
 
-from laura.translator.converters.codes.elegant import ElegantLatticeImporter
+from laura.translator.converters.codes.elegant import (
+    ElegantLatticeImporter,
+    _expand_line_member,
+)
 from laura.translator.converters.model import MachineModelTranslator
 from laura.translator.utils.elegant.sdds_classes_APS import SDDS_Params
 import laura.models.element as LAURA_elements
@@ -38,6 +41,36 @@ def test_source_import_builds_sections_and_retains_store(tmp_path):
             if element.hardware_type == "Quadrupole"
         )
         assert quadrupole.magnetic.multipoles.K1L.normal == "quad_k1l"
+
+
+@pytest.mark.skipif(
+    os.environ.get("LAURA_RUN_ELEGANT_TESTS") != "1" or shutil.which("elegant") is None,
+    reason="set LAURA_RUN_ELEGANT_TESTS=1 to run external Elegant tests",
+)
+def test_source_import_expands_root_line_shorthand(tmp_path):
+    # A root LINE built purely from N*/- shorthand on a single sub-line
+    # must stay one section, not be split into per-name "sections" the way
+    # `machine: line=(section_a,section_b)` is above -- splitting on the
+    # bare sub-line name would silently drop the repeat count/reversal.
+    source = tmp_path / "shorthand.lte"
+    source.write_text(
+        "Q1: QUAD,L=0.5,K1=2\n"
+        "D1: DRIF,L=1.0\n"
+        "CELL: LINE=(Q1,D1)\n"
+        "RING: LINE=(3*CELL,-CELL)\n"
+    )
+
+    importer = ElegantLatticeImporter(source_file=str(source))
+    layout = importer.create_layout(name="RING")
+
+    section = next(iter(layout.sections.values()))
+    types = [
+        section.elements.elements[name].hardware_type for name in section.order
+    ]
+    assert types == [
+        "Quadrupole", "Drift", "Quadrupole", "Drift",
+        "Quadrupole", "Drift", "Drift", "Quadrupole",
+    ]
 
 
 def test_saved_lattice_parser_expands_repeated_elements(tmp_path):
@@ -185,3 +218,15 @@ def test_create_machine_model_renames_colliding_elements_at_different_placements
     assert model.sections["layout_b"].order[0] == "shared__layout_b"
     assert model.elements["shared"].physical.middle.z == pytest.approx(0)
     assert model.elements["shared__layout_b"].physical.middle.z == pytest.approx(10)
+
+
+def test_expand_line_member_handles_repeat_count_and_reversal_shorthand():
+    # Ground truth from a real `elegant` run with `output_seq=2` on
+    # `CELL: LINE=(Q1,D1)` / `RING: LINE=(3*CELL,-CELL)`.
+    lookup = {"cell": ("CELL", "Q1,D1")}
+    sequence = [
+        element
+        for member in "3*CELL,-CELL".split(",")
+        for element in _expand_line_member(member, lookup)
+    ]
+    assert sequence == ["Q1", "D1", "Q1", "D1", "Q1", "D1", "D1", "Q1"]

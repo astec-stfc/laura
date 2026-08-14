@@ -563,18 +563,14 @@ class MadxLatticeImporter(BaseModel):
         )
 
     def create_machine_model(self, min_section_length: int = 5) -> MachineModel:
-        """Build a model with one layout per MAD-X sequence.
+        """Build a model with one layout per top-level MAD-X sequence.
 
         Only usable with ``source_file`` -- a single ``twiss_file`` table
         only ever describes one already-selected sequence, so that case
         falls back to a single-layout model wrapping :meth:`create_layout`.
-        Each sequence becomes its own layout with a single section spanning
-        it. Sequences importing fewer than ``min_section_length`` elements
-        are omitted, and elements with the same name and placement are
-        shared between layouts. When MAD-X gives the same name a different
-        position, orientation, or arc-length in another sequence, a
-        sequence-specific ``name__sequence`` copy is created because
-        :class:`MachineModel` stores one placement per name.
+        Sequence-specific ``name__sequence`` copies are is created
+        for repeated elements because :class:`MachineModel`
+        stores one placement per name.
         """
         if min_section_length < 1:
             raise ValueError("min_section_length must be at least 1.")
@@ -603,6 +599,17 @@ class MadxLatticeImporter(BaseModel):
         sequences = list(madx.sequence.keys())
         if not sequences:
             raise ValueError(f"MAD-X source {self.source_file!r} defines no sequences.")
+
+        sequence_names = {name.lower() for name in sequences}
+        referenced = {
+            element.name.lower()
+            for sequence in sequences
+            for element in madx.sequence[sequence].elements
+            if element.name.lower() in sequence_names
+            and element.name.lower() != sequence.lower()
+        }
+        roots = [name for name in sequences if name.lower() not in referenced]
+        sequences = roots or sequences
 
         elements = {}
         section_definitions = {}

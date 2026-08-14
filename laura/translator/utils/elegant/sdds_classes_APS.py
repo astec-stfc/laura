@@ -180,7 +180,9 @@ class SDDS_Params:
                         if param in ["k1", "k2", "k3", "angle", "l"]:
                             sfconvert[k].update({param: v["ParameterValue"][i]})
                         if param in model_fields[subk]:
-                            if val is not None:
+                            if val is not None and not (
+                                param in ("n_kicks", "n_slices") and val == 0
+                            ):
                                 sfconvert[k][subk].update({param: val})
                         elif param in kwele:
                             if kwele[param] in model_fields[subk]:
@@ -189,6 +191,9 @@ class SDDS_Params:
                                         model_fields[subk][kwele[param]], str
                                     )
                                     or model_fields[subk][kwele[param]]
+                                ) and not (
+                                    kwele[param] in ("n_kicks", "n_slices")
+                                    and val == 0
                                 ):
                                     sfconvert[k][subk].update({kwele[param]: val})
                 if "file" in param and v["ParameterValueString"][i]:

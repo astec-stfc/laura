@@ -28,6 +28,29 @@ elegant_unsupported = [
     "CrabCavity",
 ]
 
+
+_LINE_MEMBER_RE = re.compile(r"^\s*(-)?\s*(?:(\d+)\s*\*\s*)?(-)?\s*(.+?)\s*$")
+
+
+def _expand_line_member(member: str, lookup: Dict[str, tuple]) -> list:
+    """Recursively expand one ``LINE`` member."""
+    lead_neg, count_str, mid_neg, base = _LINE_MEMBER_RE.match(member.strip()).groups()
+    base = base.strip('"')
+    reverse = bool(lead_neg) or bool(mid_neg)
+    count = int(count_str) if count_str else 1
+    found = lookup.get(base.lower())
+    if not found:
+        result = [base]
+    else:
+        result = [
+            element
+            for sub_member in found[1].split(",")
+            for element in _expand_line_member(sub_member, lookup)
+        ]
+    if reverse:
+        result = list(reversed(result))
+    return result * count
+
 class ElegantLatticeImporter(BaseModel):
 
     params_file: Optional[str] = None
@@ -104,17 +127,7 @@ class ElegantLatticeImporter(BaseModel):
         root = use.group(1) if use else next(reversed(lines))
         lookup = {name.lower(): (name, body) for name, body in lines.items()}
 
-        def expand(name: str) -> list[str]:
-            found = lookup.get(name.lower())
-            if not found:
-                return [name]
-            return [
-                element
-                for member in found[1].split(",")
-                for element in expand(member.strip().strip('"'))
-            ]
-
-        sequence = expand(root)
+        sequence = _expand_line_member(root, lookup)
         result = {}
         for name, output_name in zip(sequence, number_repeated_names(sequence)):
             key = name.lower()
@@ -195,12 +208,14 @@ class ElegantLatticeImporter(BaseModel):
             beamlines = roots or beamlines
         self._source_roots = beamlines.copy()
         if len(beamlines) == 1:
+            raw_members = [member.strip() for member in line_bodies[beamlines[0]].split(",")]
             members = [
-                re.sub(r"^(?:\d+\*)?-?", "", member.strip()).strip().strip('"')
-                for member in line_bodies[beamlines[0]].split(",")
+                re.sub(r"^(?:\d+\*)?-?", "", member).strip().strip('"')
+                for member in raw_members
             ]
             lookup = {name.lower(): name for name in line_bodies}
-            if members and all(member.lower() in lookup for member in members):
+            undecorated = not any(re.match(r"^\d+\s*\*|^-", member) for member in raw_members)
+            if undecorated and members and all(member.lower() in lookup for member in members):
                 self.lattice_name = beamlines[0]
                 beamlines = list(
                     dict.fromkeys(lookup[member.lower()] for member in members)
@@ -215,19 +230,23 @@ class ElegantLatticeImporter(BaseModel):
             root = directory / name
             command = directory / f"{name}.ele"
             saved = directory / f"{name}.lte"
-            command.write_text(
-                "&run_setup\n"
-                f' lattice = "{Path(self.source_file).resolve()}",\n'
-                f' use_beamline = "{name}",\n'
-                f' rootname = "{root}",\n'
-                " p_central_mev = 100,\n"
-                "&end\n"
-                "&save_lattice\n"
-                f' filename = "{saved}",\n'
-                " output_seq = 2,\n"
-                " suppress_defaults = 0,\n"
-                "&end\n"
-            )
+
+            def _write_command(output_seq: int) -> None:
+                command.write_text(
+                    "&run_setup\n"
+                    f' lattice = "{Path(self.source_file).resolve()}",\n'
+                    f' use_beamline = "{name}",\n'
+                    f' rootname = "{root}",\n'
+                    " p_central_mev = 100,\n"
+                    "&end\n"
+                    "&save_lattice\n"
+                    f' filename = "{saved}",\n'
+                    f" output_seq = {output_seq},\n"
+                    " suppress_defaults = 0,\n"
+                    "&end\n"
+                )
+
+            _write_command(2)
             try:
                 subprocess.run(
                     ["elegant", str(command)],
@@ -241,9 +260,20 @@ class ElegantLatticeImporter(BaseModel):
                     "The elegant executable is required for ELEGANT source import."
                 ) from exc
             except subprocess.CalledProcessError as exc:
-                raise ValueError(
-                    f"ELEGANT could not load beamline {name!r}: {exc.stderr or exc.stdout}"
-                ) from exc
+                _write_command(0)
+                try:
+                    subprocess.run(
+                        ["elegant", str(command)],
+                        cwd=Path(self.source_file).resolve().parent,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                except subprocess.CalledProcessError as exc2:
+                    raise ValueError(
+                        f"ELEGANT could not load beamline {name!r}: "
+                        f"{exc2.stderr or exc2.stdout}"
+                    ) from exc2
             self._source_outputs[name] = str(saved)
 
     def _select_source_output(self, name: str) -> None:
