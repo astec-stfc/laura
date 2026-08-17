@@ -99,12 +99,6 @@ class LAURA(MachineModel):
             elif os.path.isdir(os.path.abspath(os.path.dirname(__file__) + "/" + v)):
                 return os.path.abspath(os.path.dirname(__file__) + "/" + v)
             else:
-                # Not resolvable relative to the cwd or the laura package;
-                # defer to model_post_init, which resolves the path relative
-                # to master_lattice (the environment-independent anchor the
-                # framework always supplies). Raising here would break any
-                # environment where laura is not installed beside the lattice
-                # files (e.g. laura in site-packages during testing).
                 return v
         else:
             return v
@@ -175,9 +169,6 @@ class LAURA(MachineModel):
         for name in elements:
             elem = self.elements[name]
             if elem.is_subelement():
-                # Co-located with another element (e.g. a solenoid wrapped
-                # around a cavity) -- excluded from s/drift calculations,
-                # matching MachineLayout.createDrifts in elementList.py.
                 continue
             originalelements[name] = elem
             pos = elem.physical.start.array
@@ -258,13 +249,6 @@ class LAURA(MachineModel):
             s_pos += l
             if not drift:
                 elem_s[elem] = round(s_pos, 6)
-                # A combined corrector is placed as a single physical element,
-                # but get_horizontal_correctors()/get_vertical_correctors()
-                # hand back the names of its individual H/V sub-elements
-                # (separate control PVs at the same location) instead of the
-                # combined corrector's own name. Those sub-names never appear
-                # in the path's element list, so give them the parent's
-                # s-position too.
                 original = self.elements.get(elem)
                 for sub_attr in ("Horizontal_Corrector", "Vertical_Corrector"):
                     sub_name = getattr(original, sub_attr, None)

@@ -72,8 +72,6 @@ class TestResolveLatticePackage:
             LAURA(lattice=NotALattice())
 
     def test_non_dict_input_passes_through(self):
-        # model_validate() may be called with an existing model instance rather
-        # than a dict; _resolve_lattice_package must pass it through unchanged.
         lm = LAURA(lattice=self._stub_lattice())
         revalidated = LAURA.model_validate(lm)
         assert "M1" in revalidated.elements
@@ -316,10 +314,6 @@ class TestRFAndVacuumGetters:
         assert "VA1" in full_machine.all_vacuum_components
 
     def test_get_shutters_returns_list(self, full_machine):
-        # Shutter's hardware_class is "Shutter", not "Vacuum" -- get_shutters()
-        # filters on element_class="vacuum", so no current element type matches.
-        # Exercised here for coverage of the accessor itself, not as a claim
-        # about which elements it returns.
         assert isinstance(full_machine.get_shutters(), list)
 
     def test_all_shutters_returns_set(self, full_machine):
