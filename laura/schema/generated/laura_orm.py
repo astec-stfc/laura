@@ -392,7 +392,7 @@ class ApertureElement(Base):
     number_of_elements = Column(Integer())
     horizontal_size = Column(Float())
     vertical_size = Column(Float())
-    shape = Column(Enum('circular', 'rectangular', 'elliptical', name='ApertureShapeEnum'))
+    shape = Column(Enum('circular', 'rectangular', 'elliptical', 'scraper', name='ApertureShapeEnum'))
     radius = Column(Float())
     negative_extent = Column(Float())
     positive_extent = Column(Float())

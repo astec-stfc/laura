@@ -172,6 +172,7 @@ bmad:
   CombinedSolenoidQuadrupole: sol_quad
   Drift: drift
   RFCavity: rfcavity
+  RFDeflectingCavity: crab_cavity
   Horizontal_Corrector: hkicker
   Vertical_Corrector: vkicker
   Combined_Corrector: kicker

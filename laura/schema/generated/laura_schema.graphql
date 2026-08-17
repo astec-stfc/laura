@@ -5,6 +5,7 @@ enum ApertureShapeEnum
     circular
     rectangular
     elliptical
+    scraper
   }
 
 enum BendingPlaneEnum

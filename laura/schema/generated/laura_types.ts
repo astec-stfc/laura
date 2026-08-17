@@ -127,6 +127,8 @@ export enum ApertureShapeEnum {
     circular = "circular",
     rectangular = "rectangular",
     elliptical = "elliptical",
+    /** Scraper jaws rather than a fixed pipe cross-section.  */
+    scraper = "scraper",
 };
 /**
 * Bending plane enum.

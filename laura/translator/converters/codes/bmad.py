@@ -27,7 +27,7 @@ from pathlib import Path
 
 _SILENTLY_SKIPPED_TYPES = ("Drift", "Pipe")
 
-_CAVITY_TYPES = ("Lcavity", "RFCavity")
+_CAVITY_TYPES = ("Lcavity", "RFCavity", "Crab_Cavity")
 
 _COLLIMATOR_TYPES = ("ECollimator", "RCollimator")
 
@@ -47,6 +47,22 @@ def _switch_dict() -> Dict[str, str]:
         }
     )
     return switch
+
+
+def _floor_to_physical(floor: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
+    """
+    Convert a Tao ``ele_floor`` record to LAURA ``datum``/``global_rotation``.
+    Bmad's ``theta`` (vertical) corresponds to LAURA's ``psi``, so
+    these are switched over.
+    """
+    reference = floor.get("Reference")
+    if reference is None or len(reference) < 6:
+        return {}
+    x, y, z, theta, phi, psi = (float(v) for v in reference[:6])
+    return {
+        "datum": {"x": x, "y": y, "z": z},
+        "global_rotation": {"phi": phi, "psi": theta, "theta": psi},
+    }
 
 
 def _native_keyword(hardware_type: str, laura_field: str) -> str:
@@ -329,6 +345,7 @@ class BmadLatticeImporter(BaseModel):
                             )
                         elif etype == "Beginning_Ele":
                             attributes["_TWISS"] = tao.ele_twiss(element_id)
+                            attributes["_FLOOR"] = tao.ele_floor(element_id)
                         params.append(attributes)
                     self.names[self.n_universes].update({b: names})
                     self.names_numbered[self.n_universes].update({b: names_numbered})
@@ -611,8 +628,12 @@ class BmadLatticeImporter(BaseModel):
                 elif etype == "Beginning_Ele":
                     twiss = parameters.get("_TWISS", {})
                     if twiss:
+                        physical = dict(phys_common)
+                        physical.update(
+                            _floor_to_physical(parameters.get("_FLOOR", {}))
+                        )
                         markelem = {
-                            "physical": dict(phys_common),
+                            "physical": physical,
                             "name": nam,
                             "hardware_type": "TwissMatch",
                             "machine_area": "test",

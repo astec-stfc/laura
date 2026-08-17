@@ -299,6 +299,10 @@ class ApertureShapeEnum(str, Enum):
     circular = "circular"
     rectangular = "rectangular"
     elliptical = "elliptical"
+    scraper = "scraper"
+    """
+    Scraper jaws rather than a fixed pipe cross-section. 
+    """
 
 
 class BendingPlaneEnum(str, Enum):

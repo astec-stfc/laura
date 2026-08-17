@@ -613,7 +613,8 @@
       "enum": [
         "circular",
         "rectangular",
-        "elliptical"
+        "elliptical",
+        "scraper"
       ],
       "title": "ApertureShapeEnum",
       "type": "string"

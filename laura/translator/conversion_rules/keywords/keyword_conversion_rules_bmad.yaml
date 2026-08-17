@@ -27,6 +27,10 @@ rfcavity:
   field_amplitude: voltage
   n_cells: n_cell
   structure_type: cavity_type
+rfdeflectingcavity:
+  phase: phi0
+  frequency: rf_frequency
+  field_amplitude: voltage
 wiggler:
   peak_magnetic_field: b_max
   period: l_period
