@@ -131,6 +131,16 @@ export enum ApertureShapeEnum {
     scraper = "scraper",
 };
 /**
+* Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.
+*/
+export enum LatticeGeometryEnum {
+    
+    /** Single-pass beamline such as a linac or transfer line. Twiss parameters propagate from a specified starting condition. */
+    open = "open",
+    /** Recirculating machine such as a storage ring, for which closed orbits and periodic Twiss parameters are computed. */
+    closed = "closed",
+};
+/**
 * Bending plane enum.
 */
 export enum BendingPlaneEnum {
@@ -557,6 +567,10 @@ export interface SectionLattice {
     name: string,
     /** Name of the master lattice this section belongs to. */
     master_lattice?: string,
+    /** Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent. */
+    geometry?: string,
+    /** Reference total energy of the design particle [eV]. */
+    reference_energy?: number,
     /** Ordered list of element names in this section. */
     elements?: string[],
 }
@@ -570,6 +584,8 @@ export interface MachineLayout {
     name: string,
     /** Name of the master lattice this layout belongs to. */
     master_lattice?: string,
+    /** Design particle species for this layout, overriding the machine-wide value. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles. */
+    particle?: string,
     /** Ordered list of section names. */
     sections?: string[],
 }
@@ -579,6 +595,8 @@ export interface MachineLayout {
  * Top-level container for a complete accelerator lattice: elements, sections, layouts, and named lattice configurations.
  */
 export interface MachineModel {
+    /** Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles. */
+    particle?: string,
     /** All elements in the machine, keyed by name. */
     elements?: AcceleratorElementName[],
     /** All named beamline sections. */

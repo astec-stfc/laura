@@ -6832,6 +6832,15 @@
       "title": "LaserProfileTypeEnum",
       "type": "string"
     },
+    "LatticeGeometryEnum": {
+      "description": "Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.",
+      "enum": [
+        "open",
+        "closed"
+      ],
+      "title": "LatticeGeometryEnum",
+      "type": "string"
+    },
     "Lighting": {
       "additionalProperties": false,
       "description": "Experimental-hall lighting element.",
@@ -7309,6 +7318,13 @@
           "description": "Unique layout name.",
           "type": "string"
         },
+        "particle": {
+          "description": "Design particle species for this layout, overriding the machine-wide value. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "sections": {
           "description": "Ordered list of section names.",
           "items": {
@@ -7347,6 +7363,13 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "particle": {
+          "description": "Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -12852,6 +12875,10 @@
             "null"
           ]
         },
+        "geometry": {
+          "$ref": "#/$defs/LatticeGeometryEnum",
+          "description": "Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent."
+        },
         "master_lattice": {
           "description": "Name of the master lattice this section belongs to.",
           "type": [
@@ -12862,6 +12889,14 @@
         "name": {
           "description": "Unique section name.",
           "type": "string"
+        },
+        "reference_energy": {
+          "description": "Reference total energy of the design particle [eV].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         }
       },
       "required": [

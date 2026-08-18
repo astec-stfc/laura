@@ -23,6 +23,8 @@ URI: [laura:MachineLayout](https://w3id.org/laura/MachineLayout)
         
       MachineLayout : name
         
+      MachineLayout : particle
+        
       MachineLayout : sections
         
       
@@ -46,6 +48,7 @@ URI: [laura:MachineLayout](https://w3id.org/laura/MachineLayout)
 | ---  | --- | --- | --- |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique layout name | direct |
 | [master_lattice](master_lattice.md) | 0..1 <br/> [String](String.md) | Name of the master lattice this layout belongs to | direct |
+| [particle](particle.md) | 0..1 <br/> [String](String.md) | Design particle species for this layout, overriding the machine-wide value | direct |
 | [sections](sections.md) | * <br/> [String](String.md) | Ordered list of section names | direct |
 
 
@@ -126,6 +129,18 @@ attributes:
     - SectionLattice
     - MachineLayout
     range: string
+  particle:
+    name: particle
+    description: Design particle species for this layout, overriding the machine-wide
+      value. Free text rather than an enum because the accepted set includes arbitrary
+      ions (e.g. ``#12C+3``) alongside the fundamental particles.
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    domain_of:
+    - MachineLayout
+    - MachineModel
+    range: string
+    required: false
   sections:
     name: sections
     description: Ordered list of section names.
@@ -171,6 +186,19 @@ attributes:
     - SectionLattice
     - MachineLayout
     range: string
+  particle:
+    name: particle
+    description: Design particle species for this layout, overriding the machine-wide
+      value. Free text rather than an enum because the accepted set includes arbitrary
+      ions (e.g. ``#12C+3``) alongside the fundamental particles.
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    owner: MachineLayout
+    domain_of:
+    - MachineLayout
+    - MachineModel
+    range: string
+    required: false
   sections:
     name: sections
     description: Ordered list of section names.

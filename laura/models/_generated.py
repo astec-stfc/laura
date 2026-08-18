@@ -305,6 +305,20 @@ class ApertureShapeEnum(str, Enum):
     """
 
 
+class LatticeGeometryEnum(str, Enum):
+    """
+    Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.
+    """
+    open = "open"
+    """
+    Single-pass beamline such as a linac or transfer line. Twiss parameters propagate from a specified starting condition.
+    """
+    closed = "closed"
+    """
+    Recirculating machine such as a storage ring, for which closed orbits and periodic Twiss parameters are computed.
+    """
+
+
 class BendingPlaneEnum(str, Enum):
     """
     Bending plane enum.
@@ -707,6 +721,10 @@ class _SectionLatticeBase(ConfiguredBaseModel):
     """Unique section name."""
     master_lattice: Optional[str] = Field(default=None, description="""Name of the master lattice this section belongs to.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
     """Name of the master lattice this section belongs to."""
+    geometry: Optional[LatticeGeometryEnum] = Field(default=None, description="""Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice']} })
+    """Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent."""
+    reference_energy: Optional[float] = Field(default=None, description="""Reference total energy of the design particle [eV].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice'], 'unit': {'ucum_code': 'eV'}} })
+    """Reference total energy of the design particle [eV]."""
     elements: list[str] = Field(default_factory=list, description="""Ordered list of element names in this section.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
     """Ordered list of element names in this section."""
 
@@ -722,6 +740,8 @@ class _MachineLayoutBase(ConfiguredBaseModel):
     """Unique layout name."""
     master_lattice: Optional[str] = Field(default=None, description="""Name of the master lattice this layout belongs to.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
     """Name of the master lattice this layout belongs to."""
+    particle: Optional[str] = Field(default=None, description="""Design particle species for this layout, overriding the machine-wide value. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
+    """Design particle species for this layout, overriding the machine-wide value. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles."""
     sections: list[str] = Field(default_factory=list, description="""Ordered list of section names.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
     """Ordered list of section names."""
 
@@ -733,6 +753,8 @@ class _MachineModelBase(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MachineModel',
          'from_schema': 'https://w3id.org/laura/schema/machine'})
 
+    particle: Optional[str] = Field(default=None, description="""Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
+    """Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles."""
     elements: list[str] = Field(default_factory=list, description="""All elements in the machine, keyed by name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
     """All elements in the machine, keyed by name."""
     sections: list[str] = Field(default_factory=list, description="""All named beamline sections.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })

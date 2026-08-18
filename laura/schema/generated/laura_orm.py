@@ -414,6 +414,8 @@ class SectionLattice(Base):
 
     name = Column(Text(), primary_key=True, nullable=False )
     master_lattice = Column(Text())
+    geometry = Column(Enum('open', 'closed', name='LatticeGeometryEnum'))
+    reference_energy = Column(Float())
     
     
     elements_rel = relationship( "SectionLatticeElements" )
@@ -422,7 +424,7 @@ class SectionLattice(Base):
     
 
     def __repr__(self):
-        return f"SectionLattice(name={self.name},master_lattice={self.master_lattice},)"
+        return f"SectionLattice(name={self.name},master_lattice={self.master_lattice},geometry={self.geometry},reference_energy={self.reference_energy},)"
 
 
 
@@ -437,6 +439,7 @@ class MachineLayout(Base):
 
     name = Column(Text(), primary_key=True, nullable=False )
     master_lattice = Column(Text())
+    particle = Column(Text())
     
     
     sections_rel = relationship( "MachineLayoutSections" )
@@ -445,7 +448,7 @@ class MachineLayout(Base):
     
 
     def __repr__(self):
-        return f"MachineLayout(name={self.name},master_lattice={self.master_lattice},)"
+        return f"MachineLayout(name={self.name},master_lattice={self.master_lattice},particle={self.particle},)"
 
 
 
@@ -459,6 +462,7 @@ class MachineModel(Base):
     __tablename__ = 'MachineModel'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    particle = Column(Text())
     
     
     # ManyToMany
@@ -474,7 +478,7 @@ class MachineModel(Base):
     
 
     def __repr__(self):
-        return f"MachineModel(id={self.id},)"
+        return f"MachineModel(id={self.id},particle={self.particle},)"
 
 
 

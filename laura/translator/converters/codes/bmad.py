@@ -213,6 +213,9 @@ class BmadLatticeImporter(BaseModel):
 
     params: Dict[int, Dict[str, List[Dict[str, Any]]]] = {}
 
+    branch_params: Dict[int, Dict[str, Dict[str, Any]]] = {}
+    """Tao ``branch1`` records, holding ``param_geometry`` and ``param_particle``."""
+
     laura_elems: Dict[int, Dict[str, Dict[str, Element]]] = {}
 
     branches: Dict[int, List[str]] = {}
@@ -301,62 +304,72 @@ class BmadLatticeImporter(BaseModel):
         while True:
             try:
                 tao.universe(str(self.n_universes))
-                self.branches.update(
-                    {
-                        self.n_universes: [
-                            f'{i["branch_name"]}_{self.n_universes}'
-                            for i in tao.lat_branch_list(ix_uni=self.n_universes)
-                        ]
-                    }
-                )
-                self.names.update({self.n_universes: {}})
-                self.names_numbered.update({self.n_universes: {}})
-                self.types.update({self.n_universes: {}})
-                self.lengths.update({self.n_universes: {}})
-                self.spos.update({self.n_universes: {}})
-                self.params.update({self.n_universes: {}})
-                self.laura_elems.update({self.n_universes: {}})
-                for ind, b in enumerate(self.branches[self.n_universes]):
-                    kwa = {
-                        "ix_uni": str(self.n_universes),
-                        "ix_branch": str(ind),
-                    }
-                    names = [i for i in tao.lat_list("*", "ele.name", **kwa)]
-                    names_numbered = number_repeated_names(names)
-                    types = [i for i in tao.lat_list("*", "ele.key", **kwa)]
-                    lengths = [i for i in tao.lat_list("*", "ele.l", **kwa)]
-                    spos = [i for i in tao.lat_list("*", "ele.s", **kwa)]
-                    params = []
-                    for i, etype in enumerate(types):
-                        element_id = f"{self.n_universes}@{ind}>>{i}"
-                        attributes = tao.ele_gen_attribs(element_id)
-                        if etype == "Match":
-                            matrix = tao.ele_mat6(element_id, who="mat6")
-                            attributes["_MAT6"] = [
-                                matrix[str(row)] for row in range(1, 7)
-                            ]
-                            attributes["_VEC0"] = tao.ele_mat6(
-                                element_id, who="vec0"
-                            )["vec0"]
-                        elif etype == "Taylor":
-                            attributes["_TAYLOR"] = tao.ele_taylor(element_id)
-                            attributes["_SPIN_TAYLOR"] = tao.ele_spin_taylor(
-                                element_id
-                            )
-                        elif etype == "Beginning_Ele":
-                            attributes["_TWISS"] = tao.ele_twiss(element_id)
-                            attributes["_FLOOR"] = tao.ele_floor(element_id)
-                        params.append(attributes)
-                    self.names[self.n_universes].update({b: names})
-                    self.names_numbered[self.n_universes].update({b: names_numbered})
-                    self.types[self.n_universes].update({b: types})
-                    self.lengths[self.n_universes].update({b: lengths})
-                    self.spos[self.n_universes].update({b: spos})
-                    self.params[self.n_universes].update({b: params})
-                    self.laura_elems[self.n_universes].update({b: {}})
-                self.n_universes += 1
-            except TaoCommandError:
+            except TaoCommandError as e:
+                print(f"TaoCommandError when loading universe; {e}")
                 break
+            self.branches.update(
+                {
+                    self.n_universes: [
+                        f'{i["branch_name"]}_{self.n_universes}'
+                        for i in tao.lat_branch_list(ix_uni=self.n_universes)
+                    ]
+                }
+            )
+            self.names.update({self.n_universes: {}})
+            self.names_numbered.update({self.n_universes: {}})
+            self.types.update({self.n_universes: {}})
+            self.lengths.update({self.n_universes: {}})
+            self.spos.update({self.n_universes: {}})
+            self.params.update({self.n_universes: {}})
+            self.branch_params.update({self.n_universes: {}})
+            self.laura_elems.update({self.n_universes: {}})
+            for ind, b in enumerate(self.branches[self.n_universes]):
+                kwa = {
+                    "ix_uni": str(self.n_universes),
+                    "ix_branch": str(ind),
+                }
+                self.branch_params[self.n_universes][b] = tao.branch1(
+                    ix_uni=self.n_universes, ix_branch=ind
+                )
+                names = [i for i in tao.lat_list("*", "ele.name", **kwa)]
+                names_numbered = number_repeated_names(names)
+                types = [i for i in tao.lat_list("*", "ele.key", **kwa)]
+                lengths = [i for i in tao.lat_list("*", "ele.l", **kwa)]
+                spos = [i for i in tao.lat_list("*", "ele.s", **kwa)]
+                params = []
+                for i, etype in enumerate(types):
+                    element_id = f"{self.n_universes}@{ind}>>{i}"
+                    attributes = tao.ele_gen_attribs(element_id)
+                    if etype == "Match":
+                        matrix = tao.ele_mat6(element_id, who="mat6")
+                        attributes["_MAT6"] = [
+                            matrix[str(row)] for row in range(1, 7)
+                        ]
+                        attributes["_VEC0"] = tao.ele_mat6(
+                            element_id, who="vec0"
+                        )["vec0"]
+                    elif etype == "Taylor":
+                        attributes["_TAYLOR"] = tao.ele_taylor(element_id)
+                        attributes["_SPIN_TAYLOR"] = tao.ele_spin_taylor(
+                            element_id
+                        )
+                    elif etype == "Beginning_Ele":
+                        attributes["_TWISS"] = tao.ele_twiss(element_id)
+                        attributes["_FLOOR"] = tao.ele_floor(element_id)
+                        attributes["_COUPLING"] = tao.twiss_at_s(
+                            ix_uni=self.n_universes,
+                            ele=f"{ind}>>{i}",
+                            s_offset=0.0,
+                        )
+                    params.append(attributes)
+                self.names[self.n_universes].update({b: names})
+                self.names_numbered[self.n_universes].update({b: names_numbered})
+                self.types[self.n_universes].update({b: types})
+                self.lengths[self.n_universes].update({b: lengths})
+                self.spos[self.n_universes].update({b: spos})
+                self.params[self.n_universes].update({b: params})
+                self.laura_elems[self.n_universes].update({b: {}})
+            self.n_universes += 1
         self.branches = {
             k: [f'{i["branch_name"]}_{k}' for i in tao.lat_branch_list(ix_uni=k)]
             for k in range(1, self.n_universes)
@@ -628,6 +641,7 @@ class BmadLatticeImporter(BaseModel):
                 elif etype == "Beginning_Ele":
                     twiss = parameters.get("_TWISS", {})
                     if twiss:
+                        self._warn_unsupported_coupling(twiss, parameters, nam)
                         physical = dict(phys_common)
                         physical.update(
                             _floor_to_physical(parameters.get("_FLOOR", {}))
@@ -705,15 +719,43 @@ class BmadLatticeImporter(BaseModel):
                         )
         return self.laura_elems[universe]
 
+    def _reference_energy(self, universe: int, branch: str) -> float | None:
+        """Reference total energy [eV] at the start of ``branch``.        """
+        types = self.types.get(universe, {}).get(branch, [])
+        for index, etype in enumerate(types):
+            if etype == "Beginning_Ele":
+                e_tot = self.params[universe][branch][index].get("E_TOT")
+                return float(e_tot) if e_tot is not None else None
+        return None
+
+    def _warn_unsupported_coupling(self, twiss: Dict[str, Any], attributes: Dict[str, Any], name: str) -> None:
+        """Warn that Bmad's transverse coupling description is not imported.        """
+        if twiss.get("mode_flip") or attributes.get("MODE_FLIP"):
+            warn(
+                f"Bmad lattice has mode_flip=True at {name!r}: currently unsupported."
+            )
+        coupling = attributes.get("_COUPLING", {})
+        cmat = [coupling.get(f"c_mat{ij}", 0.0) for ij in ("11", "12", "21", "22")]
+        if any(cmat):
+            warn(
+                f"Bmad lattice has transverse coupling at {name!r} "
+                f"(cmat = {cmat}, gamma_c = {coupling.get('gamma_c')}): "
+                "currently unsupported."
+            )
+
     def create_section(self, universe: int, branch: str) -> Dict[str, SectionLattice]:
         if not self.laura_elems[universe][branch]:
             self.create_laura_element_dictionary(universe)
         elems = self.laura_elems[universe][branch]
         self.elements = elems
         order = [n for n, e in elems.items() if not e.is_subelement()]
+        branch_params = self.branch_params.get(universe, {}).get(branch, {})
+        geometry = branch_params.get("param_geometry")
         seclat = SectionLattice(
             order=order, elements=ElementList(elements=elems), name=branch,
             functional_definitions=self.functional_definitions,
+            geometry=str(geometry).lower() if geometry else None,
+            reference_energy=self._reference_energy(universe, branch),
         )
         seclat.resolve_positions(elems)
         for name, elem in elems.items():
@@ -736,17 +778,32 @@ class BmadLatticeImporter(BaseModel):
         return MachineLayout(
             name=name or str(universe), sections=layout,
             functional_definitions=self.functional_definitions,
+            particle=self._particle(universe),
         )
+
+    def _particle(self, universe: int) -> str | None:
+        """Design particle species."""
+        for branch_params in self.branch_params.get(universe, {}).values():
+            particle = branch_params.get("param_particle")
+            if particle:
+                return str(particle)
+        return None
 
     def create_machine_model(self, min_section_length: int = 5) -> MachineModel:
         """Build a model with one layout per Tao universe.
+        Branches become sections. Elements with the same name are given a
+        ``name__layout`` copy when shared between branches because
+        :class:`MachineModel` stores one placement per name.
 
-        Tao branches become sections. Branches containing fewer than
-        ``min_section_length`` imported lattice elements are omitted, and
-        elements with the same name and placement are shared between layouts.
-        When Tao gives the same name a different position, orientation, or
-        arc-length in another layout, a layout-specific ``name__layout`` copy
-        is created because :class:`MachineModel` stores one placement per name.
+        Parameters
+        ----------
+        min_section_length: int
+            Sections are only created if they are longer than this value.
+
+        Returns
+        -------
+        MachineModel
+            The full machine model containing all branches and universes.
         """
         if min_section_length < 1:
             raise ValueError("min_section_length must be at least 1.")

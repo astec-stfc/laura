@@ -272,6 +272,7 @@ Name: laura_schema
 | [fringe_field_coefficient](fringe_field_coefficient.md) | Coefficient controlling the fringe-field roll-off rate |
 | [from_beam](from_beam.md) | Compute transform from tracked beam properties |
 | [gap](gap.md) | Full gap between pole faces [m] |
+| [geometry](geometry.md) | Whether the reference orbit closes on itself |
 | [global_rotation](global_rotation.md) | Accumulated global rotation including parent-frame contributions |
 | [gradient](gradient.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) |
 | [gradient_calibration](gradient_calibration.md) | Calibration relating measured signal to gradient [MV/m per a |
@@ -372,6 +373,7 @@ Name: laura_schema
 | [output_filename](output_filename.md) | Output filename for diagnostic data |
 | [outputs](outputs.md) | Signal types this element produces (e |
 | [parabolic_coefficient](parabolic_coefficient.md) | Parabolic coefficient for a transverse density profile |
+| [particle](particle.md) | Design particle species for this layout, overriding the machine-wide value |
 | [peak_magnetic_field](peak_magnetic_field.md) | Peak on-axis field [T] |
 | [period](period.md) | Magnetic period length [m] |
 | [phase](phase.md) | Operating phase offset [deg] |
@@ -419,6 +421,7 @@ Name: laura_schema
 | [read_tolerance](read_tolerance.md) | Read-back vs |
 | [readback](readback.md) | Name of the readback variable this set-point drives |
 | [reference](reference.md) | Links to design drawings and files |
+| [reference_energy](reference_energy.md) | Reference total energy of the design particle [eV] |
 | [reference_placement](reference_placement.md) | Place this element relative to another element's frame instead of using absol... |
 | [right](right.md) | Right sense value |
 | [rotation](rotation.md) | Angular misalignment error [rad] |
@@ -545,6 +548,7 @@ Name: laura_schema
 | [IOTypeEnum](IOTypeEnum.md) | Input types for accelerator elements |
 | [LaserPolarizationEnum](LaserPolarizationEnum.md) | Polarization state of a laser beam |
 | [LaserProfileTypeEnum](LaserProfileTypeEnum.md) | Transverse intensity profile model for a laser beam |
+| [LatticeGeometryEnum](LatticeGeometryEnum.md) | Whether the reference orbit closes on itself |
 
 
 ## Types

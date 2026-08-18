@@ -88,6 +88,12 @@ enum LaserProfileTypeEnum
     file
   }
 
+enum LatticeGeometryEnum
+  {
+    open
+    closed
+  }
+
 type AcceleratorElement
   {
     name: String!
@@ -961,11 +967,13 @@ type MachineLayout
   {
     name: String!
     masterLattice: String
+    particle: String
     sections: [String]
   }
 
 type MachineModel
   {
+    particle: String
     elements: [AcceleratorElement]
     sections: [SectionLattice]
     layouts: [MachineLayout]
@@ -1614,6 +1622,8 @@ type SectionLattice
   {
     name: String!
     masterLattice: String
+    geometry: LatticeGeometryEnum
+    referenceEnergy: Float
     elements: [String]
   }
 

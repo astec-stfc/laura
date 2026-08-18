@@ -4,10 +4,24 @@ import os
 from functools import cmp_to_key
 import numpy as np
 from typing import List, Dict, Any, Union, Literal, Optional
-from pydantic import field_validator, BaseModel, ValidationInfo, Field, PositiveInt
+from pydantic import (
+    ConfigDict,
+    field_validator,
+    model_validator,
+    BaseModel,
+    ValidationInfo,
+    Field,
+    PositiveInt,
+)
 from warnings import warn
 from yaml import safe_load
 from ._functions import read_yaml
+from ._generated import (
+    LatticeGeometryEnum,
+    _MachineLayoutBase,
+    _MachineModelBase,
+    _SectionLatticeBase,
+)
 from .element import baseElement, Drift, PhysicalBaseElement, Diagnostic
 from .physical import PhysicalElement, Position, Rotation
 from .trajectory import Trajectory
@@ -240,7 +254,7 @@ class ElementList(ModelBase):
         return list(self.elements.values())
 
 
-class SectionLattice(BaseLatticeModel):
+class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
     """
     A section of a lattice, consisting of a list of elements and their order along the beam path.
     """
@@ -254,6 +268,12 @@ class SectionLattice(BaseLatticeModel):
     section_type: LatticeType = "beam"
     """Logical lattice type of this section (beam/rf/laser)."""
 
+    geometry: LatticeGeometryEnum | None = None
+    """Whether the reference orbit closes on itself (``open``/``closed``)."""
+
+    reference_energy: float | None = None
+    """Reference total energy of the design particle [eV], if known."""
+
     # other_elements: ElementList = ElementList(elements={})
     # TODO should we put this back in?
 
@@ -264,28 +284,28 @@ class SectionLattice(BaseLatticeModel):
     def validate_section_type(cls, value: str | None) -> LatticeType:
         return normalise_lattice_type(value, context="section")
 
-    @field_validator("elements", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def validate_elements(
-        cls, elements: Union[List[Union[baseElement, dict]], ElementList], info: ValidationInfo
-    ) -> ElementList:
-        if isinstance(elements, list):
-            elemdict = {}
-            for e in elements:
-                if isinstance(e, dict):
-                    nm = e.get("name")
-                else:
-                    nm = e.name
-                if nm:
-                    elemdict[nm] = e
-
-            # print([e for e in info.data['order'] if e not in elemdict.keys()])
-            return ElementList(
+    def validate_elements(cls, data: Any) -> Any:
+        """
+        Turn a list of elements into an ``ElementList`` keyed and ordered by
+        ``order``, dropping any element ``order`` does not mention.
+        """
+        if not isinstance(data, dict) or not isinstance(data.get("elements"), list):
+            return data
+        elemdict = {}
+        for e in data["elements"]:
+            nm = e.get("name") if isinstance(e, dict) else getattr(e, "name", None)
+            if nm:
+                elemdict[nm] = e
+        return {
+            **data,
+            "elements": ElementList(
                 elements={
-                    e: elemdict[e] for e in info.data["order"] if e in elemdict.keys()
+                    e: elemdict[e] for e in (data.get("order") or []) if e in elemdict
                 }
-            )
-        return elements
+            ),
+        }
 
     #
     # @model_serializer(mode="plain")
@@ -693,13 +713,6 @@ class SectionLattice(BaseLatticeModel):
             pos_list.extend([start_arr, mid_arr, end_arr])
             rot_list.extend([phys.rotation_matrix, phys.rotation_matrix, phys.end_rotation_matrix])
 
-            # Assign s (bypasses sync since _trajectory not yet set). This is
-            # always the *middle* arc-length regardless of the s_point the
-            # element was originally specified with (e.g. an ELEGANT import
-            # using s_point="end") -- s_point must be reset to match, or a
-            # later s-mode YAML export would pair this middle-s value with a
-            # stale s_point, corrupting any re-import (e.g. resolving to
-            # `s - length` for "end" instead of `s - length/2` for "middle").
             phys.s = s_elem_mid
             phys.s_point = "middle"
 
@@ -759,8 +772,6 @@ class SectionLattice(BaseLatticeModel):
             elements that might be referenced.  Typically ``MachineModel.elements``.
         """
         for name in self.order:
-            # Always operate on the registry object so mutations are visible
-            # to the caller — section.elements may hold Pydantic-copied instances.
             elem = element_registry.get(name)
             if elem is None or not hasattr(elem, "physical"):
                 continue
@@ -808,19 +819,13 @@ class SectionLattice(BaseLatticeModel):
 
             new_mid = np.array([ref_pos.x, ref_pos.y, ref_pos.z]) + delta
 
-            # Clear reference_placement before writing middle — the model validator
-            # (validate_assignment=True) re-runs on every field write, so both
-            # fields must not be set at the same time.
             phys.reference_placement = None
             phys.middle = Position.from_list(new_mid)
 
             # Determine resolved rotation matrix
             if "rotation" not in phys.model_fields_set:
-                # No user-specified rotation: inherit reference frame orientation
                 resolved_R = ref_R
             else:
-                # User-specified rotation is treated as an additional LOCAL rotation
-                # on top of the reference frame: R_world = ref_R @ R_user_local
                 ur = phys.rotation
                 R_user = euler_angles_to_rotation_matrix(ur.theta, ur.phi, ur.psi)
                 resolved_R = ref_R @ R_user
@@ -831,7 +836,7 @@ class SectionLattice(BaseLatticeModel):
             phys._rotation_matrix_cache = None
 
 
-class MachineLayout(BaseLatticeModel):
+class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
     """
     A machine layout, consisting of a dictionary of lattice sections.
     This class could represent a full beam path, for example.
@@ -845,6 +850,10 @@ class MachineLayout(BaseLatticeModel):
 
     layout_type: LatticeType = "beam"
     """Logical lattice type of this path (beam/rf/laser)."""
+
+    particle: str | None = None
+    """Design particle species for this layout, overriding the machine-wide
+    value."""
 
     _basename: str = "sections"
 
@@ -1132,13 +1141,15 @@ class MachineLayout(BaseLatticeModel):
         return self._get_element_names(result)
 
 
-class MachineModel(ModelBase):
+class MachineModel(ModelBase, _MachineModelBase):
     """
     The full model of the accelerator. It describes all :class:`~laura.models.elementList.MachineLayout` and
     :class:`~laura.models.elementList.SectionLattice` that particles can follow.
     These layouts and sections are also defined as Dict[str, list] and Dict[str, list], and the full dictionary
     containing all elements is also accessible.
     """
+
+    model_config = ConfigDict(validate_assignment=False)
 
     layout: str | Dict | None = None
     """Dictionary containing layout names and the names of the sections of which they are composed."""
@@ -1159,6 +1170,9 @@ class MachineModel(ModelBase):
 
     master_lattice: str | None = None
     """Directory containing lattice YAML files."""
+
+    particle: str | None = None
+    """Machine-wide design particle species, overridable per layout."""
 
     functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
     """Mapping of functional-parameter names to their numeric values, or a path
@@ -1282,7 +1296,9 @@ class MachineModel(ModelBase):
 
     @field_validator("layout", mode="before")
     @classmethod
-    def validate_layout(cls, v: str | dict) -> str | dict:
+    def validate_layout(cls, v: str | dict | None) -> str | dict | None:
+        if v is None:
+            return v
         if isinstance(v, str):
             if os.path.isfile(v):
                 return v
@@ -1291,12 +1307,6 @@ class MachineModel(ModelBase):
             ):
                 return os.path.abspath(os.path.dirname(__file__) + "/../" + v)
             else:
-                # Not resolvable relative to the cwd or the laura package;
-                # defer to model_post_init, which resolves the path relative
-                # to master_lattice (the environment-independent anchor the
-                # framework always supplies). Raising here would break any
-                # environment where laura is not installed beside the lattice
-                # files (e.g. laura in site-packages during testing).
                 return v
         elif isinstance(v, dict):
             if "layouts" not in v:
@@ -1316,12 +1326,6 @@ class MachineModel(ModelBase):
             ):
                 return os.path.abspath(os.path.dirname(__file__) + "/../" + v)
             else:
-                # Not resolvable relative to the cwd or the laura package;
-                # defer to model_post_init, which resolves the path relative
-                # to master_lattice (the environment-independent anchor the
-                # framework always supplies). Raising here would break any
-                # environment where laura is not installed beside the lattice
-                # files (e.g. laura in site-packages during testing).
                 return v
         elif isinstance(v, dict):
             if "sections" not in v:
@@ -1395,8 +1399,6 @@ class MachineModel(ModelBase):
                 self.section["sections"]
             )
         if len(self.elements) > 0:
-            # Validate functional references up-front (so the error names the
-            # source file), skipping lazy element stores to avoid forcing a load.
             if not hasattr(self.elements, "get_metadata"):
                 validate_functional_references(
                     [e for e in self.elements.values() if isinstance(e, baseElement)],
@@ -1404,12 +1406,12 @@ class MachineModel(ModelBase):
                     self._functional_source,
                 )
             if self.section:
-                self._build_layouts(self.elements)   # creates SectionLattice only
+                self._build_layouts(self.elements)
             else:
                 self._build_sections_from_elements(self.elements)
-            self._resolve_all_positions()             # resolve before MachineLayout
+            self._resolve_all_positions()
             if self.section:
-                self._build_layout_objects()          # MachineLayout after positions ready
+                self._build_layout_objects()
 
     def __add__(self, other) -> dict:
         copy = self.elements.copy()
@@ -1533,8 +1535,6 @@ class MachineModel(ModelBase):
     def _build_layouts(self, elements):
         """Build sections (and layout objects when no full-layout definitions exist)."""
         self._build_sections_phase(elements)
-        # Layout objects (MachineLayout) require resolved positions so they are
-        # deferred to _build_layout_objects(), called after _resolve_all_positions().
 
     def _build_sections_phase(self, elements):
         """Create all SectionLattice objects without yet creating MachineLayout objects."""

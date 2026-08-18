@@ -570,6 +570,10 @@ URI: [LaserProperties](LaserProperties.md)
 
 
 
+
+
+
+
 ## Classes in subset
 
 | Class | Description |
