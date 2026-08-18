@@ -60,6 +60,11 @@ class BaseElementTranslator(PhysicalBaseElement):
     ccs: gpt_ccs | None = None
     """Co-ordinate system for GPT elements."""
 
+    opal_version: str = "202210"
+    """Version of OPAL being written for. Classic OPAL and OPAL-X disagree on
+    some attribute conventions -- notably the solenoid ``KS``; see
+    :func:`~laura.translator.converters.magnet.SolenoidTranslator.opal_ks`."""
+
     def model_post_init(self, __context):
         self.type_conversion_rules = type_conversion_rules
         hardware_type = self.hardware_type.lower()
@@ -106,6 +111,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             A flattened dictionary containing the attributes of the element.
         """
         data = flatten_dict({**self.model_dump()}, parent_key="", separator="_")
+        data.pop("magnetic_gap", None)
         if resolve:
             defs = IgnoreExtra.functional_definitions
             data = {
@@ -1181,6 +1187,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                     field_kwargs.update(
                         {
                             "frequency": self.cavity.frequency,
+                            "cavity_type": self.cavity.structure_type,
                             "cavity_type": self.cavity.structure_type,
                             "n_cells": self.cavity.n_cells,
                         }

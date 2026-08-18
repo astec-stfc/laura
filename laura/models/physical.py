@@ -454,9 +454,24 @@ class PhysicalElement(_PhysicalElementBase):
     def __repr__(self):
         return self.__class__.__name__ + "(" + self.__str__() + ")"
 
+    def set_physical_angle(self, angle: float | None) -> None:
+        """
+        Pin the angle used to lay out :func:`start` and :func:`end`, overriding the
+        bend angle taken from the magnet. Pass ``None`` to go back to tracking it.
+
+        Needed where the transverse displacement through a magnet does not run the same
+        way as its bend: the second and third dipoles of a chicane bend back towards the
+        axis while the beam continues to move away from it, so their start/end offsets
+        take the sign of the displacement rather than of the field.
+        """
+        self._physical_angle_override = angle
+
     @computed_field
     @property
     def _physical_angle(self) -> float:
+        if self._physical_angle_override is not None:
+            self.physical_angle = self._physical_angle_override
+            return self._physical_angle_override
         if self._parent is not None:
             magnetic = getattr(self._parent, "magnetic", None)
             # Only dipoles expose an `angle`; use the resolved bend angle
@@ -535,10 +550,14 @@ class PhysicalElement(_PhysicalElementBase):
 
     _rotation_matrix_cache = None
 
+    _physical_angle_override = None
+    """Set via :func:`set_physical_angle` to pin the layout angle; ``None`` tracks the
+    magnet's bend angle."""
+
     @property
     def rotation_matrix(self) -> np.ndarray:
-        if self._rotation_matrix_cache is not None:
-            return self._rotation_matrix_cache
+        # if self._rotation_matrix_cache is not None:
+        #     return self._rotation_matrix_cache
         
         # Combined rotations using utility function
         # Apply yaw (Y), pitch (X), roll (Z) in that order

@@ -48,7 +48,7 @@ def _quad(k1l):
 def _cavity(field_amplitude, phase=0.0, structure="StandingWave"):
     cav = RFCavity(
         name="C1", machine_area="L02",
-        cavity={"phase": phase, "structure_Type": structure},
+        cavity={"phase": phase, "structure_type": structure},
         simulation={"field_amplitude": field_amplitude},
     )
     return RFCavityTranslator.model_validate(cav.model_dump())
@@ -223,7 +223,7 @@ class TestXsuite:
         )
         c = RFCavity(
             name="C1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": "Vcav"},
             physical=PhysicalElement(length=1.0, middle=Position(x=0, y=0, z=3.0)),
         )

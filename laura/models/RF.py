@@ -40,6 +40,60 @@ class RFCavityElement(_RFCavityElementBase, FunctionalMixin):
     RF Cavity model.
     """
 
+    structure_type: str = "StandingWave"
+    """Type of RF structure
+    #TODO make this literal.
+    """
+
+    attenuation_constant: float = 0
+    """Attenuation constant associated with the cavity."""
+
+    cell_length: float = 0.0333333333333333
+    """Length of cavity cell [m]."""
+
+    coupling_cell_length: float | None = 0.0
+    """Length of coupling cell [m]."""
+
+    design_gamma: Union[float, None] = None
+    """Design relativistic Lorentz factor for particles in the cavity."""
+
+    design_power: float = 25000000
+    """
+    Design power of the cavity [W].
+    #TODO max/min/other?
+    """
+
+    frequency: float = 2998500000.0
+    """RF frequency [Hz]."""
+
+    n_cells: Union[int, float] = 1
+    """Number of cavity cells."""
+
+    crest: float = 0
+    """Crest phase [deg] -- crest is zero."""
+
+    phase: Union[float, str] = Field(default=0.0, json_schema_extra={"functional": True})
+    """Off-crest phase [deg]. Stored verbatim: a number or a string naming a
+    functional definition (resolve via ``resolved("phase")``)."""
+
+    shunt_impedance: Union[float, None] = None
+    """Shunt impedance."""
+
+    mode_numerator: float | None = None
+    """Numerator of travelling wave mode."""
+
+    mode_denominator: float | None = None
+    """
+    Denominator of travelling wave mode.
+    #TODO combine with numerator to make it the actual mode?
+    """
+
+    power_calibration: List[float] | None = None
+    """Power calibration for the cavity (if provided in config file)"""
+
+    gradient_calibration: List[float] | None = None
+    """Gradient calibration for the cavity (if provided in config file)"""
+
     def model_post_init(self, __context):
         if self.structure_type.lower() == "travellingwave" and any(
             [self.mode_numerator is None and self.mode_denominator is None]

@@ -223,7 +223,7 @@ class TestMadxSection:
         )
         c = RFCavity(
             name="C1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": volt},
             physical=PhysicalElement(length=1.0, middle=Position(x=0, y=0, z=3.0)),
         )

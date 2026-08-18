@@ -28,6 +28,15 @@ from .Importers.YAML_Loader import (
 import numpy as np
 import time
 
+NON_ELEMENT_FILENAMES = {"summary.yaml", "summary.yml"}
+"""Files to ignore when scanning an ``element_list`` directory. ``summary.yaml`` is an
+aggregate of every element in the machine, not a single-element file, so treating it as
+one invents a bogus element -- and it cannot be recognised by content, because
+:func:`~laura.Importers.YAML_Loader.fast_get_element_metadata` reads only the first 2000
+characters and most real element files declare ``name:`` after that (falling back to the
+filename), so a summary would simply be named after its file."""
+
+
 def flatten(xss):
     """Flatten a list of lists."""
     return list(chain.from_iterable(xss))
@@ -132,9 +141,13 @@ class LAURA(MachineModel):
                 values = {y.name: y for y in elems if hasattr(y, 'name')}
                 self.elements.update(values)
             elif os.path.isdir(el_list):
-                files = glob.glob(
-                    os.path.abspath(el_list + "/**/*.yaml"), recursive=True
-                )
+                files = [
+                    fn
+                    for fn in glob.glob(
+                        os.path.abspath(el_list + "/**/*.yaml"), recursive=True
+                    )
+                    if os.path.basename(fn).lower() not in NON_ELEMENT_FILENAMES
+                ]
                 filenames = {}
                 for fn in files:
                     meta = fast_get_element_metadata(fn)

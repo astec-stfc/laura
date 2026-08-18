@@ -67,6 +67,10 @@ class SectionLatticeTranslator(SectionLattice):
     wakefield_enable: bool = True
     """Flag to enable structure wakefields on accelerating cavities."""
 
+    opal_version: str = "202210"
+    """Version of OPAL to write for; propagated to the elements, which use it
+    where classic OPAL and OPAL-X take different conventions."""
+
     lsc_bins: PositiveInt = 20
     """Number of LSC bins for drifts."""
 
@@ -227,6 +231,7 @@ class SectionLatticeTranslator(SectionLattice):
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        self._apply_wakefield_enable(elem_dict)
         kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
             if i == 0:
@@ -237,8 +242,13 @@ class SectionLatticeTranslator(SectionLattice):
                 )
             element.ccs = ccs
             fulltext += element.to_gpt(Brho, **kwargs)
-            if element.hardware_type.lower() == "rfcavity" and isinstance(
-                element.simulation.wakefield_definition, field
+            # The wakefield translator is built fresh here, so it does not
+            # inherit the cavity's wakefield_enable -- gate on the cavity's own
+            # flag instead, which _apply_wakefield_enable has already set.
+            if (
+                element.hardware_type.lower() == "rfcavity"
+                and isinstance(element.simulation.wakefield_definition, field)
+                and getattr(element.simulation, "wakefield_enable", True)
             ):
                 w = WakefieldTranslator(
                     name=element.name + "_wake",
@@ -342,6 +352,7 @@ class SectionLatticeTranslator(SectionLattice):
         written = []
         svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
         for d in elem_dict.values():
+            d.opal_version = self.opal_version
             if isinstance(d, RFCavityTranslator):
                 if d.structure_type.lower() == "travellingwave":
                     energy += tw_cavity_energy_gain(d)
