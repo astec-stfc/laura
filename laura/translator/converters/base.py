@@ -6,7 +6,7 @@ from laura.models.physical import PhysicalElement, Position  # noqa E402
 from laura.models.element import PhysicalBaseElement
 from laura.models.baseModels import IgnoreExtra
 from laura.utils import flatten_dict
-from typing import Dict, Any
+from typing import ClassVar, Dict, Any
 from warnings import warn
 
 from ..converters import (
@@ -810,6 +810,9 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
+    _KEYWORD_STRIP_PREFIXES: ClassVar[list] = ["", "simulation_", "cavity_", "magnetic_", "aperture_"]
+    _KEYWORD_STRIP_PREFIXES_WAKE_T: ClassVar[list] = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
+
     def _bdsim_keywords(
         self, obj: type, section_aperture: Dict | None = None
     ) -> Dict[str, Any]:
@@ -834,8 +837,6 @@ class BaseElementTranslator(PhysicalBaseElement):
         from ..utils.bdsim import aperture_params, element_aperture_params
 
         allowed = elements_BDSIM.get(obj.__name__, {})
-        # The element's own aperture describes the beam pipe through that element,
-        # so it overrides the section-wide beam pipe rather than merging with it.
         keywords: Dict[str, Any] = dict(aperture_params(section_aperture))
         keywords.update(element_aperture_params(getattr(self, "aperture", None)))
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
@@ -883,23 +884,16 @@ class BaseElementTranslator(PhysicalBaseElement):
             elif self.is_functional(value):
                 expression = value
 
-        # The resolved number behind the keyword. The translator's own computed
-        # field is authoritative where there is one (k1 divides by length; e1/e2
-        # turn an "angle"/"angle/2" reference into a number).
         numeric = getattr(self, key, None)
         if isinstance(numeric, bool) or not isinstance(numeric, (int, float)):
             numeric = value
 
         if expression is None:
-            # Never hand pybdsim a bare string: it quotes anything non-numeric,
-            # turning an unresolved reference into a gmad string literal.
             if isinstance(value, str) and isinstance(numeric, (int, float)):
                 return numeric
             return value
         resolved = IgnoreExtra.functional_definitions.get(str(expression))
         if resolved is None:
-            # A composed expression such as "bend1 / 2" has no entry of its own;
-            # carry the computed number so the object still behaves numerically.
             resolved = numeric if isinstance(numeric, (int, float)) else 0.0
         return GmadExpression(resolved, str(expression))
 
@@ -963,11 +957,6 @@ class BaseElementTranslator(PhysicalBaseElement):
         Strip known field-group prefixes from `keyword` and look up each candidate in
         `conversion_rules`; if `element` is given, also accept a candidate that matches
         one of its keys directly. Falls back to the original keyword.
-
-        The prefix is removed from the *front* only. ``str.replace`` removes every
-        occurrence, which mangles any field whose own name repeats a prefix --
-        ``magnetic_peak_magnetic_field`` became ``peak_field`` and so matched no
-        rule, silently dropping the wiggler's peak field from every export.
         """
         for strip in strip_prefixes:
             stripped = keyword.removeprefix(strip)

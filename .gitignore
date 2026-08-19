@@ -179,8 +179,16 @@ PAdantic/Importers/~$CLARA Magnet Table v6.xlsx
 summary.yaml
 profile_output.txt
 *.lock
+.pytest_cache/
+.ruff_caache/
 
-# AI stuff
+# AI
+ANALYSIS.md
+REFACTORING_PLAN.md
 CLAUDE.md
-.mex/
 AGENTS.md
+.agents/
+.claude/
+.codex/
+.mex/
+Planning/
