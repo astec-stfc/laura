@@ -6,6 +6,8 @@ general:
   tilt_angle: tilt
 dipole:
   angle: angle
+  half_gap: hgap
+  edge_field_integral: fint
 quadrupole:
   k1l: k1
 sextupole:

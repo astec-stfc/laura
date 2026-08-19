@@ -24,6 +24,17 @@ URI: [laura:Valve](https://w3id.org/laura/Valve)
       
       Valve : alias
         
+      Valve : aperture
+        
+          
+    
+        
+        
+        Valve --> "0..1" ApertureElement : aperture
+        click ApertureElement href "../ApertureElement/"
+    
+
+        
       Valve : controls
         
           
@@ -196,6 +207,7 @@ URI: [laura:Valve](https://w3id.org/laura/Valve)
 | ---  | --- | --- | --- |
 | [valve](valve.md) | 0..1 <br/> [ValveElement](ValveElement.md) | Valve configuration | direct |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
+| [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [SimulationElement](SimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -317,6 +329,17 @@ attributes:
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
+  aperture:
+    name: aperture
+    description: Aperture of the element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Valve
+    domain_of:
+    - PhysicalAcceleratorElement
+    - Aperture
+    range: ApertureElement
+    required: false
   simulation:
     name: simulation
     description: Simulation / tracking attributes.

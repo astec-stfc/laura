@@ -27,9 +27,13 @@ from pathlib import Path
 
 _SILENTLY_SKIPPED_TYPES = ("Drift", "Pipe")
 
-_CAVITY_TYPES = ("Lcavity", "RFCavity", "Crab_Cavity")
+_CAVITY_TYPES = ("Lcavity", "RFCavity", "Crab_Cavity", "E_Gun")
 
 _COLLIMATOR_TYPES = ("ECollimator", "RCollimator")
+
+_MULTIPOLE_TYPES = ("Multipole", "AB_multipole", "Thick_Multipole", "Sad_Mult")
+
+_ORDER_TYPES = {0: "Dipole", 1: "Quadrupole", 2: "Sextupole", 3: "Octupole"}
 
 
 def _switch_dict() -> Dict[str, str]:
@@ -44,6 +48,9 @@ def _switch_dict() -> Dict[str, str]:
             "match": "MatrixTransform",
             "rbend": "Dipole",
             "rcollimator": "Collimator",
+            "undulator": "Wiggler",
+            "e_gun": "RFCavity",
+            "beambeam": "BeamBeam",
         }
     )
     return switch
@@ -62,6 +69,44 @@ def _floor_to_physical(floor: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
     return {
         "datum": {"x": x, "y": y, "z": z},
         "global_rotation": {"phi": phi, "psi": theta, "theta": psi},
+    }
+
+
+def _misalignment(parameters: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
+    """
+    Convert an element's Bmad misalignment attributes to LAURA's
+    ``physical.error``. See :func:`_floor_to_physical` --
+    angle names are swapped around.
+    """
+    position = {
+        axis: float(parameters.get(f"{axis.upper()}_OFFSET", 0.0) or 0.0)
+        for axis in ("x", "y", "z")
+    }
+    rotation = {
+        "phi": float(parameters.get("Y_PITCH", 0.0) or 0.0),
+        "psi": float(parameters.get("X_PITCH", 0.0) or 0.0),
+        "theta": 0.0,
+    }
+    if not any(position.values()) and not any(rotation.values()):
+        return {}
+    return {"error": {"position": position, "rotation": rotation}}
+
+
+def _aperture(parameters: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """Convert an element's Bmad aperture limits to a LAURA ``aperture`` dict."""
+    limits = {
+        key: float(parameters.get(key, 0.0) or 0.0)
+        for key in ("X1_LIMIT", "X2_LIMIT", "Y1_LIMIT", "Y2_LIMIT")
+    }
+    if not any(limits.values()):
+        return {}
+    shape = str(parameters.get("aperture_type", "rectangular")).lower()
+    return {
+        "aperture": {
+            "horizontal_size": limits["X1_LIMIT"] + limits["X2_LIMIT"],
+            "vertical_size": limits["Y1_LIMIT"] + limits["Y2_LIMIT"],
+            "shape": shape if shape in ("rectangular", "elliptical", "circular") else "rectangular",
+        }
     }
 
 
@@ -353,6 +398,8 @@ class BmadLatticeImporter(BaseModel):
                         attributes["_SPIN_TAYLOR"] = tao.ele_spin_taylor(
                             element_id
                         )
+                    elif etype in _MULTIPOLE_TYPES:
+                        attributes["_MULTIPOLES"] = tao.ele_multipoles(element_id)
                     elif etype == "Beginning_Ele":
                         attributes["_TWISS"] = tao.ele_twiss(element_id)
                         attributes["_FLOOR"] = tao.ele_floor(element_id)
@@ -385,6 +432,7 @@ class BmadLatticeImporter(BaseModel):
             "s": self.spos[universe][b][i],
             "s_point": "end",
             "length": float(self.lengths[universe][b][i]),
+            **_misalignment(self.params[universe][b][i]),
         }
 
     def create_element_dictionary(self, universe: int) -> Dict[str, Dict[str, Element]]:
@@ -477,6 +525,14 @@ class BmadLatticeImporter(BaseModel):
                     gap = _native_keyword(hardware_type, "gap")
                     if gap in parameters:
                         kl.update({"gap": parameters[gap]})
+                    hgap = _native_keyword(hardware_type, "half_gap")
+                    if hgap in parameters and parameters[hgap]:
+                        kl["gap"] = 2 * parameters[hgap]
+                    fint = _native_keyword(hardware_type, "edge_field_integral")
+                    if fint in parameters:
+                        kl["edge_field_integral"] = parameters[fint]
+                    if parameters.get("TILT"):
+                        kl["tilt"] = parameters["TILT"]
                     elem_data = {
                         "hardware_type": hardware_type,
                         "magnetic": {"order": order, "length": length, **kl},
@@ -510,7 +566,7 @@ class BmadLatticeImporter(BaseModel):
                             ]
                         },
                     }
-                elif etype == "Wiggler":
+                elif etype in ("Wiggler", "Undulator"):
                     b_max = parameters.get(
                         _native_keyword(mapped_type, "peak_magnetic_field"), 0.0
                     )
@@ -628,12 +684,73 @@ class BmadLatticeImporter(BaseModel):
                             ),
                         },
                     }
+                elif etype in _MULTIPOLE_TYPES:
+                    poles = {}
+                    for row in parameters.get("_MULTIPOLES", {}).get("data", []):
+                        order = int(row["index"])
+                        # An/Bn are the skew/normal coefficients. For an element
+                        # written as KnL/Tn, Bmad supplies the equivalent pair
+                        # rather than making us resolve the tilt ourselves.
+                        # They relate to LAURA's integrated KnL by a factor n!.
+                        normal = row.get("Bn", row.get("Bn (equiv)", 0.0)) or 0.0
+                        skew = row.get("An", row.get("An (equiv)", 0.0)) or 0.0
+                        if normal or skew:
+                            scale = math.factorial(order)
+                            poles[f"K{order}L"] = {
+                                "order": order,
+                                "normal": normal * scale,
+                                "skew": skew * scale,
+                            }
+                    if not poles:
+                        warn(
+                            f"Bmad {etype} {nam!r} has no multipole content; skipping."
+                        )
+                    else:
+                        highest = max(int(k[1:-1]) for k in poles)
+                        hardware_type = _ORDER_TYPES.get(highest, "Magnet")
+                        elem_data = {
+                            "hardware_type": hardware_type,
+                            "magnetic": {
+                                "order": highest,
+                                "length": length,
+                                "multipoles": poles,
+                            },
+                        }
+                elif etype == "AC_Kicker":
+                    hkick = parameters.get("HKICK", 0.0) or 0.0
+                    vkick = parameters.get("VKICK", 0.0) or 0.0
+                    vertical = abs(vkick) > abs(hkick)
+                    elem_data = {
+                        "hardware_type": (
+                            "Vertical_AC_Dipole" if vertical else "Horizontal_AC_Dipole"
+                        ),
+                        "simulation": {
+                            "field_amplitude": vkick if vertical else hkick,
+                        },
+                    }
+                    if hkick and vkick:
+                        warn(
+                            f"Bmad AC_Kicker {nam!r} kicks in both planes "
+                            f"(hkick={hkick}, vkick={vkick}); LAURA models a single "
+                            "plane per element, so only the larger kick is imported."
+                        )
+                elif etype == "BeamBeam":
+                    elem_data = {
+                        "hardware_type": mapped_type,
+                        "simulation": {
+                            "n_particles": parameters.get("N_PARTICLE"),
+                            "charge": parameters.get("CHARGE"),
+                            "horizontal_sigma": parameters.get("SIG_X"),
+                            "vertical_sigma": parameters.get("SIG_Y"),
+                        },
+                    }
                 elif etype in ("Marker", "Monitor", "Instrument"):
                     markelem = {
                         "physical": dict(phys_common),
                         "name": nam,
                         "hardware_type": mapped_type,
                         "machine_area": "test",
+                        **_aperture(parameters),
                     }
                     self.laura_elems[universe][b].update(
                         {nam: getattr(LAURA_elements, markelem["hardware_type"])(**markelem)}
@@ -678,6 +795,7 @@ class BmadLatticeImporter(BaseModel):
                             "physical": dict(phys_common),
                             "name": nam,
                             "machine_area": "test",
+                            **_aperture(parameters),
                             **elem_data,
                         }
                     }

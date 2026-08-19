@@ -9121,6 +9121,8 @@ class PhysicalAcceleratorElement(Element):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9157,7 +9159,7 @@ class PhysicalAcceleratorElement(Element):
     
 
     def __repr__(self):
-        return f"PhysicalAcceleratorElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"PhysicalAcceleratorElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9184,6 +9186,8 @@ class TwissMatch(PhysicalAcceleratorElement):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('TwissMatchSimulationElement.id'))
     simulation = relationship("TwissMatchSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9220,7 +9224,7 @@ class TwissMatch(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"TwissMatch(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"TwissMatch(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9247,6 +9251,8 @@ class MatrixTransform(PhysicalAcceleratorElement):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MatrixTransformSimulationElement.id'))
     simulation = relationship("MatrixTransformSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9283,7 +9289,7 @@ class MatrixTransform(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"MatrixTransform(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"MatrixTransform(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9310,6 +9316,8 @@ class ElectrostaticSeparator(PhysicalAcceleratorElement):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('ElectrostaticSeparatorSimulationElement.id'))
     simulation = relationship("ElectrostaticSeparatorSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9346,7 +9354,7 @@ class ElectrostaticSeparator(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"ElectrostaticSeparator(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"ElectrostaticSeparator(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9373,6 +9381,8 @@ class ACDipole(PhysicalAcceleratorElement):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('ACDipoleSimulationElement.id'))
     simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9409,7 +9419,7 @@ class ACDipole(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"ACDipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"ACDipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9436,6 +9446,8 @@ class Wire(PhysicalAcceleratorElement):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('WireSimulationElement.id'))
     simulation = relationship("WireSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9472,7 +9484,7 @@ class Wire(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Wire(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Wire(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9499,6 +9511,8 @@ class BeamBeam(PhysicalAcceleratorElement):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('BeamBeamSimulationElement.id'))
     simulation = relationship("BeamBeamSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9535,7 +9549,7 @@ class BeamBeam(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"BeamBeam(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"BeamBeam(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9562,6 +9576,8 @@ class RFMultipole(PhysicalAcceleratorElement):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('RFMultipoleSimulationElement.id'))
     simulation = relationship("RFMultipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9598,7 +9614,7 @@ class RFMultipole(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"RFMultipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"RFMultipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9625,6 +9641,8 @@ class Stage(PhysicalAcceleratorElement):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9661,7 +9679,7 @@ class Stage(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Stage(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Stage(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9688,6 +9706,8 @@ class VacuumGauge(PhysicalAcceleratorElement):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9724,7 +9744,7 @@ class VacuumGauge(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"VacuumGauge(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"VacuumGauge(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9753,6 +9773,8 @@ class Laser(PhysicalAcceleratorElement):
     laser = relationship("LaserElement", uselist=False, foreign_keys=[laser_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9789,7 +9811,7 @@ class Laser(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Laser(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Laser(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9818,6 +9840,8 @@ class Shutter(PhysicalAcceleratorElement):
     shutter = relationship("ShutterElement", uselist=False, foreign_keys=[shutter_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9854,7 +9878,7 @@ class Shutter(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Shutter(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},shutter_id={self.shutter_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Shutter(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},shutter_id={self.shutter_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9883,6 +9907,8 @@ class Valve(PhysicalAcceleratorElement):
     valve = relationship("ValveElement", uselist=False, foreign_keys=[valve_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9919,7 +9945,7 @@ class Valve(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Valve(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},valve_id={self.valve_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Valve(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},valve_id={self.valve_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -9946,6 +9972,8 @@ class Marker(PhysicalAcceleratorElement):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
     simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -9982,7 +10010,7 @@ class Marker(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Marker(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Marker(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10074,6 +10102,8 @@ class Drift(PhysicalAcceleratorElement):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DriftSimulationElement.id'))
     simulation = relationship("DriftSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10110,7 +10140,7 @@ class Drift(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Drift(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Drift(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10141,6 +10171,8 @@ class Magnet(PhysicalAcceleratorElement):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10177,7 +10209,7 @@ class Magnet(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Magnet(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Magnet(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10206,6 +10238,8 @@ class RFCavity(PhysicalAcceleratorElement):
     cavity = relationship("RFCavityElement", uselist=False, foreign_keys=[cavity_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
     simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10242,7 +10276,7 @@ class RFCavity(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"RFCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"RFCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10271,6 +10305,8 @@ class Wakefield(PhysicalAcceleratorElement):
     cavity = relationship("WakefieldElement", uselist=False, foreign_keys=[cavity_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('WakefieldSimulationElement.id'))
     simulation = relationship("WakefieldSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10307,7 +10343,7 @@ class Wakefield(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Wakefield(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Wakefield(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10336,6 +10372,8 @@ class Diagnostic(PhysicalAcceleratorElement):
     diagnostic = relationship("DiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10372,7 +10410,7 @@ class Diagnostic(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Diagnostic(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Diagnostic(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10403,6 +10441,8 @@ class Plasma(PhysicalAcceleratorElement):
     laser = relationship("LaserElement", uselist=False, foreign_keys=[laser_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('PlasmaSimulationElement.id'))
     simulation = relationship("PlasmaSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10439,7 +10479,7 @@ class Plasma(PhysicalAcceleratorElement):
     
 
     def __repr__(self):
-        return f"Plasma(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},plasma_id={self.plasma_id},laser_id={self.laser_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Plasma(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},plasma_id={self.plasma_id},laser_id={self.laser_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10466,6 +10506,8 @@ class HorizontalACDipole(ACDipole):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('ACDipoleSimulationElement.id'))
     simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10502,7 +10544,7 @@ class HorizontalACDipole(ACDipole):
     
 
     def __repr__(self):
-        return f"Horizontal_AC_Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Horizontal_AC_Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10529,6 +10571,8 @@ class VerticalACDipole(ACDipole):
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('ACDipoleSimulationElement.id'))
     simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10565,7 +10609,7 @@ class VerticalACDipole(ACDipole):
     
 
     def __repr__(self):
-        return f"Vertical_AC_Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Vertical_AC_Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10659,6 +10703,8 @@ class RFDeflectingCavity(RFCavity):
     cavity = relationship("RFDeflectingCavityElement", uselist=False, foreign_keys=[cavity_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
     simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10695,7 +10741,7 @@ class RFDeflectingCavity(RFCavity):
     
 
     def __repr__(self):
-        return f"RFDeflectingCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"RFDeflectingCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10724,6 +10770,8 @@ class CrabCavity(RFCavity):
     cavity = relationship("RFDeflectingCavityElement", uselist=False, foreign_keys=[cavity_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
     simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10760,7 +10808,7 @@ class CrabCavity(RFCavity):
     
 
     def __repr__(self):
-        return f"CrabCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"CrabCavity(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},cavity_id={self.cavity_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10789,6 +10837,8 @@ class BeamPositionMonitor(Diagnostic):
     diagnostic = relationship("BPMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10825,7 +10875,7 @@ class BeamPositionMonitor(Diagnostic):
     
 
     def __repr__(self):
-        return f"BeamPositionMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"BeamPositionMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10854,6 +10904,8 @@ class BeamArrivalMonitor(Diagnostic):
     diagnostic = relationship("BAMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10890,7 +10942,7 @@ class BeamArrivalMonitor(Diagnostic):
     
 
     def __repr__(self):
-        return f"BeamArrivalMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"BeamArrivalMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10919,6 +10971,8 @@ class BunchLengthMonitor(Diagnostic):
     diagnostic = relationship("BLMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -10955,7 +11009,7 @@ class BunchLengthMonitor(Diagnostic):
     
 
     def __repr__(self):
-        return f"BunchLengthMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"BunchLengthMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -10984,6 +11038,8 @@ class Camera(Diagnostic):
     diagnostic = relationship("CameraDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11020,7 +11076,7 @@ class Camera(Diagnostic):
     
 
     def __repr__(self):
-        return f"Camera(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Camera(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11049,6 +11105,8 @@ class Screen(Diagnostic):
     diagnostic = relationship("ScreenDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11085,7 +11143,7 @@ class Screen(Diagnostic):
     
 
     def __repr__(self):
-        return f"Screen(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Screen(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11114,6 +11172,8 @@ class ChargeDiagnostic(Diagnostic):
     diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11150,7 +11210,7 @@ class ChargeDiagnostic(Diagnostic):
     
 
     def __repr__(self):
-        return f"ChargeDiagnostic(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"ChargeDiagnostic(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11179,6 +11239,8 @@ class PhotonMonitor(Diagnostic):
     diagnostic = relationship("PhotonIntensityMonitorDiagnostic", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11215,7 +11277,7 @@ class PhotonMonitor(Diagnostic):
     
 
     def __repr__(self):
-        return f"PhotonMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"PhotonMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11246,6 +11308,8 @@ class Dipole(Magnet):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11282,7 +11346,7 @@ class Dipole(Magnet):
     
 
     def __repr__(self):
-        return f"Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Dipole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11313,6 +11377,8 @@ class Quadrupole(Magnet):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11349,7 +11415,7 @@ class Quadrupole(Magnet):
     
 
     def __repr__(self):
-        return f"Quadrupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Quadrupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11380,6 +11446,8 @@ class Sextupole(Magnet):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11416,7 +11484,7 @@ class Sextupole(Magnet):
     
 
     def __repr__(self):
-        return f"Sextupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Sextupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11447,6 +11515,8 @@ class Octupole(Magnet):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11483,7 +11553,7 @@ class Octupole(Magnet):
     
 
     def __repr__(self):
-        return f"Octupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Octupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11514,6 +11584,8 @@ class Solenoid(Magnet):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11550,7 +11622,7 @@ class Solenoid(Magnet):
     
 
     def __repr__(self):
-        return f"Solenoid(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Solenoid(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11581,6 +11653,8 @@ class CombinedSolenoidQuadrupole(Magnet):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11617,7 +11691,7 @@ class CombinedSolenoidQuadrupole(Magnet):
     
 
     def __repr__(self):
-        return f"CombinedSolenoidQuadrupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"CombinedSolenoidQuadrupole(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11650,6 +11724,8 @@ class Wiggler(Magnet):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11686,7 +11762,7 @@ class Wiggler(Magnet):
     
 
     def __repr__(self):
-        return f"Wiggler(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"Wiggler(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},laser_id={self.laser_id},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11717,6 +11793,8 @@ class NonLinearLens(Magnet):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11753,7 +11831,7 @@ class NonLinearLens(Magnet):
     
 
     def __repr__(self):
-        return f"NonLinearLens(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"NonLinearLens(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11782,6 +11860,8 @@ class WallCurrentMonitor(ChargeDiagnostic):
     diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11818,7 +11898,7 @@ class WallCurrentMonitor(ChargeDiagnostic):
     
 
     def __repr__(self):
-        return f"WallCurrentMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"WallCurrentMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11847,6 +11927,8 @@ class FaradayCupMonitor(ChargeDiagnostic):
     diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11883,7 +11965,7 @@ class FaradayCupMonitor(ChargeDiagnostic):
     
 
     def __repr__(self):
-        return f"FaradayCupMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"FaradayCupMonitor(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11912,6 +11994,8 @@ class IntegratedCurrentTransformer(ChargeDiagnostic):
     diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
     simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -11948,7 +12032,7 @@ class IntegratedCurrentTransformer(ChargeDiagnostic):
     
 
     def __repr__(self):
-        return f"IntegratedCurrentTransformer(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"IntegratedCurrentTransformer(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -11979,6 +12063,8 @@ class HorizontalCorrector(Dipole):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -12015,7 +12101,7 @@ class HorizontalCorrector(Dipole):
     
 
     def __repr__(self):
-        return f"HorizontalCorrector(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"HorizontalCorrector(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -12046,6 +12132,8 @@ class VerticalCorrector(Dipole):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -12082,7 +12170,7 @@ class VerticalCorrector(Dipole):
     
 
     def __repr__(self):
-        return f"VerticalCorrector(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"VerticalCorrector(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 
@@ -12115,6 +12203,8 @@ class CombinedCorrector(Dipole):
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
     physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
     simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
@@ -12151,7 +12241,7 @@ class CombinedCorrector(Dipole):
     
 
     def __repr__(self):
-        return f"CombinedCorrector(Horizontal_Corrector={self.Horizontal_Corrector},Vertical_Corrector={self.Vertical_Corrector},name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+        return f"CombinedCorrector(Horizontal_Corrector={self.Horizontal_Corrector},Vertical_Corrector={self.Vertical_Corrector},name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},magnetic_id={self.magnetic_id},degauss_id={self.degauss_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 

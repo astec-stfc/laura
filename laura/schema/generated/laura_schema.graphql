@@ -129,6 +129,7 @@ interface ACDipole
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: ACDipoleSimulationElement
   }
 
@@ -202,6 +203,7 @@ type BeamArrivalMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: BAMDiagnosticElement
     hardwareType: String
@@ -225,6 +227,7 @@ type BeamBeam
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: BeamBeamSimulationElement
   }
@@ -263,6 +266,7 @@ type BeamPositionMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: BPMDiagnosticElement
     hardwareType: String
@@ -296,6 +300,7 @@ type BunchLengthMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: BLMDiagnosticElement
     hardwareType: String
@@ -319,6 +324,7 @@ type Camera
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: CameraDiagnosticElement
     hardwareType: String
@@ -413,6 +419,7 @@ type ChargeDiagnostic
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -488,6 +495,7 @@ type CrabCavity
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: RFCavitySimulationElement
     cavity: RFDeflectingCavityElement
     hardwareType: String
@@ -519,6 +527,7 @@ type Diagnostic
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     diagnostic: DiagnosticElement
     simulation: DiagnosticSimulationElement
   }
@@ -556,6 +565,7 @@ type Drift
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: DriftSimulationElement
   }
@@ -604,6 +614,7 @@ type ElectrostaticSeparator
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: ElectrostaticSeparatorSimulationElement
   }
@@ -671,6 +682,7 @@ type FaradayCupMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -699,6 +711,7 @@ type HorizontalACDipole
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: ACDipoleSimulationElement
     hardwareType: String
   }
@@ -721,6 +734,7 @@ type IntegratedCurrentTransformer
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -745,6 +759,7 @@ type Laser
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     laser: LaserElement
     hardwareType: String
   }
@@ -998,6 +1013,7 @@ type Magnet
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     magnetic: MagneticElement
     degauss: DegaussableElement
     simulation: MagnetSimulationElement
@@ -1078,6 +1094,7 @@ type Marker
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
   }
 
@@ -1099,6 +1116,7 @@ type MatrixTransform
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: MatrixTransformSimulationElement
   }
@@ -1160,6 +1178,7 @@ type PhotonMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: PhotonIntensityMonitorDiagnostic
     hardwareType: String
@@ -1186,6 +1205,7 @@ type PhysicalAcceleratorElement
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
   }
 
 type PhysicalElement
@@ -1268,6 +1288,7 @@ type Plasma
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     plasma: PlasmaElement
     laser: LaserElement
     hardwareType: String
@@ -1369,6 +1390,7 @@ type RFCavity
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     cavity: RFCavityElement
     hardwareType: String
     simulation: RFCavitySimulationElement
@@ -1441,6 +1463,7 @@ type RFDeflectingCavity
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: RFCavitySimulationElement
     cavity: RFDeflectingCavityElement
     hardwareType: String
@@ -1533,6 +1556,7 @@ type RFMultipole
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: RFMultipoleSimulationElement
   }
@@ -1605,6 +1629,7 @@ type Screen
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: ScreenDiagnosticElement
     hardwareType: String
@@ -1646,6 +1671,7 @@ type Shutter
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     shutter: ShutterElement
     hardwareType: String
   }
@@ -1683,6 +1709,7 @@ type Stage
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
   }
 
@@ -1733,6 +1760,7 @@ type TwissMatch
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: TwissMatchSimulationElement
   }
@@ -1774,6 +1802,7 @@ type VacuumGauge
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
   }
 
@@ -1796,6 +1825,7 @@ type Valve
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     valve: ValveElement
     hardwareType: String
   }
@@ -1823,6 +1853,7 @@ type VerticalACDipole
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: ACDipoleSimulationElement
     hardwareType: String
   }
@@ -1845,6 +1876,7 @@ type Wakefield
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     cavity: WakefieldElement
     hardwareType: String
     simulation: WakefieldSimulationElement
@@ -1905,6 +1937,7 @@ type WallCurrentMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
@@ -1928,6 +1961,7 @@ type Wire
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
+    aperture: ApertureElement
     hardwareType: String
     simulation: WireSimulationElement
   }

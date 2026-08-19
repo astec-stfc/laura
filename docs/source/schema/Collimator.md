@@ -195,7 +195,7 @@ URI: [laura:Collimator](https://w3id.org/laura/Collimator)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture geometry parameters | [Aperture](Aperture.md) |
+| [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture geometry parameters | [Aperture](Aperture.md), [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [SimulationElement](SimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
@@ -293,9 +293,9 @@ attributes:
     name: aperture
     description: Aperture geometry parameters.
     from_schema: https://w3id.org/laura/schema/elements
-    rank: 1000
     owner: Collimator
     domain_of:
+    - PhysicalAcceleratorElement
     - Aperture
     range: ApertureElement
   physical:

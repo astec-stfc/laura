@@ -24,6 +24,17 @@ URI: [laura:Vertical_AC_Dipole](https://w3id.org/laura/Vertical_AC_Dipole)
       
       VerticalACDipole : alias
         
+      VerticalACDipole : aperture
+        
+          
+    
+        
+        
+        VerticalACDipole --> "0..1" ApertureElement : aperture
+        click ApertureElement href "../ApertureElement/"
+    
+
+        
       VerticalACDipole : controls
         
           
@@ -185,6 +196,7 @@ URI: [laura:Vertical_AC_Dipole](https://w3id.org/laura/Vertical_AC_Dipole)
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
+| [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [ACDipoleSimulationElement](ACDipoleSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -288,6 +300,17 @@ attributes:
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
+  aperture:
+    name: aperture
+    description: Aperture of the element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Vertical_AC_Dipole
+    domain_of:
+    - PhysicalAcceleratorElement
+    - Aperture
+    range: ApertureElement
+    required: false
   simulation:
     name: simulation
     description: Simulation / tracking attributes.

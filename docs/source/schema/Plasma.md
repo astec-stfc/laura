@@ -24,6 +24,17 @@ URI: [laura:Plasma](https://w3id.org/laura/Plasma)
       
       Plasma : alias
         
+      Plasma : aperture
+        
+          
+    
+        
+        
+        Plasma --> "0..1" ApertureElement : aperture
+        click ApertureElement href "../ApertureElement/"
+    
+
+        
       Plasma : controls
         
           
@@ -208,6 +219,7 @@ URI: [laura:Plasma](https://w3id.org/laura/Plasma)
 | [plasma](plasma.md) | 0..1 <br/> [PlasmaElement](PlasmaElement.md) | Plasma channel parameters | direct |
 | [laser](laser.md) | 0..1 <br/> [LaserElement](LaserElement.md) | Laser driving the plasma stage | direct |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
+| [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [PlasmaSimulationElement](PlasmaSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -360,6 +372,17 @@ attributes:
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
+  aperture:
+    name: aperture
+    description: Aperture of the element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Plasma
+    domain_of:
+    - PhysicalAcceleratorElement
+    - Aperture
+    range: ApertureElement
+    required: false
   simulation:
     name: simulation
     description: Simulation / tracking attributes.

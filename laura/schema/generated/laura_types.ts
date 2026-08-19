@@ -2142,6 +2142,8 @@ export interface Element extends StandardElement {
 export interface PhysicalAcceleratorElement extends Element {
     /** Position, rotation, and length data. */
     physical?: PhysicalElement,
+    /** Aperture of the element. */
+    aperture?: ApertureElement,
 }
 
 

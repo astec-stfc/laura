@@ -455,3 +455,8 @@ classes:
         description: Position, rotation, and length data.
         in_subset:
           - physical_properties
+      aperture:
+        range: ApertureElement
+        required: false
+        description: >-
+          Aperture of the element.

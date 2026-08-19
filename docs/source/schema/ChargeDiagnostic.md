@@ -33,6 +33,17 @@ URI: [laura:ChargeDiagnostic](https://w3id.org/laura/ChargeDiagnostic)
 
       ChargeDiagnostic : alias
         
+      ChargeDiagnostic : aperture
+        
+          
+    
+        
+        
+        ChargeDiagnostic --> "0..1" ApertureElement : aperture
+        click ApertureElement href "../ApertureElement/"
+    
+
+        
       ChargeDiagnostic : controls
         
           
@@ -209,6 +220,7 @@ URI: [laura:ChargeDiagnostic](https://w3id.org/laura/ChargeDiagnostic)
 | ---  | --- | --- | --- |
 | [diagnostic](diagnostic.md) | 0..1 <br/> [ChargeDiagnosticElement](ChargeDiagnosticElement.md) | Instrument-specific diagnostic parameters | direct |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
+| [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -346,6 +358,17 @@ attributes:
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
+  aperture:
+    name: aperture
+    description: Aperture of the element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: ChargeDiagnostic
+    domain_of:
+    - PhysicalAcceleratorElement
+    - Aperture
+    range: ApertureElement
+    required: false
   simulation:
     name: simulation
     description: Simulation / tracking attributes.

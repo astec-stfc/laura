@@ -77,8 +77,53 @@ URI: [laura:ApertureElement](https://w3id.org/laura/ApertureElement)
 
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
+| [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [TwissMatch](TwissMatch.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [MatrixTransform](MatrixTransform.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [ElectrostaticSeparator](ElectrostaticSeparator.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [ACDipole](ACDipole.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [HorizontalACDipole](HorizontalACDipole.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [VerticalACDipole](VerticalACDipole.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Wire](Wire.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [BeamBeam](BeamBeam.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [RFMultipole](RFMultipole.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Stage](Stage.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [VacuumGauge](VacuumGauge.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Laser](Laser.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Shutter](Shutter.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Valve](Valve.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Marker](Marker.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
 | [Aperture](Aperture.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
 | [Collimator](Collimator.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Drift](Drift.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Magnet](Magnet.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [RFCavity](RFCavity.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [RFDeflectingCavity](RFDeflectingCavity.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [CrabCavity](CrabCavity.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Wakefield](Wakefield.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Diagnostic](Diagnostic.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [BeamPositionMonitor](BeamPositionMonitor.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [BeamArrivalMonitor](BeamArrivalMonitor.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [BunchLengthMonitor](BunchLengthMonitor.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Camera](Camera.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Screen](Screen.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [ChargeDiagnostic](ChargeDiagnostic.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [WallCurrentMonitor](WallCurrentMonitor.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [FaradayCupMonitor](FaradayCupMonitor.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [IntegratedCurrentTransformer](IntegratedCurrentTransformer.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [PhotonMonitor](PhotonMonitor.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Plasma](Plasma.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Dipole](Dipole.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Quadrupole](Quadrupole.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Sextupole](Sextupole.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Octupole](Octupole.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [HorizontalCorrector](HorizontalCorrector.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [VerticalCorrector](VerticalCorrector.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [CombinedCorrector](CombinedCorrector.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Solenoid](Solenoid.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [Wiggler](Wiggler.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [NonLinearLens](NonLinearLens.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
 
 
 

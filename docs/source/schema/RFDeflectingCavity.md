@@ -24,6 +24,17 @@ URI: [laura:RFDeflectingCavity](https://w3id.org/laura/RFDeflectingCavity)
       
       RFDeflectingCavity : alias
         
+      RFDeflectingCavity : aperture
+        
+          
+    
+        
+        
+        RFDeflectingCavity --> "0..1" ApertureElement : aperture
+        click ApertureElement href "../ApertureElement/"
+    
+
+        
       RFDeflectingCavity : cavity
         
           
@@ -197,6 +208,7 @@ URI: [laura:RFDeflectingCavity](https://w3id.org/laura/RFDeflectingCavity)
 | ---  | --- | --- | --- |
 | [cavity](cavity.md) | 0..1 <br/> [RFDeflectingCavityElement](RFDeflectingCavityElement.md) | RF structure parameters | direct |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
+| [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -326,6 +338,17 @@ attributes:
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
+  aperture:
+    name: aperture
+    description: Aperture of the element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFDeflectingCavity
+    domain_of:
+    - PhysicalAcceleratorElement
+    - Aperture
+    range: ApertureElement
+    required: false
   simulation:
     name: simulation
     description: Simulation / tracking attributes.

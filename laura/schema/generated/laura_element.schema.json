@@ -14,6 +14,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -678,6 +689,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -860,6 +882,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -1125,6 +1158,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -1318,6 +1362,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -1500,6 +1555,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -2093,6 +2159,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -2488,6 +2565,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -2681,6 +2769,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -3269,6 +3368,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "cavity": {
           "anyOf": [
             {
@@ -3484,6 +3594,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -3722,6 +3843,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -4103,6 +4235,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -4416,6 +4559,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -4889,6 +5043,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -5120,6 +5285,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -5291,6 +5467,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -5509,6 +5696,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -5777,6 +5975,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -7401,6 +7610,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -7973,6 +8193,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -8144,6 +8375,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -8550,6 +8792,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -8774,6 +9027,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -9472,6 +9736,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -9654,6 +9929,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -9939,6 +10225,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -10527,6 +10824,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -10906,6 +11214,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "cavity": {
           "anyOf": [
@@ -11420,6 +11739,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "cavity": {
           "anyOf": [
@@ -12059,6 +12389,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -12653,6 +12994,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -12918,6 +13270,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -13299,6 +13662,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -13542,6 +13916,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -13922,6 +14307,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -14290,6 +14686,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -14568,6 +14975,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -14739,6 +15157,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -14929,6 +15358,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -15100,6 +15540,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -15294,6 +15745,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "cavity": {
           "anyOf": [
@@ -15700,6 +16162,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -15882,6 +16355,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -16168,6 +16652,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [

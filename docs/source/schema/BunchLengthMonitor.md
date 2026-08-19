@@ -24,6 +24,17 @@ URI: [laura:BunchLengthMonitor](https://w3id.org/laura/BunchLengthMonitor)
       
       BunchLengthMonitor : alias
         
+      BunchLengthMonitor : aperture
+        
+          
+    
+        
+        
+        BunchLengthMonitor --> "0..1" ApertureElement : aperture
+        click ApertureElement href "../ApertureElement/"
+    
+
+        
       BunchLengthMonitor : controls
         
           
@@ -197,6 +208,7 @@ URI: [laura:BunchLengthMonitor](https://w3id.org/laura/BunchLengthMonitor)
 | ---  | --- | --- | --- |
 | [diagnostic](diagnostic.md) | 0..1 <br/> [BLMDiagnosticElement](BLMDiagnosticElement.md) | Instrument-specific diagnostic parameters | direct |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
+| [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -334,6 +346,17 @@ attributes:
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
+  aperture:
+    name: aperture
+    description: Aperture of the element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: BunchLengthMonitor
+    domain_of:
+    - PhysicalAcceleratorElement
+    - Aperture
+    range: ApertureElement
+    required: false
   simulation:
     name: simulation
     description: Simulation / tracking attributes.

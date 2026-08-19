@@ -167,7 +167,7 @@ Name: laura_schema
 | [alpha_x](alpha_x.md) | Horizontal alpha |
 | [alpha_y](alpha_y.md) | Vertical alpha |
 | [angle](angle.md) | Integrated bending angle [rad] |
-| [aperture](aperture.md) | Aperture geometry parameters |
+| [aperture](aperture.md) | Aperture of the element |
 | [apply](apply.md) | Whether to apply the transfer map |
 | [attenuation_constant](attenuation_constant.md) | Attenuation constant ? of a travelling-wave structure [Np/m] |
 | [beam_pixel_average](beam_pixel_average.md) | Average pixel value for beam detection |

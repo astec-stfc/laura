@@ -281,8 +281,8 @@ attributes:
     name: aperture
     description: Aperture geometry parameters.
     from_schema: https://w3id.org/laura/schema/elements
-    rank: 1000
     domain_of:
+    - PhysicalAcceleratorElement
     - Aperture
     range: ApertureElement
 class_uri: laura:Aperture
@@ -307,9 +307,9 @@ attributes:
     name: aperture
     description: Aperture geometry parameters.
     from_schema: https://w3id.org/laura/schema/elements
-    rank: 1000
     owner: Aperture
     domain_of:
+    - PhysicalAcceleratorElement
     - Aperture
     range: ApertureElement
   physical:
