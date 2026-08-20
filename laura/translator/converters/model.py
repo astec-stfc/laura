@@ -173,11 +173,17 @@ class MachineModelTranslator(MachineModel):
             )
         return model
 
-    def to_bdsim(self, save=False) -> Dict[str, Dict[str, "Machine"]]:
+    def to_bdsim(
+        self, save=False, charge_sign: int | float = 1
+    ) -> Dict[str, Dict[str, "Machine"]]:
         model = {}
         for name, latt in self.lattices.items():
             model.update(
-                {name: MachineLayoutTranslator.from_layout(latt).to_bdsim(save=save)}
+                {
+                    name: MachineLayoutTranslator.from_layout(latt).to_bdsim(
+                        save=save, charge_sign=charge_sign
+                    )
+                }
             )
         return model
 

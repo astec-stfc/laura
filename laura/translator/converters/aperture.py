@@ -270,7 +270,9 @@ class ApertureTranslator(BaseElementTranslator):
         wholestring += string + ";\n"
         return wholestring
 
-    def to_bdsim(self, section_aperture: Dict | None = None) -> object:
+    def to_bdsim(
+        self, section_aperture: Dict | None = None, charge_sign: int | float = 1
+    ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
 
@@ -279,6 +281,8 @@ class ApertureTranslator(BaseElementTranslator):
         section_aperture: dict, optional
                 Dictionary containing aperture information for the section,
                 which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; unused here.
 
         Returns
         -------
@@ -317,4 +321,5 @@ class ApertureTranslator(BaseElementTranslator):
                 obj = get_bdsim_drift(self.name)
         else:
             obj = get_bdsim_drift(self.name)
-        return obj(**self._bdsim_keywords(obj, section_aperture))
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        return obj(**self._bdsim_charge_sign(keywords, charge_sign))

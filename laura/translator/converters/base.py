@@ -913,7 +913,31 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         return Drift_BDSIM
 
-    def to_bdsim(self, section_aperture: Dict | None = None) -> object:
+    def _bdsim_charge_sign(self, keywords: Dict[str, Any], charge_sign: int | float) -> Dict[str, Any]:
+        """
+        Negate the rigidity-normalised strengths in `keywords` for a negatively
+        charged beam particle. See
+        :data:`~laura.translator.utils.bdsim.bdsim.BDSIM_CHARGE_SIGNED_KEYWORDS`.
+
+        Parameters
+        ----------
+        keywords: dict
+            gmad keywords for this element; see :meth:`_bdsim_keywords`.
+        charge_sign: int or float
+            Sign of the beam particle's charge.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The keyword dictionary, for chaining into the builder call.
+        """
+        from ..utils.bdsim import apply_charge_sign
+
+        return apply_charge_sign(keywords, charge_sign)
+
+    def to_bdsim(
+        self, section_aperture: Dict | None = None, charge_sign: int | float = 1
+    ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
 
@@ -922,6 +946,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         section_aperture: dict, optional
                 Dictionary containing aperture information for the section,
                 which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Sign of the charge of the beam particle being tracked.
 
         Returns
         -------
@@ -929,7 +955,8 @@ class BaseElementTranslator(PhysicalBaseElement):
             BDSIM object
         """
         obj = self._bdsim_type(section_aperture)
-        return obj(**self._bdsim_keywords(obj, section_aperture))
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        return obj(**self._bdsim_charge_sign(keywords, charge_sign))
 
     _KEYWORD_STRIP_PREFIXES = [
         "",

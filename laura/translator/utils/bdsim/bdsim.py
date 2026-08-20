@@ -43,6 +43,80 @@ class GmadExpression(float):
     __repr__ = __str__
 
 
+BDSIM_CHARGE_SIGNED_KEYWORDS = frozenset(
+    {
+        "k1",
+        "k2",
+        "k3",
+        "k4",
+        "k5",
+        "k6",
+        "k1s",
+        "k2s",
+        "k3s",
+        "k4s",
+        "k5s",
+        "k6s",
+        "ks",
+        "knl",
+        "ksl",
+        "hkick",
+        "vkick",
+    }
+)
+"""gmad keywords holding a rigidity-normalised strength, which BDSIM interprets
+against the *actual* particle charge; this has an impact on magnet strengths.
+"""
+
+
+def negate_strength(value):
+    """
+    Flip the sign of one normalised magnet strength.
+
+    Parameters
+    ----------
+    value: Any
+        The keyword value to negate. Sequences (``knl``/``ksl``) are negated
+        element-wise, and non-numeric values are returned untouched.
+
+    Returns
+    -------
+    Any
+        The negated value.
+    """
+    if isinstance(value, GmadExpression):
+        return GmadExpression(-float(value), f"-({value.expression})")
+    if isinstance(value, (list, tuple)):
+        return type(value)(negate_strength(v) for v in value)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return value
+    return -value
+
+
+def apply_charge_sign(keywords: dict, charge_sign: int | float = 1) -> dict:
+    """
+    Negate every rigidity-normalised strength in a gmad keyword dictionary when
+    the beam particle is negatively charged.
+
+    Parameters
+    ----------
+    keywords: dict
+        gmad keywords for one element. Modified in place.
+    charge_sign: int or float
+        Sign of the beam particle's charge.
+
+    Returns
+    -------
+    dict
+        The same dictionary, for chaining.
+    """
+    if charge_sign >= 0:
+        return keywords
+    for key in BDSIM_CHARGE_SIGNED_KEYWORDS & keywords.keys():
+        keywords[key] = negate_strength(keywords[key])
+    return keywords
+
+
 def aperture_params(dic: dict | None):
     conv = {}
     if dic is None:

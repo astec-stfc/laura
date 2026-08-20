@@ -168,12 +168,14 @@ class MachineLayoutTranslator(MachineLayout):
             )
         return lattices
 
-    def to_bdsim(self, save=False) -> Dict[str, "Machine"]:
+    def to_bdsim(self, save=False, charge_sign: int | float = 1) -> Dict[str, "Machine"]:
         lattices = {}
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: self._section_translator(section).to_bdsim(save=save)
+                    section.name: self._section_translator(section).to_bdsim(
+                        save=save, charge_sign=charge_sign
+                    )
                 }
             )
         return lattices

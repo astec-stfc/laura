@@ -519,7 +519,9 @@ class RFCavityTranslator(BaseElementTranslator):
                 properties.update({key: value})
         return self.name, obj, properties
 
-    def to_bdsim(self, section_aperture: Dict | None = None) -> object:
+    def to_bdsim(
+        self, section_aperture: Dict | None = None, charge_sign: int | float = 1
+    ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
 
@@ -528,6 +530,8 @@ class RFCavityTranslator(BaseElementTranslator):
         section_aperture: dict, optional
                 Dictionary containing aperture information for the section,
                 which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; unused here.
 
         Returns
         -------
@@ -550,7 +554,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 )
             else:
                 keywords["gradient"] /= self.physical.length
-        return obj(**keywords)
+        return obj(**self._bdsim_charge_sign(keywords, charge_sign))
 
     def to_madx(self, at: float = None) -> str:
         """

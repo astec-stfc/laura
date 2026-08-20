@@ -98,7 +98,9 @@ class RFMultipoleTranslator(BaseElementTranslator):
         }
         return self.name, RFMultipole_xs, properties
 
-    def to_bdsim(self, section_aperture: dict | None = None) -> object:
+    def to_bdsim(
+        self, section_aperture: dict | None = None, charge_sign: int | float = 1
+    ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
 
@@ -112,6 +114,9 @@ class RFMultipoleTranslator(BaseElementTranslator):
         section_aperture: dict, optional
                 Dictionary containing aperture information for the section,
                 which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
 
         Returns
         -------
@@ -128,7 +133,6 @@ class RFMultipoleTranslator(BaseElementTranslator):
         else:
             obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
         keywords = self._bdsim_keywords(obj, section_aperture)
-        # pybdsim writes gmad's {a,b,c} list syntax from a tuple.
         keywords["knl"] = tuple(self.simulation.knl or ())
         keywords["ksl"] = tuple(self.simulation.ksl or ())
         if self.verbose:
@@ -137,4 +141,4 @@ class RFMultipoleTranslator(BaseElementTranslator):
                 f"{'thinmultipole' if thin else 'multipole'} -- frequency, phase, pnl "
                 "and psl are not carried."
             )
-        return obj(**keywords)
+        return obj(**self._bdsim_charge_sign(keywords, charge_sign))

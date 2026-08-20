@@ -183,7 +183,9 @@ class MatrixTransformTranslator(BaseElementTranslator):
         )
         return obj
 
-    def to_bdsim(self, section_aperture: Dict | None = None) -> object:
+    def to_bdsim(
+        self, section_aperture: Dict | None = None, charge_sign: int | float = 1
+    ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
 
@@ -192,6 +194,8 @@ class MatrixTransformTranslator(BaseElementTranslator):
         section_aperture: dict, optional
                 Dictionary containing aperture information for the section,
                 which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; unused here.
 
         Returns
         -------
@@ -212,4 +216,4 @@ class MatrixTransformTranslator(BaseElementTranslator):
             warn(
                 f"WARNING! Only 1st-order transfer maps implemented for BDSIM, {self.name}"
             )
-        return obj(**keywords)
+        return obj(**self._bdsim_charge_sign(keywords, charge_sign))

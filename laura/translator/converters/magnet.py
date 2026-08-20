@@ -952,7 +952,9 @@ class DipoleTranslator(BaseElementTranslator):
         wholestring += f', FMAPFN = "1DPROFILE1-DEFAULT";\n'
         return wholestring
 
-    def to_bdsim(self, section_aperture: Dict | None = None) -> object:
+    def to_bdsim(
+        self, section_aperture: Dict | None = None, charge_sign: int | float = 1
+    ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
 
@@ -961,6 +963,9 @@ class DipoleTranslator(BaseElementTranslator):
         section_aperture: dict, optional
                 Dictionary containing aperture information for the section,
                 which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
 
         Returns
         -------
@@ -975,7 +980,8 @@ class DipoleTranslator(BaseElementTranslator):
             obj = RBend
         else:
             obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
-        return obj(**self._bdsim_keywords(obj, section_aperture))
+        keywords = self._bdsim_keywords(obj, section_aperture)
+        return obj(**self._bdsim_charge_sign(keywords, charge_sign))
 
     #
     # @computed_field
@@ -1263,7 +1269,9 @@ class SolenoidTranslator(BaseElementTranslator):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
-    def to_bdsim(self, section_aperture: Dict | None = None) -> object:
+    def to_bdsim(
+        self, section_aperture: Dict | None = None, charge_sign: int | float = 1
+    ) -> object:
         """
         Generates a BDSIM object based on the element's properties and type.
 
@@ -1272,6 +1280,9 @@ class SolenoidTranslator(BaseElementTranslator):
         section_aperture: dict, optional
                 Dictionary containing aperture information for the section,
                 which may be used to set the aperture of the BDSIM element.
+        charge_sign: int or float, optional
+                Beam particle charge sign; see
+                :meth:`~laura.translator.converters.base.BaseElementTranslator.to_bdsim`.
 
         Returns
         -------
@@ -1282,11 +1293,9 @@ class SolenoidTranslator(BaseElementTranslator):
 
         obj = bdsim_conversion.bdsim_conversion_rules[self.hardware_type]
         keywords = self._bdsim_keywords(obj, section_aperture)
-        # BDSIM's ks is the integrated solenoid strength, which is what
-        # magnetic.field_amplitude already holds (no division by length).
         if "ks" in keywords:
             keywords["ks"] = self.magnetic.field_amplitude
-        return obj(**keywords)
+        return obj(**self._bdsim_charge_sign(keywords, charge_sign))
 
 
 class WigglerTranslator(BaseElementTranslator):
@@ -1347,14 +1356,7 @@ class CorrectorTranslator(BaseElementTranslator):
 
     Correctors use :class:`~laura.models.magnetic.Corrector_Magnet`, which stores
     the horizontal and vertical kick angles as two independent, explicitly-named
-    fields (unlike :class:`Dipole_Magnet`, whose multipole ``normal``/``skew``
-    components denote field orientation, not beam plane) -- so this does *not*
-    subclass :class:`MagnetTranslator`, whose ``k1``/``k2``/``k3`` etc. and
-    ASTRA/CSRTrack/GPT writers assume a multipole-based magnetic model.
-    A :class:`~laura.models.element.Horizontal_Corrector`/
-    :class:`~laura.models.element.Vertical_Corrector` is expected to populate only
-    its own plane; a :class:`~laura.models.element.Combined_Corrector` can carry
-    both simultaneously.
+    fields.
     """
 
     magnetic: Corrector_Magnet

@@ -111,6 +111,75 @@ class TestElementTyping:
         assert "apertureType" in str(built)
 
 
+class TestChargeSign:
+    """BDSIM applies normalised strengths against the *real* particle charge.
+
+    MAD-X tracks every particle as if it were positive, so a MAD-X-convention
+    lattice focusses in the wrong plane under BDSIM for an electron beam unless
+    its k values are negated -- the BDSIM manual's "Magnet Strength Polarity"
+    note, and the ``flipmagnets`` option of pybdsim's own converters. LAURA does
+    not know the beam, so the sign is passed in; ``+1`` must leave the lattice
+    exactly as it was.
+    """
+
+    def test_positive_charge_is_the_unchanged_default(self):
+        assert _translate(_quadrupole()).to_bdsim()["k1"] == pytest.approx(3.0)
+        assert _translate(_quadrupole()).to_bdsim(charge_sign=1)["k1"] == pytest.approx(
+            3.0
+        )
+
+    def test_negative_charge_flips_the_quadrupole_strength(self):
+        assert _translate(_quadrupole()).to_bdsim(charge_sign=-1)[
+            "k1"
+        ] == pytest.approx(-3.0)
+
+    def test_negative_charge_flips_a_sextupole(self):
+        assert _translate(_sextupole()).to_bdsim(charge_sign=-1)[
+            "k2"
+        ] == pytest.approx(-5.0)
+
+    def test_negative_charge_flips_a_corrector_kick(self):
+        corrector = Horizontal_Corrector(
+            name="C1", machine_area="T", physical=PhysicalElement(length=0.1)
+        )
+        corrector.magnetic.length = 0.1
+        corrector.magnetic.horizontal_kick = 0.002
+        assert _translate(corrector).to_bdsim(charge_sign=-1)[
+            "hkick"
+        ] == pytest.approx(-0.002)
+
+    def test_bend_angle_is_not_flipped(self):
+        """`angle` is geometric -- BDSIM derives the field from it using the
+        charge, so negating it would bend the reference trajectory the wrong way."""
+        flipped = _translate(_dipole()).to_bdsim(charge_sign=-1)
+        assert flipped["angle"] == pytest.approx(
+            _translate(_dipole()).to_bdsim()["angle"]
+        )
+
+    def test_symbolic_strength_is_flipped_as_an_expression(self):
+        """Negating only the resolved number would leave the *unflipped*
+        expression in the gmad file, which is what BDSIM actually reads."""
+        quad = _bdsim_elements(_section_with_definitions(), charge_sign=-1)["Q1"]
+        assert "k1=-(kquad / 0.2)" in str(quad)
+        assert quad["k1"] == pytest.approx(-3.0)
+
+    def test_section_passes_the_sign_down_to_every_element(self):
+        elements = _bdsim_elements(_section_with_definitions(), charge_sign=-1)
+        assert elements["Q1"]["k1"] == pytest.approx(-3.0)
+
+    def test_flipping_twice_returns_the_original(self):
+        from laura.translator.utils.bdsim import negate_strength
+
+        assert negate_strength(negate_strength(3.0)) == pytest.approx(3.0)
+        assert negate_strength(negate_strength((1.0, -2.0))) == (1.0, -2.0)
+
+    def test_non_numeric_keywords_are_untouched(self):
+        from laura.translator.utils.bdsim import apply_charge_sign
+
+        keywords = {"name": "Q1", "material": "iron", "apertureType": "circular"}
+        assert apply_charge_sign(dict(keywords), -1) == keywords
+
+
 class TestFunctionalParameters:
     def test_symbolic_strength_is_written_as_an_unquoted_expression(self):
         """A quoted value would be a gmad string literal, not an expression."""
@@ -152,11 +221,11 @@ def _section_with_definitions():
     )
 
 
-def _bdsim_elements(section):
+def _bdsim_elements(section, charge_sign=1):
     translator = SectionLatticeTranslator.from_section(section)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        machine = translator.to_bdsim()
+        machine = translator.to_bdsim(charge_sign=charge_sign)
     return dict(machine.elements)
 
 
