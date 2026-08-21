@@ -79,6 +79,8 @@ def _switch_dict() -> Dict[str, str]:
 
 class MadxLatticeImporter(BaseModel):
 
+    machine_area: str = "Lattice"
+
     twiss_file: Optional[str] = None
     """Path to a MAD-X TWISS TFS table (``SELECT, flag=twiss, column=...;``
     before running ``TWISS``)."""
@@ -311,7 +313,7 @@ class MadxLatticeImporter(BaseModel):
                 self.madx_data[name] = {
                     "hardware_type": "TwissMatch",
                     "name": name,
-                    "machine_area": "test",
+                    "machine_area": self.machine_area,
                     "l": 0.0,
                     "s": 0.0,
                     "simulation": {
@@ -340,7 +342,7 @@ class MadxLatticeImporter(BaseModel):
                 self.madx_data[name] = {
                     "hardware_type": sftype,
                     "name": name,
-                    "machine_area": "test",
+                    "machine_area": self.machine_area,
                     "l": 0.0,
                     "s": row.get("s", 0.0),
                     "magnetic": {
@@ -376,7 +378,7 @@ class MadxLatticeImporter(BaseModel):
             entry = {
                 "hardware_type": sftype,
                 "name": name,
-                "machine_area": "test",
+                "machine_area": self.machine_area,
                 "l": row.get("l", 0.0),
                 "s": row.get("s", 0.0),
             }
@@ -411,6 +413,19 @@ class MadxLatticeImporter(BaseModel):
                 )
                 if not symbol or symbol in conflicting_definitions:
                     continue
+                if param in {"volt", "freq", "lag"}:
+                    suffix, conversion = {
+                        "volt": ("voltage", lambda value: value * 1e6),
+                        "freq": ("frequency", lambda value: value * 1e6),
+                        "lag": ("phase", lambda value: 90 - 360 * value),
+                    }[param]
+                    converted = f"{symbol}_laura_{suffix}"
+                    self.functional_definitions[converted] = conversion(
+                        source_definitions[symbol]
+                    )
+                    symbol = (
+                        source_definitions[symbol] if param == "freq" else converted
+                    )
                 if param in _RAW_KEYS:
                     entry[param] = symbol
                 for subk in model_fields:

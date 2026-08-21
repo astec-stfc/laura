@@ -327,6 +327,20 @@ class XsuiteLatticeImporter(BaseModel):
             "length": length,
         }
 
+    def _rf_phase(self, element_name: str, native) -> str | float:
+        # Xtrack phase is radians; its legacy lag is degrees and remains additive.
+        phase = float(getattr(native, "phase", 0.0))
+        lag = float(getattr(native, "lag", 0.0))
+        phase_symbol = self._symbol(element_name, "phase")
+        lag_symbol = self._symbol(element_name, "lag")
+        if lag_symbol and not phase_symbol and phase == 0.0:
+            return lag_symbol
+        if phase_symbol or lag_symbol:
+            name = f"{element_name}_laura_phase"
+            self.functional_definitions[name] = float(np.degrees(phase) + lag)
+            return name
+        return float(np.degrees(phase) + lag)
+
     def _multipoles(self, element_name: str, native, length: float, native_type: str) -> dict:
         normal = [float(value) for value in getattr(native, "knl", [])]
         skew = [float(value) for value in getattr(native, "ksl", [])]
@@ -456,7 +470,7 @@ class XsuiteLatticeImporter(BaseModel):
         if native_type == "Cavity":
             return {
                 "cavity": {
-                    "phase": self._symbol(element_name, "lag") or float(native.lag),
+                    "phase": self._rf_phase(element_name, native),
                     "frequency": float(native.frequency),
                 },
                 "simulation": {
@@ -475,7 +489,7 @@ class XsuiteLatticeImporter(BaseModel):
         if native_type == "CrabCavity":
             return {
                 "cavity": {
-                    "phase": self._symbol(element_name, "lag") or float(native.lag),
+                    "phase": self._rf_phase(element_name, native),
                     "frequency": float(native.frequency),
                 },
                 "simulation": {
@@ -499,7 +513,7 @@ class XsuiteLatticeImporter(BaseModel):
                     "field_amplitude": self._symbol(element_name, "voltage")
                     or float(native.voltage),
                     "frequency": float(native.frequency),
-                    "phase": self._symbol(element_name, "lag") or float(native.lag),
+                    "phase": self._rf_phase(element_name, native),
                     "knl": [float(value) for value in native.knl],
                     "ksl": [float(value) for value in native.ksl],
                     "pnl": [float(value) for value in native.pn],

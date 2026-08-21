@@ -47,7 +47,7 @@ class SDDS_Params:
                 if self.elegantData["ElementName"][i] == k:
                     self.elegantParams[key][val].append(self.elegantData[val][i])
 
-    def create_element_dictionary(self) -> tuple:
+    def create_element_dictionary(self, machine_area: str = "Lattice") -> tuple:
         if not self.elegantParams:
             self.join_params()
         sfconvert = {}
@@ -56,17 +56,21 @@ class SDDS_Params:
         sfconvert = {}
         for k, v in self.elegantParams.items():
             elemtype = v["ElementType"][0].lower()
-            alias = next(
-                (
-                    sf
-                    for sf, aliases in type_conversion_rules_aliases.items()
-                    if elemtype in aliases
-                ),
-                None,
+            alias = (
+                "Diagnostic"
+                if elemtype == "moni"
+                else next(
+                    (
+                        sf
+                        for sf, aliases in type_conversion_rules_aliases.items()
+                        if elemtype in aliases
+                    ),
+                    None,
+                )
             )
             if alias:
                 sfconvert.update(
-                    {k: {"hardware_type": alias, "name": k, "machine_area": "test"}}
+                    {k: {"hardware_type": alias, "name": k, "machine_area": machine_area}}
                 )
             elif elemtype in element_keywords and "drift" not in elemtype:
                 sfconvert.update(
@@ -74,7 +78,7 @@ class SDDS_Params:
                         k: {
                             "hardware_type": elemtype,
                             "name": k,
-                            "machine_area": "test",
+                            "machine_area": machine_area,
                         }
                     }
                 )
@@ -92,7 +96,7 @@ class SDDS_Params:
                         k: {
                             "hardware_type": switch_dict[elemtype],
                             "name": k,
-                            "machine_area": "test",
+                            "machine_area": machine_area,
                         }
                     }
                 )
@@ -106,7 +110,7 @@ class SDDS_Params:
                             "hardware_type": "Drift",
                             "name": k,
                             "hardware_class": "Drift",
-                            "machine_area": "test",
+                            "machine_area": machine_area,
                         }
                     }
                 )
@@ -144,7 +148,7 @@ class SDDS_Params:
                             "hardware_type": "Drift",
                             "name": k,
                             "hardware_class": "Drift",
-                            "machine_area": "test",
+                            "machine_area": machine_area,
                         }
                     }
                 )

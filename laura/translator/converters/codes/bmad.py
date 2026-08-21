@@ -143,6 +143,20 @@ def _read_lattice_text(path: Path, _seen: Optional[set] = None) -> str:
     return re.sub(r"(?im)^\s*call\s*,\s*file\s*=\s*([^\s;]+)\s*;?\s*$", _inline, text)
 
 
+def _ac_kicker_data(tao, element_id: str) -> Dict[str, list]:
+    # pytao cannot parse the nested ele:ac_kicker response in current releases.
+    result = {"frequencies": [], "amp_vs_time": []}
+    section = None
+    for line in tao.cmd(f"pipe ele:ac_kicker {element_id}|model"):
+        if line.startswith("has#"):
+            section = line.partition("#")[2].lower()
+        elif section in result:
+            result[section].append(
+                tuple(float(value) for value in line.split(";")[1:])
+            )
+    return result
+
+
 def _taylor_matrices(taylor: Dict[str, Any]):
     """Convert a Bmad orbital Taylor map of order <= 3 to C/R/T/U arrays."""
     c_matrix = np.zeros(6)
@@ -225,6 +239,8 @@ class BmadTaoInit(BaseModel):
 
 
 class BmadLatticeImporter(BaseModel):
+
+    machine_area: str = "Lattice"
 
     tao_init: Optional[str] = None
     """Name of Tao init file which produces."""
@@ -400,6 +416,8 @@ class BmadLatticeImporter(BaseModel):
                         )
                     elif etype in _MULTIPOLE_TYPES:
                         attributes["_MULTIPOLES"] = tao.ele_multipoles(element_id)
+                    elif etype == "AC_Kicker":
+                        attributes["_AC_KICKER"] = _ac_kicker_data(tao, element_id)
                     elif etype == "Beginning_Ele":
                         attributes["_TWISS"] = tao.ele_twiss(element_id)
                         attributes["_FLOOR"] = tao.ele_floor(element_id)
@@ -720,13 +738,37 @@ class BmadLatticeImporter(BaseModel):
                     hkick = parameters.get("HKICK", 0.0) or 0.0
                     vkick = parameters.get("VKICK", 0.0) or 0.0
                     vertical = abs(vkick) > abs(hkick)
+                    amplitude = vkick if vertical else hkick
+                    simulation = {"field_amplitude": amplitude}
+                    ac_data = parameters.get("_AC_KICKER", {})
+                    frequencies = ac_data.get("frequencies", [])
+                    if frequencies:
+                        frequency, scale, phase = max(
+                            frequencies, key=lambda row: abs(row[1])
+                        )
+                        simulation.update(
+                            {
+                                "field_amplitude": amplitude * scale,
+                                "frequency": frequency,
+                                "phase": phase * 360,
+                            }
+                        )
+                        if len(frequencies) > 1:
+                            warn(
+                                f"Bmad AC_Kicker {nam!r} has multiple frequencies; "
+                                "LAURA stores one, so the largest-amplitude component "
+                                "was imported."
+                            )
+                    if ac_data.get("amp_vs_time"):
+                        warn(
+                            f"Bmad AC_Kicker {nam!r} uses amp_vs_time; LAURA has no "
+                            "equivalent sampled-time waveform, so it was not imported."
+                        )
                     elem_data = {
                         "hardware_type": (
                             "Vertical_AC_Dipole" if vertical else "Horizontal_AC_Dipole"
                         ),
-                        "simulation": {
-                            "field_amplitude": vkick if vertical else hkick,
-                        },
+                        "simulation": simulation,
                     }
                     if hkick and vkick:
                         warn(
@@ -742,6 +784,7 @@ class BmadLatticeImporter(BaseModel):
                             "charge": parameters.get("CHARGE"),
                             "horizontal_sigma": parameters.get("SIG_X"),
                             "vertical_sigma": parameters.get("SIG_Y"),
+                            "width": parameters.get("SIG_Z"),
                         },
                     }
                 elif etype in ("Marker", "Monitor", "Instrument"):
@@ -749,7 +792,7 @@ class BmadLatticeImporter(BaseModel):
                         "physical": dict(phys_common),
                         "name": nam,
                         "hardware_type": mapped_type,
-                        "machine_area": "test",
+                        "machine_area": getattr(self, "machine_area", "Lattice"),
                         **_aperture(parameters),
                     }
                     self.laura_elems[universe][b].update(
@@ -767,7 +810,7 @@ class BmadLatticeImporter(BaseModel):
                             "physical": physical,
                             "name": nam,
                             "hardware_type": "TwissMatch",
-                            "machine_area": "test",
+                            "machine_area": getattr(self, "machine_area", "Lattice"),
                             "simulation": {
                                 "beta_x": twiss["beta_a"],
                                 "beta_y": twiss["beta_b"],
@@ -794,7 +837,7 @@ class BmadLatticeImporter(BaseModel):
                         nam: {
                             "physical": dict(phys_common),
                             "name": nam,
-                            "machine_area": "test",
+                            "machine_area": getattr(self, "machine_area", "Lattice"),
                             **_aperture(parameters),
                             **elem_data,
                         }

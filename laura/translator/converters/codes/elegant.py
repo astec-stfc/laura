@@ -30,6 +30,29 @@ elegant_unsupported = [
 
 
 _LINE_MEMBER_RE = re.compile(r"^\s*(-)?\s*(?:(\d+)\s*\*\s*)?(-)?\s*(.+?)\s*$")
+_INCLUDE_RE = re.compile(
+    r'(?im)^[ \t]*#include[ \t]+(?:"([^"]+)"|<([^>]+)>|([^\s]+))[ \t]*$'
+)
+
+
+def _read_lattice_text(path: Path, stack: Optional[set] = None) -> str:
+    # Inline nested includes so source metadata sees the same lattice as ELEGANT.
+    path = path.resolve()
+    active = set() if stack is None else stack
+    if path in active:
+        raise ValueError(f"Circular ELEGANT #include involving {path}")
+    active.add(path)
+
+    def inline(match: "re.Match") -> str:
+        included = path.parent / next(group for group in match.groups() if group)
+        if not included.is_file():
+            raise FileNotFoundError(f"ELEGANT #include file not found: {included}")
+        return _read_lattice_text(included, active)
+
+    try:
+        return _INCLUDE_RE.sub(inline, path.read_text())
+    finally:
+        active.remove(path)
 
 
 def _expand_line_member(member: str, lookup: Dict[str, tuple]) -> list:
@@ -52,6 +75,8 @@ def _expand_line_member(member: str, lookup: Dict[str, tuple]) -> list:
     return result * count
 
 class ElegantLatticeImporter(BaseModel):
+
+    machine_area: str = "Lattice"
 
     params_file: Optional[str] = None
     """Name of ELEGANT parameters file"""
@@ -157,7 +182,7 @@ class ElegantLatticeImporter(BaseModel):
     def _prepare_source(self) -> None:
         if self._source_outputs:
             return
-        text = Path(self.source_file).read_text()
+        text = _read_lattice_text(Path(self.source_file))
         text = re.sub(r"!.*", "", text).replace("&\n", " ")
         self.functional_definitions = {
             name: float(value)
@@ -294,7 +319,7 @@ class ElegantLatticeImporter(BaseModel):
         params = SDDS_Params(self.params_file)
         if self.source_file:
             params.elegantParams = self._saved_lattice_params(self.params_file)
-        self.elegant_data, filenames = params.create_element_dictionary()
+        self.elegant_data, filenames = params.create_element_dictionary(self.machine_area)
         for name, data in self.elegant_data.items():
             source_name = name.lower()
             expressions = self._source_expressions.get(source_name, {})
@@ -335,19 +360,32 @@ class ElegantLatticeImporter(BaseModel):
                     if isinstance(nested, dict) and target in nested:
                         nested[target] = expression
             wakefiles = filenames.get(name, {})
-            wakefile = wakefiles.get("zwakefile") or wakefiles.get("wakefile")
-            if wakefile and data["hardware_type"] == "RFCavity":
-                wakepath = Path(wakefile)
+            wakefile = wakefiles.get("wakefile")
+            zwakefile = wakefiles.get("zwakefile") or wakefile
+            trwakefile = wakefiles.get("trwakefile") or wakefile
+            if (zwakefile or trwakefile) and data["hardware_type"] == "RFCavity":
+                if zwakefile and trwakefile and zwakefile != trwakefile:
+                    warn(
+                        f"ELEGANT RFCavity {name!r} uses separate longitudinal and "
+                        "transverse wake files; LAURA stores one structured wake, so "
+                        "both native filenames were preserved instead."
+                    )
+                    continue
+                selected = zwakefile or trwakefile
+                wakepath = Path(selected)
                 if not wakepath.is_absolute():
                     imported_from = self.source_file or self.params_file
                     wakepath = Path(imported_from).resolve().parent / wakepath
                 simulation = data.setdefault("simulation", {})
-                simulation["wakefield_definition"] = field(
-                    filename=str(wakepath.resolve()),
-                    field_type="LongitudinalWake",
-                    t_column=simulation.get("t_column"),
-                    wz_column=simulation.get("wz_column"),
+                wake = field(
+                    field_type=(
+                        "3DWake"
+                        if zwakefile and trwakefile
+                        else "LongitudinalWake" if zwakefile else "TransverseWake"
+                    )
                 )
+                wake.filename = str(wakepath.resolve())
+                simulation["wakefield_definition"] = wake
                 for raw_name in ("wakefile", "zwakefile", "trwakefile"):
                     simulation.pop(raw_name, None)
         return self.elegant_data, filenames

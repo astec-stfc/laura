@@ -230,3 +230,81 @@ def test_expand_line_member_handles_repeat_count_and_reversal_shorthand():
         for element in _expand_line_member(member, lookup)
     ]
     assert sequence == ["Q1", "D1", "Q1", "D1", "Q1", "D1", "D1", "Q1"]
+
+def test_elegant_include_inlines_nested_relative_files(tmp_path):
+    from laura.translator.converters.codes.elegant import _read_lattice_text
+
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    (tmp_path / "definitions.lte").write_text("q: quadrupole, l=1\n")
+    (sub / "section.lte").write_text(
+        '#include "../definitions.lte"\nsec: line=(q)\n'
+    )
+    source = tmp_path / "main.lte"
+    source.write_text('#include "sub/section.lte"\nmain: line=(sec)\n')
+
+    text = _read_lattice_text(source)
+
+    assert "q: quadrupole" in text
+    assert "sec: line=(q)" in text
+    assert "main: line=(sec)" in text
+
+
+def test_elegant_moni_maps_to_diagnostic_and_uses_machine_area():
+    from laura.translator.utils.elegant.sdds_classes_APS import SDDS_Params
+
+    params = SDDS_Params("unused")
+    params.elegantParams = {
+        "M": {
+            "ElementType": ["MONI"],
+            "ElementParameter": [],
+            "ParameterValue": [],
+            "ParameterValueString": [],
+        }
+    }
+
+    converted, _ = params.create_element_dictionary("AREA")
+
+    assert converted["M"]["hardware_type"] == "Diagnostic"
+    assert converted["M"]["machine_area"] == "AREA"
+
+
+def test_elegant_transverse_and_distinct_wakes_are_not_lost(tmp_path, monkeypatch):
+    from laura.translator.utils.elegant.sdds_classes_APS import SDDS_Params
+
+    data = {
+        "TR": {
+            "hardware_type": "RFCavity",
+            "name": "TR",
+            "machine_area": "AREA",
+            "simulation": {"trwakefile": "tr.sdds", "t_column": "t", "wx_column": "wx"},
+        },
+        "BOTH": {
+            "hardware_type": "RFCavity",
+            "name": "BOTH",
+            "machine_area": "AREA",
+            "simulation": {"zwakefile": "z.sdds", "trwakefile": "tr.sdds"},
+        },
+    }
+    filenames = {
+        "TR": {"trwakefile": "tr.sdds"},
+        "BOTH": {"zwakefile": "z.sdds", "trwakefile": "tr.sdds"},
+    }
+
+    monkeypatch.setattr(
+        SDDS_Params,
+        "create_element_dictionary",
+        lambda self, machine_area="Lattice": (data, filenames),
+    )
+    importer = ElegantLatticeImporter(
+        params_file=str(tmp_path / "params.sdds"), machine_area="AREA"
+    )
+
+    with pytest.warns(UserWarning, match="separate longitudinal and transverse"):
+        converted, _ = importer.create_element_dictionary()
+
+    wake = converted["TR"]["simulation"]["wakefield_definition"]
+    assert wake.field_type == "TransverseWake"
+    assert wake.filename == str((tmp_path / "tr.sdds").resolve())
+    assert converted["BOTH"]["simulation"]["zwakefile"] == "z.sdds"
+    assert converted["BOTH"]["simulation"]["trwakefile"] == "tr.sdds"

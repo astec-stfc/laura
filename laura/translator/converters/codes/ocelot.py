@@ -12,6 +12,7 @@ from .. import keyword_conversion_rules_ocelot as keyword_conversion_rules
 from ...utils.functions import introspect_model_defaults, number_repeated_names
 from ....Exporters.YAML import export_machine_combined_file, PositionMode
 from warnings import warn
+from math import isfinite
 
 
 def _switch_dict(type_rules: Dict[str, type]) -> Dict[str, str]:
@@ -29,6 +30,7 @@ def _switch_dict(type_rules: Dict[str, type]) -> Dict[str, str]:
             "marker": "Marker",
             "monitor": "Diagnostic",
             "rbend": "Dipole",
+            "tdcavity": "RFDeflectingCavity",
             "undulator": "Wiggler",
             "vcor": "Vertical_Corrector",
         }
@@ -154,7 +156,14 @@ class OcelotLatticeImporter(BaseModel):
             except AttributeError:
                 warn(f"Ocelot type {sftype!r} for {numbered_id!r} not recognized; skipping.")
                 continue
-            for subk in ["magnetic", "cavity", "simulation", "diagnostic", "physical"]:
+            for subk in [
+                "magnetic",
+                "cavity",
+                "simulation",
+                "diagnostic",
+                "physical",
+                "aperture",
+            ]:
                 if subk in model_fields and subk not in newobj:
                     newobj.update({subk: {}})
             for oceparam, value in elem.element.__dict__.items():
@@ -223,6 +232,53 @@ class OcelotLatticeImporter(BaseModel):
                                         pass
                                     except AttributeError:
                                         pass
+            if typeconv == "solenoid":
+                newobj["magnetic"].update(
+                    {
+                        "length": length,
+                        "fields": {"S0L": float(getattr(elem, "k", 0.0)) * length},
+                    }
+                )
+            elif typeconv == "undulator":
+                kx, ky = abs(float(elem.Kx)), abs(float(elem.Ky))
+                newobj["magnetic"].update(
+                    {
+                        "length": length,
+                        "strength": max(kx, ky),
+                        "period": float(elem.lperiod),
+                        "num_periods": int(elem.nperiods),
+                        "helical": bool(kx and ky),
+                    }
+                )
+                if kx and ky and kx != ky:
+                    warn(
+                        f"Ocelot Undulator {numbered_id!r} has unequal Kx/Ky; "
+                        "LAURA stores one strength, so the larger value was imported."
+                    )
+            elif typeconv == "tdcavity":
+                newobj["cavity"].update(
+                    {"phase": float(elem.phi), "frequency": float(elem.freq)}
+                )
+                newobj["simulation"].update(
+                    {"field_amplitude": float(elem.v) * 1e9}
+                )
+            elif typeconv == "aperture":
+                xmax, ymax = float(elem.xmax), float(elem.ymax)
+                newobj["aperture"].update(
+                    {
+                        "horizontal_size": 2 * xmax if isfinite(xmax) else 0.0,
+                        "vertical_size": 2 * ymax if isfinite(ymax) else 0.0,
+                        "shape": {
+                            "rect": "rectangular",
+                            "ellipse": "elliptical",
+                            "circle": "circular",
+                        }.get(str(elem.type).lower(), "rectangular"),
+                    }
+                )
+                if elem.dx or elem.dy:
+                    newobj["physical"]["error"] = {
+                        "position": {"x": elem.dx, "y": elem.dy, "z": 0.0}
+                    }
             self.laura_elements.update(
                 {numbered_id: getattr(LAURA_elements, newobj["hardware_type"])(**newobj)}
             )
