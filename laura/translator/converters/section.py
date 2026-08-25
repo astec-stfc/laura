@@ -145,7 +145,19 @@ class SectionLatticeTranslator(SectionLattice):
                      f"Raise an issue if you want this to be rectified.")
 
     def to_bmad(self, particle: str | None = None) -> str:
-        """Create a standalone native Bmad lattice for this section."""
+        """
+        Create a Bmad-compatible lattice file for this section.
+
+        Parameters
+        ----------
+        particle: str | None
+            Particle for this lattice
+
+        Returns
+        -------
+        str
+            A Bmad-compatible lattice file.
+        """
         self._check_elements_supported("bmad")
         section = self.createDrifts()
         elements = translate_elements(
@@ -497,7 +509,6 @@ class SectionLatticeTranslator(SectionLattice):
             lsc_enable=self.lsc_enable,
             lsc_bins=self.lsc_bins,
         )
-        # (wakefields are applied to the translated elements below)
         elem_dict = translate_elements(
             section_with_drifts.values(),
             master_lattice=self.master_lattice,
@@ -652,11 +663,7 @@ class SectionLatticeTranslator(SectionLattice):
         for d in elem_dict.values():
             obj = d.to_ocelot()
             objs = list(obj) if isinstance(obj, (list, tuple)) else [obj]
-            # e.g. a Combined_Corrector split into an Hcor + Vcor pair.
             elements.extend(objs)
-            # Some finite-length elements (e.g. collimators) map to zero-length
-            # Ocelot elements (Aperture takes no length).
-            # Pad the difference with a drift so the total length is preserved.
             oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
             gap = d.physical.length - oce_len
             if gap > 1e-9:
@@ -713,11 +720,6 @@ class SectionLatticeTranslator(SectionLattice):
         lattice = rft.Lattice()
         for d in elem_dict.values():
             elem = d.to_rftrack(P_Q=P_Q)
-            # A handful of builders (e.g. build_tw_fieldmap) return a *list*
-            # of objects to flatten as siblings rather than one object -- see
-            # BaseElementTranslator.to_rftrack's docstring for why (avoids
-            # nesting a Lattice inside a Lattice inside a Volume, which
-            # verified breaks Volume.autophase() for the inner elements).
             for e in (elem if isinstance(elem, list) else [elem]):
                 if sc_nsteps > 0:
                     e.set_sc_nsteps(sc_nsteps)

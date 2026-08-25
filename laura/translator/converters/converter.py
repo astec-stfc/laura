@@ -27,6 +27,7 @@ from laura.models.element import (
     Wire,
     BeamBeam,
     RFMultipole,
+    Wakefield,
 )
 
 from .base import BaseElementTranslator
@@ -51,6 +52,7 @@ from .ac_dipole import ACDipoleTranslator
 from .wire import WireTranslator
 from .beam_beam import BeamBeamTranslator
 from .rf_multipole import RFMultipoleTranslator
+from .wake import WakefieldTranslator
 
 
 def translate_elements(
@@ -121,6 +123,8 @@ def translate_elements(
             translator = BeamBeamTranslator
         elif isinstance(elem, RFMultipole):
             translator = RFMultipoleTranslator
+        elif isinstance(elem, Wakefield):
+            translator = WakefieldTranslator
         else:
             translator = BaseElementTranslator
         try:

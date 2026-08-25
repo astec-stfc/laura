@@ -101,7 +101,15 @@ class RFCavityTranslator(BaseElementTranslator):
         return f'"{self.simulation.wz_column}"' if self.simulation.wz_column else None
 
     def to_bmad(self) -> str:
-        """Generate a Bmad RF or crab-cavity definition."""
+        """
+        Generate a Bmad RF or crab-cavity definition.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
         etype = self._convertType_Bmad(self.hardware_type)
         parameters = self._bmad_parameters(etype)
         phase = self.cavity.phase
@@ -117,6 +125,14 @@ class RFCavityTranslator(BaseElementTranslator):
                 "travellingwave": "traveling_wave",
                 "travelingwave": "traveling_wave",
             }.get(structure, structure)
+        if self._wakefield_active():
+            wake = self.generate_field_file_name(
+                self.simulation.wakefield_definition,
+                code="bmad",
+                verbose=getattr(self, "verbose", True),
+            )
+            if wake:
+                parameters["sr_wake"] = f"call::{wake}"
         return self._format_bmad(etype, parameters)
 
     def set_wakefield_column_names(self, wakefield_file_name: str) -> None:
@@ -244,7 +260,6 @@ class RFCavityTranslator(BaseElementTranslator):
                                 else:
                                     value = (value / 360.0) * (2 * 3.14159)
                             else:
-                                # In ELEGANT all phases are +90degrees!!
                                 value = self._rpn(90, value, "-") if functional else 90 - value
 
                     # In ELEGANT the voltages need to be compensated

@@ -25,6 +25,7 @@ from pydantic import (
 )
 from typing import Literal, List
 from . import astra  # noqa E402
+from . import bmad  # noqa E402
 from . import gdf  # noqa E402
 from . import hdf5  # noqa E402
 from . import sdds  # noqa E402
@@ -417,7 +418,9 @@ class field(BaseModel):
             return astra.generate_astra_field_data(self)
         return None
 
-    def write_field_file(self, code: str, location: str | None = None) -> str | None:
+    def write_field_file(
+        self, code: str, location: str | None = None, **kwargs
+    ) -> str | None:
         """
         Write the field data to a file in the format required by the specified code.
         This method supports writing field data for ASTRA, SDDS, GDF, and OPAL.
@@ -463,3 +466,5 @@ class field(BaseModel):
             )
         elif code.lower() == "hdf5":
             return hdf5.write_HDF5_field_file(self)
+        elif code.lower() == "bmad":
+            return bmad.write_bmad_field_file(self, **kwargs)

@@ -1067,7 +1067,6 @@ class BaseElementTranslator(PhysicalBaseElement):
         -------
         str
             The converted keyword for MAD-X, or the original keyword if no conversion rule exists.
-
         """
         if updated_type.lower() in keyword_conversion_rules_madx:
             conversion_rules = (
@@ -1087,12 +1086,38 @@ class BaseElementTranslator(PhysicalBaseElement):
         return keyword
 
     def _convertType_Bmad(self, etype: str) -> str:
-        """Convert a LAURA hardware type to its canonical Bmad element key."""
+        """
+        Converts the element type to the corresponding Bmad type using predefined rules.
+
+        Parameters
+        ----------
+        etype: str
+            The type of the element to be converted.
+
+        Returns
+        -------
+        str
+            The converted type of the element, or the original type if no conversion rule exists.
+        """
         converted = self._convert_type(etype, type_conversion_rules_Bmad, etype)
         return converted if converted.lower() in elements_Bmad else "drift"
 
     def _convertKeyword_Bmad(self, keyword: str, updated_type: str = "") -> str:
-        """Convert a LAURA field name to its Bmad attribute name."""
+        """
+        Converts a keyword to its corresponding Bmad keyword using predefined rules.
+
+        Parameters
+        ----------
+        keyword: str:
+            The keyword to be converted.
+        updated_type: str
+            Optional override for type name
+
+        Returns
+        -------
+        str
+            The converted keyword for Bmad, or the original keyword if no conversion rule exists.
+        """
         hardware_type = updated_type or self.hardware_type
         key = hardware_type.lower()
         conversion_rules = (
@@ -1117,7 +1142,19 @@ class BaseElementTranslator(PhysicalBaseElement):
         )
 
     def _bmad_parameters(self, etype: str | None = None) -> Dict[str, Any]:
-        """Return the native Bmad attributes represented by this element."""
+        """
+        Return the native Bmad attributes represented by this element.
+
+        Parameters
+        ----------
+        etype: str | None
+            Element type
+
+        Returns
+        -------
+        dict
+            Dictionary of Bmad parameters associated with the element
+        """
         etype = etype or self._convertType_Bmad(self.hardware_type)
         parameters = {}
         for source_key, value in self.full_dump(
@@ -1171,7 +1208,21 @@ class BaseElementTranslator(PhysicalBaseElement):
         etype: str | None = None,
         parameters: Dict[str, Any] | None = None,
     ) -> str:
-        """Format one Bmad lattice element definition."""
+        """
+        Format one Bmad lattice element definition.
+
+        Parameters
+        ----------
+        etype: str | None
+            Element type
+        parameters: Dict[str, Any] | None
+            Element parameters
+
+        Returns
+        -------
+        str
+            Formatted string for Bmad output
+        """
         self.start_write()
         etype = etype or self._convertType_Bmad(self.hardware_type)
         parameters = self._bmad_parameters(etype) if parameters is None else parameters
@@ -1191,7 +1242,14 @@ class BaseElementTranslator(PhysicalBaseElement):
         return f"{sanitize_string(self.name)}: {etype}{attributes}\n"
 
     def to_bmad(self) -> str:
-        """Generate a Bmad lattice element definition."""
+        """
+        Generate a Bmad lattice element string.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
         return self._format_bmad()
 
     def _write_ASTRA_dictionary(self, d: dict, n: int | None = 1) -> str:
@@ -1417,7 +1475,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                         ),
                     )
 
-    def generate_field_file_name(self, param: field, code: str) -> str | None:
+    def generate_field_file_name(
+        self, param: field, code: str, **kwargs
+    ) -> str | None:
         """
         Generates a field file name based on the provided frameworkElement and tracking code.
 
@@ -1443,9 +1503,10 @@ class BaseElementTranslator(PhysicalBaseElement):
                     self.directory.replace("\\", "/"), basename.replace("\\", "/")
                 )
             )
-            return os.path.basename(
-                param.write_field_file(code=code, location=efield_basename)
+            filename = param.write_field_file(
+                code=code, location=efield_basename, **kwargs
             )
+            return os.path.basename(filename) if filename else None
         else:
             if param:
                 warn(

@@ -30,7 +30,6 @@ bmad_unsupported = [
     "Stage",
     "VacuumGauge",
     "Valve",
-    "Wakefield",
     "Wire",
 ]
 

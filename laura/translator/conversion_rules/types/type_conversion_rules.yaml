@@ -193,6 +193,7 @@ bmad:
   TwissMatch: match
   MatrixTransform: taylor
   ElectrostaticSeparator: elseparator
+  Wakefield: drift
 name:
   dia-bpm: beam_position_monitor
   dia-bam: beam_arrival_monitor

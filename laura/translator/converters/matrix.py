@@ -63,7 +63,14 @@ class MatrixTransformTranslator(BaseElementTranslator):
         return wholestring
 
     def to_bmad(self) -> str:
-        """Generate a Bmad Taylor map through third orbital order."""
+        """
+        Generate a Bmad Taylor map through third order.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
         self.start_write()
         terms = [f"l = {self.length}"]
         for output, value in enumerate(self.simulation.c_matrix, 1):

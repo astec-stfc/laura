@@ -8,7 +8,14 @@ class ApertureTranslator(BaseElementTranslator):
     aperture: ApertureElement
 
     def to_bmad(self) -> str:
-        """Generate a native Bmad collimator with symmetric aperture limits."""
+        """
+        Generate a native Bmad collimator with symmetric aperture limits.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
         shape = getattr(self.aperture.shape, "value", self.aperture.shape)
         etype = (
             "ecollimator"

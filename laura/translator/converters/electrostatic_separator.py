@@ -18,7 +18,14 @@ class ElectrostaticSeparatorTranslator(BaseElementTranslator):
     """Electrostatic separator simulation element."""
 
     def to_bmad(self) -> str:
-        """Generate a Bmad electrostatic separator."""
+        """
+        Generate a Bmad electrostatic separator.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
         horizontal = self.resolve(self.simulation.horizontal_field)
         vertical = self.resolve(self.simulation.vertical_field)
         parameters = {"l": self.length, "e_field": hypot(horizontal, vertical)}
@@ -31,8 +38,7 @@ class ElectrostaticSeparatorTranslator(BaseElementTranslator):
     def to_madx(self, at: float = None) -> str:
         """
         Generates a string representation of the object's properties in the
-        MAD-X format, as a MAD-X ``ELSEPARATOR`` element. MAD-X ``EX``/``EY``
-        are in MV/m (LAURA stores V/m).
+        MAD-X format.
 
         Parameters
         ----------

@@ -1,5 +1,6 @@
 from .base import BaseElementTranslator
 from laura.models.RF import WakefieldElement
+from laura.models.simulation import WakefieldSimulationElement
 from ..utils.fields import field
 
 
@@ -11,6 +12,30 @@ class WakefieldTranslator(BaseElementTranslator):
 
     cavity: WakefieldElement
     """Wakefield element."""
+
+    simulation: WakefieldSimulationElement
+    """Wakefield simulation attributes."""
+
+    def to_bmad(self) -> str:
+        """
+        Generate a drift carrying a short-range wake for Bmad.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        parameters = self._bmad_parameters("drift")
+        if getattr(self.simulation, "wakefield_enable", True):
+            wake = self.simulation.wakefield_definition
+            if isinstance(wake, field):
+                filename = self.generate_field_file_name(
+                    wake, code="bmad", verbose=getattr(self, "verbose", True)
+                )
+                if filename:
+                    parameters["sr_wake"] = f"call::{filename}"
+        return self._format_bmad("drift", parameters)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """

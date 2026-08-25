@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 pytest.importorskip("easygdf")
-pytest.importorskip("h5py")
+h5py = pytest.importorskip("h5py")
 
 from laura.models.baseModels import (  # noqa: E402
     set_functional_definitions,
@@ -25,6 +25,7 @@ from laura.models.element import (  # noqa: E402
     RFDeflectingCavity,
     Solenoid,
     TwissMatch,
+    Wakefield,
     Wiggler,
 )
 from laura.models.elementList import (  # noqa: E402
@@ -53,8 +54,26 @@ def _reset_functionals():
     set_resolve_functional(False)
 
 
-def _bmad(element):
-    return next(iter(translate_elements([element]).values())).to_bmad()
+def _bmad(element, directory="."):
+    return next(
+        iter(translate_elements([element], directory=str(directory)).values())
+    ).to_bmad()
+
+
+def _write_field(path, field_type, **datasets):
+    units = {
+        "z": "m",
+        "t": "s",
+        "Bz": "T",
+        "Wx": "V/C/m",
+        "Wy": "V/C/m",
+        "Wz": "V/C",
+    }
+    with h5py.File(path, "w") as output:
+        output.attrs["type"] = field_type
+        for name, values in datasets.items():
+            dataset = output.create_dataset(name, data=values)
+            dataset.attrs["units"] = units[name]
 
 
 def test_bmad_rule_coverage_matches_the_element_registry():
@@ -67,6 +86,116 @@ def test_bmad_rule_coverage_matches_the_element_registry():
     assert set(ELEMENT_REGISTRY) - set(type_conversion_rules_Bmad) == set(
         bmad_unsupported
     )
+
+
+def test_bmad_short_range_wake_sidecars(tmp_path):
+    wake_path = tmp_path / "wake.hdf5"
+    _write_field(
+        wake_path,
+        "3DWake",
+        z=[0, 0.01, 0.02],
+        Wx=[0, 1, 2],
+        Wy=[0, 1, 2],
+        Wz=[10, 5, 0],
+    )
+    wake = Wakefield(
+        name="W",
+        machine_area="S",
+        physical={"length": 0.2},
+        simulation={"wakefield_definition": str(wake_path)},
+    )
+    with pytest.warns(UserWarning, match="Wx/Wy"):
+        text = _bmad(wake, tmp_path)
+    assert text == "W: drift, l = 0.2, sr_wake = call::wake.bmad\n"
+    sidecar = (tmp_path / "wake.bmad").read_text()
+    assert "scale_with_length = F" in sidecar
+    assert "time_based = F" in sidecar
+    assert "0.01 5" in sidecar
+
+    cavity = RFCavity(
+        name="C",
+        machine_area="S",
+        cavity={
+            "phase": 0,
+            "frequency": 1e9,
+            "n_cells": 1,
+            "cell_length": 0.2,
+            "structure_Type": "StandingWave",
+        },
+        simulation={
+            "field_amplitude": 1e6,
+            "wakefield_definition": str(wake_path),
+        },
+    )
+    with pytest.warns(UserWarning, match="Wx/Wy"):
+        assert "sr_wake = call::wake.bmad" in _bmad(cavity, tmp_path)
+
+
+def test_bmad_transverse_only_wake_is_reported_and_omitted(tmp_path):
+    wake_path = tmp_path / "transverse.hdf5"
+    _write_field(
+        wake_path,
+        "TransverseWake",
+        z=[0, 0.01, 0.02],
+        Wx=[0, 1, 2],
+        Wy=[0, 1, 2],
+    )
+    wake = Wakefield(
+        name="W",
+        machine_area="S",
+        simulation={"wakefield_definition": str(wake_path)},
+    )
+    with pytest.warns(UserWarning, match="pseudo-modes"):
+        text = _bmad(wake, tmp_path)
+    assert "sr_wake" not in text
+
+
+def test_bmad_quadrupole_generalized_gradient_sidecar(tmp_path):
+    field_path = tmp_path / "quadrupole.hdf5"
+    _write_field(
+        field_path,
+        "1DMagnetoStatic",
+        z=[-0.1, 0, 0.1],
+        Bz=[0, 1, 0],
+    )
+    quadrupole = Quadrupole(
+        name="Q",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.2, "gradient": 4, "k1l": 0.3},
+        simulation={"field_definition": str(field_path)},
+    )
+    text = _bmad(quadrupole, tmp_path)
+    assert "field_calc = fieldmap" in text
+    assert "gen_gradients = call::quadrupole.bmad" in text
+    assert "k1 =" not in text
+    sidecar = (tmp_path / "quadrupole.bmad").read_text()
+    assert "field_scale = 4" in sidecar
+    assert "ele_anchor_pt = center" in sidecar
+    assert "curve = { kind = b, n = 2" in sidecar
+    assert "0: 1" in sidecar
+
+
+def test_bmad_solenoid_generalized_gradient_uses_zero_harmonic(tmp_path):
+    field_path = tmp_path / "solenoid.hdf5"
+    _write_field(
+        field_path,
+        "1DMagnetoStatic",
+        z=[-0.1, 0, 0.1],
+        Bz=[0, 1, 0],
+    )
+    solenoid = Solenoid(
+        name="S",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.2, "fields": {"S0L": 0.8}},
+        simulation={"field_definition": str(field_path)},
+    )
+    text = _bmad(solenoid, tmp_path)
+    assert "field_calc = fieldmap" in text
+    assert "gen_gradients = call::solenoid.bmad" in text
+    assert "bs_field =" not in text
+    sidecar = (tmp_path / "solenoid.bmad").read_text()
+    assert "field_scale = 4" in sidecar
+    assert "curve = { kind = bs, n = 0" in sidecar
 
 
 def test_bmad_special_element_conversions():

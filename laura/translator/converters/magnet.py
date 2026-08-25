@@ -202,8 +202,26 @@ class MagnetTranslator(BaseElementTranslator):
         return 0.0
 
     def to_bmad(self) -> str:
+        """
+        Generate a Bmad magnet element.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
         if self.hardware_type != "CombinedSolenoidQuadrupole":
-            return super().to_bmad()
+            parameters = self._bmad_parameters()
+            if self.hardware_type == "Quadrupole":
+                self._add_bmad_magnetic_field(
+                    parameters,
+                    field_scale=self.magnetic.gradient,
+                    kind="a" if self.magnetic.skew else "b",
+                    n=2,
+                    strength_key="k1",
+                )
+            return self._format_bmad(parameters=parameters)
         parameters = self._bmad_parameters()
         strength = self.magnetic.ks
         parameters["bs_field"] = (
@@ -218,6 +236,31 @@ class MagnetTranslator(BaseElementTranslator):
             else self.resolve(strength)
         )
         return self._format_bmad(parameters=parameters)
+
+    def _add_bmad_magnetic_field(
+        self,
+        parameters: dict,
+        *,
+        field_scale,
+        kind: str,
+        n: int,
+        strength_key: str,
+    ) -> None:
+        definition = getattr(self.simulation, "field_definition", None)
+        if not isinstance(definition, field):
+            return
+        filename = self.generate_field_file_name(
+            definition,
+            code="bmad",
+            field_scale=field_scale,
+            kind=kind,
+            n=n,
+            verbose=getattr(self, "verbose", True),
+        )
+        if filename:
+            parameters.pop(strength_key, None)
+            parameters["field_calc"] = "fieldmap"
+            parameters["gen_gradients"] = f"call::{filename}"
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
@@ -1015,6 +1058,15 @@ class SolenoidTranslator(BaseElementTranslator):
         return self.magnetic.ks
 
     def to_bmad(self) -> str:
+        """
+        Generate a Bmad solenoid element.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
         parameters = self._bmad_parameters()
         strength = self.magnetic.ks
         if self.magnetic.length:
@@ -1025,6 +1077,14 @@ class SolenoidTranslator(BaseElementTranslator):
             )
         else:
             parameters["bs_field"] = self.resolve(strength)
+        MagnetTranslator._add_bmad_magnetic_field(
+            self,
+            parameters,
+            field_scale=parameters["bs_field"],
+            kind="bs",
+            n=0,
+            strength_key="bs_field",
+        )
         return self._format_bmad(parameters=parameters)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:

@@ -1,5 +1,6 @@
 drift:
   l: double
+  sr_wake: string
 sbend:
   l: double
   angle: double
@@ -26,6 +27,8 @@ quadrupole:
   l: double
   k1: double
   tilt: double
+  field_calc: string
+  gen_gradients: string
 sextupole:
   l: double
   k2: double
@@ -55,6 +58,7 @@ rfcavity:
   voltage: double
   n_cell: integer
   cavity_type: string
+  sr_wake: string
 lcavity:
   l: double
   phi0: double
@@ -62,11 +66,13 @@ lcavity:
   voltage: double
   n_cell: integer
   cavity_type: string
+  sr_wake: string
 crab_cavity:
   l: double
   phi0: double
   rf_frequency: double
   voltage: double
+  sr_wake: string
 wiggler:
   l: double
   b_max: double
@@ -75,6 +81,8 @@ wiggler:
 solenoid:
   l: double
   bs_field: double
+  field_calc: string
+  gen_gradients: string
 sol_quad:
   l: double
   k1: double

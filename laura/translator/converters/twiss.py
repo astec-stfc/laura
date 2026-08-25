@@ -13,7 +13,14 @@ class TwissMatchTranslator(BaseElementTranslator):
     """Twiss match simulation element"""
 
     def to_bmad(self) -> str:
-        """Generate a Bmad match element from target exit Twiss parameters."""
+        """
+        Generate a Bmad match element from target exit Twiss parameters.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
         return self._format_bmad(
             "match",
             {
