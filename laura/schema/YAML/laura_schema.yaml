@@ -216,7 +216,6 @@ slots:
     range: integer
     description: Mode fraction denominator.
 
-  # Shared wake-file column labels
   t_column:
     range: string
     description: Time column in the wake file.
@@ -245,6 +244,87 @@ slots:
   lsc_bins:
     range: integer
     description: Number of bins used in longitudinal space-charge calculations.
+
+  csr_enable:
+    range: boolean
+    description: Whether coherent synchrotron radiation effects are enabled.
+    ifabsent: "true"
+
+  lsc_enable:
+    range: boolean
+    description: Whether longitudinal space-charge effects are enabled.
+    ifabsent: "true"
+
+  tracking_method:
+    range: string
+    description: Phase-space tracking algorithm requested from the target code.
+
+  mat6_calc_method:
+    range: string
+    description: Method used to calculate the element's 6x6 transfer matrix.
+
+  spin_tracking_method:
+    range: string
+    description: Spin-tracking algorithm requested from the target code.
+
+  integration_order:
+    aliases:
+      - integrator_order
+    range: integer
+    minimum_value: 1
+    description: Order of the target code's integration formula.
+
+  num_steps:
+    range: integer
+    minimum_value: 1
+    description: Number of integration steps through the element.
+
+  deltaL:
+    aliases:
+      - ds_step
+    range: float
+    minimum_value: 0
+    description: Longitudinal integration step size [m].
+    unit:
+      ucum_code: m
+
+  csr_method:
+    range: string
+    description: Coherent-synchrotron-radiation tracking method.
+
+  space_charge_method:
+    range: string
+    description: Space-charge tracking method.
+
+  csrdz:
+    aliases:
+      - csr_ds_step
+    range: float
+    minimum_value: 0
+    description: Longitudinal step size between CSR kicks [m].
+    unit:
+      ucum_code: m
+
+  smooth:
+    range: float
+    any_of:
+      - range: integer
+      - range: float
+    description: Smoothing control for field or wake interpolation.
+
+  horizontal_offset:
+    range: float
+    description: Horizontal simulation offset from the reference orbit [m].
+    ifabsent: float(0.0)
+    unit:
+      ucum_code: m
+
+  vertical_offset:
+    range: float
+    description: Vertical simulation offset from the reference orbit [m].
+    ifabsent: float(0.0)
+    unit:
+      ucum_code: m
 
   field_amplitude:
     range: float
@@ -381,12 +461,6 @@ classes:
         description: >-
           If set, this element is a logical sub-component of the named
           parent element.
-      # These four describe the control/signal graph, which is separate from
-      # beam-path ordering (that comes from the layout and s-position). The
-      # graph is directed, may contain feedback cycles, and its two directions
-      # are stored rather than derived -- symmetry is a convention, not a
-      # constraint. See examples/testing/sample_rf_control_elements.yaml for a
-      # worked example and signal_graph_example.py for traversal code.
       inputs:
         range: IOTypeEnum
         description: >-

@@ -34,9 +34,26 @@ classes:
 
   SimulationElement:
     description: >-
-      Base simulation attributes: field-map files and reference positions
-      for tracking codes.
+      Base simulation attributes: field-map files, reference positions, and
+      optional tracking controls for simulation codes.
     class_uri: laura:SimulationElement
+    slots:
+      - n_kicks
+      - lsc_bins
+      - csr_enable
+      - lsc_enable
+      - tracking_method
+      - mat6_calc_method
+      - spin_tracking_method
+      - integration_order
+      - num_steps
+      - deltaL
+      - csr_method
+      - space_charge_method
+      - csrdz
+      - smooth
+      - horizontal_offset
+      - vertical_offset
     attributes:
       field_definition:
         range: string
@@ -66,25 +83,30 @@ classes:
       fringe-field model, and radiation flags.
     class_uri: laura:MagnetSimulationElement
     slots:
-      - n_kicks
       - field_amplitude
     slot_usage:
       n_kicks:
         description: Number of integration kicks.
         ifabsent: int(4)
         minimum_value: 1
+      integration_order:
+        description: Order of the symplectic integrator.
+        ifabsent: int(4)
+      deltaL:
+        description: Longitudinal step-size override for thick-lens integration [m].
+        ifabsent: float(0.0)
       field_amplitude:
         description: Field amplitude scaling for magnet tracking.
         ifabsent: float(0.0)
+      smooth:
+        range: integer
+        description: Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).
     attributes:
       n_slices:
         range: integer
         description: Number of longitudinal slices for thick-lens tracking.
         ifabsent: int(4)
         minimum_value: 1
-      smooth:
-        range: integer
-        description: Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).
       edge_field_integral:
         range: float
         description: Fringe-field integral for edge focussing.
@@ -103,18 +125,10 @@ classes:
         range: boolean
         description: Enable incoherent synchrotron-radiation emittance growth.
         ifabsent: "True"
-      csr_enable:
-        range: boolean
-        description: Enable coherent synchrotron radiation.
-        ifabsent: "True"
       csr_bins:
         range: integer
         description: Number of longitudinal bins for the CSR mesh.
         ifabsent: int(100)
-      integration_order:
-        range: integer
-        description: Order of the symplectic integrator.
-        ifabsent: int(4)
       nonlinear:
         range: boolean
         description: Include higher-order (sextupole+) field components.
@@ -126,12 +140,6 @@ classes:
         range: integer
         description: Polynomial order of the edge-field expansion.
         ifabsent: int(2)
-      deltaL:
-        range: float
-        description: Longitudinal step-size override for thick-lens integration [m].
-        ifabsent: float(0.0)
-        unit:
-          ucum_code: m
       smooth_points:
         range: float
         description: Number of points used to smooth the field map [ASTRA].
@@ -147,8 +155,6 @@ classes:
       - wx_column
       - wy_column
       - wz_column
-      - n_kicks
-      - lsc_bins
     slot_usage:
       n_kicks:
         description: Number of cavity kicks to apply.
@@ -156,6 +162,9 @@ classes:
       lsc_bins:
         description: Number of longitudinal space-charge bins.
         ifabsent: int(100)
+      smooth:
+        range: integer
+        description: Cavity smoothing parameter.
     attributes:
       change_p0:
         range: integer
@@ -185,9 +194,6 @@ classes:
         range: integer
         description: Flag indicating current-bin smoothing.
         ifabsent: int(1)
-      smooth:
-        range: integer
-        description: Cavity smoothing parameter.
       ez_peak:
         range: float
         description: Peak longitudinal electric field.
@@ -223,6 +229,11 @@ classes:
       - wx_column
       - wy_column
       - wz_column
+    slot_usage:
+      smooth:
+        range: float
+        description: Smoothing parameter for Gaussian interpolation.
+        ifabsent: float(0.25)
     attributes:
       allow_long_beam:
         range: boolean
@@ -280,10 +291,6 @@ classes:
         range: integer
         description: Interpolation method for ASTRA.
         ifabsent: int(2)
-      smooth:
-        range: float
-        description: Smoothing parameter for Gaussian interpolation.
-        ifabsent: float(0.25)
       subbins:
         range: integer
         description: Sub-binning parameter.
@@ -293,33 +300,22 @@ classes:
     is_a: SimulationElement
     description: Simulation attributes for field-free drift sections.
     class_uri: laura:DriftSimulationElement
-    slots:
-      - lsc_bins
     slot_usage:
       lsc_bins:
         description: Number of bins for LSC calculations.
         ifabsent: int(20)
+      csrdz:
+        description: Step size for CSR calculations.
+        ifabsent: float(0.01)
     attributes:
       lsc_interpolate:
         range: integer
         description: Flag to allow interpolation of computed LSC wake.
         ifabsent: int(1)
-      csr_enable:
-        range: boolean
-        description: Enable CSR drift calculations.
-        ifabsent: "True"
-      lsc_enable:
-        range: boolean
-        description: Enable LSC drift calculations.
-        ifabsent: "True"
       use_stupakov:
         range: integer
         description: Use Stupakov formula.
         ifabsent: int(1)
-      csrdz:
-        range: float
-        description: Step size for CSR calculations.
-        ifabsent: float(0.01)
       lsc_high_frequency_cutoff_start:
         range: float
         description: High-frequency cutoff start for LSC.
@@ -544,18 +540,6 @@ classes:
         ifabsent: float(0.0)
         unit:
           ucum_code: m
-      horizontal_offset:
-        range: float
-        description: Horizontal wire offset from the reference orbit [m].
-        ifabsent: float(0.0)
-        unit:
-          ucum_code: m
-      vertical_offset:
-        range: float
-        description: Vertical wire offset from the reference orbit [m].
-        ifabsent: float(0.0)
-        unit:
-          ucum_code: m
 
   BeamBeamSimulationElement:
     is_a: SimulationElement
@@ -570,18 +554,6 @@ classes:
         range: float
         description: Number of particles in the opposing bunch.
         ifabsent: float(0.0)
-      horizontal_offset:
-        range: float
-        description: Horizontal opposing-bunch centroid offset [m].
-        ifabsent: float(0.0)
-        unit:
-          ucum_code: m
-      vertical_offset:
-        range: float
-        description: Vertical opposing-bunch centroid offset [m].
-        ifabsent: float(0.0)
-        unit:
-          ucum_code: m
       horizontal_sigma:
         range: float
         description: Horizontal RMS size of the opposing bunch [m].

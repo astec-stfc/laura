@@ -313,6 +313,61 @@ def test_bmad_special_element_conversions():
     assert "b_max = 1.2" in _bmad(wiggler)
 
 
+def test_bmad_optional_tracking_controls_and_aliases():
+    quadrupole = Quadrupole(
+        name="Q_TRACK",
+        machine_area="S",
+        magnetic={"magnetic_length": 1, "k1l": 0},
+        simulation={
+            "tracking_method": "runge_kutta",
+            "mat6_calc_method": "tracking",
+            "spin_tracking_method": "symp_lie_ptc",
+            "integrator_order": 6,
+            "num_steps": 12,
+            "ds_step": 0.02,
+            "csr_method": "1_dim",
+            "space_charge_method": "slice",
+            "csr_ds_step": 0.003,
+        },
+    )
+    simulation = quadrupole.simulation
+    assert (
+        simulation.integration_order,
+        simulation.deltaL,
+        simulation.csrdz,
+    ) == (6, 0.02, 0.003)
+    assert {
+        "integrator_order",
+        "ds_step",
+        "csr_ds_step",
+    }.isdisjoint(type(simulation).model_fields)
+
+    text = _bmad(quadrupole)
+    expected = {
+        "tracking_method": "runge_kutta",
+        "mat6_calc_method": "tracking",
+        "spin_tracking_method": "symp_lie_ptc",
+        "integrator_order": "6",
+        "num_steps": "12",
+        "ds_step": "0.02",
+        "csr_method": "1_dim",
+        "space_charge_method": "slice",
+        "csr_ds_step": "0.003",
+    }
+    for key, value in expected.items():
+        assert f"{key} = {value}" in text
+        assert text.count(f", {key} =") == 1
+
+    offset = BeamBeam(
+        name="BB_OFFSET",
+        machine_area="S",
+        simulation={"horizontal_offset": 0.001},
+    )
+    offset_text = _bmad(offset)
+    assert "x_offset = 0.001" in offset_text
+    assert "y_offset =" not in offset_text
+
+
 def test_bmad_taylor_and_match_syntax():
     t_matrix = np.zeros((6, 6, 6))
     t_matrix[0, 1, 1] = 2
@@ -329,6 +384,7 @@ def test_bmad_taylor_and_match_syntax():
         machine_area="S",
         simulation={
             "c_matrix": {"c1": 3},
+            "tracking_method": "linear",
             "t_matrix": t_matrix,
             "u_matrix": u_matrix,
             "spin_taylor": [spin],
@@ -339,6 +395,7 @@ def test_bmad_taylor_and_match_syntax():
     assert "{1: 2.0 |22}" in text
     assert "{1: 6.0 |123}" in text
     assert "{Sx: 0.25 |1}" in text
+    assert "tracking_method = linear" in text
 
     match = TwissMatch(
         name="TW",
@@ -378,13 +435,26 @@ def test_bmad_section_layout_and_model_export():
         geometry="open",
         reference_energy=10e6,
     )
-    text = SectionLatticeTranslator.from_section(section).to_bmad(particle="electron")
+    translator = SectionLatticeTranslator.from_section(section)
+    translator.lsc_enable = False
+    text = translator.to_bmad(
+        particle="electron",
+        space_charge_n_bin=64,
+    )
     assert "parameter[particle] = electron" in text
+    assert "bmad_com[csr_and_space_charge_on] = T" in text
+    assert "space_charge_com[n_bin] = 64" in text
     assert "parameter[geometry] = open" in text
     assert "beginning[e_tot] = 10000000.0" in text
     assert "S_1_drift_1: drift, l = 0.25" in text
     assert "S_1: line = (Q_1, S_1_drift_1, C1)" in text
     assert text.endswith("use, S_1\n")
+
+    translator.csr_enable = False
+    assert "bmad_com[csr_and_space_charge_on] = F" in translator.to_bmad()
+
+    with pytest.raises(ValueError, match="space_charge_n_bin must be positive"):
+        translator.to_bmad(space_charge_n_bin=0)
 
     layout = MachineLayout(
         name="L-1",
@@ -402,5 +472,9 @@ def test_bmad_section_layout_and_model_export():
         layout={"default_layout": "L-1", "layouts": {"L-1": ["S-1"]}},
         particle="electron",
     )
-    model_text = MachineModelTranslator.from_machine(machine).to_bmad()
+    model_text = MachineModelTranslator.from_machine(machine).to_bmad(
+        space_charge_n_bin=32,
+    )
     assert "parameter[particle] = electron" in model_text["L_1"]["S_1"]
+    assert "bmad_com[csr_and_space_charge_on] = T" in model_text["L_1"]["S_1"]
+    assert "space_charge_com[n_bin] = 32" in model_text["L_1"]["S_1"]

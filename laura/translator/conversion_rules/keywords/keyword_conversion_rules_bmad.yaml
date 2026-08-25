@@ -4,6 +4,9 @@ general:
   exit_edge_angle: e2
   gap: gap
   tilt_angle: tilt
+  integration_order: integrator_order
+  deltaL: ds_step
+  csrdz: csr_ds_step
 dipole:
   angle: angle
   half_gap: hgap

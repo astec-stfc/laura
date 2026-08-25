@@ -1,7 +1,7 @@
-# Slot: deltaL 
+# Slot: num_steps 
 
 
-_Longitudinal integration step size [m]._
+_Number of integration steps through the element._
 
 
 
@@ -9,7 +9,7 @@ _Longitudinal integration step size [m]._
 
 
 
-URI: [laura:deltaL](https://w3id.org/laura/deltaL)
+URI: [laura:num_steps](https://w3id.org/laura/num_steps)
 <!-- no inheritance hierarchy -->
 
 
@@ -21,7 +21,7 @@ URI: [laura:deltaL](https://w3id.org/laura/deltaL)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [SimulationElement](SimulationElement.md) | Base simulation attributes: field-map files, reference positions, and optiona... |  no  |
-| [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  yes  |
+| [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  no  |
 | [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  no  |
 | [WakefieldSimulationElement](WakefieldSimulationElement.md) | Simulation attributes for passive wakefield structures |  no  |
 | [DriftSimulationElement](DriftSimulationElement.md) | Simulation attributes for field-free drift sections |  no  |
@@ -46,7 +46,7 @@ URI: [laura:deltaL](https://w3id.org/laura/deltaL)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Integer](Integer.md) |
 | Domain Of | [SimulationElement](SimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -57,18 +57,7 @@ URI: [laura:deltaL](https://w3id.org/laura/deltaL)
 
 | Property | Value |
 | --- | --- |
-| Minimum Value | 0 |
-
-
-<details>
-<summary>Additional Constraints</summary>
-**Unit:**
-
-| Property | Value |
-| --- | --- |
-| ucum_code | m |
-
-</details>
+| Minimum Value | 1 |
 
 
 
@@ -77,10 +66,6 @@ URI: [laura:deltaL](https://w3id.org/laura/deltaL)
 
 
 
-## Aliases
-
-
-* ds_step
 
 
 
@@ -103,8 +88,8 @@ URI: [laura:deltaL](https://w3id.org/laura/deltaL)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:deltaL |
-| native | laura:deltaL |
+| self | laura:num_steps |
+| native | laura:num_steps |
 
 
 
@@ -113,18 +98,14 @@ URI: [laura:deltaL](https://w3id.org/laura/deltaL)
 
 <details>
 ```yaml
-name: deltaL
-description: Longitudinal integration step size [m].
+name: num_steps
+description: Number of integration steps through the element.
 from_schema: https://w3id.org/laura/schema
-aliases:
-- ds_step
 rank: 1000
 domain_of:
 - SimulationElement
-range: float
-minimum_value: 0
-unit:
-  ucum_code: m
+range: integer
+minimum_value: 1
 
 ```
 </details></div>

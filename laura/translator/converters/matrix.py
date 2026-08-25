@@ -73,6 +73,9 @@ class MatrixTransformTranslator(BaseElementTranslator):
         """
         self.start_write()
         terms = [f"l = {self.length}"]
+        terms.extend(
+            f"{key} = {value}" for key, value in self._bmad_common_parameters().items()
+        )
         for output, value in enumerate(self.simulation.c_matrix, 1):
             if value:
                 terms.append(f"{{{output}: {value} |}}")

@@ -1,3 +1,13 @@
+common:
+  tracking_method: string
+  mat6_calc_method: string
+  spin_tracking_method: string
+  ds_step: double
+  num_steps: integer
+  integrator_order: integer
+  csr_method: string
+  space_charge_method: string
+  csr_ds_step: double
 drift:
   l: double
   sr_wake: string

@@ -134,7 +134,7 @@ Name: laura_schema
 | [Rotation](Rotation.md) | Euler-angle rotation relative to the global coordinate system |
 | [SectionLattice](SectionLattice.md) | An ordered list of element names defining a contiguous beamline section |
 | [ShutterElement](ShutterElement.md) | Shutter interlock configuration |
-| [SimulationElement](SimulationElement.md) | Base simulation attributes: field-map files and reference positions for track... |
+| [SimulationElement](SimulationElement.md) | Base simulation attributes: field-map files, reference positions, and optiona... |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ACDipoleSimulationElement](ACDipoleSimulationElement.md) | Simulation attributes for an AC dipole / tune exciter |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[BeamBeamSimulationElement](BeamBeamSimulationElement.md) | Simulation attributes for a weak-strong beam-beam interaction |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation attributes for beam-diagnostic elements |
@@ -206,8 +206,9 @@ Name: laura_schema
 | [crest](crest.md) | On-crest phase offset providing maximum energy gain [deg] |
 | [crest_phase](crest_phase.md) | Cavity crest phase |
 | [csr_bins](csr_bins.md) | Number of longitudinal bins for the CSR mesh |
-| [csr_enable](csr_enable.md) | Enable coherent synchrotron radiation |
-| [csrdz](csrdz.md) | Step size for CSR calculations |
+| [csr_enable](csr_enable.md) | Whether coherent synchrotron radiation effects are enabled |
+| [csr_method](csr_method.md) | Coherent-synchrotron-radiation tracking method |
+| [csrdz](csrdz.md) | Longitudinal step size between CSR kicks [m] |
 | [current](current.md) | Current carried by the wire [A] |
 | [current_bins](current_bins.md) | Number of current bins |
 | [d](d.md) | Constant offset term |
@@ -216,7 +217,7 @@ Name: laura_schema
 | [data_size](data_size.md) | Number of points in a trace |
 | [datum](datum.md) | Datum reference position |
 | [degauss](degauss.md) | Degaussing-cycle parameters |
-| [deltaL](deltaL.md) | Longitudinal step-size override for thick-lens integration [m] |
+| [deltaL](deltaL.md) | Longitudinal integration step size [m] |
 | [density](density.md) | Plasma (electron) number density [m^-^3] |
 | [density_profile](density_profile.md) | If True, use a user-defined profile; if False, use a flat-top model |
 | [description](description.md) | Human-readable description |
@@ -287,7 +288,7 @@ Name: laura_schema
 | [Horizontal_Corrector](Horizontal_Corrector.md) | Name of the horizontal-plane corrector element |
 | [horizontal_field](horizontal_field.md) | Horizontal deflecting electric field [V/m] |
 | [horizontal_kick](horizontal_kick.md) | Horizontal deflection [rad] |
-| [horizontal_offset](horizontal_offset.md) | Horizontal wire offset from the reference orbit [m] |
+| [horizontal_offset](horizontal_offset.md) | Horizontal simulation offset from the reference orbit [m] |
 | [horizontal_sigma](horizontal_sigma.md) | Horizontal RMS size of the opposing bunch [m] |
 | [horizontal_size](horizontal_size.md) | Full horizontal aperture [m] |
 | [I0](I0.md) | Current offset [A] |
@@ -296,7 +297,7 @@ Name: laura_schema
 | [initial_position](initial_position.md) | Initial longitudinal position of the laser pulse [m] |
 | [inputs](inputs.md) | Signal types this element consumes (e |
 | [integrated_strength](integrated_strength.md) | Integrated lens strength (MAD-X ``knll``) |
-| [integration_order](integration_order.md) | Order of the symplectic integrator |
+| [integration_order](integration_order.md) | Order of the target code's integration formula |
 | [intensity](intensity.md) | Measured photon intensity |
 | [interaction_length](interaction_length.md) | Effective interaction length [m] |
 | [interlocks](interlocks.md) | Names of the interlocks guarding this shutter |
@@ -326,7 +327,7 @@ Name: laura_schema
 | [linear_saturation_coefficients](linear_saturation_coefficients.md) | Bi-linear saturation calibration |
 | [llrf](llrf.md) | LLRF parameters |
 | [lsc_bins](lsc_bins.md) | Number of bins used in longitudinal space-charge calculations |
-| [lsc_enable](lsc_enable.md) | Enable LSC drift calculations |
+| [lsc_enable](lsc_enable.md) | Whether longitudinal space-charge effects are enabled |
 | [lsc_high_frequency_cutoff_end](lsc_high_frequency_cutoff_end.md) | High-frequency cutoff end for LSC |
 | [lsc_high_frequency_cutoff_start](lsc_high_frequency_cutoff_start.md) | High-frequency cutoff start for LSC |
 | [lsc_interpolate](lsc_interpolate.md) | Flag to allow interpolation of computed LSC wake |
@@ -338,6 +339,7 @@ Name: laura_schema
 | [manufacturer](manufacturer.md) | Name of the manufacturer |
 | [mask](mask.md) | Camera analysis mask configuration |
 | [master_lattice](master_lattice.md) | Name of the master lattice this section belongs to |
+| [mat6_calc_method](mat6_calc_method.md) | Method used to calculate the element's 6x6 transfer matrix |
 | [max](max.md) | Maximum value |
 | [max_amplitude](max_amplitude.md) | Maximum allowed amplitude |
 | [max_i](max_i.md) | Maximum current [A] |
@@ -365,6 +367,7 @@ Name: laura_schema
 | [nonlinear](nonlinear.md) | Include higher-order (sextupole+) field components |
 | [normal](normal.md) | Integrated normal (upright) multipole strength [T |
 | [num_periods](num_periods.md) | Number of full magnetic periods |
+| [num_steps](num_steps.md) | Number of integration steps through the element |
 | [number_of_elements](number_of_elements.md) | Number of aperture sub-elements (e |
 | [number_of_start_zeros](number_of_start_zeros.md) | Number of leading zeros in a trace |
 | [offset](offset.md) | Offset expressed in the reference element's local frame at the chosen point |
@@ -461,13 +464,15 @@ Name: laura_schema
 | [shutter](shutter.md) | Shutter interlock configuration |
 | [simulation](simulation.md) | Simulation / tracking attributes |
 | [skew](skew.md) | Integrated skew (rotated) multipole strength [T |
-| [smooth](smooth.md) | Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smoot... |
+| [smooth](smooth.md) | Smoothing control for field or wake interpolation |
 | [smooth_current_bins](smooth_current_bins.md) | Flag indicating current-bin smoothing |
 | [smooth_points](smooth_points.md) | Number of points used to smooth the field map [ASTRA] |
 | [smoothing_half_width](smoothing_half_width.md) | Half-width of the current-profile smoothing kernel |
 | [solenoid_fields](solenoid_fields.md) | Nominal integrated axial solenoid field components |
+| [space_charge_method](space_charge_method.md) | Space-charge tracking method |
 | [species](species.md) | Plasma species name (e |
 | [spin_taylor](spin_taylor.md) | Sparse quaternion Taylor terms |
+| [spin_tracking_method](spin_tracking_method.md) | Spin-tracking algorithm requested from the target code |
 | [sr_enable](sr_enable.md) | Enable synchrotron-radiation energy loss |
 | [start](start.md) | Start time |
 | [states](states.md) | Mapping of state name to underlying control-system value, for ``control_type:... |
@@ -488,6 +493,7 @@ Name: laura_schema
 | [timings](timings.md) | Timing windows for LLRF channels |
 | [tolerance](tolerance.md) | Current tolerance band during the degauss cycle [A] |
 | [trace](trace.md) | Trace metadata |
+| [tracking_method](tracking_method.md) | Phase-space tracking algorithm requested from the target code |
 | [transverse_gradient_x](transverse_gradient_x.md) | Transverse field gradient in x [1/m] |
 | [transverse_gradient_y](transverse_gradient_y.md) | Transverse field gradient in y [1/m] |
 | [trwakefile](trwakefile.md) | Transverse wake file name |
@@ -507,7 +513,7 @@ Name: laura_schema
 | [Vertical_Corrector](Vertical_Corrector.md) | Name of the vertical-plane corrector element |
 | [vertical_field](vertical_field.md) | Vertical deflecting electric field [V/m] |
 | [vertical_kick](vertical_kick.md) | Vertical deflection [rad] |
-| [vertical_offset](vertical_offset.md) | Vertical wire offset from the reference orbit [m] |
+| [vertical_offset](vertical_offset.md) | Vertical simulation offset from the reference orbit [m] |
 | [vertical_sigma](vertical_sigma.md) | Vertical RMS size of the opposing bunch [m] |
 | [vertical_size](vertical_size.md) | Full vertical aperture [m] |
 | [virtual_name](virtual_name.md) | Alternative internal name used by the control system when the physical name i... |

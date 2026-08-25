@@ -765,11 +765,52 @@ class _MachineModelBase(ConfiguredBaseModel):
 
 class _SimulationElementBase(ConfiguredBaseModel):
     """
-    Base simulation attributes: field-map files and reference positions for tracking codes.
+    Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:SimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation'})
 
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -788,18 +829,28 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MagnetSimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation',
-         'slot_usage': {'field_amplitude': {'description': 'Field amplitude scaling '
+         'slot_usage': {'deltaL': {'description': 'Longitudinal step-size override for '
+                                                  'thick-lens integration [m].',
+                                   'ifabsent': 'float(0.0)',
+                                   'name': 'deltaL'},
+                        'field_amplitude': {'description': 'Field amplitude scaling '
                                                            'for magnet tracking.',
                                             'ifabsent': 'float(0.0)',
                                             'name': 'field_amplitude'},
+                        'integration_order': {'description': 'Order of the symplectic '
+                                                             'integrator.',
+                                              'ifabsent': 'int(4)',
+                                              'name': 'integration_order'},
                         'n_kicks': {'description': 'Number of integration kicks.',
                                     'ifabsent': 'int(4)',
                                     'minimum_value': 1,
-                                    'name': 'n_kicks'}}})
+                                    'name': 'n_kicks'},
+                        'smooth': {'description': 'Number of smoothing passes applied '
+                                                  'to the field map (ASTRA Q_smooth / '
+                                                  'S_smooth).',
+                                   'name': 'smooth',
+                                   'range': 'integer'}}})
 
-    n_kicks: Optional[int] = Field(default=4, description="""Number of integration kicks.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
-         'ifabsent': 'int(4)'} })
-    """Number of integration kicks."""
     field_amplitude: Optional[Union[float, str]] = Field(default=0.0, description="""Field amplitude scaling for magnet tracking.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
          'domain_of': ['MagnetSimulationElement',
                        'RFCavitySimulationElement',
@@ -810,10 +861,6 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Field amplitude scaling for magnet tracking."""
     n_slices: int = Field(default=4, description="""Number of longitudinal slices for thick-lens tracking.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(4)'} })
     """Number of longitudinal slices for thick-lens tracking."""
-    smooth: Optional[int] = Field(default=None, description="""Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
-                       'RFCavitySimulationElement',
-                       'WakefieldSimulationElement']} })
-    """Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth)."""
     edge_field_integral: float = Field(default=0.5, description="""Fringe-field integral for edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.5)'} })
     """Fringe-field integral for edge focussing."""
@@ -825,25 +872,60 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Enable synchrotron-radiation energy loss."""
     isr_enable: Optional[bool] = Field(default=True, description="""Enable incoherent synchrotron-radiation emittance growth.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
     """Enable incoherent synchrotron-radiation emittance growth."""
-    csr_enable: Optional[bool] = Field(default=True, description="""Enable coherent synchrotron radiation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'True'} })
-    """Enable coherent synchrotron radiation."""
     csr_bins: int = Field(default=100, description="""Number of longitudinal bins for the CSR mesh.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(100)'} })
     """Number of longitudinal bins for the CSR mesh."""
-    integration_order: int = Field(default=4, description="""Order of the symplectic integrator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(4)'} })
-    """Order of the symplectic integrator."""
     nonlinear: Optional[bool] = Field(default=None, description="""Include higher-order (sextupole+) field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
     """Include higher-order (sextupole+) field components."""
     smoothing_half_width: int = Field(default=1, description="""Half-width of the current-profile smoothing kernel.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(1)'} })
     """Half-width of the current-profile smoothing kernel."""
     edge_order: int = Field(default=2, description="""Polynomial order of the edge-field expansion.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(2)'} })
     """Polynomial order of the edge-field expansion."""
-    deltaL: float = Field(default=0.0, description="""Longitudinal step-size override for thick-lens integration [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'],
+    smooth_points: float = Field(default=2, description="""Number of points used to smooth the field map [ASTRA].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'float(2)'} })
+    """Number of points used to smooth the field map [ASTRA]."""
+    n_kicks: Optional[int] = Field(default=4, description="""Number of integration kicks.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'int(4)'} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=4, description="""Order of the symplectic integrator.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'],
+         'domain_of': ['SimulationElement'],
+         'ifabsent': 'int(4)'} })
+    """Order of the symplectic integrator."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=0.0, description="""Longitudinal step-size override for thick-lens integration [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Longitudinal step-size override for thick-lens integration [m]."""
-    smooth_points: float = Field(default=2, description="""Number of points used to smooth the field map [ASTRA].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'float(2)'} })
-    """Number of points used to smooth the field map [ASTRA]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth)."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -868,7 +950,10 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
                                      'name': 'lsc_bins'},
                         'n_kicks': {'description': 'Number of cavity kicks to apply.',
                                     'ifabsent': 'int(0)',
-                                    'name': 'n_kicks'}}})
+                                    'name': 'n_kicks'},
+                        'smooth': {'description': 'Cavity smoothing parameter.',
+                                   'name': 'smooth',
+                                   'range': 'integer'}}})
 
     t_column: Optional[str] = Field(default=None, description="""Time column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
     """Time column in the wake file."""
@@ -880,12 +965,6 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
     """Vertical wake column in the wake file."""
     wz_column: Optional[str] = Field(default=None, description="""Longitudinal wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
     """Longitudinal wake column in the wake file."""
-    n_kicks: Optional[int] = Field(default=0, description="""Number of cavity kicks to apply.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
-         'ifabsent': 'int(0)'} })
-    """Number of cavity kicks to apply."""
-    lsc_bins: Optional[int] = Field(default=100, description="""Number of longitudinal space-charge bins.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'int(100)'} })
-    """Number of longitudinal space-charge bins."""
     change_p0: int = Field(default=1, description="""Flag indicating whether the cavity changes reference momentum.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
     """Flag indicating whether the cavity changes reference momentum."""
     end1_focus: int = Field(default=1, description="""Apply entrance focusing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
@@ -900,10 +979,6 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
     """Flag indicating current-bin interpolation."""
     smooth_current_bins: int = Field(default=1, description="""Flag indicating current-bin smoothing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
     """Flag indicating current-bin smoothing."""
-    smooth: Optional[int] = Field(default=None, description="""Cavity smoothing parameter.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
-                       'RFCavitySimulationElement',
-                       'WakefieldSimulationElement']} })
-    """Cavity smoothing parameter."""
     ez_peak: Optional[float] = Field(default=None, description="""Peak longitudinal electric field.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
     """Peak longitudinal electric field."""
     field_file_name: Optional[str] = Field(default=None, description="""Cavity field file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
@@ -921,6 +996,47 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
                        'RFMultipoleSimulationElement'],
          'in_subset': ['functional_parameters']} })
     """Cavity field amplitude."""
+    n_kicks: Optional[int] = Field(default=0, description="""Number of cavity kicks to apply.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'int(0)'} })
+    """Number of cavity kicks to apply."""
+    lsc_bins: Optional[int] = Field(default=100, description="""Number of longitudinal space-charge bins.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'int(100)'} })
+    """Number of longitudinal space-charge bins."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Cavity smoothing parameter.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Cavity smoothing parameter."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -938,7 +1054,12 @@ class _WakefieldSimulationElementBase(_SimulationElementBase):
     Simulation attributes for passive wakefield structures.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:WakefieldSimulationElement',
-         'from_schema': 'https://w3id.org/laura/schema/simulation'})
+         'from_schema': 'https://w3id.org/laura/schema/simulation',
+         'slot_usage': {'smooth': {'description': 'Smoothing parameter for Gaussian '
+                                                  'interpolation.',
+                                   'ifabsent': 'float(0.25)',
+                                   'name': 'smooth',
+                                   'range': 'float'}}})
 
     t_column: Optional[str] = Field(default=None, description="""Time column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
     """Time column in the wake file."""
@@ -978,13 +1099,50 @@ class _WakefieldSimulationElementBase(_SimulationElementBase):
     """Interpolation between equidistant and equal-charge grids."""
     interpolation_method: int = Field(default=2, description="""Interpolation method for ASTRA.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'int(2)'} })
     """Interpolation method for ASTRA."""
-    smooth: float = Field(default=0.25, description="""Smoothing parameter for Gaussian interpolation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
-                       'RFCavitySimulationElement',
-                       'WakefieldSimulationElement'],
-         'ifabsent': 'float(0.25)'} })
-    """Smoothing parameter for Gaussian interpolation."""
     subbins: int = Field(default=10, description="""Sub-binning parameter.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'int(10)'} })
     """Sub-binning parameter."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=0.25, description="""Smoothing parameter for Gaussian interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.25)'} })
+    """Smoothing parameter for Gaussian interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1003,25 +1161,18 @@ class _DriftSimulationElementBase(_SimulationElementBase):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:DriftSimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation',
-         'slot_usage': {'lsc_bins': {'description': 'Number of bins for LSC '
+         'slot_usage': {'csrdz': {'description': 'Step size for CSR calculations.',
+                                  'ifabsent': 'float(0.01)',
+                                  'name': 'csrdz'},
+                        'lsc_bins': {'description': 'Number of bins for LSC '
                                                     'calculations.',
                                      'ifabsent': 'int(20)',
                                      'name': 'lsc_bins'}}})
 
-    lsc_bins: Optional[int] = Field(default=20, description="""Number of bins for LSC calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'int(20)'} })
-    """Number of bins for LSC calculations."""
     lsc_interpolate: int = Field(default=1, description="""Flag to allow interpolation of computed LSC wake.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'int(1)'} })
     """Flag to allow interpolation of computed LSC wake."""
-    csr_enable: Optional[bool] = Field(default=True, description="""Enable CSR drift calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'True'} })
-    """Enable CSR drift calculations."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Enable LSC drift calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'True'} })
-    """Enable LSC drift calculations."""
     use_stupakov: int = Field(default=1, description="""Use Stupakov formula.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'int(1)'} })
     """Use Stupakov formula."""
-    csrdz: float = Field(default=0.01, description="""Step size for CSR calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'float(0.01)'} })
-    """Step size for CSR calculations."""
     lsc_high_frequency_cutoff_start: Optional[float] = Field(default=None, description="""High-frequency cutoff start for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
     """High-frequency cutoff start for LSC."""
     lsc_high_frequency_cutoff_end: Optional[float] = Field(default=None, description="""High-frequency cutoff end for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
@@ -1030,6 +1181,48 @@ class _DriftSimulationElementBase(_SimulationElementBase):
     """Low-frequency cutoff start for LSC."""
     lsc_low_frequency_cutoff_end: Optional[float] = Field(default=None, description="""Low-frequency cutoff end for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
     """Low-frequency cutoff end for LSC."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=20, description="""Number of bins for LSC calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'int(20)'} })
+    """Number of bins for LSC calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=0.01, description="""Step size for CSR calculations.""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.01)',
+         'unit': {'ucum_code': 'm'}} })
+    """Step size for CSR calculations."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1051,6 +1244,47 @@ class _DiagnosticSimulationElementBase(_SimulationElementBase):
 
     output_filename: Optional[str] = Field(default=None, description="""Output filename for diagnostic data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticSimulationElement']} })
     """Output filename for diagnostic data."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1096,6 +1330,47 @@ class _PlasmaSimulationElementBase(_SimulationElementBase):
     """Interval for plasma wakefield updates."""
     plasma_pusher: str = Field(default="boris", description="""Pusher used to evolve the plasma in time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'string(boris)'} })
     """Pusher used to evolve the plasma in time."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1133,6 +1408,47 @@ class _TwissMatchSimulationElementBase(_SimulationElementBase):
     """Vertical dispersion derivative."""
     from_beam: Optional[bool] = Field(default=True, description="""Compute transform from tracked beam properties.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'True'} })
     """Compute transform from tracked beam properties."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1164,6 +1480,47 @@ class _MatrixTransformSimulationElementBase(_SimulationElementBase):
     """U-matrix (third-order transfer tensor)."""
     spin_taylor: Optional[Any] = Field(default=None, description="""Sparse quaternion Taylor terms. Each term stores a quaternion component index, coefficient, and six orbital exponents.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MatrixTransformSimulationElement']} })
     """Sparse quaternion Taylor terms. Each term stores a quaternion component index, coefficient, and six orbital exponents."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1201,6 +1558,47 @@ class _ElectrostaticSeparatorSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Rotation about the beam axis [rad]."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1257,6 +1655,47 @@ class _ACDipoleSimulationElementBase(_SimulationElementBase):
     """Phase lag [deg]."""
     ramp: list[int] = Field(default_factory=list, description="""Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ACDipoleSimulationElement']} })
     """Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1284,14 +1723,47 @@ class _WireSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Effective interaction length [m]."""
-    horizontal_offset: float = Field(default=0.0, description="""Horizontal wire offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['WireSimulationElement', 'BeamBeamSimulationElement'],
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
-    """Horizontal wire offset from the reference orbit [m]."""
-    vertical_offset: float = Field(default=0.0, description="""Vertical wire offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['WireSimulationElement', 'BeamBeamSimulationElement'],
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
-    """Vertical wire offset from the reference orbit [m]."""
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1315,14 +1787,6 @@ class _BeamBeamSimulationElementBase(_SimulationElementBase):
     """Opposing-beam particle charge in units of the elementary charge."""
     n_particles: float = Field(default=0.0, description="""Number of particles in the opposing bunch.""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement'], 'ifabsent': 'float(0.0)'} })
     """Number of particles in the opposing bunch."""
-    horizontal_offset: float = Field(default=0.0, description="""Horizontal opposing-bunch centroid offset [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['WireSimulationElement', 'BeamBeamSimulationElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    """Horizontal opposing-bunch centroid offset [m]."""
-    vertical_offset: float = Field(default=0.0, description="""Vertical opposing-bunch centroid offset [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['WireSimulationElement', 'BeamBeamSimulationElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    """Vertical opposing-bunch centroid offset [m]."""
     horizontal_sigma: float = Field(default=0.0, description="""Horizontal RMS size of the opposing bunch [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
@@ -1335,6 +1799,47 @@ class _BeamBeamSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Opposing-bunch length for the 3-D weak-strong model [m]."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1395,6 +1900,47 @@ class _RFMultipoleSimulationElementBase(_SimulationElementBase):
     """Normal multipole phases [deg], dipole through decapole."""
     psl: list[float] = Field(default_factory=list, description="""Skew multipole phases [deg], dipole through decapole.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFMultipoleSimulationElement']} })
     """Skew multipole phases [deg], dipole through decapole."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })

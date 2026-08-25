@@ -1,4 +1,4 @@
-# Class: RFCavitySimulationElement 
+# Class: RFCavitySimulationElement
 
 
 _Simulation attributes for RF cavity elements._
@@ -21,60 +21,86 @@ URI: [laura:RFCavitySimulationElement](https://w3id.org/laura/RFCavitySimulation
     click RFCavitySimulationElement href "../RFCavitySimulationElement/"
       SimulationElement <|-- RFCavitySimulationElement
         click SimulationElement href "../SimulationElement/"
-      
+
       RFCavitySimulationElement : body_focus_model
-        
+
       RFCavitySimulationElement : change_p0
-        
+
+      RFCavitySimulationElement : csr_enable
+
+      RFCavitySimulationElement : csr_method
+
+      RFCavitySimulationElement : csrdz
+
       RFCavitySimulationElement : current_bins
-        
+
+      RFCavitySimulationElement : deltaL
+
       RFCavitySimulationElement : end1_focus
-        
+
       RFCavitySimulationElement : end2_focus
-        
+
       RFCavitySimulationElement : ez_peak
-        
+
       RFCavitySimulationElement : field_amplitude
-        
+
       RFCavitySimulationElement : field_definition
-        
+
       RFCavitySimulationElement : field_file_name
-        
+
       RFCavitySimulationElement : field_reference_position
-        
+
+      RFCavitySimulationElement : horizontal_offset
+
+      RFCavitySimulationElement : integration_order
+
       RFCavitySimulationElement : interpolate_current_bins
-        
+
       RFCavitySimulationElement : lsc_bins
-        
+
+      RFCavitySimulationElement : lsc_enable
+
+      RFCavitySimulationElement : mat6_calc_method
+
       RFCavitySimulationElement : n_kicks
-        
+
+      RFCavitySimulationElement : num_steps
+
       RFCavitySimulationElement : scale_field
-        
+
       RFCavitySimulationElement : smooth
-        
+
       RFCavitySimulationElement : smooth_current_bins
-        
+
+      RFCavitySimulationElement : space_charge_method
+
+      RFCavitySimulationElement : spin_tracking_method
+
       RFCavitySimulationElement : t_column
-        
+
+      RFCavitySimulationElement : tracking_method
+
       RFCavitySimulationElement : trwakefile
-        
+
+      RFCavitySimulationElement : vertical_offset
+
       RFCavitySimulationElement : wakefield_definition
-        
+
       RFCavitySimulationElement : wakefield_enable
-        
+
       RFCavitySimulationElement : wakefile
-        
+
       RFCavitySimulationElement : wx_column
-        
+
       RFCavitySimulationElement : wy_column
-        
+
       RFCavitySimulationElement : wz_column
-        
+
       RFCavitySimulationElement : z_column
-        
+
       RFCavitySimulationElement : zwakefile
-        
-      
+
+
 ```
 
 
@@ -102,8 +128,6 @@ URI: [laura:RFCavitySimulationElement](https://w3id.org/laura/RFCavitySimulation
 | [wx_column](wx_column.md) | 0..1 <br/> [String](String.md) | Horizontal wake column in the wake file | direct |
 | [wy_column](wy_column.md) | 0..1 <br/> [String](String.md) | Vertical wake column in the wake file | direct |
 | [wz_column](wz_column.md) | 0..1 <br/> [String](String.md) | Longitudinal wake column in the wake file | direct |
-| [n_kicks](n_kicks.md) | 0..1 <br/> [Integer](Integer.md) | Number of cavity kicks to apply | direct |
-| [lsc_bins](lsc_bins.md) | 0..1 <br/> [Integer](Integer.md) | Number of longitudinal space-charge bins | direct |
 | [change_p0](change_p0.md) | 0..1 <br/> [Integer](Integer.md) | Flag indicating whether the cavity changes reference momentum | direct |
 | [end1_focus](end1_focus.md) | 0..1 <br/> [Integer](Integer.md) | Apply entrance focusing | direct |
 | [end2_focus](end2_focus.md) | 0..1 <br/> [Integer](Integer.md) | Apply exit focusing | direct |
@@ -111,13 +135,28 @@ URI: [laura:RFCavitySimulationElement](https://w3id.org/laura/RFCavitySimulation
 | [current_bins](current_bins.md) | 0..1 <br/> [Integer](Integer.md) | Number of current bins | direct |
 | [interpolate_current_bins](interpolate_current_bins.md) | 0..1 <br/> [Integer](Integer.md) | Flag indicating current-bin interpolation | direct |
 | [smooth_current_bins](smooth_current_bins.md) | 0..1 <br/> [Integer](Integer.md) | Flag indicating current-bin smoothing | direct |
-| [smooth](smooth.md) | 0..1 <br/> [Integer](Integer.md) | Cavity smoothing parameter | direct |
 | [ez_peak](ez_peak.md) | 0..1 <br/> [Float](Float.md) | Peak longitudinal electric field | direct |
 | [field_file_name](field_file_name.md) | 0..1 <br/> [String](String.md) | Cavity field file name | direct |
 | [wakefile](wakefile.md) | 0..1 <br/> [String](String.md) | Wake file name | direct |
 | [zwakefile](zwakefile.md) | 0..1 <br/> [String](String.md) | Longitudinal wake file name | direct |
 | [trwakefile](trwakefile.md) | 0..1 <br/> [String](String.md) | Transverse wake file name | direct |
 | [field_amplitude](field_amplitude.md) | 1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Cavity field amplitude | direct |
+| [n_kicks](n_kicks.md) | 0..1 <br/> [Integer](Integer.md) | Number of cavity kicks to apply | [SimulationElement](SimulationElement.md) |
+| [lsc_bins](lsc_bins.md) | 0..1 <br/> [Integer](Integer.md) | Number of longitudinal space-charge bins | [SimulationElement](SimulationElement.md) |
+| [csr_enable](csr_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether coherent synchrotron radiation effects are enabled | [SimulationElement](SimulationElement.md) |
+| [lsc_enable](lsc_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether longitudinal space-charge effects are enabled | [SimulationElement](SimulationElement.md) |
+| [tracking_method](tracking_method.md) | 0..1 <br/> [String](String.md) | Phase-space tracking algorithm requested from the target code | [SimulationElement](SimulationElement.md) |
+| [mat6_calc_method](mat6_calc_method.md) | 0..1 <br/> [String](String.md) | Method used to calculate the element's 6x6 transfer matrix | [SimulationElement](SimulationElement.md) |
+| [spin_tracking_method](spin_tracking_method.md) | 0..1 <br/> [String](String.md) | Spin-tracking algorithm requested from the target code | [SimulationElement](SimulationElement.md) |
+| [integration_order](integration_order.md) | 0..1 <br/> [Integer](Integer.md) | Order of the target code's integration formula | [SimulationElement](SimulationElement.md) |
+| [num_steps](num_steps.md) | 0..1 <br/> [Integer](Integer.md) | Number of integration steps through the element | [SimulationElement](SimulationElement.md) |
+| [deltaL](deltaL.md) | 0..1 <br/> [Float](Float.md) | Longitudinal integration step size [m] | [SimulationElement](SimulationElement.md) |
+| [csr_method](csr_method.md) | 0..1 <br/> [String](String.md) | Coherent-synchrotron-radiation tracking method | [SimulationElement](SimulationElement.md) |
+| [space_charge_method](space_charge_method.md) | 0..1 <br/> [String](String.md) | Space-charge tracking method | [SimulationElement](SimulationElement.md) |
+| [csrdz](csrdz.md) | 0..1 <br/> [Float](Float.md) | Longitudinal step size between CSR kicks [m] | [SimulationElement](SimulationElement.md) |
+| [smooth](smooth.md) | 0..1 <br/> [Integer](Integer.md)&nbsp;or&nbsp;<br />[Float](Float.md) | Cavity smoothing parameter | [SimulationElement](SimulationElement.md) |
+| [horizontal_offset](horizontal_offset.md) | 0..1 <br/> [Float](Float.md) | Horizontal simulation offset from the reference orbit [m] | [SimulationElement](SimulationElement.md) |
+| [vertical_offset](vertical_offset.md) | 0..1 <br/> [Float](Float.md) | Vertical simulation offset from the reference orbit [m] | [SimulationElement](SimulationElement.md) |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
@@ -191,8 +230,6 @@ slots:
 - wx_column
 - wy_column
 - wz_column
-- n_kicks
-- lsc_bins
 slot_usage:
   n_kicks:
     name: n_kicks
@@ -202,6 +239,10 @@ slot_usage:
     name: lsc_bins
     description: Number of longitudinal space-charge bins.
     ifabsent: int(100)
+  smooth:
+    name: smooth
+    description: Cavity smoothing parameter.
+    range: integer
 attributes:
   change_p0:
     name: change_p0
@@ -265,15 +306,6 @@ attributes:
     ifabsent: int(1)
     domain_of:
     - RFCavitySimulationElement
-    range: integer
-  smooth:
-    name: smooth
-    description: Cavity smoothing parameter.
-    from_schema: https://w3id.org/laura/schema/simulation
-    domain_of:
-    - MagnetSimulationElement
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
     range: integer
   ez_peak:
     name: ez_peak
@@ -353,6 +385,10 @@ slot_usage:
     name: lsc_bins
     description: Number of longitudinal space-charge bins.
     ifabsent: int(100)
+  smooth:
+    name: smooth
+    description: Cavity smoothing parameter.
+    range: integer
 attributes:
   change_p0:
     name: change_p0
@@ -423,16 +459,6 @@ attributes:
     owner: RFCavitySimulationElement
     domain_of:
     - RFCavitySimulationElement
-    range: integer
-  smooth:
-    name: smooth
-    description: Cavity smoothing parameter.
-    from_schema: https://w3id.org/laura/schema/simulation
-    owner: RFCavitySimulationElement
-    domain_of:
-    - MagnetSimulationElement
-    - RFCavitySimulationElement
-    - WakefieldSimulationElement
     range: integer
   ez_peak:
     name: ez_peak
@@ -554,8 +580,7 @@ attributes:
     ifabsent: int(0)
     owner: RFCavitySimulationElement
     domain_of:
-    - MagnetSimulationElement
-    - RFCavitySimulationElement
+    - SimulationElement
     range: integer
   lsc_bins:
     name: lsc_bins
@@ -565,9 +590,159 @@ attributes:
     ifabsent: int(100)
     owner: RFCavitySimulationElement
     domain_of:
-    - RFCavitySimulationElement
-    - DriftSimulationElement
+    - SimulationElement
     range: integer
+  csr_enable:
+    name: csr_enable
+    description: Whether coherent synchrotron radiation effects are enabled.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: 'true'
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: boolean
+  lsc_enable:
+    name: lsc_enable
+    description: Whether longitudinal space-charge effects are enabled.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: 'true'
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: boolean
+  tracking_method:
+    name: tracking_method
+    description: Phase-space tracking algorithm requested from the target code.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: string
+  mat6_calc_method:
+    name: mat6_calc_method
+    description: Method used to calculate the element's 6x6 transfer matrix.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: string
+  spin_tracking_method:
+    name: spin_tracking_method
+    description: Spin-tracking algorithm requested from the target code.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: string
+  integration_order:
+    name: integration_order
+    description: Order of the target code's integration formula.
+    from_schema: https://w3id.org/laura/schema
+    aliases:
+    - integrator_order
+    rank: 1000
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: integer
+    minimum_value: 1
+  num_steps:
+    name: num_steps
+    description: Number of integration steps through the element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: integer
+    minimum_value: 1
+  deltaL:
+    name: deltaL
+    description: Longitudinal integration step size [m].
+    from_schema: https://w3id.org/laura/schema
+    aliases:
+    - ds_step
+    rank: 1000
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: float
+    minimum_value: 0
+    unit:
+      ucum_code: m
+  csr_method:
+    name: csr_method
+    description: Coherent-synchrotron-radiation tracking method.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: string
+  space_charge_method:
+    name: space_charge_method
+    description: Space-charge tracking method.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: string
+  csrdz:
+    name: csrdz
+    description: Longitudinal step size between CSR kicks [m].
+    from_schema: https://w3id.org/laura/schema
+    aliases:
+    - csr_ds_step
+    rank: 1000
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: float
+    minimum_value: 0
+    unit:
+      ucum_code: m
+  smooth:
+    name: smooth
+    description: Cavity smoothing parameter.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: integer
+    any_of:
+    - range: integer
+    - range: float
+  horizontal_offset:
+    name: horizontal_offset
+    description: Horizontal simulation offset from the reference orbit [m].
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: float(0.0)
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: float
+    unit:
+      ucum_code: m
+  vertical_offset:
+    name: vertical_offset
+    description: Vertical simulation offset from the reference orbit [m].
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    ifabsent: float(0.0)
+    owner: RFCavitySimulationElement
+    domain_of:
+    - SimulationElement
+    range: float
+    unit:
+      ucum_code: m
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.

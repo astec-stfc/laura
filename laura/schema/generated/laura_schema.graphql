@@ -135,6 +135,22 @@ interface ACDipole
 
 type ACDipoleSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -234,6 +250,22 @@ type BeamBeam
 
 type BeamBeamSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -241,8 +273,6 @@ type BeamBeamSimulationElement
     scaleField: Float
     charge: Float
     nParticles: Float
-    horizontalOffset: Float
-    verticalOffset: Float
     horizontalSigma: Float
     verticalSigma: Float
     width: Float
@@ -539,6 +569,22 @@ type DiagnosticElement
 
 type DiagnosticSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -572,21 +618,33 @@ type Drift
 
 type DriftSimulationElement
   {
+    nKicks: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
-    lscBins: Int
     lscInterpolate: Int
-    csrEnable: Boolean
-    lscEnable: Boolean
     useStupakov: Int
-    csrdz: Float
     lscHighFrequencyCutoffStart: Float
     lscHighFrequencyCutoffEnd: Float
     lscLowFrequencyCutoffStart: Float
     lscLowFrequencyCutoffEnd: Float
+    lscBins: Int
+    csrdz: Float
   }
 
 type ElectricalElement
@@ -621,6 +679,22 @@ type ElectrostaticSeparator
 
 type ElectrostaticSeparatorSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1045,28 +1119,39 @@ type MagneticElement
 
 type MagnetSimulationElement
   {
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    numSteps: Int
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
-    nKicks: Int
     fieldAmplitude: Float
     nSlices: Int
-    smooth: Int
     edgeFieldIntegral: Float
     edge1Effects: Boolean
     edge2Effects: Boolean
     srEnable: Boolean
     isrEnable: Boolean
-    csrEnable: Boolean
     csrBins: Int
-    integrationOrder: Int
     nonlinear: Boolean
     smoothingHalfWidth: Int
     edgeOrder: Int
-    deltaL: Float
     smoothPoints: Float
+    nKicks: Int
+    integrationOrder: Int
+    deltaL: Float
+    smooth: Int
   }
 
 type ManufacturerElement
@@ -1123,6 +1208,22 @@ type MatrixTransform
 
 type MatrixTransformSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1309,6 +1410,22 @@ type PlasmaElement
 
 type PlasmaSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1417,6 +1534,19 @@ type RFCavityElement
 
 type RFCavitySimulationElement
   {
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1427,8 +1557,6 @@ type RFCavitySimulationElement
     wxColumn: String
     wyColumn: String
     wzColumn: String
-    nKicks: Int
-    lscBins: Int
     changeP0: Int
     end1Focus: Int
     end2Focus: Int
@@ -1436,13 +1564,15 @@ type RFCavitySimulationElement
     currentBins: Int
     interpolateCurrentBins: Int
     smoothCurrentBins: Int
-    smooth: Int
     ezPeak: Float
     fieldFileName: String
     wakefile: String
     zwakefile: String
     trwakefile: String
     fieldAmplitude: Float!
+    nKicks: Int
+    lscBins: Int
+    smooth: Int
   }
 
 type RFDeflectingCavity
@@ -1563,6 +1693,22 @@ type RFMultipole
 
 type RFMultipoleSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1683,6 +1829,22 @@ type ShutterElement
 
 type SimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1767,6 +1929,22 @@ type TwissMatch
 
 type TwissMatchSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1891,6 +2069,21 @@ type WakefieldElement
 
 type WakefieldSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1915,8 +2108,8 @@ type WakefieldSimulationElement
     scaleFieldHz: Float
     equalGrid: Float
     interpolationMethod: Int
-    smooth: Float
     subbins: Int
+    smooth: Float
   }
 
 type WallCurrentMonitor
@@ -1968,6 +2161,22 @@ type Wire
 
 type WireSimulationElement
   {
+    nKicks: Int
+    lscBins: Int
+    csrEnable: Boolean
+    lscEnable: Boolean
+    trackingMethod: String
+    mat6CalcMethod: String
+    spinTrackingMethod: String
+    integrationOrder: Int
+    numSteps: Int
+    deltaL: Float
+    csrMethod: String
+    spaceChargeMethod: String
+    csrdz: Float
+    smooth: Float
+    horizontalOffset: Float
+    verticalOffset: Float
     fieldDefinition: String
     wakefieldDefinition: String
     wakefieldEnable: Boolean
@@ -1975,7 +2184,5 @@ type WireSimulationElement
     scaleField: Float
     current: Float
     interactionLength: Float
-    horizontalOffset: Float
-    verticalOffset: Float
   }
 

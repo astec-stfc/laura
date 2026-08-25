@@ -208,9 +208,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                 return self._rpn(raw) if code == "elegant" else raw
             if value == "angle/2":
                 return self._rpn(raw, 2, "/") if code == "elegant" else f"{raw} / 2"
-            # Any other expression referencing "angle": substitute the token
-            # (infix codes only -- ELEGANT rpn doesn't support arbitrary
-            # substitution into an infix expression here).
             return value.replace("angle", raw) if code != "elegant" else self._rpn(raw)
         if self.is_functional(value):
             return self._rpn(value) if code == "elegant" else value
@@ -270,10 +267,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                 if value is not None:
                     key = self._convertKeyword_Elegant(key)
                     if value in ("angle", "angle/2") and key in ("e1", "e2"):
-                        # Dipole edge angle referencing the reserved "angle"
-                        # token: carry a functional bend angle through
-                        # symbolically (as an rpn expression); otherwise
-                        # resolve numerically as before.
                         raw = (
                             None
                             if self._resolve_functional
@@ -468,16 +461,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             ):
                 key = self._convertKeyword_Xsuite(key)
                 if key in ["k1", "k2", "k3", "k4", "k5", "k6"] and not self._resolve_functional:
-                    # Carry a symbolic functional strength through to Xsuite as the
-                    # normalized k = KnL/length, referencing the Environment
-                    # variable; else use the number.
                     expr = self._functional_strength_expr(int(key[1]), "xsuite")
                     if expr is not None:
                         value = expr
                 if key == "angle":
                     if self.length > 0:
-                        # Xsuite dipole uses k0 = angle / length; carry a functional
-                        # bend angle through symbolically as an Environment expression.
                         raw = (
                             None
                             if self._resolve_functional
@@ -1126,7 +1114,10 @@ class BaseElementTranslator(PhysicalBaseElement):
             if key in keyword_conversion_rules_bmad
             else self.conversion_rules["bmad"]
         )
-        element = elements_Bmad[self._convertType_Bmad(hardware_type).lower()]
+        element = (
+            elements_Bmad[self._convertType_Bmad(hardware_type).lower()]
+            | elements_Bmad["common"]
+        )
         return self._convert_keyword(
             keyword,
             conversion_rules,
@@ -1156,12 +1147,21 @@ class BaseElementTranslator(PhysicalBaseElement):
             Dictionary of Bmad parameters associated with the element
         """
         etype = etype or self._convertType_Bmad(self.hardware_type)
+        common = elements_Bmad["common"]
+        element = elements_Bmad[etype] | common
+        explicit = self.simulation.model_fields_set
         parameters = {}
         for source_key, value in self.full_dump(
             resolve=self._resolve_functional
         ).items():
             key = self._convertKeyword_Bmad(source_key)
-            if value is None or key not in elements_Bmad[etype]:
+            if value is None or key not in element:
+                continue
+            source_field = source_key.removeprefix("simulation_")
+            if source_field not in explicit and (
+                key in common
+                or source_field in {"horizontal_offset", "vertical_offset"}
+            ):
                 continue
             if value in ("angle", "angle/2") and key in ("e1", "e2"):
                 raw = (
@@ -1196,12 +1196,20 @@ class BaseElementTranslator(PhysicalBaseElement):
         cavity = getattr(self, "cavity", None)
         if not length and cavity is not None:
             length = cavity.cell_length * (cavity.n_cells or 1)
-        if "l" in elements_Bmad[etype]:
+        if "l" in element:
             parameters["l"] = length
         if etype in ("sbend", "rbend"):
             parameters["hgap"] = self.magnetic.half_gap
             parameters["fint"] = self.magnetic.edge_field_integral
         return parameters
+
+    def _bmad_common_parameters(self) -> Dict[str, Any]:
+        """Return common Bmad attributes represented by this element."""
+        return {
+            key: value
+            for key, value in self._bmad_parameters().items()
+            if key in elements_Bmad["common"]
+        }
 
     def _format_bmad(
         self,
@@ -1225,13 +1233,18 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         self.start_write()
         etype = etype or self._convertType_Bmad(self.hardware_type)
-        parameters = self._bmad_parameters(etype) if parameters is None else parameters
+        element = elements_Bmad[etype] | elements_Bmad["common"]
+        if parameters is None:
+            parameters = self._bmad_parameters(etype)
+        else:
+            parameters = self._bmad_common_parameters() | parameters
+
         def render(key, value):
             if value is True:
                 return "T"
             if value is False:
                 return "F"
-            if elements_Bmad[etype].get(key) == "integer":
+            if element.get(key) == "integer":
                 return str(int(value))
             return str(value)
 

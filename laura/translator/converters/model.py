@@ -41,11 +41,16 @@ class MachineModelTranslator(MachineModel):
             translator.revolution_frequency = self.revolution_frequency
         return translator
 
-    def to_bmad(self) -> Dict[str, Dict[str, str]]:
+    def to_bmad(
+        self,
+        *,
+        space_charge_n_bin: int | None = None,
+    ) -> Dict[str, Dict[str, str]]:
         """Create standalone Bmad lattices grouped by machine layout."""
         return {
             sanitize_string(name): self._layout_translator(layout).to_bmad(
-                particle=self.particle
+                particle=self.particle,
+                space_charge_n_bin=space_charge_n_bin,
             )
             for name, layout in self.lattices.items()
         }

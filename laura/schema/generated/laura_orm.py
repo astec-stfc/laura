@@ -504,11 +504,27 @@ class MatrixValue(Base):
 
 class SimulationElement(Base):
     """
-    Base simulation attributes: field-map files and reference positions for tracking codes.
+    Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes.
     """
     __tablename__ = 'SimulationElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -517,7 +533,7 @@ class SimulationElement(Base):
     
 
     def __repr__(self):
-        return f"SimulationElement(id={self.id},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"SimulationElement(id={self.id},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7417,23 +7433,34 @@ class MagnetSimulationElement(SimulationElement):
     __tablename__ = 'MagnetSimulationElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
-    n_kicks = Column(Integer())
     field_amplitude = Column(Float())
     n_slices = Column(Integer())
-    smooth = Column(Integer())
     edge_field_integral = Column(Float())
     edge1_effects = Column(Boolean())
     edge2_effects = Column(Boolean())
     sr_enable = Column(Boolean())
     isr_enable = Column(Boolean())
-    csr_enable = Column(Boolean())
     csr_bins = Column(Integer())
-    integration_order = Column(Integer())
     nonlinear = Column(Boolean())
     smoothing_half_width = Column(Integer())
     edge_order = Column(Integer())
-    deltaL = Column(Float())
     smooth_points = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Integer())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7442,7 +7469,7 @@ class MagnetSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"MagnetSimulationElement(id={self.id},n_kicks={self.n_kicks},field_amplitude={self.field_amplitude},n_slices={self.n_slices},smooth={self.smooth},edge_field_integral={self.edge_field_integral},edge1_effects={self.edge1_effects},edge2_effects={self.edge2_effects},sr_enable={self.sr_enable},isr_enable={self.isr_enable},csr_enable={self.csr_enable},csr_bins={self.csr_bins},integration_order={self.integration_order},nonlinear={self.nonlinear},smoothing_half_width={self.smoothing_half_width},edge_order={self.edge_order},deltaL={self.deltaL},smooth_points={self.smooth_points},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"MagnetSimulationElement(id={self.id},field_amplitude={self.field_amplitude},n_slices={self.n_slices},edge_field_integral={self.edge_field_integral},edge1_effects={self.edge1_effects},edge2_effects={self.edge2_effects},sr_enable={self.sr_enable},isr_enable={self.isr_enable},csr_bins={self.csr_bins},nonlinear={self.nonlinear},smoothing_half_width={self.smoothing_half_width},edge_order={self.edge_order},smooth_points={self.smooth_points},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7466,8 +7493,6 @@ class RFCavitySimulationElement(SimulationElement):
     wx_column = Column(Text())
     wy_column = Column(Text())
     wz_column = Column(Text())
-    n_kicks = Column(Integer())
-    lsc_bins = Column(Integer())
     change_p0 = Column(Integer())
     end1_focus = Column(Integer())
     end2_focus = Column(Integer())
@@ -7475,13 +7500,28 @@ class RFCavitySimulationElement(SimulationElement):
     current_bins = Column(Integer())
     interpolate_current_bins = Column(Integer())
     smooth_current_bins = Column(Integer())
-    smooth = Column(Integer())
     ez_peak = Column(Float())
     field_file_name = Column(Text())
     wakefile = Column(Text())
     zwakefile = Column(Text())
     trwakefile = Column(Text())
     field_amplitude = Column(Float(), nullable=False )
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Integer())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7490,7 +7530,7 @@ class RFCavitySimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"RFCavitySimulationElement(id={self.id},t_column={self.t_column},z_column={self.z_column},wx_column={self.wx_column},wy_column={self.wy_column},wz_column={self.wz_column},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},change_p0={self.change_p0},end1_focus={self.end1_focus},end2_focus={self.end2_focus},body_focus_model={self.body_focus_model},current_bins={self.current_bins},interpolate_current_bins={self.interpolate_current_bins},smooth_current_bins={self.smooth_current_bins},smooth={self.smooth},ez_peak={self.ez_peak},field_file_name={self.field_file_name},wakefile={self.wakefile},zwakefile={self.zwakefile},trwakefile={self.trwakefile},field_amplitude={self.field_amplitude},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"RFCavitySimulationElement(id={self.id},t_column={self.t_column},z_column={self.z_column},wx_column={self.wx_column},wy_column={self.wy_column},wz_column={self.wz_column},change_p0={self.change_p0},end1_focus={self.end1_focus},end2_focus={self.end2_focus},body_focus_model={self.body_focus_model},current_bins={self.current_bins},interpolate_current_bins={self.interpolate_current_bins},smooth_current_bins={self.smooth_current_bins},ez_peak={self.ez_peak},field_file_name={self.field_file_name},wakefile={self.wakefile},zwakefile={self.zwakefile},trwakefile={self.trwakefile},field_amplitude={self.field_amplitude},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7528,8 +7568,23 @@ class WakefieldSimulationElement(SimulationElement):
     scale_field_hz = Column(Float())
     equal_grid = Column(Float())
     interpolation_method = Column(Integer())
-    smooth = Column(Float())
     subbins = Column(Integer())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7538,7 +7593,7 @@ class WakefieldSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"WakefieldSimulationElement(id={self.id},t_column={self.t_column},z_column={self.z_column},wx_column={self.wx_column},wy_column={self.wy_column},wz_column={self.wz_column},allow_long_beam={self.allow_long_beam},bunched_beam={self.bunched_beam},change_momentum={self.change_momentum},factor={self.factor},interpolate={self.interpolate},scale_kick={self.scale_kick},scale_field_ex={self.scale_field_ex},scale_field_ey={self.scale_field_ey},scale_field_ez={self.scale_field_ez},scale_field_hx={self.scale_field_hx},scale_field_hy={self.scale_field_hy},scale_field_hz={self.scale_field_hz},equal_grid={self.equal_grid},interpolation_method={self.interpolation_method},smooth={self.smooth},subbins={self.subbins},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"WakefieldSimulationElement(id={self.id},t_column={self.t_column},z_column={self.z_column},wx_column={self.wx_column},wy_column={self.wy_column},wz_column={self.wz_column},allow_long_beam={self.allow_long_beam},bunched_beam={self.bunched_beam},change_momentum={self.change_momentum},factor={self.factor},interpolate={self.interpolate},scale_kick={self.scale_kick},scale_field_ex={self.scale_field_ex},scale_field_ey={self.scale_field_ey},scale_field_ez={self.scale_field_ez},scale_field_hx={self.scale_field_hx},scale_field_hy={self.scale_field_hy},scale_field_hz={self.scale_field_hz},equal_grid={self.equal_grid},interpolation_method={self.interpolation_method},subbins={self.subbins},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7557,16 +7612,28 @@ class DriftSimulationElement(SimulationElement):
     __tablename__ = 'DriftSimulationElement'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
-    lsc_bins = Column(Integer())
     lsc_interpolate = Column(Integer())
-    csr_enable = Column(Boolean())
-    lsc_enable = Column(Boolean())
     use_stupakov = Column(Integer())
-    csrdz = Column(Float())
     lsc_high_frequency_cutoff_start = Column(Float())
     lsc_high_frequency_cutoff_end = Column(Float())
     lsc_low_frequency_cutoff_start = Column(Float())
     lsc_low_frequency_cutoff_end = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7575,7 +7642,7 @@ class DriftSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"DriftSimulationElement(id={self.id},lsc_bins={self.lsc_bins},lsc_interpolate={self.lsc_interpolate},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},use_stupakov={self.use_stupakov},csrdz={self.csrdz},lsc_high_frequency_cutoff_start={self.lsc_high_frequency_cutoff_start},lsc_high_frequency_cutoff_end={self.lsc_high_frequency_cutoff_end},lsc_low_frequency_cutoff_start={self.lsc_low_frequency_cutoff_start},lsc_low_frequency_cutoff_end={self.lsc_low_frequency_cutoff_end},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"DriftSimulationElement(id={self.id},lsc_interpolate={self.lsc_interpolate},use_stupakov={self.use_stupakov},lsc_high_frequency_cutoff_start={self.lsc_high_frequency_cutoff_start},lsc_high_frequency_cutoff_end={self.lsc_high_frequency_cutoff_end},lsc_low_frequency_cutoff_start={self.lsc_low_frequency_cutoff_start},lsc_low_frequency_cutoff_end={self.lsc_low_frequency_cutoff_end},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7595,6 +7662,22 @@ class DiagnosticSimulationElement(SimulationElement):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     output_filename = Column(Text())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7603,7 +7686,7 @@ class DiagnosticSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"DiagnosticSimulationElement(id={self.id},output_filename={self.output_filename},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"DiagnosticSimulationElement(id={self.id},output_filename={self.output_filename},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7635,6 +7718,22 @@ class PlasmaSimulationElement(SimulationElement):
     r_max_plasma = Column(Float())
     dz_fields = Column(Float())
     plasma_pusher = Column(Text())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7643,7 +7742,7 @@ class PlasmaSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"PlasmaSimulationElement(id={self.id},wakefield_model={self.wakefield_model},bunch_pusher={self.bunch_pusher},dt_bunch={self.dt_bunch},n_out={self.n_out},min_longitudinal_position={self.min_longitudinal_position},max_longitudinal_position={self.max_longitudinal_position},n_longitudinal={self.n_longitudinal},n_radial={self.n_radial},plasma_particles_per_cell={self.plasma_particles_per_cell},r_max={self.r_max},r_max_plasma={self.r_max_plasma},dz_fields={self.dz_fields},plasma_pusher={self.plasma_pusher},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"PlasmaSimulationElement(id={self.id},wakefield_model={self.wakefield_model},bunch_pusher={self.bunch_pusher},dt_bunch={self.dt_bunch},n_out={self.n_out},min_longitudinal_position={self.min_longitudinal_position},max_longitudinal_position={self.max_longitudinal_position},n_longitudinal={self.n_longitudinal},n_radial={self.n_radial},plasma_particles_per_cell={self.plasma_particles_per_cell},r_max={self.r_max},r_max_plasma={self.r_max_plasma},dz_fields={self.dz_fields},plasma_pusher={self.plasma_pusher},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7671,6 +7770,22 @@ class TwissMatchSimulationElement(SimulationElement):
     eta_xp = Column(Float())
     eta_yp = Column(Float())
     from_beam = Column(Boolean())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7679,7 +7794,7 @@ class TwissMatchSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"TwissMatchSimulationElement(id={self.id},beta_x={self.beta_x},beta_y={self.beta_y},alpha_x={self.alpha_x},alpha_y={self.alpha_y},eta_x={self.eta_x},eta_y={self.eta_y},eta_xp={self.eta_xp},eta_yp={self.eta_yp},from_beam={self.from_beam},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"TwissMatchSimulationElement(id={self.id},beta_x={self.beta_x},beta_y={self.beta_y},alpha_x={self.alpha_x},alpha_y={self.alpha_y},eta_x={self.eta_x},eta_y={self.eta_y},eta_xp={self.eta_xp},eta_yp={self.eta_yp},from_beam={self.from_beam},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7699,6 +7814,22 @@ class MatrixTransformSimulationElement(SimulationElement):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     apply = Column(Boolean())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7717,7 +7848,7 @@ class MatrixTransformSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"MatrixTransformSimulationElement(id={self.id},apply={self.apply},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},c_matrix_id={self.c_matrix_id},r_matrix_id={self.r_matrix_id},t_matrix_id={self.t_matrix_id},u_matrix_id={self.u_matrix_id},spin_taylor_id={self.spin_taylor_id},)"
+        return f"MatrixTransformSimulationElement(id={self.id},apply={self.apply},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},c_matrix_id={self.c_matrix_id},r_matrix_id={self.r_matrix_id},t_matrix_id={self.t_matrix_id},u_matrix_id={self.u_matrix_id},spin_taylor_id={self.spin_taylor_id},)"
 
 
 
@@ -7739,6 +7870,22 @@ class ElectrostaticSeparatorSimulationElement(SimulationElement):
     horizontal_field = Column(Float())
     vertical_field = Column(Float())
     tilt = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7747,7 +7894,7 @@ class ElectrostaticSeparatorSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"ElectrostaticSeparatorSimulationElement(id={self.id},horizontal_field={self.horizontal_field},vertical_field={self.vertical_field},tilt={self.tilt},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"ElectrostaticSeparatorSimulationElement(id={self.id},horizontal_field={self.horizontal_field},vertical_field={self.vertical_field},tilt={self.tilt},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7769,6 +7916,22 @@ class ACDipoleSimulationElement(SimulationElement):
     field_amplitude = Column(Float())
     frequency = Column(Float())
     phase = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7782,7 +7945,7 @@ class ACDipoleSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"ACDipoleSimulationElement(id={self.id},field_amplitude={self.field_amplitude},frequency={self.frequency},phase={self.phase},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"ACDipoleSimulationElement(id={self.id},field_amplitude={self.field_amplitude},frequency={self.frequency},phase={self.phase},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7803,6 +7966,20 @@ class WireSimulationElement(SimulationElement):
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     current = Column(Float())
     interaction_length = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
     horizontal_offset = Column(Float())
     vertical_offset = Column(Float())
     field_definition = Column(Text())
@@ -7813,7 +7990,7 @@ class WireSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"WireSimulationElement(id={self.id},current={self.current},interaction_length={self.interaction_length},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"WireSimulationElement(id={self.id},current={self.current},interaction_length={self.interaction_length},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7834,11 +8011,25 @@ class BeamBeamSimulationElement(SimulationElement):
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     charge = Column(Float())
     n_particles = Column(Float())
-    horizontal_offset = Column(Float())
-    vertical_offset = Column(Float())
     horizontal_sigma = Column(Float())
     vertical_sigma = Column(Float())
     width = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7847,7 +8038,7 @@ class BeamBeamSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"BeamBeamSimulationElement(id={self.id},charge={self.charge},n_particles={self.n_particles},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},horizontal_sigma={self.horizontal_sigma},vertical_sigma={self.vertical_sigma},width={self.width},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"BeamBeamSimulationElement(id={self.id},charge={self.charge},n_particles={self.n_particles},horizontal_sigma={self.horizontal_sigma},vertical_sigma={self.vertical_sigma},width={self.width},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 
@@ -7869,6 +8060,22 @@ class RFMultipoleSimulationElement(SimulationElement):
     frequency = Column(Float())
     phase = Column(Float())
     field_amplitude = Column(Float())
+    n_kicks = Column(Integer())
+    lsc_bins = Column(Integer())
+    csr_enable = Column(Boolean())
+    lsc_enable = Column(Boolean())
+    tracking_method = Column(Text())
+    mat6_calc_method = Column(Text())
+    spin_tracking_method = Column(Text())
+    integration_order = Column(Integer())
+    num_steps = Column(Integer())
+    deltaL = Column(Float())
+    csr_method = Column(Text())
+    space_charge_method = Column(Text())
+    csrdz = Column(Float())
+    smooth = Column(Float())
+    horizontal_offset = Column(Float())
+    vertical_offset = Column(Float())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -7897,7 +8104,7 @@ class RFMultipoleSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"RFMultipoleSimulationElement(id={self.id},frequency={self.frequency},phase={self.phase},field_amplitude={self.field_amplitude},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"RFMultipoleSimulationElement(id={self.id},frequency={self.frequency},phase={self.phase},field_amplitude={self.field_amplitude},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 

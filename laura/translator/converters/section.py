@@ -144,7 +144,12 @@ class SectionLatticeTranslator(SectionLattice):
                      f"NB The element may be supported in the code, but not yet by the LAURA converter;"
                      f"Raise an issue if you want this to be rectified.")
 
-    def to_bmad(self, particle: str | None = None) -> str:
+    def to_bmad(
+        self,
+        particle: str | None = None,
+        *,
+        space_charge_n_bin: int | None = None,
+    ) -> str:
         """
         Create a Bmad-compatible lattice file for this section.
 
@@ -152,6 +157,8 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         particle: str | None
             Particle for this lattice
+        space_charge_n_bin: int | None
+            Optional positive number of Bmad space-charge bins.
 
         Returns
         -------
@@ -168,6 +175,12 @@ class SectionLatticeTranslator(SectionLattice):
         header = bmad_functional_definitions(self.functional_definitions)
         if particle:
             header += f"parameter[particle] = {particle}\n"
+        enabled = "T" if self.csr_enable or self.lsc_enable else "F"
+        header += f"bmad_com[csr_and_space_charge_on] = {enabled}\n"
+        if space_charge_n_bin is not None:
+            if space_charge_n_bin < 1:
+                raise ValueError("space_charge_n_bin must be positive")
+            header += f"space_charge_com[n_bin] = {space_charge_n_bin}\n"
         if self.geometry:
             geometry = getattr(self.geometry, "value", self.geometry)
             header += f"parameter[geometry] = {geometry}\n"
