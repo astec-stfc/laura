@@ -9,6 +9,7 @@ from ..converters import (
     elements_Elegant,
     elements_Opal,
     elements_Madx,
+    elements_Bmad,
 )
 from ..utils.functions import sanitize_string
 
@@ -98,6 +99,25 @@ class RFCavityTranslator(BaseElementTranslator):
     @property
     def wzcolumn(self) -> str | None:
         return f'"{self.simulation.wz_column}"' if self.simulation.wz_column else None
+
+    def to_bmad(self) -> str:
+        """Generate a Bmad RF or crab-cavity definition."""
+        etype = self._convertType_Bmad(self.hardware_type)
+        parameters = self._bmad_parameters(etype)
+        phase = self.cavity.phase
+        parameters["phi0"] = (
+            f"({phase}) / 360"
+            if not self._resolve_functional and self.is_functional(phase)
+            else self.resolve(phase) / 360
+        )
+        if "cavity_type" in elements_Bmad[etype]:
+            structure = str(self.structure_type).replace("_", "").lower()
+            parameters["cavity_type"] = {
+                "standingwave": "standing_wave",
+                "travellingwave": "traveling_wave",
+                "travelingwave": "traveling_wave",
+            }.get(structure, structure)
+        return self._format_bmad(etype, parameters)
 
     def set_wakefield_column_names(self, wakefield_file_name: str) -> None:
         """

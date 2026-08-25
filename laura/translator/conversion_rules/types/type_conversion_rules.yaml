@@ -167,9 +167,21 @@ bmad:
   Decapole: decapole
   Beam_Position_Monitor: monitor
   Diagnostic: instrument
+  Beam_Arrival_Monitor: instrument
+  Aperture: rcollimator
+  Bunch_Length_Monitor: instrument
+  Screen: instrument
+  Wall_Current_Monitor: instrument
+  Integrated_Current_Transformer: instrument
+  CrabCavity: crab_cavity
+  Faraday_Cup_Monitor: instrument
+  Photon_Monitor: instrument
+  ChargeDiagnostic: instrument
+  Camera: instrument
   Collimator: ecollimator
   Solenoid: solenoid
   CombinedSolenoidQuadrupole: sol_quad
+  BeamBeam: beambeam
   Drift: drift
   RFCavity: rfcavity
   RFDeflectingCavity: crab_cavity

@@ -8,6 +8,32 @@ magnetic_orders = {
     "RBend": 0,
 }
 
+bmad_unsupported = [
+    "Horizontal_AC_Dipole",
+    "Vertical_AC_Dipole",
+    "Laser",
+    "LaserAttenuator",
+    "LaserEnergyMeter",
+    "LaserHalfWavePlate",
+    "LaserMirror",
+    "Lighting",
+    "Low_Level_RF",
+    "NonLinearLens",
+    "PID",
+    "Plasma",
+    "PowerSupply",
+    "RFHeartbeat",
+    "RFModulator",
+    "RFMultipole",
+    "RFProtection",
+    "Shutter",
+    "Stage",
+    "VacuumGauge",
+    "Valve",
+    "Wakefield",
+    "Wire",
+]
+
 from .astra import astra_unsupported
 from .cheetah import cheetah_unsupported
 from .csrtrack import csrtrack_unsupported

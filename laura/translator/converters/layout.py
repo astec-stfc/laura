@@ -23,6 +23,7 @@ class MachineLayoutTranslator(MachineLayout):
                 "functional_definitions": layout.functional_definitions,
                 "resolve_functional": layout.resolve_functional,
                 "revolution_frequency": layout.revolution_frequency,
+                "particle": layout.particle,
             }
         )
 
@@ -36,6 +37,16 @@ class MachineLayoutTranslator(MachineLayout):
         if translator.revolution_frequency is None:
             translator.revolution_frequency = self.revolution_frequency
         return translator
+
+    def to_bmad(self, particle: str | None = None) -> Dict[str, str]:
+        """Create one standalone Bmad lattice per section."""
+        particle = self.particle or particle
+        return {
+            sanitize_string(section.name): self._section_translator(section).to_bmad(
+                particle=particle
+            )
+            for section in self.sections.values()
+        }
 
     def to_astra(self) -> Dict[str, str]:
         lattices = {}

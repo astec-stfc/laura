@@ -183,6 +183,14 @@ def madx_functional_definitions(definitions: Dict | None = None) -> str:
     definitions = definitions or IgnoreExtra.functional_definitions
     return "".join(f"{name} = {value};\n" for name, value in definitions.items())
 
+def bmad_functional_definitions(definitions: Dict | None = None) -> str:
+    """Build Bmad variable assignments for symbolic lattice parameters."""
+    if IgnoreExtra.resolve_functional:
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(f"{name} = {value}\n" for name, value in definitions.items())
+
+
 def sanitize_string(string: str) -> str:
     """
     Replaces hyphens in a string with underscores.

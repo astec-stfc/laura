@@ -51,6 +51,7 @@ def _switch_dict() -> Dict[str, str]:
             "undulator": "Wiggler",
             "e_gun": "RFCavity",
             "beambeam": "BeamBeam",
+            "instrument": "Diagnostic",
         }
     )
     return switch
@@ -706,10 +707,6 @@ class BmadLatticeImporter(BaseModel):
                     poles = {}
                     for row in parameters.get("_MULTIPOLES", {}).get("data", []):
                         order = int(row["index"])
-                        # An/Bn are the skew/normal coefficients. For an element
-                        # written as KnL/Tn, Bmad supplies the equivalent pair
-                        # rather than making us resolve the tilt ourselves.
-                        # They relate to LAURA's integrated KnL by a factor n!.
                         normal = row.get("Bn", row.get("Bn (equiv)", 0.0)) or 0.0
                         skew = row.get("An", row.get("An (equiv)", 0.0)) or 0.0
                         if normal or skew:

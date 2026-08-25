@@ -25,12 +25,14 @@ from ..utils.functions import (
     tw_cavity_energy_gain,
     elegant_functional_definitions,
     madx_functional_definitions,
+    bmad_functional_definitions,
 )
 from ..utils.fields import field
 from ...models.baseModels import IgnoreExtra
 from ..utils.functions import sanitize_string
 from .codes import (
     astra_unsupported,
+    bmad_unsupported,
     cheetah_unsupported,
     csrtrack_unsupported,
     elegant_unsupported,
@@ -43,6 +45,7 @@ from .codes import (
 )
 
 unsupported_elements = {
+    "bmad": bmad_unsupported,
     "astra": astra_unsupported,
     "cheetah": cheetah_unsupported,
     "csrtrack": csrtrack_unsupported,
@@ -124,6 +127,8 @@ class SectionLatticeTranslator(SectionLattice):
                 "master_lattice": section.model_copy().master_lattice,
                 "functional_definitions": section.functional_definitions,
                 "resolve_functional": section.resolve_functional,
+                "geometry": section.geometry,
+                "reference_energy": section.reference_energy,
                 "revolution_frequency": section.revolution_frequency,
             }
         )
@@ -139,6 +144,27 @@ class SectionLatticeTranslator(SectionLattice):
                      f"NB The element may be supported in the code, but not yet by the LAURA converter;"
                      f"Raise an issue if you want this to be rectified.")
 
+    def to_bmad(self, particle: str | None = None) -> str:
+        """Create a standalone native Bmad lattice for this section."""
+        self._check_elements_supported("bmad")
+        section = self.createDrifts()
+        elements = translate_elements(
+            section.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        header = bmad_functional_definitions(self.functional_definitions)
+        if particle:
+            header += f"parameter[particle] = {particle}\n"
+        if self.geometry:
+            geometry = getattr(self.geometry, "value", self.geometry)
+            header += f"parameter[geometry] = {geometry}\n"
+        if self.reference_energy is not None:
+            header += f"beginning[e_tot] = {self.reference_energy}\n"
+        definitions = "".join(element.to_bmad() for element in elements.values())
+        name = sanitize_string(self.name)
+        members = ", ".join(sanitize_string(item) for item in section)
+        return f"{header}{definitions}\n{name}: line = ({members})\nuse, {name}\n"
 
     def to_astra(self) -> str:
         """

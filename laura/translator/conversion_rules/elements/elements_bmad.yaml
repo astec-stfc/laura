@@ -8,6 +8,8 @@ sbend:
   e1: double
   e2: double
   gap: double
+  hgap: double
+  fint: double
   tilt: double
 rbend:
   l: double
@@ -17,6 +19,8 @@ rbend:
   e1: double
   e2: double
   gap: double
+  hgap: double
+  fint: double
   tilt: double
 quadrupole:
   l: double
@@ -58,6 +62,11 @@ lcavity:
   voltage: double
   n_cell: integer
   cavity_type: string
+crab_cavity:
+  l: double
+  phi0: double
+  rf_frequency: double
+  voltage: double
 wiggler:
   l: double
   b_max: double
@@ -76,8 +85,25 @@ elseparator:
   hkick: double
   vkick: double
   tilt: double
+beambeam:
+  charge: double
+  n_particle: double
+  sig_x: double
+  sig_y: double
+  sig_z: double
+  x_offset: double
+  y_offset: double
 match:
   l: double
+  beta_a1: double
+  beta_b1: double
+  alpha_a1: double
+  alpha_b1: double
+  eta_x1: double
+  eta_y1: double
+  etap_x1: double
+  etap_y1: double
+  matrix: string
 taylor:
   l: double
 ecollimator:

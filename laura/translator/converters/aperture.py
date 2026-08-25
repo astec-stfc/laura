@@ -7,6 +7,27 @@ from ..utils.functions import sanitize_string
 class ApertureTranslator(BaseElementTranslator):
     aperture: ApertureElement
 
+    def to_bmad(self) -> str:
+        """Generate a native Bmad collimator with symmetric aperture limits."""
+        shape = getattr(self.aperture.shape, "value", self.aperture.shape)
+        etype = (
+            "ecollimator"
+            if shape in ("elliptical", "circular")
+            else "rcollimator"
+        )
+        horizontal = self.aperture.radius or self.aperture.horizontal_size / 2
+        vertical = self.aperture.radius or self.aperture.vertical_size / 2
+        return self._format_bmad(
+            etype,
+            {
+                "l": self.length,
+                "x1_limit": horizontal,
+                "x2_limit": horizontal,
+                "y1_limit": vertical,
+                "y2_limit": vertical,
+            },
+        )
+
     def to_madx(self, at: float = None) -> str:
         """
         Generates a string representation of the object's properties in the MAD-X

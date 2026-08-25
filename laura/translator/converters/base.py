@@ -832,7 +832,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         one of its keys directly. Falls back to the original keyword.
         """
         for strip in strip_prefixes:
-            stripped = keyword.replace(strip, "")
+            stripped = keyword.removeprefix(strip)
             if stripped in conversion_rules:
                 return conversion_rules[stripped]
             elif element is not None and stripped in element.keys():
@@ -1115,6 +1115,84 @@ class BaseElementTranslator(PhysicalBaseElement):
                 "physical_",
             ),
         )
+
+    def _bmad_parameters(self, etype: str | None = None) -> Dict[str, Any]:
+        """Return the native Bmad attributes represented by this element."""
+        etype = etype or self._convertType_Bmad(self.hardware_type)
+        parameters = {}
+        for source_key, value in self.full_dump(
+            resolve=self._resolve_functional
+        ).items():
+            key = self._convertKeyword_Bmad(source_key)
+            if value is None or key not in elements_Bmad[etype]:
+                continue
+            if value in ("angle", "angle/2") and key in ("e1", "e2"):
+                raw = (
+                    None
+                    if self._resolve_functional
+                    else self._raw_edge_angle(
+                        "entrance_edge_angle" if key == "e1" else "exit_edge_angle",
+                        "bmad",
+                    )
+                )
+                value = raw if raw is not None else (
+                    self.magnetic.KnL(0)
+                    if value == "angle"
+                    else self.magnetic.KnL(0) / 2
+                )
+            elif key in ("k1", "k2", "k3", "k4"):
+                expression = (
+                    None
+                    if self._resolve_functional
+                    else self._functional_strength_expr(int(key[1]), "bmad")
+                )
+                value = (
+                    expression
+                    if expression is not None
+                    else getattr(self, key)
+                )
+            elif key == "angle":
+                raw = None if self._resolve_functional else self._raw_multipole_strength(0)
+                value = raw if raw is not None else self.magnetic.KnL(0)
+            parameters.setdefault(key, value)
+        length = self.length
+        cavity = getattr(self, "cavity", None)
+        if not length and cavity is not None:
+            length = cavity.cell_length * (cavity.n_cells or 1)
+        if "l" in elements_Bmad[etype]:
+            parameters["l"] = length
+        if etype in ("sbend", "rbend"):
+            parameters["hgap"] = self.magnetic.half_gap
+            parameters["fint"] = self.magnetic.edge_field_integral
+        return parameters
+
+    def _format_bmad(
+        self,
+        etype: str | None = None,
+        parameters: Dict[str, Any] | None = None,
+    ) -> str:
+        """Format one Bmad lattice element definition."""
+        self.start_write()
+        etype = etype or self._convertType_Bmad(self.hardware_type)
+        parameters = self._bmad_parameters(etype) if parameters is None else parameters
+        def render(key, value):
+            if value is True:
+                return "T"
+            if value is False:
+                return "F"
+            if elements_Bmad[etype].get(key) == "integer":
+                return str(int(value))
+            return str(value)
+
+        attributes = "".join(
+            f", {key} = {render(key, value)}"
+            for key, value in parameters.items()
+        )
+        return f"{sanitize_string(self.name)}: {etype}{attributes}\n"
+
+    def to_bmad(self) -> str:
+        """Generate a Bmad lattice element definition."""
+        return self._format_bmad()
 
     def _write_ASTRA_dictionary(self, d: dict, n: int | None = 1) -> str:
         """

@@ -12,6 +12,23 @@ class TwissMatchTranslator(BaseElementTranslator):
     simulation: TwissMatchSimulationElement
     """Twiss match simulation element"""
 
+    def to_bmad(self) -> str:
+        """Generate a Bmad match element from target exit Twiss parameters."""
+        return self._format_bmad(
+            "match",
+            {
+                "l": self.length,
+                "beta_a1": self.simulation.beta_x,
+                "beta_b1": self.simulation.beta_y,
+                "alpha_a1": self.simulation.alpha_x,
+                "alpha_b1": self.simulation.alpha_y,
+                "eta_x1": self.simulation.eta_x,
+                "eta_y1": self.simulation.eta_y,
+                "etap_x1": self.simulation.eta_xp,
+                "etap_y1": self.simulation.eta_yp,
+                "matrix": "match_twiss",
+            },
+        )
 
     def to_xsuite(self, beam_length: int) -> tuple:
         """

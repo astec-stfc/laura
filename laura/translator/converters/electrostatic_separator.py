@@ -1,3 +1,4 @@
+from math import atan2, hypot
 from .base import BaseElementTranslator
 from laura.models.simulation import ElectrostaticSeparatorSimulationElement
 from ..utils.functions import sanitize_string
@@ -15,6 +16,17 @@ class ElectrostaticSeparatorTranslator(BaseElementTranslator):
 
     simulation: ElectrostaticSeparatorSimulationElement
     """Electrostatic separator simulation element."""
+
+    def to_bmad(self) -> str:
+        """Generate a Bmad electrostatic separator."""
+        horizontal = self.resolve(self.simulation.horizontal_field)
+        vertical = self.resolve(self.simulation.vertical_field)
+        parameters = {"l": self.length, "e_field": hypot(horizontal, vertical)}
+        if horizontal or vertical:
+            parameters["tilt"] = atan2(horizontal, vertical)
+        elif self.simulation.tilt:
+            parameters["tilt"] = self.simulation.tilt
+        return self._format_bmad("elseparator", parameters)
 
     def to_madx(self, at: float = None) -> str:
         """

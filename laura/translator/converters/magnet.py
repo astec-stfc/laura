@@ -1,11 +1,12 @@
 from copy import deepcopy
 from typing import Union
 
-from pydantic import computed_field
+from pydantic import computed_field, model_validator
 from warnings import warn
 from .base import BaseElementTranslator
 from laura.models.magnetic import (
     MagneticElement,
+    CombinedSolenoidQuadrupole_Magnet,
     Solenoid_Magnet,
     Dipole_Magnet,
     Wiggler_Magnet,
@@ -40,6 +41,18 @@ class MagnetTranslator(BaseElementTranslator):
 
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def preserve_combined_solenoid_quadrupole(cls, data):
+        if (
+            isinstance(data, dict)
+            and data.get("hardware_type") == "CombinedSolenoidQuadrupole"
+            and isinstance(data.get("magnetic"), dict)
+        ):
+            data = dict(data)
+            data["magnetic"] = CombinedSolenoidQuadrupole_Magnet(**data["magnetic"])
+        return data
 
     @computed_field
     @property
@@ -187,6 +200,24 @@ class MagnetTranslator(BaseElementTranslator):
             dk3
         """
         return 0.0
+
+    def to_bmad(self) -> str:
+        if self.hardware_type != "CombinedSolenoidQuadrupole":
+            return super().to_bmad()
+        parameters = self._bmad_parameters()
+        strength = self.magnetic.ks
+        parameters["bs_field"] = (
+            f"{strength} / {self.magnetic.length}"
+            if (
+                not self._resolve_functional
+                and self.is_functional(strength)
+                and self.magnetic.length
+            )
+            else self.resolve(strength) / self.magnetic.length
+            if self.magnetic.length
+            else self.resolve(strength)
+        )
+        return self._format_bmad(parameters=parameters)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
@@ -981,10 +1012,20 @@ class SolenoidTranslator(BaseElementTranslator):
     @computed_field
     @property
     def ks(self) -> Union[float, str]:
-        # Follows the global resolution mode: a resolved number, or the functional
-        # name (passed through symbolically to codes that support it, e.g. the
-        # ELEGANT ``ks`` keyword / Xsuite Environment variable).
         return self.magnetic.ks
+
+    def to_bmad(self) -> str:
+        parameters = self._bmad_parameters()
+        strength = self.magnetic.ks
+        if self.magnetic.length:
+            parameters["bs_field"] = (
+                f"{strength} / {self.magnetic.length}"
+                if not self._resolve_functional and self.is_functional(strength)
+                else self.resolve(strength) / self.magnetic.length
+            )
+        else:
+            parameters["bs_field"] = self.resolve(strength)
+        return self._format_bmad(parameters=parameters)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """

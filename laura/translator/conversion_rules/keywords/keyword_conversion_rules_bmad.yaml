@@ -33,6 +33,10 @@ rfdeflectingcavity:
   phase: phi0
   frequency: rf_frequency
   field_amplitude: voltage
+crabcavity:
+  phase: phi0
+  frequency: rf_frequency
+  field_amplitude: voltage
 wiggler:
   peak_magnetic_field: b_max
   period: l_period
@@ -51,3 +55,11 @@ collimator:
   x2_limit: x2_limit
   y1_limit: y1_limit
   y2_limit: y2_limit
+beambeam:
+  charge: charge
+  n_particles: n_particle
+  horizontal_sigma: sig_x
+  vertical_sigma: sig_y
+  width: sig_z
+  horizontal_offset: x_offset
+  vertical_offset: y_offset
