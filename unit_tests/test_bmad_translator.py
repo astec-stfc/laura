@@ -29,6 +29,7 @@ from laura.models.element import (  # noqa: E402
     Wiggler,
 )
 from laura.models.elementList import (  # noqa: E402
+    ElementList,
     MachineLayout,
     MachineModel,
     SectionLattice,
@@ -478,3 +479,55 @@ def test_bmad_section_layout_and_model_export():
     assert "parameter[particle] = electron" in model_text["L_1"]["S_1"]
     assert "bmad_com[csr_and_space_charge_on] = T" in model_text["L_1"]["S_1"]
     assert "space_charge_com[n_bin] = 32" in model_text["L_1"]["S_1"]
+
+
+def test_bmad_section_superimposes_overlapping_elements():
+    base = Quadrupole(
+        name="Q-BASE",
+        machine_area="S",
+        magnetic={"magnetic_length": 4, "k1l": 0.4},
+        physical=PhysicalElement(length=4, middle=Position(z=2)),
+    )
+    overlap = Quadrupole(
+        name="Q-OVER",
+        machine_area="S",
+        magnetic={"magnetic_length": 2, "k1l": 0.2},
+        physical=PhysicalElement(length=2, middle=Position(z=3)),
+    )
+    embedded = Solenoid(
+        name="S-EMBED",
+        machine_area="S",
+        subelement="Q-BASE",
+        magnetic={"magnetic_length": 4, "fields": {"S0L": 0.8}},
+        physical=PhysicalElement(length=4, middle=Position(z=2)),
+    )
+    downstream = Quadrupole(
+        name="Q-NEXT",
+        machine_area="S",
+        magnetic={"magnetic_length": 2, "k1l": 0.2},
+        physical=PhysicalElement(length=2, middle=Position(z=7)),
+    )
+    section = SectionLattice(
+        name="OVERLAP",
+        order=["Q-BASE", "Q-OVER", "Q-NEXT"],
+        elements=ElementList(
+            elements={
+                element.name: element
+                for element in (base, overlap, embedded, downstream)
+            }
+        ),
+    )
+
+    text = SectionLatticeTranslator.from_section(section).to_bmad()
+
+    assert "Q_OVER: quadrupole" in text
+    assert "S_EMBED: solenoid" in text
+    assert "OVERLAP: line = (Q_BASE, OVERLAP_drift_1, Q_NEXT)" in text
+    assert (
+        "superimpose, element = Q_OVER, offset = 2, "
+        "ele_origin = beginning, wrap_superimpose = F"
+    ) in text
+    assert (
+        "superimpose, element = S_EMBED, offset = 0, "
+        "ele_origin = beginning, wrap_superimpose = F"
+    ) in text

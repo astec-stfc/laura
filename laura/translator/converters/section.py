@@ -166,9 +166,62 @@ class SectionLatticeTranslator(SectionLattice):
             A Bmad-compatible lattice file.
         """
         self._check_elements_supported("bmad")
-        section = self.createDrifts()
+        all_elements = list(self.elements.elements.values())
+        by_name = {element.name: element for element in all_elements}
+
+        def s_bounds(element):
+            physical = element.physical
+            middle = physical.s
+            if middle is None:
+                trajectory = getattr(physical, "_trajectory", None)
+                middle = (
+                    trajectory.s_at_xyz(physical.middle)
+                    if trajectory is not None
+                    else physical.middle.z
+                )
+            half_length = physical.length / 2
+            return middle - half_length, middle + half_length
+
+        def logical_corrector_part(element):
+            parent = by_name.get(element.subelement)
+            return (
+                parent is not None
+                and parent.hardware_type == "Combined_Corrector"
+                and element.hardware_type
+                in {"Horizontal_Corrector", "Vertical_Corrector"}
+            )
+
+        superimposed_names = {
+            element.name
+            for element in all_elements
+            if element.is_subelement() and not logical_corrector_part(element)
+        }
+        backbone = []
+        previous_end = None
+        for element in self._get_all_elements():
+            if element.name in superimposed_names:
+                continue
+            start, end = s_bounds(element)
+            if previous_end is not None and start < previous_end - 1e-12:
+                superimposed_names.add(element.name)
+            else:
+                backbone.append(element)
+                previous_end = end
+
+        if not backbone:
+            raise ValueError(
+                "A Bmad lattice needs at least one non-superimposed element"
+            )
+
+        backbone_section = self.model_copy(
+            update={"order": [element.name for element in backbone]}
+        )
+        section = backbone_section.createDrifts()
+        superimposed = [
+            element for element in all_elements if element.name in superimposed_names
+        ]
         elements = translate_elements(
-            section.values(),
+            [*section.values(), *superimposed],
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
@@ -189,7 +242,27 @@ class SectionLatticeTranslator(SectionLattice):
         definitions = "".join(element.to_bmad() for element in elements.values())
         name = sanitize_string(self.name)
         members = ", ".join(sanitize_string(item) for item in section)
-        return f"{header}{definitions}\n{name}: line = ({members})\nuse, {name}\n"
+        lattice_start = s_bounds(backbone[0])[0]
+        superpositions = ""
+        for element in superimposed:
+            translator = elements[element.name]
+            target_type = translator._convertType_Bmad(translator.hardware_type)
+            if target_type.lower() == "drift":
+                raise ValueError(
+                    f"Bmad cannot superimpose drift-like element {element.name!r}"
+                )
+            offset = s_bounds(element)[0] - lattice_start
+            if abs(offset) < 1e-12:
+                offset = 0.0
+            superpositions += (
+                f"superimpose, element = {sanitize_string(element.name)}, "
+                f"offset = {offset:.16g}, ele_origin = beginning, "
+                "wrap_superimpose = F\n"
+            )
+        return (
+            f"{header}{definitions}\n{name}: line = ({members})\n"
+            f"{superpositions}use, {name}\n"
+        )
 
     def to_astra(self) -> str:
         """
@@ -985,15 +1058,6 @@ class SectionLatticeTranslator(SectionLattice):
         information, suitable for :meth:`cpymad.madx.Madx.input` (see the
         `MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html>`_).
 
-        Elements are placed at their entrance s-position (``refer=entry``, the
-        default) or, when ``refer`` is ``"centre"``/``"center"``, at their centre
-        (required before a MAD-X ``MAKETHIN``/``TRACK``).
-        Explicit ``drift`` elements are inserted between elements via
-        :meth:`createDrifts` and written into the sequence like any other
-        element, which is the standard way of constructing a MAD-X lattice
-        (rather than relying on MAD-X's implicit gap-filling between elements
-        placed without a contiguous ``at=``).
-
         Parameters
         ----------
         beam: dict
@@ -1005,9 +1069,7 @@ class SectionLatticeTranslator(SectionLattice):
         Returns
         -------
         str
-            A MAD-X-compatible ``SEQUENCE`` definition, prefixed with variable
-            declarations for any functional definitions used symbolically by
-            the lattice's elements.
+            A MAD-X-compatible ``SEQUENCE`` definition.
         """
         section_with_drifts = self.createDrifts()
         elem_dict = translate_elements(
