@@ -20,6 +20,7 @@ from laura.models.element import (  # noqa: E402
     Dipole,
     ElectrostaticSeparator,
     MatrixTransform,
+    Marker,
     Quadrupole,
     RFCavity,
     RFDeflectingCavity,
@@ -35,6 +36,7 @@ from laura.models.elementList import (  # noqa: E402
     SectionLattice,
 )
 from laura.models.physical import PhysicalElement, Position  # noqa: E402
+from laura.models.simulation import TwissMatchSimulationElement  # noqa: E402
 from laura.translator.converters import (  # noqa: E402
     elements_Bmad,
     type_conversion_rules_Bmad,
@@ -201,6 +203,9 @@ def test_bmad_solenoid_generalized_gradient_uses_zero_harmonic(tmp_path):
 
 def test_bmad_special_element_conversions():
     set_functional_definitions({"kq": 0.3})
+    marker = Marker(name="M1", machine_area="S")
+    assert _bmad(marker) == "M1: marker\n"
+
     quadrupole = Quadrupole(
         name="Q-1",
         machine_area="S",
@@ -441,12 +446,22 @@ def test_bmad_section_layout_and_model_export():
     text = translator.to_bmad(
         particle="electron",
         space_charge_n_bin=64,
+        initial_twiss=TwissMatchSimulationElement(
+            beta_x=2,
+            alpha_x=0.1,
+            beta_y=3,
+            alpha_y=-0.2,
+        ),
     )
     assert "parameter[particle] = electron" in text
     assert "bmad_com[csr_and_space_charge_on] = T" in text
     assert "space_charge_com[n_bin] = 64" in text
     assert "parameter[geometry] = open" in text
     assert "beginning[e_tot] = 10000000.0" in text
+    assert "beginning[beta_a] = 2.0" in text
+    assert "beginning[alpha_a] = 0.1" in text
+    assert "beginning[beta_b] = 3.0" in text
+    assert "beginning[alpha_b] = -0.2" in text
     assert "S_1_drift_1: drift, l = 0.25" in text
     assert "S_1: line = (Q_1, S_1_drift_1, C1)" in text
     assert text.endswith("use, S_1\n")

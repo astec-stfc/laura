@@ -136,8 +136,7 @@ rcollimator:
   x2_limit: double
   y1_limit: double
   y2_limit: double
-marker:
-  l: double
+marker: {}
 monitor:
   l: double
 instrument:

@@ -13,7 +13,11 @@ if TYPE_CHECKING:
 
 from ...models.elementList import SectionLattice
 from ...models.RF import WakefieldElement
-from ...models.simulation import WakefieldSimulationElement, DiagnosticSimulationElement
+from ...models.simulation import (
+    DiagnosticSimulationElement,
+    TwissMatchSimulationElement,
+    WakefieldSimulationElement,
+)
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
 from .converter import translate_elements
@@ -149,6 +153,7 @@ class SectionLatticeTranslator(SectionLattice):
         particle: str | None = None,
         *,
         space_charge_n_bin: int | None = None,
+        initial_twiss: TwissMatchSimulationElement | None = None,
     ) -> str:
         """
         Create a Bmad-compatible lattice file for this section.
@@ -159,6 +164,8 @@ class SectionLatticeTranslator(SectionLattice):
             Particle for this lattice
         space_charge_n_bin: int | None
             Optional positive number of Bmad space-charge bins.
+        initial_twiss: TwissMatchSimulationElement | None
+            Optional beginning Twiss parameters.
 
         Returns
         -------
@@ -240,6 +247,14 @@ class SectionLatticeTranslator(SectionLattice):
         if self.reference_energy is not None:
             header += f"beginning[e_tot] = {self.reference_energy}\n"
         definitions = "".join(element.to_bmad() for element in elements.values())
+        if initial_twiss is not None:
+            for attribute, value in (
+                ("beta_a", initial_twiss.beta_x),
+                ("alpha_a", initial_twiss.alpha_x),
+                ("beta_b", initial_twiss.beta_y),
+                ("alpha_b", initial_twiss.alpha_y),
+            ):
+                header += f"beginning[{attribute}] = {value}\n"
         name = sanitize_string(self.name)
         members = ", ".join(sanitize_string(item) for item in section)
         lattice_start = s_bounds(backbone[0])[0]
