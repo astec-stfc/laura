@@ -1,6 +1,7 @@
 from typing import Dict, Any, TYPE_CHECKING
 from textwrap import wrap
 from laura.models.elementList import MachineLayout
+from laura.models.simulation import TwissMatchSimulationElement
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
 from ..utils.functions import elegant_functional_definitions, sanitize_string
@@ -43,6 +44,7 @@ class MachineLayoutTranslator(MachineLayout):
         particle: str | None = None,
         *,
         space_charge_n_bin: int | None = None,
+        initial_twiss: Dict[str, TwissMatchSimulationElement] | None = None,
     ) -> Dict[str, str]:
         """Create one standalone Bmad lattice per section."""
         particle = self.particle or particle
@@ -50,6 +52,7 @@ class MachineLayoutTranslator(MachineLayout):
             sanitize_string(section.name): self._section_translator(section).to_bmad(
                 particle=particle,
                 space_charge_n_bin=space_charge_n_bin,
+                initial_twiss=initial_twiss[section.name] if initial_twiss else None,
             )
             for section in self.sections.values()
         }

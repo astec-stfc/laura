@@ -1,6 +1,7 @@
 from typing import Dict, Any, TYPE_CHECKING
 from textwrap import wrap
 from laura.models.elementList import MachineModel
+from laura.models.simulation import TwissMatchSimulationElement
 from .converter import translate_elements
 from .layout import MachineLayoutTranslator
 from ..utils.functions import elegant_functional_definitions, sanitize_string
@@ -45,12 +46,14 @@ class MachineModelTranslator(MachineModel):
         self,
         *,
         space_charge_n_bin: int | None = None,
+        initial_twiss: Dict[str, Dict[str, TwissMatchSimulationElement]] | None = None,
     ) -> Dict[str, Dict[str, str]]:
         """Create standalone Bmad lattices grouped by machine layout."""
         return {
             sanitize_string(name): self._layout_translator(layout).to_bmad(
                 particle=self.particle,
                 space_charge_n_bin=space_charge_n_bin,
+                initial_twiss=initial_twiss[name] if initial_twiss else None,
             )
             for name, layout in self.lattices.items()
         }
