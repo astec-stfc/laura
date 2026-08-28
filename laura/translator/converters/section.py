@@ -232,6 +232,17 @@ class SectionLatticeTranslator(SectionLattice):
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+        target_types = {
+            element.name: elements[element.name]
+            ._convertType_Bmad(elements[element.name].hardware_type)
+            .lower()
+            for element in superimposed
+        }
+        thin_kickers = {
+            element.name
+            for element in superimposed
+            if target_types[element.name] in {"kicker", "hkicker", "vkicker"}
+        }
         header = bmad_functional_definitions(self.functional_definitions)
         if particle:
             header += f"parameter[particle] = {particle}\n"
@@ -241,12 +252,18 @@ class SectionLatticeTranslator(SectionLattice):
             if space_charge_n_bin < 1:
                 raise ValueError("space_charge_n_bin must be positive")
             header += f"space_charge_com[n_bin] = {space_charge_n_bin}\n"
-        if self.geometry:
-            geometry = getattr(self.geometry, "value", self.geometry)
-            header += f"parameter[geometry] = {geometry}\n"
+        geometry = getattr(self.geometry, "value", self.geometry) or "open"
+        header += f"parameter[geometry] = {geometry}\n"
         if self.reference_energy is not None:
             header += f"beginning[e_tot] = {self.reference_energy}\n"
-        definitions = "".join(element.to_bmad() for element in elements.values())
+        definitions = ""
+        for element_name, translator in elements.items():
+            if element_name in thin_kickers:
+                parameters = translator._bmad_parameters()
+                parameters["l"] = 0.0
+                definitions += translator._format_bmad(parameters=parameters)
+            else:
+                definitions += translator.to_bmad()
         if initial_twiss is not None:
             for attribute, value in (
                 ("beta_a", initial_twiss.beta_x),
@@ -261,18 +278,19 @@ class SectionLatticeTranslator(SectionLattice):
         superpositions = ""
         for element in superimposed:
             translator = elements[element.name]
-            target_type = translator._convertType_Bmad(translator.hardware_type)
-            if target_type.lower() == "drift":
+            target_type = target_types[element.name]
+            if target_type == "drift":
                 raise ValueError(
                     f"Bmad cannot superimpose drift-like element {element.name!r}"
                 )
-            offset = s_bounds(element)[0] - lattice_start
+            start, end = s_bounds(element)
+            position = (start + end) / 2 if element.name in thin_kickers else start
+            offset = position - lattice_start
             if abs(offset) < 1e-12:
                 offset = 0.0
             superpositions += (
                 f"superimpose, element = {sanitize_string(element.name)}, "
-                f"offset = {offset:.16g}, ele_origin = beginning, "
-                "wrap_superimpose = F\n"
+                f"offset = {offset:.16g}, ele_origin = beginning\n"
             )
         return (
             f"{header}{definitions}\n{name}: line = ({members})\n"

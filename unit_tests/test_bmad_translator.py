@@ -16,6 +16,7 @@ from laura.models.element import (  # noqa: E402
     ELEMENT_REGISTRY,
     Aperture,
     BeamBeam,
+    Combined_Corrector,
     CombinedSolenoidQuadrupole,
     Dipole,
     ElectrostaticSeparator,
@@ -114,6 +115,7 @@ def test_bmad_short_range_wake_sidecars(tmp_path):
     assert "scale_with_length = F" in sidecar
     assert "time_based = F" in sidecar
     assert "0.01 5" in sidecar
+    assert "0.02 0,\n" in sidecar
 
     cavity = RFCavity(
         name="C",
@@ -222,12 +224,16 @@ def test_bmad_special_element_conversions():
             "k0l": 0.2,
             "gap": 0.04,
             "edge_field_integral": 0.3,
+            "tilt": 0.1,
         },
     )
     bend = _bmad(dipole)
     assert "angle = 0.2" in bend
     assert "hgap = 0.02" in bend
     assert "fint = 0.3" in bend
+    assert "ref_tilt = 0.1" in bend
+    assert ", gap =" not in bend
+    assert ", tilt =" not in bend
 
     solenoid = Solenoid(
         name="S1",
@@ -271,12 +277,12 @@ def test_bmad_special_element_conversions():
         simulation={"field_amplitude": 1e6},
     )
     rf = _bmad(cavity)
-    assert "C1: rfcavity" in rf
+    assert "C1: lcavity" in rf
     assert "n_cell = 1" in rf
-    assert "phi0 = 0.25" in rf
+    assert "phi0 = -0.25" in rf
     assert "cavity_type = standing_wave" in rf
     assert "CR1: crab_cavity" in _bmad(crab)
-    assert "phi0 = 0.5" in _bmad(crab)
+    assert "phi0 = -0.5" in _bmad(crab)
 
     aperture = Aperture(
         name="A1",
@@ -535,14 +541,46 @@ def test_bmad_section_superimposes_overlapping_elements():
 
     text = SectionLatticeTranslator.from_section(section).to_bmad()
 
+    assert "parameter[geometry] = open" in text
     assert "Q_OVER: quadrupole" in text
     assert "S_EMBED: solenoid" in text
     assert "OVERLAP: line = (Q_BASE, OVERLAP_drift_1, Q_NEXT)" in text
     assert (
         "superimpose, element = Q_OVER, offset = 2, "
-        "ele_origin = beginning, wrap_superimpose = F"
+        "ele_origin = beginning"
     ) in text
     assert (
         "superimpose, element = S_EMBED, offset = 0, "
-        "ele_origin = beginning, wrap_superimpose = F"
+        "ele_origin = beginning"
+    ) in text
+
+
+def test_bmad_section_uses_thin_kicker_inside_bend():
+    bend = Dipole(
+        name="B",
+        machine_area="S",
+        magnetic={"magnetic_length": 1, "k0l": 0.1},
+        physical=PhysicalElement(length=1, middle=Position(z=0.5)),
+    )
+    corrector = Combined_Corrector(
+        name="K",
+        machine_area="S",
+        magnetic={
+            "magnetic_length": 0.2,
+            "horizontal_kick": 0.01,
+            "vertical_kick": -0.02,
+        },
+        physical=PhysicalElement(length=0.2, middle=Position(z=0.5)),
+    )
+    section = SectionLattice(
+        name="BEND_KICKER",
+        order=["B", "K"],
+        elements=ElementList(elements={"B": bend, "K": corrector}),
+    )
+
+    text = SectionLatticeTranslator.from_section(section).to_bmad()
+
+    assert "K: kicker, l = 0.0, hkick = 0.01, vkick = -0.02" in text
+    assert (
+        "superimpose, element = K, offset = 0.5, ele_origin = beginning"
     ) in text

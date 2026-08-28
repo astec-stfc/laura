@@ -114,10 +114,22 @@ class RFCavityTranslator(BaseElementTranslator):
         parameters = self._bmad_parameters(etype)
         phase = self.cavity.phase
         parameters["phi0"] = (
-            f"({phase}) / 360"
+            f"-({phase}) / 360"
             if not self._resolve_functional and self.is_functional(phase)
-            else self.resolve(phase) / 360
+            else -self.resolve(phase) / 360
         )
+        voltage = parameters.get("voltage")
+        if voltage is not None and self.structure_type == "TravellingWave":
+            factor = abs(
+                (self.get_cells() + 3.8)
+                * self.cavity.cell_length
+                * (1 / np.sqrt(2))
+            )
+            parameters["voltage"] = (
+                f"({voltage}) * {factor}"
+                if not self._resolve_functional and self.is_functional(voltage)
+                else factor * self.resolve(voltage)
+            )
         if "cavity_type" in elements_Bmad[etype]:
             structure = str(self.structure_type).replace("_", "").lower()
             parameters["cavity_type"] = {
@@ -196,7 +208,13 @@ class RFCavityTranslator(BaseElementTranslator):
         self.start_write()
         wholestring = ""
         etype = self._convertType_Elegant(self.hardware_type)
-        if self.hardware_type == "RFCavity" and not self._wakefield_active():
+        if self._wakefield_active():
+            wakefield_file_name = self.generate_field_file_name(
+                self.simulation.wakefield_definition, code="elegant"
+            )
+            if wakefield_file_name is not None:
+                self.set_wakefield_column_names(wakefield_file_name)
+        elif self.hardware_type == "RFCavity":
             etype = "rfca"
             # if self.simulation.field_definition is not None:
             # etype = "rftmez0"
@@ -204,11 +222,6 @@ class RFCavityTranslator(BaseElementTranslator):
             #     field_file_name = self.generate_field_file_name(
             #     self.simulation.field_definition, code="elegant"
             # )
-        else:
-            wakefield_file_name = self.generate_field_file_name(
-                self.simulation.wakefield_definition, code="elegant"
-            )
-            self.set_wakefield_column_names(wakefield_file_name)
         string = self.name + ": " + etype
         preferred = {
             "n_kicks": (

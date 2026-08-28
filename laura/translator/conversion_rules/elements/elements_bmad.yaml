@@ -18,10 +18,9 @@ sbend:
   k1: double
   e1: double
   e2: double
-  gap: double
   hgap: double
   fint: double
-  tilt: double
+  ref_tilt: double
 rbend:
   l: double
   angle: double
@@ -29,10 +28,9 @@ rbend:
   k1: double
   e1: double
   e2: double
-  gap: double
   hgap: double
   fint: double
-  tilt: double
+  ref_tilt: double
 quadrupole:
   l: double
   k1: double

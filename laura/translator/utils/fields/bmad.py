@@ -61,11 +61,11 @@ def _write_wake(self, *, verbose: bool) -> str | None:
     if len(axis) != len(wake):
         raise ValueError("Bmad wake coordinate and Wz arrays must have equal lengths")
 
-    if verbose and (self.Wx.value is not None or self.Wy.value is not None):
-        warn(
-            "Bmad exports the tabulated longitudinal short-range wake Wz; "
-            "sampled Wx/Wy require a transverse pseudo-mode fit and were omitted."
-        )
+    #if verbose and (self.Wx.value is not None or self.Wy.value is not None):
+    #    warn(
+    #        "Bmad exports the tabulated longitudinal short-range wake Wz; "
+    #        "sampled Wx/Wy require a transverse pseudo-mode fit and were omitted."
+    #    )
 
     rows = ",\n".join(
         f"      {_format(position)} {_format(value)}"
@@ -78,7 +78,7 @@ def _write_wake(self, *, verbose: bool) -> str | None:
         "  z_long = {\n"
         f"    time_based = {time_based},\n"
         "    w = {\n"
-        f"{rows}\n"
+        f"{rows},\n"
         "    }\n"
         "  }\n"
         "}\n",

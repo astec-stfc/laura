@@ -45,6 +45,7 @@ def _switch_dict() -> Dict[str, str]:
     switch.update(
         {
             "lcavity": "RFCavity",
+            "rfcavity": "RFCavity",
             "match": "MatrixTransform",
             "rbend": "Dipole",
             "rcollimator": "Collimator",

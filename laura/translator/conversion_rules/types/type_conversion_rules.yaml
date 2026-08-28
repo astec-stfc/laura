@@ -7,7 +7,7 @@ elegant:
   Beam_Position_Monitor: watch
   Beam_Arrival_Monitor: moni
   Bunch_Length_Monitor: moni
-  Screen: mark
+  Screen: watch
   Collimator: ecol
   Solenoid: sole
   Wall_Current_Monitor: moni
@@ -26,7 +26,7 @@ elegant:
   Cleaner: clean
   APContour: apcontour
   Watch_Point: watch
-  Marker: mark
+  Marker: watch
   Wakefield: wake
   Horizontal_Corrector: hkick
   Vertical_Corrector: vkick
@@ -183,7 +183,7 @@ bmad:
   CombinedSolenoidQuadrupole: sol_quad
   BeamBeam: beambeam
   Drift: drift
-  RFCavity: rfcavity
+  RFCavity: lcavity
   RFDeflectingCavity: crab_cavity
   Horizontal_Corrector: hkicker
   Vertical_Corrector: vkicker
