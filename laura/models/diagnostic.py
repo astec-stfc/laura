@@ -1,14 +1,26 @@
 from pydantic import (
-    Field,
     AliasChoices,
+    Field,
     field_validator,
-    model_validator,
 )
 from typing import List, Type, Union
 from .baseModels import IgnoreExtra, T, DeviceList
+from ._generated import (
+    _DiagnosticElementBase,
+    _BPMDiagnosticElementBase,
+    _BAMDiagnosticElementBase,
+    _BLMDiagnosticElementBase,
+    _ScreenDiagnosticElementBase,
+    _ChargeDiagnosticElementBase,
+    _CameraDiagnosticElementBase,
+    _CameraPixelResultsIndicesBase,
+    _CameraPixelResultsNamesBase,
+    _CameraMaskBase,
+    _CameraSensorBase,
+)
 
 
-class DiagnosticElement(IgnoreExtra):
+class DiagnosticElement(_DiagnosticElementBase):
     """
     Base class for diagnostic elements.
     """
@@ -16,76 +28,61 @@ class DiagnosticElement(IgnoreExtra):
     pass
 
 
-class Beam_Position_Monitor_Diagnostic(DiagnosticElement):
+class Beam_Position_Monitor_Diagnostic(_BPMDiagnosticElementBase):
     """
     BPM Diagnostic model.
     """
 
-    type: str = Field(alias="bpm_type", default="Stripline")
-    """BPM type"""
+    pass
 
 
-class Beam_Arrival_Monitor_Diagnostic(DiagnosticElement):
+class Beam_Arrival_Monitor_Diagnostic(_BAMDiagnosticElementBase):
     """
     BAM Diagnostic model.
     """
 
-    type: str = Field(alias="bam_type", default="DESY")
-    """BAM type"""
+    pass
 
 
-class Bunch_Length_Monitor_Diagnostic(DiagnosticElement):
+class Bunch_Length_Monitor_Diagnostic(_BLMDiagnosticElementBase):
     """
     BLM Diagnostic model.
     """
 
-    type: str = Field(alias="blm_type", default="CDR")
-    """BLM type"""
+    pass
 
 
-class Camera_Pixel_Results_Indices(IgnoreExtra):
+class Photon_Intensity_Monitor_Diagnostic(DiagnosticElement):
+    """
+    Photon Intensity Monitor Diagnostic model.
+    """
+
+    type: str = Field(
+        default="I0",
+        validation_alias=AliasChoices("type", "intensity_monitor_type"),
+    )
+    """Photon Intensity Monitor type"""
+
+    intensity: float = 0.0
+
+
+class Camera_Pixel_Results_Indices(_CameraPixelResultsIndicesBase):
     """
     Class defining the names of analysis results for the camera pixel data
     """
 
-    x: int = Field(default=0, alias="X_POS")
-    """Beam centroid in x [pix]."""
-
-    y: int = Field(default=1, alias="Y_POS")
-    """Beam centroid in y [pix]."""
-
-    x_sigma: int = Field(default=2, alias="X_SIGMA_POS")
-    """Beam sigma in x [pix]."""
-
-    y_sigma: int = Field(default=3, alias="Y_SIGMA_POS")
-    """Beam sigma in y [pix]."""
-
-    covariance: int = Field(default=4, alias="COV_POS")
-    """Beam covariance [pix^2]."""
+    pass
 
 
-class Camera_Pixel_Results_Names(IgnoreExtra):
+class Camera_Pixel_Results_Names(_CameraPixelResultsNamesBase):
     """
     Class defining the names of the analysis results for the camera data in SI units (or mm)
     """
 
-    x: str = Field(default="X", alias="X_NAME")
-    """Beam centroid in x."""
-
-    y: str = Field(default="Y", alias="Y_NAME")
-    """Beam centroid in y."""
-
-    x_sigma: str = Field(default="X_SIGMA", alias="X_SIGMA_NAME")
-    """Beam sigma in x."""
-
-    y_sigma: str = Field(default="Y_SIGMA", alias="Y_SIGMA_NAME")
-    """Beam sigma in y."""
-
-    covariance: str = Field(default="COV", alias="COV_NAME")
-    """Beam covariance."""
+    pass
 
 
-class Camera_Mask(IgnoreExtra):
+class Camera_Mask(_CameraMaskBase, IgnoreExtra):
     """
     Class defining the camera analysis mask parameters.
     """
@@ -99,54 +96,20 @@ class Camera_Mask(IgnoreExtra):
     maximum: List[Union[float, int]] = [300, 300]  # X_MASK_RAD_MAX, Y_MASK_RAD_MAX
     """Maximum mask radius in pixels."""
 
-    use_maximum_values: bool = Field(default=True, alias="USE_MASK_RAD_LIMITS")
-    """Flag to indicate whether to use maximum mask radius values."""
 
-    @classmethod
-    def from_CATAP(cls: Type[T], fields: dict) -> T:
-        cls._create_field(cls, fields, "middle", ["X_MASK_DEF", "Y_MASK_DEF"])
-        cls._create_field(cls, fields, "radius", ["X_MASK_RAD_DEF", "Y_MASK_RAD_DEF"])
-        cls._create_field(cls, fields, "maximum", ["X_MASK_RAD_MAX", "Y_MASK_RAD_MAX"])
-        return super().from_CATAP(fields)
-
-
-class Camera_Sensor(IgnoreExtra):
+class Camera_Sensor(_CameraSensorBase, IgnoreExtra):
     """
     Camera Sensor model. Contains information about the number of pixels, scale factors, bit depth, etc.
     """
 
-    x_pixels: int = Field(alias="BINARY_NUM_PIX_X", default=2160)
-    """Number of pixels in x direction."""
-
-    y_pixels: int = Field(alias="BINARY_NUM_PIX_Y", default=2560)
-    """Number of pixels in y direction."""
-
-    x_scale_factor: int = Field(alias="X_PIX_SCALE_FACTOR", default=2)
-    """Scaling factor for pixels in x direction."""
-
-    y_scale_factor: int = Field(alias="Y_PIX_SCALE_FACTOR", default=2)
-    """Scaling factor for pixels in y direction."""
-
-    beam_pixel_average: float = Field(alias="AVG_PIXEL_VALUE_FOR_BEAM", default=97.2)
-    """Average pixel value for beam."""
-
     middle: List[Union[float, int]] = [0, 0]  # X_CENTER_DEF, Y_CENTER_DEF
     """Center definitions for the camera."""
-
-    x_pixels_to_mm: float = 0.0134
-    """Pixel to millimeter conversion factors."""
-
-    y_pixels_to_mm: float = 0.0134
-    """Pixel to millimeter conversion factors."""
 
     minimum: List[Union[float, int]] = [150, 150]  # MIN_X_PIXEL_POS, MIN_Y_PIXEL_POS
     """Minimum pixel positions in x and y directions."""
 
     maximum: List[Union[float, int]] = [2400, 2000]  # MAX_X_PIXEL_POS, MAX_Y_PIXEL_POS
     """Maximum pixel positions in x and y directions."""
-
-    bit_depth: int = 16
-    """Camera bit depth."""
 
     operating_middle: List[Union[float, int]] = [
         1000,
@@ -160,34 +123,9 @@ class Camera_Sensor(IgnoreExtra):
     ]  # MECHANICAL_CENTER_X, MECHANICAL_CENTER_Y
     """Mechanical center of the camera in x and y"""
 
-    @classmethod
-    def from_CATAP(cls: Type[T], fields: dict) -> T:
-        cls._create_field(cls, fields, "middle", ["X_CENTER_DEF", "Y_CENTER_DEF"])
-        cls._create_field(
-            cls,
-            fields,
-            "pixels_to_mm",
-            ["ARRAY_DATA_X_PIX_2_MM", "ARRAY_DATA_Y_PIX_2_MM"],
-        )
-        cls._create_field(
-            cls, fields, "minimum", ["MIN_X_PIXEL_POS", "MIN_Y_PIXEL_POS"]
-        )
-        cls._create_field(
-            cls, fields, "maximum", ["MAX_X_PIXEL_POS", "MAX_Y_PIXEL_POS"]
-        )
-        cls._create_field(
-            cls,
-            fields,
-            "operating_middle",
-            ["OPERATING_CENTER_X", "OPERATING_CENTER_Y"],
-        )
-        cls._create_field(
-            cls,
-            fields,
-            "mechanical_middle",
-            ["MECHANICAL_CENTER_X", "MECHANICAL_CENTER_Y"],
-        )
-        return super().from_CATAP(fields)
+
+def _build_camera_sensor(**kwargs) -> Camera_Sensor:
+    return Camera_Sensor(**kwargs)
 
 
 def PCO_Camera_Sensor():
@@ -195,7 +133,7 @@ def PCO_Camera_Sensor():
     A specific instantiation of `~laura.models.diagnostic.Camera_Sensor` for PCO cameras.
     """
 
-    return Camera_Sensor(
+    return _build_camera_sensor(
         x_pixels=2560,
         y_pixels=2160,
         x_scale_factor=2,
@@ -216,7 +154,7 @@ def Manta_Camera_Sensor():
     A specific instantiation of `~laura.models.diagnostic.Camera_Sensor` for Manta cameras.
     """
 
-    return Camera_Sensor(
+    return _build_camera_sensor(
         x_pixels=1936,
         y_pixels=1216,
         x_scale_factor=2,
@@ -232,68 +170,12 @@ def Manta_Camera_Sensor():
     )
 
 
-class Camera_Diagnostic(DiagnosticElement):
+class Camera_Diagnostic(_CameraDiagnosticElementBase):
     """
     Camera Diagnostic model.
     """
 
-    type: str = Field(alias="CAM_TYPE")
-    """Camera type."""
-
-    pixel_results_indices: Camera_Pixel_Results_Indices = Camera_Pixel_Results_Indices()
-    """Pixel results indices."""
-
-    pixel_results_names: Camera_Pixel_Results_Names = Camera_Pixel_Results_Names()
-    """Pixel results names."""
-
-    mask: Camera_Mask = Camera_Mask()
-    """Camera analysis mask."""
-
-    sensor: Camera_Sensor = Camera_Sensor()
-    """Camera sensor information."""
-
-    x_pixels: int = Field(
-        validation_alias=AliasChoices("ARRAY_DATA_NUM_PIX_X", "epics_x_pixels"),
-        default=1080,
-    )
-    """Number of pixels from the control system in x direction."""
-
-    y_pixels: int = Field(
-        validation_alias=AliasChoices("ARRAY_DATA_NUM_PIX_Y", "epics_y_pixels"),
-        default=1280,
-    )
-    """Number of pixels from the control system in y direction."""
-
-    rotation: Union[float, int] = 0
-    """Camera rotation in degrees."""
-
-    flipped_horizontally: bool = Field(alias="IMAGE_FLIP_LR", default=True)
-    """Flag to indicate if the image is flipped horizontally."""
-
-    flipped_vertically: bool = Field(alias="IMAGE_FLIP_UD", default=False)
-    """Flag to indicate if the image is flipped vertically."""
-
-    screen_name: str | None = None
-    """Name of the screen the camera is attached to."""
-
-    ioc: List[str] | None = None
-    """List of cameras on the EPICS IOC associated with this camera."""
-
-    has_led: bool = True
-    """Flag to indicate if the camera has an LED light source."""
-
-    @classmethod
-    def from_CATAP(cls: Type[T], fields: dict) -> T:
-        cls._create_field_class(
-            cls, fields, "pixel_results_indices", Camera_Pixel_Results_Indices
-        )
-        cls._create_field_class(
-            cls, fields, "pixel_results_names", Camera_Pixel_Results_Names
-        )
-        cls._create_field_class(cls, fields, "mask", Camera_Mask)
-        cls._create_field_class(cls, fields, "sensor", Camera_Sensor)
-        return super().from_CATAP(fields)
-
+    pass
 
 def Camera_Diagnostic_Type(type: str = "PCO", **kwargs) -> Camera_Diagnostic:
     if type.lower() == "pco":
@@ -311,50 +193,30 @@ def Manta_Camera_Diagnostic(**kwargs):
     return Camera_Diagnostic(sensor=Manta_Camera_Sensor(), **kwargs)
 
 
-class Screen_Diagnostic(DiagnosticElement):
+def _coerce_device_list(v: Union[str, List, dict, DeviceList]) -> DeviceList:
+    if isinstance(v, str):
+        return DeviceList(devices=list(map(str.strip, v.split(","))))
+    if isinstance(v, (list, tuple)):
+        return DeviceList(devices=list(v))
+    if isinstance(v, dict):
+        return DeviceList(**v)
+    if isinstance(v, DeviceList):
+        return v
+    raise ValueError("devices should be a string or a list of strings")
+
+
+class Screen_Diagnostic(_ScreenDiagnosticElementBase):
     """
     Screen Diagnostic model.
     """
 
-    type: str = Field(alias="screen_type", default="CLARA_HV_MOVER")
-    """Screen type"""
-
-    has_camera: bool = True
-    """Flag to indicate if the screen has a camera attached."""
-
-    camera_name: str = ""
-    """Name of the camera attached to the screen."""
-
-    devices: Union[str, list, DeviceList] = DeviceList()
-    """Devices associated with the screen."""
-
-    # @model_validator(mode="before")
-    # def update_camera_name_if_not_defined(cls, data):
-    #     if (
-    #         "camera_name" in data and data["camera_name"] == ""
-    #     ) or "camera_name" not in data:
-    #         data["camera_name"] = data["name"].replace("-SCR-", "-CAM-")
-    #     return data
-
     @field_validator("devices", mode="before")
     @classmethod
     def validate_devices(cls, v: Union[str, List]) -> DeviceList:
-        if isinstance(v, str):
-            return DeviceList(devices=list(map(str.strip, v.split(","))))
-        elif isinstance(v, (list, tuple)):
-            return DeviceList(devices=list(v))
-        elif isinstance(v, (dict)):
-            return DeviceList(**v)
-        elif isinstance(v, (DeviceList)):
-            return v
-        else:
-            raise ValueError("devices should be a string or a list of strings")
+        return _coerce_device_list(v)
 
 
-class Charge_Diagnostic(DiagnosticElement):
+class Charge_Diagnostic(_ChargeDiagnosticElementBase):
     """
     Charge Diagnostic model.
     """
-
-    type: str = Field(alias="charge_type")
-    """Charge diagnostic type."""

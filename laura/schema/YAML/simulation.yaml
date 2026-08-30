@@ -1,0 +1,438 @@
+id: https://w3id.org/laura/schema/simulation
+name: laura_simulation_schema
+title: LAURA Simulation Model Chunk
+description: >-
+  Simulation-related schema classes for field maps, tracking, wakefields,
+  diagnostics, plasma stages, and Twiss-matching points.
+version: "0.1.0"
+license: Apache Software License 2.0
+
+prefixes:
+  linkml:  https://w3id.org/linkml/
+  laura:   https://w3id.org/laura/
+  qudt:    http://qudt.org/schema/qudt/
+  unit:    http://qudt.org/vocab/unit/
+  schema:  http://schema.org/
+  skos:    http://www.w3.org/2004/02/skos/core#
+  dcterms: http://purl.org/dc/terms/
+  obo:     http://purl.obolibrary.org/obo/
+  xsd:     http://www.w3.org/2001/XMLSchema#
+
+default_prefix: laura
+default_range: string
+
+imports:
+  - linkml:types
+
+classes:
+
+  SimulationElement:
+    description: >-
+      Base simulation attributes: field-map files and reference positions
+      for tracking codes.
+    class_uri: laura:SimulationElement
+    attributes:
+      field_definition:
+        range: string
+        description: Path to the 3-D field-map file.
+      wakefield_definition:
+        range: string
+        description: Path to the wakefield impedance file.
+      wakefield_enable:
+        range: boolean
+        ifabsent: "true"
+        description: >-
+          Whether the wakefield named by wakefield_definition is applied. Set
+          false to track the element without its wakefield while keeping the
+          definition itself.
+      field_reference_position:
+        range: string
+        description: Longitudinal origin of the field map [m].
+      scale_field:
+        range: float
+        description: Multiplicative scale factor applied to the field map.
+        ifabsent: float(1)
+
+  MagnetSimulationElement:
+    is_a: SimulationElement
+    description: >-
+      Simulation attributes specific to magnets: integrator settings,
+      fringe-field model, and radiation flags.
+    class_uri: laura:MagnetSimulationElement
+    slots:
+      - n_kicks
+      - field_amplitude
+    slot_usage:
+      n_kicks:
+        description: Number of integration kicks.
+        ifabsent: int(4)
+        minimum_value: 1
+      field_amplitude:
+        description: Field amplitude scaling for magnet tracking.
+        ifabsent: float(0.0)
+    attributes:
+      n_slices:
+        range: integer
+        description: Number of longitudinal slices for thick-lens tracking.
+        ifabsent: int(4)
+        minimum_value: 1
+      smooth:
+        range: integer
+        description: Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).
+      edge_field_integral:
+        range: float
+        description: Fringe-field integral for edge focussing.
+        ifabsent: float(0.5)
+      edge1_effects:
+        range: boolean
+        description: Enable entrance-edge focussing effects.
+      edge2_effects:
+        range: boolean
+        description: Enable exit-edge focussing effects.
+      sr_enable:
+        range: boolean
+        description: Enable synchrotron-radiation energy loss.
+        ifabsent: "True"
+      isr_enable:
+        range: boolean
+        description: Enable incoherent synchrotron-radiation emittance growth.
+        ifabsent: "True"
+      csr_enable:
+        range: boolean
+        description: Enable coherent synchrotron radiation.
+        ifabsent: "True"
+      csr_bins:
+        range: integer
+        description: Number of longitudinal bins for the CSR mesh.
+        ifabsent: int(100)
+      integration_order:
+        range: integer
+        description: Order of the symplectic integrator.
+        ifabsent: int(4)
+      nonlinear:
+        range: boolean
+        description: Include higher-order (sextupole+) field components.
+      smoothing_half_width:
+        range: integer
+        description: Half-width of the current-profile smoothing kernel.
+        ifabsent: int(1)
+      edge_order:
+        range: integer
+        description: Polynomial order of the edge-field expansion.
+        ifabsent: int(2)
+      deltaL:
+        range: float
+        description: Longitudinal step-size override for thick-lens integration [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+      smooth_points:
+        range: float
+        description: Number of points used to smooth the field map [ASTRA].
+        ifabsent: float(2)
+
+  RFCavitySimulationElement:
+    is_a: SimulationElement
+    description: Simulation attributes for RF cavity elements.
+    class_uri: laura:RFCavitySimulationElement
+    slots:
+      - t_column
+      - z_column
+      - wx_column
+      - wy_column
+      - wz_column
+      - n_kicks
+      - lsc_bins
+    slot_usage:
+      n_kicks:
+        description: Number of cavity kicks to apply.
+        ifabsent: int(0)
+      lsc_bins:
+        description: Number of longitudinal space-charge bins.
+        ifabsent: int(100)
+    attributes:
+      change_p0:
+        range: integer
+        description: Flag indicating whether the cavity changes reference momentum.
+        ifabsent: int(1)
+      end1_focus:
+        range: integer
+        description: Apply entrance focusing.
+        ifabsent: int(1)
+      end2_focus:
+        range: integer
+        description: Apply exit focusing.
+        ifabsent: int(1)
+      body_focus_model:
+        range: string
+        description: Cavity body focusing model.
+        ifabsent: string(SRS)
+      current_bins:
+        range: integer
+        description: Number of current bins.
+        ifabsent: int(0)
+      interpolate_current_bins:
+        range: integer
+        description: Flag indicating current-bin interpolation.
+        ifabsent: int(1)
+      smooth_current_bins:
+        range: integer
+        description: Flag indicating current-bin smoothing.
+        ifabsent: int(1)
+      smooth:
+        range: integer
+        description: Cavity smoothing parameter.
+      ez_peak:
+        range: float
+        description: Peak longitudinal electric field.
+      field_file_name:
+        range: string
+        description: Cavity field file name.
+      wakefile:
+        range: string
+        description: Wake file name.
+      zwakefile:
+        range: string
+        description: Longitudinal wake file name.
+      trwakefile:
+        range: string
+        description: Transverse wake file name.
+      field_amplitude:
+        range: float
+        any_of:
+          - range: float
+          - range: string
+        in_subset:
+          - functional_parameters
+        required: true
+        description: Cavity field amplitude.
+
+  WakefieldSimulationElement:
+    is_a: SimulationElement
+    description: Simulation attributes for passive wakefield structures.
+    class_uri: laura:WakefieldSimulationElement
+    slots:
+      - t_column
+      - z_column
+      - wx_column
+      - wy_column
+      - wz_column
+    attributes:
+      allow_long_beam:
+        range: boolean
+        description: Allow beams longer than the wakefield.
+        ifabsent: "True"
+      bunched_beam:
+        range: boolean
+        description: Use bunched beam mode.
+        ifabsent: "False"
+      change_momentum:
+        range: boolean
+        description: Allow wakefield to change bunch momentum.
+        ifabsent: "True"
+      factor:
+        range: float
+        description: Wake scaling factor.
+        ifabsent: float(1)
+      interpolate:
+        range: boolean
+        description: Interpolate points in wake file.
+        ifabsent: "True"
+      scale_kick:
+        range: float
+        description: Factor by which to scale wake kicks.
+        ifabsent: float(1)
+      scale_field_ex:
+        range: float
+        description: x-component of the longitudinal direction vector.
+        ifabsent: float(0.0)
+      scale_field_ey:
+        range: float
+        description: y-component of the longitudinal direction vector.
+        ifabsent: float(0.0)
+      scale_field_ez:
+        range: float
+        description: z-component of the longitudinal direction vector.
+        ifabsent: float(1.0)
+      scale_field_hx:
+        range: float
+        description: x-component of the horizontal direction vector.
+        ifabsent: float(1.0)
+      scale_field_hy:
+        range: float
+        description: y-component of the horizontal direction vector.
+        ifabsent: float(0.0)
+      scale_field_hz:
+        range: float
+        description: z-component of the horizontal direction vector.
+        ifabsent: float(0.0)
+      equal_grid:
+        range: float
+        description: Interpolation between equidistant and equal-charge grids.
+        ifabsent: float(0.66)
+      interpolation_method:
+        range: integer
+        description: Interpolation method for ASTRA.
+        ifabsent: int(2)
+      smooth:
+        range: float
+        description: Smoothing parameter for Gaussian interpolation.
+        ifabsent: float(0.25)
+      subbins:
+        range: integer
+        description: Sub-binning parameter.
+        ifabsent: int(10)
+
+  DriftSimulationElement:
+    is_a: SimulationElement
+    description: Simulation attributes for field-free drift sections.
+    class_uri: laura:DriftSimulationElement
+    slots:
+      - lsc_bins
+    slot_usage:
+      lsc_bins:
+        description: Number of bins for LSC calculations.
+        ifabsent: int(20)
+    attributes:
+      lsc_interpolate:
+        range: integer
+        description: Flag to allow interpolation of computed LSC wake.
+        ifabsent: int(1)
+      csr_enable:
+        range: boolean
+        description: Enable CSR drift calculations.
+        ifabsent: "True"
+      lsc_enable:
+        range: boolean
+        description: Enable LSC drift calculations.
+        ifabsent: "True"
+      use_stupakov:
+        range: integer
+        description: Use Stupakov formula.
+        ifabsent: int(1)
+      csrdz:
+        range: float
+        description: Step size for CSR calculations.
+        ifabsent: float(0.01)
+      lsc_high_frequency_cutoff_start:
+        range: float
+        description: High-frequency cutoff start for LSC.
+      lsc_high_frequency_cutoff_end:
+        range: float
+        description: High-frequency cutoff end for LSC.
+      lsc_low_frequency_cutoff_start:
+        range: float
+        description: Low-frequency cutoff start for LSC.
+      lsc_low_frequency_cutoff_end:
+        range: float
+        description: Low-frequency cutoff end for LSC.
+
+  DiagnosticSimulationElement:
+    is_a: SimulationElement
+    description: Simulation attributes for beam-diagnostic elements.
+    class_uri: laura:DiagnosticSimulationElement
+    attributes:
+      output_filename:
+        range: string
+        description: Output filename for diagnostic data.
+
+  PlasmaSimulationElement:
+    is_a: SimulationElement
+    description: Simulation attributes for plasma-accelerator stages.
+    class_uri: laura:PlasmaSimulationElement
+    attributes:
+      wakefield_model:
+        range: string
+        description: Wakefield model identifier.
+      bunch_pusher:
+        range: string
+        description: Pusher used to evolve bunch particles in time.
+        ifabsent: string(boris)
+      dt_bunch:
+        range: string
+        description: Time-step control for bunch evolution (or 'auto').
+        ifabsent: string(auto)
+      n_out:
+        range: integer
+        description: Number of distribution dumps during the plasma stage.
+        ifabsent: int(1)
+      min_longitudinal_position:
+        range: float
+        description: Minimum longitudinal position [m].
+        ifabsent: float(0)
+      max_longitudinal_position:
+        range: float
+        description: Maximum longitudinal position [m].
+        ifabsent: float(0)
+      n_longitudinal:
+        range: integer
+        description: Number of grid points in the longitudinal direction.
+        ifabsent: int(0)
+      n_radial:
+        range: integer
+        description: Number of grid points in the radial direction.
+        ifabsent: int(0)
+      particles_per_radial_cell:
+        range: integer
+        description: Number of plasma particles per radial cell.
+        ifabsent: int(2)
+      particles_per_longitudinal_cell:
+        range: integer
+        description: Number of plasma particles per longitudinal cell.
+        ifabsent: int(2)
+      particles_per_angular_cell:
+        range: integer
+        description: Number of plasma particles per angular cell.
+        ifabsent: int(4)
+      r_max:
+        range: float
+        description: Radial extent of the simulation box [m].
+        ifabsent: float(0)
+      r_max_plasma:
+        range: float
+        description: Maximum radial extension of the plasma column.
+      dz_fields:
+        range: float
+        description: Interval for plasma wakefield updates.
+      plasma_pusher:
+        range: string
+        description: Pusher used to evolve the plasma in time.
+        ifabsent: string(boris)
+
+  TwissMatchSimulationElement:
+    is_a: SimulationElement
+    description: Simulation attributes for Twiss-matching points.
+    class_uri: laura:TwissMatchSimulationElement
+    attributes:
+      beta_x:
+        range: float
+        description: Horizontal beta.
+      beta_y:
+        range: float
+        description: Vertical beta.
+      alpha_x:
+        range: float
+        description: Horizontal alpha.
+      alpha_y:
+        range: float
+        description: Vertical alpha.
+      eta_x:
+        range: float
+        description: Horizontal dispersion.
+        ifabsent: float(0.0)
+      eta_y:
+        range: float
+        description: Vertical dispersion.
+        ifabsent: float(0.0)
+      eta_xp:
+        range: float
+        description: Horizontal dispersion derivative.
+        ifabsent: float(0.0)
+      eta_yp:
+        range: float
+        description: Vertical dispersion derivative.
+        ifabsent: float(0.0)
+      from_beam:
+        range: boolean
+        description: Compute transform from tracked beam properties.
+        ifabsent: "True"

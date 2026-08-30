@@ -1,38 +1,23 @@
 import numpy as np
 from scipy.constants import e, m_e, m_p, epsilon_0, pi, c
-from typing import Literal
-from pydantic import Field
-from .baseModels import IgnoreExtra
+from pydantic import (
+    BaseModel,
+    model_serializer,
+    Field,
+    field_validator,
+    NonNegativeInt,
+    create_model,
+    NonNegativeFloat,
+    computed_field,
+)
+from .baseModels import IgnoreExtra, T
+from ._generated import _PlasmaElementBase
 
 
-class PlasmaElement(IgnoreExtra):
+class PlasmaElement(_PlasmaElementBase):
     """Plasma model."""
 
-    density: float = Field(gt=0)
-    """Plasma density in m^-3"""
-
-    species: Literal["electron", "positron", "hydrogen"] = "electron"
-    """Plasma species (e.g., 'electron', 'proton', etc.)"""
-
-    ramp_up: float = Field(ge=0, default=0.001)
-    """Plasma ramp length at entrance [metres]."""
-
-    plateau: float = Field(ge=0, default=0.001)
-    """Plasma plateau length [metres]."""
-
-    ramp_down: float = Field(ge=0, default=0.001)
-    """Plasma ramp length at exit [metres]."""
-
-    ramp_decay_length: float = Field(ge=0, default=0.001)
-    """Plasma decay length [metres]."""
-
-    density_profile: bool = False
-    """Density profile function; if False, a flat profile is used; if True, use
-     the :func:`~_density_profile` method to calculate the density profile based on
-     `ramp_up`, `plateau`, `ramp_down` and `ramp_decay_length`. Only linear profiles"""
-
-    parabolic_coefficient: float = 0
-    """Parabolic coefficient for density profile"""
+    pass
 
     def plasma_wavelength(self) -> float:
         """

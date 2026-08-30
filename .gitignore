@@ -5,6 +5,9 @@ testYAML/
 YAML_OLD/
 Basefiles/
 to_CATAP/
+RFTrack/
+.claude/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -53,6 +56,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+coverage.json
 *.cover
 *.py,cover
 .hypothesis/
@@ -170,3 +174,20 @@ cython_debug/
 #vscode
 ./vscode
 PAdantic/Importers/~$CLARA Magnet Table v6.xlsx
+
+# Generated exporter / profiler output
+summary.yaml
+profile_output.txt
+*.lock
+.pytest_cache/
+.ruff_caache/
+
+# AI
+ANALYSIS.md
+REFACTORING_PLAN.md
+CLAUDE.md
+.agents/
+.claude/
+.codex/
+.mex/
+Planning/

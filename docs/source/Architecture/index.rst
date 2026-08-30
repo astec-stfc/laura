@@ -7,6 +7,7 @@ This section describes the architecture of accelerator components and lattices.
    :maxdepth: 2
 
    Element
+   element-er
    Lattice
    internals
 

@@ -71,16 +71,6 @@ class csrtrack_element(BaseModel):
         return output
 
 
-# class csrtrack_online_monitor(csrtrack_element):
-#
-#     def __init__(self, marker="", **kwargs):
-#         super(csrtrack_online_monitor, self).__init__(
-#             "online_monitor", "csrtrack_online_monitor", **kwargs
-#         )
-#         self.header = "online_monitor"
-#         self.end_time_marker = marker + "b"
-
-
 class csrtrack_forces(csrtrack_element):
     """
     Class for CSRTrack forces.
@@ -144,6 +134,14 @@ class csrtrack_tracker(csrtrack_element):
     Class for defining the CSRTrack tracker.
     """
 
+    # end_time_marker is excluded by the base class's `exclude`, but the
+    # tracker block requires it - CSRTrack errors with "end time is
+    # undefined" without it.
+    exclude: List[str] = [
+        e for e in csrtrack_element.model_fields["exclude"].default
+        if e != "end_time_marker"
+    ]
+
     header: str = "tracker"
     """Header for CSRtrack element"""
 
@@ -187,6 +185,13 @@ class csrtrack_particles(csrtrack_element):
     Class for defining CSRTrack particles.
     """
 
+    exclude: List[str] = csrtrack_element.model_fields["exclude"].default + [
+        "reference_momentum",
+        "reference_point_x",
+        "reference_point_y",
+        "reference_point_phi",
+    ]
+
     header: str = "particles"
     """Header for CSRtrack element"""
 
@@ -199,7 +204,10 @@ class csrtrack_particles(csrtrack_element):
     particle_definition: str = "laser.astra"
     """Particle definition file"""
 
-    array: str = "#file{name=laser.astra}"
+    format: Literal["astra"] = "astra"
+    """Format for particle files"""
+
+    array: str = "#file{\nname=laser.astra\n}"
     """File name array"""
 
     reference_momentum: Literal["reference_particle"] = "reference_particle"
@@ -209,5 +217,3 @@ class csrtrack_particles(csrtrack_element):
     reference_point_y: float = 0.0
 
     reference_point_phi: float = 0.0
-
-    format: Literal["astra"] = "astra"

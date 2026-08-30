@@ -2,7 +2,8 @@
 
 ## What is LAURA?
 
-LAURA (**L**attice **A**nd **U**nified **R**epresentation of **A**ccelerators) is a
+LAURA (**L**attice **A**rchitecture for a **U**nified **R**epresentation of
+**A**ccelerators) is a
 Pydantic-based Python library for representing particle accelerator lattices.
 It reads YAML element definitions and builds a hierarchical model:
 elements → sections → layouts → full machine.

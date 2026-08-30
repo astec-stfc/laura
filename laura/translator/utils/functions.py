@@ -3,8 +3,93 @@ import os
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
-from laura.models.element import Magnet
-from typing import Any, Dict, Type, get_args, get_origin, Union, Literal
+from laura.utils.dict_utils import numpy_scalar_to_python
+from laura.models.baseModels import IgnoreExtra
+from typing import Any, Dict, Type
+
+
+def elegant_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the ELEGANT rpn-store header declaring every functional definition for
+    the lattice, e.g.::
+
+        % -2 sto quad1_k1l
+        % 90 sto cav1_phase
+
+    Element keywords that reference a functional parameter are written as quoted
+    rpn variable references (e.g. ``VOLT="V_L02.01"``), which ELEGANT resolves
+    against these stored values.
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        The ``% <value> sto <name>`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no rpn store needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(
+        f"% {value} sto {name}\n" for name, value in definitions.items() if value
+    )
+
+
+def madx_functional_definitions(definitions: Dict | None = None) -> str:
+    """
+    Build the MAD-X variable-declaration header assigning every functional
+    definition for the lattice, e.g.::
+
+        quad1_k1l = -2;
+        cav1_phase = 90;
+
+    Element keywords that reference a functional parameter are written as
+    infix expressions (e.g. ``k1 := quad1_k1l / 0.1``), which MAD-X resolves
+    against these variable assignments (and keeps updated as deferred
+    expressions, ``:=``, wherever a symbolic value is used).
+
+    Parameters
+    ----------
+    definitions: dict, optional
+        The functional definitions to declare. Defaults to the shared registry
+        (:attr:`IgnoreExtra.functional_definitions`) when not provided/empty.
+
+    Returns
+    -------
+    str
+        A ``<name> = <value>;`` block (one line per definition), or an empty
+        string if no functional definitions are set.
+    """
+    if IgnoreExtra.resolve_functional:
+        # Resolution mode: values are baked in as numbers, so no header needed.
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(
+        f"{name} = {value};\n" for name, value in definitions.items() if value
+    )
+
+
+def sanitize_string(string: str) -> str:
+    """
+    Replaces hyphens in a string with underscores.
+
+    Parameters
+    ----------
+    string: str
+        Any string
+
+    Returns
+    -------
+    str
+        A string with hyphens replaced with underscores
+    """
+    return string.replace("-", "_")
 
 
 class Counter(dict):
@@ -41,29 +126,9 @@ def convert_numpy_types(v):
             return [convert_numpy_types(li) for li in v]
         except TypeError:
             return float(v)
-    elif isinstance(v, (np.float64, np.float32, np.float16)):
-        return float(v)
-    elif isinstance(
-        v,
-        (
-            np.int_,
-            np.intc,
-            np.intp,
-            np.int8,
-            np.int16,
-            np.int32,
-            np.int64,
-            np.uint8,
-            np.uint16,
-            np.uint32,
-            np.uint64,
-        ),
-    ):
-        return int(v)
     elif isinstance(v, field):
         return convert_numpy_types(v.model_dump())
-    else:
-        return v
+    return numpy_scalar_to_python(v)
 
 
 def _rotation_matrix(theta):
@@ -82,109 +147,6 @@ def chop(expr, delta=1e-8):
         return 0 if -delta <= expr <= delta else expr
     else:
         return [chop(x, delta) for x in expr]
-
-
-def lattice_to_cartesian(elements):
-    """
-    Compute Cartesian coordinates [x, y, z] of accelerator lattice elements
-    from a sequence of drifts and dipoles in 3D.
-
-    Parameters
-    ----------
-    elements : list of tuples
-        Each element is defined as:
-          ("drift", L)
-          ("dipole_h", L, phi)   # horizontal bend (x-z plane)
-          ("dipole_v", L, phi)   # vertical bend (x-y plane)
-        where L = length, phi = bending angle in radians.
-
-    Returns
-    -------
-    positions : list of tuples
-        Cartesian coordinates (x, y, z) for element ends.
-    """
-
-    x, y, z = 0.0, 0.0, 0.0  # starting point
-    theta_h = 0.0  # azimuth angle in horizontal (x-z)
-    theta_v = 0.0  # elevation angle in vertical (x-y)
-    positions = [(x, y, z)]
-
-    for elem in elements:
-        cond1 = elem.hardware_type.lower() != "dipole"
-        cond2 = False
-        if isinstance(elem, Magnet):
-            if abs(elem.magnetic.angle) > 1e-9:
-                cond2 = True
-        if cond1 and cond2:
-            L = elem.physical.length
-            dx = L * np.cos(theta_v) * np.cos(theta_h)
-            dy = L * np.sin(theta_v)
-            dz = L * np.cos(theta_v) * np.sin(theta_h)
-            x, y, z = x + dx, y + dy, z + dz
-            positions.append((x, y, z))
-        else:  # horizontal bend in x-z plane
-            L, phi, tilt = elem.physical.length, elem.magnetic.angle, elem.magnetic.tilt
-            if np.isclose(tilt, 0):
-                R = L / phi
-                cx = x - R * np.sin(theta_h)
-                cz = z + R * np.cos(theta_h)
-                theta_h_new = theta_h + phi
-                x = cx + R * np.sin(theta_h_new)
-                z = cz - R * np.cos(theta_h_new)
-                theta_h = theta_h_new
-            elif np.isclose(tilt, np.pi / 2):
-                R = L / phi
-                cy = y - R * np.sin(theta_v)
-                cz = z + R * np.cos(theta_v)
-                theta_v_new = theta_v + phi
-                y = cy + R * np.sin(theta_v_new)
-                z = cz - R * np.cos(theta_v_new)
-                theta_v = theta_v_new
-            else:
-                raise ValueError(f"Unrecognised tilt angle {tilt} for {elem.name}")
-            positions.append((x, y, z))
-    return positions
-
-
-def sanitize_kwargs(model_cls: type[BaseModel], data: dict[str, Any]) -> dict[str, Any]:
-    sanitized = {}
-    for field_name, field in model_cls.model_fields.items():
-        value = data.get(field_name, None)
-        annotation = field.annotation
-        origin = get_origin(annotation)
-        args = get_args(annotation)
-
-        if value is None:
-            # Allow None if explicitly part of the annotation
-            if origin is Union and type(None) in args:
-                sanitized[field_name] = None
-            continue
-
-        if origin is Union:
-            # Handle Union of types (including Optional)
-            non_none_args = [arg for arg in args if arg is not type(None)]
-            if any(_is_valid_type(value, arg) for arg in non_none_args):
-                sanitized[field_name] = value
-        elif origin is Literal:
-            # Handle Literal values
-            if value in args:
-                sanitized[field_name] = value
-        elif _is_valid_type(value, annotation):
-            # Simple direct type match
-            sanitized[field_name] = value
-
-    return sanitized
-
-
-def _is_valid_type(value: Any, annotation: Any) -> bool:
-    """
-    Helper to check if a value matches a type annotation.
-    Handles edge cases like Literal at the leaf level.
-    """
-    origin = get_origin(annotation)
-    if origin is Literal:
-        return value in get_args(annotation)
-    return isinstance(value, annotation)
 
 
 def get_field_default(field: FieldInfo) -> Any:
@@ -245,22 +207,16 @@ def isevaluable(self, s):
 
 
 def path_function(a):
-    # a_drive, a_tail = os.path.splitdrive(os.path.abspath(a))
-    # b_drive, b_tail = os.path.splitdrive(os.path.abspath(b))
-    # if (a_drive == b_drive):
-    #     return os.path.relpath(a, b)
-    # else:
     if a:
         return os.path.abspath(a)
     return "./"
 
-
-def expand_substitution(self, param, subs={}, elements={}, absolute=False):
+def expand_substitution(self, param, master_lattice="./", subs=None, elements=None, absolute=False):
+    subs = subs or {}
+    elements = elements or {}
     if isinstance(param, str):
-        subs["master_lattice"] = (
-            path_function(self.master_lattice) + "/"
-        )
-        regex = re.compile(r"\$(.*)\$")
+        subs["master_lattice"] = path_function(master_lattice) + "/"
+        regex = re.compile(r"\$(.*?)\$")
         s = re.search(regex, param)
         if s:
             if isevaluable(self, s.group(1)) is True:

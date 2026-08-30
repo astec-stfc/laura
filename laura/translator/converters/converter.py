@@ -28,6 +28,7 @@ from .magnet import (
     DipoleTranslator,
     WigglerTranslator,
     NonLinearLensTranslator,
+    CorrectorTranslator,
 )
 from .cavity import RFCavityTranslator
 from .drift import DriftTranslator
@@ -66,11 +67,13 @@ def translate_elements(
         if isinstance(elem, Magnet):
             if isinstance(elem, Solenoid):
                 translator = SolenoidTranslator
-            elif isinstance(elem, Dipole) and not type(elem) in [
+            elif type(elem) in [
                 Combined_Corrector,
                 Horizontal_Corrector,
                 Vertical_Corrector,
             ]:
+                translator = CorrectorTranslator
+            elif isinstance(elem, Dipole):
                 translator = DipoleTranslator
             elif isinstance(elem, Wiggler):
                 translator = WigglerTranslator
@@ -94,7 +97,10 @@ def translate_elements(
             translator = TwissMatchTranslator
         else:
             translator = BaseElementTranslator
-        elem_dict.update({elem.name: translator.model_validate(elem.model_dump())})
+        try:
+            elem_dict.update({elem.name: translator.model_validate(elem.model_dump(by_alias=False))})
+        except Exception as exc:
+            raise Exception(f"Element {elem.name} failed validation: {elem.model_dump().keys()}")
         elem_dict[elem.name].master_lattice = master_lattice
         elem_dict[elem.name].directory = directory
     return elem_dict

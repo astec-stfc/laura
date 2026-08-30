@@ -6,7 +6,8 @@ general:
   n_kicks: num_multipole_kicks
   isr_enable: radiation_flag
 rfcavity:
-  phase: lag
+  phase: phase
+  frequency: frequency
   n_kicks: num_kicks
   field_amplitude: voltage
 solenoid:

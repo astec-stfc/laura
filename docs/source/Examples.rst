@@ -77,13 +77,12 @@ Full element definitions include electrical, manufacturer, and simulation proper
         hardware_type="Quadrupole",
         machine_area="LINAC-1",
         electrical=ElectricalElement(
-            maxI=100.0,
-            minI=-100.0,
+            max_i=100.0,
+            min_i=-100.0,
             read_tolerance=0.1
         ),
         manufacturer=ManufacturerElement(
             manufacturer="Company XYZ",
-            model="QD-2000",
             serial_number="SN12345"
         ),
         simulation=SimulationElement(
@@ -92,9 +91,18 @@ Full element definitions include electrical, manufacturer, and simulation proper
     )
 
     # Access nested properties directly
-    print(quad.maxI)  # 100.0 (finds electrical.maxI)
+    print(quad.max_i)  # 100.0 (finds electrical.max_i)
     print(quad.serial_number)  # "SN12345"
-    
+
+.. note::
+
+   The schema field names are ``min_i`` / ``max_i``; the older ``minI`` / ``maxI``
+   spellings are still accepted as *input* aliases (in Python keyword arguments and
+   in YAML), but reading them back raises ``AttributeError`` -- attribute access
+   always uses the canonical name. The same applies to ``ri_tolerance``, an input
+   alias for ``read_tolerance``.
+
+
 Importing from YAML
 -------------------
 
@@ -132,15 +140,15 @@ Elements can also be created from YAML files:
     tolerance: 0.5
     values: [115.77, -115.77, 69.6, -69.6, 46.4, -46.4, 23.2, -23.2, 11.6, -11.6, 0.0]
   electrical:
-    maxI: 116
-    minI: -116.0
+    max_i: 116.0
+    min_i: -116.0
     read_tolerance: 0.1
   hardware_class: Magnet
   hardware_model: Generic
   hardware_type: Dipole
   machine_area: INJ
   magnetic:
-    multipoles: 
+    multipoles:
       K0L:
         normal: 0.5
         order: 0
@@ -151,7 +159,6 @@ Elements can also be created from YAML files:
     skew: false
     systematic_multipoles: {}
   manufacturer:
-    hardware_class: Dipole
     manufacturer: Dipole Type 1
     serial_number: '13256'
   name: INJ-MAG-DIP-01
@@ -175,13 +182,23 @@ This can then be loaded in as a :mod:`LAURA` object:
 .. code-block:: python
 
   from laura.Importers.YAML_Loader import interpret_YAML_Element, read_YAML_Element_File
-  
+
   filename = "INJ-MAG-DIP-01.yaml"
-  
+
   inj_dip_01 = read_YAML_Element_File(filename)
-  
+
   print(inj_dip_01.middle)
-  
+
+The ``hardware_type`` key selects the Python class (here
+:py:class:`Dipole <laura.models.element.Dipole>`); see :doc:`Architecture/yaml-pipeline`.
+Passing ``validate=True`` checks the raw YAML against the generated JSON Schema before
+Pydantic parsing, turning silent ``None`` returns into explicit errors:
+
+.. code-block:: python
+
+  inj_dip_01 = read_YAML_Element_File(filename, validate=True)
+
+
 .. _creating-sections:
 
 Creating Lattice Sections
@@ -246,25 +263,35 @@ Automatically insert drift spaces between elements:
     # Create drifts between elements
     elements_with_drifts = section.createDrifts()
 
-    # The result includes original elements plus drifts
+    print(list(elements_with_drifts))
+    # ['BPM-01', 'INJECTOR_drift_1', 'QUAD-01', 'INJECTOR_drift_2', 'BPM-02']
+
     for name, elem in elements_with_drifts.items():
         if "drift" in name:
             print(f"Drift: {name}, Length: {elem.physical.length}")
 
+Drifts are named ``{section_name}_drift_{n}``.
+
 S-Position Calculation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Calculate cumulative path length along the beamline:
+Calculate cumulative path length along the beamline. ``get_s_values`` operates on the
+section *with drifts inserted*, so the returned sequence covers the whole beam path
+with no gaps:
 
 .. code-block:: python
 
-    # Get S-positions as list
+    # Get S-positions as a list (exit of each element, by default)
     s_values = section.get_s_values()
-    print(s_values)  # [0.95, 1.1, 1.9, 2.1, 2.95]
+    print(s_values)  # [0.1, 0.95, 1.15, 2.0, 2.1]
 
     # Get S-positions as dictionary
     s_dict = section.get_s_values(as_dict=True)
-    print(s_dict["QUAD-01"])  # S-position of QUAD-01
+    print(s_dict["QUAD-01"])  # 1.15
+
+    # Entrance rather than exit positions
+    print(section.get_s_values(as_dict=True, at_entrance=True))
+    # {'BPM-01': 0, 'INJECTOR_drift_1': 0.1, 'QUAD-01': 0.95, ...}
 
     # Start from a different S-value
     s_values_offset = section.get_s_values(starting_s=10.0)
@@ -340,29 +367,33 @@ The complete machine model manages all elements, sections, and layouts:
 .. code-block:: python
 
     from laura.models.elementList import MachineModel
-    from laura.models.element import Element
+    from laura.models.element import PhysicalBaseElement
+
+    def element(name, hardware_class, hardware_type, machine_area, z, length):
+        return PhysicalBaseElement(
+            name=name,
+            hardware_class=hardware_class,
+            hardware_type=hardware_type,
+            machine_area=machine_area,
+            physical={"middle": [0.0, 0.0, z], "length": length},
+        )
 
     # Define elements dictionary
     elements = {
-        "MAG-01": Element(
-            name="MAG-01",
-            hardware_class="Magnet",
-            hardware_type="Quadrupole",
-            machine_area="AREA-01"
-        ),
-        "BPM-01": Element(
-            name="BPM-01",
-            hardware_class="Monitor",
-            hardware_type="BPM",
-            machine_area="AREA-01"
-        ),
-        "CAV-01": Element(
-            name="CAV-01",
-            hardware_class="RF",
-            hardware_type="Cavity",
-            machine_area="AREA-02"
-        )
+        "MAG-01": element("MAG-01", "Magnet", "Quadrupole", "AREA-01", 1.0, 0.2),
+        "BPM-01": element("BPM-01", "Diagnostic", "BPM", "AREA-01", 2.0, 0.1),
+        "CAV-01": element("CAV-01", "RF", "Cavity", "AREA-02", 4.0, 1.0),
     }
+
+.. important::
+
+   Any element that takes part in a :py:class:`MachineLayout <laura.models.elementList.MachineLayout>`
+   must carry physical data, because building a layout chains sections together by their
+   elements' start/end positions. Use
+   :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>` (or one of its
+   concrete subclasses such as :py:class:`Quadrupole <laura.models.element.Quadrupole>`) rather
+   than the position-less :py:class:`Element <laura.models.element.Element>`, which raises
+   ``AttributeError: ... has no attribute 'physical'`` when a layout is assembled.
 
 Building from Elements Only
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -448,12 +479,7 @@ Add elements to an existing model:
 
     # Add elements dynamically
     new_elements = {
-        "NEW-01": Element(
-            name="NEW-01",
-            hardware_class="Magnet",
-            hardware_type="Dipole",
-            machine_area="NEW-AREA"
-        )
+        "NEW-01": element("NEW-01", "Magnet", "Dipole", "NEW-AREA", 1.0, 0.3)
     }
 
     model.append(new_elements)
@@ -461,3 +487,97 @@ Add elements to an existing model:
     # Sections are automatically updated
     print("NEW-AREA" in model.sections)  # True
     print(model["NEW-01"].hardware_type)  # "Dipole"
+
+.. _example-lattice-types:
+
+Beam, RF and Laser Lattices
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A machine is not only a beam path: the RF distribution and the photoinjector laser
+transport are lattices in their own right. Sections and layouts therefore carry a type --
+one of ``"beam"`` (the default), ``"rf"`` or ``"laser"`` -- and can be filtered on it:
+
+.. code-block:: python
+
+    model = MachineModel(
+        elements=elements,
+        section={
+            "sections": {
+                # Shorthand: a bare list means type "beam"
+                "AREA-01": ["MAG-01", "BPM-01"],
+                # Long form, needed to set a type
+                "AREA-02": {"elements": ["CAV-01"], "type": "rf"},
+            }
+        },
+        layout={
+            "layouts": {"main_beam": ["AREA-01"], "rf_chain": ["AREA-02"]},
+            "layout_metadata": {"rf_chain": "rf"},
+            "default_layout": "main_beam",
+        },
+    )
+
+    beam_sections = model.get_sections_by_type("beam")   # {"AREA-01": ...}
+    rf_sections = model.get_sections_by_type("rf")       # {"AREA-02": ...}
+
+    # Layouts are filtered the same way
+    rf_paths = model.get_layouts_by_type("rf")           # {"rf_chain": ...}
+
+    # And element queries can be restricted to sections of a given type
+    beam_bpms = model.get_all_elements(element_type="BPM", section_type="beam")
+
+.. _example-signal-graph:
+
+Wiring Up the Signal Graph
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Alongside the beam path, every element can declare what it is wired to. ``inputs`` and
+``outputs`` say *what kind* of signal flows (``IOTypeEnum`` values); ``upstream`` and
+``downstream`` say *which* elements are on either side, by name. See
+:ref:`signal-connectivity` for the full description.
+
+.. code-block:: python
+
+    from laura.models.element import PowerSupply, Quadrupole
+
+    psu = PowerSupply(
+        name="INJ_QUAD_01_PSU",
+        hardware_class="Magnet",
+        machine_area="INJ",
+        inputs=["setpoint"],
+        outputs=["current"],
+        downstream=["INJ_QUAD_01"],
+    )
+
+    quad = Quadrupole(
+        name="INJ_QUAD_01",
+        machine_area="INJ",
+        physical={"middle": [0, 0, 0.76], "length": 0.12},
+        inputs=["current"],
+        outputs=["magnetic_field"],
+        upstream=["INJ_QUAD_01_PSU"],
+    )
+
+    model = MachineModel(elements={e.name: e for e in (psu, quad)})
+
+    # What flows along the psu -> quad link?
+    src, dst = model["INJ_QUAD_01_PSU"], model["INJ_QUAD_01"]
+    print(sorted(set(src.outputs) & set(dst.inputs)))   # ['current']
+
+A runnable walk over a complete RF drive chain, including a feedback loop, is in
+``examples/testing/signal_graph_example.py``.
+
+.. _example-rdf-sparql:
+
+Querying a Model
+~~~~~~~~~~~~~~~~
+
+A machine model can be serialised to RDF or queried in place with SPARQL; both require
+``pip install "laura-accelerator[rdf]"``. See :ref:`interfaces` for details.
+
+.. code-block:: python
+
+    model.export_rdf("machine.ttl")
+
+    rows = model.sparql(
+        "SELECT ?name WHERE { ?e rdf:type laura:Dipole ; laura:name ?name . }"
+    )

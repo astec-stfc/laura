@@ -1,67 +1,21 @@
-from pydantic import Field, computed_field
-from typing import Type, Union, Literal
+from pydantic import computed_field
+from typing import Type
 from warnings import warn
 from .constants import pi, c, e, m_e, epsilon_0
 import numpy as np
 
 from .baseModels import IgnoreExtra, T
+from ._generated import (
+    _LaserElementBase,
+    _LaserHalfWavePlateElementBase,
+    _LaserEnergyMeterElementBase,
+    _LaserMirrorSenseBase,
+    _LaserMirrorElementBase,
+)
 
 
-class LaserElement(IgnoreExtra):
+class LaserElement(_LaserElementBase):
     """Laser info model."""
-
-    initial_position: float = 0
-    """Initial position of the laser pulse [m]"""
-
-    waist: float = Field(ge=0, default=0)
-    """Laser waist [m]"""
-
-    wavelength: float = Field(gt=0)
-    """Laser wavelength [m]"""
-
-    pulse_energy: float = Field(gt=0)
-    """Laser pulse energy [J]"""
-
-    pulse_duration_fwhm: float = Field(gt=0)
-    """Pulse duration FWHM [s]"""
-
-    focal_position: float = 0.0
-    """Focal position of the laser pulse [m], optional"""
-
-    cep_phase: float = 0
-    """CEP phase [radians]"""
-
-    polarization: Literal["linear", "circular", "elliptical"] | None = None
-    """Laser polarization: 'linear', 'circular', 'elliptical'"""
-
-    profile_type: Literal[
-        "gaussian", "laguerre-gaussian", "flattened-gaussian", "file"
-    ] = "gaussian"
-    """Laser profile type [str]: 'gaussian', 'laguerre-gaussian', 'flattened-gaussian', 'file'"""
-
-    laguerre_polynomial_order_p: int = 0
-    """Order of Laguerre-Gaussian polynomial mode, if profile_type is 'laguerre-gaussian'"""
-
-    laguerre_polynomial_order_m: int = 0
-    """Azimuthal order of Laguerre-Gaussian polynomial mode, if profile_type is 'laguerre-gaussian'"""
-
-    flatness: int = 6
-    """Flatness parameter, if profile_type is 'flattened-gaussian'.
-    Default: N=6; somewhat close to an 8th order super-gaussian."""
-
-    propagation_direction: Literal[-1, 1] = 1
-    """Laser propagation direction; +1 means laser and particles co-propagate, -1 means they
-    counter-propagate; default is 1."""
-
-    polarization_angle: float = 0
-    """Laser polarization angle with respect to the x-axis; default is 0."""
-
-    temporal_chirp_2nd_order: float = 0
-    """The amount of temporal chirp, at focus (in the lab frame)."""
-
-    method: Literal["direct", "antenna"] = "antenna"
-    """The laser is either added directly to the interpolation grid initially
-    or it is progressively emitted by an antenna"""
 
     @computed_field
     @property
@@ -141,50 +95,31 @@ class LaserElement(IgnoreExtra):
         return self.angular_frequency * self.pulse_duration_fwhm <= 10
 
 
-class LaserHalfWavePlateElement(IgnoreExtra):
+class LaserHalfWavePlateElement(_LaserHalfWavePlateElementBase):
     """
     Laser half-wave plate model.
     """
 
-    calibration_factor: float = Field()
-    """Calibration factor for the half-wave plate."""
-
-    pv_type: str = Field(alias="laser_pv_type")
-    """Type of the laser PV."""
+    pass
 
 
-class LaserEnergyMeterElement(IgnoreExtra):
+class LaserEnergyMeterElement(_LaserEnergyMeterElementBase):
     """
     Laser energy meter model.
     """
 
-    calibration_factor: float = Field(default=1.0)
-    """Calibration factor for the energy meter, i.e. between measured value and actual laser energy."""
-
-    # pv_type: str = Field(alias="laser_pv_type")
-    # """Type of the laser PV."""
+    pass
 
 
-class LaserMirrorSense(IgnoreExtra):
+class LaserMirrorSense(_LaserMirrorSenseBase):
     """
     Laser mirror sense model.
     """
 
-    left: float = Field(alias="left_sense")
-    right: float = Field(alias="right_sense")
-    up: float = Field(alias="up_sense")
-    down: float = Field(alias="down_sense")
+    pass
 
 
-class LaserMirrorElement(IgnoreExtra):
+class LaserMirrorElement(_LaserMirrorElementBase, IgnoreExtra):
     """Laser info model."""
 
-    step_max: float = Field()
-    sense: LaserMirrorSense
-    vertical_channel: Union[int, None] = None
-    horizontal_channel: Union[int, None] = None
-
-    @classmethod
-    def from_CATAP(cls: Type[T], fields: dict) -> T:
-        cls._create_field_class(cls, fields, "sense", LaserMirrorSense)
-        return super().from_CATAP(fields)
+    pass

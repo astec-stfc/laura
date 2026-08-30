@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, List, Any, Literal
-from ...utils.classes import getGrids
+from ...utils.classes import get_grid_size
 
 
 class opal_header(BaseModel):
@@ -9,7 +9,7 @@ class opal_header(BaseModel):
 
     See `OPAL manual`_ for more details.
 
-    .. OPAL manual: https://amas.web.psi.ch/opal/Documentation/master/OPAL_Manual.html
+    .. _OPAL manual: https://amas.web.psi.ch/opal/Documentation/master/OPAL_Manual.html
     """
 
     model_config = ConfigDict(
@@ -93,7 +93,7 @@ class opal_option(opal_header):
     OPAL input file.The format is Mmmpp where M stands for the major, m for the minor and p for the patch version.
     For version 1.6.0 of OPAL VERSION should read 10600."""
 
-    AMR: bool = False
+    AMR: bool = None
     """Enable adaptive mesh refinement. Its default value is false."""
 
     AMR_REGRID_FREQ: int = None
@@ -333,9 +333,6 @@ class opal_fieldsolver(opal_header):
     space_charge_mode: str = "False"
     """Space charge mode"""
 
-    grids: getGrids | None = None
-    """Space charge grids"""
-
     sample_interval: int = 1
     """Downsampling interval calculated as 2 ** (3 * sample_interval)"""
 
@@ -387,9 +384,8 @@ class opal_fieldsolver(opal_header):
     (P3M + GREENSF=STANDARD only)."""
 
     def model_post_init(self, context: Any, /) -> None:
-        self.grids = getGrids()
         self.opaldict = {"input_particle_definition": "FNAME"}
-        self.exclude.extend(["npart", "space_charge_mode", "grids", "sample_interval"])
+        self.exclude.extend(["npart", "space_charge_mode", "sample_interval"])
         self.MX = self.grid_size
         self.MY = self.grid_size
         self.MT = self.grid_size
@@ -430,8 +426,7 @@ class opal_fieldsolver(opal_header):
         int
             The number of space charge bins based on the number of particles
         """
-        # print('asking for grid sizes n = ', self.npart, ' is ', self.grids.getGridSizes(self.npart))
-        return self.grids.getGridSizes(self.npart / self.sample_interval)
+        return get_grid_size(self.npart / self.sample_interval)
 
 
 class opal_beam(opal_header):
