@@ -429,6 +429,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     )
         if hasattr(obj, "cavity_type"):
             obj.cavity_type = "standing_wave"
+        self._cheetah_float64(obj)
         return obj
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:

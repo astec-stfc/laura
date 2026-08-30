@@ -157,12 +157,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         ``k = KnL(order) / length`` when that strength is defined symbolically;
         return None otherwise.
 
-        ELEGANT and Xsuite require the normalized k-value, whereas the functional
-        definition is stored on the multipole as the integrated kl-value, so the
-        division by length is folded into the symbolic expression (rpn for
-        ELEGANT, an infix string for Xsuite). For zero-length magnets the
-        normalized strength equals the integrated value (mirroring the numeric
-        ``KnL / length`` fall-back).
+        For zero-length magnets the normalized strength equals the integrated
+        value (mirroring the numeric ``KnL / length`` fall-back).
         """
         raw = self._raw_multipole_strength(order)
         if raw is None:
@@ -186,13 +182,7 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         * a plain number -- returns None (nothing symbolic to do).
         * an expression referencing the reserved ``angle`` token (e.g.
-          ``"angle"``/``"angle/2"``, see :attr:`DipoleTranslator.angle
-          <laura.translator.converters.magnet.DipoleTranslator.angle>`) -- if
-          the bend angle itself is defined functionally, the token is
-          substituted with that functional name, producing a valid expression
-          (rpn for ELEGANT, infix for other codes, e.g. ``"bend1 / 2"``);
-          otherwise returns None (the bend angle is a plain number, so the
-          edge angle should be resolved numerically as usual).
+          ``"angle"``/``"angle/2"``).
         * the name of a functional definition -- returned as a bare reference
           (rpn-quoted for ELEGANT).
         """
@@ -341,6 +331,20 @@ class BaseElementTranslator(PhysicalBaseElement):
                     if key == "gap":
                         value = 2 * value
                     setattr(obj, self._convertKeyword_Ocelot(key), value)
+                    if key == "fint" and hasattr(obj.element, "fintx"):
+                        setattr(obj, "fintx", value)
+        return obj
+
+    @staticmethod
+    def _cheetah_float64(obj: object) -> object:
+        """
+        Promotes every floating-point buffer on a Cheetah element to float64.
+        """
+        from torch import float64
+
+        for bufname, buf in obj._buffers.items():
+            if buf is not None and buf.is_floating_point() and buf.dtype != float64:
+                obj._buffers[bufname] = buf.to(float64)
         return obj
 
     def to_cheetah(self) -> object:
@@ -380,7 +384,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                         sanitize_name=True,
                     )
                     obj.is_active = True
-                    return obj
+                    return self._cheetah_float64(obj)
             else:
                 raise NotImplementedError(
                     f"Cheetah element {self.hardware_type} not implemented, {e}"
@@ -408,12 +412,12 @@ class BaseElementTranslator(PhysicalBaseElement):
                     setattr(
                         obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
                     )
+                if key == "fringe_integral" and "fringe_integral_exit" in buffers:
+                    setattr(obj, "fringe_integral_exit", tensor(value, dtype=float64))
                     # else:
                     #     from torch import get_default_dtype
                     #     dt = get_default_dtype()
-        for bufname, buf in obj._buffers.items():
-            if buf is not None and buf.is_floating_point() and buf.dtype != float64:
-                obj._buffers[bufname] = buf.to(float64)
+        self._cheetah_float64(obj)
         if isinstance(obj, Screen_Cheetah):
             obj.is_active = True
         return obj
@@ -867,10 +871,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                     key = self._convertKeyword_Madx(key)
                     deferred = False
                     if value in ("angle", "angle/2") and key in ("e1", "e2"):
-                        # Dipole edge angle referencing the reserved "angle"
-                        # token: carry a functional bend angle through
-                        # symbolically (as a deferred expression); otherwise
-                        # resolve numerically as before.
                         raw = (
                             None
                             if self._resolve_functional

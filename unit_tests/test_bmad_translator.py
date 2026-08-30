@@ -108,8 +108,7 @@ def test_bmad_short_range_wake_sidecars(tmp_path):
         physical={"length": 0.2},
         simulation={"wakefield_definition": str(wake_path)},
     )
-    with pytest.warns(UserWarning, match="Wx/Wy"):
-        text = _bmad(wake, tmp_path)
+    text = _bmad(wake, tmp_path)
     assert text == "W: drift, l = 0.2, sr_wake = call::wake.bmad\n"
     sidecar = (tmp_path / "wake.bmad").read_text()
     assert "scale_with_length = F" in sidecar
@@ -132,8 +131,7 @@ def test_bmad_short_range_wake_sidecars(tmp_path):
             "wakefield_definition": str(wake_path),
         },
     )
-    with pytest.warns(UserWarning, match="Wx/Wy"):
-        assert "sr_wake = call::wake.bmad" in _bmad(cavity, tmp_path)
+    assert "sr_wake = call::wake.bmad" in _bmad(cavity, tmp_path)
 
 
 def test_bmad_transverse_only_wake_is_reported_and_omitted(tmp_path):
@@ -293,6 +291,21 @@ def test_bmad_special_element_conversions():
     assert (
         _bmad(aperture) == "A1: ecollimator, l = 0.2, x1_limit = 0.01, "
         "x2_limit = 0.01, y1_limit = 0.01, y2_limit = 0.01\n"
+    )
+
+    rect = Aperture(
+        name="A2",
+        machine_area="S",
+        physical={"length": 0.0},
+        aperture={
+            "shape": "rectangular",
+            "horizontal_size": 0.017,
+            "vertical_size": 0.0085,
+        },
+    )
+    assert (
+        _bmad(rect) == "A2: rcollimator, l = 0.0, x1_limit = 0.017, "
+        "x2_limit = 0.017, y1_limit = 0.0085, y2_limit = 0.0085\n"
     )
 
     separator = ElectrostaticSeparator(

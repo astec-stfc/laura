@@ -134,11 +134,11 @@ class TestElegantSymbolic:
         assert out.count("n_kicks =") == 1
         assert "n_kicks = 25" in out
 
-    def test_screen_exports_as_marker(self):
+    def test_screen_exports_as_watch(self):
         screen = Screen(name="SCR", machine_area="L04")
-        assert translate_elements([screen])["SCR"].to_elegant().startswith(
-            "SCR: mark"
-        )
+        out = translate_elements([screen])["SCR"].to_elegant()
+        assert out.startswith("SCR: watch")
+        assert 'filename = "./SCR.SDDS"' in out
 
     def test_header_lists_all_definitions(self):
         set_functional_definitions({"a": 1, "b": 2.5})
@@ -150,7 +150,6 @@ class TestElegantSymbolic:
         assert elegant_functional_definitions() == ""
 
     def test_resolution_mode_bakes_in_numbers(self):
-        # With resolution mode on, ELEGANT gets resolved numbers and no rpn store
         set_functional_definitions({"quad1_k1l": -2.0})
         set_resolve_functional(True)
         out = _quad("quad1_k1l").to_elegant()

@@ -22,8 +22,8 @@ class ApertureTranslator(BaseElementTranslator):
             if shape in ("elliptical", "circular")
             else "rcollimator"
         )
-        horizontal = self.aperture.radius or self.aperture.horizontal_size / 2
-        vertical = self.aperture.radius or self.aperture.vertical_size / 2
+        horizontal = self.aperture.radius or self.aperture.horizontal_size
+        vertical = self.aperture.radius or self.aperture.vertical_size
         return self._format_bmad(
             etype,
             {
