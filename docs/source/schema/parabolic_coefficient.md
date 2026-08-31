@@ -1,7 +1,7 @@
 # Slot: parabolic_coefficient 
 
 
-_Parabolic coefficient for a transverse density profile._
+_Parabolic coefficient of a transverse density channel [m^-^2]. The longitudinal profile is multiplied by ``1 + parabolic_coefficient * r^2``._
 
 
 
@@ -48,6 +48,16 @@ URI: [laura:parabolic_coefficient](https://w3id.org/laura/parabolic_coefficient)
 | Owner | [PlasmaElement](PlasmaElement.md) |
 
 
+<details>
+<summary>Additional Constraints</summary>
+**Unit:**
+
+| Property | Value |
+| --- | --- |
+| ucum_code | m-2 |
+
+</details>
+
 
 
 
@@ -87,7 +97,8 @@ URI: [laura:parabolic_coefficient](https://w3id.org/laura/parabolic_coefficient)
 <details>
 ```yaml
 name: parabolic_coefficient
-description: Parabolic coefficient for a transverse density profile.
+description: Parabolic coefficient of a transverse density channel [m^-^2]. The longitudinal
+  profile is multiplied by ``1 + parabolic_coefficient * r^2``.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: float(0)
@@ -95,6 +106,8 @@ owner: PlasmaElement
 domain_of:
 - PlasmaElement
 range: float
+unit:
+  ucum_code: m-2
 
 ```
 </details></div>

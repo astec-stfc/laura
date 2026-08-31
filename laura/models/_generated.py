@@ -1034,10 +1034,10 @@ class _PlasmaSimulationElementBase(_SimulationElementBase):
     """Minimum longitudinal position of the simulation box [m]."""
     max_longitudinal_position: float = Field(default=0, description="""Maximum longitudinal position of the simulation box [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
     """Maximum longitudinal position of the simulation box [m]."""
-    plasma_min_longitudinal_position: Optional[float] = Field(default=None, description="""Longitudinal position at which the plasma column starts [m]. Independent of the simulation box; codes that do not distinguish the two fall back to min_longitudinal_position when this is unset.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
-    """Longitudinal position at which the plasma column starts [m]. Independent of the simulation box; codes that do not distinguish the two fall back to min_longitudinal_position when this is unset."""
-    plasma_max_longitudinal_position: Optional[float] = Field(default=None, description="""Longitudinal position at which the plasma column ends [m]. Independent of the simulation box; codes that do not distinguish the two fall back to max_longitudinal_position when this is unset.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
-    """Longitudinal position at which the plasma column ends [m]. Independent of the simulation box; codes that do not distinguish the two fall back to max_longitudinal_position when this is unset."""
+    plasma_min_longitudinal_position: Optional[float] = Field(default=None, description="""Longitudinal position at which the plasma column starts [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
+    """Longitudinal position at which the plasma column starts [m]."""
+    plasma_max_longitudinal_position: Optional[float] = Field(default=None, description="""Longitudinal position at which the plasma column ends [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
+    """Longitudinal position at which the plasma column ends [m]."""
     n_longitudinal: int = Field(default=0, description="""Number of grid points in the longitudinal direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(0)'} })
     """Number of grid points in the longitudinal direction."""
     n_radial: int = Field(default=0, description="""Number of grid points in the radial direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(0)'} })
@@ -1052,10 +1052,22 @@ class _PlasmaSimulationElementBase(_SimulationElementBase):
     """Radial extent of the simulation box [m]."""
     r_max_plasma: Optional[float] = Field(default=None, description="""Maximum radial extension of the plasma column.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
     """Maximum radial extension of the plasma column."""
+    r_min_plasma: Optional[float] = Field(default=None, description="""Minimum radial extension of the plasma column [m]. Non-zero gives a hollow channel, with no plasma inside this radius. Codes that assume a filled column ignore it.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'unit': {'ucum_code': 'm'}} })
+    """Minimum radial extension of the plasma column [m]. Non-zero gives a hollow channel, with no plasma inside this radius. Codes that assume a filled column ignore it."""
     dz_fields: Optional[float] = Field(default=None, description="""Interval for plasma wakefield updates.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
     """Interval for plasma wakefield updates."""
     plasma_pusher: str = Field(default="boris", description="""Pusher used to evolve the plasma in time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'string(boris)'} })
     """Pusher used to evolve the plasma in time."""
+    laser_evolution: Optional[bool] = Field(default=True, description="""Whether the driver is evolved by a laser-envelope solver as the stage is tracked, rather than held at its initial profile. Applies to codes that model the laser as an envelope; a full PIC code such as FBPIC always resolves the laser on the grid and ignores this.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'true'} })
+    """Whether the driver is evolved by a laser-envelope solver as the stage is tracked, rather than held at its initial profile. Applies to codes that model the laser as an envelope; a full PIC code such as FBPIC always resolves the laser on the grid and ignores this."""
+    laser_envelope_substeps: int = Field(default=1, description="""Number of envelope-solver steps taken per wakefield step. Raise it where the envelope evolves faster than the wake it drives.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(1)'} })
+    """Number of envelope-solver steps taken per wakefield step. Raise it where the envelope evolves faster than the wake it drives."""
+    laser_envelope_n_longitudinal: Optional[int] = Field(default=None, description="""Number of longitudinal grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_longitudinal.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
+    """Number of longitudinal grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_longitudinal."""
+    laser_envelope_n_radial: Optional[int] = Field(default=None, description="""Number of radial grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_radial.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
+    """Number of radial grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_radial."""
+    laser_envelope_use_phase: Optional[bool] = Field(default=True, description="""Whether the envelope solver carries an explicit phase term, which allows a coarser longitudinal grid at the cost of a more expensive step.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'true'} })
+    """Whether the envelope solver carries an explicit phase term, which allows a coarser longitudinal grid at the cost of a more expensive step."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -2074,6 +2086,20 @@ class _PlasmaElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm-2'}} })
     """Parabolic coefficient of a transverse density channel [m^-^2]. The longitudinal profile is multiplied by ``1 + parabolic_coefficient * r^2``."""
+    temperature: float = Field(default=0, description="""Initial temperature of the plasma species [eV], assumed isotropic and Maxwellian. Zero means a cold plasma, which is the usual assumption for a laser-wakefield stage; a finite value matters where the initial momentum spread competes with the wake, as in a plasma lens or a low-amplitude wake.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'eV'}} })
+    """Initial temperature of the plasma species [eV], assumed isotropic and Maxwellian. Zero means a cold plasma, which is the usual assumption for a laser-wakefield stage; a finite value matters where the initial momentum spread competes with the wake, as in a plasma lens or a low-amplitude wake."""
+    ionizable: Optional[bool] = Field(default=False, description="""Whether a further, ionizable species is present alongside the plasma defined above, with electrons freed from it by the driver field as the stage is tracked. This is what makes ionization injection possible; the plasma above is then the pre-ionized background, and may have zero density if the whole gas is to be ionized by the driver. Only PIC codes that model ionization use it.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'False'} })
+    """Whether a further, ionizable species is present alongside the plasma defined above, with electrons freed from it by the driver field as the stage is tracked. This is what makes ionization injection possible; the plasma above is then the pre-ionized background, and may have zero density if the whole gas is to be ionized by the driver. Only PIC codes that model ionization use it."""
+    ionization_element: Optional[str] = Field(default=None, description="""Atomic symbol of the ionizable species, e.g. ``N`` or ``He`` (not ``Nitrogen``). Required when ionizable is True.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement']} })
+    """Atomic symbol of the ionizable species, e.g. ``N`` or ``He`` (not ``Nitrogen``). Required when ionizable is True."""
+    ionization_density: Optional[float] = Field(default=None, description="""Number density of the ionizable species [m^-^3], counting atoms rather than electrons. Defaults to density. A dopant is typically a small fraction of the background.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'unit': {'ucum_code': 'm-3'}} })
+    """Number density of the ionizable species [m^-^3], counting atoms rather than electrons. Defaults to density. A dopant is typically a small fraction of the background."""
+    ionization_initial_level: int = Field(default=0, description="""Ionization level the atoms start at; 0 for a neutral atom. Starting part-way up avoids spending macroparticles on levels the driver ionizes far ahead of the wake, as with the first five levels of nitrogen.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'int(0)'} })
+    """Ionization level the atoms start at; 0 for a neutral atom. Starting part-way up avoids spending macroparticles on levels the driver ionizes far ahead of the wake, as with the first five levels of nitrogen."""
+    ionization_max_level: Optional[int] = Field(default=None, description="""Highest ionization level the atoms may reach. Defaults to the physical limit for the element.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement']} })
+    """Highest ionization level the atoms may reach. Defaults to the physical limit for the element."""
 
 
 class _DipoleMagnetBase(_MagneticElementBase):

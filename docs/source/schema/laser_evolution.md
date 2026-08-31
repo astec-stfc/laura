@@ -1,7 +1,7 @@
-# Slot: plasma_particles_per_cell 
+# Slot: laser_evolution 
 
 
-_Number of plasma particles per cell._
+_Whether the driver is evolved by a laser-envelope solver as the stage is tracked, rather than held at its initial profile. Applies to codes that model the laser as an envelope; a full PIC code such as FBPIC always resolves the laser on the grid and ignores this._
 
 
 
@@ -9,7 +9,7 @@ _Number of plasma particles per cell._
 
 
 
-URI: [laura:plasma_particles_per_cell](https://w3id.org/laura/plasma_particles_per_cell)
+URI: [laura:laser_evolution](https://w3id.org/laura/laser_evolution)
 <!-- no inheritance hierarchy -->
 
 
@@ -33,7 +33,7 @@ URI: [laura:plasma_particles_per_cell](https://w3id.org/laura/plasma_particles_p
 
 | Property | Value |
 | --- | --- |
-| Range | [Integer](Integer.md) |
+| Range | [Boolean](Boolean.md) |
 | Domain Of | [PlasmaSimulationElement](PlasmaSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -44,7 +44,7 @@ URI: [laura:plasma_particles_per_cell](https://w3id.org/laura/plasma_particles_p
 
 | Property | Value |
 | --- | --- |
-| If Absent | `int(2)` |
+| If Absent | `true` |
 | Owner | [PlasmaSimulationElement](PlasmaSimulationElement.md) |
 
 
@@ -76,8 +76,8 @@ URI: [laura:plasma_particles_per_cell](https://w3id.org/laura/plasma_particles_p
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:plasma_particles_per_cell |
-| native | laura:plasma_particles_per_cell |
+| self | laura:laser_evolution |
+| native | laura:laser_evolution |
 
 
 
@@ -86,15 +86,18 @@ URI: [laura:plasma_particles_per_cell](https://w3id.org/laura/plasma_particles_p
 
 <details>
 ```yaml
-name: plasma_particles_per_cell
-description: Number of plasma particles per cell.
+name: laser_evolution
+description: Whether the driver is evolved by a laser-envelope solver as the stage
+  is tracked, rather than held at its initial profile. Applies to codes that model
+  the laser as an envelope; a full PIC code such as FBPIC always resolves the laser
+  on the grid and ignores this.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: int(2)
+ifabsent: 'true'
 owner: PlasmaSimulationElement
 domain_of:
 - PlasmaSimulationElement
-range: integer
+range: boolean
 
 ```
 </details></div>

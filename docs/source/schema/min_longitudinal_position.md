@@ -1,7 +1,7 @@
 # Slot: min_longitudinal_position 
 
 
-_Minimum longitudinal position [m]._
+_Minimum longitudinal position of the simulation box [m]._
 
 
 
@@ -87,7 +87,7 @@ URI: [laura:min_longitudinal_position](https://w3id.org/laura/min_longitudinal_p
 <details>
 ```yaml
 name: min_longitudinal_position
-description: Minimum longitudinal position [m].
+description: Minimum longitudinal position of the simulation box [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: float(0)

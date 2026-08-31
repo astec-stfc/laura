@@ -188,6 +188,8 @@ export enum LaserProfileTypeEnum {
     
     gaussian = "gaussian",
     laguerre_gaussian = "laguerre-gaussian",
+    /** Donut-like Laguerre-Gaussian mode, in which a single azimuthal mode is kept rather than the cosine combination of +m and -m. */
+    laguerre_gaussian_donut = "laguerre-gaussian-donut",
     flattened_gaussian = "flattened-gaussian",
     file = "file",
 };
@@ -714,24 +716,44 @@ export interface PlasmaSimulationElement extends SimulationElement {
     dt_bunch?: string,
     /** Number of distribution dumps during the plasma stage. */
     n_out?: number,
-    /** Minimum longitudinal position [m]. */
+    /** Minimum longitudinal position of the simulation box [m]. */
     min_longitudinal_position?: number,
-    /** Maximum longitudinal position [m]. */
+    /** Maximum longitudinal position of the simulation box [m]. */
     max_longitudinal_position?: number,
+    /** Longitudinal position at which the plasma column starts [m]. */
+    plasma_min_longitudinal_position?: number,
+    /** Longitudinal position at which the plasma column ends [m]. */
+    plasma_max_longitudinal_position?: number,
     /** Number of grid points in the longitudinal direction. */
     n_longitudinal?: number,
     /** Number of grid points in the radial direction. */
     n_radial?: number,
-    /** Number of plasma particles per cell. */
-    plasma_particles_per_cell?: number,
+    /** Number of plasma particles per radial cell. */
+    particles_per_radial_cell?: number,
+    /** Number of plasma particles per longitudinal cell. */
+    particles_per_longitudinal_cell?: number,
+    /** Number of plasma particles per angular cell. */
+    particles_per_angular_cell?: number,
     /** Radial extent of the simulation box [m]. */
     r_max?: number,
     /** Maximum radial extension of the plasma column. */
     r_max_plasma?: number,
+    /** Minimum radial extension of the plasma column [m]. Non-zero gives a hollow channel, with no plasma inside this radius. Codes that assume a filled column ignore it. */
+    r_min_plasma?: number,
     /** Interval for plasma wakefield updates. */
     dz_fields?: number,
     /** Pusher used to evolve the plasma in time. */
     plasma_pusher?: string,
+    /** Whether the driver is evolved by a laser-envelope solver as the stage is tracked, rather than held at its initial profile. Applies to codes that model the laser as an envelope; a full PIC code such as FBPIC always resolves the laser on the grid and ignores this. */
+    laser_evolution?: boolean,
+    /** Number of envelope-solver steps taken per wakefield step. Raise it where the envelope evolves faster than the wake it drives. */
+    laser_envelope_substeps?: number,
+    /** Number of longitudinal grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_longitudinal. */
+    laser_envelope_n_longitudinal?: number,
+    /** Number of radial grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_radial. */
+    laser_envelope_n_radial?: number,
+    /** Whether the envelope solver carries an explicit phase term, which allows a coarser longitudinal grid at the cost of a more expensive step. */
+    laser_envelope_use_phase?: boolean,
 }
 
 
@@ -1563,8 +1585,18 @@ export interface LaserElement {
     profile_type?: string,
     /** Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``). */
     laguerre_polynomial_order_p?: number,
+    /** Azimuthal order of Laguerre-Gaussian polynomial mode (for ``profile_type = laguerre-gaussian``). */
+    laguerre_polynomial_order_m?: number,
     /** Flatness order N of a flattened-Gaussian profile (for ``profile_type = flattened-gaussian``). */
     flatness?: number,
+    /** Laser propagation direction; +1 means laser  and particles co-propagate, -1 means they counter-propagate. */
+    propagation_direction?: number,
+    /** Laser polarization angle with respect to the x-axis. */
+    polarization_angle?: number,
+    /** The amount of temporal chirp, at focus (in the lab frame). */
+    temporal_chirp_2nd_order?: number,
+    /** The laser is either added directly to the interpolation grid initially (direct) or it is progressively emitted by an antenna (antenna). */
+    species?: string,
 }
 
 
@@ -1600,8 +1632,30 @@ export interface PlasmaElement {
     ramp_decay_length?: number,
     /** If True, use a user-defined profile; if False, use a flat-top model. */
     density_profile?: boolean,
-    /** Parabolic coefficient for a transverse density profile. */
+    /** Longitudinal position at which the density profile begins [m]. ramp_up, plateau and ramp_down are measured from here, and the density is zero upstream of it. */
+    density_profile_start?: number,
+    /** Shape of the longitudinal density profile used when density_profile is True. ``decaying`` is a 1/(1 + dz/ramp_decay_length)^2 ramp either side of the plateau; ``linear`` ramps linearly over ramp_up and ramp_down; ``tabulated`` interpolates density_profile_positions against density_profile_values; ``custom`` calls density_profile_function. */
+    density_profile_type?: string,
+    /** Dotted path to a callable ``f(z, r) -> relative density``, written as ``package.module:function`` or ``package.module.function``. Used when density_profile_type is ``custom``. */
+    density_profile_function?: string,
+    /** Longitudinal positions [m] of a tabulated density profile, used when density_profile_type is ``tabulated``. */
+    density_profile_positions?: number[],
+    /** Density values at density_profile_positions, relative to density, used when density_profile_type is ``tabulated``. */
+    density_profile_values?: number[],
+    /** Parabolic coefficient of a transverse density channel [m^-^2]. The longitudinal profile is multiplied by ``1 + parabolic_coefficient * r^2``. */
     parabolic_coefficient?: number,
+    /** Initial temperature of the plasma species [eV], assumed isotropic and Maxwellian. Zero means a cold plasma, which is the usual assumption for a laser-wakefield stage; a finite value matters where the initial momentum spread competes with the wake, as in a plasma lens or a low-amplitude wake. */
+    temperature?: number,
+    /** Whether a further, ionizable species is present alongside the plasma defined above, with electrons freed from it by the driver field as the stage is tracked. This is what makes ionization injection possible; the plasma above is then the pre-ionized background, and may have zero density if the whole gas is to be ionized by the driver. Only PIC codes that model ionization use it. */
+    ionizable?: boolean,
+    /** Atomic symbol of the ionizable species, e.g. ``N`` or ``He`` (not ``Nitrogen``). Required when ionizable is True. */
+    ionization_element?: string,
+    /** Number density of the ionizable species [m^-^3], counting atoms rather than electrons. Defaults to density. A dopant is typically a small fraction of the background. */
+    ionization_density?: number,
+    /** Ionization level the atoms start at; 0 for a neutral atom. Starting part-way up avoids spending macroparticles on levels the driver ionizes far ahead of the wake, as with the first five levels of nitrogen. */
+    ionization_initial_level?: number,
+    /** Highest ionization level the atoms may reach. Defaults to the physical limit for the element. */
+    ionization_max_level?: number,
 }
 
 
@@ -1696,7 +1750,7 @@ export interface CombinedCorrector extends Dipole {
 
 
 /**
- * Solenoid integrated axial field components ``S0L``–``S12L`` [T.m].
+ * Solenoid integrated axial field components ``S0L``â€“``S12L`` [T.m].
  */
 export interface SolenoidFields {
     /** Integrated solenoid field, order 0 [T.m]. */

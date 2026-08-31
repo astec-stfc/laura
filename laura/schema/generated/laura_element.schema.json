@@ -8388,6 +8388,44 @@
             "null"
           ]
         },
+        "ionizable": {
+          "description": "Whether a further, ionizable species is present alongside the plasma defined above, with electrons freed from it by the driver field as the stage is tracked. This is what makes ionization injection possible; the plasma above is then the pre-ionized background, and may have zero density if the whole gas is to be ionized by the driver. Only PIC codes that model ionization use it.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "ionization_density": {
+          "description": "Number density of the ionizable species [m^-^3], counting atoms rather than electrons. Defaults to density. A dopant is typically a small fraction of the background.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ionization_element": {
+          "description": "Atomic symbol of the ionizable species, e.g. ``N`` or ``He`` (not ``Nitrogen``). Required when ionizable is True.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ionization_initial_level": {
+          "description": "Ionization level the atoms start at; 0 for a neutral atom. Starting part-way up avoids spending macroparticles on levels the driver ionizes far ahead of the wake, as with the first five levels of nitrogen.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "ionization_max_level": {
+          "description": "Highest ionization level the atoms may reach. Defaults to the physical limit for the element.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "parabolic_coefficient": {
           "description": "Parabolic coefficient of a transverse density channel [m^-^2]. The longitudinal profile is multiplied by ``1 + parabolic_coefficient * r^2``.",
           "type": [
@@ -8433,6 +8471,14 @@
             "string",
             "null"
           ]
+        },
+        "temperature": {
+          "description": "Initial temperature of the plasma species [eV], assumed isotropic and Maxwellian. Zero means a cold plasma, which is the usual assumption for a laser-wakefield stage; a finite value matters where the initial momentum spread competes with the wake, as in a plasma lens or a low-amplitude wake.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         }
       },
       "title": "PlasmaElement",
@@ -8474,6 +8520,41 @@
           "description": "Longitudinal origin of the field map [m].",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "laser_envelope_n_longitudinal": {
+          "description": "Number of longitudinal grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_longitudinal.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "laser_envelope_n_radial": {
+          "description": "Number of radial grid points for the laser-envelope solver, if it is to run on a finer grid than the wakefield. Defaults to the wakefield grid's n_radial.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "laser_envelope_substeps": {
+          "description": "Number of envelope-solver steps taken per wakefield step. Raise it where the envelope evolves faster than the wake it drives.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "laser_envelope_use_phase": {
+          "description": "Whether the envelope solver carries an explicit phase term, which allows a coarser longitudinal grid at the cost of a more expensive step.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "laser_evolution": {
+          "description": "Whether the driver is evolved by a laser-envelope solver as the stage is tracked, rather than held at its initial profile. Applies to codes that model the laser as an envelope; a full PIC code such as FBPIC always resolves the laser on the grid and ignores this.",
+          "type": [
+            "boolean",
             "null"
           ]
         },
@@ -8534,14 +8615,14 @@
           ]
         },
         "plasma_max_longitudinal_position": {
-          "description": "Longitudinal position at which the plasma column ends [m]. Independent of the simulation box; codes that do not distinguish the two fall back to max_longitudinal_position when this is unset.",
+          "description": "Longitudinal position at which the plasma column ends [m].",
           "type": [
             "number",
             "null"
           ]
         },
         "plasma_min_longitudinal_position": {
-          "description": "Longitudinal position at which the plasma column starts [m]. Independent of the simulation box; codes that do not distinguish the two fall back to min_longitudinal_position when this is unset.",
+          "description": "Longitudinal position at which the plasma column starts [m].",
           "type": [
             "number",
             "null"
@@ -8563,6 +8644,14 @@
         },
         "r_max_plasma": {
           "description": "Maximum radial extension of the plasma column.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "r_min_plasma": {
+          "description": "Minimum radial extension of the plasma column [m]. Non-zero gives a hollow channel, with no plasma inside this radius. Codes that assume a filled column ignore it.",
+          "minimum": 0.0,
           "type": [
             "number",
             "null"

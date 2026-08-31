@@ -32,6 +32,16 @@ URI: [laura:PlasmaSimulationElement](https://w3id.org/laura/PlasmaSimulationElem
         
       PlasmaSimulationElement : field_reference_position
         
+      PlasmaSimulationElement : laser_envelope_n_longitudinal
+        
+      PlasmaSimulationElement : laser_envelope_n_radial
+        
+      PlasmaSimulationElement : laser_envelope_substeps
+        
+      PlasmaSimulationElement : laser_envelope_use_phase
+        
+      PlasmaSimulationElement : laser_evolution
+        
       PlasmaSimulationElement : max_longitudinal_position
         
       PlasmaSimulationElement : min_longitudinal_position
@@ -42,13 +52,23 @@ URI: [laura:PlasmaSimulationElement](https://w3id.org/laura/PlasmaSimulationElem
         
       PlasmaSimulationElement : n_radial
         
-      PlasmaSimulationElement : plasma_particles_per_cell
+      PlasmaSimulationElement : particles_per_angular_cell
+        
+      PlasmaSimulationElement : particles_per_longitudinal_cell
+        
+      PlasmaSimulationElement : particles_per_radial_cell
+        
+      PlasmaSimulationElement : plasma_max_longitudinal_position
+        
+      PlasmaSimulationElement : plasma_min_longitudinal_position
         
       PlasmaSimulationElement : plasma_pusher
         
       PlasmaSimulationElement : r_max
         
       PlasmaSimulationElement : r_max_plasma
+        
+      PlasmaSimulationElement : r_min_plasma
         
       PlasmaSimulationElement : scale_field
         
@@ -85,15 +105,25 @@ URI: [laura:PlasmaSimulationElement](https://w3id.org/laura/PlasmaSimulationElem
 | [bunch_pusher](bunch_pusher.md) | 0..1 <br/> [String](String.md) | Pusher used to evolve bunch particles in time | direct |
 | [dt_bunch](dt_bunch.md) | 0..1 <br/> [String](String.md) | Time-step control for bunch evolution (or 'auto') | direct |
 | [n_out](n_out.md) | 0..1 <br/> [Integer](Integer.md) | Number of distribution dumps during the plasma stage | direct |
-| [min_longitudinal_position](min_longitudinal_position.md) | 0..1 <br/> [Float](Float.md) | Minimum longitudinal position [m] | direct |
-| [max_longitudinal_position](max_longitudinal_position.md) | 0..1 <br/> [Float](Float.md) | Maximum longitudinal position [m] | direct |
+| [min_longitudinal_position](min_longitudinal_position.md) | 0..1 <br/> [Float](Float.md) | Minimum longitudinal position of the simulation box [m] | direct |
+| [max_longitudinal_position](max_longitudinal_position.md) | 0..1 <br/> [Float](Float.md) | Maximum longitudinal position of the simulation box [m] | direct |
+| [plasma_min_longitudinal_position](plasma_min_longitudinal_position.md) | 0..1 <br/> [Float](Float.md) | Longitudinal position at which the plasma column starts [m] | direct |
+| [plasma_max_longitudinal_position](plasma_max_longitudinal_position.md) | 0..1 <br/> [Float](Float.md) | Longitudinal position at which the plasma column ends [m] | direct |
 | [n_longitudinal](n_longitudinal.md) | 0..1 <br/> [Integer](Integer.md) | Number of grid points in the longitudinal direction | direct |
 | [n_radial](n_radial.md) | 0..1 <br/> [Integer](Integer.md) | Number of grid points in the radial direction | direct |
-| [plasma_particles_per_cell](plasma_particles_per_cell.md) | 0..1 <br/> [Integer](Integer.md) | Number of plasma particles per cell | direct |
+| [particles_per_radial_cell](particles_per_radial_cell.md) | 0..1 <br/> [Integer](Integer.md) | Number of plasma particles per radial cell | direct |
+| [particles_per_longitudinal_cell](particles_per_longitudinal_cell.md) | 0..1 <br/> [Integer](Integer.md) | Number of plasma particles per longitudinal cell | direct |
+| [particles_per_angular_cell](particles_per_angular_cell.md) | 0..1 <br/> [Integer](Integer.md) | Number of plasma particles per angular cell | direct |
 | [r_max](r_max.md) | 0..1 <br/> [Float](Float.md) | Radial extent of the simulation box [m] | direct |
 | [r_max_plasma](r_max_plasma.md) | 0..1 <br/> [Float](Float.md) | Maximum radial extension of the plasma column | direct |
+| [r_min_plasma](r_min_plasma.md) | 0..1 <br/> [Float](Float.md) | Minimum radial extension of the plasma column [m] | direct |
 | [dz_fields](dz_fields.md) | 0..1 <br/> [Float](Float.md) | Interval for plasma wakefield updates | direct |
 | [plasma_pusher](plasma_pusher.md) | 0..1 <br/> [String](String.md) | Pusher used to evolve the plasma in time | direct |
+| [laser_evolution](laser_evolution.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the driver is evolved by a laser-envelope solver as the stage is trac... | direct |
+| [laser_envelope_substeps](laser_envelope_substeps.md) | 0..1 <br/> [Integer](Integer.md) | Number of envelope-solver steps taken per wakefield step | direct |
+| [laser_envelope_n_longitudinal](laser_envelope_n_longitudinal.md) | 0..1 <br/> [Integer](Integer.md) | Number of longitudinal grid points for the laser-envelope solver, if it is to... | direct |
+| [laser_envelope_n_radial](laser_envelope_n_radial.md) | 0..1 <br/> [Integer](Integer.md) | Number of radial grid points for the laser-envelope solver, if it is to run o... | direct |
+| [laser_envelope_use_phase](laser_envelope_use_phase.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the envelope solver carries an explicit phase term, which allows a co... | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
@@ -197,7 +227,7 @@ attributes:
     range: integer
   min_longitudinal_position:
     name: min_longitudinal_position
-    description: Minimum longitudinal position [m].
+    description: Minimum longitudinal position of the simulation box [m].
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0)
@@ -206,10 +236,26 @@ attributes:
     range: float
   max_longitudinal_position:
     name: max_longitudinal_position
-    description: Maximum longitudinal position [m].
+    description: Maximum longitudinal position of the simulation box [m].
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0)
+    domain_of:
+    - PlasmaSimulationElement
+    range: float
+  plasma_min_longitudinal_position:
+    name: plasma_min_longitudinal_position
+    description: Longitudinal position at which the plasma column starts [m].
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    domain_of:
+    - PlasmaSimulationElement
+    range: float
+  plasma_max_longitudinal_position:
+    name: plasma_max_longitudinal_position
+    description: Longitudinal position at which the plasma column ends [m].
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
     domain_of:
     - PlasmaSimulationElement
     range: float
@@ -231,12 +277,30 @@ attributes:
     domain_of:
     - PlasmaSimulationElement
     range: integer
-  plasma_particles_per_cell:
-    name: plasma_particles_per_cell
-    description: Number of plasma particles per cell.
+  particles_per_radial_cell:
+    name: particles_per_radial_cell
+    description: Number of plasma particles per radial cell.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(2)
+    domain_of:
+    - PlasmaSimulationElement
+    range: integer
+  particles_per_longitudinal_cell:
+    name: particles_per_longitudinal_cell
+    description: Number of plasma particles per longitudinal cell.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: int(2)
+    domain_of:
+    - PlasmaSimulationElement
+    range: integer
+  particles_per_angular_cell:
+    name: particles_per_angular_cell
+    description: Number of plasma particles per angular cell.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: int(4)
     domain_of:
     - PlasmaSimulationElement
     range: integer
@@ -257,6 +321,19 @@ attributes:
     domain_of:
     - PlasmaSimulationElement
     range: float
+  r_min_plasma:
+    name: r_min_plasma
+    description: Minimum radial extension of the plasma column [m]. Non-zero gives
+      a hollow channel, with no plasma inside this radius. Codes that assume a filled
+      column ignore it.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    domain_of:
+    - PlasmaSimulationElement
+    range: float
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
   dz_fields:
     name: dz_fields
     description: Interval for plasma wakefield updates.
@@ -274,6 +351,58 @@ attributes:
     domain_of:
     - PlasmaSimulationElement
     range: string
+  laser_evolution:
+    name: laser_evolution
+    description: Whether the driver is evolved by a laser-envelope solver as the stage
+      is tracked, rather than held at its initial profile. Applies to codes that model
+      the laser as an envelope; a full PIC code such as FBPIC always resolves the
+      laser on the grid and ignores this.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: 'true'
+    domain_of:
+    - PlasmaSimulationElement
+    range: boolean
+  laser_envelope_substeps:
+    name: laser_envelope_substeps
+    description: Number of envelope-solver steps taken per wakefield step. Raise it
+      where the envelope evolves faster than the wake it drives.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: int(1)
+    domain_of:
+    - PlasmaSimulationElement
+    range: integer
+  laser_envelope_n_longitudinal:
+    name: laser_envelope_n_longitudinal
+    description: Number of longitudinal grid points for the laser-envelope solver,
+      if it is to run on a finer grid than the wakefield. Defaults to the wakefield
+      grid's n_longitudinal.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    domain_of:
+    - PlasmaSimulationElement
+    range: integer
+  laser_envelope_n_radial:
+    name: laser_envelope_n_radial
+    description: Number of radial grid points for the laser-envelope solver, if it
+      is to run on a finer grid than the wakefield. Defaults to the wakefield grid's
+      n_radial.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    domain_of:
+    - PlasmaSimulationElement
+    range: integer
+  laser_envelope_use_phase:
+    name: laser_envelope_use_phase
+    description: Whether the envelope solver carries an explicit phase term, which
+      allows a coarser longitudinal grid at the cost of a more expensive step.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: 'true'
+    domain_of:
+    - PlasmaSimulationElement
+    range: boolean
 class_uri: laura:PlasmaSimulationElement
 
 ```
@@ -329,7 +458,7 @@ attributes:
     range: integer
   min_longitudinal_position:
     name: min_longitudinal_position
-    description: Minimum longitudinal position [m].
+    description: Minimum longitudinal position of the simulation box [m].
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0)
@@ -339,10 +468,28 @@ attributes:
     range: float
   max_longitudinal_position:
     name: max_longitudinal_position
-    description: Maximum longitudinal position [m].
+    description: Maximum longitudinal position of the simulation box [m].
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: float(0)
+    owner: PlasmaSimulationElement
+    domain_of:
+    - PlasmaSimulationElement
+    range: float
+  plasma_min_longitudinal_position:
+    name: plasma_min_longitudinal_position
+    description: Longitudinal position at which the plasma column starts [m].
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    owner: PlasmaSimulationElement
+    domain_of:
+    - PlasmaSimulationElement
+    range: float
+  plasma_max_longitudinal_position:
+    name: plasma_max_longitudinal_position
+    description: Longitudinal position at which the plasma column ends [m].
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
     owner: PlasmaSimulationElement
     domain_of:
     - PlasmaSimulationElement
@@ -367,12 +514,32 @@ attributes:
     domain_of:
     - PlasmaSimulationElement
     range: integer
-  plasma_particles_per_cell:
-    name: plasma_particles_per_cell
-    description: Number of plasma particles per cell.
+  particles_per_radial_cell:
+    name: particles_per_radial_cell
+    description: Number of plasma particles per radial cell.
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     ifabsent: int(2)
+    owner: PlasmaSimulationElement
+    domain_of:
+    - PlasmaSimulationElement
+    range: integer
+  particles_per_longitudinal_cell:
+    name: particles_per_longitudinal_cell
+    description: Number of plasma particles per longitudinal cell.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: int(2)
+    owner: PlasmaSimulationElement
+    domain_of:
+    - PlasmaSimulationElement
+    range: integer
+  particles_per_angular_cell:
+    name: particles_per_angular_cell
+    description: Number of plasma particles per angular cell.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: int(4)
     owner: PlasmaSimulationElement
     domain_of:
     - PlasmaSimulationElement
@@ -396,6 +563,20 @@ attributes:
     domain_of:
     - PlasmaSimulationElement
     range: float
+  r_min_plasma:
+    name: r_min_plasma
+    description: Minimum radial extension of the plasma column [m]. Non-zero gives
+      a hollow channel, with no plasma inside this radius. Codes that assume a filled
+      column ignore it.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    owner: PlasmaSimulationElement
+    domain_of:
+    - PlasmaSimulationElement
+    range: float
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
   dz_fields:
     name: dz_fields
     description: Interval for plasma wakefield updates.
@@ -415,6 +596,63 @@ attributes:
     domain_of:
     - PlasmaSimulationElement
     range: string
+  laser_evolution:
+    name: laser_evolution
+    description: Whether the driver is evolved by a laser-envelope solver as the stage
+      is tracked, rather than held at its initial profile. Applies to codes that model
+      the laser as an envelope; a full PIC code such as FBPIC always resolves the
+      laser on the grid and ignores this.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: 'true'
+    owner: PlasmaSimulationElement
+    domain_of:
+    - PlasmaSimulationElement
+    range: boolean
+  laser_envelope_substeps:
+    name: laser_envelope_substeps
+    description: Number of envelope-solver steps taken per wakefield step. Raise it
+      where the envelope evolves faster than the wake it drives.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: int(1)
+    owner: PlasmaSimulationElement
+    domain_of:
+    - PlasmaSimulationElement
+    range: integer
+  laser_envelope_n_longitudinal:
+    name: laser_envelope_n_longitudinal
+    description: Number of longitudinal grid points for the laser-envelope solver,
+      if it is to run on a finer grid than the wakefield. Defaults to the wakefield
+      grid's n_longitudinal.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    owner: PlasmaSimulationElement
+    domain_of:
+    - PlasmaSimulationElement
+    range: integer
+  laser_envelope_n_radial:
+    name: laser_envelope_n_radial
+    description: Number of radial grid points for the laser-envelope solver, if it
+      is to run on a finer grid than the wakefield. Defaults to the wakefield grid's
+      n_radial.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    owner: PlasmaSimulationElement
+    domain_of:
+    - PlasmaSimulationElement
+    range: integer
+  laser_envelope_use_phase:
+    name: laser_envelope_use_phase
+    description: Whether the envelope solver carries an explicit phase term, which
+      allows a coarser longitudinal grid at the cost of a more expensive step.
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    ifabsent: 'true'
+    owner: PlasmaSimulationElement
+    domain_of:
+    - PlasmaSimulationElement
+    range: boolean
   field_definition:
     name: field_definition
     description: Path to the 3-D field-map file.

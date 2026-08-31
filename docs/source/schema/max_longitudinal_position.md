@@ -1,7 +1,7 @@
 # Slot: max_longitudinal_position 
 
 
-_Maximum longitudinal position [m]._
+_Maximum longitudinal position of the simulation box [m]._
 
 
 
@@ -87,7 +87,7 @@ URI: [laura:max_longitudinal_position](https://w3id.org/laura/max_longitudinal_p
 <details>
 ```yaml
 name: max_longitudinal_position
-description: Maximum longitudinal position [m].
+description: Maximum longitudinal position of the simulation box [m].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: float(0)

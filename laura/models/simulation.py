@@ -38,7 +38,7 @@ class MagnetSimulationElement(_MagnetSimulationElementBase, FunctionalMixin):
     """
 
     field_definition: str | field | None = None
-    # Schema declares `smooth` as boolean but ASTRA uses an integer smoothing count (Q_smooth / S_smooth).
+
     smooth: int | None = 2
 
     field_amplitude: Union[float, str] = Field(
@@ -66,16 +66,41 @@ class PlasmaSimulationElement(_PlasmaSimulationElementBase):
     """
 
     required_attrs: ClassVar[dict[str, list[str]]] = {
+        # Arguments of the stage itself, passed whatever the wakefield model.
         "common": [
             "length",
+            # These three were already fields on this model but reached no
+            # code, so setting them in a lattice did nothing. Wake-T's defaults
+            # for all three are identical to LAURA's ("boris", "auto", 1), so
+            # wiring them up changes no existing result.
+            "bunch_pusher",
+            "dt_bunch",
+            "n_out",
         ],
         "quasistatic_2d": [
             "density",
             "r_max",
+            "r_max_plasma",
             "n_longitudinal",
             "n_radial",
             "min_longitudinal_position",
             "max_longitudinal_position",
+            "particles_per_radial_cell",
+            "laser_evolution",
+            "laser_envelope_substeps",
+            "laser_envelope_n_longitudinal",
+            "laser_envelope_n_radial",
+            "laser_envelope_use_phase",
+            # Also inert until now, and also default-compatible with Wake-T.
+            "dz_fields",
+            "parabolic_coefficient",
+            # NOT `plasma_pusher`. It is a field on this model, but the
+            # quasi-static solver dispatches on 'ab5' or 'rk4' and has no else
+            # branch, so LAURA's default of 'boris' would leave the plasma
+            # unpushed rather than raise. Wake-T's own default ('rk4') is what
+            # runs while this stays unpassed, which is the safe behaviour; the
+            # field is really an FBPIC/general-tracking notion and would need a
+            # per-model validity check before it could be forwarded here.
         ],
     }
 
@@ -99,6 +124,14 @@ class PlasmaSimulationElement(_PlasmaSimulationElementBase):
         if self.r_max_plasma is None:
             return self.r_max
         return self.r_max_plasma
+
+    @property
+    def p_rmin(self) -> float:
+        """Inner radius of the plasma column, zero (a filled column) unless a
+        hollow channel is asked for."""
+        if self.r_min_plasma is None:
+            return 0.0
+        return self.r_min_plasma
 
 
 class RFCavitySimulationElement(_RFCavitySimulationElementBase, FunctionalMixin):

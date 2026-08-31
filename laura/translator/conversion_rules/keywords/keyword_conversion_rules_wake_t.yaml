@@ -5,11 +5,12 @@ plasma:
   max_longitudinal_position: xi_max
   n_longitudinal: n_xi
   n_radial: n_r
-  plasma_particles_per_cell: ppc
+  particles_per_radial_cell: ppc
   evolution: laser_evolution
   envelope_substeps: laser_envelope_substeps
   envelope_n_longitudinal: laser_envelope_nxi
   envelope_n_radial: laser_envelope_nr
+  envelope_use_phase: laser_envelope_use_phase
   initial_position: xi_c
   pulse_energy: a_0
   waist: w_0

@@ -307,6 +307,38 @@ class PlasmaElement(_PlasmaElementBase):
         order = np.argsort(positions)
         return np.interp(dz, positions[order], values[order])
 
+    def thermal_momentum(
+        self, species: str | None = None, mass: float | None = None
+    ) -> float:
+        """
+        Normalised thermal momentum spread, sqrt(k*T/(m*c^2)), from
+        :attr:`~temperature`.
+
+        This is the spread of ``u = gamma*v/c`` that a Maxwellian at
+        :attr:`~temperature` gives, which is how PIC codes ask for an initial
+        plasma temperature. It assumes a non-relativistic plasma, which any
+        temperature small against the species rest energy (511 keV for
+        electrons) satisfies.
+
+        Parameters
+        ----------
+        species: str, optional
+            Species to take the mass of, defaulting to :attr:`~species`
+        mass: float, optional
+            Mass in kg to use instead of looking one up, for a species outside
+            the handful :func:`~mass` knows -- an ionizable gas, say
+
+        Returns
+        -------
+        float
+            Normalised momentum spread, zero for a cold plasma
+        """
+        if not self.temperature:
+            return 0.0
+        if mass is None:
+            mass = self.mass(species or self.species)
+        return float(np.sqrt(self.temperature * e / (mass * c ** 2)))
+
     @staticmethod
     def mass(species: Literal["electron", "positron", "hydrogen"]) -> float:
         """

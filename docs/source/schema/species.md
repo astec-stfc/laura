@@ -1,10 +1,5 @@
 # Slot: species 
 
-
-_Plasma species name (e.g., ``electron``)._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -20,6 +15,7 @@ URI: [laura:species](https://w3id.org/laura/species)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
+| [LaserElement](LaserElement.md) | Laser-beam parameters (wavelength, pulse energy, profile, etc |  no  |
 | [PlasmaElement](PlasmaElement.md) | Plasma channel parameters for a laser-driven plasma-accelerator stage |  no  |
 
 
@@ -34,20 +30,12 @@ URI: [laura:species](https://w3id.org/laura/species)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [PlasmaElement](PlasmaElement.md) |
+| Domain Of | [LaserElement](LaserElement.md), [PlasmaElement](PlasmaElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| If Absent | `string(electron)` |
-| Owner | [PlasmaElement](PlasmaElement.md) |
-
-
 
 
 
@@ -61,13 +49,6 @@ URI: [laura:species](https://w3id.org/laura/species)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -87,12 +68,8 @@ URI: [laura:species](https://w3id.org/laura/species)
 <details>
 ```yaml
 name: species
-description: Plasma species name (e.g., ``electron``).
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-ifabsent: string(electron)
-owner: PlasmaElement
 domain_of:
+- LaserElement
 - PlasmaElement
 range: string
 

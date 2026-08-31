@@ -1169,13 +1169,18 @@ class LaserElement(Base):
     focal_position = Column(Float())
     cep_phase = Column(Float())
     polarization = Column(Enum('linear', 'circular', 'elliptical', name='LaserPolarizationEnum'))
-    profile_type = Column(Enum('gaussian', 'laguerre-gaussian', 'flattened-gaussian', 'file', name='LaserProfileTypeEnum'))
+    profile_type = Column(Enum('gaussian', 'laguerre-gaussian', 'laguerre-gaussian-donut', 'flattened-gaussian', 'file', name='LaserProfileTypeEnum'))
     laguerre_polynomial_order_p = Column(Integer())
+    laguerre_polynomial_order_m = Column(Integer())
     flatness = Column(Integer())
+    propagation_direction = Column(Integer())
+    polarization_angle = Column(Float())
+    temporal_chirp_2nd_order = Column(Float())
+    species = Column(Text())
     
 
     def __repr__(self):
-        return f"LaserElement(id={self.id},initial_position={self.initial_position},waist={self.waist},wavelength={self.wavelength},pulse_energy={self.pulse_energy},pulse_duration_fwhm={self.pulse_duration_fwhm},focal_position={self.focal_position},cep_phase={self.cep_phase},polarization={self.polarization},profile_type={self.profile_type},laguerre_polynomial_order_p={self.laguerre_polynomial_order_p},flatness={self.flatness},)"
+        return f"LaserElement(id={self.id},initial_position={self.initial_position},waist={self.waist},wavelength={self.wavelength},pulse_energy={self.pulse_energy},pulse_duration_fwhm={self.pulse_duration_fwhm},focal_position={self.focal_position},cep_phase={self.cep_phase},polarization={self.polarization},profile_type={self.profile_type},laguerre_polynomial_order_p={self.laguerre_polynomial_order_p},laguerre_polynomial_order_m={self.laguerre_polynomial_order_m},flatness={self.flatness},propagation_direction={self.propagation_direction},polarization_angle={self.polarization_angle},temporal_chirp_2nd_order={self.temporal_chirp_2nd_order},species={self.species},)"
 
 
 
@@ -1230,11 +1235,30 @@ class PlasmaElement(Base):
     ramp_down = Column(Float())
     ramp_decay_length = Column(Float())
     density_profile = Column(Boolean())
+    density_profile_start = Column(Float())
+    density_profile_type = Column(Text())
+    density_profile_function = Column(Text())
     parabolic_coefficient = Column(Float())
+    temperature = Column(Float())
+    ionizable = Column(Boolean())
+    ionization_element = Column(Text())
+    ionization_density = Column(Float())
+    ionization_initial_level = Column(Integer())
+    ionization_max_level = Column(Integer())
+    
+    
+    density_profile_positions_rel = relationship( "PlasmaElementDensityProfilePositions" )
+    density_profile_positions = association_proxy("density_profile_positions_rel", "density_profile_positions",
+                                  creator=lambda x_: PlasmaElementDensityProfilePositions(density_profile_positions=x_))
+    
+    
+    density_profile_values_rel = relationship( "PlasmaElementDensityProfileValues" )
+    density_profile_values = association_proxy("density_profile_values_rel", "density_profile_values",
+                                  creator=lambda x_: PlasmaElementDensityProfileValues(density_profile_values=x_))
     
 
     def __repr__(self):
-        return f"PlasmaElement(id={self.id},density={self.density},species={self.species},ramp_up={self.ramp_up},plateau={self.plateau},ramp_down={self.ramp_down},ramp_decay_length={self.ramp_decay_length},density_profile={self.density_profile},parabolic_coefficient={self.parabolic_coefficient},)"
+        return f"PlasmaElement(id={self.id},density={self.density},species={self.species},ramp_up={self.ramp_up},plateau={self.plateau},ramp_down={self.ramp_down},ramp_decay_length={self.ramp_decay_length},density_profile={self.density_profile},density_profile_start={self.density_profile_start},density_profile_type={self.density_profile_type},density_profile_function={self.density_profile_function},parabolic_coefficient={self.parabolic_coefficient},temperature={self.temperature},ionizable={self.ionizable},ionization_element={self.ionization_element},ionization_density={self.ionization_density},ionization_initial_level={self.ionization_initial_level},ionization_max_level={self.ionization_max_level},)"
 
 
 
@@ -5438,6 +5462,42 @@ class LaserAttenuatorDownstream(Base):
     
 
 
+class PlasmaElementDensityProfilePositions(Base):
+    """
+    None
+    """
+    __tablename__ = 'PlasmaElement_density_profile_positions'
+
+    PlasmaElement_id = Column(Integer(), ForeignKey('PlasmaElement.id'), primary_key=True)
+    density_profile_positions = Column(Float(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PlasmaElement_density_profile_positions(PlasmaElement_id={self.PlasmaElement_id},density_profile_positions={self.density_profile_positions},)"
+
+
+
+    
+
+
+class PlasmaElementDensityProfileValues(Base):
+    """
+    None
+    """
+    __tablename__ = 'PlasmaElement_density_profile_values'
+
+    PlasmaElement_id = Column(Integer(), ForeignKey('PlasmaElement.id'), primary_key=True)
+    density_profile_values = Column(Float(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"PlasmaElement_density_profile_values(PlasmaElement_id={self.PlasmaElement_id},density_profile_values={self.density_profile_values},)"
+
+
+
+    
+
+
 class DipoleAlias(Base):
     """
     None
@@ -6617,13 +6677,23 @@ class PlasmaSimulationElement(SimulationElement):
     n_out = Column(Integer())
     min_longitudinal_position = Column(Float())
     max_longitudinal_position = Column(Float())
+    plasma_min_longitudinal_position = Column(Float())
+    plasma_max_longitudinal_position = Column(Float())
     n_longitudinal = Column(Integer())
     n_radial = Column(Integer())
-    plasma_particles_per_cell = Column(Integer())
+    particles_per_radial_cell = Column(Integer())
+    particles_per_longitudinal_cell = Column(Integer())
+    particles_per_angular_cell = Column(Integer())
     r_max = Column(Float())
     r_max_plasma = Column(Float())
+    r_min_plasma = Column(Float())
     dz_fields = Column(Float())
     plasma_pusher = Column(Text())
+    laser_evolution = Column(Boolean())
+    laser_envelope_substeps = Column(Integer())
+    laser_envelope_n_longitudinal = Column(Integer())
+    laser_envelope_n_radial = Column(Integer())
+    laser_envelope_use_phase = Column(Boolean())
     field_definition = Column(Text())
     wakefield_definition = Column(Text())
     wakefield_enable = Column(Boolean())
@@ -6632,7 +6702,7 @@ class PlasmaSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"PlasmaSimulationElement(id={self.id},wakefield_model={self.wakefield_model},bunch_pusher={self.bunch_pusher},dt_bunch={self.dt_bunch},n_out={self.n_out},min_longitudinal_position={self.min_longitudinal_position},max_longitudinal_position={self.max_longitudinal_position},n_longitudinal={self.n_longitudinal},n_radial={self.n_radial},plasma_particles_per_cell={self.plasma_particles_per_cell},r_max={self.r_max},r_max_plasma={self.r_max_plasma},dz_fields={self.dz_fields},plasma_pusher={self.plasma_pusher},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"PlasmaSimulationElement(id={self.id},wakefield_model={self.wakefield_model},bunch_pusher={self.bunch_pusher},dt_bunch={self.dt_bunch},n_out={self.n_out},min_longitudinal_position={self.min_longitudinal_position},max_longitudinal_position={self.max_longitudinal_position},plasma_min_longitudinal_position={self.plasma_min_longitudinal_position},plasma_max_longitudinal_position={self.plasma_max_longitudinal_position},n_longitudinal={self.n_longitudinal},n_radial={self.n_radial},particles_per_radial_cell={self.particles_per_radial_cell},particles_per_longitudinal_cell={self.particles_per_longitudinal_cell},particles_per_angular_cell={self.particles_per_angular_cell},r_max={self.r_max},r_max_plasma={self.r_max_plasma},r_min_plasma={self.r_min_plasma},dz_fields={self.dz_fields},plasma_pusher={self.plasma_pusher},laser_evolution={self.laser_evolution},laser_envelope_substeps={self.laser_envelope_substeps},laser_envelope_n_longitudinal={self.laser_envelope_n_longitudinal},laser_envelope_n_radial={self.laser_envelope_n_radial},laser_envelope_use_phase={self.laser_envelope_use_phase},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 

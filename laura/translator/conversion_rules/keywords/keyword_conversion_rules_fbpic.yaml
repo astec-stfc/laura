@@ -13,10 +13,6 @@ plasma:
   particles_per_longitudinal_cell: p_nz
   particles_per_angular_cell: p_nt
 laser:
-  evolution: laser_evolution
-  envelope_substeps: laser_envelope_substeps
-  envelope_n_longitudinal: laser_envelope_nxi
-  envelope_n_radial: laser_envelope_nr
   initial_position: z0
   pulse_energy: a0
   waist: waist

@@ -399,6 +399,15 @@ classes:
       r_max_plasma:
         range: float
         description: Maximum radial extension of the plasma column.
+      r_min_plasma:
+        range: float
+        description: >-
+          Minimum radial extension of the plasma column [m]. Non-zero gives a
+          hollow channel, with no plasma inside this radius. Codes that assume
+          a filled column ignore it.
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
       dz_fields:
         range: float
         description: Interval for plasma wakefield updates.
@@ -406,6 +415,39 @@ classes:
         range: string
         description: Pusher used to evolve the plasma in time.
         ifabsent: string(boris)
+      laser_evolution:
+        range: boolean
+        description: >-
+          Whether the driver is evolved by a laser-envelope solver as the stage
+          is tracked, rather than held at its initial profile. Applies to codes
+          that model the laser as an envelope; a full PIC code such as FBPIC
+          always resolves the laser on the grid and ignores this.
+        ifabsent: "true"
+      laser_envelope_substeps:
+        range: integer
+        description: >-
+          Number of envelope-solver steps taken per wakefield step. Raise it
+          where the envelope evolves faster than the wake it drives.
+        ifabsent: int(1)
+      laser_envelope_n_longitudinal:
+        range: integer
+        description: >-
+          Number of longitudinal grid points for the laser-envelope solver, if
+          it is to run on a finer grid than the wakefield. Defaults to the
+          wakefield grid's n_longitudinal.
+      laser_envelope_n_radial:
+        range: integer
+        description: >-
+          Number of radial grid points for the laser-envelope solver, if it is
+          to run on a finer grid than the wakefield. Defaults to the wakefield
+          grid's n_radial.
+      laser_envelope_use_phase:
+        range: boolean
+        description: >-
+          Whether the envelope solver carries an explicit phase term, which
+          allows a coarser longitudinal grid at the cost of a more expensive
+          step.
+        ifabsent: "true"
 
   TwissMatchSimulationElement:
     is_a: SimulationElement

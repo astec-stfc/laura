@@ -69,7 +69,7 @@ class PlasmaTranslator(BaseElementTranslator):
             for param in self.simulation.required_attrs[self.simulation.wakefield_model]
         }
         if self.plasma.density_profile:
-            modeldict["density"] = self._density_profile
+            modeldict["density"] = self._wake_t_density_profile
         else:
             modeldict["density"] = float(self.plasma.density)
         elemdict = modeldict | commondict
@@ -90,6 +90,31 @@ class PlasmaTranslator(BaseElementTranslator):
             wakefield_model=self.simulation.wakefield_model, **elemdict
         )
         return obj
+
+    def _wake_t_density_profile(self, z, r=0.0) -> np.ndarray:
+        """
+        :func:`~_density_profile`, floored just above zero for Wake-T.
+
+        Wake-T normalises its grid by the local plasma skin depth, which is
+        infinite where the density is exactly zero. The floor is the same
+        1e-6 of nominal density that the ``decaying`` profile already
+        returns past its down-ramp.
+
+        Parameters
+        ----------
+        z : float or np.ndarray
+            Longitudinal position in metres
+        r : float or np.ndarray
+            Radial position from the axis in metres
+
+        Returns
+        -------
+        np.ndarray
+            Density in m^-3, never less than 1e-6 of :attr:`~plasma.density`
+        """
+        return np.maximum(
+            self._density_profile(z, r), 1e-6 * float(self.plasma.density)
+        )
 
     def laser_to_fbpic(self) -> Any | None:
         """

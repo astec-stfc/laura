@@ -27,6 +27,8 @@ URI: [laura:LaserElement](https://w3id.org/laura/LaserElement)
         
       LaserElement : initial_position
         
+      LaserElement : laguerre_polynomial_order_m
+        
       LaserElement : laguerre_polynomial_order_p
         
       LaserElement : polarization
@@ -40,6 +42,8 @@ URI: [laura:LaserElement](https://w3id.org/laura/LaserElement)
     
 
         
+      LaserElement : polarization_angle
+        
       LaserElement : profile_type
         
           
@@ -51,9 +55,15 @@ URI: [laura:LaserElement](https://w3id.org/laura/LaserElement)
     
 
         
+      LaserElement : propagation_direction
+        
       LaserElement : pulse_duration_fwhm
         
       LaserElement : pulse_energy
+        
+      LaserElement : species
+        
+      LaserElement : temporal_chirp_2nd_order
         
       LaserElement : waist
         
@@ -88,7 +98,12 @@ URI: [laura:LaserElement](https://w3id.org/laura/LaserElement)
 | [polarization](polarization.md) | 0..1 <br/> [LaserPolarizationEnum](LaserPolarizationEnum.md) | Laser polarization state | direct |
 | [profile_type](profile_type.md) | 0..1 <br/> [LaserProfileTypeEnum](LaserProfileTypeEnum.md) | Transverse intensity profile model | direct |
 | [laguerre_polynomial_order_p](laguerre_polynomial_order_p.md) | 0..1 <br/> [Integer](Integer.md) | Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian... | direct |
+| [laguerre_polynomial_order_m](laguerre_polynomial_order_m.md) | 0..1 <br/> [Integer](Integer.md) | Azimuthal order of Laguerre-Gaussian polynomial mode (for ``profile_type = la... | direct |
 | [flatness](flatness.md) | 0..1 <br/> [Integer](Integer.md) | Flatness order N of a flattened-Gaussian profile (for ``profile_type = flatte... | direct |
+| [propagation_direction](propagation_direction.md) | 0..1 <br/> [Integer](Integer.md) | Laser propagation direction; +1 means laser  and particles co-propagate, -1 m... | direct |
+| [polarization_angle](polarization_angle.md) | 0..1 <br/> [Float](Float.md) | Laser polarization angle with respect to the x-axis | direct |
+| [temporal_chirp_2nd_order](temporal_chirp_2nd_order.md) | 0..1 <br/> [Float](Float.md) | The amount of temporal chirp, at focus (in the lab frame) | direct |
+| [species](species.md) | 0..1 <br/> [String](String.md) | The laser is either added directly to the interpolation grid initially (direc... | direct |
 
 
 
@@ -265,6 +280,17 @@ attributes:
     - LaserElement
     range: integer
     minimum_value: 0
+  laguerre_polynomial_order_m:
+    name: laguerre_polynomial_order_m
+    description: Azimuthal order of Laguerre-Gaussian polynomial mode (for ``profile_type
+      = laguerre-gaussian``).
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    ifabsent: int(0)
+    domain_of:
+    - LaserElement
+    range: integer
+    minimum_value: 0
   flatness:
     name: flatness
     description: Flatness order N of a flattened-Gaussian profile (for ``profile_type
@@ -276,6 +302,47 @@ attributes:
     - LaserElement
     range: integer
     minimum_value: 1
+  propagation_direction:
+    name: propagation_direction
+    description: Laser propagation direction; +1 means laser  and particles co-propagate,
+      -1 means they counter-propagate.
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    ifabsent: int(1)
+    domain_of:
+    - LaserElement
+    range: integer
+    minimum_value: -1
+    maximum_value: 1
+  polarization_angle:
+    name: polarization_angle
+    description: Laser polarization angle with respect to the x-axis.
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    ifabsent: float(0)
+    domain_of:
+    - LaserElement
+    range: float
+  temporal_chirp_2nd_order:
+    name: temporal_chirp_2nd_order
+    description: The amount of temporal chirp, at focus (in the lab frame).
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    ifabsent: float(0)
+    domain_of:
+    - LaserElement
+    range: float
+  species:
+    name: species
+    description: The laser is either added directly to the interpolation grid initially
+      (direct) or it is progressively emitted by an antenna (antenna).
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    ifabsent: string(antenna)
+    domain_of:
+    - LaserElement
+    - PlasmaElement
+    range: string
 class_uri: laura:LaserElement
 
 ```
@@ -407,6 +474,18 @@ attributes:
     - LaserElement
     range: integer
     minimum_value: 0
+  laguerre_polynomial_order_m:
+    name: laguerre_polynomial_order_m
+    description: Azimuthal order of Laguerre-Gaussian polynomial mode (for ``profile_type
+      = laguerre-gaussian``).
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    ifabsent: int(0)
+    owner: LaserElement
+    domain_of:
+    - LaserElement
+    range: integer
+    minimum_value: 0
   flatness:
     name: flatness
     description: Flatness order N of a flattened-Gaussian profile (for ``profile_type
@@ -419,6 +498,51 @@ attributes:
     - LaserElement
     range: integer
     minimum_value: 1
+  propagation_direction:
+    name: propagation_direction
+    description: Laser propagation direction; +1 means laser  and particles co-propagate,
+      -1 means they counter-propagate.
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    ifabsent: int(1)
+    owner: LaserElement
+    domain_of:
+    - LaserElement
+    range: integer
+    minimum_value: -1
+    maximum_value: 1
+  polarization_angle:
+    name: polarization_angle
+    description: Laser polarization angle with respect to the x-axis.
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    ifabsent: float(0)
+    owner: LaserElement
+    domain_of:
+    - LaserElement
+    range: float
+  temporal_chirp_2nd_order:
+    name: temporal_chirp_2nd_order
+    description: The amount of temporal chirp, at focus (in the lab frame).
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    ifabsent: float(0)
+    owner: LaserElement
+    domain_of:
+    - LaserElement
+    range: float
+  species:
+    name: species
+    description: The laser is either added directly to the interpolation grid initially
+      (direct) or it is progressively emitted by an antenna (antenna).
+    from_schema: https://w3id.org/laura/schema/laser_plasma
+    rank: 1000
+    ifabsent: string(antenna)
+    owner: LaserElement
+    domain_of:
+    - LaserElement
+    - PlasmaElement
+    range: string
 class_uri: laura:LaserElement
 
 ```

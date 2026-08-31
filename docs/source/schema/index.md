@@ -197,6 +197,11 @@ Name: laura_schema
 | [deltaL](deltaL.md) | Longitudinal step-size override for thick-lens integration [m] |
 | [density](density.md) | Plasma (electron) number density [m^-^3] |
 | [density_profile](density_profile.md) | If True, use a user-defined profile; if False, use a flat-top model |
+| [density_profile_function](density_profile_function.md) | Dotted path to a callable ``f(z, r) -> relative density``, written as ``packa... |
+| [density_profile_positions](density_profile_positions.md) | Longitudinal positions [m] of a tabulated density profile, used when density_... |
+| [density_profile_start](density_profile_start.md) | Longitudinal position at which the density profile begins [m] |
+| [density_profile_type](density_profile_type.md) | Shape of the longitudinal density profile used when density_profile is True |
+| [density_profile_values](density_profile_values.md) | Density values at density_profile_positions, relative to density, used when d... |
 | [description](description.md) | Human-readable description |
 | [design_files](design_files.md) | Design-file paths or URIs |
 | [design_gamma](design_gamma.md) | Design Lorentz factor |
@@ -276,6 +281,11 @@ Name: laura_schema
 | [interpolate](interpolate.md) | Interpolate points in wake file |
 | [interpolate_current_bins](interpolate_current_bins.md) | Flag indicating current-bin interpolation |
 | [interpolation_method](interpolation_method.md) | Interpolation method for ASTRA |
+| [ionizable](ionizable.md) | Whether a further, ionizable species is present alongside the plasma defined ... |
+| [ionization_density](ionization_density.md) | Number density of the ionizable species [m^-^3], counting atoms rather than e... |
+| [ionization_element](ionization_element.md) | Atomic symbol of the ionizable species, e |
+| [ionization_initial_level](ionization_initial_level.md) | Ionization level the atoms start at; 0 for a neutral atom |
+| [ionization_max_level](ionization_max_level.md) | Highest ionization level the atoms may reach |
 | [isr_enable](isr_enable.md) | Enable incoherent synchrotron-radiation emittance growth |
 | [K0L](K0L.md) | Integrated dipole field |
 | [K1L](K1L.md) | Integrated quadrupole gradient |
@@ -288,8 +298,14 @@ Name: laura_schema
 | [klystron_reverse](klystron_reverse.md) | Timing for klystron reverse power |
 | [Kp](Kp.md) | Proportional gain |
 | [L](L.md) | Effective magnetic length [m] |
+| [laguerre_polynomial_order_m](laguerre_polynomial_order_m.md) | Azimuthal order of Laguerre-Gaussian polynomial mode (for ``profile_type = la... |
 | [laguerre_polynomial_order_p](laguerre_polynomial_order_p.md) | Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian... |
 | [laser](laser.md) | Laser-beam parameters |
+| [laser_envelope_n_longitudinal](laser_envelope_n_longitudinal.md) | Number of longitudinal grid points for the laser-envelope solver, if it is to... |
+| [laser_envelope_n_radial](laser_envelope_n_radial.md) | Number of radial grid points for the laser-envelope solver, if it is to run o... |
+| [laser_envelope_substeps](laser_envelope_substeps.md) | Number of envelope-solver steps taken per wakefield step |
+| [laser_envelope_use_phase](laser_envelope_use_phase.md) | Whether the envelope solver carries an explicit phase term, which allows a co... |
+| [laser_evolution](laser_evolution.md) | Whether the driver is evolved by a laser-envelope solver as the stage is trac... |
 | [layouts](layouts.md) | All named beamline layouts |
 | [left](left.md) | Left sense value |
 | [length](length.md) | Effective length along the beam axis [m] |
@@ -312,13 +328,13 @@ Name: laura_schema
 | [max](max.md) | Maximum value |
 | [max_amplitude](max_amplitude.md) | Maximum allowed amplitude |
 | [max_i](max_i.md) | Maximum current [A] |
-| [max_longitudinal_position](max_longitudinal_position.md) | Maximum longitudinal position [m] |
+| [max_longitudinal_position](max_longitudinal_position.md) | Maximum longitudinal position of the simulation box [m] |
 | [maximum](maximum.md) | Maximum mask radius in pixels [x, y] |
 | [mechanical_middle](mechanical_middle.md) | Mechanical center of the camera in pixels [x, y] |
 | [middle](middle.md) | Longitudinal midpoint (centre) of the element |
 | [min](min.md) | Minimum value |
 | [min_i](min_i.md) | Minimum current [A] |
-| [min_longitudinal_position](min_longitudinal_position.md) | Minimum longitudinal position [m] |
+| [min_longitudinal_position](min_longitudinal_position.md) | Minimum longitudinal position of the simulation box [m] |
 | [minimum](minimum.md) | Minimum pixel positions [x, y] |
 | [mode_denominator](mode_denominator.md) | Mode fraction denominator |
 | [mode_numerator](mode_numerator.md) | Mode fraction numerator |
@@ -342,7 +358,10 @@ Name: laura_schema
 | [order](order.md) | Multipole order (0 = dipole, 1 = quadrupole, ?) |
 | [output_filename](output_filename.md) | Output filename for diagnostic data |
 | [outputs](outputs.md) | Signal types this element produces (e |
-| [parabolic_coefficient](parabolic_coefficient.md) | Parabolic coefficient for a transverse density profile |
+| [parabolic_coefficient](parabolic_coefficient.md) | Parabolic coefficient of a transverse density channel [m^-^2] |
+| [particles_per_angular_cell](particles_per_angular_cell.md) | Number of plasma particles per angular cell |
+| [particles_per_longitudinal_cell](particles_per_longitudinal_cell.md) | Number of plasma particles per longitudinal cell |
+| [particles_per_radial_cell](particles_per_radial_cell.md) | Number of plasma particles per radial cell |
 | [peak_magnetic_field](peak_magnetic_field.md) | Peak on-axis field [T] |
 | [period](period.md) | Magnetic period length [m] |
 | [phase](phase.md) | Operating phase offset [deg] |
@@ -356,16 +375,19 @@ Name: laura_schema
 | [pixel_results_names](pixel_results_names.md) | Names of pixel analysis result arrays |
 | [plane](plane.md) | Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combin... |
 | [plasma](plasma.md) | Plasma channel parameters |
-| [plasma_particles_per_cell](plasma_particles_per_cell.md) | Number of plasma particles per cell |
+| [plasma_max_longitudinal_position](plasma_max_longitudinal_position.md) | Longitudinal position at which the plasma column ends [m] |
+| [plasma_min_longitudinal_position](plasma_min_longitudinal_position.md) | Longitudinal position at which the plasma column starts [m] |
 | [plasma_pusher](plasma_pusher.md) | Pusher used to evolve the plasma in time |
 | [plateau](plateau.md) | Flat-top plateau length [m] |
 | [point](point.md) | Which point on the reference element to use as the origin frame: 'start', 'mi... |
 | [polarization](polarization.md) | Laser polarization state |
+| [polarization_angle](polarization_angle.md) | Laser polarization angle with respect to the x-axis |
 | [position](position.md) | Positional misalignment error [m] |
 | [positive_extent](positive_extent.md) | Downstream / outer extent [m] |
 | [power_calibration](power_calibration.md) | Calibration constant relating measured power to cavity gradient |
 | [probe_channel](probe_channel.md) | Probe channel index |
 | [profile_type](profile_type.md) | Transverse intensity profile model |
+| [propagation_direction](propagation_direction.md) | Laser propagation direction; +1 means laser  and particles co-propagate, -1 m... |
 | [prot_type](prot_type.md) | Protection system type |
 | [protection](protection.md) | RF protection parameters |
 | [protocol](protocol.md) | Control-system protocol (e |
@@ -376,6 +398,7 @@ Name: laura_schema
 | [quadratic_roll_off_y](quadratic_roll_off_y.md) | Quadratic field roll-off in y [1/m^2] |
 | [r_max](r_max.md) | Radial extent of the simulation box [m] |
 | [r_max_plasma](r_max_plasma.md) | Maximum radial extension of the plasma column |
+| [r_min_plasma](r_min_plasma.md) | Minimum radial extension of the plasma column [m] |
 | [radius](radius.md) | Radius for circular apertures [m] |
 | [ramp_decay_length](ramp_decay_length.md) | Exponential decay length of the density ramp [m] |
 | [ramp_down](ramp_down.md) | Exit density-ramp length [m] |
@@ -429,7 +452,7 @@ Name: laura_schema
 | [smooth_current_bins](smooth_current_bins.md) | Flag indicating current-bin smoothing |
 | [smooth_points](smooth_points.md) | Number of points used to smooth the field map [ASTRA] |
 | [smoothing_half_width](smoothing_half_width.md) | Half-width of the current-profile smoothing kernel |
-| [species](species.md) | Plasma species name (e |
+| [species](species.md) | The laser is either added directly to the interpolation grid initially (direc... |
 | [sr_enable](sr_enable.md) | Enable synchrotron-radiation energy loss |
 | [start](start.md) | Start time |
 | [states](states.md) | Mapping of state name to underlying control-system value, for ``control_type:... |
@@ -444,6 +467,8 @@ Name: laura_schema
 | [systematic_multipoles](systematic_multipoles.md) | Systematic (design) multipole errors at the reference radius |
 | [t_column](t_column.md) | Time column in the wake file |
 | [target](target.md) | Dotted attribute path on the owning element that ``expression`` writes to (e |
+| [temperature](temperature.md) | Initial temperature of the plasma species [eV], assumed isotropic and Maxwell... |
+| [temporal_chirp_2nd_order](temporal_chirp_2nd_order.md) | The amount of temporal chirp, at focus (in the lab frame) |
 | [theta](theta.md) | Rotation about the longitudinal (z) axis [rad] |
 | [tilt](tilt.md) | Global tilt about the beam axis [rad] |
 | [timings](timings.md) | Timing windows for LLRF channels |

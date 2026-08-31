@@ -16,6 +16,7 @@ URI: [laura:LaserProfileTypeEnum](https://w3id.org/laura/LaserProfileTypeEnum)
 | --- | --- | --- |
 | gaussian | None |  |
 | laguerre-gaussian | None |  |
+| laguerre-gaussian-donut | None | Donut-like Laguerre-Gaussian mode, in which a single azimuthal mode is kept r... |
 | flattened-gaussian | None |  |
 | file | None |  |
 
@@ -66,6 +67,10 @@ permissible_values:
     text: gaussian
   laguerre-gaussian:
     text: laguerre-gaussian
+  laguerre-gaussian-donut:
+    text: laguerre-gaussian-donut
+    description: Donut-like Laguerre-Gaussian mode, in which a single azimuthal mode
+      is kept rather than the cosine combination of +m and -m.
   flattened-gaussian:
     text: flattened-gaussian
   file:

@@ -359,3 +359,54 @@ classes:
         ifabsent: float(0)
         unit:
           ucum_code: m-2
+      temperature:
+        range: float
+        description: >-
+          Initial temperature of the plasma species [eV], assumed isotropic and
+          Maxwellian. Zero means a cold plasma, which is the usual assumption
+          for a laser-wakefield stage; a finite value matters where the initial
+          momentum spread competes with the wake, as in a plasma lens or a
+          low-amplitude wake.
+        ifabsent: float(0)
+        minimum_value: 0.0
+        unit:
+          ucum_code: eV
+      ionizable:
+        range: boolean
+        description: >-
+          Whether a further, ionizable species is present alongside the plasma
+          defined above, with electrons freed from it by the driver field as
+          the stage is tracked. This is what makes ionization injection
+          possible; the plasma above is then the pre-ionized background, and
+          may have zero density if the whole gas is to be ionized by the
+          driver. Only PIC codes that model ionization use it.
+        ifabsent: "False"
+      ionization_element:
+        range: string
+        description: >-
+          Atomic symbol of the ionizable species, e.g. ``N`` or ``He`` (not
+          ``Nitrogen``). Required when ionizable is True.
+      ionization_density:
+        range: float
+        description: >-
+          Number density of the ionizable species [m^-^3], counting atoms
+          rather than electrons. Defaults to density. A dopant is typically a
+          small fraction of the background.
+        minimum_value: 0.0
+        unit:
+          ucum_code: m-3
+      ionization_initial_level:
+        range: integer
+        description: >-
+          Ionization level the atoms start at; 0 for a neutral atom. Starting
+          part-way up avoids spending macroparticles on levels the driver
+          ionizes far ahead of the wake, as with the first five levels of
+          nitrogen.
+        ifabsent: int(0)
+        minimum_value: 0
+      ionization_max_level:
+        range: integer
+        description: >-
+          Highest ionization level the atoms may reach. Defaults to the
+          physical limit for the element.
+        minimum_value: 0
