@@ -1,17 +1,6 @@
 import numpy as np
 from typing import Literal
 from scipy.constants import e, m_e, m_p, epsilon_0, pi, c
-from pydantic import (
-    BaseModel,
-    model_serializer,
-    Field,
-    field_validator,
-    NonNegativeInt,
-    create_model,
-    NonNegativeFloat,
-    computed_field,
-)
-from .baseModels import IgnoreExtra, T
 from ._generated import _PlasmaElementBase
 
 
