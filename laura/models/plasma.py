@@ -314,19 +314,17 @@ class PlasmaElement(_PlasmaElementBase):
         Normalised thermal momentum spread, sqrt(k*T/(m*c^2)), from
         :attr:`~temperature`.
 
-        This is the spread of ``u = gamma*v/c`` that a Maxwellian at
-        :attr:`~temperature` gives, which is how PIC codes ask for an initial
-        plasma temperature. It assumes a non-relativistic plasma, which any
-        temperature small against the species rest energy (511 keV for
-        electrons) satisfies.
+        This is the spread of ``u = gamma*v/c``. It assumes a
+        non-relativistic plasma, which any temperature small
+        against the species rest energy satisfies.
 
         Parameters
         ----------
         species: str, optional
             Species to take the mass of, defaulting to :attr:`~species`
         mass: float, optional
-            Mass in kg to use instead of looking one up, for a species outside
-            the handful :func:`~mass` knows -- an ionizable gas, say
+            Mass in kg to use, for a species outside the handful
+            :func:`~mass` knows -- i.e. an ionizable gas.
 
         Returns
         -------

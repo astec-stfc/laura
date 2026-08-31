@@ -1,6 +1,6 @@
-from pydantic import SerializeAsAny, Field
-from typing import Literal, Any, ClassVar, Union
-from .baseModels import IgnoreExtra, FunctionalMixin
+from pydantic import Field
+from typing import ClassVar, Union
+from .baseModels import FunctionalMixin
 from ._generated import (
     _ApertureElementBase,
     _SimulationElementBase,
@@ -69,10 +69,6 @@ class PlasmaSimulationElement(_PlasmaSimulationElementBase):
         # Arguments of the stage itself, passed whatever the wakefield model.
         "common": [
             "length",
-            # These three were already fields on this model but reached no
-            # code, so setting them in a lattice did nothing. Wake-T's defaults
-            # for all three are identical to LAURA's ("boris", "auto", 1), so
-            # wiring them up changes no existing result.
             "bunch_pusher",
             "dt_bunch",
             "n_out",
@@ -91,16 +87,8 @@ class PlasmaSimulationElement(_PlasmaSimulationElementBase):
             "laser_envelope_n_longitudinal",
             "laser_envelope_n_radial",
             "laser_envelope_use_phase",
-            # Also inert until now, and also default-compatible with Wake-T.
             "dz_fields",
             "parabolic_coefficient",
-            # NOT `plasma_pusher`. It is a field on this model, but the
-            # quasi-static solver dispatches on 'ab5' or 'rk4' and has no else
-            # branch, so LAURA's default of 'boris' would leave the plasma
-            # unpushed rather than raise. Wake-T's own default ('rk4') is what
-            # runs while this stays unpassed, which is the safe behaviour; the
-            # field is really an FBPIC/general-tracking notion and would need a
-            # per-model validity check before it could be forwarded here.
         ],
     }
 
