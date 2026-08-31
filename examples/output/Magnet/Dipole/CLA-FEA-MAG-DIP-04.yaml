@@ -1,0 +1,58 @@
+degauss:
+  values: [337.32, -337.32, 202.8, -202.8, 135.2, -135.2, 67.6, -67.6, 33.8, -33.8,
+    0.0]
+electrical:
+  max_i: 338.0
+  min_i: -338.0
+hardware_class: Magnet
+hardware_type: Dipole
+machine_area: FEA
+magnetic:
+  entrance_edge_angle: 0.1221730476
+  exit_edge_angle: 0.1221730476
+  field_integral_coefficients:
+    coefficients: [0.0]
+  length: 0.2
+  linear_saturation_coefficients:
+    I0: 1030.847572784723
+    I_max: 254.62467851024135
+    L: 243.15
+    a: -0.0003847941375388669
+    d: 381.3095832932811
+    m: 0.587776052871474
+  multipoles:
+    K0L:
+      normal: 0.2443460953
+    K1L:
+      order: 1
+    K2L:
+      order: 2
+    K3L:
+      order: 3
+    K4L:
+      order: 4
+  order: 0
+  settle_time: 45.0
+manufacturer:
+  manufacturer: Dipole Type 6
+  serial_number: '3'
+name: CLA-FEA-MAG-DIP-04
+physical:
+  datum:
+    x: 3.68075128
+    z: 59.29997924
+  error: {}
+  global_rotation:
+    theta: -0.2443460953
+  length: 0.2
+  physical_angle: 0.2443460953
+  reference_placement:
+    element: CLA-FEA-SIM-APER-07
+    s_offset: 0.112248
+  s: 60.137683803212
+  survey: {}
+simulation:
+  edge1_effects: true
+  edge2_effects: true
+  nonlinear: true
+  scale_field: 0.0

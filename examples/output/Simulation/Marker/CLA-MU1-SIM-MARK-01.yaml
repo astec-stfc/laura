@@ -1,0 +1,15 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: MU1
+manufacturer: {}
+name: CLA-MU1-SIM-MARK-01
+physical:
+  datum:
+    z: 50.8568
+  error: {}
+  middle:
+    z: 50.8568
+  survey: {}
+simulation:
+  scale_field: 0.0

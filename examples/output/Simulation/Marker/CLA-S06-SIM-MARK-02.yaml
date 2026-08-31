@@ -1,0 +1,17 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: S06
+manufacturer: {}
+name: CLA-S06-SIM-MARK-02
+physical:
+  datum:
+    z: 34.118
+  error: {}
+  reference_placement:
+    element: CLA-S06-DIA-SCR-02
+    s_offset: 0.132722
+  s: 34.11799999999999
+  survey: {}
+simulation:
+  scale_field: 0.0

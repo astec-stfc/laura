@@ -1,0 +1,18 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: FEH
+manufacturer: {}
+name: CLA-FEH-SIM-WALL-01-END
+physical:
+  datum:
+    x: 3.6807505
+    z: 65.45184
+  error: {}
+  reference_placement:
+    element: CLA-FEH-SIM-WALL-01-START
+    s_offset: 1.591
+  s: 65.55782585331909
+  survey: {}
+simulation:
+  scale_field: 0.0

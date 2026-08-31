@@ -1,0 +1,17 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: S07
+manufacturer: {}
+name: CLA-S07-DCP-SCR-01
+physical:
+  datum:
+    z: 43.9318
+  error: {}
+  reference_placement:
+    element: CLA-S07-MAG-QUAD-06
+    s_offset: 0.19384
+  s: 43.93179999999998
+  survey: {}
+simulation:
+  scale_field: 0.0

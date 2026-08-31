@@ -79,7 +79,26 @@ class PlasmaSimulationElement(_PlasmaSimulationElementBase):
         ],
     }
 
-    pass
+    @property
+    def p_zmin(self) -> float:
+        """Start of the plasma column, defaulting to the box lower edge."""
+        if self.plasma_min_longitudinal_position is None:
+            return self.min_longitudinal_position
+        return self.plasma_min_longitudinal_position
+
+    @property
+    def p_zmax(self) -> float:
+        """End of the plasma column, defaulting to the box upper edge."""
+        if self.plasma_max_longitudinal_position is None:
+            return self.max_longitudinal_position
+        return self.plasma_max_longitudinal_position
+
+    @property
+    def p_rmax(self) -> float:
+        """Radial extent of the plasma column, defaulting to the box radius."""
+        if self.r_max_plasma is None:
+            return self.r_max
+        return self.r_max_plasma
 
 
 class RFCavitySimulationElement(_RFCavitySimulationElementBase, FunctionalMixin):
@@ -90,8 +109,6 @@ class RFCavitySimulationElement(_RFCavitySimulationElementBase, FunctionalMixin)
     field_definition: str | field | None = None
     wakefield_definition: str | field | None = None
 
-    # Schema types this as plain float; widened to accept the name of a
-    # functional definition, and marked so functional_references() finds it.
     field_amplitude: Union[float, str] = Field(
         default=0.0, json_schema_extra={"functional": True}
     )

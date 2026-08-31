@@ -1,0 +1,50 @@
+controls:
+  default_step: 10.0
+  step_max: 100.1
+  variables:
+    H_MREL:
+      control_type: scalar
+      description: Step-size for horizontal motor
+      dtype: float
+      identifier: EBT-LAS-OPT-PICO-02:MREL
+      protocol: CA
+      read_only: false
+    H_MREL_RBV:
+      control_type: scalar
+      description: Readback for horizontal motor step-size
+      dtype: float
+      identifier: EBT-LAS-OPT-PICO-02:RPOS
+      protocol: CA
+    H_POS:
+      control_type: scalar
+      description: Position for horizontal motor
+      dtype: float
+      identifier: EBT-LAS-OPT-PICO-02:RCUM1
+      protocol: CA
+    V_MREL:
+      control_type: scalar
+      description: Step-size for vertical motor
+      dtype: float
+      identifier: EBT-LAS-OPT-PICO-01:MREL
+      protocol: CA
+      read_only: false
+    V_MREL_RBV:
+      control_type: scalar
+      description: Readback for the vertical motor step-size
+      dtype: float
+      identifier: EBT-LAS-OPT-PICO-01:RPOS
+      protocol: CA
+    V_POS:
+      control_type: scalar
+      description: Position for vertical motor
+      dtype: float
+      identifier: EBT-LAS-OPT-PICO-01:RCUM3
+      protocol: CA
+electrical: {}
+hardware_class: LaserMirror
+hardware_type: LaserMirror
+machine_area: LAS
+manufacturer: {}
+name: EBT-LAS-OPT-PM-11
+simulation:
+  scale_field: 0.0

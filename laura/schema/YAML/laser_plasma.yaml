@@ -311,7 +311,51 @@ classes:
           If True, use a user-defined profile; if False, use a flat-top
           model.
         ifabsent: "False"
+      density_profile_start:
+        range: float
+        description: >-
+          Longitudinal position at which the density profile begins [m].
+          ramp_up, plateau and ramp_down are measured from here, and the
+          density is zero upstream of it.
+        ifabsent: float(0)
+        unit:
+          ucum_code: m
+      density_profile_type:
+        range: string
+        description: >-
+          Shape of the longitudinal density profile used when density_profile
+          is True. ``decaying`` is a 1/(1 + dz/ramp_decay_length)^2 ramp either
+          side of the plateau; ``linear`` ramps linearly over ramp_up and
+          ramp_down; ``tabulated`` interpolates density_profile_positions
+          against density_profile_values; ``custom`` calls
+          density_profile_function.
+        ifabsent: string(decaying)
+      density_profile_function:
+        range: string
+        description: >-
+          Dotted path to a callable ``f(z, r) -> relative density``, written as
+          ``package.module:function`` or ``package.module.function``. Used when
+          density_profile_type is ``custom``.
+      density_profile_positions:
+        range: float
+        multivalued: true
+        description: >-
+          Longitudinal positions [m] of a tabulated density profile, used when
+          density_profile_type is ``tabulated``.
+        unit:
+          ucum_code: m
+      density_profile_values:
+        range: float
+        multivalued: true
+        description: >-
+          Density values at density_profile_positions, relative to density,
+          used when density_profile_type is ``tabulated``.
       parabolic_coefficient:
         range: float
-        description: Parabolic coefficient for a transverse density profile.
+        description: >-
+          Parabolic coefficient of a transverse density channel [m^-^2]. The
+          longitudinal profile is multiplied by
+          ``1 + parabolic_coefficient * r^2``.
         ifabsent: float(0)
+        unit:
+          ucum_code: m-2

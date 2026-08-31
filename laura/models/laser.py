@@ -17,6 +17,18 @@ from ._generated import (
 class LaserElement(_LaserElementBase):
     """Laser info model."""
 
+    @property
+    def pulse_duration_1e_field(self) -> float:
+        """
+        Pulse duration as the 1/e half-width of the *field* envelope, in seconds.
+
+        Returns
+        -------
+        float
+            Field 1/e half-width [s]
+        """
+        return self.pulse_duration_fwhm / np.sqrt(2 * np.log(2))
+
     @computed_field
     @property
     def amplitude(self) -> float:
@@ -31,21 +43,17 @@ class LaserElement(_LaserElementBase):
         Raises
         ------
         ValueError
-            If any of the requires parameters are not set or non-positive
+            If any of the required parameters are not set or non-positive
         """
-        if (
-            any(
-                [
-                    self.wavelength,
-                    self.waist,
-                    self.pulse_energy,
-                    self.pulse_duration_fwhm,
-                ]
-            )
-            <= 0
-        ):
+        params = [
+            self.wavelength,
+            self.waist,
+            self.pulse_energy,
+            self.pulse_duration_fwhm,
+        ]
+        if any(p is None or p <= 0 for p in params):
             warn(
-                "Wavelength, waist, pulse enegy and pulse duration must be positive "
+                "Wavelength, waist, pulse energy and pulse duration must be positive "
                 "to compute laser amplitude."
             )
             return 0

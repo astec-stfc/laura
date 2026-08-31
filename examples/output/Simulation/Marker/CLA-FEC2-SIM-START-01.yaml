@@ -1,0 +1,15 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: FEC2
+manufacturer: {}
+name: CLA-FEC2-SIM-START-01
+physical:
+  datum:
+    x: 3.6807505
+    z: 72.6645
+  error: {}
+  s: 72.757663
+  survey: {}
+simulation:
+  scale_field: 0.0

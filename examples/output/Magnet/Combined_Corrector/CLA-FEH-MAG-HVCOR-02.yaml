@@ -1,0 +1,24 @@
+Horizontal_Corrector: CLA-FEH-MAG-HCOR-02
+Vertical_Corrector: CLA-FEH-MAG-VCOR-02
+degauss: {}
+electrical: {}
+hardware_class: Magnet
+hardware_type: Combined_Corrector
+machine_area: FEH
+manufacturer: {}
+name: CLA-FEH-MAG-HVCOR-02
+physical:
+  datum:
+    x: 3.6807505
+    z: 67.4685
+  error: {}
+  reference_placement:
+    element: CLA-FEH-MAG-QUAD-02
+    s_offset: 0.0
+  s: 67.57002704741186
+  survey: {}
+simulation:
+  edge1_effects: true
+  edge2_effects: true
+  nonlinear: true
+  scale_field: 0.0

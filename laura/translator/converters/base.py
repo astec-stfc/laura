@@ -651,6 +651,8 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def to_wake_t(self) -> object:
         """
+    # Schema types this as plain float; widened to accept the name of a
+    # functional definition, and marked so functional_references() finds it.
         Generates a Wake-T object based on the element's properties and type.
 
         Returns
@@ -923,6 +925,14 @@ class BaseElementTranslator(PhysicalBaseElement):
         return self._convert_keyword(
             keyword,
             self.conversion_rules["wake_t"],
+            strip_prefixes=self._KEYWORD_STRIP_PREFIXES_WAKE_T,
+        )
+
+    def _convertKeyword_FBPIC(self, keyword: str) -> str:
+        """Converts a keyword to its corresponding FBPIC keyword using predefined rules."""
+        return self._convert_keyword(
+            keyword,
+            self.conversion_rules["fbpic"],
             strip_prefixes=self._KEYWORD_STRIP_PREFIXES_WAKE_T,
         )
 

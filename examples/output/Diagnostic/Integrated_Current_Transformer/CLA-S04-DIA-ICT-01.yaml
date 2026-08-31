@@ -1,0 +1,26 @@
+controls:
+  variables:
+    Q:
+      description: Bunch charge
+      dtype: float
+      identifier: CLA-C30-IOC-CS-01:FMC1:CH4:ICT:Q
+      protocol: CA
+diagnostic: {}
+electrical: {}
+hardware_class: Diagnostic
+hardware_type: Integrated_Current_Transformer
+machine_area: S04
+manufacturer: {}
+name: CLA-S04-DIA-ICT-01
+physical:
+  datum:
+    z: 16.680768
+  error: {}
+  length: 0.05
+  reference_placement:
+    element: CLA-S04-MAG-QUAD-01
+    s_offset: 0.0755
+  s: 16.655768000000002
+  survey: {}
+simulation:
+  scale_field: 0.0

@@ -1,0 +1,49 @@
+controls:
+  variables:
+    Close:
+      control_type: binary
+      description: Command PV to close the vacuum valve, activate signal must be sent
+        after setting this PV.
+      dtype: int
+      identifier: CLA-C2V-VAC-VALV-01:Off
+      protocol: CA
+      read_only: false
+    Open:
+      control_type: binary
+      description: Command PV to open the vacuum valve, activate signal must be sent
+        after setting this PV.
+      dtype: int
+      identifier: CLA-C2V-VAC-VALV-01:On
+      protocol: CA
+      read_only: false
+    Sta:
+      control_type: state
+      description: Reports back the current state of the vacuum valve.
+      dtype: int
+      identifier: CLA-C2V-VAC-VALV-01:Sta
+      protocol: CA
+      states:
+        CLOSED: 0
+        MOVING: 2
+        OPEN: 1
+electrical: {}
+hardware_class: Valve
+hardware_type: Valve
+machine_area: C2V
+manufacturer: {}
+name: CLA-C2V-VAC-VALV-01
+physical:
+  datum:
+    x: -0.368412
+    z: 6.406245
+  error: {}
+  global_rotation:
+    theta: 0.785398
+  length: 0.32
+  middle:
+    x: 3.6807505
+    z: 63.6708
+  survey: {}
+simulation:
+  scale_field: 0.0
+valve: {}

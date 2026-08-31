@@ -412,6 +412,10 @@ class LaserProfileTypeEnum(str, Enum):
     """
     gaussian = "gaussian"
     laguerre_gaussian = "laguerre-gaussian"
+    laguerre_gaussian_donut = "laguerre-gaussian-donut"
+    """
+    Donut-like Laguerre-Gaussian mode, in which a single azimuthal mode is kept rather than the cosine combination of +m and -m.
+    """
     flattened_gaussian = "flattened-gaussian"
     file = "file"
 
@@ -1026,16 +1030,24 @@ class _PlasmaSimulationElementBase(_SimulationElementBase):
     """Time-step control for bunch evolution (or 'auto')."""
     n_out: int = Field(default=1, description="""Number of distribution dumps during the plasma stage.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(1)'} })
     """Number of distribution dumps during the plasma stage."""
-    min_longitudinal_position: float = Field(default=0, description="""Minimum longitudinal position [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
-    """Minimum longitudinal position [m]."""
-    max_longitudinal_position: float = Field(default=0, description="""Maximum longitudinal position [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
-    """Maximum longitudinal position [m]."""
+    min_longitudinal_position: float = Field(default=0, description="""Minimum longitudinal position of the simulation box [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
+    """Minimum longitudinal position of the simulation box [m]."""
+    max_longitudinal_position: float = Field(default=0, description="""Maximum longitudinal position of the simulation box [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
+    """Maximum longitudinal position of the simulation box [m]."""
+    plasma_min_longitudinal_position: Optional[float] = Field(default=None, description="""Longitudinal position at which the plasma column starts [m]. Independent of the simulation box; codes that do not distinguish the two fall back to min_longitudinal_position when this is unset.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
+    """Longitudinal position at which the plasma column starts [m]. Independent of the simulation box; codes that do not distinguish the two fall back to min_longitudinal_position when this is unset."""
+    plasma_max_longitudinal_position: Optional[float] = Field(default=None, description="""Longitudinal position at which the plasma column ends [m]. Independent of the simulation box; codes that do not distinguish the two fall back to max_longitudinal_position when this is unset.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
+    """Longitudinal position at which the plasma column ends [m]. Independent of the simulation box; codes that do not distinguish the two fall back to max_longitudinal_position when this is unset."""
     n_longitudinal: int = Field(default=0, description="""Number of grid points in the longitudinal direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(0)'} })
     """Number of grid points in the longitudinal direction."""
     n_radial: int = Field(default=0, description="""Number of grid points in the radial direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(0)'} })
     """Number of grid points in the radial direction."""
-    plasma_particles_per_cell: int = Field(default=2, description="""Number of plasma particles per cell.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(2)'} })
-    """Number of plasma particles per cell."""
+    particles_per_radial_cell: int = Field(default=2, description="""Number of plasma particles per radial cell.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(2)'} })
+    """Number of plasma particles per radial cell."""
+    particles_per_longitudinal_cell: int = Field(default=2, description="""Number of plasma particles per longitudinal cell.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(2)'} })
+    """Number of plasma particles per longitudinal cell."""
+    particles_per_angular_cell: int = Field(default=4, description="""Number of plasma particles per angular cell.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'int(4)'} })
+    """Number of plasma particles per angular cell."""
     r_max: float = Field(default=0, description="""Radial extent of the simulation box [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'float(0)'} })
     """Radial extent of the simulation box [m]."""
     r_max_plasma: Optional[float] = Field(default=None, description="""Maximum radial extension of the plasma column.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement']} })
@@ -1983,8 +1995,18 @@ class _LaserElementBase(ConfiguredBaseModel):
     """Transverse intensity profile model."""
     laguerre_polynomial_order_p: int = Field(default=0, description="""Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'int(0)'} })
     """Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``)."""
+    laguerre_polynomial_order_m: int = Field(default=0, description="""Azimuthal order of Laguerre-Gaussian polynomial mode (for ``profile_type = laguerre-gaussian``).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'int(0)'} })
+    """Azimuthal order of Laguerre-Gaussian polynomial mode (for ``profile_type = laguerre-gaussian``)."""
     flatness: int = Field(default=6, description="""Flatness order N of a flattened-Gaussian profile (for ``profile_type = flattened-gaussian``).""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'int(6)'} })
     """Flatness order N of a flattened-Gaussian profile (for ``profile_type = flattened-gaussian``)."""
+    propagation_direction: int = Field(default=1, description="""Laser propagation direction; +1 means laser  and particles co-propagate, -1 means they counter-propagate.""", ge=-1, le=1, json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'int(1)'} })
+    """Laser propagation direction; +1 means laser  and particles co-propagate, -1 means they counter-propagate."""
+    polarization_angle: float = Field(default=0, description="""Laser polarization angle with respect to the x-axis.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'float(0)'} })
+    """Laser polarization angle with respect to the x-axis."""
+    temporal_chirp_2nd_order: float = Field(default=0, description="""The amount of temporal chirp, at focus (in the lab frame).""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement'], 'ifabsent': 'float(0)'} })
+    """The amount of temporal chirp, at focus (in the lab frame)."""
+    species: str = Field(default="antenna", description="""The laser is either added directly to the interpolation grid initially (direct) or it is progressively emitted by an antenna (antenna).""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement', 'PlasmaElement'], 'ifabsent': 'string(antenna)'} })
+    """The laser is either added directly to the interpolation grid initially (direct) or it is progressively emitted by an antenna (antenna)."""
 
 
 class _LaserEnergyMeterElementBase(ConfiguredBaseModel):
@@ -2016,7 +2038,7 @@ class _PlasmaElementBase(ConfiguredBaseModel):
 
     density: Optional[float] = Field(default=None, description="""Plasma (electron) number density [m^-^3].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'unit': {'ucum_code': 'm-3'}} })
     """Plasma (electron) number density [m^-^3]."""
-    species: str = Field(default="electron", description="""Plasma species name (e.g., ``electron``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'string(electron)'} })
+    species: str = Field(default="electron", description="""Plasma species name (e.g., ``electron``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserElement', 'PlasmaElement'], 'ifabsent': 'string(electron)'} })
     """Plasma species name (e.g., ``electron``)."""
     ramp_up: float = Field(default=0.001, description="""Entrance density-ramp length [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
          'ifabsent': 'float(0.001)',
@@ -2036,8 +2058,22 @@ class _PlasmaElementBase(ConfiguredBaseModel):
     """Exponential decay length of the density ramp [m]."""
     density_profile: Optional[bool] = Field(default=False, description="""If True, use a user-defined profile; if False, use a flat-top model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'False'} })
     """If True, use a user-defined profile; if False, use a flat-top model."""
-    parabolic_coefficient: float = Field(default=0, description="""Parabolic coefficient for a transverse density profile.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'float(0)'} })
-    """Parabolic coefficient for a transverse density profile."""
+    density_profile_start: float = Field(default=0, description="""Longitudinal position at which the density profile begins [m]. ramp_up, plateau and ramp_down are measured from here, and the density is zero upstream of it.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal position at which the density profile begins [m]. ramp_up, plateau and ramp_down are measured from here, and the density is zero upstream of it."""
+    density_profile_type: str = Field(default="decaying", description="""Shape of the longitudinal density profile used when density_profile is True. ``decaying`` is a 1/(1 + dz/ramp_decay_length)^2 ramp either side of the plateau; ``linear`` ramps linearly over ramp_up and ramp_down; ``tabulated`` interpolates density_profile_positions against density_profile_values; ``custom`` calls density_profile_function.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'ifabsent': 'string(decaying)'} })
+    """Shape of the longitudinal density profile used when density_profile is True. ``decaying`` is a 1/(1 + dz/ramp_decay_length)^2 ramp either side of the plateau; ``linear`` ramps linearly over ramp_up and ramp_down; ``tabulated`` interpolates density_profile_positions against density_profile_values; ``custom`` calls density_profile_function."""
+    density_profile_function: Optional[str] = Field(default=None, description="""Dotted path to a callable ``f(z, r) -> relative density``, written as ``package.module:function`` or ``package.module.function``. Used when density_profile_type is ``custom``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement']} })
+    """Dotted path to a callable ``f(z, r) -> relative density``, written as ``package.module:function`` or ``package.module.function``. Used when density_profile_type is ``custom``."""
+    density_profile_positions: list[float] = Field(default_factory=list, description="""Longitudinal positions [m] of a tabulated density profile, used when density_profile_type is ``tabulated``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'], 'unit': {'ucum_code': 'm'}} })
+    """Longitudinal positions [m] of a tabulated density profile, used when density_profile_type is ``tabulated``."""
+    density_profile_values: list[float] = Field(default_factory=list, description="""Density values at density_profile_positions, relative to density, used when density_profile_type is ``tabulated``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement']} })
+    """Density values at density_profile_positions, relative to density, used when density_profile_type is ``tabulated``."""
+    parabolic_coefficient: float = Field(default=0, description="""Parabolic coefficient of a transverse density channel [m^-^2]. The longitudinal profile is multiplied by ``1 + parabolic_coefficient * r^2``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaElement'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'm-2'}} })
+    """Parabolic coefficient of a transverse density channel [m^-^2]. The longitudinal profile is multiplied by ``1 + parabolic_coefficient * r^2``."""
 
 
 class _DipoleMagnetBase(_MagneticElementBase):

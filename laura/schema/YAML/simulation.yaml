@@ -358,12 +358,20 @@ classes:
         ifabsent: int(1)
       min_longitudinal_position:
         range: float
-        description: Minimum longitudinal position [m].
+        description: Minimum longitudinal position of the simulation box [m].
         ifabsent: float(0)
       max_longitudinal_position:
         range: float
-        description: Maximum longitudinal position [m].
+        description: Maximum longitudinal position of the simulation box [m].
         ifabsent: float(0)
+      plasma_min_longitudinal_position:
+        range: float
+        description: >-
+          Longitudinal position at which the plasma column starts [m].
+      plasma_max_longitudinal_position:
+        range: float
+        description: >-
+          Longitudinal position at which the plasma column ends [m].
       n_longitudinal:
         range: integer
         description: Number of grid points in the longitudinal direction.

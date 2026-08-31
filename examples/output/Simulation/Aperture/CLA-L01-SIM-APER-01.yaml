@@ -1,0 +1,18 @@
+aperture:
+  horizontal_size: 0.01
+  shape: rectangular
+  vertical_size: 0.01
+electrical: {}
+hardware_class: Simulation
+hardware_type: Aperture
+machine_area: L01
+manufacturer: {}
+name: CLA-L01-SIM-APER-01
+physical:
+  datum:
+    z: 1.0577
+  error: {}
+  s: 1.0577
+  survey: {}
+simulation:
+  scale_field: 0.0

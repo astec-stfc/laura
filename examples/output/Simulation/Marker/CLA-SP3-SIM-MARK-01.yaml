@@ -1,0 +1,15 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: SP3
+manufacturer: {}
+name: CLA-SP3-SIM-MARK-01
+physical:
+  datum:
+    z: 45.287822
+  error: {}
+  middle:
+    z: 45.287822
+  survey: {}
+simulation:
+  scale_field: 0.0

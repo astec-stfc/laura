@@ -1,0 +1,146 @@
+controls:
+  variables:
+    GETSETI:
+      control_type: scalar
+      description: Gets the value of the target current for a magnet power supply.
+      dtype: float
+      identifier: CLA-S02-MAG-QUAD-01:GETSETI
+      protocol: CA
+      units: A
+    ILK_OFF:
+      control_type: binary
+      description: If the interlocks are clear, this disables them
+      dtype: int
+      identifier: CLA-S02-MAG-QUAD-01:Off
+      protocol: CA
+      read_only: false
+    ILK_ON:
+      control_type: binary
+      description: If the interlocks are clear, this enables them
+      dtype: int
+      identifier: CLA-S02-MAG-QUAD-01:On
+      protocol: CA
+      read_only: false
+    ILK_PSU_RESET:
+      control_type: binary
+      description: Reset the magnet power supply interlocks
+      dtype: int
+      identifier: CLA-S02-MAG-QUAD-01:RESET
+      protocol: CA
+      read_only: false
+    ILK_RESET:
+      control_type: binary
+      description: Resets the magnet interlocks
+      dtype: int
+      identifier: CLA-S02-MAG-QUAD-01:Rst
+      protocol: CA
+      read_only: false
+    READI:
+      description: Gets the readback current of a magnet power supply.
+      dtype: float
+      identifier: CLA-S02-MAG-QUAD-01:READI
+      protocol: CA
+      units: A
+    READK:
+      description: Reads the calculated K value for a magnet based on momentum of
+        the section
+      dtype: float
+      identifier: CLA-S02-MAG-QUAD-01:CalcK
+      protocol: CA
+    RILK:
+      control_type: state
+      description: Gets the interlock state for a magnet
+      dtype: int
+      identifier: CLA-S02-MAG-QUAD-01:RILK
+      protocol: CA
+      states:
+        OK: 0
+        TRIPPED: 1
+    RPOWER:
+      control_type: state
+      description: Gets the state of a power supply
+      dtype: int
+      identifier: CLA-S02-MAG-QUAD-01:RPOWER
+      protocol: CA
+      states:
+        'OFF': 0
+        'ON': 1
+    SETI:
+      control_type: scalar
+      description: Sets the target current for a magnet power supply.
+      dtype: float
+      identifier: CLA-S02-MAG-QUAD-01:SETI
+      protocol: CA
+      read_only: false
+      units: A
+    SETK:
+      control_type: scalar
+      description: Sets the target field strength for a magnet. This ultimately sets
+        a current for the power supply
+      dtype: float
+      identifier: CLA-S02-MAG-QUAD-01:SETK
+      protocol: CA
+      read_only: false
+      units: K
+    SPOWER:
+      control_type: state
+      description: Sets the state of a power supply
+      dtype: int
+      identifier: CLA-S02-MAG-QUAD-01:SPOWER
+      protocol: CA
+      read_only: false
+      states:
+        'OFF': 0
+        'ON': 1
+degauss:
+  values: [52.89, -52.89, 31.8, -31.8, 21.2, -21.2, 10.6, -10.6, 5.3, -5.3, 0.0]
+electrical:
+  max_i: 53.0
+  min_i: -53.0
+hardware_class: Magnet
+hardware_type: Quadrupole
+machine_area: S02
+magnetic:
+  field_integral_coefficients:
+    coefficients: [-2.23133410405682e-10, 4.5196171252132e-08, -3.46208258004659e-06,
+      0.000111195870210961, 0.0238129337415767, 0.00981229429460256]
+  length: 0.12868478212775
+  linear_saturation_coefficients:
+    I0: 942.4766071889139
+    I_max: 15.575435287034225
+    L: 128.68477053001592
+    a: -1.3755963213967208e-05
+    d: 12.215564413215553
+    m: 0.025500836847330708
+  multipoles:
+    K0L: {}
+    K1L:
+      normal: 1.7901911899775773
+      order: 1
+    K2L:
+      order: 2
+    K3L:
+      order: 3
+    K4L:
+      order: 4
+  order: 1
+  settle_time: 45.0
+manufacturer:
+  manufacturer: Quadrupole Type 1
+  serial_number: '13248'
+name: CLA-S02-MAG-QUAD-01
+physical:
+  datum:
+    z: 3.59149478
+  error: {}
+  length: 0.12868478212775
+  reference_placement:
+    element: CLA-S02-MAG-HVCOR-01
+    s_offset: 0.079075
+  s: 3.52715239
+  survey: {}
+simulation:
+  edge1_effects: true
+  edge2_effects: true
+  nonlinear: true
+  scale_field: 0.0

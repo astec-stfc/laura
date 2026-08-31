@@ -1,0 +1,41 @@
+alias: [CLA-FEA-SHUTR-01]
+controls:
+  shutter_type: BEAM
+  variables:
+    SetPos:
+      control_type: binary
+      description: Command to open the shutter
+      dtype: int
+      identifier: CLA-FEA-SHUTR-01:SetPos
+      protocol: CA
+      read_only: false
+    State:
+      control_type: state
+      description: Current state of the shutter
+      dtype: int
+      identifier: CLA-FEA-SHUTR-01:Sta
+      protocol: CA
+      states:
+        Close: 0
+        Moving: 2
+        Open: 1
+electrical: {}
+hardware_class: Shutter
+hardware_type: Shutter
+machine_area: FEA
+manufacturer: {}
+name: CLA-FEA-PS-SHTR-01
+physical:
+  datum:
+    x: 3.6807505
+    z: 63.6708
+  error: {}
+  length: 0.32
+  reference_placement:
+    element: CLA-FEA-DIA-BPM-09
+    s_offset: 0.2308
+  s: 64.54450537293533
+  survey: {}
+shutter: {}
+simulation:
+  scale_field: 0.0

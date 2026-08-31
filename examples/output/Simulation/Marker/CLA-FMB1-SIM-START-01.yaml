@@ -1,0 +1,18 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: FMB1
+manufacturer: {}
+name: CLA-FMB1-SIM-START-01
+physical:
+  datum:
+    x: 3.6807505
+    z: 65.64
+  error: {}
+  reference_placement:
+    element: CLA-FEH-SIM-WALL-01-END
+    s_offset: 0.18816
+  s: 65.74598585331908
+  survey: {}
+simulation:
+  scale_field: 0.0

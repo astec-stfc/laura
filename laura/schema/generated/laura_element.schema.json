@@ -4625,6 +4625,14 @@
             "null"
           ]
         },
+        "laguerre_polynomial_order_m": {
+          "description": "Azimuthal order of Laguerre-Gaussian polynomial mode (for ``profile_type = laguerre-gaussian``).",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "laguerre_polynomial_order_p": {
           "description": "Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian``).",
           "minimum": 0,
@@ -4637,9 +4645,25 @@
           "$ref": "#/$defs/LaserPolarizationEnum",
           "description": "Laser polarization state."
         },
+        "polarization_angle": {
+          "description": "Laser polarization angle with respect to the x-axis.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "profile_type": {
           "$ref": "#/$defs/LaserProfileTypeEnum",
           "description": "Transverse intensity profile model."
+        },
+        "propagation_direction": {
+          "description": "Laser propagation direction; +1 means laser  and particles co-propagate, -1 means they counter-propagate.",
+          "maximum": 1,
+          "minimum": -1,
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "pulse_duration_fwhm": {
           "description": "Pulse duration at FWHM [s].",
@@ -4652,6 +4676,20 @@
         "pulse_energy": {
           "description": "Laser pulse energy [J].",
           "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "species": {
+          "description": "The laser is either added directly to the interpolation grid initially (direct) or it is progressively emitted by an antenna (antenna).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "temporal_chirp_2nd_order": {
+          "description": "The amount of temporal chirp, at focus (in the lab frame).",
           "type": [
             "number",
             "null"
@@ -5296,6 +5334,7 @@
       "enum": [
         "gaussian",
         "laguerre-gaussian",
+        "laguerre-gaussian-donut",
         "flattened-gaussian",
         "file"
       ],
@@ -8308,8 +8347,49 @@
             "null"
           ]
         },
+        "density_profile_function": {
+          "description": "Dotted path to a callable ``f(z, r) -> relative density``, written as ``package.module:function`` or ``package.module.function``. Used when density_profile_type is ``custom``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "density_profile_positions": {
+          "description": "Longitudinal positions [m] of a tabulated density profile, used when density_profile_type is ``tabulated``.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "density_profile_start": {
+          "description": "Longitudinal position at which the density profile begins [m]. ramp_up, plateau and ramp_down are measured from here, and the density is zero upstream of it.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "density_profile_type": {
+          "description": "Shape of the longitudinal density profile used when density_profile is True. ``decaying`` is a 1/(1 + dz/ramp_decay_length)^2 ramp either side of the plateau; ``linear`` ramps linearly over ramp_up and ramp_down; ``tabulated`` interpolates density_profile_positions against density_profile_values; ``custom`` calls density_profile_function.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "density_profile_values": {
+          "description": "Density values at density_profile_positions, relative to density, used when density_profile_type is ``tabulated``.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "parabolic_coefficient": {
-          "description": "Parabolic coefficient for a transverse density profile.",
+          "description": "Parabolic coefficient of a transverse density channel [m^-^2]. The longitudinal profile is multiplied by ``1 + parabolic_coefficient * r^2``.",
           "type": [
             "number",
             "null"
@@ -8398,14 +8478,14 @@
           ]
         },
         "max_longitudinal_position": {
-          "description": "Maximum longitudinal position [m].",
+          "description": "Maximum longitudinal position of the simulation box [m].",
           "type": [
             "number",
             "null"
           ]
         },
         "min_longitudinal_position": {
-          "description": "Minimum longitudinal position [m].",
+          "description": "Minimum longitudinal position of the simulation box [m].",
           "type": [
             "number",
             "null"
@@ -8432,10 +8512,38 @@
             "null"
           ]
         },
-        "plasma_particles_per_cell": {
-          "description": "Number of plasma particles per cell.",
+        "particles_per_angular_cell": {
+          "description": "Number of plasma particles per angular cell.",
           "type": [
             "integer",
+            "null"
+          ]
+        },
+        "particles_per_longitudinal_cell": {
+          "description": "Number of plasma particles per longitudinal cell.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "particles_per_radial_cell": {
+          "description": "Number of plasma particles per radial cell.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "plasma_max_longitudinal_position": {
+          "description": "Longitudinal position at which the plasma column ends [m]. Independent of the simulation box; codes that do not distinguish the two fall back to max_longitudinal_position when this is unset.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "plasma_min_longitudinal_position": {
+          "description": "Longitudinal position at which the plasma column starts [m]. Independent of the simulation box; codes that do not distinguish the two fall back to min_longitudinal_position when this is unset.",
+          "type": [
+            "number",
             "null"
           ]
         },

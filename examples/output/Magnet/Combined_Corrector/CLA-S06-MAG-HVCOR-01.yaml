@@ -1,0 +1,26 @@
+Horizontal_Corrector: CLA-S06-MAG-HCOR-01
+Vertical_Corrector: CLA-S06-MAG-VCOR-01
+degauss: {}
+electrical: {}
+hardware_class: Magnet
+hardware_type: Combined_Corrector
+machine_area: S06
+magnetic:
+  length: 0.05
+manufacturer: {}
+name: CLA-S06-MAG-HVCOR-01
+physical:
+  datum:
+    z: 31.6328
+  error: {}
+  length: 0.05
+  reference_placement:
+    element: CLA-S06-SIM-APER-01
+    s_offset: 0.34
+  s: 31.6078
+  survey: {}
+simulation:
+  edge1_effects: true
+  edge2_effects: true
+  nonlinear: true
+  scale_field: 0.0

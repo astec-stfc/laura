@@ -1,0 +1,23 @@
+aperture:
+  horizontal_size: 1.0
+  shape: rectangular
+  vertical_size: 1.0
+electrical: {}
+hardware_class: Simulation
+hardware_type: Collimator
+machine_area: VBC
+manufacturer: {}
+name: CLA-VBC-DIA-RCOL-01
+physical:
+  datum:
+    x: 0.161944
+    z: 28.8793
+  error: {}
+  length: 0.48
+  reference_placement:
+    element: CLA-VBC-DIA-BPM-01
+    s_offset: 0.269852
+  s: 28.648087084599855
+  survey: {}
+simulation:
+  scale_field: 0.0

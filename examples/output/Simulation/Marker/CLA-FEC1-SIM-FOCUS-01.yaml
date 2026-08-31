@@ -1,0 +1,18 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: FEC1
+manufacturer: {}
+name: CLA-FEC1-SIM-FOCUS-01
+physical:
+  datum:
+    x: 3.6807505
+    z: 68.655
+  error: {}
+  reference_placement:
+    element: CLA-FEC1-DIA-ECOL-01
+    s_offset: 0.0125
+  s: 68.75493384073646
+  survey: {}
+simulation:
+  scale_field: 0.0

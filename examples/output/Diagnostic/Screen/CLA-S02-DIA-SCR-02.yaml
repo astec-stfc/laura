@@ -1,0 +1,56 @@
+controls:
+  devices:
+    GRAT: 2
+    RETRACTED: 1
+    RF: 4
+    YAG: 3
+  movement_type: VMOTOR
+  variables:
+    EN:
+      control_type: binary
+      description: Screen enable flag
+      dtype: int
+      identifier: CLA-S02-DIA-SCR-02:V:EN
+      protocol: CA
+      read_only: false
+    MOVING:
+      control_type: binary
+      description: Screen moving flag
+      dtype: int
+      identifier: CLA-S02-DIA-SCR-02:V:MOVING
+      protocol: CA
+    POS:
+      control_type: state
+      description: Vertical Device state
+      dtype: int
+      identifier: CLA-S02-DIA-SCR-02:V:POS
+      protocol: CA
+      read_only: false
+      states:
+        GRAT: 2
+        RETRACTED: 1
+        RF: 4
+        YAG: 3
+  vertical_devices:
+    GRAT: 2
+    RETRACTED: 1
+    RF: 4
+    YAG: 3
+diagnostic: {}
+electrical: {}
+hardware_class: Diagnostic
+hardware_type: Screen
+machine_area: S02
+manufacturer: {}
+name: CLA-S02-DIA-SCR-02
+physical:
+  datum:
+    z: 5.01083
+  error: {}
+  reference_placement:
+    element: CLA-S02-MAG-HVCOR-03
+    s_offset: 0.16527
+  s: 5.010830000000002
+  survey: {}
+simulation:
+  scale_field: 0.0

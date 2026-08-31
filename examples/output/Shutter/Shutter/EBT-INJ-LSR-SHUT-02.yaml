@@ -1,0 +1,49 @@
+controls:
+  shutter_type: LASER
+  variables:
+    Close:
+      control_type: binary
+      description: Command to close the shutter
+      dtype: int
+      identifier: EBT-INJ-LSR-SHUT-02:Off
+      protocol: CA
+      read_only: false
+    Cmi:
+      control_type: scalar
+      description: Integer that is converted into bits to represent interlock statuses
+      dtype: int
+      identifier: EBT-INJ-LSR-SHUT-02:Cmi
+      protocol: CA
+    Open:
+      control_type: binary
+      description: Command to open the shutter
+      dtype: int
+      identifier: EBT-INJ-LSR-SHUT-02:On
+      protocol: CA
+      read_only: false
+    State:
+      control_type: state
+      description: Current state of the shutter
+      dtype: int
+      identifier: EBT-INJ-LSR-SHUT-02:Sta
+      protocol: CA
+      states:
+        Close: 0
+        Moving: 2
+        Open: 1
+electrical: {}
+hardware_class: Shutter
+hardware_type: Shutter
+machine_area: LAS
+manufacturer: {}
+name: EBT-INJ-LSR-SHUT-02
+physical:
+  error: {}
+  reference_placement:
+    element: EBT-INJ-LSR-SHUT-01
+    s_offset: 0.0
+  s: 0.0
+  survey: {}
+shutter: {}
+simulation:
+  scale_field: 0.0

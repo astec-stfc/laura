@@ -1,0 +1,22 @@
+aperture:
+  horizontal_size: 1.0
+  shape: rectangular
+  vertical_size: 1.0
+electrical: {}
+hardware_class: Simulation
+hardware_type: Aperture
+machine_area: FEC1
+manufacturer: {}
+name: CLA-FEC1-DIA-ECOL-02
+physical:
+  datum:
+    x: 3.6807505
+    z: 68.6625
+  error: {}
+  reference_placement:
+    element: CLA-FEH-PLASMA-MARK-02
+    s_offset: 0.0025
+  s: 68.77743384073648
+  survey: {}
+simulation:
+  scale_field: 0.0

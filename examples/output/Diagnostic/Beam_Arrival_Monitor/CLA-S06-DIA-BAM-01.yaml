@@ -1,0 +1,40 @@
+controls:
+  variables:
+    readback:
+      description: Readback of CLA-S06-DIA-BAM-01
+      dtype: float
+      identifier: CLA-S06-DIA-BAM-01:RBV
+      protocol: CA
+      units: N/A
+    setpoint:
+      description: Setpoint of CLA-S06-DIA-BAM-01
+      dtype: float
+      identifier: CLA-S06-DIA-BAM-01:SP
+      protocol: CA
+      units: N/A
+    state:
+      description: State of CLA-S06-DIA-BAM-01
+      dtype: int
+      identifier: CLA-S06-DIA-BAM-01:STATE
+      protocol: CA
+      read_only: false
+      units: N/A
+diagnostic: {}
+electrical: {}
+hardware_class: Diagnostic
+hardware_type: Beam_Arrival_Monitor
+machine_area: S06
+manufacturer: {}
+name: CLA-S06-DIA-BAM-01
+physical:
+  datum:
+    z: 32.143988
+  error: {}
+  length: 0.08
+  reference_placement:
+    element: CLA-S06-MAG-QUAD-01
+    s_offset: 0.176
+  s: 32.103988
+  survey: {}
+simulation:
+  scale_field: 0.0

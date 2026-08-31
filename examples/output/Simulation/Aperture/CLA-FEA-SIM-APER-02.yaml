@@ -1,0 +1,24 @@
+aperture:
+  horizontal_size: 0.017
+  shape: rectangular
+  vertical_size: 0.017
+electrical: {}
+hardware_class: Simulation
+hardware_type: Aperture
+machine_area: FEA
+manufacturer: {}
+name: CLA-FEA-SIM-APER-02
+physical:
+  datum:
+    x: 0.024313
+    z: 48.495816
+  error: {}
+  global_rotation:
+    theta: -0.2443460953
+  reference_placement:
+    element: CLA-FEA-SIM-DIP-01-END
+    s_offset: 0.0
+  s: 48.54794680264674
+  survey: {}
+simulation:
+  scale_field: 0.0

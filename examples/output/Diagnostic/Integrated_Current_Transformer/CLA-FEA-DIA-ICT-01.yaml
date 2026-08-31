@@ -1,0 +1,41 @@
+controls:
+  variables:
+    readback:
+      description: Readback of CLA-FEA-DIA-ICT-01
+      dtype: float
+      identifier: CLA-FEA-DIA-ICT-01:RBV
+      protocol: CA
+      units: N/A
+    setpoint:
+      description: Setpoint of CLA-FEA-DIA-ICT-01
+      dtype: float
+      identifier: CLA-FEA-DIA-ICT-01:SP
+      protocol: CA
+      units: N/A
+    state:
+      description: State of CLA-FEA-DIA-ICT-01
+      dtype: int
+      identifier: CLA-FEA-DIA-ICT-01:STATE
+      protocol: CA
+      read_only: false
+      units: N/A
+diagnostic: {}
+electrical: {}
+hardware_class: Diagnostic
+hardware_type: Integrated_Current_Transformer
+machine_area: FEA
+manufacturer: {}
+name: CLA-FEA-DIA-ICT-01
+physical:
+  datum:
+    x: 3.680751
+    z: 60.95
+  error: {}
+  length: 0.1
+  reference_placement:
+    element: CLA-FEA-MAG-QUAD-14
+    s_offset: 0.214521
+  s: 61.82370537293458
+  survey: {}
+simulation:
+  scale_field: 0.0

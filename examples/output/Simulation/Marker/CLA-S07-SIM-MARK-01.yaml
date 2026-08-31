@@ -1,0 +1,17 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: S07
+manufacturer: {}
+name: CLA-S07-SIM-MARK-01
+physical:
+  datum:
+    z: 39.0278
+  error: {}
+  reference_placement:
+    element: CLA-S07-MAG-QUAD-01
+    s_offset: 0.099812
+  s: 39.0278
+  survey: {}
+simulation:
+  scale_field: 0.0

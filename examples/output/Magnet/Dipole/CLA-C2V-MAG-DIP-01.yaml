@@ -1,0 +1,135 @@
+controls:
+  variables:
+    GETSETI:
+      control_type: scalar
+      description: Gets the value of the target current for a magnet power supply.
+      dtype: float
+      identifier: CLA-C2V-MAG-DIP-01:GETSETI
+      protocol: CA
+      units: A
+    ILK_OFF:
+      control_type: binary
+      description: If the interlocks are clear, this disables them
+      dtype: int
+      identifier: CLA-C2V-MAG-DIP-01:Off
+      protocol: CA
+      read_only: false
+    ILK_ON:
+      control_type: binary
+      description: If the interlocks are clear, this enables them
+      dtype: int
+      identifier: CLA-C2V-MAG-DIP-01:On
+      protocol: CA
+      read_only: false
+    ILK_PSU_RESET:
+      control_type: binary
+      description: Reset the magnet power supply interlocks
+      dtype: int
+      identifier: CLA-C2V-MAG-DIP-01:RESET
+      protocol: CA
+      read_only: false
+    ILK_RESET:
+      control_type: binary
+      description: Resets the magnet interlocks
+      dtype: int
+      identifier: CLA-C2V-MAG-DIP-01:Rst
+      protocol: CA
+      read_only: false
+    READI:
+      description: Gets the readback current of a magnet power supply.
+      dtype: float
+      identifier: CLA-C2V-MAG-DIP-01:READI
+      protocol: CA
+      units: A
+    READK:
+      description: Reads the calculated K value for a magnet based on momentum of
+        the section
+      dtype: float
+      identifier: CLA-C2V-MAG-DIP-01:CalcK
+      protocol: CA
+    RILK:
+      control_type: state
+      description: Gets the interlock state for a magnet
+      dtype: int
+      identifier: CLA-C2V-MAG-DIP-01:RILK
+      protocol: CA
+      states:
+        OK: 0
+        TRIPPED: 1
+    RPOWER:
+      control_type: state
+      description: Gets the state of a power supply
+      dtype: int
+      identifier: CLA-C2V-MAG-DIP-01:RPOWER
+      protocol: CA
+      states:
+        'OFF': 0
+        'ON': 1
+    SETI:
+      control_type: scalar
+      description: Sets the target current for a magnet power supply.
+      dtype: float
+      identifier: CLA-C2V-MAG-DIP-01:SETI
+      protocol: CA
+      read_only: false
+      units: A
+    SETK:
+      control_type: scalar
+      description: Sets the target angle for a magnet. This ultimately sets a current
+        for the power supply
+      dtype: float
+      identifier: CLA-C2V-MAG-DIP-01:SETK
+      protocol: CA
+      read_only: false
+      units: K
+    SPOWER:
+      control_type: state
+      description: Sets the state of a power supply
+      dtype: int
+      identifier: CLA-C2V-MAG-DIP-01:SPOWER
+      protocol: CA
+      read_only: false
+      states:
+        'OFF': 0
+        'ON': 1
+degauss:
+  values: [115.77, -115.77, 69.6, -69.6, 46.4, -46.4, 23.2, -23.2, 11.6, -11.6, 0.0]
+electrical:
+  max_i: 116.0
+  min_i: -116.0
+hardware_class: Magnet
+hardware_type: Dipole
+machine_area: C2V
+magnetic:
+  field_integral_coefficients:
+    coefficients: [0.142064204721245, 0.00344016005203196]
+  length: 0.399216
+  linear_saturation_coefficients:
+    I0: 541.1400375726836
+    I_max: 72.77158683809951
+    L: 399.216
+    a: -0.001513260004623848
+    d: 433.7081044258256
+    m: 1.398152305758474
+  order: 0
+  settle_time: 45.0
+manufacturer:
+  manufacturer: Dipole Type 1
+  serial_number: '13256'
+name: CLA-C2V-MAG-DIP-01
+physical:
+  datum:
+    x: -0.14887689
+    z: 6.18670069
+  error: {}
+  length: 0.399216
+  reference_placement:
+    element: CLA-C2V-SIM-MARK-01
+    s_offset: 0.311734
+  s: 6.037823749999999
+  survey: {}
+simulation:
+  edge1_effects: true
+  edge2_effects: true
+  nonlinear: true
+  scale_field: 0.0

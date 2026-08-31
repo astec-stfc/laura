@@ -1,0 +1,48 @@
+degauss:
+  values: [9.98, -9.98, 6.0, -6.0, 4.0, -4.0, 2.0, -2.0, 1.0, -1.0, 0.0]
+electrical:
+  max_i: 8.0
+  min_i: -8.0
+hardware_class: Magnet
+hardware_type: Sextupole
+machine_area: FEA
+magnetic:
+  field_integral_coefficients:
+    coefficients: [0.0]
+  length: 0.1
+  linear_saturation_coefficients: {}
+  multipoles:
+    K0L: {}
+    K1L:
+      order: 1
+    K2L:
+      normal: -22.6172
+      order: 2
+    K3L:
+      order: 3
+    K4L:
+      order: 4
+  order: 2
+  settle_time: 45.0
+manufacturer:
+  manufacturer: Sextupole Type 1
+  serial_number: '0'
+name: CLA-FEA-MAG-SEXT-01
+physical:
+  datum:
+    x: 0.7088675
+    z: 51.24141279
+  error: {}
+  global_rotation:
+    theta: -0.2443460953
+  length: 0.1
+  reference_placement:
+    element: CLA-FEA-MAG-QUAD-03
+    s_offset: 0.114658
+  s: 51.377596356382035
+  survey: {}
+simulation:
+  edge1_effects: true
+  edge2_effects: true
+  nonlinear: true
+  scale_field: 0.0

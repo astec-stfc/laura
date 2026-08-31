@@ -1,8 +1,12 @@
 general:
   length: length
 plasma:
-  min_longitudinal_position: p_zmin
-  max_longitudinal_position: p_zmax
+  min_longitudinal_position: zmin
+  max_longitudinal_position: zmax
+  plasma_min_longitudinal_position: p_zmin
+  plasma_max_longitudinal_position: p_zmax
+  r_max: rmax
+  r_max_plasma: p_rmax
   n_longitudinal: Nz
   n_radial: Nr
   particles_per_radial_cell: p_nr

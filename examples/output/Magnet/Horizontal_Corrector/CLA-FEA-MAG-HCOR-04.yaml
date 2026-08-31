@@ -1,0 +1,116 @@
+controls:
+  variables:
+    GETSETI:
+      control_type: scalar
+      description: Gets the value of the target current for a magnet power supply.
+      dtype: float
+      identifier: CLA-FEA-MAG-HCOR-04:GETSETI
+      protocol: CA
+      units: A
+    ILK_OFF:
+      control_type: binary
+      description: If the interlocks are clear, this disables them
+      dtype: int
+      identifier: CLA-FEA-MAG-HCOR-04:Off
+      protocol: CA
+      read_only: false
+    ILK_ON:
+      control_type: binary
+      description: If the interlocks are clear, this enables them
+      dtype: int
+      identifier: CLA-FEA-MAG-HCOR-04:On
+      protocol: CA
+      read_only: false
+    ILK_RESET:
+      control_type: binary
+      description: Resets the magnet interlocks
+      dtype: int
+      identifier: CLA-FEA-MAG-HCOR-04:Rst
+      protocol: CA
+      read_only: false
+    READI:
+      description: Gets the readback current of a magnet power supply.
+      dtype: float
+      identifier: CLA-FEA-MAG-HCOR-04:READI
+      protocol: CA
+      units: A
+    READK:
+      description: Reads the calculated K value for a magnet based on momentum of
+        the section
+      dtype: float
+      identifier: CLA-FEA-MAG-HCOR-04:CalcK
+      protocol: CA
+    RILK:
+      control_type: state
+      description: Gets the interlock state for a magnet
+      dtype: int
+      identifier: CLA-FEA-MAG-HCOR-04:RILK
+      protocol: CA
+      states:
+        OK: 0
+        TRIPPED: 1
+    RPOWER:
+      control_type: state
+      description: Gets the state of a power supply
+      dtype: int
+      identifier: CLA-FEA-MAG-HCOR-04:RPOWER
+      protocol: CA
+      states:
+        'OFF': 0
+        'ON': 1
+    SETI:
+      control_type: scalar
+      description: Sets the target current for a magnet power supply.
+      dtype: float
+      identifier: CLA-FEA-MAG-HCOR-04:SETI
+      protocol: CA
+      read_only: false
+      units: A
+    SETK:
+      control_type: scalar
+      description: Sets the target angle for a magnet. This ultimately sets a current
+        for the power supply
+      dtype: float
+      identifier: CLA-FEA-MAG-HCOR-04:SETK
+      protocol: CA
+      read_only: false
+      units: K
+    SPOWER:
+      control_type: state
+      description: Sets the state of a power supply
+      dtype: int
+      identifier: CLA-FEA-MAG-HCOR-04:SPOWER
+      protocol: CA
+      read_only: false
+      states:
+        'OFF': 0
+        'ON': 1
+degauss:
+  values: [12.97, -12.97, 7.8, -7.8, 5.2, -5.2, 2.6, -2.6, 1.3, -1.3, 0.0]
+electrical:
+  max_i: 13.0
+  min_i: -13.0
+hardware_class: Magnet
+hardware_type: Horizontal_Corrector
+machine_area: FEA
+magnetic:
+  length: 0.2
+manufacturer:
+  manufacturer: Corrector Type 4L+
+  serial_number: '16634'
+name: CLA-FEA-MAG-HCOR-04
+physical:
+  datum:
+    x: 3.680751
+    z: 61.497979
+  error: {}
+  length: 0.2
+  middle:
+    x: 3.680751
+    z: 61.497979
+  survey: {}
+simulation:
+  edge1_effects: true
+  edge2_effects: true
+  nonlinear: true
+  scale_field: 0.0

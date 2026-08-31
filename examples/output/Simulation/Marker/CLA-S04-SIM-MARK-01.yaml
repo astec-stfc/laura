@@ -1,0 +1,17 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: S04
+manufacturer: {}
+name: CLA-S04-SIM-MARK-01
+physical:
+  datum:
+    z: 16.2002
+  error: {}
+  reference_placement:
+    element: CLA-S04-SIM-APER-01
+    s_offset: 0.0
+  s: 16.2002
+  survey: {}
+simulation:
+  scale_field: 0.0

@@ -1,0 +1,29 @@
+Horizontal_Corrector: CLA-SP2-MAG-HCOR-02
+Vertical_Corrector: CLA-SP2-MAG-VCOR-02
+degauss: {}
+electrical: {}
+hardware_class: Magnet
+hardware_type: Combined_Corrector
+machine_area: SP2
+magnetic:
+  length: 0.2
+manufacturer: {}
+name: CLA-SP2-MAG-HVCOR-02
+physical:
+  datum:
+    x: -1.0073485
+    z: 35.0572698
+  error: {}
+  global_rotation:
+    theta: 0.523599
+  length: 0.2
+  reference_placement:
+    element: CLA-SP2-MAG-QUAD-02
+    s_offset: 0.2
+  s: 35.291173318307095
+  survey: {}
+simulation:
+  edge1_effects: true
+  edge2_effects: true
+  nonlinear: true
+  scale_field: 0.0

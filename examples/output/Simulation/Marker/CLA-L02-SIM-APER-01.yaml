@@ -1,0 +1,14 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: L02
+manufacturer: {}
+name: CLA-L02-SIM-APER-01
+physical:
+  datum:
+    z: 6.7485
+  error: {}
+  s: 6.7485
+  survey: {}
+simulation:
+  scale_field: 0.0

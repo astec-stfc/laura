@@ -91,75 +91,59 @@ class PlasmaTranslator(BaseElementTranslator):
         )
         return obj
 
-    # Density function.
-    def _density_profile(self, z: float, r: float) -> np.ndarray:
+    def laser_to_fbpic(self) -> Any | None:
         """
-        Define plasma density as a function of length.
-        This takes the :attr:`~length` of the plasma element and calculates the density profile based
-        on the :attr:`~ramp_up`, :attr:`~plateau`, :attr:`~ramp_down` and :attr:`~ramp_decay_length` attributes.
+        Create the FBPIC laser profile for the laser attached to this plasma stage
+        via `fbpic.lpa_utils.laser.add_laser_pulse`.
+
+        Returns
+        -------
+        fbpic.lpa_utils.laser.laser_profiles.LaserProfile or None
+            The laser profile, or None if no laser is attached to this stage.
+        """
+        if not isinstance(self.laser, LaserElement):
+            return None
+        data = self.model_dump()
+        data["hardware_type"] = "Laser"
+        data["hardware_class"] = "Laser"
+        return LaserTranslator.model_validate(data).to_fbpic()
+
+    def _density_profile(self, z, r=0.0) -> np.ndarray:
+        """
+        Absolute plasma density as a function of position, in m^-3.
+
+        This is the form Wake-T expects. PIC codes such as FBPIC instead want the
+        density *relative* to the nominal density; use
+        :func:`~_relative_density_profile` for those.
 
         Parameters
         ----------
-        z : float
+        z : float or np.ndarray
             Longitudinal position along the plasma element in metres
-        r : float
-            Radial position from the axis in metres; currently ignored as only longitudinal density profiles are supported
+        r : float or np.ndarray
+            Radial position from the axis in metres
 
         Returns
         -------
         np.ndarray
-            Array of length `n_steps` containing the density profile in m^-3
+            Density in m^-3
         """
-        # Allocate relative density array.
-        if self.plasma.plateau <= 0:
-            raise ValueError("Plateau length must be positive for density profile.")
-        if (
-            self.plasma.ramp_up < 0
-            or self.plasma.ramp_down < 0
-            or self.plasma.ramp_decay_length <= 0
-        ):
-            raise ValueError(
-                "Ramp lengths must be non-negative and ramp decay length must be positive for density profile."
-            )
-        n = np.ones_like(z)
-        # Add upramp.
-        n = np.where(
-            z < self.plasma.ramp_up,
-            1 / (1 + (self.plasma.ramp_up - z) / self.plasma.ramp_decay_length) ** 2,
-            n,
-        )
-        # Add downramp.
-        try:
-            n = np.where(
-                (z > self.plasma.ramp_up + self.plasma.plateau)
-                & (
-                    z
-                    <= self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down
-                ),
-                1
-                / (
-                    1
-                    + (z - self.plasma.ramp_up - self.plasma.plateau)
-                    / self.plasma.ramp_decay_length
-                )
-                ** 2,
-                n,
-            )
-        except ZeroDivisionError:
-            n = np.where(
-                (z > self.plasma.ramp_up + self.plasma.plateau)
-                & (
-                    z
-                    <= self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down
-                ),
-                1,
-                n,
-            )
-        # Make zero after downramp.
-        n = np.where(
-            z > self.plasma.ramp_up + self.plasma.plateau + self.plasma.ramp_down,
-            1e-6,
-            n,
-        )
-        # Return absolute density.
-        return n * self.plasma.density
+        return self.plasma._density_profile(z, r)
+
+    def _relative_density_profile(self, z, r=0.0) -> np.ndarray:
+        """
+        Plasma density profile relative to :attr:`~plasma.density`.
+
+        Parameters
+        ----------
+        z : float or np.ndarray
+            Longitudinal position along the plasma element in metres
+        r : float or np.ndarray
+            Radial position from the axis in metres
+
+        Returns
+        -------
+        np.ndarray
+            Relative density
+        """
+        return self.plasma.relative_density_profile(z, r)

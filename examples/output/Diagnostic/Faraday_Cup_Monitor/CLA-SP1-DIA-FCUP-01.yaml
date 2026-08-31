@@ -1,0 +1,28 @@
+controls:
+  variables:
+    Q:
+      description: Bunch charge
+      dtype: float
+      identifier: EBT-B03-IOC-CS-04:FMC1:CH1:FCUP:Q
+      protocol: CA
+diagnostic: {}
+electrical: {}
+hardware_class: Diagnostic
+hardware_type: Faraday_Cup_Monitor
+machine_area: SP1
+manufacturer: {}
+name: CLA-SP1-DIA-FCUP-01
+physical:
+  datum:
+    x: -2.8493037
+    z: 8.8871362
+  error: {}
+  global_rotation:
+    theta: 0.785398
+  reference_placement:
+    element: CLA-SP1-DIA-SCR-01
+    s_offset: 0.097998
+  s: 9.563627561995876
+  survey: {}
+simulation:
+  scale_field: 0.0

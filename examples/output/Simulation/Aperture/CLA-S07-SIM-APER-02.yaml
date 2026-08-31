@@ -1,0 +1,21 @@
+aperture:
+  horizontal_size: 1.0
+  shape: rectangular
+  vertical_size: 0.017
+electrical: {}
+hardware_class: Simulation
+hardware_type: Aperture
+machine_area: S07
+manufacturer: {}
+name: CLA-S07-SIM-APER-02
+physical:
+  datum:
+    z: 41.1078
+  error: {}
+  reference_placement:
+    element: CLA-S07-DIA-TDC-01
+    s_offset: 0.3033
+  s: 41.1078
+  survey: {}
+simulation:
+  scale_field: 0.0

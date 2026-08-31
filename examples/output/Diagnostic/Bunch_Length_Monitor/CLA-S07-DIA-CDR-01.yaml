@@ -1,0 +1,40 @@
+controls:
+  variables:
+    readback:
+      description: Readback of CLA-S07-DIA-CDR-01
+      dtype: float
+      identifier: CLA-S07-DIA-CDR-01:RBV
+      protocol: CA
+      units: N/A
+    setpoint:
+      description: Setpoint of CLA-S07-DIA-CDR-01
+      dtype: float
+      identifier: CLA-S07-DIA-CDR-01:SP
+      protocol: CA
+      units: N/A
+    state:
+      description: State of CLA-S07-DIA-CDR-01
+      dtype: int
+      identifier: CLA-S07-DIA-CDR-01:STATE
+      protocol: CA
+      read_only: false
+      units: N/A
+diagnostic: {}
+electrical: {}
+hardware_class: Diagnostic
+hardware_type: Bunch_Length_Monitor
+machine_area: S07
+manufacturer: {}
+name: CLA-S07-DIA-CDR-01
+physical:
+  datum:
+    z: 43.525
+  error: {}
+  length: 0.3
+  reference_placement:
+    element: CLA-S07-MAG-HVCOR-04
+    s_offset: 0.166472
+  s: 43.374999999999986
+  survey: {}
+simulation:
+  scale_field: 0.0

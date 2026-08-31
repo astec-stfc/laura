@@ -1,0 +1,31 @@
+controls:
+  variables:
+    DQ:
+      description: Dark current
+      dtype: float
+      identifier: EBT-B03-IOC-CS-04:FMC1:CH0:WCM:DQ
+      protocol: CA
+    Q:
+      description: Bunch charge
+      dtype: float
+      identifier: EBT-B03-IOC-CS-04:FMC1:CH0:WCM:Q
+      protocol: CA
+diagnostic: {}
+electrical: {}
+hardware_class: Diagnostic
+hardware_type: Wall_Current_Monitor
+machine_area: S01
+manufacturer: {}
+name: CLA-S01-DIA-WCM-01
+physical:
+  datum:
+    z: 0.7261
+  error: {}
+  length: 0.05
+  reference_placement:
+    element: CLA-S01-MAG-HVCOR-01
+    s_offset: 0.3511
+  s: 1.3410999999999997
+  survey: {}
+simulation:
+  scale_field: 0.0

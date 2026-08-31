@@ -1,0 +1,27 @@
+Horizontal_Corrector: CLA-FEA-MAG-HCOR-04
+Vertical_Corrector: CLA-FEA-MAG-VCOR-04
+degauss: {}
+electrical: {}
+hardware_class: Magnet
+hardware_type: Combined_Corrector
+machine_area: FEA
+magnetic:
+  length: 0.2
+manufacturer: {}
+name: CLA-FEA-MAG-HVCOR-04
+physical:
+  datum:
+    x: 3.680751
+    z: 61.497979
+  error: {}
+  length: 0.2
+  reference_placement:
+    element: CLA-FEA-DIA-SCR-04
+    s_offset: 0.18927
+  s: 62.37168437293459
+  survey: {}
+simulation:
+  edge1_effects: true
+  edge2_effects: true
+  nonlinear: true
+  scale_field: 0.0

@@ -1,0 +1,211 @@
+cavity:
+  cell_length: 0.05
+  n_cells: 9.0
+controls:
+  variables:
+    APIEnable:
+      control_type: binary
+      description: Enable RF API
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:API:setEnable
+      protocol: CA
+      read_only: false
+    CrestPhaseSet:
+      control_type: scalar
+      description: Set crest phase
+      dtype: float
+      identifier: CLA-TDC1-RF-CTRL-01:PHASE_C
+      protocol: CA
+      read_only: false
+      units: deg
+    GetAPITrip:
+      control_type: state
+      description: Get API trip status
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:API:getTrip
+      protocol: CA
+      states:
+        API_OFF: 0
+        API_ON: 1
+        TRIP: 2
+    GetPowerTrip:
+      control_type: state
+      description: Get power trip status
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:Power:getTrip
+      protocol: CA
+      states:
+        BAD: 1
+        GOOD: 0
+    GetStatus:
+      control_type: state
+      description: Get API status
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:API:getStatus
+      protocol: CA
+      states:
+        API_ON: 4
+        HV_ON: 2
+        'OFF': 0
+        STANDBY: 1
+        TRIG: 3
+    ModVoltRead:
+      description: Modulator voltage read
+      dtype: float
+      identifier: CLA-TDC1-HRF-MOD-01:CcPs1VoltRead
+      protocol: CA
+      units: V
+    ModVoltSet:
+      control_type: scalar
+      description: Modulator voltage set (could be settable but shouldn't be)
+      dtype: float
+      identifier: CLA-TDC1-HRF-MOD-01:VoltSet
+      protocol: CA
+      units: V
+    OffCrestPhaseRead:
+      description: Set cavity off-crest phase
+      dtype: float
+      identifier: CLA-TDC1-RF-CTRL-01:getCrestPhase
+      protocol: CA
+      units: deg
+    OffCrestPhaseSet:
+      control_type: scalar
+      description: Set cavity off-crest phase
+      dtype: float
+      identifier: CLA-TDC1-RF-CTRL-01:PHASE_OFF
+      protocol: CA
+      read_only: false
+      units: deg
+    PhasePIDError:
+      control_type: binary
+      description: Check if phase PID within tolerance
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:Phase:Achieved:getBinary
+      protocol: CA
+    PhasePIDSet:
+      control_type: binary
+      description: Set phase PID on
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:Phase:PID:setOnRequest
+      protocol: CA
+      read_only: false
+    PhasePIDStatus:
+      control_type: state
+      description: Get phase PID status
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:Phase:PID:getStatus
+      protocol: CA
+      states:
+        INTERMEDIATE: 4
+        PID_OFF: 0
+        PID_ON: 1
+        PID_REMOTE: 2
+        TRIP: 3
+    PhaseRead:
+      description: Read cavity phase
+      dtype: float
+      identifier: CLA-TDC1-RF-CTRL-01:getPhase
+      protocol: CA
+      units: deg
+    PhaseSet:
+      control_type: scalar
+      description: Set cavity phase
+      dtype: float
+      identifier: CLA-TDC1-RF-CTRL-01:setPhase
+      protocol: CA
+      read_only: false
+      units: deg
+    PowerMWMax:
+      control_type: scalar
+      description: Maximum set cavity forward power
+      dtype: float
+      identifier: CLA-TDC1-RF-CTRL-01:setPower.HOPR
+      protocol: CA
+      units: MW
+    PowerMWRead:
+      description: Read cavity forward power
+      dtype: float
+      identifier: CLA-TDC1-RF-CTRL-01:getPower
+      protocol: CA
+      units: MW
+    PowerMWSet:
+      control_type: scalar
+      description: Set cavity forward power
+      dtype: float
+      identifier: CLA-TDC1-RF-CTRL-01:setPower
+      protocol: CA
+      read_only: false
+      units: MW
+    PowerPIDError:
+      control_type: binary
+      description: Check if power PID within tolerance
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:Power:Achieved:getBinary
+      protocol: CA
+    PowerPIDSet:
+      control_type: binary
+      description: Set power PID on
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:Power:PID:setOnRequest
+      protocol: CA
+      read_only: false
+    PowerPIDStatus:
+      control_type: state
+      description: Get power PID status
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:Power:PID:getStatus
+      protocol: CA
+      states:
+        INTERMEDIATE: 4
+        PID_OFF: 0
+        PID_ON: 1
+        PID_REMOTE: 2
+        TRIP: 3
+    SetAPITrip:
+      control_type: binary
+      description: Reset API trips
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:API:setTrip
+      protocol: CA
+      read_only: false
+    SetStartup:
+      control_type: binary
+      description: Startup RF
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:API:setStartup
+      protocol: CA
+      read_only: false
+    StartupComplete:
+      control_type: binary
+      description: Check API setup status
+      dtype: int
+      identifier: CLA-TDC1-RF-CTRL-01:API:getStartupComplete
+      protocol: CA
+    TimeRemaining:
+      control_type: scalar
+      description: Modulator startup wait time
+      dtype: int
+      identifier: CLA-TDC1-HRF-MOD-01:TimeRemaining
+      protocol: CA
+electrical: {}
+hardware_class: RF
+hardware_type: RFDeflectingCavity
+machine_area: S07
+manufacturer: {}
+name: CLA-S07-DIA-TDC-01
+physical:
+  datum:
+    z: 40.8045
+  error: {}
+  length: 0.45
+  reference_placement:
+    element: CLA-S07-SIM-TDC-01-APER
+    s_offset: 0.5717
+  s: 40.5795
+  survey: {}
+simulation:
+  scale_field: 0.0
+  t_column: t
+  wx_column: Wx
+  wy_column: Wy
+  wz_column: Wz

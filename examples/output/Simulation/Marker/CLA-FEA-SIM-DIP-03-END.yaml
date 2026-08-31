@@ -1,0 +1,20 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: FEA
+manufacturer: {}
+name: CLA-FEA-SIM-DIP-03-END
+physical:
+  datum:
+    x: 2.771004
+    z: 55.651182
+  error: {}
+  global_rotation:
+    theta: -0.2443460953
+  reference_placement:
+    element: CLA-FEA-MAG-DIP-03
+    s_offset: 0.036501
+  s: 56.3654362445225
+  survey: {}
+simulation:
+  scale_field: 0.0

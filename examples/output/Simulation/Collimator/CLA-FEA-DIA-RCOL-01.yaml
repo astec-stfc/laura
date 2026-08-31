@@ -1,0 +1,24 @@
+aperture:
+  horizontal_size: 1.0
+  shape: rectangular
+  vertical_size: 1.0
+electrical: {}
+hardware_class: Simulation
+hardware_type: Collimator
+machine_area: FEA
+manufacturer: {}
+name: CLA-FEA-DIA-RCOL-01
+physical:
+  datum:
+    x: 3.294942
+    z: 57.752576
+  error: {}
+  global_rotation:
+    theta: -0.2443460953
+  reference_placement:
+    element: CLA-FEA-DIA-COL-03-SCR
+    s_offset: 0.0
+  s: 58.53116193611966
+  survey: {}
+simulation:
+  scale_field: 0.0

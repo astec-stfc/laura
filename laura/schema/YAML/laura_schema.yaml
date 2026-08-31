@@ -124,6 +124,10 @@ enums:
     permissible_values:
       gaussian:           {}
       laguerre-gaussian:  {}
+      laguerre-gaussian-donut:
+        description: >-
+          Donut-like Laguerre-Gaussian mode, in which a single azimuthal mode is
+          kept rather than the cosine combination of +m and -m.
       flattened-gaussian: {}
       file:               {}
 

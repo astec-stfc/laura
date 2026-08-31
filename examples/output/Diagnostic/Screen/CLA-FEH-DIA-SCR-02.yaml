@@ -1,0 +1,54 @@
+controls:
+  devices:
+    GRAT: 2
+    RETRACTED: 1
+    RF: 4
+    YAG: 3
+  movement_type: VMOTOR
+  variables:
+    EN:
+      control_type: binary
+      description: Screen enable flag
+      dtype: int
+      identifier: CLA-FEH-DIA-SCR-02:EN
+      protocol: CA
+      read_only: false
+    MOVING:
+      control_type: binary
+      description: Screen moving flag
+      dtype: int
+      identifier: CLA-FEH-DIA-SCR-02:MOVING
+      protocol: CA
+    POS:
+      control_type: state
+      description: Vertical Device state
+      dtype: int
+      identifier: CLA-FEH-DIA-SCR-02:POS
+      protocol: CA
+      read_only: false
+      states:
+        GRAT: 2
+        RF: 4
+        YAG: 3
+  vertical_devices:
+    GRAT: 2
+    RETRACTED: 1
+    RF: 4
+    YAG: 3
+diagnostic: {}
+electrical: {}
+hardware_class: Diagnostic
+hardware_type: Screen
+machine_area: FEH
+manufacturer: {}
+name: CLA-FEH-DIA-SCR-02
+physical:
+  datum:
+    x: 3.6807505
+    z: 69.74434
+  error: {}
+  length: 0.15
+  s: 69.858179
+  survey: {}
+simulation:
+  scale_field: 0.0

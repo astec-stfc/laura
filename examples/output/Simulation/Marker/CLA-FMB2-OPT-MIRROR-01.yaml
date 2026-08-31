@@ -1,0 +1,18 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: FMB2
+manufacturer: {}
+name: CLA-FMB2-OPT-MIRROR-01
+physical:
+  datum:
+    x: 3.6807505
+    z: 71.45
+  error: {}
+  reference_placement:
+    element: CLA-FMB2-SIM-MIDDLE-01
+    s_offset: 0.2675
+  s: 71.54509978066918
+  survey: {}
+simulation:
+  scale_field: 0.0

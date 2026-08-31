@@ -1,0 +1,14 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: C2V
+manufacturer: {}
+name: CLA-C2V-SIM-MARK-01
+physical:
+  datum:
+    z: 5.72609
+  error: {}
+  s: 5.72609
+  survey: {}
+simulation:
+  scale_field: 0.0

@@ -1,0 +1,111 @@
+controls:
+  variables:
+    AWAK:
+      control_type: binary
+      description: Status of triggering on the BPM
+      dtype: int
+      identifier: CLA-S07-DIA-BPM-02:AWAK
+      protocol: CA
+    EAST:
+      description: East pickup voltage
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:East:DWnd:V
+      protocol: CA
+    NORTH:
+      description: North pickup voltage
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:North:DWnd:V
+      protocol: CA
+    RA1:
+      control_type: scalar
+      description: The readback for the attenuator 1 setting
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:RA1
+      protocol: CA
+    RA2:
+      control_type: scalar
+      description: The readback for the attenuator 2 setting
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:RA2
+      protocol: CA
+    RD1:
+      control_type: scalar
+      description: The readback for the delay 1 setting
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:RD1
+      protocol: CA
+    RD2:
+      control_type: scalar
+      description: The readback for the delay 2 setting
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:RD2
+      protocol: CA
+    RDY:
+      control_type: binary
+      description: Describes whether there is beam or not for the BPM
+      dtype: int
+      identifier: CLA-S07-DIA-BPM-02:RDY
+      protocol: CA
+    SA1:
+      control_type: scalar
+      description: The setter for attenuator 1
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:SA1
+      protocol: CA
+    SA2:
+      control_type: scalar
+      description: The setter for attenuator 2
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:SA2
+      protocol: CA
+    SD1:
+      control_type: scalar
+      description: The setter for delay 1
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:SD1
+      protocol: CA
+    SD2:
+      control_type: scalar
+      description: The setter for delay 2
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:SD2
+      protocol: CA
+    SOUTH:
+      description: South pickup voltage
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:South:DWnd:V
+      protocol: CA
+    WEST:
+      description: West pickup voltage
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:West:DWnd:V
+      protocol: CA
+    X:
+      description: X position
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:X
+      protocol: CA
+    Y:
+      description: Y position
+      dtype: float
+      identifier: CLA-S07-DIA-BPM-02:Y
+      protocol: CA
+diagnostic: {}
+electrical: {}
+hardware_class: Diagnostic
+hardware_type: Beam_Position_Monitor
+machine_area: S07
+manufacturer: {}
+name: CLA-S07-DIA-BPM-02
+physical:
+  datum:
+    z: 39.687988
+  error: {}
+  length: 0.21
+  reference_placement:
+    element: CLA-S07-MAG-QUAD-02
+    s_offset: 0.205
+  s: 39.58298799999999
+  survey: {}
+simulation:
+  scale_field: 0.0

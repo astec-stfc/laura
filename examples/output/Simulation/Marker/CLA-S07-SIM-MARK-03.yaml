@@ -1,0 +1,15 @@
+electrical: {}
+hardware_class: Simulation
+hardware_type: Marker
+machine_area: S07
+manufacturer: {}
+name: CLA-S07-SIM-MARK-03
+physical:
+  datum:
+    z: 49.2778
+  error: {}
+  middle:
+    z: 49.2778
+  survey: {}
+simulation:
+  scale_field: 0.0
