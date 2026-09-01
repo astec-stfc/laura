@@ -1,16 +1,16 @@
 """Optional parity checks against the Bmad documentation lattices."""
 
+import math
 import os
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 
 pytest.importorskip("pytao")
 
-from laura.translator.converters.codes.bmad import BmadLatticeImporter
 from laura.translator.converters.codes import magnetic_orders
-
+from laura.translator.converters.codes.bmad import BmadLatticeImporter
 
 BMAD_DIST = Path(
     os.environ.get("BMAD_DIST", Path.home() / "Documents" / "bmad_dist")
@@ -38,7 +38,9 @@ pytestmark = pytest.mark.skipif(
 )
 def test_documentation_lattice_matches_tao_s_positions(relative_path, expected_elements):
     importer = BmadLatticeImporter(
-        lattice_file=str(LATTICES / relative_path), libtao=str(LIBTAO)
+        lattice_file=str(LATTICES / relative_path),
+        libtao=str(LIBTAO),
+        position_mode="s",
     )
     imported_count = 0
 
@@ -101,14 +103,67 @@ def test_documentation_lattice_matches_tao_s_positions(relative_path, expected_e
     assert imported_count == expected_elements
 
 
+@pytest.mark.parametrize(
+    "relative_path",
+    ["small_ring/small_ring.bmad", "jlab_fel/bates.bmad"],
+)
+def test_floor_position_mode_matches_tao_floor_coordinates(relative_path):
+    """Parity check on *global geometry*, which nothing else covers.
+
+    The two **faces** are checked as well as the centre, and that is the point:
+    ``middle`` comes straight from Tao and so cannot be wrong, while
+    ``start``/``end`` are reconstructed by LAURA from the length, the bend angle
+    and the orientation.
+    """
+    from pytao import Tao
+
+    importer = BmadLatticeImporter(
+        lattice_file=str(LATTICES / relative_path),
+        libtao=str(LIBTAO),
+        position_mode="floor",
+    )
+    tao = Tao(
+        lattice_file=str(LATTICES / relative_path), so_lib=str(LIBTAO), noplot=True
+    )
+
+    checked = 0
+    for universe, branches in importer.branches.items():
+        for branch_index, branch in enumerate(branches):
+            section = importer.create_section(universe, branch)[branch]
+            elements = section.elements.elements
+            names = importer.names_numbered[universe][branch]
+            lengths = importer.lengths[universe][branch]
+            spos = importer.spos[universe][branch]
+            for index, name in enumerate(names):
+                element = elements.get(name)
+                if element is None or element.physical.middle is None:
+                    continue
+                for where, attribute in (
+                    ("beginning", "start"),
+                    ("center", "middle"),
+                    ("end", "end"),
+                ):
+                    reference = tao.ele_floor(
+                        f"{universe}@{branch_index}>>{index}", where=where
+                    )["Reference"]
+                    face = getattr(element.physical, attribute)
+                    assert face.x == pytest.approx(reference[0], abs=1e-9)
+                    assert face.y == pytest.approx(reference[1], abs=1e-9)
+                    assert face.z == pytest.approx(reference[2], abs=1e-9)
+                # Bmad's arc-length must survive the floor-mode resolve.
+                assert element.physical.s == pytest.approx(
+                    spos[index] - lengths[index] / 2.0, abs=1e-9
+                )
+                checked += 1
+
+    assert checked > 0
+
+
 def test_multiword_branch_name_is_resolved_by_index():
     """model_post_init used to pass Tao's ``ix_branch`` kwarg a *name* string
     derived from the branch label rather than its numeric index. Tao's own
     ``lat_list`` silently returns an empty list for a name it doesn't
-    recognize as an index instead of raising, so any branch whose name
-    wasn't itself a parseable integer (e.g. "DAVES_LINE") imported zero
-    elements. Regression test for that fix, using a documentation lattice
-    whose sole branch is named DAVES_LINE.
+    recognize as an index instead of raising.
     """
     importer = BmadLatticeImporter(
         lattice_file=str(
@@ -194,7 +249,7 @@ def test_beginning_ele_imports_as_twiss_match(tmp_path):
 
     twiss = elements["BEGINNING"]
     assert twiss.hardware_type == "TwissMatch"
-    assert twiss.physical.s == pytest.approx(0.0)
+    assert twiss.physical.middle.z == pytest.approx(0.0)
     assert twiss.physical.length == pytest.approx(0.0)
     assert twiss.simulation.beta_x == pytest.approx(9.42)
     assert twiss.simulation.beta_y == pytest.approx(22.19)
@@ -287,3 +342,580 @@ def test_match_matrix_reproduces_declared_exit_twiss(tmp_path):
     assert exit_twiss(5, -0.2, match.simulation.r_matrix[2:4, 2:4]) == pytest.approx(
         (7, 0.3)
     )
+
+
+def test_bmad_bend_geometry_is_the_negation_of_its_magnetic_angle():
+    """LAURA bends toward +x for a positive angle, Bmad toward -x, so the
+    *geometric* angle an imported bend carries is the negation of the strength
+    it stores. Only the geometry flips: ``magnetic.KnL(0)`` keeps Bmad's own
+    sign, which is what makes the angle export back out unchanged.
+
+    ``physical_angle`` is the field that carries this, and it only works because
+    ``_physical_angle`` prefers an explicitly-set value over re-deriving one
+    from the magnetic model; ``codes/elegant.py`` relies on the same thing.
+
+    A ``ref_tilt`` of half a turn flips the geometry back the other way, and is
+    recorded as that sign rather than as a roll -- see
+    :func:`test_bmad_ref_tilt_is_imported_and_turns_the_bend_the_other_way`.
+    """
+    importer = BmadLatticeImporter(
+        lattice_file=str(LATTICES / "jlab_fel" / "bates.bmad"),
+        libtao=str(LIBTAO),
+        position_mode="floor",
+    )
+    branch = importer.branches[1][0]
+    section = importer.create_section(1, branch)[branch]
+
+    bends = [
+        element
+        for element in section.elements.elements.values()
+        if element.hardware_type == "Dipole" and element.physical.length > 0
+    ]
+    assert bends, "bates is made of bends; the filter is wrong if this is empty"
+    rolled = 0
+    for bend in bends:
+        angle = bend.magnetic.KnL(0)
+        assert angle  # a zero angle would make the assertion below vacuous
+        half_turn = abs(math.remainder(bend.magnetic.tilt or 0.0, 2 * math.pi)) > 1e-12
+        rolled += half_turn
+        expected = angle if half_turn else -angle
+        assert bend.physical._physical_angle == pytest.approx(expected)
+    assert rolled, "bates has ref_tilt = pi bends; the half-turn branch is untested"
+
+
+def test_bmad_ref_tilt_is_imported_and_turns_the_bend_the_other_way():
+    """``ref_tilt`` rolls the reference frame with the magnet, which is what
+    makes a bend turn the opposite way; plain ``tilt`` rolls only the magnet
+    inside an unchanged frame.
+
+    Bmad reports the *frame* unrolled, putting the rolled bend plane into the
+    curvature instead, so the roll also has to be added to the floor
+    orientation or the arc bows the wrong way. Both halves are checked here.
+    """
+    importer = BmadLatticeImporter(
+        lattice_file=str(LATTICES / "jlab_fel" / "bates.bmad"),
+        libtao=str(LIBTAO),
+        position_mode="floor",
+    )
+    branch = importer.branches[1][0]
+    section = importer.create_section(1, branch)[branch]
+    elements = section.elements.elements
+
+    plain, rolled = elements["B11B.1"], elements["B12B.1"]
+    assert plain.magnetic.tilt == pytest.approx(0.0)
+    assert rolled.magnetic.tilt == pytest.approx(math.pi)
+    assert rolled.magnetic.KnL(0) == pytest.approx(plain.magnetic.KnL(0))
+
+    turns = []
+    for element in (plain, rolled):
+        physical = element.physical
+        direction = physical.rotation_matrix @ np.array([0.0, 0.0, 1.0])
+        chord = np.array(physical.end.array) - np.array(physical.start.array)
+        turns.append(float(np.cross(direction, chord)[1]))
+    assert abs(turns[0]) > 1e-6
+    assert turns[0] == pytest.approx(-turns[1])
+
+
+@pytest.mark.parametrize(
+    "lattice",
+    [
+        "small_ring/small_ring.bmad",
+        "jlab_fel/bates.bmad",
+        "jlab_ep_collider/original_e_ring.bmad",
+    ],
+)
+def test_floor_mode_reproduces_taos_exit_frame_as_well_as_its_entrance(lattice):
+    """Both faces of every element carry Tao's own surveyed orientation.
+
+    The entrance frame has to match because that is what the importer is handed;
+    the *exit* frame has to match because nothing hands it over -- LAURA derives
+    it from the entrance frame and the element's own geometry.
+
+    This is the precondition for ``section.to_bmad()`` synthesising ``patch``
+    elements: a patch is the transform from one element's exit frame to the
+    next one's entrance frame, so an exit frame that is a half turn out -- which
+    is what carrying ``ref_tilt = pi`` as a roll did -- invents patches that are
+    not there.
+    """
+    from pytao import Tao
+
+    from laura.translator.utils.bmad import bmad_floor_rotation_matrix
+
+    importer = BmadLatticeImporter(
+        lattice_file=str(LATTICES / lattice),
+        libtao=str(LIBTAO),
+        position_mode="floor",
+    )
+    branch = importer.branches[1][0]
+    section = importer.create_section(1, branch)[branch]
+    tao = Tao(lattice_file=str(LATTICES / lattice), so_lib=str(LIBTAO), noplot=True)
+    tracked = tao.lat_branch_list(ix_uni=1)[0]["n_ele_track"]
+
+    named = [
+        (index, tao.ele_head(f"1@0>>{index}")["name"])
+        for index in range(tracked + 1)
+    ]
+    kept = {name.split(".")[0] for name in section.order}
+    named = [(index, name) for index, name in named if name in kept]
+    assert len(named) == len(section.order)
+
+    checked = 0
+    for (index, _), name in zip(named, section.order):
+        physical = section.elements.elements[name].physical
+        if physical.middle is None:
+            continue
+        for where, attribute in (
+            ("beginning", "rotation_matrix"),
+            ("end", "end_rotation_matrix"),
+        ):
+            reference = tao.ele_floor(f"1@0>>{index}", where=where)["Reference"]
+            expected = bmad_floor_rotation_matrix(
+                *(float(value) for value in reference[3:6])
+            )
+            assert np.abs(getattr(physical, attribute) - expected).max() < 1e-12
+        checked += 1
+    assert checked > 10
+
+
+def test_bmad_floor_elevation_has_the_sign_that_points_the_line_upward(tmp_path):
+    """Bmad's floor ``W`` is ``Ry(theta) Rx(-phi) Rz(psi)``, not ``Rx(+phi)``.
+
+    A positive ``phi`` means the reference line points *up*, and a right-handed
+    rotation about +x tips it down -- hence the minus. Nothing in a flat machine
+    can tell the two apart, ``phi`` being zero the whole way round, so all five
+    documentation lattices agreed under either sign.
+    """
+    from pytao import Tao
+
+    from laura.translator.utils.bmad import bmad_floor_rotation_matrix
+
+    source = tmp_path / "elevation.bmad"
+    source.write_text(
+        "beginning[e_tot] = 1e9\n"
+        "parameter[geometry] = open\n"
+        "P: patch, y_pitch = 0.2, tilt = 0.35\n"
+        "B: sbend, l = 1.0, angle = 0.3\n"
+        "L: line = (P, B)\n"
+        "use, L\n"
+    )
+    tao = Tao(lattice_file=str(source), so_lib=str(LIBTAO), noplot=True)
+    frames = [
+        bmad_floor_rotation_matrix(
+            *(
+                float(value)
+                for value in tao.ele_floor("1@0>>2", where=where)["Reference"][3:6]
+            )
+        )
+        for where in ("beginning", "end")
+    ]
+    relative = frames[0].T @ frames[1]
+
+    turn = math.acos(max(-1.0, min(1.0, (np.trace(relative) - 1.0) / 2.0)))
+    assert turn == pytest.approx(0.3, abs=1e-9)
+
+    cosine, sine = math.cos(-0.3), math.sin(-0.3)
+    expected = np.array([[cosine, 0, sine], [0, 1, 0], [-sine, 0, cosine]])
+    assert np.abs(relative - expected).max() < 1e-12
+
+
+def test_bmad_export_rebuilds_a_patch_from_the_reference_geometry(tmp_path):
+    """A Bmad ``patch`` survives the round trip even though LAURA has no patch.
+
+    Nothing imports a patch as an element -- it is a frame transform, and LAURA's
+    model has no place to put one. Floor mode does record its *effect*, because
+    every element downstream is placed at Tao's surveyed coordinates, but
+    ``createDrifts()`` then reduces the gap to a straight line and the
+    orientation is lost on the way out.
+
+    It need not be. The transform is exactly the step from one element's exit
+    frame to the next one's entrance frame, and floor mode holds both exactly,
+    so the exporter can reconstitute the patch it never imported. Check the
+    angles come back to the bit, not merely that some patch was written.
+    """
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    source = tmp_path / "patched.bmad"
+    source.write_text(
+        "beginning[e_tot] = 1e9\n"
+        "parameter[geometry] = open\n"
+        "D1: drift, l = 0.5\n"
+        "Q1: quadrupole, l = 0.3, k1 = 0.7\n"
+        "P1: patch, x_offset = 0.02, z_offset = 0.4, tilt = 0.25, x_pitch = 0.06\n"
+        "D2: drift, l = 0.6\n"
+        "B1: sbend, l = 1.0, angle = 0.2\n"
+        "Q2: quadrupole, l = 0.3, k1 = -0.7\n"
+        "L: line = (D1, Q1, P1, D2, B1, Q2)\n"
+        "use, L\n"
+    )
+    importer = BmadLatticeImporter(
+        lattice_file=str(source), libtao=str(LIBTAO), position_mode="floor"
+    )
+    branch = importer.branches[1][0]
+    section = importer.create_section(1, branch)[branch]
+    written = SectionLatticeTranslator.from_section(section).to_bmad()
+
+    patches = [line for line in written.splitlines() if ": patch," in line]
+    assert len(patches) == 1, f"one patch went in, so one comes out: {patches}"
+    assert "tilt = 0.25" in patches[0]
+    assert "x_pitch = 0.06" in patches[0]
+    line = next(item for item in written.splitlines() if item.startswith("L_1: line"))
+    name = patches[0].split(":")[0]
+    assert line.index("Q1") < line.index(name) < line.index("B1")
+
+
+def test_bmad_export_writes_no_patch_for_an_ordinary_lattice():
+    """The escape hatch stays shut unless a lattice actually needs it.
+
+    A patch is only correct where a drift is not, so every gap that *is* a plain
+    step downstream must still come out as a drift. ``bates`` is the sharp case:
+    its ``ref_tilt = pi`` bends leave LAURA's frames turned a half turn from
+    Bmad's own survey, and a patch synthesised from those unadjusted frames
+    would appear beside every one of them -- rolling the beam twice, since the
+    export already writes the roll as ``ref_tilt``.
+    """
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    for relative_path in ("small_ring/small_ring.bmad", "jlab_fel/bates.bmad"):
+        importer = BmadLatticeImporter(
+            lattice_file=str(LATTICES / relative_path),
+            libtao=str(LIBTAO),
+            position_mode="floor",
+        )
+        branch = importer.branches[1][0]
+        section = importer.create_section(1, branch)[branch]
+        written = SectionLatticeTranslator.from_section(section).to_bmad()
+        assert ": patch," not in written, relative_path
+
+
+def test_bmad_bend_without_a_half_gap_does_not_acquire_one(tmp_path):
+    """``hgap = 0`` is data, not a missing value.
+
+    Bmad's default half gap is zero, meaning a bend with no fringe-field
+    focusing at all -- which is what almost every documentation lattice
+    actually says. The import used to test the attribute for truth rather than
+    for presence, so a zero read as "Bmad did not tell us" and LAURA's own
+    default of 16 mm was left standing. The export then wrote that back out,
+    inventing a half gap for every bend in ``small_ring``, ``bates`` and
+    ``original_e_ring``.
+
+    That is not a cosmetic difference. ``fint`` is carried across faithfully,
+    and the edge focusing goes as ``fint * hgap``, so a fabricated gap turns a
+    hard-edged bend into one with real vertical focusing and moves the tune.
+    Check both halves: the zero survives, and a genuine value still arrives.
+    """
+    source = tmp_path / "gaps.bmad"
+    source.write_text(
+        "beginning[e_tot] = 1e9\n"
+        "parameter[geometry] = open\n"
+        "BARE: sbend, l = 1.0, angle = 0.1, fint = 0.5\n"
+        "GAPPED: sbend, l = 1.0, angle = 0.1, fint = 0.5, hgap = 0.03\n"
+        "L: line = (BARE, GAPPED)\n"
+        "use, L\n"
+    )
+    importer = BmadLatticeImporter(
+        lattice_file=str(source), libtao=str(LIBTAO), position_mode="floor"
+    )
+    branch = importer.branches[1][0]
+    converted = importer.create_laura_element_dictionary(1)[branch]
+    bends = {name.upper(): element for name, element in converted.items()}
+    assert bends["BARE"].magnetic.half_gap == 0.0
+    assert bends["GAPPED"].magnetic.half_gap == pytest.approx(0.03)
+    # The edge integral is unaffected either way -- it was always read by
+    # presence -- and it is what makes the fabricated gap bite.
+    assert bends["BARE"].magnetic.edge_field_integral == pytest.approx(0.5)
+
+
+def test_bmad_x_pitch_is_a_rotation_about_y_not_a_roll(tmp_path):
+    """Bmad's misalignment angles are named for a plane, not for an axis.
+
+    ``x_pitch`` turns the element about **y** -- it is the tilt that moves the
+    orbit in x -- and ``y_pitch`` turns it about x. LAURA's ``Rotation`` reads
+    ``theta`` as the ``Ry`` factor, ``phi`` as ``Rx`` and ``psi`` as ``Rz``, so
+    the pairing is ``x_pitch -> theta`` and ``y_pitch -> phi``. ``x_pitch``
+    used to land in ``psi``, turning a tilt into a roll about the beam axis.
+
+    Both pairs also cross over in **sign**, which the matching names make easy
+    to miss: LAURA's ``Ry`` factor turns the opposite way to an ordinary
+    right-handed one, so the same number means opposite rotations. The signs
+    were copied straight across until 2026-09-01, which left an imported
+    misalignment disagreeing with the ``global_rotation`` of the same element.
+    A round trip cannot catch it, because the export made the same mistake.
+
+    The lattice below is the measurement that settles both. The pitched
+    elements carry one angle each, and the orbit is in the matching plane with
+    the other identically zero; the patches at the front carry the same angles
+    and are surveyed, so the sign is pinned to the floor angles that
+    ``bmad_floor_angles_to_laura`` -- the definition of what these angles mean
+    in LAURA -- reads back, rather than to a constant written into the test.
+    """
+    source = tmp_path / "pitched.bmad"
+    source.write_text(
+        "beginning[e_tot] = 1e9\n"
+        "beginning[beta_a] = 10.0\n"
+        "beginning[beta_b] = 10.0\n"
+        "parameter[geometry] = open\n"
+        "QX: quadrupole, l = 0.5, k1 = 2.0, x_pitch = 0.05\n"
+        "QY: quadrupole, l = 0.5, k1 = 2.0, y_pitch = 0.03\n"
+        "PX: patch, x_pitch = 0.05\n"
+        "PY: patch, y_pitch = 0.03\n"
+        "TAIL: marker\n"
+        "L: line = (QX, QY, PX, PY, TAIL)\n"
+        "use, L\n"
+    )
+    importer = BmadLatticeImporter(
+        lattice_file=str(source), libtao=str(LIBTAO), position_mode="floor"
+    )
+    branch = importer.branches[1][0]
+    elements = importer.create_laura_element_dictionary(1)[branch]
+    pitched = {name.upper(): element for name, element in elements.items()}
+
+    assert pitched["QX"].physical.error.rotation.theta == pytest.approx(-0.05)
+    assert pitched["QX"].physical.error.rotation.phi == 0.0
+    assert pitched["QX"].physical.error.rotation.psi == 0.0
+    assert pitched["QY"].physical.error.rotation.phi == pytest.approx(-0.03)
+    assert pitched["QY"].physical.error.rotation.theta == 0.0
+
+    # The same two angles, this time applied to the reference frame by a pair
+    # of patches and read back out of the surveyed floor coordinates. A
+    # misalignment and a patch of the same angle have to land on the same LAURA
+    # number, and the patches are what tie that number to Bmad's own survey
+    # rather than to a constant written into this test. They sit after the
+    # quadrupoles so that they do not disturb the orbit measured below. The two
+    # compose in Bmad's order and are decomposed in LAURA's, so the recovered
+    # angles agree only to second order in the angles -- far tighter than the
+    # sign this is here to pin.
+    frame = pitched["TAIL"].physical.global_rotation
+    assert frame.theta == pytest.approx(-0.05, abs=1e-3)
+    assert frame.phi == pytest.approx(-0.03, abs=1e-3)
+
+    # Bmad itself agrees on which plane x_pitch acts in: an on-axis particle
+    # through QX picks up horizontal motion and no vertical motion at all.
+    from pytao import Tao
+
+    tao = Tao(lattice_file=str(source), so_lib=str(LIBTAO), noplot=True)
+    orbit = tao.ele_orbit("QX")
+    assert abs(orbit["x"]) > 1e-6
+    assert orbit["y"] == 0.0
+
+
+def test_bmad_active_fixer_imports_as_the_sections_twiss_point(tmp_path):
+    """An active ``fixer`` is a ``beginning_ele`` that stands mid-line.
+
+    Bmad lets a branch nominate one fixer as the place its Twiss is declared;
+    from there the optics propagate in both directions and ``beginning`` is
+    switched off. Nothing about the beam changes -- a fixer is a statement about
+    what is known, not an element the particle passes through -- so LAURA holds
+    it as the same zero-length ``TwissMatch`` a ``beginning_ele`` becomes.
+
+    Only the active one. A fixer that is off carries stored numbers that are not
+    this lattice's Twiss, and reading them as if they were would plant a false
+    optics point in the middle of the line, so it stays a ``Marker``.
+    """
+    import warnings
+
+    source = tmp_path / "fixed.bmad"
+    source.write_text(
+        "beginning[e_tot] = 1e9\n"
+        "beginning[beta_a] = 10.0\n"
+        "beginning[beta_b] = 12.0\n"
+        "parameter[geometry] = open\n"
+        "D1: drift, l = 0.5\n"
+        "Q1: quadrupole, l = 0.3, k1 = 0.7\n"
+        "FX: fixer, beta_a_stored = 3.0, beta_b_stored = 4.0, "
+        "alpha_a_stored = 0.5, alpha_b_stored = -0.25, "
+        "eta_x_stored = 0.11, etap_x_stored = 0.02, is_on = T\n"
+        "D2: drift, l = 0.6\n"
+        "FY: fixer, beta_a_stored = 7.0, beta_b_stored = 8.0\n"
+        "Q2: quadrupole, l = 0.3, k1 = -0.7\n"
+        "L: line = (D1, Q1, FX, D2, FY, Q2)\n"
+        "use, L\n"
+    )
+    with warnings.catch_warnings(record=True) as raised:
+        warnings.simplefilter("always")
+        importer = BmadLatticeImporter(
+            lattice_file=str(source), libtao=str(LIBTAO), position_mode="floor"
+        )
+        branch = importer.branches[1][0]
+        elements = importer.create_laura_element_dictionary(1)[branch]
+    named = {name.upper(): element for name, element in elements.items()}
+
+    active = named["FX"]
+    assert active.hardware_type == "TwissMatch"
+    assert active.physical.length == 0.0
+    # The stored values, to the bit -- Bmad copies stored onto real when it
+    # activates a fixer, so ele_twiss and the *_stored attributes agree.
+    assert active.simulation.beta_x == pytest.approx(3.0)
+    assert active.simulation.beta_y == pytest.approx(4.0)
+    assert active.simulation.alpha_x == pytest.approx(0.5)
+    assert active.simulation.alpha_y == pytest.approx(-0.25)
+    assert active.simulation.eta_x == pytest.approx(0.11)
+    assert active.simulation.eta_xp == pytest.approx(0.02)
+
+    # The inactive one keeps its placement and loses its stored optics, and says
+    # so rather than doing it quietly.
+    assert named["FY"].hardware_type == "Marker"
+    assert any("FY" in str(item.message) for item in raised)
+    assert not any("FX" in str(item.message) for item in raised)
+
+    # It is not the head of the section, so the export writes it as a Bmad
+    # `match`, not as a fixer. That reproduces the Twiss downstream and nothing
+    # else; see BmadLatticeImporter._store_twiss_point.
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    section = importer.create_section(1, branch)[branch]
+    written = SectionLatticeTranslator.from_section(section).to_bmad()
+    assert "matrix = match_twiss" in written
+
+
+def test_bmad_misalignments_survive_the_round_trip(tmp_path):
+    """``physical.error`` used to be dropped on the way back out to Bmad.
+
+    A quadrupole imported with ``x_pitch = 0.05`` was written as
+    ``quadrupole, l = 0.5, tilt = 0.0, k1 = 2.0`` -- the alignment error simply
+    vanished, silently, because no element type in ``elements_bmad.yaml``
+    listed the offset or pitch attributes. Every misalignment Bmad states is
+    now stated back.
+
+    The roll is the one that cannot be round-tripped everywhere, and the two
+    branches below are why. A bend keeps its design plane in ``ref_tilt`` and
+    its roll error in ``roll``, so both survive separately. Everything else has
+    only ``tilt``, which Bmad defines as the two added together: the total is
+    preserved, but on the way back in it all lands in ``magnetic.tilt``, so a
+    second export writes the same number with the split gone.
+    """
+    from pytao import Tao
+
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    source = tmp_path / "misaligned.bmad"
+    source.write_text(
+        "beginning[e_tot] = 1e9\n"
+        "beginning[beta_a] = 5.0\n"
+        "beginning[beta_b] = 3.0\n"
+        "parameter[geometry] = open\n"
+        "Q1: quadrupole, l = 0.5, k1 = 2.0, x_offset = 0.001, "
+        "y_offset = -0.002, z_offset = 0.003, x_pitch = 0.004, "
+        "y_pitch = -0.005, tilt = 0.06\n"
+        "B1: sbend, l = 1.0, angle = 0.1, x_offset = 0.0011, "
+        "y_pitch = 0.0022, roll = 0.033\n"
+        "S1: sextupole, l = 0.2, k2 = 3.0, y_offset = 0.007\n"
+        "C1: rcollimator, l = 0.1, x_limit = 0.01, y_limit = 0.02, "
+        "x_offset = 0.0009, y_pitch = 0.0008\n"
+        "M1: marker, x_offset = 0.0005\n"
+        "Q2: quadrupole, l = 0.4, k1 = -1.5\n"
+        "L: line = (Q1, B1, S1, C1, M1, Q2)\n"
+        "use, L\n"
+    )
+    importer = BmadLatticeImporter(
+        lattice_file=str(source), libtao=str(LIBTAO), position_mode="floor"
+    )
+    branch = importer.branches[1][0]
+    section = importer.create_section(1, branch)[branch]
+    written = SectionLatticeTranslator.from_section(section).to_bmad(
+        particle="Electron"
+    )
+    exported = tmp_path / "misaligned_rt.bmad"
+    exported.write_text(written)
+
+    attributes = ("X_OFFSET", "Y_OFFSET", "Z_OFFSET", "X_PITCH", "Y_PITCH")
+
+    def misalignments(path):
+        tao = Tao(lattice_file=str(path), so_lib=str(LIBTAO), noplot=True)
+        found = {}
+        for index in range(tao.lat_branch_list(ix_uni=1)[0]["n_ele_track"] + 1):
+            head = tao.ele_head(f"1@0>>{index}")
+            gen = tao.ele_gen_attribs(f"1@0>>{index}")
+            found[head["name"].upper()] = {
+                key: gen.get(key, 0.0)
+                for key in attributes + ("TILT", "ROLL", "REF_TILT")
+            }
+        return found
+
+    before = misalignments(source)
+    after = misalignments(exported)
+
+    for name in ("Q1", "B1", "S1", "C1", "M1"):
+        for key in attributes:
+            assert after[name][key] == pytest.approx(before[name][key]), (
+                f"{name}[{key}]"
+            )
+    # The bend's roll stays its own attribute, separate from the design plane.
+    assert after["B1"]["ROLL"] == pytest.approx(0.033)
+    assert after["B1"]["REF_TILT"] == pytest.approx(0.0)
+    # The quadrupole's tilt is design plus roll, and Bmad has nowhere to put
+    # the two of them separately, so the total is what is checked.
+    assert after["Q1"]["TILT"] == pytest.approx(before["Q1"]["TILT"])
+
+    # An element with no alignment error is written exactly as it was: no
+    # ``x_offset = 0.0`` padding on every definition in the lattice.
+    definition = next(
+        line for line in written.splitlines() if line.startswith("Q2:")
+    )
+    assert "offset" not in definition
+    assert "pitch" not in definition
+
+
+def test_bmad_collimator_apertures_survive_the_round_trip(tmp_path):
+    """A collimator used to double in size on every export.
+
+    LAURA's ``horizontal_size``/``vertical_size`` are *full* apertures -- the
+    schema says so, and ``_rftrack_aperture`` reads them that way -- while
+    Bmad's ``x1_limit`` and friends are half widths measured from the axis. The
+    exporter wrote one straight into the other, so a Bmad ``x_limit = 0.01``
+    came back as ``x1_limit = 0.02``, and a lattice passed through LAURA twice
+    came back four times too wide. ``radius`` is already a half width and is
+    the one that must *not* be halved, which is what the ecollimator here is
+    for.
+    """
+    from pytao import Tao
+
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    source = tmp_path / "collimators.bmad"
+    source.write_text(
+        "beginning[e_tot] = 1e9\n"
+        "beginning[beta_a] = 5.0\n"
+        "beginning[beta_b] = 3.0\n"
+        "parameter[geometry] = open\n"
+        "R1: rcollimator, l = 0.1, x_limit = 0.01, y_limit = 0.02\n"
+        "E1: ecollimator, l = 0.05, x_limit = 0.003, y_limit = 0.003\n"
+        "D1: drift, l = 0.5\n"
+        "L: line = (R1, D1, E1)\n"
+        "use, L\n"
+    )
+    importer = BmadLatticeImporter(
+        lattice_file=str(source), libtao=str(LIBTAO), position_mode="floor"
+    )
+    branch = importer.branches[1][0]
+    section = importer.create_section(1, branch)[branch]
+    written = SectionLatticeTranslator.from_section(section).to_bmad(
+        particle="Electron"
+    )
+    exported = tmp_path / "collimators_rt.bmad"
+    exported.write_text(written)
+
+    limits = ("X1_LIMIT", "X2_LIMIT", "Y1_LIMIT", "Y2_LIMIT")
+
+    def apertures(path):
+        tao = Tao(lattice_file=str(path), so_lib=str(LIBTAO), noplot=True)
+        found = {}
+        for index in range(tao.lat_branch_list(ix_uni=1)[0]["n_ele_track"] + 1):
+            head = tao.ele_head(f"1@0>>{index}")
+            gen = tao.ele_gen_attribs(f"1@0>>{index}")
+            found[head["name"].upper()] = {
+                key: gen.get(key, 0.0) for key in limits
+            }
+        return found
+
+    before = apertures(source)
+    after = apertures(exported)
+
+    for name in ("R1", "E1"):
+        for key in limits:
+            assert after[name][key] == pytest.approx(before[name][key]), (
+                f"{name}[{key}]"
+            )
+    # Not merely self-consistent: these are the numbers the source file states.
+    assert after["R1"]["X1_LIMIT"] == pytest.approx(0.01)
+    assert after["R1"]["Y1_LIMIT"] == pytest.approx(0.02)
+    assert after["E1"]["X1_LIMIT"] == pytest.approx(0.003)

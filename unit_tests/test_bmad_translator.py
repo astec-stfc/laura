@@ -303,9 +303,13 @@ def test_bmad_special_element_conversions():
             "vertical_size": 0.0085,
         },
     )
+    # ``horizontal_size``/``vertical_size`` are full apertures and Bmad's
+    # limits are half widths, so these are halved on the way out; ``radius``
+    # above is already a half width and is not. Writing the full width into
+    # the limit doubled the collimator on every round trip.
     assert (
-        _bmad(rect) == "A2: rcollimator, l = 0.0, x1_limit = 0.017, "
-        "x2_limit = 0.017, y1_limit = 0.0085, y2_limit = 0.0085\n"
+        _bmad(rect) == "A2: rcollimator, l = 0.0, x1_limit = 0.0085, "
+        "x2_limit = 0.0085, y1_limit = 0.00425, y2_limit = 0.00425\n"
     )
 
     separator = ElectrostaticSeparator(
@@ -431,6 +435,79 @@ def test_bmad_taylor_and_match_syntax():
     assert "TW: match, l = 0.0, beta_a1 = 2.0, beta_b1 = 3.0" in text
     assert "alpha_a1 = -0.5" in text
     assert "matrix = match_twiss" in text
+
+
+def test_bmad_leading_twiss_match_becomes_beginning_not_a_match_element():
+    """A TwissMatch at the head of a section stands in for Bmad's beginning_ele
+    (or an active fixer), which does not touch the beam. Exporting it as a
+    `match` element would put a real transfer matrix at the start of the line.
+    """
+    seed = TwissMatch(
+        name="BEGINNING",
+        machine_area="S",
+        simulation={
+            "beta_x": 2,
+            "alpha_x": -0.5,
+            "beta_y": 3,
+            "alpha_y": 0.25,
+            "eta_x": 0.4,
+            "eta_xp": -0.05,
+        },
+        physical=PhysicalElement(length=0, middle=Position(z=0)),
+    )
+    quadrupole = Quadrupole(
+        name="Q-1",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+        physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
+    )
+    section = SectionLattice(
+        name="S-1",
+        order=["BEGINNING", "Q-1"],
+        elements=[seed, quadrupole],
+        geometry="open",
+    )
+    text = SectionLatticeTranslator.from_section(section).to_bmad()
+
+    assert "beginning[beta_a] = 2.0" in text
+    assert "beginning[alpha_a] = -0.5" in text
+    assert "beginning[beta_b] = 3.0" in text
+    assert "beginning[alpha_b] = 0.25" in text
+    assert "beginning[eta_x] = 0.4" in text
+    assert "beginning[etap_x] = -0.05" in text
+    # Zero dispersion is Bmad's default and is left out.
+    assert "beginning[eta_y]" not in text
+    assert "matrix = match_twiss" not in text
+    assert "BEGINNING:" not in text
+    assert "S_1: line = (Q_1)" in text
+
+    # An explicit initial_twiss overrides the seed rather than doubling up.
+    override = SectionLatticeTranslator.from_section(section).to_bmad(
+        initial_twiss=TwissMatchSimulationElement(
+            beta_x=7, alpha_x=0.0, beta_y=8, alpha_y=0.0
+        )
+    )
+    assert "beginning[beta_a] = 7.0" in override
+    assert "beginning[beta_a] = 2.0" not in override
+    assert "matrix = match_twiss" not in override
+
+    # A TwissMatch anywhere else really is a matching element.
+    interior = SectionLattice(
+        name="S-2",
+        order=["Q-1", "BEGINNING"],
+        elements=[
+            quadrupole,
+            seed.model_copy(
+                update={
+                    "physical": PhysicalElement(length=0, middle=Position(z=1.0))
+                }
+            ),
+        ],
+        geometry="open",
+    )
+    interior_text = SectionLatticeTranslator.from_section(interior).to_bmad()
+    assert "matrix = match_twiss" in interior_text
+    assert "beginning[beta_a]" not in interior_text
 
 
 def test_bmad_section_layout_and_model_export():
@@ -597,3 +674,152 @@ def test_bmad_section_uses_thin_kicker_inside_bend():
     assert (
         "superimpose, element = K, offset = 0.5, ele_origin = beginning"
     ) in text
+
+
+def _cavity_ring(geometry):
+    """A one-cavity, one-quadrupole section in the given geometry."""
+    cavity = RFCavity(
+        name="RF",
+        machine_area="S",
+        cavity={
+            "phase": 0,
+            "frequency": 2.5e8,
+            "n_cells": 1,
+            "cell_length": 1.2,
+            "structure_Type": "StandingWave",
+        },
+        simulation={"field_amplitude": 1e6},
+        physical=PhysicalElement(length=1.2, middle=Position(z=0.6)),
+    )
+    quadrupole = Quadrupole(
+        name="Q",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+        physical=PhysicalElement(length=0.5, middle=Position(z=2.0)),
+    )
+    return SectionLattice(
+        name="R",
+        order=["RF", "Q"],
+        elements=[cavity, quadrupole],
+        geometry=geometry,
+    )
+
+
+def test_bmad_closed_geometry_exports_a_cavity_as_rfcavity():
+    """Bmad refuses an lcavity in a closed branch outright, so a ring with any
+    cavity used to export to a file that would not parse at all. rfcavity takes
+    the same attributes, and the swap must still go through the cavity's own
+    to_bmad so cavity_type keeps its Bmad spelling.
+    """
+    closed = SectionLatticeTranslator.from_section(_cavity_ring("closed")).to_bmad()
+    assert "RF: rfcavity" in closed
+    assert "lcavity" not in closed
+    # Bmad's switch is Standing_Wave -- LAURA's own "StandingWave" is rejected.
+    assert "cavity_type = standing_wave" in closed
+
+    # An open line still accelerates, so it keeps the lcavity.
+    open_line = SectionLatticeTranslator.from_section(_cavity_ring("open")).to_bmad()
+    assert "RF: lcavity" in open_line
+    assert "rfcavity" not in open_line
+    assert "cavity_type = standing_wave" in open_line
+
+
+def test_bmad_export_writes_the_global_datum_when_the_line_is_placed():
+    """Without beginning[..._position] Bmad starts every line at the origin
+    along +Z, so a machine that sits anywhere else loses its placement -- and
+    the run-up to the first element goes with it.
+    """
+    quadrupole = Quadrupole(
+        name="Q",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+        physical=PhysicalElement(
+            length=0.5,
+            middle=Position(x=3.0, z=10.0),
+            global_rotation={"phi": 0.0, "psi": 0.0, "theta": 0.25},
+        ),
+    )
+    section = SectionLattice(
+        name="S", order=["Q"], elements=[quadrupole], geometry="open"
+    )
+    text = SectionLatticeTranslator.from_section(section).to_bmad()
+
+    # The datum is the *entrance* of the first element, not its centre, and the
+    # angle is Bmad's floor convention rather than LAURA's.
+    assert "beginning[x_position] = 3.06185098" in text
+    assert "beginning[z_position] = 9.75777189" in text
+    assert "beginning[theta_position] = -0.25" in text
+    # y is zero here and Bmad defaults it, so it is left out.
+    assert "beginning[y_position]" not in text
+    assert "beginning[phi_position]" not in text
+
+
+def test_bmad_export_omits_the_datum_for_a_line_starting_at_the_origin():
+    """A section with no global placement to record -- which includes every
+    position_mode="s" import, whose world coordinates are integrated from the
+    origin -- must not be given a surveyed-looking datum it never had.
+    """
+    quadrupole = Quadrupole(
+        name="Q",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+        physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
+    )
+    section = SectionLattice(
+        name="S", order=["Q"], elements=[quadrupole], geometry="open"
+    )
+    text = SectionLatticeTranslator.from_section(section).to_bmad()
+
+    assert "_position" not in text
+
+
+def _lead_section(with_origin):
+    """A section whose first magnet sits 2.5 m downstream of its own start."""
+    elements = [
+        Quadrupole(
+            name="Q",
+            machine_area="S",
+            magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+            physical=PhysicalElement(length=0.5, middle=Position(z=2.75)),
+        )
+    ]
+    order = ["Q"]
+    if with_origin:
+        elements.insert(
+            0,
+            TwissMatch(
+                name="BEGINNING",
+                machine_area="S",
+                physical=PhysicalElement(length=0.0, middle=Position(z=0.0)),
+                simulation={"beta_x": 2.0, "alpha_x": 0.0, "beta_y": 3.0, "alpha_y": 0.0},
+            ),
+        )
+        order.insert(0, "BEGINNING")
+    return SectionLattice(
+        name="S", order=order, elements=elements, geometry="open"
+    )
+
+
+def test_bmad_export_restores_the_run_up_to_the_first_element():
+    """createDrifts() only fills the gaps *between* elements, so the stretch
+    from a section's own start to its first element used to vanish -- the
+    exported lattice came out physically shorter than the one it was read from.
+    Bmad's Dragt_PSR_small_ring opens with a 2.286 m drift, and losing it
+    shortened the whole ring by exactly that.
+    """
+    text = SectionLatticeTranslator.from_section(_lead_section(True)).to_bmad()
+
+    assert "S_lead_drift: drift, l = 2.5" in text
+    assert "S: line = (S_lead_drift, Q)" in text
+
+
+def test_bmad_export_invents_no_run_up_without_a_declared_start():
+    """A leading TwissMatch is what declares where a section begins -- it is
+    what a Bmad Beginning_Ele imports as. Without one there is no origin to
+    measure a run-up from, and an element that merely sits away from the world
+    origin must not be handed a drift it never had.
+    """
+    text = SectionLatticeTranslator.from_section(_lead_section(False)).to_bmad()
+
+    assert "lead_drift" not in text
+    assert "S: line = (Q)" in text

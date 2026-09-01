@@ -7,7 +7,7 @@ Basefiles/
 to_CATAP/
 RFTrack/
 .claude/
-
+examples/output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,17 +1,18 @@
-from pydantic import computed_field, model_validator
 import numpy as np
-from .base import BaseElementTranslator
+from pydantic import computed_field, model_validator
+
 from laura.models.RF import RFCavityElement
 from laura.models.simulation import RFCavitySimulationElement
 from laura.translator.utils.fields import field
 
 from ..converters import (
-    elements_Elegant,
-    elements_Opal,
-    elements_Madx,
     elements_Bmad,
+    elements_Elegant,
+    elements_Madx,
+    elements_Opal,
 )
 from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator
 
 
 class RFCavityTranslator(BaseElementTranslator):
@@ -34,6 +35,12 @@ class RFCavityTranslator(BaseElementTranslator):
 
     zwakefile: str | None = None
     """Name of longitudinal wakefile associated with the cavity."""
+
+    bmad_geometry: str | None = None
+    """Geometry of the branch this cavity is being written into, when known.
+
+    Set to ``"closed"`` by :meth:`SectionLatticeTranslator.to_bmad` so the
+    cavity can pick the form Bmad allows there; see :meth:`to_bmad`."""
 
     @model_validator(mode="before")
     @classmethod
@@ -111,6 +118,8 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convertType_Bmad(self.hardware_type)
+        if etype == "lcavity" and self.bmad_geometry == "closed":
+            etype = "rfcavity"
         parameters = self._bmad_parameters(etype)
         phase = self.cavity.phase
         parameters["phi0"] = (
@@ -121,9 +130,7 @@ class RFCavityTranslator(BaseElementTranslator):
         voltage = parameters.get("voltage")
         if voltage is not None and self.structure_type == "TravellingWave":
             factor = abs(
-                (self.get_cells() + 3.8)
-                * self.cavity.cell_length
-                * (1 / np.sqrt(2))
+                (self.get_cells() + 3.8) * self.cavity.cell_length * (1 / np.sqrt(2))
             )
             parameters["voltage"] = (
                 f"({voltage}) * {factor}"
@@ -225,9 +232,7 @@ class RFCavityTranslator(BaseElementTranslator):
         string = self.name + ": " + etype
         preferred = {
             "n_kicks": (
-                "simulation_n_kicks"
-                if self.simulation.n_kicks
-                else "cavity_n_cells"
+                "simulation_n_kicks" if self.simulation.n_kicks else "cavity_n_cells"
             )
         }
         keys = []
@@ -264,16 +269,26 @@ class RFCavityTranslator(BaseElementTranslator):
                     if etype == "rftmez0" and key == "freq":
                         key = "frequency"
                     functional = self.is_functional(value)
-                    if self.hardware_type in ["RFCavity", "RFDeflectingCavity", "CrabCavity"]:
+                    if self.hardware_type in [
+                        "RFCavity",
+                        "RFDeflectingCavity",
+                        "CrabCavity",
+                    ]:
                         if key == "phase":
                             if etype == "rftmez0":
                                 # If using rftmez0 or similar
                                 if functional:
-                                    value = self._rpn(value, 360.0, "/", 2 * 3.14159, "*")
+                                    value = self._rpn(
+                                        value, 360.0, "/", 2 * 3.14159, "*"
+                                    )
                                 else:
                                     value = (value / 360.0) * (2 * 3.14159)
                             else:
-                                value = self._rpn(90, value, "-") if functional else 90 - value
+                                value = (
+                                    self._rpn(90, value, "-")
+                                    if functional
+                                    else 90 - value
+                                )
 
                     # In ELEGANT the voltages need to be compensated
                     if key == "volt":
@@ -383,8 +398,9 @@ class RFCavityTranslator(BaseElementTranslator):
         tuple
             Cheetah Cavity object
         """
+        from torch import float64, tensor
+
         from ..conversion_rules.codes import cheetah_conversion
-        from torch import tensor, float64
 
         type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
@@ -500,7 +516,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     [
                         "C_xrot",
                         {
-                            "value": self.x_rot + self.dx_rot,
+                            "value": self._astra_rotation("x"),
                             "default": None,
                             "type": "not_zero",
                         },
@@ -508,7 +524,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     [
                         "C_yrot",
                         {
-                            "value": self.y_rot + self.dy_rot,
+                            "value": self._astra_rotation("y"),
                             "default": None,
                             "type": "not_zero",
                         },
@@ -516,7 +532,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     [
                         "C_zrot",
                         {
-                            "value": self.z_rot + self.dz_rot,
+                            "value": self._astra_rotation("z"),
                             "default": None,
                             "type": "not_zero",
                         },
@@ -611,7 +627,9 @@ class RFCavityTranslator(BaseElementTranslator):
                     key = self._convertKeyword_Madx(
                         key, updated_type=self.hardware_type
                     )
-                    functional = self.is_functional(value) and not self._resolve_functional
+                    functional = (
+                        self.is_functional(value) and not self._resolve_functional
+                    )
                     deferred = functional
                     if key == "lag":
                         value = (
@@ -791,13 +809,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     + ";\n"
                 )
             else:
-                output += (
-                    "ffac"
-                    + subname
-                    + " = "
-                    + str(self.field_amplitude)
-                    + ";\n"
-                )
+                output += "ffac" + subname + " = " + str(self.field_amplitude) + ";\n"
 
             # if False and self.Structure_Type == 'TravellingWave' and hasattr(self, 'attenuation_constant') and hasattr(self, 'shunt_impedance') and hasattr(self, 'design_power') and hasattr(self, 'design_gamma'):
             #     '''

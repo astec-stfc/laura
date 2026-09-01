@@ -5,6 +5,8 @@ Provides efficient computation of rotation matrices from Euler angles and
 lattice geometry calculations based on Position and Rotation.
 """
 
+import warnings
+
 import numpy as np
 from typing import TYPE_CHECKING
 
@@ -101,7 +103,25 @@ def element_start_position(
 
     Returns:
         Entrance position
+
+    .. deprecated::
+       Use :attr:`laura.models.physical.PhysicalElement.start` instead.  This
+       helper sees only ``rotation``, so an element oriented through
+       ``global_rotation`` -- which is how floor-coordinate placement stores it
+       -- comes back unrotated, and it has no bend model, so a dipole gets the
+       chord of a straight element.  Measured on a 2 m, 0.3 rad bend at 0.7 rad
+       of global yaw, it is 0.61 m out.  Both faults come from the arguments
+       it takes: with only ``(middle, rotation, length)`` there is no way to fix
+       them here.
     """
+    warnings.warn(
+        "element_start_position is deprecated and will be removed: it ignores "
+        "global_rotation and the bending angle, so it disagrees with "
+        "PhysicalElement.start for any element that is oriented or bent. "
+        "Use PhysicalElement.start.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     from ..models.physical import Position  # Avoid circular import
 
     # Vector pointing upstream (negative s)
@@ -161,7 +181,25 @@ def element_end_position(
 
     Returns:
         Exit position
+
+    .. deprecated::
+       Use :attr:`laura.models.physical.PhysicalElement.end` instead.  This
+       helper sees only ``rotation``, so an element oriented through
+       ``global_rotation`` -- which is how floor-coordinate placement stores it
+       -- comes back unrotated, and it has no bend model, so a dipole gets the
+       chord of a straight element.  Measured on a 2 m, 0.3 rad bend at 0.7 rad
+       of global yaw, it is 0.47 m out.  Both faults come from the arguments
+       it takes: with only ``(middle, rotation, length)`` there is no way to fix
+       them here.
     """
+    warnings.warn(
+        "element_end_position is deprecated and will be removed: it ignores "
+        "global_rotation and the bending angle, so it disagrees with "
+        "PhysicalElement.end for any element that is oriented or bent. "
+        "Use PhysicalElement.end.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     from ..models.physical import Position  # Avoid circular import
 
     # Vector pointing downstream (positive s)

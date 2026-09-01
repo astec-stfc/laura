@@ -1,39 +1,65 @@
 import os
-import numpy as np
-from pydantic import computed_field, Field
-
-from laura.models.physical import PhysicalElement, Position  # noqa E402
-from laura.models.element import PhysicalBaseElement
-from laura.models.baseModels import IgnoreExtra
-from laura.utils import flatten_dict
-from typing import Dict, Any
+from typing import Any, Dict
 from warnings import warn
 
+import numpy as np
+from pydantic import Field, computed_field
+
+from laura.models.baseModels import IgnoreExtra
+from laura.models.element import PhysicalBaseElement
+from laura.models.physical import PhysicalElement, Position  # noqa E402
+from laura.utils import flatten_dict
+
 from ..converters import (
-    type_conversion_rules,
-    type_conversion_rules_Elegant,
-    type_conversion_rules_Genesis,
-    type_conversion_rules_Opal,
-    type_conversion_rules_Madx,
-    type_conversion_rules_Bmad,
+    elements_Bmad,
     elements_Elegant,
     elements_Genesis,
-    elements_Opal,
     elements_Madx,
-    elements_Bmad,
+    elements_Opal,
+    keyword_conversion_rules_bmad,
+    keyword_conversion_rules_cheetah,
     keyword_conversion_rules_elegant,
     keyword_conversion_rules_genesis,
-    keyword_conversion_rules_ocelot,
-    keyword_conversion_rules_cheetah,
-    keyword_conversion_rules_xsuite,
-    keyword_conversion_rules_wake_t,
-    keyword_conversion_rules_opal,
     keyword_conversion_rules_madx,
-    keyword_conversion_rules_bmad,
+    keyword_conversion_rules_ocelot,
+    keyword_conversion_rules_opal,
+    keyword_conversion_rules_wake_t,
+    keyword_conversion_rules_xsuite,
+    type_conversion_rules,
+    type_conversion_rules_Bmad,
+    type_conversion_rules_Elegant,
+    type_conversion_rules_Genesis,
+    type_conversion_rules_Madx,
+    type_conversion_rules_Opal,
 )
-from ..utils.fields import field
-from ..utils.functions import expand_substitution, checkValue, sanitize_string
 from ..converters.codes.gpt import gpt_ccs
+from ..utils.bmad import bmad_misalignment
+from ..utils.fields import field
+from ..utils.functions import checkValue, expand_substitution, sanitize_string
+
+_ASTRA_ROTATION_SIGN = {"x": -1.0, "y": -1.0, "z": 1.0}
+"""Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family.
+
+ASTRA names these for the plane and then spells out the axis -- "rotation
+angle of the quadrupole in the x-z plane, i.e. around the y-axis" -- so the
+pairing with LAURA's ``x_rot``/``y_rot``/``z_rot``, which name the plane too,
+is name for name.  The signs are not: LAURA's ``Ry`` factor turns the
+opposite way to an ordinary right-handed one, so the two transverse angles
+are negated and the roll is not.
+
+Measured against ASTRA itself rather than read off the manual, with a 0.5 m
+k=2 quadrupole at 1 GeV and a 1 m drift after it: ``Q_xrot = +0.05`` puts the
+beam at x = -0.4503 mm, ``Q_yrot = +0.05`` at y = +1.650 mm, and a
+``Q_zrot = +0.3`` with the beam entering at x = +1 mm sends it to
+y = -0.707 mm.  Bmad reproduces all three to within its differing fringe
+model (-0.4464 mm, +1.7105 mm, -0.7071 mm), and Bmad's own pairing with
+LAURA is fixed by the floor-angle matrix conversion in
+:func:`~laura.translator.utils.bmad.angles.bmad_floor_angles_to_laura`.
+
+This stays here rather than moving to ``utils/bmad`` with the rest: it is
+the ASTRA convention, and the only reason it was ever written next to the
+Bmad one is that the two were measured in the same sitting.
+"""
 
 
 class BaseElementTranslator(PhysicalBaseElement):
@@ -261,12 +287,22 @@ class BaseElementTranslator(PhysicalBaseElement):
                             None
                             if self._resolve_functional
                             else self._raw_edge_angle(
-                                "entrance_edge_angle" if key == "e1" else "exit_edge_angle",
+                                (
+                                    "entrance_edge_angle"
+                                    if key == "e1"
+                                    else "exit_edge_angle"
+                                ),
                                 "elegant",
                             )
                         )
-                        value = raw if raw is not None else (
-                            self.magnetic.KnL(0) if value == "angle" else self.magnetic.KnL(0) / 2
+                        value = (
+                            raw
+                            if raw is not None
+                            else (
+                                self.magnetic.KnL(0)
+                                if value == "angle"
+                                else self.magnetic.KnL(0) / 2
+                            )
                         )
                     elif value == "angle":
                         value = self.magnetic.KnL(0)
@@ -287,6 +323,8 @@ class BaseElementTranslator(PhysicalBaseElement):
                         )
                         if raw is not None:
                             value = raw
+                    elif key == "yaw" and isinstance(value, (int, float)):
+                        value = -value
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
@@ -311,7 +349,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         object
             An Ocelot object representing the element, initialized with its properties.
         """
-        from ocelot.cpbd.elements import Marker, Aperture
+        from ocelot.cpbd.elements import Aperture, Marker
+
         from ..conversion_rules.codes import ocelot_conversion
 
         type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
@@ -357,10 +396,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             A Cheetah object representing the element, initialized with its properties.
         """
         from cheetah.accelerator import Aperture as Aperture_Cheetah
-        from cheetah.accelerator import Screen as Screen_Cheetah
         from cheetah.accelerator import Drift as Drift_Cheetah
+        from cheetah.accelerator import Screen as Screen_Cheetah
+        from torch import float64, tensor
+
         from ..conversion_rules.codes import cheetah_conversion
-        from torch import tensor, float64
 
         type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
@@ -464,7 +504,10 @@ class BaseElementTranslator(PhysicalBaseElement):
                 self._convertKeyword_Xsuite(key) in list(obj.__dict__.keys())
             ):
                 key = self._convertKeyword_Xsuite(key)
-                if key in ["k1", "k2", "k3", "k4", "k5", "k6"] and not self._resolve_functional:
+                if (
+                    key in ["k1", "k2", "k3", "k4", "k5", "k6"]
+                    and not self._resolve_functional
+                ):
                     expr = self._functional_strength_expr(int(key[1]), "xsuite")
                     if expr is not None:
                         value = expr
@@ -483,7 +526,11 @@ class BaseElementTranslator(PhysicalBaseElement):
                             )
                 if self.hardware_type.lower() == "dipole":
                     properties.update({"num_multipole_kicks": 10})
-                if "edge" in key and isinstance(value, str) and not self.is_functional(value):
+                if (
+                    "edge" in key
+                    and isinstance(value, str)
+                    and not self.is_functional(value)
+                ):
                     if value == "angle":
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
@@ -597,8 +644,8 @@ class BaseElementTranslator(PhysicalBaseElement):
             appending.
         """
         from ..conversion_rules.codes.rftrack_conversion import (
-            rftrack_conversion_rules,
             build_drift,
+            rftrack_conversion_rules,
         )
 
         self.start_write()
@@ -610,7 +657,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             )
             builder = build_drift
         obj = builder(self, P_Q=P_Q)
-        for o in (obj if isinstance(obj, list) else [obj]):
+        for o in obj if isinstance(obj, list) else [obj]:
             o.set_name(self.name)
             self._apply_rftrack_aperture(o)
         return obj
@@ -647,8 +694,8 @@ class BaseElementTranslator(PhysicalBaseElement):
             ``SectionLatticeTranslator._save_rftrack_py_file``).
         """
         from ..conversion_rules.codes.rftrack_conversion import (
-            rftrack_repr_rules,
             repr_drift,
+            rftrack_repr_rules,
         )
 
         self.start_write()
@@ -875,7 +922,11 @@ class BaseElementTranslator(PhysicalBaseElement):
                             None
                             if self._resolve_functional
                             else self._raw_edge_angle(
-                                "entrance_edge_angle" if key == "e1" else "exit_edge_angle",
+                                (
+                                    "entrance_edge_angle"
+                                    if key == "e1"
+                                    else "exit_edge_angle"
+                                ),
                                 "madx",
                             )
                         )
@@ -883,7 +934,11 @@ class BaseElementTranslator(PhysicalBaseElement):
                             value = raw
                             deferred = True
                         else:
-                            value = self.magnetic.KnL(0) if value == "angle" else self.magnetic.KnL(0) / 2
+                            value = (
+                                self.magnetic.KnL(0)
+                                if value == "angle"
+                                else self.magnetic.KnL(0) / 2
+                            )
                     elif value == "angle":
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
@@ -969,8 +1024,9 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _convertType_Ocelot(self, etype: str) -> object:
         """Converts the element type to the corresponding Ocelot type using predefined rules."""
-        from ..conversion_rules.codes import ocelot_conversion
         from ocelot.cpbd.elements.drift import Drift as Drift_Oce
+
+        from ..conversion_rules.codes import ocelot_conversion
 
         return self._convert_type(
             etype, ocelot_conversion.ocelot_conversion_rules, Drift_Oce
@@ -982,8 +1038,9 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _convertType_Cheetah(self, etype: str) -> object:
         """Converts the element type to the corresponding Cheetah type using predefined rules."""
-        from ..conversion_rules.codes import cheetah_conversion
         from cheetah.accelerator import Drift as Drift_Che
+
+        from ..conversion_rules.codes import cheetah_conversion
 
         return self._convert_type(
             etype, cheetah_conversion.cheetah_conversion_rules, Drift_Che
@@ -1172,10 +1229,14 @@ class BaseElementTranslator(PhysicalBaseElement):
                         "bmad",
                     )
                 )
-                value = raw if raw is not None else (
-                    self.magnetic.KnL(0)
-                    if value == "angle"
-                    else self.magnetic.KnL(0) / 2
+                value = (
+                    raw
+                    if raw is not None
+                    else (
+                        self.magnetic.KnL(0)
+                        if value == "angle"
+                        else self.magnetic.KnL(0) / 2
+                    )
                 )
             elif key in ("k1", "k2", "k3", "k4"):
                 expression = (
@@ -1183,13 +1244,13 @@ class BaseElementTranslator(PhysicalBaseElement):
                     if self._resolve_functional
                     else self._functional_strength_expr(int(key[1]), "bmad")
                 )
-                value = (
-                    expression
-                    if expression is not None
-                    else getattr(self, key)
-                )
+                value = expression if expression is not None else getattr(self, key)
             elif key == "angle":
-                raw = None if self._resolve_functional else self._raw_multipole_strength(0)
+                raw = (
+                    None
+                    if self._resolve_functional
+                    else self._raw_multipole_strength(0)
+                )
                 value = raw if raw is not None else self.magnetic.KnL(0)
             parameters.setdefault(key, value)
         length = self.length
@@ -1238,6 +1299,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             parameters = self._bmad_parameters(etype)
         else:
             parameters = self._bmad_common_parameters() | parameters
+        parameters.update(bmad_misalignment(self, etype, parameters))
 
         def render(key, value):
             if value is True:
@@ -1249,8 +1311,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             return str(value)
 
         attributes = "".join(
-            f", {key} = {render(key, value)}"
-            for key, value in parameters.items()
+            f", {key} = {render(key, value)}" for key, value in parameters.items()
         )
         return f"{sanitize_string(self.name)}: {etype}{attributes}\n"
 
@@ -1369,34 +1430,45 @@ class BaseElementTranslator(PhysicalBaseElement):
     @computed_field
     @property
     def x_rot(self) -> float:
+        """Design rotation in the x-plane, i.e. about the **y** axis [rad]."""
         return self.physical.rotation.theta
 
     @computed_field
     @property
     def y_rot(self) -> float:
+        """Design rotation in the y-plane, i.e. about the **x** axis [rad]."""
         return self.physical.rotation.phi
 
     @computed_field
     @property
     def z_rot(self) -> float:
+        """Design roll, about the longitudinal (z) axis [rad]."""
         return self.physical.rotation.psi
 
     @computed_field
     @property
     def dx_rot(self) -> float:
+        """Alignment error in the x-plane, i.e. about the **y** axis [rad]."""
         return self.physical.error.rotation.theta
 
     @computed_field
     @property
     def dy_rot(self) -> float:
+        """Alignment error in the y-plane, i.e. about the **x** axis [rad]."""
         return self.physical.error.rotation.phi
 
     @computed_field
     @property
     def dz_rot(self) -> float:
+        """Roll error, about the longitudinal (z) axis [rad]."""
         return self.physical.error.rotation.psi
 
-    def get_field_reference_position(self, if_none: str = 'start') -> np.ndarray:
+    def _astra_rotation(self, plane: str) -> float:
+        """The total design-plus-error rotation for one plane, in ASTRA's sense."""
+        sign = _ASTRA_ROTATION_SIGN[plane]
+        return sign * (getattr(self, f"{plane}_rot") + getattr(self, f"d{plane}_rot"))
+
+    def get_field_reference_position(self, if_none: str = "start") -> np.ndarray:
         """
         Returns the position of the field reference point based on the `field_reference_position` attribute.
 
@@ -1413,9 +1485,16 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         if self.simulation.field_reference_position is not None:
             try:
-                return np.array(list(getattr(
-                    self.physical, self.simulation.field_reference_position.lower()
-                ).model_dump().values()))
+                return np.array(
+                    list(
+                        getattr(
+                            self.physical,
+                            self.simulation.field_reference_position.lower(),
+                        )
+                        .model_dump()
+                        .values()
+                    )
+                )
             except AttributeError:
                 warn(
                     "field_reference_position should be (start/middle/end) not"
@@ -1424,9 +1503,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                 )
         else:
             try:
-                return np.array(list(getattr(
-                    self.physical, if_none.lower()
-                ).model_dump().values()))
+                return np.array(
+                    list(getattr(self.physical, if_none.lower()).model_dump().values())
+                )
             except AttributeError:
                 return np.array(list(self.physical.start.model_dump().values()))
         return np.array(list(self.physical.start.model_dump().values()))
@@ -1443,7 +1522,9 @@ class BaseElementTranslator(PhysicalBaseElement):
             ):
                 field_kwargs = {
                     "filename": expand_substitution(
-                        self, self.simulation.field_definition, self.master_lattice,
+                        self,
+                        self.simulation.field_definition,
+                        self.master_lattice,
                     ),
                     # "field_type": self.field_type,
                 }
@@ -1458,7 +1539,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                 try:
                     self.simulation.field_definition = field(**field_kwargs)
                 except Exception as exc:
-                    raise Exception(f"Setting field definition on {self.name} failed: {field_kwargs}")
+                    raise Exception(
+                        f"Setting field definition on {self.name} failed: {field_kwargs}"
+                    )
             if (
                 hasattr(self.simulation, "wakefield_definition")
                 and self.simulation.wakefield_definition is not None
@@ -1475,7 +1558,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                         cavity_type = (self.cavity.structure_type,)
                     self.simulation.wakefield_definition = field(
                         filename=expand_substitution(
-                            self, self.simulation.wakefield_definition, self.master_lattice,
+                            self,
+                            self.simulation.wakefield_definition,
+                            self.master_lattice,
                         ),
                         # field_type=self.field_type,
                         n_cells=self.cavity.n_cells,
@@ -1484,13 +1569,13 @@ class BaseElementTranslator(PhysicalBaseElement):
                 else:
                     self.simulation.wakefield_definition = field(
                         filename=expand_substitution(
-                            self, self.simulation.wakefield_definition, self.master_lattice,
+                            self,
+                            self.simulation.wakefield_definition,
+                            self.master_lattice,
                         ),
                     )
 
-    def generate_field_file_name(
-        self, param: field, code: str, **kwargs
-    ) -> str | None:
+    def generate_field_file_name(self, param: field, code: str, **kwargs) -> str | None:
         """
         Generates a field file name based on the provided frameworkElement and tracking code.
 

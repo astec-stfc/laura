@@ -345,7 +345,7 @@ class MagnetTranslator(BaseElementTranslator):
                 [
                     "Q_xrot",
                     {
-                        "value": -1 * self.x_rot + self.dx_rot,
+                        "value": self._astra_rotation("x"),
                         "default": None,
                         "type": "not_zero",
                     },
@@ -353,7 +353,7 @@ class MagnetTranslator(BaseElementTranslator):
                 [
                     "Q_yrot",
                     {
-                        "value": -1 * self.y_rot + self.dy_rot,
+                        "value": self._astra_rotation("y"),
                         "default": None,
                         "type": "not_zero",
                     },
@@ -361,7 +361,7 @@ class MagnetTranslator(BaseElementTranslator):
                 [
                     "Q_zrot",
                     {
-                        "value": -1 * self.z_rot + self.dz_rot,
+                        "value": self._astra_rotation("z"),
                         "default": None,
                         "type": "not_zero",
                     },
@@ -690,7 +690,7 @@ class DipoleTranslator(BaseElementTranslator):
                     ["D3", {"type": "array", "value": [corners[2][0], corners[2][2]]}],
                     ["D4", {"type": "array", "value": [corners[1][0], corners[1][2]]}],
                     ["D2", {"type": "array", "value": [corners[0][0], corners[0][2]]}],
-                    ["D_zrot", {"value": self.z_rot + self.dz_rot, "default": 0}],
+                    ["D_zrot", {"value": self._astra_rotation("z"), "default": 0}],
                 ]
             )
             if field_strength > 0 or not abs(self.magnetic.rho) > 0:
@@ -1149,8 +1149,8 @@ class SolenoidTranslator(BaseElementTranslator):
                     ["S_smooth", {"value": self.simulation.smooth, "default": 10}],
                     ["S_xoff", {"value": field_ref_pos[0] + self.dx, "default": 0}],
                     ["S_yoff", {"value": field_ref_pos[1] + self.dy, "default": 0}],
-                    ["S_xrot", {"value": self.x_rot + self.dx_rot, "default": 0}],
-                    ["S_yrot", {"value": self.y_rot + self.dy_rot, "default": 0}],
+                    ["S_xrot", {"value": self._astra_rotation("x"), "default": 0}],
+                    ["S_yrot", {"value": self._astra_rotation("y"), "default": 0}],
                 ]
             ),
             n,

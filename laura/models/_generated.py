@@ -481,7 +481,7 @@ class _PositionBase(ConfiguredBaseModel):
 
 class _RotationBase(ConfiguredBaseModel):
     """
-    Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi].
+    Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi]. The composition is Rz(psi) . Rx(phi) . Ry(theta), as implemented by laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each angle below names the axis that factor turns about. psi and theta were described the other way round until 2026-09-01, which is how the Bmad importer came to read x_pitch (a rotation about y) into psi.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Rotation',
          'from_schema': 'https://w3id.org/laura/schema/geometry',
@@ -491,14 +491,14 @@ class _RotationBase(ConfiguredBaseModel):
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'rad'}} })
     """Rotation about the horizontal (x) axis [rad]."""
-    psi: float = Field(default=0, description="""Rotation about the vertical (y) axis [rad].""", ge=-3.141592653589793, le=3.141592653589793, json_schema_extra = { "linkml_meta": {'domain_of': ['Rotation'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'rad'}} })
-    """Rotation about the vertical (y) axis [rad]."""
-    theta: float = Field(default=0, description="""Rotation about the longitudinal (z) axis [rad].""", ge=-3.141592653589793, le=3.141592653589793, json_schema_extra = { "linkml_meta": {'domain_of': ['Rotation'],
+    psi: float = Field(default=0, description="""Rotation about the longitudinal (z) axis [rad].""", ge=-3.141592653589793, le=3.141592653589793, json_schema_extra = { "linkml_meta": {'domain_of': ['Rotation'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'rad'}} })
     """Rotation about the longitudinal (z) axis [rad]."""
+    theta: float = Field(default=0, description="""Rotation about the vertical (y) axis [rad].""", ge=-3.141592653589793, le=3.141592653589793, json_schema_extra = { "linkml_meta": {'domain_of': ['Rotation'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'rad'}} })
+    """Rotation about the vertical (y) axis [rad]."""
 
 
 class _ElementPositionErrorBase(ConfiguredBaseModel):

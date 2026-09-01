@@ -1,29 +1,33 @@
-from pydantic import BaseModel, Field, PrivateAttr, model_validator
-from typing import Dict, Any, List, Optional, Union
-from warnings import warn
-from . import magnetic_orders
-import laura.models.element as LAURA_elements
-from laura.models.elementList import (
-    SectionLattice,
-    MachineLayout,
-    MachineModel,
-    ElementList,
-)
-from laura.models.element import (
-    Element,
-    Combined_Corrector,
-    Vertical_Corrector,
-    Horizontal_Corrector,
-)
-from ....Exporters.YAML import export_machine_combined_file, PositionMode
-from .. import keyword_conversion_rules_bmad, type_conversion_rules_Bmad
-from ...utils.functions import number_repeated_names, merge_layout_elements
 import math
-from itertools import permutations
-import numpy as np
 import re
 import tempfile
+from itertools import permutations
 from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Union
+from warnings import warn
+
+import numpy as np
+from pydantic import BaseModel, Field, PrivateAttr, model_validator
+
+import laura.models.element as LAURA_elements
+from laura.models.element import (
+    Combined_Corrector,
+    Element,
+    Horizontal_Corrector,
+    Vertical_Corrector,
+)
+from laura.models.elementList import (
+    ElementList,
+    MachineLayout,
+    MachineModel,
+    SectionLattice,
+)
+
+from ....Exporters.YAML import PositionMode, export_machine_combined_file
+from ...utils.bmad import bmad_floor_angles_to_laura, is_flat_roll, is_half_turn
+from ...utils.functions import merge_layout_elements, number_repeated_names
+from .. import keyword_conversion_rules_bmad, type_conversion_rules_Bmad
+from . import magnetic_orders
 
 _SILENTLY_SKIPPED_TYPES = ("Drift", "Pipe")
 
@@ -32,6 +36,22 @@ _CAVITY_TYPES = ("Lcavity", "RFCavity", "Crab_Cavity", "E_Gun")
 _COLLIMATOR_TYPES = ("ECollimator", "RCollimator")
 
 _MULTIPOLE_TYPES = ("Multipole", "AB_multipole", "Thick_Multipole", "Sad_Mult")
+
+_MARKER_TYPES = ("Marker", "Monitor", "Instrument", "Fixer")
+
+_PATCH_GEOMETRIC_ATTRIBUTES = (
+    "X_OFFSET",
+    "Y_OFFSET",
+    "X_PITCH",
+    "Y_PITCH",
+    "TILT",
+)
+
+_PATCH_ENERGY_ATTRIBUTES = ("DELTA_E_REF",)
+
+_PATCH_TRANSFORM_ATTRIBUTES = _PATCH_GEOMETRIC_ATTRIBUTES + _PATCH_ENERGY_ATTRIBUTES
+
+_PATCH_TRANSFORM_TOLERANCE = 1e-12
 
 _ORDER_TYPES = {0: "Dipole", 1: "Quadrupole", 2: "Sextupole", 3: "Octupole"}
 
@@ -53,41 +73,90 @@ def _switch_dict() -> Dict[str, str]:
             "e_gun": "RFCavity",
             "beambeam": "BeamBeam",
             "instrument": "Diagnostic",
+            "fixer": "Marker",
         }
     )
     return switch
 
 
-def _floor_to_physical(floor: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
+def _floor_to_physical(
+    floor: Dict[str, Any],
+    position_key: str = "datum",
+    orientation: Optional[Dict[str, Any]] = None,
+    roll: float = 0.0,
+) -> Dict[str, Dict[str, float]]:
     """
     Convert a Tao ``ele_floor`` record to LAURA ``datum``/``global_rotation``.
-    Bmad's ``theta`` (vertical) corresponds to LAURA's ``psi``, so
-    these are switched over.
+    The three floor angles are re-expressed by
+    :func:`bmad_floor_angles_to_laura`, which goes through the rotation matrix
+    rather than renaming axes -- see there for why a rename cannot work.
+
+    ``position_key`` selects where the position lands. ``"datum"`` is the
+    section's reference point, used for the ``Beginning_Ele``. ``"middle"`` is
+    the element centre and is what actually *places* an element.
+
+    ``orientation`` supplies the angles from a *different* record than the
+    position, and floor mode passes the ``where="beginning"`` one.
+
+    ``roll`` is a bend's ``REF_TILT``, which has to be added here rather than
+    read off the floor record.
     """
     reference = floor.get("Reference")
     if reference is None or len(reference) < 6:
         return {}
-    x, y, z, theta, phi, psi = (float(v) for v in reference[:6])
+    angles = (orientation or floor).get("Reference")
+    if angles is None or len(angles) < 6:
+        angles = reference
+    x, y, z = (float(v) for v in reference[:3])
+    theta, phi, psi = (float(v) for v in angles[3:6])
     return {
-        "datum": {"x": x, "y": y, "z": z},
-        "global_rotation": {"phi": phi, "psi": theta, "theta": psi},
+        position_key: {"x": x, "y": y, "z": z},
+        "global_rotation": bmad_floor_angles_to_laura(theta, phi, psi + roll),
     }
 
 
 def _misalignment(parameters: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
     """
     Convert an element's Bmad misalignment attributes to LAURA's
-    ``physical.error``. See :func:`_floor_to_physical` --
-    angle names are swapped around.
+    ``physical.error``.
+
+    Neither code names these for the axis the rotation turns about. Bmad's
+    ``x_pitch`` is a rotation about **y** and ``y_pitch`` is about x; LAURA's
+    ``Rotation`` is read through
+    :func:`~laura.utils.rotation_matrix.euler_angles_to_rotation_matrix`, where
+    ``theta`` is the ``Ry`` factor, ``phi`` the ``Rx`` and ``psi`` the ``Rz``.
+    So ``x_pitch`` pairs with ``theta`` and ``y_pitch`` with ``phi``.
+
+    Both cross over in sign, and that is not a guess: a ``patch, x_pitch = 0.05``
+    surveys to a Bmad floor ``theta`` of ``+0.05``, which
+    :func:`bmad_floor_angles_to_laura` -- the matrix conversion, which is the
+    definition of what these angles mean in LAURA -- turns into a LAURA ``theta``
+    of ``-0.05``; the same holds for ``y_pitch`` and ``phi``. LAURA's ``Ry``
+    factor carries the opposite sign to an ordinary right-handed ``Ry``, so a
+    Bmad pitch and a LAURA angle of the same number are opposite rotations. The
+    two were copied straight across until 2026-09-01, which left an imported
+    misalignment disagreeing in sign with the ``global_rotation`` of the very
+    same element, since that comes through the matrix conversion. A round trip
+    could not see it: the export made the same mistake and cancelled it.
+
+    ``psi`` does not cross over -- the roll is the one angle LAURA and Bmad
+    already agree on.
+
+    The roll, ``psi``, comes from ``ROLL``, which only a bend has: a bend keeps
+    its design plane in ``REF_TILT`` and its roll error in ``ROLL``, so the two
+    are separable. Every other type has just ``TILT``, which Bmad defines as the
+    design tilt and the roll error added together and offers no way to take
+    apart; it is read as ``magnetic.tilt`` in full, and ``psi`` stays zero
+    rather than counting the same angle twice.
     """
     position = {
         axis: float(parameters.get(f"{axis.upper()}_OFFSET", 0.0) or 0.0)
         for axis in ("x", "y", "z")
     }
     rotation = {
-        "phi": float(parameters.get("Y_PITCH", 0.0) or 0.0),
-        "psi": float(parameters.get("X_PITCH", 0.0) or 0.0),
-        "theta": 0.0,
+        "phi": -float(parameters.get("Y_PITCH", 0.0) or 0.0),
+        "psi": float(parameters.get("ROLL", 0.0) or 0.0),
+        "theta": -float(parameters.get("X_PITCH", 0.0) or 0.0),
     }
     if not any(position.values()) and not any(rotation.values()):
         return {}
@@ -107,7 +176,11 @@ def _aperture(parameters: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
         "aperture": {
             "horizontal_size": limits["X1_LIMIT"] + limits["X2_LIMIT"],
             "vertical_size": limits["Y1_LIMIT"] + limits["Y2_LIMIT"],
-            "shape": shape if shape in ("rectangular", "elliptical", "circular") else "rectangular",
+            "shape": (
+                shape
+                if shape in ("rectangular", "elliptical", "circular")
+                else "rectangular"
+            ),
         }
     }
 
@@ -153,9 +226,7 @@ def _ac_kicker_data(tao, element_id: str) -> Dict[str, list]:
         if line.startswith("has#"):
             section = line.partition("#")[2].lower()
         elif section in result:
-            result[section].append(
-                tuple(float(value) for value in line.split(";")[1:])
-            )
+            result[section].append(tuple(float(value) for value in line.split(";")[1:]))
     return result
 
 
@@ -177,7 +248,9 @@ def _taylor_matrices(taylor: Dict[str, Any]):
             coefficient = term["coef"]
             if degree > 3:
                 raise ValueError(f"contains an orbital term of order {degree}")
-            indices = [index for index, power in enumerate(powers) for _ in range(power)]
+            indices = [
+                index for index, power in enumerate(powers) for _ in range(power)
+            ]
             if degree == 0:
                 c_matrix[output] += coefficient
             elif degree == 1:
@@ -186,7 +259,9 @@ def _taylor_matrices(taylor: Dict[str, Any]):
                 unique_indices = set(permutations(indices))
                 tensor = t_matrix if degree == 2 else u_matrix
                 for tensor_indices in unique_indices:
-                    tensor[(output, *tensor_indices)] += coefficient / len(unique_indices)
+                    tensor[(output, *tensor_indices)] += coefficient / len(
+                        unique_indices
+                    )
 
     t_feeddown = np.einsum("ijk,k->ij", t_matrix, ref)
     u_feeddown = np.einsum("ijkl,l->ijk", u_matrix, ref)
@@ -197,9 +272,7 @@ def _taylor_matrices(taylor: Dict[str, Any]):
         - np.einsum("ijkl,j,k,l->i", u_matrix, ref, ref, ref)
     )
     r_matrix = (
-        r_matrix
-        - 2 * t_feeddown
-        + 3 * np.einsum("ijkl,k,l->ij", u_matrix, ref, ref)
+        r_matrix - 2 * t_feeddown + 3 * np.einsum("ijkl,k,l->ij", u_matrix, ref, ref)
     )
     t_matrix = t_matrix - 3 * u_feeddown
     return c_matrix, r_matrix, t_matrix, u_matrix
@@ -218,21 +291,14 @@ class BmadTaoInit(BaseModel):
         return self
 
     def render(self) -> str:
-        targets = [
-            f"{self.lattice_file}@{line}" for line in self.lines
-        ] or [self.lattice_file]
+        targets = [f"{self.lattice_file}@{line}" for line in self.lines] or [
+            self.lattice_file
+        ]
         entries = "\n".join(
-            "  design_lattice({})%file = '{}'".format(
-                index, target.replace("'", "''")
-            )
+            "  design_lattice({})%file = '{}'".format(index, target.replace("'", "''"))
             for index, target in enumerate(targets, 1)
         )
-        return (
-            "&tao_design_lattice\n"
-            f"  n_universes = {len(targets)}\n"
-            f"{entries}\n"
-            "/\n"
-        )
+        return f"&tao_design_lattice\n  n_universes = {len(targets)}\n{entries}\n/\n"
 
     def write(self, path: str | Path) -> Path:
         path = Path(path)
@@ -241,7 +307,6 @@ class BmadTaoInit(BaseModel):
 
 
 class BmadLatticeImporter(BaseModel):
-
     machine_area: str = "Lattice"
 
     tao_init: Optional[str] = None
@@ -255,6 +320,18 @@ class BmadLatticeImporter(BaseModel):
 
     libtao: Optional[str] = None
     """libtao.so file"""
+
+    position_mode: Literal["floor", "s"] = "floor"
+    """How element placement is taken from Tao.
+
+    ``"floor"`` (default) reads Tao's surveyed floor coordinates for every
+    element and places it in absolute world coordinates, so LAURA inherits the
+    machine geometry rather than re-deriving it.
+
+    ``"s"`` instead hands Bmad's cumulative arc-length to LAURA as
+    ``physical.s``. The resulting ``s`` is exact, but the *world*
+    coordinates are not; use with caution.
+    """
 
     elements: Dict = {}
     """Dictionary containing converted LAURA element objects"""
@@ -359,21 +436,17 @@ class BmadLatticeImporter(BaseModel):
         return None
 
     def model_post_init(self, __context: Any) -> None:
-        from pytao import Tao, TaoCommandError
+        from pytao import Tao
 
         self._read_functional_definitions()
 
         tao = Tao(f"-init {self._tao_init_path()} -noplot", so_lib=self.libtao)
-        while True:
-            try:
-                tao.universe(str(self.n_universes))
-            except TaoCommandError as e:
-                print(f"TaoCommandError when loading universe; {e}")
-                break
+        universe_count = tao.super_universe()["n_universe"]
+        while self.n_universes <= universe_count:
             self.branches.update(
                 {
                     self.n_universes: [
-                        f'{i["branch_name"]}_{self.n_universes}'
+                        f"{i['branch_name']}_{self.n_universes}"
                         for i in tao.lat_branch_list(ix_uni=self.n_universes)
                     ]
                 }
@@ -403,19 +476,20 @@ class BmadLatticeImporter(BaseModel):
                 for i, etype in enumerate(types):
                     element_id = f"{self.n_universes}@{ind}>>{i}"
                     attributes = tao.ele_gen_attribs(element_id)
+                    if self.position_mode == "floor":
+                        attributes["_FLOOR"] = tao.ele_floor(element_id, where="center")
+                        attributes["_FLOOR_ENTRANCE"] = tao.ele_floor(
+                            element_id, where="beginning"
+                        )
                     if etype == "Match":
                         matrix = tao.ele_mat6(element_id, who="mat6")
-                        attributes["_MAT6"] = [
-                            matrix[str(row)] for row in range(1, 7)
+                        attributes["_MAT6"] = [matrix[str(row)] for row in range(1, 7)]
+                        attributes["_VEC0"] = tao.ele_mat6(element_id, who="vec0")[
+                            "vec0"
                         ]
-                        attributes["_VEC0"] = tao.ele_mat6(
-                            element_id, who="vec0"
-                        )["vec0"]
                     elif etype == "Taylor":
                         attributes["_TAYLOR"] = tao.ele_taylor(element_id)
-                        attributes["_SPIN_TAYLOR"] = tao.ele_spin_taylor(
-                            element_id
-                        )
+                        attributes["_SPIN_TAYLOR"] = tao.ele_spin_taylor(element_id)
                     elif etype in _MULTIPOLE_TYPES:
                         attributes["_MULTIPOLES"] = tao.ele_multipoles(element_id)
                     elif etype == "AC_Kicker":
@@ -428,6 +502,17 @@ class BmadLatticeImporter(BaseModel):
                             ele=f"{ind}>>{i}",
                             s_offset=0.0,
                         )
+                    elif etype == "Fixer":
+                        attributes["_ACTIVE"] = bool(
+                            tao.ele_head(element_id).get("is_on")
+                        )
+                        if attributes["_ACTIVE"]:
+                            attributes["_TWISS"] = tao.ele_twiss(element_id)
+                            attributes["_COUPLING"] = tao.twiss_at_s(
+                                ix_uni=self.n_universes,
+                                ele=f"{ind}>>{i}",
+                                s_offset=0.0,
+                            )
                     params.append(attributes)
                 self.names[self.n_universes].update({b: names})
                 self.names_numbered[self.n_universes].update({b: names_numbered})
@@ -438,25 +523,121 @@ class BmadLatticeImporter(BaseModel):
                 self.laura_elems[self.n_universes].update({b: {}})
             self.n_universes += 1
         self.branches = {
-            k: [f'{i["branch_name"]}_{k}' for i in tao.lat_branch_list(ix_uni=k)]
+            k: [f"{i['branch_name']}_{k}" for i in tao.lat_branch_list(ix_uni=k)]
             for k in range(1, self.n_universes)
         }
 
     def _physical_common(self, universe: int, b: str, i: int) -> dict:
         """Build this element's shared ``physical`` sub-dict (position + length).
 
-        Bmad's own cumulative arc-length is handed straight to LAURA as
-        ``physical.s``/``s_point``, fed into ``resolve_positions()``.
+        Under ``position_mode="s"`` Bmad's own cumulative arc-length is handed
+        straight to LAURA as ``physical.s``/``s_point``, fed into
+        ``resolve_positions()``.
+
+        Under ``position_mode="floor"`` the element is placed directly at Tao's
+        surveyed coordinates instead.
         """
+        parameters = self.params[universe][b][i]
+        common = {
+            "length": float(self.lengths[universe][b][i]),
+            **_misalignment(parameters),
+        }
+        angle = parameters.get("ANGLE")
+        roll = 0.0
+        if angle:
+            geometric = -float(angle)
+            roll = float(parameters.get("REF_TILT") or 0.0)
+            if is_flat_roll(roll):
+                geometric = -geometric if is_half_turn(roll) else geometric
+                roll = 0.0
+            common["physical_angle"] = geometric
+        if self.position_mode == "floor":
+            floor = _floor_to_physical(
+                parameters.get("_FLOOR", {}),
+                "middle",
+                parameters.get("_FLOOR_ENTRANCE"),
+                roll,
+            )
+            if floor:
+                return {**common, **floor}
         return {
             "s": self.spos[universe][b][i],
             "s_point": "end",
-            "length": float(self.lengths[universe][b][i]),
-            **_misalignment(self.params[universe][b][i]),
+            **common,
         }
 
     def create_element_dictionary(self, universe: int) -> Dict[str, Dict[str, Element]]:
         return self.create_laura_element_dictionary(universe)
+
+    def _store_marker(
+        self,
+        universe: int,
+        branch: str,
+        name: str,
+        physical: dict,
+        parameters: Dict[str, Any],
+        hardware_type: str,
+    ) -> None:
+        """Store *name* as a point-like element, keeping only its placement.
+
+        Used both for Bmad's genuinely point-like keys and as the fallback for
+        elements LAURA has no strength model for.
+        """
+        self.laura_elems[universe][branch].update(
+            {
+                name: getattr(LAURA_elements, hardware_type)(
+                    physical=dict(physical),
+                    name=name,
+                    hardware_type=hardware_type,
+                    machine_area=getattr(self, "machine_area", "Lattice"),
+                    **_aperture(parameters),
+                )
+            }
+        )
+
+    def _store_twiss_point(
+        self,
+        universe: int,
+        branch: str,
+        name: str,
+        physical: dict,
+        parameters: Dict[str, Any],
+    ) -> None:
+        """Store *name* as the point where the design Twiss is declared.
+
+        Bmad has two elements that do this and no third: ``beginning_ele``, at
+        the head of every branch, and the one ``fixer`` a branch may nominate in
+        its place. Neither touches the beam, and LAURA holds both as a zero-length
+        ``TwissMatch``.
+
+        The export is not symmetric; `TwissMatch` is faithful, while a mid-line
+        fixer imports faithfully and exports approximately.
+        """
+        twiss = parameters.get("_TWISS", {})
+        if not twiss:
+            return
+        self._warn_unsupported_coupling(twiss, parameters, name)
+        self.laura_elems[universe][branch].update(
+            {
+                name: LAURA_elements.TwissMatch(
+                    physical=dict(physical),
+                    name=name,
+                    hardware_type="TwissMatch",
+                    machine_area=getattr(self, "machine_area", "Lattice"),
+                    simulation={
+                        "beta_x": twiss["beta_a"],
+                        "beta_y": twiss["beta_b"],
+                        "alpha_x": twiss["alpha_a"],
+                        "alpha_y": twiss["alpha_b"],
+                        "eta_x": twiss["eta_x"],
+                        "eta_y": twiss["eta_y"],
+                        "eta_xp": twiss["etap_x"],
+                        "eta_yp": twiss["etap_y"],
+                        "from_beam": False,
+                    },
+                )
+            }
+        )
 
     def create_laura_element_dictionary(
         self, universe: int
@@ -504,18 +685,18 @@ class BmadLatticeImporter(BaseModel):
                         "hardware_type": mapped_type,
                         "magnetic": {
                             "length": length,
-                            target: self._symbol(
-                                nam.split(".", 1)[0], kick
-                            ) or parameters[kick],
+                            target: self._symbol(nam.split(".", 1)[0], kick)
+                            or parameters[kick],
                         },
                     }
                 elif etype in magnetic_orders:
                     hardware_type = mapped_type
                     order = magnetic_orders[hardware_type]
                     try:
-                        normal = self._symbol(
-                            nam.split(".", 1)[0], f"K{order}", length
-                        ) or parameters[f"K{order}"] * length
+                        normal = (
+                            self._symbol(nam.split(".", 1)[0], f"K{order}", length)
+                            or parameters[f"K{order}"] * length
+                        )
                         kl = {
                             "multipoles": {
                                 f"K{order}L": {
@@ -525,9 +706,10 @@ class BmadLatticeImporter(BaseModel):
                             },
                         }
                     except KeyError:
-                        angle = self._symbol(
-                            nam.split(".", 1)[0], "ANGLE"
-                        ) or parameters["ANGLE"]
+                        angle = (
+                            self._symbol(nam.split(".", 1)[0], "ANGLE")
+                            or parameters["ANGLE"]
+                        )
                         kl = {
                             "multipoles": {
                                 f"K{order}L": {
@@ -546,13 +728,16 @@ class BmadLatticeImporter(BaseModel):
                     if gap in parameters:
                         kl.update({"gap": parameters[gap]})
                     hgap = _native_keyword(hardware_type, "half_gap")
-                    if hgap in parameters and parameters[hgap]:
+                    if hgap in parameters:
                         kl["gap"] = 2 * parameters[hgap]
                     fint = _native_keyword(hardware_type, "edge_field_integral")
                     if fint in parameters:
                         kl["edge_field_integral"] = parameters[fint]
-                    if parameters.get("TILT"):
-                        kl["tilt"] = parameters["TILT"]
+                    tilt = parameters.get(
+                        _native_keyword(hardware_type, "tilt")
+                    ) or parameters.get("TILT")
+                    if tilt:
+                        kl["tilt"] = tilt
                     elem_data = {
                         "hardware_type": hardware_type,
                         "magnetic": {"order": order, "length": length, **kl},
@@ -561,13 +746,15 @@ class BmadLatticeImporter(BaseModel):
                     hardware_type = mapped_type
                     n_cells = parameters.get(
                         _native_keyword(hardware_type, "n_cells"), 1
-                    ) or 1
+                    )
+                    n_cells = int(n_cells) if n_cells and n_cells >= 1 else 1
                     elem_data = {
                         "hardware_type": hardware_type,
                         "cavity": {
                             "phase": parameters.get(
                                 _native_keyword(hardware_type, "phase"), 0.0
-                            ) * 360.0,
+                            )
+                            * 360.0,
                             "frequency": parameters[
                                 _native_keyword(hardware_type, "frequency")
                             ],
@@ -608,9 +795,7 @@ class BmadLatticeImporter(BaseModel):
                         },
                     }
                 elif etype == "Solenoid":
-                    bs_field = parameters.get(
-                        _native_keyword(mapped_type, "ks"), 0.0
-                    )
+                    bs_field = parameters.get(_native_keyword(mapped_type, "ks"), 0.0)
                     elem_data = {
                         "hardware_type": mapped_type,
                         "magnetic": {
@@ -625,9 +810,8 @@ class BmadLatticeImporter(BaseModel):
                         "hardware_type": mapped_type,
                         "magnetic": {
                             "length": length,
-                            "k1l": self._symbol(
-                                nam.split(".", 1)[0], k1, length
-                            ) or parameters.get(k1, 0.0) * length,
+                            "k1l": self._symbol(nam.split(".", 1)[0], k1, length)
+                            or parameters.get(k1, 0.0) * length,
                             "solenoid_fields": {
                                 "S0L": parameters.get(bs_field, 0.0) * length
                             },
@@ -695,12 +879,10 @@ class BmadLatticeImporter(BaseModel):
                         "hardware_type": mapped_type,
                         "aperture": {
                             "horizontal_size": (
-                                parameters.get(x1, 0.0)
-                                + parameters.get(x2, 0.0)
+                                parameters.get(x1, 0.0) + parameters.get(x2, 0.0)
                             ),
                             "vertical_size": (
-                                parameters.get(y1, 0.0)
-                                + parameters.get(y2, 0.0)
+                                parameters.get(y1, 0.0) + parameters.get(y2, 0.0)
                             ),
                         },
                     }
@@ -719,7 +901,18 @@ class BmadLatticeImporter(BaseModel):
                             }
                     if not poles:
                         warn(
-                            f"Bmad {etype} {nam!r} has no multipole content; skipping."
+                            f"Bmad {etype} {nam!r} has no multipole content; "
+                            "imported as a Marker, since there is no order to "
+                            "give a zero-strength magnet."
+                            + (
+                                f" Its {length} m length is dependent on the"
+                                " Bmad element key and is dropped on export."
+                                if length
+                                else ""
+                            )
+                        )
+                        self._store_marker(
+                            universe, b, nam, phys_common, parameters, "Marker"
                         )
                     else:
                         highest = max(int(k[1:-1]) for k in poles)
@@ -785,44 +978,62 @@ class BmadLatticeImporter(BaseModel):
                             "width": parameters.get("SIG_Z"),
                         },
                     }
-                elif etype in ("Marker", "Monitor", "Instrument"):
-                    markelem = {
-                        "physical": dict(phys_common),
-                        "name": nam,
-                        "hardware_type": mapped_type,
-                        "machine_area": getattr(self, "machine_area", "Lattice"),
-                        **_aperture(parameters),
-                    }
-                    self.laura_elems[universe][b].update(
-                        {nam: getattr(LAURA_elements, markelem["hardware_type"])(**markelem)}
-                    )
+                elif etype in _MARKER_TYPES:
+                    if etype == "Fixer" and parameters.get("_ACTIVE"):
+                        self._store_twiss_point(
+                            universe, b, nam, phys_common, parameters
+                        )
+                    else:
+                        if etype == "Fixer":
+                            warn(
+                                f"Bmad Fixer {nam!r} is not the active fixer, so "
+                                "its stored orbit and Twiss are not this "
+                                "branch's; it is imported as a Marker and they "
+                                "are dropped."
+                            )
+                        self._store_marker(
+                            universe, b, nam, phys_common, parameters, mapped_type
+                        )
                 elif etype == "Beginning_Ele":
-                    twiss = parameters.get("_TWISS", {})
-                    if twiss:
-                        self._warn_unsupported_coupling(twiss, parameters, nam)
+                    if parameters.get("_TWISS"):
                         physical = dict(phys_common)
                         physical.update(
                             _floor_to_physical(parameters.get("_FLOOR", {}))
                         )
-                        markelem = {
-                            "physical": physical,
-                            "name": nam,
-                            "hardware_type": "TwissMatch",
-                            "machine_area": getattr(self, "machine_area", "Lattice"),
-                            "simulation": {
-                                "beta_x": twiss["beta_a"],
-                                "beta_y": twiss["beta_b"],
-                                "alpha_x": twiss["alpha_a"],
-                                "alpha_y": twiss["alpha_b"],
-                                "eta_x": twiss["eta_x"],
-                                "eta_y": twiss["eta_y"],
-                                "eta_xp": twiss["etap_x"],
-                                "eta_yp": twiss["etap_y"],
-                                "from_beam": False,
-                            },
-                        }
-                        self.laura_elems[universe][b].update(
-                            {nam: LAURA_elements.TwissMatch(**markelem)}
+                        self._store_twiss_point(universe, b, nam, physical, parameters)
+                elif etype == "Patch":
+                    transform = {
+                        key: parameters[key]
+                        for key in _PATCH_TRANSFORM_ATTRIBUTES
+                        if abs(parameters.get(key) or 0.0) > _PATCH_TRANSFORM_TOLERANCE
+                    }
+                    described = ", ".join(
+                        f"{key}={value}"
+                        for key, value in transform.items()
+                        if key in _PATCH_GEOMETRIC_ATTRIBUTES
+                    )
+                    if described and self.position_mode == "s":
+                        warn(
+                            f"Bmad Patch {nam!r} moves the reference frame "
+                            f"({described}). position_mode='s' integrates"
+                            " geometry from element lengths and bend angles and"
+                            " cannot represent the shift, so every element after"
+                            " this one is placed as though the patch were"
+                            " absent. Import with position_mode='floor' to take"
+                            " the placement from Tao instead."
+                        )
+                    energy = ", ".join(
+                        f"{key}={value}"
+                        for key, value in transform.items()
+                        if key in _PATCH_ENERGY_ATTRIBUTES
+                    )
+                    if energy:
+                        warn(
+                            f"Bmad Patch {nam!r} changes the reference energy "
+                            f"({energy}). LAURA has no element for a"
+                            " reference-energy jump, so it is dropped and the"
+                            " reference energy downstream of this patch is"
+                            " wrong."
                         )
                 elif etype not in _SILENTLY_SKIPPED_TYPES:
                     warn(
@@ -879,7 +1090,7 @@ class BmadLatticeImporter(BaseModel):
         return self.laura_elems[universe]
 
     def _reference_energy(self, universe: int, branch: str) -> float | None:
-        """Reference total energy [eV] at the start of ``branch``.        """
+        """Reference total energy [eV] at the start of ``branch``."""
         types = self.types.get(universe, {}).get(branch, [])
         for index, etype in enumerate(types):
             if etype == "Beginning_Ele":
@@ -887,12 +1098,12 @@ class BmadLatticeImporter(BaseModel):
                 return float(e_tot) if e_tot is not None else None
         return None
 
-    def _warn_unsupported_coupling(self, twiss: Dict[str, Any], attributes: Dict[str, Any], name: str) -> None:
-        """Warn that Bmad's transverse coupling description is not imported.        """
+    def _warn_unsupported_coupling(
+        self, twiss: Dict[str, Any], attributes: Dict[str, Any], name: str
+    ) -> None:
+        """Warn that Bmad's transverse coupling description is not imported."""
         if twiss.get("mode_flip") or attributes.get("MODE_FLIP"):
-            warn(
-                f"Bmad lattice has mode_flip=True at {name!r}: currently unsupported."
-            )
+            warn(f"Bmad lattice has mode_flip=True at {name!r}: currently unsupported.")
         coupling = attributes.get("_COUPLING", {})
         cmat = [coupling.get(f"c_mat{ij}", 0.0) for ij in ("11", "12", "21", "22")]
         if any(cmat):
@@ -911,12 +1122,16 @@ class BmadLatticeImporter(BaseModel):
         branch_params = self.branch_params.get(universe, {}).get(branch, {})
         geometry = branch_params.get("param_geometry")
         seclat = SectionLattice(
-            order=order, elements=ElementList(elements=elems), name=branch,
+            order=order,
+            elements=ElementList(elements=elems),
+            name=branch,
             functional_definitions=self.functional_definitions,
             geometry=str(geometry).lower() if geometry else None,
             reference_energy=self._reference_energy(universe, branch),
         )
         seclat.resolve_positions(elems)
+        if self.position_mode == "floor":
+            self._restore_arc_length(universe, branch, elems)
         for name, elem in elems.items():
             if elem.is_subelement():
                 parent = elems.get(elem.subelement)
@@ -928,14 +1143,32 @@ class BmadLatticeImporter(BaseModel):
                     elem.physical.global_rotation = parent.physical.global_rotation
         return {branch: seclat}
 
-    def create_layout(
-        self, universe: int, name: Optional[str] = None
-    ) -> MachineLayout:
+    def _restore_arc_length(
+        self, universe: int, branch: str, elems: Dict[str, Element]
+    ) -> None:
+        """Write Bmad's own arc-length back after a ``floor``-mode resolve."""
+        lengths = self.lengths[universe][branch]
+        spos = self.spos[universe][branch]
+        for i, name in enumerate(self.names_numbered[universe][branch]):
+            element = elems.get(name)
+            if element is None or element.physical is None:
+                continue
+            physical = element.physical
+            physical._syncing = True
+            try:
+                # Bmad reports s at the exit; LAURA holds it at the centre.
+                physical.s = spos[i] - float(lengths[i]) / 2.0
+                physical.s_point = "middle"
+            finally:
+                physical._syncing = False
+
+    def create_layout(self, universe: int, name: Optional[str] = None) -> MachineLayout:
         layout = {}
         for branch in list(self.names_numbered[universe].keys()):
             layout.update(self.create_section(universe, branch))
         return MachineLayout(
-            name=name or str(universe), sections=layout,
+            name=name or str(universe),
+            sections=layout,
             functional_definitions=self.functional_definitions,
             particle=self._particle(universe),
         )
@@ -982,6 +1215,8 @@ class BmadLatticeImporter(BaseModel):
         elements = {}
         section_definitions = {}
         layout_definitions = {}
+        section_metadata = {}
+        layout_particles = {}
         skipped_sections = []
 
         for universe in sorted(self.branches):
@@ -1008,9 +1243,14 @@ class BmadLatticeImporter(BaseModel):
                     section.order,
                     layout_name,
                 )
+                section_metadata[section_name] = (
+                    section.geometry,
+                    section.reference_energy,
+                )
                 layout_sections.append(section_name)
             if layout_sections:
                 layout_definitions[layout_name] = layout_sections
+                layout_particles[layout_name] = layout.particle
 
         if skipped_sections:
             warn(
@@ -1019,12 +1259,12 @@ class BmadLatticeImporter(BaseModel):
             )
         if not layout_definitions:
             raise ValueError(
-                "No BMAD layouts meet min_section_length="
-                f"{min_section_length}."
+                f"No BMAD layouts meet min_section_length={min_section_length}."
             )
 
         source = self.tao_init or self.lattice_file
-        return MachineModel(
+        particles = {p for p in layout_particles.values() if p}
+        model = MachineModel(
             elements=elements,
             section={"sections": section_definitions},
             layout={
@@ -1033,7 +1273,19 @@ class BmadLatticeImporter(BaseModel):
             },
             master_lattice=str(Path(source).resolve().parent),
             functional_definitions=self.functional_definitions,
+            particle=particles.pop() if len(particles) == 1 else None,
         )
+        for section_name, (geometry, reference_energy) in section_metadata.items():
+            section = model.sections.get(section_name)
+            if section is None:
+                continue
+            section.geometry = geometry
+            section.reference_energy = reference_energy
+        for layout_name, particle in layout_particles.items():
+            layout = model.lattices.get(layout_name)
+            if layout is not None:
+                layout.particle = particle
+        return model
 
     def export_yaml(
         self,

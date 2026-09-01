@@ -1,16 +1,24 @@
+from typing import Any, Dict, List, Literal, Optional, Union
+
 import numpy as np
 from pydantic import (
-    field_validator,
-    model_validator,
+    Field,
     PrivateAttr,
     computed_field,
+    field_validator,
     model_serializer,
-    Field,
+    model_validator,
 )
-from typing import List, Literal, Optional, Union, Dict, Any
 
-from ._generated import _PositionBase, _RotationBase, _ElementPositionErrorBase, _ElementSurveyBase, _PhysicalElementBase, _ReferencePlacementBase
 from ..utils.rotation_matrix import euler_angles_to_rotation_matrix
+from ._generated import (
+    _ElementPositionErrorBase,
+    _ElementSurveyBase,
+    _PhysicalElementBase,
+    _PositionBase,
+    _ReferencePlacementBase,
+    _RotationBase,
+)
 from .trajectory import Trajectory
 
 
@@ -210,7 +218,8 @@ class ElementError(_ElementPositionErrorBase):
             return v
         if isinstance(v, dict):
             return _coerce_position_mapping(
-                v, error_message="setting position as dictionary must include x, y, z as floats"
+                v,
+                error_message="setting position as dictionary must include x, y, z as floats",
             )
 
         raise ValueError("position should be a number or a list of floats")
@@ -229,7 +238,8 @@ class ElementError(_ElementPositionErrorBase):
             return v
         if isinstance(v, dict):
             return _coerce_rotation_mapping(
-                v, error_message="setting rotation as dictionary must include phi, psi, theta as floats"
+                v,
+                error_message="setting rotation as dictionary must include phi, psi, theta as floats",
             )
 
         raise ValueError("rotation should be a number or a list of floats")
@@ -319,11 +329,13 @@ class ReferencePlacement(_ReferencePlacementBase):
 
     @model_validator(mode="after")
     def _check_offset_exclusivity(self) -> "ReferencePlacement":
-        n = sum([
-            self.offset is not None,
-            self.world_offset is not None,
-            self.s_offset is not None,
-        ])
+        n = sum(
+            [
+                self.offset is not None,
+                self.world_offset is not None,
+                self.s_offset is not None,
+            ]
+        )
         if n > 1:
             raise ValueError(
                 "Specify at most one offset in reference_placement: "
@@ -355,6 +367,9 @@ class PhysicalElement(_PhysicalElementBase):
 
     _parent: Any = PrivateAttr(default=None)
     _trajectory: Optional[Trajectory] = PrivateAttr(default=None)
+    # Whether ``physical_angle`` was supplied explicitly at construction, as
+    # opposed to being left to derive from the magnetic model.
+    _explicit_angle: bool = PrivateAttr(default=False)
 
     @model_validator(mode="after")
     def _check_placement_exclusivity(self) -> "PhysicalElement":
@@ -380,6 +395,9 @@ class PhysicalElement(_PhysicalElementBase):
         return self
 
     def model_post_init(self, __context) -> None:
+        object.__setattr__(
+            self, "_explicit_angle", "physical_angle" in self.model_fields_set
+        )
         # Skip the middle default when another positioning mode handles placement.
         if self.reference_placement is None and self.middle is None and self.s is None:
             self.middle = Position()
@@ -457,11 +475,11 @@ class PhysicalElement(_PhysicalElementBase):
     @computed_field
     @property
     def _physical_angle(self) -> float:
+        # An explicit ``physical_angle`` wins.
+        if self._explicit_angle:
+            return float(self.physical_angle)
         if self._parent is not None:
             magnetic = getattr(self._parent, "magnetic", None)
-            # Only dipoles expose an `angle`; use the resolved bend angle
-            # (KnL(0), always numeric) and degrade to 0 if a functional
-            # definition is not yet available.
             if magnetic is not None and hasattr(type(magnetic), "angle"):
                 try:
                     angle = magnetic.KnL(0)
@@ -474,7 +492,9 @@ class PhysicalElement(_PhysicalElementBase):
 
     @field_validator("middle", mode="before")
     @classmethod
-    def validate_middle(cls, v: Union[float, int, Dict, List, np.ndarray]) -> Optional[Position]:
+    def validate_middle(
+        cls, v: Union[float, int, Dict, List, np.ndarray]
+    ) -> Optional[Position]:
         if v is None:
             return None  # Deferred to model_post_init to respect reference_placement
         if isinstance(v, (float, int)):
@@ -488,7 +508,8 @@ class PhysicalElement(_PhysicalElementBase):
             return v
         if isinstance(v, dict):
             return _coerce_position_mapping(
-                v, error_message="setting middle as dictionary must include x, y, z as floats"
+                v,
+                error_message="setting middle as dictionary must include x, y, z as floats",
             )
         raise ValueError("middle should be a number or a list of floats")
 
@@ -508,7 +529,8 @@ class PhysicalElement(_PhysicalElementBase):
             return v
         if isinstance(v, dict):
             return _coerce_position_mapping(
-                v, error_message="setting datum as dictionary must include x, y, z as floats"
+                v,
+                error_message="setting datum as dictionary must include x, y, z as floats",
             )
         raise ValueError("datum should be a number or a list of floats")
 
@@ -528,7 +550,8 @@ class PhysicalElement(_PhysicalElementBase):
             return v
         if isinstance(v, dict):
             return _coerce_rotation_mapping(
-                v, error_message="setting rotation as dictionary must include phi, psi, theta as floats"
+                v,
+                error_message="setting rotation as dictionary must include phi, psi, theta as floats",
             )
 
         raise ValueError("rotation should be a number or a list of floats")
@@ -537,9 +560,29 @@ class PhysicalElement(_PhysicalElementBase):
 
     @property
     def rotation_matrix(self) -> np.ndarray:
+        """The element's orientation in the global frame.
+
+        .. warning::
+
+           ``rotation`` and ``global_rotation`` are combined by **adding** the
+           Euler angles, which is not the same operation as composing the two
+           rotations unless one of them is zero or both turn about the same
+           axis.  A 30 degree global yaw with a 50 mrad local pitch, for
+           instance, gives a matrix that differs from
+           ``euler_angles_to_rotation_matrix(global) @
+           euler_angles_to_rotation_matrix(local)`` by about 0.025 in its
+           entries.
+
+           This is latent, not live: nothing sets both today.  Floor-coordinate
+           placement fills ``global_rotation`` and leaves ``rotation`` zero, and
+           the trajectory builder does the reverse, so every angle pair actually
+           reached has one term equal to zero and the sum is exact.  Fixing it
+           means choosing which of the two is the inner rotation, which is a
+           convention decision rather than a bug fix, and no test pins it.
+        """
         if self._rotation_matrix_cache is not None:
             return self._rotation_matrix_cache
-        
+
         # Combined rotations using utility function
         # Apply yaw (Y), pitch (X), roll (Z) in that order
         yaw = self.rotation.theta + self.global_rotation.theta

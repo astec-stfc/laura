@@ -1,7 +1,8 @@
 from laura.models.simulation import ApertureElement
-from .base import BaseElementTranslator
+
 from ..converters import elements_Elegant, elements_Madx
 from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator
 
 
 class ApertureTranslator(BaseElementTranslator):
@@ -17,13 +18,13 @@ class ApertureTranslator(BaseElementTranslator):
             String representation of the element for Bmad
         """
         shape = getattr(self.aperture.shape, "value", self.aperture.shape)
-        etype = (
-            "ecollimator"
-            if shape in ("elliptical", "circular")
-            else "rcollimator"
+        etype = "ecollimator" if shape in ("elliptical", "circular") else "rcollimator"
+        horizontal = self.aperture.radius or (self.aperture.horizontal_size or 0.0) / 2
+        vertical = (
+            self.aperture.radius
+            or (self.aperture.vertical_size or 0.0) / 2
+            or horizontal
         )
-        horizontal = self.aperture.radius or self.aperture.horizontal_size
-        vertical = self.aperture.radius or self.aperture.vertical_size
         return self._format_bmad(
             etype,
             {
@@ -70,7 +71,9 @@ class ApertureTranslator(BaseElementTranslator):
             ):
                 if value is not None:
                     key = self._convertKeyword_Madx(key)
-                    deferred = not self._resolve_functional and self.is_functional(value)
+                    deferred = not self._resolve_functional and self.is_functional(
+                        value
+                    )
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
@@ -111,17 +114,17 @@ class ApertureTranslator(BaseElementTranslator):
             )
             dic["Ap_Z2"] = {"value": end, "default": 0}
         dic["A_xrot"] = {
-            "value": self.x_rot + self.dx_rot,
+            "value": self._astra_rotation("x"),
             "default": 0,
             "type": "not_zero",
         }
         dic["A_yrot"] = {
-            "value": self.y_rot + self.dy_rot,
+            "value": self._astra_rotation("y"),
             "default": 0,
             "type": "not_zero",
         }
         dic["A_zrot"] = {
-            "value": self.z_rot + self.dz_rot,
+            "value": self._astra_rotation("z"),
             "default": 0,
             "type": "not_zero",
         }

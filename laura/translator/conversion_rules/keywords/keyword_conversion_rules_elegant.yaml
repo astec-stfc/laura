@@ -40,8 +40,13 @@ quadrupole:
   isr_enable: isr
   sr_enable: synch_rad
   n_kicks: n_slices
-  dx_rot: pitch
-  dy_rot: yaw
+  # elegant names these for the axis, LAURA for the plane, so x and y
+  # cross over: KQUAD's YAW is "rotation about vertical axis" (y), which
+  # is dx_rot = error.rotation.theta, and its PITCH is "rotation about
+  # horizontal axis" (x), which is dy_rot = phi. They were the other way
+  # round until 2026-09-01. TILT is about the longitudinal axis in both.
+  dx_rot: yaw
+  dy_rot: pitch
   dz_rot: tilt
 sextupole:
   isr_enable: isr
