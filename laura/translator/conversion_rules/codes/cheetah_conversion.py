@@ -61,4 +61,5 @@ cheetah_conversion_rules = {
     "Marker": Screen,
     "Wakefield": Drift,
     "Laser": Drift,
+    "Plasma": Drift,
 }
