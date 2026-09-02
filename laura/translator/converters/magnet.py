@@ -1,26 +1,28 @@
 from copy import deepcopy
 from typing import Union
-
-from pydantic import computed_field
 from warnings import warn
-from .base import BaseElementTranslator
+
+import numpy as np
+from pydantic import computed_field
+
 from laura.models.magnetic import (
-    MagneticElement,
-    SolenoidMagnet,
-    DipoleMagnet,
-    WigglerMagnet,
-    NonLinearLensMagnet,
     CorrectorMagnet,
+    DipoleMagnet,
+    MagneticElement,
+    NonLinearLensMagnet,
+    SolenoidMagnet,
+    WigglerMagnet,
 )
 from laura.models.simulation import MagnetSimulationElement
-from ..utils.functions import _rotation_matrix, chop, expand_substitution
-import numpy as np
-from .codes.gpt import GptCcs
 from laura.translator.utils.fields import FieldMap
+
 from ..converters import (
     elements_genesis,
     elements_opal,
 )
+from ..utils.functions import _rotation_matrix, chop, expand_substitution
+from .base import BaseElementTranslator
+from .codes.gpt import GptCcs
 
 
 def add(x, y):
@@ -347,29 +349,30 @@ class MagnetTranslator(BaseElementTranslator):
         Parameters
         ----------
         n: int
-            Screen index
+            Magnet index
 
         Returns
         -------
         str
             String representation of the element for CSRTrack
         """
-        z = self.physical.middle.z
+        z1 = self.physical.start.z
+        z2 = self.physical.end.z
         s_comment = (
-            f"! quad{n} s={self.physical.s:.6f}\n"
-            if self.physical.s is not None
+            f"! quad{n} s={self.physical.s:.6f}\n" \
+            if self.physical.s is not None \
             else ""
         )
         return (
             s_comment
             + """quadrupole{\nposition{rho="""
-            + str(z)
+            + str(z1)
             + """, psi=0.0, marker=quad"""
             + str(n)
             + """a}\nproperties{strength="""
             + str(self.magnetic.KnL(1))
             + """, alpha=0, horizontal_offset=0,vertical_offset=0}\nposition{rho="""
-            + str(z + self.physical.length)
+            + str(z2)
             + """, psi=0.0, marker=quad"""
             + str(n)
             + """b}\n}\n"""
@@ -993,9 +996,6 @@ class SolenoidTranslator(BaseElementTranslator):
     @computed_field
     @property
     def ks(self) -> Union[float, str]:
-        # Follows the global resolution mode: a resolved number, or the functional
-        # name (passed through symbolically to codes that support it, e.g. the
-        # ELEGANT ``ks`` keyword / Xsuite Environment variable).
         return self.magnetic.ks
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
@@ -1367,4 +1367,4 @@ class NonLinearLensTranslator(BaseElementTranslator):
     """
 
     magnetic: NonLinearLensMagnet
-    """NLL magnetic element."""
+    """NLL lens magnetic element"""

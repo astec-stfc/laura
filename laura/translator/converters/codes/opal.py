@@ -98,7 +98,7 @@ class OpalOption(OpalHeader):
     OPAL input file.The format is Mmmpp where M stands for the major, m for the minor and p for the patch version.
     For version 1.6.0 of OPAL VERSION should read 10600."""
 
-    AMR: bool = False
+    AMR: bool = None
     """Enable adaptive mesh refinement. Its default value is false."""
 
     AMR_REGRID_FREQ: int = None

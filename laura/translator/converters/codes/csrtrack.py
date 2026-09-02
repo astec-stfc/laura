@@ -140,6 +140,11 @@ class CsrTrackTracker(CsrTrackElement):
     Class for defining the CSRTrack tracker.
     """
 
+    exclude: List[str] = [
+        e for e in CsrTrackElement.model_fields["exclude"].default
+        if e != "end_time_marker"
+    ]
+
     header: str = "tracker"
     """Header for CSRtrack element"""
 
@@ -183,6 +188,13 @@ class CsrTrackParticles(CsrTrackElement):
     Class for defining CSRTrack particles.
     """
 
+    exclude: List[str] = CsrTrackElement.model_fields["exclude"].default + [
+        "reference_momentum",
+        "reference_point_x",
+        "reference_point_y",
+        "reference_point_phi",
+    ]
+
     header: str = "particles"
     """Header for CSRtrack element"""
 
@@ -195,7 +207,10 @@ class CsrTrackParticles(CsrTrackElement):
     particle_definition: str = "laser.astra"
     """Particle definition file"""
 
-    array: str = "#file{name=laser.astra}"
+    format: Literal["astra"] = "astra"
+    """Format for particle files"""
+
+    array: str = "#file{\nname=laser.astra\n}"
     """File name array"""
 
     reference_momentum: Literal["reference_particle"] = "reference_particle"
