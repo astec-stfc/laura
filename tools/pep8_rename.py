@@ -45,6 +45,9 @@ def load_map(path: Path) -> tuple[dict[str, str], set[str]]:
         if old == new:
             raise ValueError(f"{path}: '{old}' maps to itself")
 
+    # Names left alone wherever they denote a schema field rather than the
+    # renamed object: attribute access, keyword arguments, and class-body
+    # field declarations. The rename still applies everywhere else.
     keep_attrs = set(raw.get("options", {}).get("no_attribute_rename", []))
     unknown = keep_attrs - set(merged)
     if unknown:
@@ -105,6 +108,27 @@ class _ProtectedNameCollector(cst.CSTVisitor):
         """
         if node.attr.value in self.keep_attrs:
             self.protected.add(id(node.attr))
+
+    def visit_AnnAssign(self, node: cst.AnnAssign) -> None:
+        """
+        Protect ``Name: T = ...`` declarations of schema fields.
+
+        A pydantic field declared in a class body binds a Name in ClassScope,
+        which visit_Name deliberately leaves unprotected. Without this, a name
+        that is *both* a class and a schema slot -- Horizontal_Corrector is both
+        an element class and a field on CombinedCorrector -- has its field
+        declaration renamed along with the class. The renamed field then no
+        longer overrides the generated base slot: it is added alongside it, the
+        frozen=/default= intent is lost, and the wire format gains a duplicate
+        key.
+        """
+        if isinstance(node.target, cst.Name) and node.target.value in self.keep_attrs:
+            self.protected.add(id(node.target))
+
+    def visit_AssignTarget(self, node: cst.AssignTarget) -> None:
+        """As visit_AnnAssign, for an unannotated ``Name = ...`` declaration."""
+        if isinstance(node.target, cst.Name) and node.target.value in self.keep_attrs:
+            self.protected.add(id(node.target))
 
     def visit_Arg(self, node: cst.Arg) -> None:
         if node.keyword is not None:
@@ -236,7 +260,7 @@ def iter_python_files(paths: list[Path]) -> list[Path]:
             files.extend(
                 f
                 for f in sorted(p.rglob("*.py"))
-                if "__pycache__" not in f.parts and "build" not in f.parts
+                if not {"__pycache__", "build", ".ipynb_checkpoints"} & set(f.parts)
             )
     return [f for f in files if not _is_generated(f)]
 

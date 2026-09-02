@@ -4,122 +4,125 @@ LAURA Element Module
 The main class for representing accelerator elements in LAURA.
 """
 
-from laura._compat import DeprecatedMethodAliases
-from typing import Optional, Type, List, Union, Dict, Any
 import os
-from pydantic import field_validator, Field
-from .control import (
-    ControlsInformation,
-    ScreenControlsInformation,
-    MirrorControlsInformation,
-    ShutterControlsInformation,
-)
-from .base_models import T, Aliases, IgnoreExtra
+from typing import Any, Dict, List, Optional, Type, Union
+
+from pydantic import Field, field_validator
+
+from laura._compat import DeprecatedMethodAliases
+
+from ..utils import CascadingAccessMixin, FlowList, StringWithQuotes, flatten_dict
 from ._generated import (
     _AcceleratorElementBase,
-    _ElementBase,
-    _PhysicalAcceleratorElementBase,
-    _MagnetBase,
-    _TwissMatchBase,
-    _DiagnosticBase,
-    _BeamPositionMonitorBase,
+    _ApertureBase,
     _BeamArrivalMonitorBase,
+    _BeamPositionMonitorBase,
     _BunchLengthMonitorBase,
     _CameraBase,
-    _ScreenBase,
     _ChargeDiagnosticBase,
-    _WallCurrentMonitorBase,
+    _CollimatorBase,
+    _CombinedCorrectorBase,
+    _DiagnosticBase,
+    _DipoleBase,
+    _DriftBase,
+    _ElementBase,
     _FaradayCupMonitorBase,
+    _HorizontalCorrectorBase,
     _IntegratedCurrentTransformerBase,
-    _StageBase,
-    _VacuumGaugeBase,
+    _LaserAttenuatorBase,
     _LaserBase,
     _LaserEnergyMeterBase,
     _LaserHalfWavePlateBase,
     _LaserMirrorBase,
-    _LaserAttenuatorBase,
-    _PlasmaBase,
     _LightingBase,
-    _PIDBase,
     _LowLevelRFBase,
+    _MagnetBase,
+    _MarkerBase,
+    _NonLinearLensBase,
+    _OctupoleBase,
+    _PhysicalAcceleratorElementBase,
+    _PIDBase,
+    _PlasmaBase,
+    _QuadrupoleBase,
     _RFCavityBase,
-    _WakefieldBase,
     _RFDeflectingCavityBase,
+    _RFHeartbeatBase,
     _RFModulatorBase,
     _RFProtectionBase,
-    _RFHeartbeatBase,
-    _ShutterBase,
-    _ValveBase,
-    _MarkerBase,
-    _ApertureBase,
-    _CollimatorBase,
-    _DriftBase,
-    _DipoleBase,
-    _QuadrupoleBase,
+    _ScreenBase,
     _SextupoleBase,
-    _OctupoleBase,
+    _ShutterBase,
     _SolenoidBase,
-    _NonLinearLensBase,
-    _WigglerBase,
-    _HorizontalCorrectorBase,
+    _StageBase,
+    _TwissMatchBase,
+    _VacuumGaugeBase,
+    _ValveBase,
     _VerticalCorrectorBase,
-    _CombinedCorrectorBase,
+    _WakefieldBase,
+    _WallCurrentMonitorBase,
+    _WigglerBase,
 )
-from ..utils import CascadingAccessMixin, flatten_dict, StringWithQuotes, FlowList
-from .manufacturer import ManufacturerElement
-from .electrical import ElectricalElement
+from .base_models import Aliases, IgnoreExtra, T
+from .control import (
+    ControlsInformation,
+    MirrorControlsInformation,
+    ScreenControlsInformation,
+    ShutterControlsInformation,
+)
 from .degauss import DegaussableElement
-from .physical import PhysicalElement, Rotation
-from .reference import ReferenceElement
-from .magnetic import (
-    MagneticElement,
-    DipoleMagnet,
-    QuadrupoleMagnet,
-    SextupoleMagnet,
-    OctupoleMagnet,
-    SolenoidMagnet,
-    NonLinearLensMagnet,
-    WigglerMagnet,
-    CorrectorMagnet,
-)
-from .plasma import PlasmaElement
 from .diagnostic import (
-    BeamPositionMonitorDiagnostic,
     BeamArrivalMonitorDiagnostic,
+    BeamPositionMonitorDiagnostic,
     BunchLengthMonitorDiagnostic,
     CameraDiagnostic,
-    ScreenDiagnostic,
     ChargeDiagnosticElement,
     PhotonIntensityMonitorDiagnostic,
+    ScreenDiagnostic,
 )
+from .electrical import ElectricalElement
 from .laser import (
     LaserElement,
     LaserEnergyMeterElement,
-    LaserMirrorElement,
     LaserHalfWavePlateElement,
+    LaserMirrorElement,
 )
 from .lighting import LightingElement
+from .magnetic import (
+    CorrectorMagnet,
+    DipoleMagnet,
+    MagneticElement,
+    NonLinearLensMagnet,
+    OctupoleMagnet,
+    QuadrupoleMagnet,
+    SextupoleMagnet,
+    SolenoidMagnet,
+    WigglerMagnet,
+)
+from .manufacturer import ManufacturerElement
+from .physical import PhysicalElement, Rotation
+from .plasma import PlasmaElement
+from .reference import ReferenceElement
 from .rf import (
-    PIDElement,
     LowLevelRFElement,
-    RFModulatorElement,
-    RFProtectionElement,
-    RFHeartbeatElement,
+    PIDElement,
     RFCavityElement,
     RFDeflectingCavityElement,
+    RFHeartbeatElement,
+    RFModulatorElement,
+    RFProtectionElement,
     WakefieldElement,
 )
 from .shutter import ShutterElement, ValveElement
 from .simulation import (
     ApertureElement,
-    RFCavitySimulationElement,
-    WakefieldSimulationElement,
-    MagnetSimulationElement,
-    DriftSimulationElement,
     DiagnosticSimulationElement,
+    DriftSimulationElement,
+    MagnetSimulationElement,
     PlasmaSimulationElement,
+    RFCavitySimulationElement,
     SimulationElement,
     TwissMatchSimulationElement,
+    WakefieldSimulationElement,
 )
 
 # Re-export from utils for backwards compatibility
@@ -492,10 +495,10 @@ class CombinedCorrector(Dipole, _CombinedCorrectorBase):
     magnetic: CorrectorMagnet = Field(default_factory=CorrectorMagnet)
     """Corrector magnetic attributes."""
 
-    HorizontalCorrector: str | None = Field(default=None, frozen=True)
+    Horizontal_Corrector: str | None = Field(default=None, frozen=True)  # noqa: N815
     """Name of horizontal corrector."""
 
-    VerticalCorrector: str | None = Field(default=None, frozen=True)
+    Vertical_Corrector: str | None = Field(default=None, frozen=True)  # noqa: N815
     """Name of vertical corrector."""
 
 

@@ -11,12 +11,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Naming-convention gate for the PEP 8 cleanup. The baseline in
-  # .ruff-naming-baseline.txt is the count of violations still to be fixed; the
-  # job fails if that number goes UP, so the cleanup can land incrementally
-  # without new violations sneaking in behind it. Lower the baseline in the
-  # same commit that fixes violations. When it reaches 0, replace this whole
-  # step with a plain `ruff check laura/`.
+  # Naming-convention gate for the PEP 8 cleanup. laura/ is now clean, so this
+  # is a plain check rather than the ratchet-against-a-baseline it used to be:
+  # any new violation fails the build. Config (rule selection, per-file ignores
+  # and the domain-vocabulary allowlist) lives in [tool.ruff] in pyproject.toml.
   naming:
     runs-on: ubuntu-latest
     steps:
@@ -30,19 +28,8 @@ jobs:
       - name: Install ruff
         run: pip install "ruff>=0.6"
 
-      - name: Check naming violations against baseline
-        run: |
-          baseline=$(tr -dc '0-9' < .ruff-naming-baseline.txt)
-          current=$(ruff check laura/ --output-format concise | grep -c '^laura/' || true)
-          echo "baseline=$baseline current=$current"
-          if [ "$current" -gt "$baseline" ]; then
-            echo "::error::Naming violations rose from $baseline to $current."
-            ruff check laura/ --output-format concise
-            exit 1
-          fi
-          if [ "$current" -lt "$baseline" ]; then
-            echo "::notice::Violations fell to $current -- lower the baseline file."
-          fi
+      - name: Check naming conventions
+        run: ruff check laura/ --output-format concise
 
   test:
     runs-on: ubuntu-latest
