@@ -214,7 +214,7 @@ class MagnetTranslator(BaseElementTranslator):
             )
             return ""
 
-    def to_csrtrack(self, n: int = 0) -> str:
+    def to_csrtrack(self, n: int = 0, **kwargs) -> str:
         """
         Writes the quadrupole element string for CSRTrack;
         calls :func:`_write_CSRTrack_quadrupole`.

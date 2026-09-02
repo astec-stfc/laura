@@ -27,6 +27,7 @@ _write_ASTRA_dipole = "_write_astra_dipole"
 _write_ASTRA_quadrupole = "_write_astra_quadrupole"
 _write_ASTRA_solenoid = "_write_astra_solenoid"
 _write_CSRTrack = "_write_csrtrack"
+_write_CSRTrack_Quadrupole = "_write_csrtrack"
 
 # --- wake.py ----------------------------------------------------------------
 _write_ASTRA = "_write_astra"
