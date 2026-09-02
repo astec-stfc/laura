@@ -17,18 +17,18 @@ from laura.models.element import (
     Dipole,
     Sextupole,
     Solenoid,
-    Horizontal_Corrector,
-    Vertical_Corrector,
-    Combined_Corrector,
-    Beam_Position_Monitor,
+    HorizontalCorrector,
+    VerticalCorrector,
+    CombinedCorrector,
+    BeamPositionMonitor,
     Screen,
     RFCavity,
-    Faraday_Cup_Monitor,
+    FaradayCupMonitor,
     Shutter,
     Valve,
 )
-from laura.models.diagnostic import Screen_Diagnostic
-from laura.Exporters.YAML import export_machine
+from laura.models.diagnostic import ScreenDiagnostic
+from laura.exporters.yaml_exporter import export_machine
 
 
 class TestModuleHelpers:
@@ -165,27 +165,27 @@ def full_machine():
             name="SOL1", machine_area="S1", magnetic={"length": 0.2},
             physical={"length": 0.2, "middle": {"x": 0, "y": 0, "z": 2.0}},
         ),
-        Horizontal_Corrector(name="HC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 2.5}}),
-        Vertical_Corrector(name="VC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 3.0}}),
-        Combined_Corrector(name="CC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 3.5}}),
-        Beam_Position_Monitor(name="BPM1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 4.0}}),
+        HorizontalCorrector(name="HC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 2.5}}),
+        VerticalCorrector(name="VC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 3.0}}),
+        CombinedCorrector(name="CC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 3.5}}),
+        BeamPositionMonitor(name="BPM1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 4.0}}),
         Screen(
             name="SCR1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 4.5}},
-            diagnostic=Screen_Diagnostic(camera_name="CAM1"),
+            diagnostic=ScreenDiagnostic(camera_name="CAM1"),
         ),
         RFCavity(name="RFC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 5.0}}),
-        Faraday_Cup_Monitor(name="FCM1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 5.5}}),
+        FaradayCupMonitor(name="FCM1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 5.5}}),
         Shutter(name="SH1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.0}}),
         Valve(name="VA1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.5}}),
-        Combined_Corrector(
+        CombinedCorrector(
             name="CC2", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.8}},
             Horizontal_Corrector="CC2_H", Vertical_Corrector="CC2_V",
         ),
-        Combined_Corrector(
+        CombinedCorrector(
             name="CC3", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.9}},
             Horizontal_Corrector="CC3_H",
         ),
-        Combined_Corrector(
+        CombinedCorrector(
             name="CC4", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.95}},
             Vertical_Corrector="CC4_V",
         ),

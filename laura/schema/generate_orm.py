@@ -25,6 +25,7 @@ from pathlib import Path
 # Step 1: run gen-sqla
 # ---------------------------------------------------------------------------
 
+
 def _run_gen_sqla(schema_path: str) -> str:
     """Invoke gen-sqla and return its stdout as a string."""
     python_dir = Path(sys.executable).parent
@@ -52,11 +53,12 @@ def _run_gen_sqla(schema_path: str) -> str:
 # Step 2: parse class metadata from the generated source
 # ---------------------------------------------------------------------------
 
+
 def _class_blocks(content: str) -> list[tuple[int, int, str]]:
     """Return [(start, end, class_name), ...] for every ``class X(Base):`` block."""
     positions = [
         (m.start(), m.group(1))
-        for m in re.finditer(r'^class (\w+)\(Base\):', content, re.MULTILINE)
+        for m in re.finditer(r"^class (\w+)\(Base\):", content, re.MULTILINE)
     ]
     blocks = []
     for i, (start, name) in enumerate(positions):
@@ -71,7 +73,7 @@ def _parse_pk_columns(content: str) -> dict[str, str]:
     for start, end, cls_name in _class_blocks(content):
         block = content[start:end]
         for line in block.splitlines():
-            m = re.match(r'^\s+(\w+)\s*=\s*Column\(.*primary_key\s*=\s*True', line)
+            m = re.match(r"^\s+(\w+)\s*=\s*Column\(.*primary_key\s*=\s*True", line)
             if m:
                 pk_cols[cls_name] = m.group(1)
                 break
@@ -90,8 +92,8 @@ def _parse_junction_fk_columns(content: str) -> dict[str, list[str]]:
         cols = [
             m.group(1)
             for line in block.splitlines()
-            for m in [re.match(r'^\s+(\w+)\s*=\s*Column\(', line)]
-            if m and m.group(1) != 'id'
+            for m in [re.match(r"^\s+(\w+)\s*=\s*Column\(", line)]
+            if m and m.group(1) != "id"
         ]
         if cols:
             junction_cols[cls_name] = cols
@@ -101,6 +103,7 @@ def _parse_junction_fk_columns(content: str) -> dict[str, list[str]]:
 # ---------------------------------------------------------------------------
 # Step 3: rewrite self-referential M2M relationships
 # ---------------------------------------------------------------------------
+
 
 def _fix_self_referential_m2m(content: str) -> str:
     """Add explicit primaryjoin/secondaryjoin to self-referential M2M relationships.
@@ -124,11 +127,11 @@ def _fix_self_referential_m2m(content: str) -> str:
     pk_cols = _parse_pk_columns(content)
     junction_fk_cols = _parse_junction_fk_columns(content)
 
-    lines = content.split('\n')
+    lines = content.split("\n")
     result: list[str] = []
     current_class: str | None = None
 
-    class_re = re.compile(r'^class (\w+)\(Base\):')
+    class_re = re.compile(r"^class (\w+)\(Base\):")
     rel_re = re.compile(
         r'^(\s+)(\w+)\s*=\s*relationship\(\s*"(\w+)",\s*secondary="(\w+)"\s*\)'
     )
@@ -144,7 +147,7 @@ def _fix_self_referential_m2m(content: str) -> str:
         # Look for the two-line pattern:  # ManyToMany\n  slot = relationship(...)
         if (
             current_class is not None
-            and line.strip() == '# ManyToMany'
+            and line.strip() == "# ManyToMany"
             and i + 1 < len(lines)
         ):
             next_line = lines[i + 1]
@@ -158,25 +161,25 @@ def _fix_self_referential_m2m(content: str) -> str:
                 if target == current_class:
                     # Junction class name follows CamelCase convention:
                     # ClassName + each word of slot capitalised (no underscores).
-                    junction_cls = current_class + ''.join(
-                        w.capitalize() for w in slot.split('_')
+                    junction_cls = current_class + "".join(
+                        w.capitalize() for w in slot.split("_")
                     )
-                    pk = pk_cols.get(current_class, 'id')
+                    pk = pk_cols.get(current_class, "id")
                     cols = junction_fk_cols.get(junction_cls, [])
 
                     if len(cols) >= 2:
                         # Source column starts with "<ClassName>_"; target does not.
                         src_col = next(
-                            (c for c in cols if c.startswith(current_class + '_')),
+                            (c for c in cols if c.startswith(current_class + "_")),
                             cols[0],
                         )
                         tgt_col = next(
-                            (c for c in cols if not c.startswith(current_class + '_')),
+                            (c for c in cols if not c.startswith(current_class + "_")),
                             cols[1],
                         )
 
                         result.append(line)  # # ManyToMany
-                        result.append(f'{indent}{slot} = relationship(')
+                        result.append(f"{indent}{slot} = relationship(")
                         result.append(f'{indent}    "{target}",')
                         result.append(f'{indent}    secondary="{secondary}",')
                         result.append(
@@ -187,19 +190,20 @@ def _fix_self_referential_m2m(content: str) -> str:
                             f'{indent}    secondaryjoin="'
                             f'{current_class}.{pk} == {junction_cls}.{tgt_col}",'
                         )
-                        result.append(f'{indent})')
+                        result.append(f"{indent})")
                         i += 2
                         continue
 
         result.append(line)
         i += 1
 
-    return '\n'.join(result)
+    return "\n".join(result)
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def generate(schema_path: str = "laura/schema/YAML/laura_schema.yaml") -> str:
     """Generate and return the full content of the SQLAlchemy ORM module."""

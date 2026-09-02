@@ -3,25 +3,25 @@
 import pytest
 import numpy as np
 
-from laura.models.RF import (
+from laura.models.rf import (
     RFCavityElement,
     WakefieldElement,
     RFDeflectingCavityElement,
     PIDElement,
-    Low_Level_RF_Element,
+    LowLevelRFElement,
     RFModulatorElement,
     RFProtectionElement,
     RFHeartbeatElement,
 )
 from laura.models.diagnostic import (
     DiagnosticElement,
-    Beam_Position_Monitor_Diagnostic,
-    Beam_Arrival_Monitor_Diagnostic,
-    Bunch_Length_Monitor_Diagnostic,
-    Camera_Mask,
-    Camera_Pixel_Results_Indices,
-    Camera_Pixel_Results_Names,
-    Charge_Diagnostic,
+    BeamPositionMonitorDiagnostic,
+    BeamArrivalMonitorDiagnostic,
+    BunchLengthMonitorDiagnostic,
+    CameraMask,
+    CameraPixelResultsIndices,
+    CameraPixelResultsNames,
+    ChargeDiagnosticElement,
 )
 from laura.models.simulation import (
     SimulationElement,
@@ -36,7 +36,7 @@ from laura.models.electrical import ElectricalElement
 from laura.models.laser import LaserElement
 from laura.models.plasma import PlasmaElement
 from laura.models.control import ControlVariable, ControlsInformation
-from laura.models.baseModels import set_functional_definitions
+from laura.models.base_models import set_functional_definitions
 
 
 # ---------------------------------------------------------------------------
@@ -127,33 +127,33 @@ class TestRFDeflectingCavityElement:
 
 class TestDiagnosticModels:
     def test_bpm_diagnostic(self):
-        bpm = Beam_Position_Monitor_Diagnostic()
+        bpm = BeamPositionMonitorDiagnostic()
         assert bpm.type == "Stripline"
 
     def test_bpm_custom_type(self):
-        bpm = Beam_Position_Monitor_Diagnostic(bpm_type="Cavity")
+        bpm = BeamPositionMonitorDiagnostic(bpm_type="Cavity")
         assert bpm.type == "Cavity"
 
     def test_bam_diagnostic(self):
-        bam = Beam_Arrival_Monitor_Diagnostic()
+        bam = BeamArrivalMonitorDiagnostic()
         assert bam.type == "DESY"
 
     def test_blm_diagnostic(self):
-        blm = Bunch_Length_Monitor_Diagnostic()
+        blm = BunchLengthMonitorDiagnostic()
         assert blm.type == "CDR"
 
     def test_camera_mask_defaults(self):
-        mask = Camera_Mask()
+        mask = CameraMask()
         assert mask.middle == [1280, 1080]
         assert mask.radius == [1240, 1040]
 
     def test_camera_pixel_indices(self):
-        cpi = Camera_Pixel_Results_Indices()
+        cpi = CameraPixelResultsIndices()
         assert cpi.x == 0
         assert cpi.y == 1
 
     def test_camera_pixel_names(self):
-        cpn = Camera_Pixel_Results_Names()
+        cpn = CameraPixelResultsNames()
         assert cpn.x == "X"
         assert cpn.y == "Y"
 

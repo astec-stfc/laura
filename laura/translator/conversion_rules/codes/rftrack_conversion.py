@@ -22,6 +22,7 @@ RF-Track CERN page. Import is therefore guarded so the rest of LAURA keeps
 working without it installed — call :func:`get_rftrack` to fail with a clear
 message only at the point RF-Track is actually needed.
 """
+
 import math
 from warnings import warn
 
@@ -148,12 +149,14 @@ def repr_quadrupole(t, P_Q: float = float("nan"), **kwargs) -> tuple:
     """
     return (
         f"Quadrupole({_format_args(_quadrupole_args(t))})",
-        [f"# P_Q (beam rigidity) at this element = {P_Q!r} MV/c "
-         f"-- unused here, Quadrupole defers to autophase()"],
+        [
+            f"# P_Q (beam rigidity) at this element = {P_Q!r} MV/c "
+            f"-- unused here, Quadrupole defers to autophase()"
+        ],
     )
 
 
-def _resolve_sbend_P_Q(t, P_Q: float) -> float:
+def _resolve_sbend_p_q(t, P_Q: float) -> float:
     if P_Q != P_Q:  # NaN check without importing math/numpy just for this
         warn(
             f"No P_Q (reference momentum/charge) supplied for dipole {t.name}; "
@@ -166,7 +169,7 @@ def _resolve_sbend_P_Q(t, P_Q: float) -> float:
 
 
 def _sbend_args(t, P_Q: float) -> tuple:
-    P_Q = _resolve_sbend_P_Q(t, P_Q)
+    P_Q = _resolve_sbend_p_q(t, P_Q)
     # `t.angle` (the DipoleTranslator's own computed property, `magnetic.KnL(0)`)
     # -- not `t.magnetic.angle`, the raw underlying model field, which defaults
     # to `None`/is not reliably populated (its own docstring says it's meant to
@@ -467,7 +470,11 @@ def _tw_structure_args(t) -> tuple:
     amplitude = t.simulation.field_amplitude
     ph_adv = _resolve_ph_advance(t)
     return (
-        np.array([1. / np.sqrt(2) * amplitude]), 0, float(cav.frequency), ph_adv, int(3 + cav.n_cells),
+        np.array([1.0 / np.sqrt(2) * amplitude]),
+        0,
+        float(cav.frequency),
+        ph_adv,
+        int(3 + cav.n_cells),
     ), cav.phase
 
 
@@ -538,7 +545,9 @@ def _cavity_fieldmap_args(t) -> tuple:
     # real physical length, not approximate a multi-cell structure.
     amplitude = t.simulation.field_amplitude * (cav.n_cells or 1)
     args = fields_rftrack.rf_fieldmap_1d_args(
-        t.simulation.field_definition, amplitude=amplitude, frequency=float(cav.frequency)
+        t.simulation.field_definition,
+        amplitude=amplitude,
+        frequency=float(cav.frequency),
     )
     return args, cav.phase
 
@@ -740,3 +749,17 @@ rftrack_repr_rules = {
     "Collimator": repr_drift,
     "Marker": repr_drift,
 }
+
+# ---------------------------------------------------------------------------
+# Backwards compatibility: names renamed for PEP 8. Served lazily with a
+# FutureWarning so downstream consumers (astec-stfc/simba) keep working.
+# ---------------------------------------------------------------------------
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "_resolve_sbend_P_Q": "_resolve_sbend_p_q",
+    },
+)

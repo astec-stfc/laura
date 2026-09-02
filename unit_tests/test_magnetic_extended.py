@@ -5,19 +5,19 @@ import numpy as np
 
 from laura.models.magnetic import (
     MagneticElement,
-    Dipole_Magnet,
-    Quadrupole_Magnet,
-    Sextupole_Magnet,
-    Octupole_Magnet,
-    Solenoid_Magnet,
-    NonLinearLens_Magnet,
-    Wiggler_Magnet,
+    DipoleMagnet,
+    QuadrupoleMagnet,
+    SextupoleMagnet,
+    OctupoleMagnet,
+    SolenoidMagnet,
+    NonLinearLensMagnet,
+    WigglerMagnet,
     Multipole,
     Multipoles,
     FieldIntegral,
     LinearSaturationFit,
 )
-from laura.models.baseModels import (
+from laura.models.base_models import (
     IgnoreExtra,
     set_functional_definitions,
     set_resolve_functional,
@@ -49,12 +49,12 @@ class TestMultipole:
 class TestFieldIntegral:
     def test_current_to_k_linear(self):
         fi = FieldIntegral(coefficients=[0.0, 0.5])  # K = 0.5 * current
-        k = fi.currentToK(10.0, energy=1e9)
+        k = fi.current_to_k(10.0, energy=1e9)
         assert isinstance(k, float)
 
     def test_current_to_k_polynomial(self):
         fi = FieldIntegral(coefficients=[0.0, 1.0, 0.01])
-        k = fi.currentToK(5.0, energy=1e9)
+        k = fi.current_to_k(5.0, energy=1e9)
         assert isinstance(k, float)
 
 
@@ -70,20 +70,20 @@ class TestLinearSaturationFit:
         )
 
     def test_current_to_k(self, lsf):
-        result = lsf.currentToK(50.0, momentum=1e9)
+        result = lsf.current_to_k(50.0, momentum=1e9)
         assert isinstance(result, dict)
         assert "KL" in result
 
     def test_kl_to_current(self, lsf):
         # Get the KL from a known current
-        kl = lsf.currentToK(50.0, momentum=1e9)["KL"]
-        current = lsf.KLToCurrent(kl, momentum=1e9)
+        kl = lsf.current_to_k(50.0, momentum=1e9)["KL"]
+        current = lsf.kl_to_current(kl, momentum=1e9)
         assert current == pytest.approx(50.0, rel=0.01)
 
     def test_k_to_current(self, lsf):
-        k_result = lsf.currentToK(50.0, momentum=1e9)
+        k_result = lsf.current_to_k(50.0, momentum=1e9)
         K = k_result["K"]
-        current = lsf.KToCurrent(K, momentum=1e9)
+        current = lsf.k_to_current(K, momentum=1e9)
         assert current == pytest.approx(50.0, rel=0.01)
 
     def test_from_string(self):
@@ -132,46 +132,46 @@ class TestMagneticElement:
 
 class TestDipoleMagnet:
     def test_defaults(self):
-        dm = Dipole_Magnet()
+        dm = DipoleMagnet()
         assert dm.order == 0
         assert dm.angle == 0
 
     def test_angle(self):
         # angle is a property reading multipoles.K0L.normal;
         # set via k0l in the MagneticElement constructor
-        dm = Dipole_Magnet(k0l=0.1)
+        dm = DipoleMagnet(k0l=0.1)
         assert dm.angle == pytest.approx(0.1)
 
     def test_rho(self):
-        dm = Dipole_Magnet(k0l=0.1, length=1.0)
+        dm = DipoleMagnet(k0l=0.1, length=1.0)
         assert dm.rho == pytest.approx(10.0)
 
 
 class TestQuadrupoleMagnet:
     def test_defaults(self):
-        qm = Quadrupole_Magnet()
+        qm = QuadrupoleMagnet()
         assert qm.order == 1
         assert qm.k1l == 0
 
     def test_k1l(self):
-        qm = Quadrupole_Magnet(k1l=-2.5)
+        qm = QuadrupoleMagnet(k1l=-2.5)
         assert qm.k1l == pytest.approx(-2.5)
 
 
 class TestSextupleMagnet:
     def test_defaults(self):
-        sm = Sextupole_Magnet()
+        sm = SextupoleMagnet()
         assert sm.order == 2
         assert sm.k2l == 0
 
     def test_k2l(self):
-        sm = Sextupole_Magnet(k2l=100.0)
+        sm = SextupoleMagnet(k2l=100.0)
         assert sm.k2l == pytest.approx(100.0)
 
 
 class TestOctupleMagnet:
     def test_defaults(self):
-        om = Octupole_Magnet()
+        om = OctupoleMagnet()
         assert om.order == 3
         assert om.k3l == 0
 
@@ -182,16 +182,16 @@ class TestOctupleMagnet:
 
 class TestSolenoidMagnet:
     def test_default(self):
-        sol = Solenoid_Magnet()
+        sol = SolenoidMagnet()
         assert sol.ks == 0.0
 
     def test_ks_property(self):
         # ks is handled in Solenoid_Magnet.__init__, not as a Pydantic field
-        sol = Solenoid_Magnet(ks=1.5)
+        sol = SolenoidMagnet(ks=1.5)
         assert sol.ks == pytest.approx(1.5)
 
     def test_ks_setter(self):
-        sol = Solenoid_Magnet()
+        sol = SolenoidMagnet()
         sol.ks = 2.0
         assert sol.ks == pytest.approx(2.0)
 
@@ -202,7 +202,7 @@ class TestSolenoidMagnet:
 
 class TestNonLinearLensMagnet:
     def test_default(self):
-        nll = NonLinearLens_Magnet()
+        nll = NonLinearLensMagnet()
         assert nll.length == 0
         assert nll.integrated_strength == 0
         assert nll.dimensional_parameter == 0
@@ -214,12 +214,12 @@ class TestNonLinearLensMagnet:
 
 class TestWigglerMagnet:
     def test_default(self):
-        w = Wiggler_Magnet()
+        w = WigglerMagnet()
         assert w.strength == 0
         assert w.period == 0
 
     def test_with_values(self):
-        w = Wiggler_Magnet(
+        w = WigglerMagnet(
             length=2.0,
             strength=1.5,
             period=0.02,
@@ -232,16 +232,16 @@ class TestWigglerMagnet:
         assert w.helical is False
 
     def test_poles_property(self):
-        w = Wiggler_Magnet(num_periods=50)
+        w = WigglerMagnet(num_periods=50)
         assert w.poles == 100
 
     def test_normalized_strength_planar(self):
-        w = Wiggler_Magnet(strength=1.0, helical=False)
+        w = WigglerMagnet(strength=1.0, helical=False)
         # For planar: normalized_strength = K / sqrt(2)
         assert w.normalized_strength == pytest.approx(1.0 / np.sqrt(2))
 
     def test_normalized_strength_helical(self):
-        w = Wiggler_Magnet(strength=1.0, helical=True)
+        w = WigglerMagnet(strength=1.0, helical=True)
         # For helical: normalized_strength = K
         assert w.normalized_strength == pytest.approx(1.0)
 
@@ -277,7 +277,7 @@ class TestFunctionalParameters:
         set_resolve_functional(False)
 
     def test_dipole_angle_raw_resolved_flag(self):
-        dm = Dipole_Magnet(k0l="dip_angle", length=0.5)
+        dm = DipoleMagnet(k0l="dip_angle", length=0.5)
         # configured accessor follows the flag (raw name by default)
         assert dm.angle == "dip_angle"
         assert dm.KnL(0) == pytest.approx(0.1)  # resolved for computation
@@ -299,8 +299,8 @@ class TestFunctionalParameters:
         assert dt.e2 == pytest.approx(0.1 / 2)
 
     def test_resolution_mode_flag(self):
-        qm = Quadrupole_Magnet(k1l="quad1_k1l", length=0.3)
-        sol = Solenoid_Magnet(length=0.2, ks="sol_field")
+        qm = QuadrupoleMagnet(k1l="quad1_k1l", length=0.3)
+        sol = SolenoidMagnet(length=0.2, ks="sol_field")
         # default (off): configured accessors render the functional name
         assert qm.k1l == "quad1_k1l"
         assert sol.ks == "sol_field"
@@ -314,7 +314,7 @@ class TestFunctionalParameters:
         assert sol.field_amplitude == pytest.approx(1.5 / 0.2)
 
     def test_quad_k1l_raw_and_resolved(self):
-        qm = Quadrupole_Magnet(k1l="quad1_k1l", length=0.3)
+        qm = QuadrupoleMagnet(k1l="quad1_k1l", length=0.3)
         # stored symbolically
         assert qm.multipoles.K1L.normal == "quad1_k1l"
         # the plain accessor returns the raw configured value (no auto-resolve)
@@ -328,7 +328,7 @@ class TestFunctionalParameters:
         assert m.skew(1) == "skew1"
 
     def test_undefined_parameter_raises_on_resolution(self):
-        qm = Quadrupole_Magnet(k1l="not_defined", length=0.3)
+        qm = QuadrupoleMagnet(k1l="not_defined", length=0.3)
         # storing and reading the raw value never raises
         assert qm.multipoles.K1L.normal == "not_defined"
         assert qm.k1l == "not_defined"
@@ -337,40 +337,40 @@ class TestFunctionalParameters:
             qm.KnL(1)
 
     def test_solenoid_string(self):
-        sol = Solenoid_Magnet(length=0.2, ks="sol_field")
+        sol = SolenoidMagnet(length=0.2, ks="sol_field")
         assert sol.fields.S0L == "sol_field"
         # ks is raw; field_amplitude is the resolved computation (ks/length)
         assert sol.ks == "sol_field"
         assert sol.field_amplitude == pytest.approx(1.5 / 0.2)
 
     def test_nll_string(self):
-        nll = NonLinearLens_Magnet(knll="nll_k", cnll="nll_c")
+        nll = NonLinearLensMagnet(knll="nll_k", cnll="nll_c")
         assert nll.integrated_strength == "nll_k"
         assert nll.resolved("integrated_strength") == pytest.approx(0.4)
         assert nll.resolved("dimensional_parameter") == pytest.approx(0.01)
 
     def test_wiggler_string(self):
-        w = Wiggler_Magnet(K="wig_K", helical=True)
+        w = WigglerMagnet(K="wig_K", helical=True)
         assert w.strength == "wig_K"
         assert w.normalized_strength == pytest.approx(1.0)
 
     def test_float_still_supported(self):
-        qm = Quadrupole_Magnet(k1l=-2.5, length=0.3)
+        qm = QuadrupoleMagnet(k1l=-2.5, length=0.3)
         assert qm.k1l == pytest.approx(-2.5)
 
     def test_get_gradient_resolves(self):
-        qm = Quadrupole_Magnet(k1l="quad1_k1l", length=0.3)
+        qm = QuadrupoleMagnet(k1l="quad1_k1l", length=0.3)
         # get_gradient is a computation and resolves the functional strength
         assert qm.get_gradient(momentum=1e9) == pytest.approx(
             -2.0 * 3.3356 * 1e9 / 1e9 / 0.3
         )
 
     def test_serialisation_keeps_symbolic_value(self):
-        qm = Quadrupole_Magnet(k1l="quad1_k1l", length=0.3)
+        qm = QuadrupoleMagnet(k1l="quad1_k1l", length=0.3)
         dumped = qm.model_dump()
         assert dumped["multipoles"]["K1L"]["normal"] == "quad1_k1l"
         # round-trips
-        qm2 = Quadrupole_Magnet(**dumped)
+        qm2 = QuadrupoleMagnet(**dumped)
         assert qm2.multipoles.K1L.normal == "quad1_k1l"
         assert qm2.k1l == "quad1_k1l"
         assert qm2.KnL(1) == pytest.approx(-2.0)

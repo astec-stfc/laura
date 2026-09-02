@@ -20,7 +20,7 @@ from laura.translator.utils.functions import (
     tw_cavity_energy_gain,
     _rotation_matrix,
 )
-from laura.models.baseModels import set_functional_definitions, set_resolve_functional
+from laura.models.base_models import set_functional_definitions, set_resolve_functional
 
 
 class TestSanitizeString:

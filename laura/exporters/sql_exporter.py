@@ -11,7 +11,7 @@ Requires the ``sql`` optional dependency group::
 
 Public API::
 
-    from laura.Exporters.SQL import export_machine, load_machine_elements
+    from laura.exporters.SQL import export_machine, load_machine_elements
 
     # Persist to SQLite file
     machine_id = export_machine(machine, db_url="sqlite:///machine.db")
@@ -25,6 +25,7 @@ Public API::
     sections = load_machine_sections(db_url="sqlite:///machine.db", machine_id=machine_id)
     # {'SEC1': ['M1', 'Q1', ...], ...}
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -32,7 +33,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from laura.models.elementList import MachineModel
+    from laura.models.element_list import MachineModel
 
 # Path to the generated SQLAlchemy ORM module (never imported at package level so
 # sqlalchemy remains an optional dependency).
@@ -40,15 +41,30 @@ _ORM_PATH = Path(__file__).parent.parent / "schema" / "generated" / "laura_orm.p
 
 # Valid hardware_class values from the schema enum.
 _VALID_HARDWARE_CLASSES = {
-    "Magnet", "Diagnostic", "RF", "Vacuum", "Laser", "Plasma",
-    "Feedback", "Marker", "Aperture", "Stage", "Lighting", "Shutter",
-    "Wakefield", "TwissMatch", "Drift", "Generic", "Monitor",
+    "Magnet",
+    "Diagnostic",
+    "RF",
+    "Vacuum",
+    "Laser",
+    "Plasma",
+    "Feedback",
+    "Marker",
+    "Aperture",
+    "Stage",
+    "Lighting",
+    "Shutter",
+    "Wakefield",
+    "TwissMatch",
+    "Drift",
+    "Generic",
+    "Monitor",
 }
 
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
 
 def _load_orm() -> Any:
     """Load the generated ORM module from its file path.
@@ -87,10 +103,12 @@ def _make_session_factory(db_url: str, orm: Any):
     kwargs: Dict[str, Any] = {}
     if "/:memory:" in db_url:
         from sqlalchemy.pool import StaticPool
+
         kwargs["poolclass"] = StaticPool
         kwargs["connect_args"] = {"check_same_thread": False}
     elif db_url.startswith("sqlite"):
         from sqlalchemy.pool import NullPool
+
         kwargs["poolclass"] = NullPool
 
     engine = create_engine(db_url, **kwargs)
@@ -161,6 +179,7 @@ def _export_physical(elem: Any, orm: Any, session: Any) -> Optional[Any]:
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def export_machine(
     machine: "MachineModel",
     db_url: str = "sqlite:///:memory:",
@@ -185,7 +204,7 @@ def export_machine(
         The auto-generated ``MachineModel.id`` that identifies this snapshot.
     """
     orm = _load_orm()
-    _, Session = _make_session_factory(db_url, orm)
+    _, Session = _make_session_factory(db_url, orm) # noqa N806
 
     with Session() as session:
         # ── Elements ──────────────────────────────────────────────────────────
@@ -240,9 +259,7 @@ def export_machine(
             )
             existing_layout = session.get(orm.MachineLayout, layout_name)
             if existing_layout is None:
-                layout_row = orm.MachineLayout(
-                    name=layout_name, master_lattice=master
-                )
+                layout_row = orm.MachineLayout(name=layout_name, master_lattice=master)
                 layout_row.sections = list(layout.sections.keys())
                 session.add(layout_row)
                 layout_rows[layout_name] = layout_row
@@ -287,7 +304,7 @@ def load_machine_elements(
         If no ``MachineModel`` with the given *machine_id* exists.
     """
     orm = _load_orm()
-    _, Session = _make_session_factory(db_url, orm)
+    _, Session = _make_session_factory(db_url, orm) # noqa N806
 
     with Session() as session:
         mm = session.get(orm.MachineModel, machine_id)
@@ -332,7 +349,7 @@ def load_machine_sections(
         If no ``MachineModel`` with the given *machine_id* exists.
     """
     orm = _load_orm()
-    _, Session = _make_session_factory(db_url, orm)
+    _, Session = _make_session_factory(db_url, orm) # noqa N806
 
     with Session() as session:
         mm = session.get(orm.MachineModel, machine_id)

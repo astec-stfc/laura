@@ -286,7 +286,7 @@ spelling familiar from the accelerator-physics literature.
 
 | Schema class | Python wrapper | Notes |
 |---|---|---|
-| `AcceleratorElement` | `baseElement` | Adds `CascadingAccessMixin`, `IgnoreExtra` |
+| `AcceleratorElement` | `BaseElement` | Adds `CascadingAccessMixin`, `IgnoreExtra` |
 | `StandardElement` + `Element` | `Element` | Both schema layers merged in one Python class |
 | `PhysicalAcceleratorElement` | `PhysicalBaseElement` | |
 | `HorizontalCorrector` | `Horizontal_Corrector` | |

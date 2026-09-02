@@ -18,7 +18,7 @@ reading, writing, and converting field maps between different simulation codes.
 Field Class
 -----------
 
-The :py:class:`field <laura.translator.utils.fields.field>` class provides a generic representation for
+The :py:class:`FieldMap <laura.translator.utils.fields.FieldMap>` class provides a generic representation for
 electromagnetic fields including RF structures, wakefields, and magnetic fields.
 
 Key attributes include:
@@ -45,7 +45,7 @@ Key attributes include:
 * ``cavity_type: cavitytype``: Standing or travelling wave
 * ``norm: float``: Normalization factor
 
-Each field parameter is represented as a :py:class:`FieldParameter <laura.translator.utils.fields.FieldParameter>`
+Each field parameter is represented as a :py:class:`FieldParameter <laura.translator.utils.fields.field_parameter>`
 object containing the field values and associated units.
 
 Supported field types:
@@ -74,7 +74,7 @@ Reading field files:
 
 .. code-block:: python
 
-    from laura.translator.utils.fields import field
+    from laura.translator.utils.fields import FieldMap
 
     # Read an ASTRA cavity field
     rf_field = field(
@@ -111,7 +111,7 @@ Writing field files for specific codes:
 Field Parameters
 ----------------
 
-The :py:class:`FieldParameter <laura.translator.utils.fields.FieldParameter>` class encapsulates field
+The :py:class:`FieldParameter <laura.translator.utils.fields.field_parameter>` class encapsulates field
 values with their associated units and metadata:
 
 * ``name: str``: Parameter identifier
@@ -155,7 +155,7 @@ Example with cavity translator:
 .. code-block:: python
 
     from laura.translator.converters.cavity import RFCavityTranslator
-    from laura.translator.utils.fields import field
+    from laura.translator.utils.fields import FieldMap
 
     # Cavity with field map
     cavity = RFCavityTranslator(

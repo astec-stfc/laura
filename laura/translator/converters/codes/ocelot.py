@@ -4,8 +4,10 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict
 from typing import Any, Dict, TYPE_CHECKING
 from scipy.spatial.transform import Rotation
+
 try:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
+
     _OCELOT_AVAILABLE = True
 except ImportError:
     _OCELOT_AVAILABLE = False
@@ -13,18 +15,17 @@ except ImportError:
 
 if TYPE_CHECKING:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice  # type: ignore[no-redef]
-import laura.models.element as LAURA_elements
+import laura.models.element as laura_elements
 from . import magnetic_orders
 from .. import keyword_conversion_rules_ocelot as keyword_conversion_rules
 from ...utils.functions import introspect_model_defaults
 from ...conversion_rules.codes import ocelot_conversion
 from warnings import warn
 
-type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
 
 
 class OcelotLatticeImporter(BaseModel):
-
     model_config = ConfigDict(
         extra="allow",
         arbitrary_types_allowed=True,
@@ -50,7 +51,7 @@ class OcelotLatticeImporter(BaseModel):
         strip_chars = "'>"
         switch_dict = {
             f"{str(y).lower().split('.')[-1].strip(strip_chars)}_{x}": x
-            for x, y in type_conversion_rules_Ocelot.items()
+            for x, y in type_conversion_rules_ocelot.items()
         }
 
         for elem, pos_and_rot in elements.items():
@@ -87,17 +88,17 @@ class OcelotLatticeImporter(BaseModel):
             try:
                 if sftype == "Kicker":
                     model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, "Combined_Corrector")
+                        getattr(laura_elements, "Combined_Corrector")
                     )
                     newobj["hardware_type"] = "Combined_Corrector"
                 elif "Cavity" not in sftype:
                     model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, sftype.capitalize())
+                        getattr(laura_elements, sftype.capitalize())
                     )
                     newobj["hardware_type"] = sftype.capitalize()
                 else:
                     model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, sftype)
+                        getattr(laura_elements, sftype)
                     )
             except AttributeError:
                 print(f"type {sftype} not recognized")
@@ -183,7 +184,7 @@ class OcelotLatticeImporter(BaseModel):
             newobj["physical"]["position"] = pos
             newobj["physical"]["global_rotation"] = rot
             self.laura_elements.update(
-                {elem.id: getattr(LAURA_elements, newobj["hardware_type"])(**newobj)}
+                {elem.id: getattr(laura_elements, newobj["hardware_type"])(**newobj)}
             )
 
     def save_lattice_file(self, filename: str, directory: str):
@@ -202,7 +203,7 @@ class OcelotLatticeImporter(BaseModel):
         theta_h = 0.0
         theta_v = 0.0
         elems, positions, rotations = [], [], []
-        cumulative_R = np.eye(3)
+        cumulative_r = np.eye(3)
 
         for elem in elements:
             if (
@@ -210,11 +211,11 @@ class OcelotLatticeImporter(BaseModel):
                 or abs(getattr(elem, "angle", 0.0)) < 1e-9
             ):
                 # --- Drift ---
-                L = elem.l
+                l = elem.l
                 # Direction vector
-                dx = L * np.cos(theta_v) * np.cos(theta_h)
-                dy = L * np.sin(theta_v)
-                dz = L * np.cos(theta_v) * np.sin(theta_h)
+                dx = l * np.cos(theta_v) * np.cos(theta_h)
+                dy = l * np.sin(theta_v)
+                dz = l * np.cos(theta_v) * np.sin(theta_h)
 
                 # Midpoint is halfway along the segment
                 mid_x = x + dx / 2
@@ -222,7 +223,7 @@ class OcelotLatticeImporter(BaseModel):
                 mid_z = z + dz / 2
 
                 # Store midpoint
-                euler_angles = Rotation.from_matrix(cumulative_R).as_euler(
+                euler_angles = Rotation.from_matrix(cumulative_r).as_euler(
                     "zyx", degrees=False
                 )
                 elems.append(elem)
@@ -236,28 +237,28 @@ class OcelotLatticeImporter(BaseModel):
 
             else:
                 # --- Dipole Bend ---
-                L, phi, tilt = elem.l, elem.angle, elem.tilt
+                l, phi, tilt = elem.l, elem.angle, elem.tilt
 
                 if np.isclose(tilt, 0):  # Horizontal bend (x-z plane)
-                    R_bend = Rotation.from_euler("y", phi).as_matrix()
-                    R_half = Rotation.from_euler("y", phi / 2).as_matrix()
+                    r_bend = Rotation.from_euler("y", phi).as_matrix()
+                    r_half = Rotation.from_euler("y", phi / 2).as_matrix()
 
-                    R_geom = L / phi  # bending radius
+                    r_geom = l / phi  # bending radius
 
                     # Center of curvature
-                    cx = x - R_geom * np.sin(theta_h)
-                    cz = z + R_geom * np.cos(theta_h)
+                    cx = x - r_geom * np.sin(theta_h)
+                    cz = z + r_geom * np.cos(theta_h)
 
                     # Midpoint (half of bend angle)
                     theta_mid = theta_h + phi / 2
-                    mid_x = cx + R_geom * np.sin(theta_mid)
+                    mid_x = cx + r_geom * np.sin(theta_mid)
                     mid_y = y
-                    mid_z = cz - R_geom * np.cos(theta_mid)
+                    mid_z = cz - r_geom * np.cos(theta_mid)
 
                     # Rotation halfway through bend
-                    R_mid = cumulative_R @ R_half
+                    r_mid = cumulative_r @ r_half
 
-                    euler_angles = Rotation.from_matrix(R_mid).as_euler(
+                    euler_angles = Rotation.from_matrix(r_mid).as_euler(
                         "zyx", degrees=False
                     )
                     elems.append(elem)
@@ -266,25 +267,25 @@ class OcelotLatticeImporter(BaseModel):
 
                     # Update to exit of element
                     theta_h += phi
-                    x = cx + R_geom * np.sin(theta_h)
-                    z = cz - R_geom * np.cos(theta_h)
-                    cumulative_R = cumulative_R @ R_bend
+                    x = cx + r_geom * np.sin(theta_h)
+                    z = cz - r_geom * np.cos(theta_h)
+                    cumulative_r = cumulative_r @ r_bend
 
                 elif np.isclose(tilt, np.pi / 2):  # Vertical bend (x-y plane)
-                    R_bend = Rotation.from_euler("x", -phi).as_matrix()
-                    R_half = Rotation.from_euler("x", -phi / 2).as_matrix()
-                    R_geom = L / phi
+                    r_bend = Rotation.from_euler("x", -phi).as_matrix()
+                    r_half = Rotation.from_euler("x", -phi / 2).as_matrix()
+                    r_geom = l / phi
 
-                    cy = y - R_geom * np.cos(theta_v)
+                    cy = y - r_geom * np.cos(theta_v)
 
                     # Midpoint
                     theta_mid = theta_v + phi / 2
-                    mid_y = cy + R_geom * np.cos(theta_mid)
+                    mid_y = cy + r_geom * np.cos(theta_mid)
                     mid_x = x
                     mid_z = z
-                    R_mid = cumulative_R @ R_half
+                    r_mid = cumulative_r @ r_half
 
-                    euler_angles = Rotation.from_matrix(R_mid).as_euler(
+                    euler_angles = Rotation.from_matrix(r_mid).as_euler(
                         "zyx", degrees=False
                     )
                     elems.append(elem)
@@ -293,8 +294,8 @@ class OcelotLatticeImporter(BaseModel):
 
                     # Exit of element
                     theta_v += phi
-                    y = cy + R_geom * np.cos(theta_v)
-                    cumulative_R = cumulative_R @ R_bend
+                    y = cy + r_geom * np.cos(theta_v)
+                    cumulative_r = cumulative_r @ r_bend
 
                 else:
                     raise ValueError(f"Unrecognized tilt angle {tilt} for {elem.id}")
@@ -311,3 +312,14 @@ class OcelotLatticeImporter(BaseModel):
             if hasattr(v, f"k{n}") and hasattr(v, "l"):
                 newk.update({f"k{n}l": getattr(v, f"k{n}") * getattr(v, "l")})
         return newk
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "type_conversion_rules_Ocelot": "type_conversion_rules_ocelot",
+    },
+)

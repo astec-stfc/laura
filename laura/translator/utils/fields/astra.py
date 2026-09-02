@@ -1,7 +1,7 @@
 import numpy as np
 import re
 from warnings import warn
-from .FieldParameter import FieldParameter
+from .field_parameter import FieldParameter
 from ..units import UnitValue
 
 d = ",!?/&-:;@'\n \t"
@@ -10,7 +10,7 @@ d = ",!?/&-:;@'\n \t"
 def generate_astra_field_data(self) -> np.ndarray:
     """
     Generate the field data in a format that is suitable for ASTRA, based on the
-    :class:`~laura.translator.utils.fields.field` object provided.
+    :class:`~laura.translator.utils.fields.FieldMap` object provided.
     The `field_type` parameter determines the format of the file.
     See the `ASTRA manual`_ for more details.
 
@@ -20,7 +20,7 @@ def generate_astra_field_data(self) -> np.ndarray:
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
 
     Returns
@@ -115,7 +115,7 @@ def generate_astra_field_data(self) -> np.ndarray:
                 raise ValueError(
                     "start_cell_z, end_cell_z",
                     "mode_numerator",
-                    "mode_denominator" "must be defined for TravellingWave cavities",
+                    "mode_denominatormust be defined for TravellingWave cavities",
                 )
             preamble = np.array(
                 [
@@ -151,13 +151,13 @@ def generate_astra_field_data(self) -> np.ndarray:
 def write_astra_field_file(self) -> str:
     """
     Write the field data in an ASTRA-compatible format, based on the
-    :class:`~SimulationFramework.Modules.Fields.field` object provided.
+    :class:`~SimulationFramework.Modules.Fields.FieldMap` object provided.
     The absolute location of the file to be written is generated using
     :func:`~SimulationFramework.Modules.Fields.field._output_filename`, which is parsed from the Master Lattice.
 
     Parameters
     ----------
-    self: :class:`~SimulationFramework.Modules.Fields.field`
+    self: :class:`~SimulationFramework.Modules.Fields.FieldMap`
         The field object
 
     Returns
@@ -183,7 +183,7 @@ def read_astra_field_file(
 ):
     """
     Read a field file from ASTRA format and convert it into a
-    :class:`~SimulationFramework.Modules.Fields.field` object (self).
+    :class:`~SimulationFramework.Modules.Fields.FieldMap` object (self).
     Certain parameters must be included, particularly for RF cavities.
 
     See the `ASTRA manual`_ for more details.
@@ -192,7 +192,7 @@ def read_astra_field_file(
 
     Parameters
     ----------
-    self: :class:`~SimulationFramework.Modules.Fields.field`
+    self: :class:`~SimulationFramework.Modules.Fields.FieldMap`
         The field object to be updated.
     filename: str
         The path to the ASTRA field file

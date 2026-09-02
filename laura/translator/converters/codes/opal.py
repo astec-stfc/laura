@@ -1,9 +1,10 @@
+from laura._compat import DeprecatedMethodAliases
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, List, Any, Literal
 from ...utils.classes import get_grid_size
 
 
-class opal_header(BaseModel):
+class OpalHeader(DeprecatedMethodAliases, BaseModel):
     """
     Generic class for generating OPAL namelists
 
@@ -11,6 +12,10 @@ class opal_header(BaseModel):
 
     .. _OPAL manual: https://amas.web.psi.ch/opal/Documentation/master/OPAL_Manual.html
     """
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "write_Opal": "write_opal",
+    }
 
     model_config = ConfigDict(
         extra="allow",
@@ -45,7 +50,7 @@ class opal_header(BaseModel):
     )
     """String used for separating headers in the input file"""
 
-    def write_Opal(self) -> str:
+    def write_opal(self) -> str:
         """
         Write the text for the Opal namelist based on its attributes.
 
@@ -71,7 +76,7 @@ class opal_header(BaseModel):
         return output
 
 
-class opal_option(opal_header):
+class OpalOption(OpalHeader):
     """
     Class for generating the OPTION namelist for OPAL. See `OPAL manual`_ for more details.
     """
@@ -264,7 +269,7 @@ class opal_option(opal_header):
     """Defines after how many time steps we dump statistical data, such as RMS beam emittance, to the .stat file. 
     Its default value is 10."""
 
-    def write_Opal(self) -> str:
+    def write_opal(self) -> str:
         """
         Write the text for the Opal namelist based on its attributes.
 
@@ -280,7 +285,7 @@ class opal_option(opal_header):
         return output
 
 
-class opal_distribution(opal_header):
+class OpalDistribution(OpalHeader):
     """
     Class for generating the OPTION namelist for OPAL. See `OPAL manual`_ for more details.
 
@@ -303,15 +308,15 @@ class opal_distribution(opal_header):
     def model_post_init(self, context: Any, /) -> None:
         self.opaldict = {"input_particle_definition": "FNAME"}
 
-    def write_Opal(self) -> str:
+    def write_opal(self) -> str:
         if not self.input_particle_definition:
             raise ValueError(
                 "input_particle_definition must be defined for opal_distribution"
             )
-        return super().write_Opal()
+        return super().write_opal()
 
 
-class opal_fieldsolver(opal_header):
+class OpalFieldSolver(OpalHeader):
     """
     Class for generating the FIELDSOLVER namelist for OPAL. See `OPAL manual`_ for more details.
 
@@ -394,10 +399,10 @@ class opal_fieldsolver(opal_header):
         else:
             self.FSTYPE = "NONE"
 
-    def write_Opal(self) -> str:
+    def write_opal(self) -> str:
         if not self.npart:
             raise ValueError("npart must be defined for opal_fieldsolver")
-        return super().write_Opal()
+        return super().write_opal()
 
     @property
     def space_charge(self) -> bool:
@@ -429,7 +434,7 @@ class opal_fieldsolver(opal_header):
         return get_grid_size(self.npart / self.sample_interval)
 
 
-class opal_beam(opal_header):
+class OpalBeam(OpalHeader):
     """
     Class for generating the BEAM namelist for OPAL. See `OPAL manual`_ for more details.
 
@@ -465,7 +470,7 @@ class opal_beam(opal_header):
     So essentially this is set to the charge of the bunch in micro-coulombs."""
 
 
-class opal_track(opal_header):
+class OpalTrack(OpalHeader):
     """
     Class for generating the TRACK namelist for OPAL. See `OPAL manual`_ for more details.
     """
@@ -507,13 +512,13 @@ class opal_track(opal_header):
     TIMEINTEGRATOR: Literal["RK4", "LF2", "MTS"] = None
     """Define the time integrator. Currently only available in OPAL-cycl. The valid options are RK4, LF2 and MTS"""
 
-    def write_Opal(self) -> str:
+    def write_opal(self) -> str:
         self.DT = str(self.DT)
         self.ZSTOP = "{" + str(self.ZSTOP + 1e-1) + "}"
-        return super().write_Opal()
+        return super().write_opal()
 
 
-class opal_run(opal_header):
+class OpalRun(OpalHeader):
     """
     Class for generating the RUN namelist for OPAL. See `OPAL manual`_ for more details.
 
@@ -579,3 +584,20 @@ class opal_run(opal_header):
     bunch back in time. It changes the size of the time step when it crosses the thresholds given in the 
     ZSTOP attribute of the TRACK command and stops once it reaches the lowest item of ZSTOP. 
     Only available in OPAL-t. Default is FALSE."""
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "opal_beam": "OpalBeam",
+        "opal_distribution": "OpalDistribution",
+        "opal_fieldsolver": "OpalFieldSolver",
+        "opal_header": "OpalHeader",
+        "opal_option": "OpalOption",
+        "opal_run": "OpalRun",
+        "opal_track": "OpalTrack",
+    },
+)

@@ -8,15 +8,15 @@ import pytest
 from pydantic import ValidationError
 
 from laura.models.element import (
-    baseElement,
+    BaseElement,
     PhysicalBaseElement,
     Magnet,
     Dipole,
     _coerce_nested_model,
     TwissMatch,
-    Beam_Position_Monitor,
-    Beam_Arrival_Monitor,
-    Bunch_Length_Monitor,
+    BeamPositionMonitor,
+    BeamArrivalMonitor,
+    BunchLengthMonitor,
     Camera,
     Screen,
     Laser,
@@ -35,7 +35,7 @@ from laura.models.element import (
 
 
 def _base(**kwargs):
-    return baseElement(
+    return BaseElement(
         name="B1", hardware_class="Generic", hardware_type="HT", machine_area="MA", **kwargs
     )
 
@@ -107,7 +107,7 @@ class TestBaseElementEscapeStringList:
 class TestBaseElementYamlFilename:
     def test_yaml_filename(self):
         b = _base()
-        assert b.YAML_filename.endswith("B1.yaml")
+        assert b.yaml_filename.endswith("B1.yaml")
 
 
 class TestPhysicalBaseElementAngles:
@@ -149,9 +149,9 @@ class TestElementSubclassNestedDefaults:
         "cls,attr",
         [
             (TwissMatch, "simulation"),
-            (Beam_Position_Monitor, "diagnostic"),
-            (Beam_Arrival_Monitor, "diagnostic"),
-            (Bunch_Length_Monitor, "diagnostic"),
+            (BeamPositionMonitor, "diagnostic"),
+            (BeamArrivalMonitor, "diagnostic"),
+            (BunchLengthMonitor, "diagnostic"),
             (Camera, "diagnostic"),
             (Screen, "diagnostic"),
             (Laser, "laser"),

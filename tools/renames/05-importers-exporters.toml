@@ -1,0 +1,28 @@
+[classes]
+
+SimFrame_Conversion = "SimFrameConversion"
+
+[functions]
+
+# --- laura/exporters/catap_exporter.py --------------------------------------
+element_to_CATAP = "element_to_catap"
+save_CATAP_file = "save_catap_file"
+
+# --- laura/importers/catap_loader.py ----------------------------------------
+read_CATAP_YAML = "read_catap_yaml"
+
+# --- laura/importers/simframe_loader.py -------------------------------------
+get_SimFrame_YAML_filename = "get_simframe_yaml_filename"
+get_SimFrame_MachineArea = "get_simframe_machine_area"
+get_SimFrame_PV = "get_simframe_pv"
+interpret_SimFrame_Element = "interpret_simframe_element"
+read_SimFrame_YAML = "read_simframe_yaml"
+
+# --- laura/importers/yaml_loader.py -----------------------------------------
+interpret_YAML_Element = "interpret_yaml_element"
+read_YAML_Element_File = "read_yaml_element_file"
+read_YAML_Element_Files = "read_yaml_element_files"
+read_YAML_Combined_File = "read_yaml_combined_file"
+
+# --- laura/translator/conversion_rules/codes/rftrack_conversion.py ----------
+_resolve_sbend_P_Q = "_resolve_sbend_p_q"

@@ -90,12 +90,16 @@ conversion = [
     "easygdf",
 ]
 
+# Naming-convention linting and the AST codemod used to apply renames.
+# Install with: pip install "laura-accelerator[lint]"
+lint = [
+    "ruff>=0.6",
+    "libcst>=1.4",
+]
+
 test = [
     "pytest",
     "pytest-cov",
-    # The suite guards these with pytest.importorskip, so they are not hard
-    # requirements -- but without them ~35 tests silently skip, which is worse
-    # than useless in CI.
     "rdflib>=7.0",
     "sqlalchemy>=2.0",
     "jsonschema>=4.0",
@@ -128,7 +132,7 @@ rdf = [
     "rdflib>=7.0",
 ]
 
-# SQL export support (laura.Exporters.SQL + laura/schema/generated/laura_orm.py)
+# SQL export support (laura.exporters.sql_exporter + laura/schema/generated/laura_orm.py)
 # Install with: pip install "laura-accelerator[sql]"
 sql = [
     "sqlalchemy>=2.0",
@@ -166,6 +170,39 @@ Issues = "https://github.com/astec-stfc/laura/-/issues/"
 [tool.setuptools.package-data]
 "laura.schema.generated" = ["*.owl", "*.graphql", "*.json", "*.ttl", "*.ts", "*.sql"]
 
+[tool.ruff]
+target-version = "py310"
+extend-exclude = [
+    "laura/models/_generated.py",
+    "laura/schema/generated",
+    "build",
+]
+
+[tool.ruff.lint]
+select = ["N"]  # pep8-naming only
+
+[tool.ruff.lint.per-file-ignores]
+"laura/translator/utils/pmd_units.py" = ["N801", "N802", "N815"]
+"laura/_compat.py" = ["N801", "N802", "N803", "N806", "N807", "N815", "N816"]
+"laura/**/_compat*.py" = ["N801", "N802", "N803", "N806", "N807", "N815", "N816"]
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = [
+    "classmethod",
+    "pydantic.field_validator",
+    "pydantic.model_validator",
+    "field_validator",
+    "model_validator",
+]
+extend-ignore-names = [
+    "Kn",    # multipole strength, order n
+    "KnL",   # integrated multipole strength
+    "Rx",    # rotation matrix about x
+    "Ry",    # rotation matrix about y
+    "Rz",    # rotation matrix about z
+    "Brho",  # magnetic rigidity, B-rho
+    "P_Q",   # reference momentum over charge
+]
+
 [tool.pytest.ini_options]
 addopts = "-m 'not slow'"
 markers = [
@@ -174,6 +211,3 @@ markers = [
 filterwarnings = [
     "ignore:Pydantic serializer warnings:UserWarning",
 ]
-
-[tool.ruff.lint]
-ignore = ["I001"]

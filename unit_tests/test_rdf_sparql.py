@@ -1,4 +1,4 @@
-"""Tests for laura.Exporters.RDF, laura.query.LAURAQuery, and
+"""Tests for laura.exporters.RDF, laura.query.LAURAQuery, and
 MachineModel.export_rdf / MachineModel.sparql."""
 
 import os
@@ -70,20 +70,20 @@ def small_machine(sample_marker, sample_quad, sample_dipole):
 
 class TestBuildRdfGraph:
     def test_returns_graph(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         assert isinstance(g, rdflib.Graph)
 
     def test_element_count(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         # Each element gets at least rdf:type, name, and machine_area triples
         assert len(g) >= 3 * 3
 
     def test_rdf_type_triple(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
@@ -92,7 +92,7 @@ class TestBuildRdfGraph:
         assert LAURA_NS["Quadrupole"] in types
 
     def test_name_triple(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
@@ -101,7 +101,7 @@ class TestBuildRdfGraph:
         assert rdflib.Literal("Q1") in names
 
     def test_physical_length_triple(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
@@ -111,7 +111,7 @@ class TestBuildRdfGraph:
         assert abs(float(lengths[0]) - 0.3) < 1e-9
 
     def test_position_triples(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
@@ -124,7 +124,7 @@ class TestBuildRdfGraph:
         assert abs(float(zs[0]) - 2.0) < 1e-9
 
     def test_machine_area_triple(self, small_machine):
-        from laura.Exporters.RDF import build_rdf_graph
+        from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
@@ -140,7 +140,7 @@ class TestBuildRdfGraph:
 
 class TestExportMachineRdf:
     def test_writes_turtle_file(self, small_machine, tmp_path):
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         out = str(tmp_path / "machine.ttl")
         export_machine_rdf(small_machine, path=out, machine_name="test")
@@ -148,7 +148,7 @@ class TestExportMachineRdf:
         assert os.path.getsize(out) > 0
 
     def test_turtle_is_parseable(self, small_machine, tmp_path):
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         out = str(tmp_path / "machine.ttl")
         export_machine_rdf(small_machine, path=out, format="turtle", machine_name="test")
@@ -157,7 +157,7 @@ class TestExportMachineRdf:
         assert len(g2) > 0
 
     def test_writes_jsonld_file(self, small_machine, tmp_path):
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         out = str(tmp_path / "machine.jsonld")
         export_machine_rdf(small_machine, path=out, format="json-ld", machine_name="test")
@@ -165,14 +165,14 @@ class TestExportMachineRdf:
         assert os.path.getsize(out) > 0
 
     def test_writes_ntriples_file(self, small_machine, tmp_path):
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         out = str(tmp_path / "machine.nt")
         export_machine_rdf(small_machine, path=out, format="nt", machine_name="test")
         assert os.path.exists(out)
 
     def test_format_aliases(self, small_machine, tmp_path):
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         for alias in ("ttl", "turtle", "jsonld", "json-ld", "ntriples", "nt"):
             out = str(tmp_path / f"machine_{alias}.rdf")
@@ -183,7 +183,7 @@ class TestExportMachineRdf:
 
     def test_roundtrip_element_count(self, small_machine, tmp_path):
         """After exporting and re-parsing, every element should appear as a subject."""
-        from laura.Exporters.RDF import export_machine_rdf
+        from laura.exporters.rdf_exporter import export_machine_rdf
 
         out = str(tmp_path / "machine.ttl")
         export_machine_rdf(small_machine, path=out, format="turtle", machine_name="test")

@@ -54,4 +54,6 @@ if __name__ == "__main__":
     target = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_DIR
     if not target.is_dir():
         sys.exit(f"No such directory: {target}")
-    print(f"Normalised {strip_front_matter(target)} page(s) in {target}", file=sys.stderr)
+    print(
+        f"Normalised {strip_front_matter(target)} page(s) in {target}", file=sys.stderr
+    )

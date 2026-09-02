@@ -12,16 +12,16 @@ import pytest
 pytest.importorskip("easygdf")
 pytest.importorskip("h5py")
 
-from laura.models.baseModels import (  # noqa: E402
+from laura.models.base_models import (  # noqa: E402
     set_functional_definitions,
     set_resolve_functional,
 )
 from laura.models.element import (  # noqa: E402
     Quadrupole, Dipole, RFCavity,
-    Horizontal_Corrector, Vertical_Corrector, Combined_Corrector,
+    HorizontalCorrector, VerticalCorrector, CombinedCorrector,
 )
 from laura.models.physical import PhysicalElement, Position  # noqa: E402
-from laura.models.elementList import SectionLattice  # noqa: E402
+from laura.models.element_list import SectionLattice  # noqa: E402
 from laura.translator.converters.magnet import (  # noqa: E402
     MagnetTranslator, DipoleTranslator, CorrectorTranslator,
 )
@@ -125,10 +125,10 @@ class TestMadxElements:
 
 class TestMadxCorrector:
     def test_horizontal_and_vertical_correctors(self):
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="hc1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.02}
         )
-        vc = Vertical_Corrector(
+        vc = VerticalCorrector(
             name="vc1", machine_area="S", magnetic={"magnetic_length": 0.1, "vertical_kick": 0.03}
         )
         ht = CorrectorTranslator.model_validate(hc.model_dump())
@@ -137,7 +137,7 @@ class TestMadxCorrector:
         assert vt.to_madx() == "vc1: vkicker, l = 0.1, kick = 0.03;\n"
 
     def test_combined_corrector_carries_both_planes(self):
-        cc = Combined_Corrector(
+        cc = CombinedCorrector(
             name="cc1", machine_area="S",
             magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.04, "vertical_kick": 0.05},
         )
@@ -149,7 +149,7 @@ class TestMadxCorrector:
 
     def test_symbolic_kick_is_deferred(self):
         set_functional_definitions({"hc_kick": 0.02})
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="hc1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": "hc_kick"}
         )
         ht = CorrectorTranslator.model_validate(hc.model_dump())
@@ -159,11 +159,11 @@ class TestMadxCorrector:
         pytest.importorskip("cpymad")
         from cpymad.madx import Madx
 
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="HC1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.05},
             physical=PhysicalElement(length=0.1, middle=Position(x=0, y=0, z=1.0)),
         )
-        vc = Vertical_Corrector(
+        vc = VerticalCorrector(
             name="VC1", machine_area="S", magnetic={"magnetic_length": 0.1, "vertical_kick": 0.07},
             physical=PhysicalElement(length=0.1, middle=Position(x=0, y=0, z=2.0)),
         )

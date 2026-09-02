@@ -4,7 +4,7 @@ from pydantic import (
     field_validator,
 )
 from typing import List, Type, Union
-from .baseModels import IgnoreExtra, T, DeviceList
+from .base_models import IgnoreExtra, T, DeviceList
 from ._generated import (
     _DiagnosticElementBase,
     _BPMDiagnosticElementBase,
@@ -28,7 +28,7 @@ class DiagnosticElement(_DiagnosticElementBase):
     pass
 
 
-class Beam_Position_Monitor_Diagnostic(_BPMDiagnosticElementBase):
+class BeamPositionMonitorDiagnostic(_BPMDiagnosticElementBase):
     """
     BPM Diagnostic model.
     """
@@ -36,7 +36,7 @@ class Beam_Position_Monitor_Diagnostic(_BPMDiagnosticElementBase):
     pass
 
 
-class Beam_Arrival_Monitor_Diagnostic(_BAMDiagnosticElementBase):
+class BeamArrivalMonitorDiagnostic(_BAMDiagnosticElementBase):
     """
     BAM Diagnostic model.
     """
@@ -44,7 +44,7 @@ class Beam_Arrival_Monitor_Diagnostic(_BAMDiagnosticElementBase):
     pass
 
 
-class Bunch_Length_Monitor_Diagnostic(_BLMDiagnosticElementBase):
+class BunchLengthMonitorDiagnostic(_BLMDiagnosticElementBase):
     """
     BLM Diagnostic model.
     """
@@ -52,7 +52,7 @@ class Bunch_Length_Monitor_Diagnostic(_BLMDiagnosticElementBase):
     pass
 
 
-class Photon_Intensity_Monitor_Diagnostic(DiagnosticElement):
+class PhotonIntensityMonitorDiagnostic(DiagnosticElement):
     """
     Photon Intensity Monitor Diagnostic model.
     """
@@ -66,7 +66,7 @@ class Photon_Intensity_Monitor_Diagnostic(DiagnosticElement):
     intensity: float = 0.0
 
 
-class Camera_Pixel_Results_Indices(_CameraPixelResultsIndicesBase):
+class CameraPixelResultsIndices(_CameraPixelResultsIndicesBase):
     """
     Class defining the names of analysis results for the camera pixel data
     """
@@ -74,7 +74,7 @@ class Camera_Pixel_Results_Indices(_CameraPixelResultsIndicesBase):
     pass
 
 
-class Camera_Pixel_Results_Names(_CameraPixelResultsNamesBase):
+class CameraPixelResultsNames(_CameraPixelResultsNamesBase):
     """
     Class defining the names of the analysis results for the camera data in SI units (or mm)
     """
@@ -82,7 +82,7 @@ class Camera_Pixel_Results_Names(_CameraPixelResultsNamesBase):
     pass
 
 
-class Camera_Mask(_CameraMaskBase, IgnoreExtra):
+class CameraMask(_CameraMaskBase, IgnoreExtra):
     """
     Class defining the camera analysis mask parameters.
     """
@@ -97,7 +97,7 @@ class Camera_Mask(_CameraMaskBase, IgnoreExtra):
     """Maximum mask radius in pixels."""
 
 
-class Camera_Sensor(_CameraSensorBase, IgnoreExtra):
+class CameraSensor(_CameraSensorBase, IgnoreExtra):
     """
     Camera Sensor model. Contains information about the number of pixels, scale factors, bit depth, etc.
     """
@@ -124,11 +124,11 @@ class Camera_Sensor(_CameraSensorBase, IgnoreExtra):
     """Mechanical center of the camera in x and y"""
 
 
-def _build_camera_sensor(**kwargs) -> Camera_Sensor:
-    return Camera_Sensor(**kwargs)
+def _build_camera_sensor(**kwargs) -> CameraSensor:
+    return CameraSensor(**kwargs)
 
 
-def PCO_Camera_Sensor():
+def pco_camera_sensor():
     """
     A specific instantiation of `~laura.models.diagnostic.Camera_Sensor` for PCO cameras.
     """
@@ -149,7 +149,7 @@ def PCO_Camera_Sensor():
     )
 
 
-def Manta_Camera_Sensor():
+def manta_camera_sensor():
     """
     A specific instantiation of `~laura.models.diagnostic.Camera_Sensor` for Manta cameras.
     """
@@ -170,27 +170,28 @@ def Manta_Camera_Sensor():
     )
 
 
-class Camera_Diagnostic(_CameraDiagnosticElementBase):
+class CameraDiagnostic(_CameraDiagnosticElementBase):
     """
     Camera Diagnostic model.
     """
 
     pass
 
-def Camera_Diagnostic_Type(type: str = "PCO", **kwargs) -> Camera_Diagnostic:
+
+def camera_diagnostic_type(type: str = "PCO", **kwargs) -> CameraDiagnostic:
     if type.lower() == "pco":
-        return PCO_Camera_Diagnostic(type=type, **kwargs)
+        return pco_camera_diagnostic(type=type, **kwargs)
     if type.lower() == "manta":
-        return Manta_Camera_Diagnostic(type=type, **kwargs)
-    return Manta_Camera_Diagnostic(type=type, **kwargs)
+        return manta_camera_diagnostic(type=type, **kwargs)
+    return manta_camera_diagnostic(type=type, **kwargs)
 
 
-def PCO_Camera_Diagnostic(**kwargs):
-    return Camera_Diagnostic(sensor=PCO_Camera_Sensor(), **kwargs)
+def pco_camera_diagnostic(**kwargs):
+    return CameraDiagnostic(sensor=pco_camera_sensor(), **kwargs)
 
 
-def Manta_Camera_Diagnostic(**kwargs):
-    return Camera_Diagnostic(sensor=Manta_Camera_Sensor(), **kwargs)
+def manta_camera_diagnostic(**kwargs):
+    return CameraDiagnostic(sensor=manta_camera_sensor(), **kwargs)
 
 
 def _coerce_device_list(v: Union[str, List, dict, DeviceList]) -> DeviceList:
@@ -205,7 +206,7 @@ def _coerce_device_list(v: Union[str, List, dict, DeviceList]) -> DeviceList:
     raise ValueError("devices should be a string or a list of strings")
 
 
-class Screen_Diagnostic(_ScreenDiagnosticElementBase):
+class ScreenDiagnostic(_ScreenDiagnosticElementBase):
     """
     Screen Diagnostic model.
     """
@@ -216,7 +217,33 @@ class Screen_Diagnostic(_ScreenDiagnosticElementBase):
         return _coerce_device_list(v)
 
 
-class Charge_Diagnostic(_ChargeDiagnosticElementBase):
+class ChargeDiagnosticElement(_ChargeDiagnosticElementBase):
     """
     Charge Diagnostic model.
     """
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "Beam_Arrival_Monitor_Diagnostic": "BeamArrivalMonitorDiagnostic",
+        "Beam_Position_Monitor_Diagnostic": "BeamPositionMonitorDiagnostic",
+        "Bunch_Length_Monitor_Diagnostic": "BunchLengthMonitorDiagnostic",
+        "Camera_Diagnostic": "CameraDiagnostic",
+        "Camera_Diagnostic_Type": "camera_diagnostic_type",
+        "Camera_Mask": "CameraMask",
+        "Camera_Pixel_Results_Indices": "CameraPixelResultsIndices",
+        "Camera_Pixel_Results_Names": "CameraPixelResultsNames",
+        "Camera_Sensor": "CameraSensor",
+        "Charge_Diagnostic": "ChargeDiagnosticElement",
+        "Manta_Camera_Diagnostic": "manta_camera_diagnostic",
+        "Manta_Camera_Sensor": "manta_camera_sensor",
+        "PCO_Camera_Diagnostic": "pco_camera_diagnostic",
+        "PCO_Camera_Sensor": "pco_camera_sensor",
+        "Photon_Intensity_Monitor_Diagnostic": "PhotonIntensityMonitorDiagnostic",
+        "Screen_Diagnostic": "ScreenDiagnostic",
+    },
+)

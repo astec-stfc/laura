@@ -80,7 +80,9 @@ class CascadingAccessMixin:
                 origin = get_origin(field_annotation)
 
                 # Handle Union/Optional types
-                is_union = origin is Union or isinstance(field_annotation, types.UnionType)
+                is_union = origin is Union or isinstance(
+                    field_annotation, types.UnionType
+                )
                 if is_union:
                     args = get_args(field_annotation)
                     for arg in args:

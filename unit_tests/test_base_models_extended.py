@@ -6,14 +6,14 @@ fallback, IgnoreExtra field helpers, and NumpyModel/NumpyVectorModel."""
 import numpy as np
 from pydantic import PrivateAttr
 
-from laura.models.baseModels import (
+from laura.models.base_models import (
     ModelBase,
     IgnoreExtra,
     NumpyVectorModel,
     functional_annotations,
     functional_references,
 )
-from laura.models.magnetic import Dipole_Magnet
+from laura.models.magnetic import DipoleMagnet
 from laura.models._generated import _MagneticElementBase
 
 
@@ -22,7 +22,7 @@ class TestFunctionalAnnotationsBendAngle:
         # Dipole_Magnet's hand-written override sets a flat {"functional": True,
         # "reserved_contains": "angle"} json_schema_extra directly, hitting the
         # early-return branch rather than the in_subset-derived one below.
-        field_info = Dipole_Magnet.model_fields["entrance_edge_angle"]
+        field_info = DipoleMagnet.model_fields["entrance_edge_angle"]
         meta = functional_annotations(field_info)
         assert meta == {"functional": True, "reserved_contains": "angle"}
 
@@ -41,11 +41,11 @@ class TestFunctionalReferences:
         assert functional_references(None) == set()
 
     def test_reserved_value_is_skipped(self):
-        d = Dipole_Magnet(length=1.0, entrance_edge_angle="angle")
+        d = DipoleMagnet(length=1.0, entrance_edge_angle="angle")
         assert functional_references(d) == set()
 
     def test_non_reserved_string_is_collected(self):
-        d = Dipole_Magnet(length=1.0, entrance_edge_angle="my_func")
+        d = DipoleMagnet(length=1.0, entrance_edge_angle="my_func")
         assert functional_references(d) == {"my_func"}
 
 

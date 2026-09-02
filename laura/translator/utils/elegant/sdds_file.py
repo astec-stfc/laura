@@ -1,4 +1,4 @@
-from ..SDDSFile import SDDSFile as _SDDSFile, SDDS_Types, read_sdds_file  # noqa: F401
+from ..sdds_file import SDDSFile as _SDDSFile, SddsTypes, read_sdds_file  # noqa: F401
 
 
 class SDDSFile(_SDDSFile):

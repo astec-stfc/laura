@@ -148,7 +148,7 @@ Subsets tag groups of slots that cut across the class hierarchy. Four are descri
 ``diagnostic_properties``, ``laser_properties``), but two are load-bearing:
 
 * ``functional_parameters`` -- the slot may hold the *name* of a functional definition as well
-  as a number. :py:func:`functional_references <laura.models.baseModels.functional_references>`
+  as a number. :py:func:`functional_references <laura.models.base_models.functional_references>`
   looks for exactly this membership when collecting the symbols an element refers to, so adding
   a slot to this subset is all that is needed to make it symbolically definable. See
   :ref:`functional-parameters`.
@@ -259,11 +259,11 @@ what you want when a machine description is not loading as expected:
 
 .. code-block:: python
 
-   from laura.Importers.YAML_Loader import read_YAML_Element_File
+   from laura.importers.yaml_loader import read_yaml_element_file
 
-   element = read_YAML_Element_File("INJ-MAG-DIP-01.yaml", validate=True)
+   element = read_yaml_element_file("INJ-MAG-DIP-01.yaml", validate=True)
 
-**On export.** RDF written by :py:meth:`export_rdf <laura.models.elementList.MachineModel.export_rdf>`
+**On export.** RDF written by :py:meth:`export_rdf <laura.models.element_list.MachineModel.export_rdf>`
 (see :ref:`interfaces`) can be checked against ``laura_shacl.ttl`` with any SHACL engine.
 
 Beyond that, Pydantic enforces the schema's ranges, defaults and constraints on every element

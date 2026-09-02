@@ -7,11 +7,11 @@ try:
         Sextupole,
         GaussianPulse,
     )
+
     _WAKE_T_AVAILABLE = True
 except ImportError as _err:
     raise ImportError(
-        "wake_t is not installed. "
-        "Install with: pip install \"laura-accelerator[wake_t]\""
+        'wake_t is not installed. Install with: pip install "laura-accelerator[wake_t]"'
     ) from _err
 
 wake_t_conversion_rules = {

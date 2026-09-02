@@ -12,7 +12,7 @@ units, dispatch — is covered without the real dependency.
 import pytest
 
 from laura.models.element import Quadrupole, Dipole, Drift, Marker, Aperture
-from laura.models.elementList import SectionLattice, ElementList
+from laura.models.element_list import SectionLattice, ElementList
 from laura.translator.converters.converter import translate_elements
 from laura.translator.converters.section import SectionLatticeTranslator
 from laura.translator.conversion_rules.codes import rftrack_conversion

@@ -1,11 +1,17 @@
+from laura._compat import DeprecatedMethodAliases
 from pydantic import BaseModel, Field
 from typing import Dict, List, Any, Literal
 
 
-class csrtrack_element(BaseModel):
+class CsrTrackElement(DeprecatedMethodAliases, BaseModel):
     """
     Base class for CSRTrack elements, including namelists for the lattice file.
     """
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "CSRTrack_str": "csrtrack_str",
+        "write_CSRTrack": "write_csrtrack",
+    }
 
     header: str = ""
     """Header for CSRtrack file types"""
@@ -28,7 +34,7 @@ class csrtrack_element(BaseModel):
 
     csrtrackdict: Dict = {}
 
-    def CSRTrack_str(self, s: Any) -> str:
+    def csrtrack_str(self, s: Any) -> str:
         """
         Convert a boolean into a string for CSRTrack.
 
@@ -49,7 +55,7 @@ class csrtrack_element(BaseModel):
         else:
             return str(s)
 
-    def write_CSRTrack(self) -> str:
+    def write_csrtrack(self) -> str:
         """
         Create the string for the header object in CSRTrack format.
 
@@ -63,15 +69,15 @@ class csrtrack_element(BaseModel):
             if key not in self.exclude and val is not None:
                 if key in self.csrtrackdict:
                     output += (
-                        key + "=" + self.CSRTrack_str(self.csrtrackdict[key]) + "\n"
+                        key + "=" + self.csrtrack_str(self.csrtrackdict[key]) + "\n"
                     )
                 else:
-                    output += key + "=" + self.CSRTrack_str(getattr(self, key)) + "\n"
+                    output += key + "=" + self.csrtrack_str(getattr(self, key)) + "\n"
         output += "}\n"
         return output
 
 
-class csrtrack_forces(csrtrack_element):
+class CsrTrackForces(CsrTrackElement):
     """
     Class for CSRTrack forces.
     """
@@ -94,7 +100,7 @@ class csrtrack_forces(csrtrack_element):
     relative_long: float = 0.1
 
 
-class csrtrack_track_step(csrtrack_element):
+class CsrTrackTrackStep(CsrTrackElement):
     """
     Class for defining CSRTrack the tracking step.
     """
@@ -129,16 +135,13 @@ class csrtrack_track_step(csrtrack_element):
     duty_steps: bool = True
 
 
-class csrtrack_tracker(csrtrack_element):
+class CsrTrackTracker(CsrTrackElement):
     """
     Class for defining the CSRTrack tracker.
     """
 
-    # end_time_marker is excluded by the base class's `exclude`, but the
-    # tracker block requires it - CSRTrack errors with "end time is
-    # undefined" without it.
     exclude: List[str] = [
-        e for e in csrtrack_element.model_fields["exclude"].default
+        e for e in CsrTrackElement.model_fields["exclude"].default
         if e != "end_time_marker"
     ]
 
@@ -158,7 +161,7 @@ class csrtrack_tracker(csrtrack_element):
     """Time shift for end"""
 
 
-class csrtrack_monitor(csrtrack_element):
+class CsrTrackMonitor(CsrTrackElement):
     """
     Class for defining CSRTrack monitors.
     """
@@ -180,12 +183,12 @@ class csrtrack_monitor(csrtrack_element):
     format: Literal["fmt2"] = "fmt2"
 
 
-class csrtrack_particles(csrtrack_element):
+class CsrTrackParticles(CsrTrackElement):
     """
     Class for defining CSRTrack particles.
     """
 
-    exclude: List[str] = csrtrack_element.model_fields["exclude"].default + [
+    exclude: List[str] = CsrTrackElement.model_fields["exclude"].default + [
         "reference_momentum",
         "reference_point_x",
         "reference_point_y",
@@ -217,3 +220,21 @@ class csrtrack_particles(csrtrack_element):
     reference_point_y: float = 0.0
 
     reference_point_phi: float = 0.0
+
+    format: Literal["astra"] = "astra"
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "csrtrack_element": "CsrTrackElement",
+        "csrtrack_forces": "CsrTrackForces",
+        "csrtrack_monitor": "CsrTrackMonitor",
+        "csrtrack_particles": "CsrTrackParticles",
+        "csrtrack_track_step": "CsrTrackTrackStep",
+        "csrtrack_tracker": "CsrTrackTracker",
+    },
+)

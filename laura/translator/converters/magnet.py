@@ -1,26 +1,28 @@
 from copy import deepcopy
 from typing import Union
-
-from pydantic import computed_field
 from warnings import warn
-from .base import BaseElementTranslator
+
+import numpy as np
+from pydantic import computed_field
+
 from laura.models.magnetic import (
+    CorrectorMagnet,
+    DipoleMagnet,
     MagneticElement,
-    Solenoid_Magnet,
-    Dipole_Magnet,
-    Wiggler_Magnet,
-    NonLinearLens_Magnet,
-    Corrector_Magnet,
+    NonLinearLensMagnet,
+    SolenoidMagnet,
+    WigglerMagnet,
 )
 from laura.models.simulation import MagnetSimulationElement
-from ..utils.functions import _rotation_matrix, chop, expand_substitution
-import numpy as np
-from .codes.gpt import gpt_ccs
-from laura.translator.utils.fields import field
+from laura.translator.utils.fields import FieldMap
+
 from ..converters import (
-    elements_Genesis,
-    elements_Opal,
+    elements_genesis,
+    elements_opal,
 )
+from ..utils.functions import _rotation_matrix, chop, expand_substitution
+from .base import BaseElementTranslator
+from .codes.gpt import GptCcs
 
 
 def add(x, y):
@@ -191,7 +193,7 @@ class MagnetTranslator(BaseElementTranslator):
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the quadrupole element string for ASTRA;
-        calls :func:`~_write_ASTRA_quadrupole`.
+        calls :func:`~_write_astra_quadrupole`.
 
         Note that in astra `Q_xrot` means a rotation about the y-axis and vice versa.
 
@@ -207,14 +209,14 @@ class MagnetTranslator(BaseElementTranslator):
         """
         self.start_write()
         if self.hardware_type.lower() == "quadrupole":
-            return self._write_ASTRA_quadrupole(n, **kwargs)
+            return self._write_astra_quadrupole(n, **kwargs)
         else:
             warn(
                 f"Element type {self.hardware_type} of {self.name} not supported by ASTRA"
             )
             return ""
 
-    def to_csrtrack(self, n: int = 0) -> str:
+    def to_csrtrack(self, n: int = 0, **kwargs) -> str:
         """
         Writes the quadrupole element string for CSRTrack;
         calls :func:`_write_CSRTrack_quadrupole`.
@@ -238,7 +240,7 @@ class MagnetTranslator(BaseElementTranslator):
             )
             return ""
 
-    def _write_ASTRA_quadrupole(self, n: int = 0, **kwargs: dict) -> str:
+    def _write_astra_quadrupole(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the quadrupole element string for ASTRA.
 
@@ -336,18 +338,18 @@ class MagnetTranslator(BaseElementTranslator):
             )
             dict_ready = True
         if dict_ready:
-            return self._write_ASTRA_dictionary(astradict, n)
+            return self._write_astra_dictionary(astradict, n)
         else:
             return ""
 
-    def _write_CSRTrack_quadrupole(self, n: int) -> str:
+    def _write_csrtrack(self, n: int) -> str:
         """
-        Writes the quadrupole element string for CSRTrack.
+        Writes the magnet element string for CSRTrack.
 
         Parameters
         ----------
         n: int
-            Quad index
+            Magnet index
 
         Returns
         -------
@@ -356,7 +358,11 @@ class MagnetTranslator(BaseElementTranslator):
         """
         z1 = self.physical.start.z
         z2 = self.physical.end.z
-        s_comment = f"! quad{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
+        s_comment = (
+            f"! quad{n} s={self.physical.s:.6f}\n" \
+            if self.physical.s is not None \
+            else ""
+        )
         return (
             s_comment
             + """quadrupole{\nposition{rho="""
@@ -423,7 +429,7 @@ class DipoleTranslator(BaseElementTranslator):
     object that can be understood by various simulation codes.
     """
 
-    magnetic: Dipole_Magnet
+    magnetic: DipoleMagnet
     """Dipole element class."""
 
     simulation: MagnetSimulationElement
@@ -560,7 +566,7 @@ class DipoleTranslator(BaseElementTranslator):
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the dipole element string for ASTRA;
-        calls :func:`~_write_ASTRA_dipole`.
+        calls :func:`~_write_astra_dipole`.
 
         Note that in astra `Q_xrot` means a rotation about the y-axis and vice versa.
 
@@ -575,9 +581,9 @@ class DipoleTranslator(BaseElementTranslator):
             String representation of the element for ASTRA, or None if dipole strength is zero
         """
         self.start_write()
-        return self._write_ASTRA_dipole(n, **kwargs)
+        return self._write_astra_dipole(n, **kwargs)
 
-    def _write_ASTRA_dipole(self, n: int = 0, **kwargs: dict) -> str:
+    def _write_astra_dipole(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the dipole element string for ASTRA.
 
@@ -627,7 +633,7 @@ class DipoleTranslator(BaseElementTranslator):
                 }
             else:
                 params["D_radius"] = {"value": 1 * self.magnetic.rho, "default": 1e6}
-            return self._write_ASTRA_dictionary(params, n)
+            return self._write_astra_dictionary(params, n)
         else:
             return ""
 
@@ -761,7 +767,11 @@ class DipoleTranslator(BaseElementTranslator):
         """
         z1 = self.physical.start.z
         z2 = self.physical.end.z
-        s_comment = f"! dipole{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
+        s_comment = (
+            f"! dipole{n} s={self.physical.s:.6f}\n"
+            if self.physical.s is not None
+            else ""
+        )
         return (
             s_comment
             + """dipole{\nposition{rho="""
@@ -805,9 +815,7 @@ class DipoleTranslator(BaseElementTranslator):
                 list(self.physical.global_rotation.model_dump().values()),
             )
             coord = self.ccs.gpt_coordinates(
-                relpos,
-                angle=self.magnetic.KnL(0),
-                tilt=self.magnetic.tilt
+                relpos, angle=self.magnetic.KnL(0), tilt=self.magnetic.tilt
             )
             new_ccs = self.new_ccs(self.ccs)
             b1 = np.round(
@@ -831,14 +839,20 @@ class DipoleTranslator(BaseElementTranslator):
             sectormagnet( "wcs", "bend1", rho, field, e1, e2, 0., 100., 0 ) ;
             """
             output = (
-                "ccs( \"" + self.ccs.name + "\", " + coord + ", \"" + new_ccs.name + "\");\n"
+                'ccs( "'
+                + self.ccs.name
+                + '", '
+                + coord
+                + ', "'
+                + new_ccs.name
+                + '");\n'
             )
             output += (
                 'sectormagnet("'
                 + self.ccs.name
-                + '", \"'
+                + '", "'
                 + new_ccs.name
-                + "\", "
+                + '", '
                 + str(abs(self.magnetic.rho))
                 + ", "
                 + str(abs(field))
@@ -857,7 +871,7 @@ class DipoleTranslator(BaseElementTranslator):
             output = ""
         return output
 
-    def new_ccs(self, ccs: gpt_ccs) -> gpt_ccs:
+    def new_ccs(self, ccs: GptCcs) -> GptCcs:
         """
         Create a new GPT co-ordinate system based on the angle of the magnet.
 
@@ -865,12 +879,12 @@ class DipoleTranslator(BaseElementTranslator):
 
         Parameters
         ----------
-        ccs: :class:`~laura.translator.converters.codes.gpt.gpt_ccs`
+        ccs: :class:`~laura.translator.converters.codes.gpt.GptCcs`
             GPT co-ordinate system
 
         Returns
         -------
-        :class:`~laura.translator.converters.codes.gpt.gpt_ccs`
+        :class:`~laura.translator.converters.codes.gpt.GptCcs`
             New GPT co-ordinate system.
         """
         if abs(self.magnetic.KnL(0)) > 0 and abs(self.magnetic.rho) < 100:
@@ -878,7 +892,7 @@ class DipoleTranslator(BaseElementTranslator):
             number = str(int(ccs.name.split("_")[1]) + 1) if ccs.name != "wcs" else "1"
             name = "ccs_" + number if ccs.name != "wcs" else "ccs_1"
             # print('middle position = ', self.start, self.middle)
-            return gpt_ccs(
+            return GptCcs(
                 name=name,
                 position=list(self.physical.middle.model_dump().values()),
                 rotation=list(
@@ -908,7 +922,7 @@ class DipoleTranslator(BaseElementTranslator):
         """
         # wholestring = ""
         self.start_write()
-        etype = self._convertType_Opal(self.hardware_type)
+        etype = self._convert_type_opal(self.hardware_type)
         if self.e1 == self.e2:
             etype = "sbend"
         wholestring = self.name.replace("-", "_") + ": " + etype
@@ -924,10 +938,10 @@ class DipoleTranslator(BaseElementTranslator):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Opal(key) in elements_Opal[etype]
+                and self._convert_keyword_opal(key) in elements_opal[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Opal(key)
+                    key = self._convert_keyword_opal(key)
                     if value == "angle":
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
@@ -973,7 +987,7 @@ class SolenoidTranslator(BaseElementTranslator):
     object that can be understood by various simulation codes.
     """
 
-    magnetic: Solenoid_Magnet
+    magnetic: SolenoidMagnet
     """Solenoid element class."""
 
     simulation: MagnetSimulationElement
@@ -1001,9 +1015,9 @@ class SolenoidTranslator(BaseElementTranslator):
             String representation of the element for ASTRA, or None if quadrupole strength is zero
         """
         self.start_write()
-        return self._write_ASTRA_solenoid(n, **kwargs)
+        return self._write_astra_solenoid(n, **kwargs)
 
-    def _write_ASTRA_solenoid(self, n: int = 0, **kwargs: dict) -> str:
+    def _write_astra_solenoid(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the solenoid element string for ASTRA.
 
@@ -1031,7 +1045,7 @@ class SolenoidTranslator(BaseElementTranslator):
             "FILE_BFieLD",
             {"value": "'" + field_file_name + "'", "default": ""},
         ]
-        return self._write_ASTRA_dictionary(
+        return self._write_astra_dictionary(
             dict(
                 [
                     ["S_pos", {"value": field_ref_pos[2] + self.dz, "default": 0}],
@@ -1155,7 +1169,7 @@ class SolenoidTranslator(BaseElementTranslator):
             A formatted string representing the object's properties in OPAL format.
         """
         self.start_write()
-        etype = self._convertType_Opal(self.hardware_type)
+        etype = self._convert_type_opal(self.hardware_type)
         wholestring = self.name.replace("-", "_") + ": " + etype
         field_file_name = self.generate_field_file_name(
             self.simulation.field_definition, code="opal"
@@ -1166,10 +1180,10 @@ class SolenoidTranslator(BaseElementTranslator):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Opal(key) in elements_Opal[etype]
+                and self._convert_keyword_opal(key) in elements_opal[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Opal(key)
+                    key = self._convert_keyword_opal(key)
                     val = 1 if value is True else value
                     val = 0 if value is False else val
                     if key == "ks":
@@ -1178,7 +1192,7 @@ class SolenoidTranslator(BaseElementTranslator):
                         tmpstring = ", " + key + " = " + str(val)
                         wholestring += tmpstring
                         keys.append(key)
-        if isinstance(self.simulation.field_definition, field):
+        if isinstance(self.simulation.field_definition, FieldMap):
             wholestring += (
                 ', fmapfn = "'
                 + self.generate_field_file_name(
@@ -1196,7 +1210,7 @@ class WigglerTranslator(BaseElementTranslator):
     object that can be understood by various simulation codes.
     """
 
-    magnetic: Wiggler_Magnet
+    magnetic: WigglerMagnet
     """Wiggler magnetic element."""
 
     simulation: MagnetSimulationElement
@@ -1213,52 +1227,51 @@ class WigglerTranslator(BaseElementTranslator):
         """
         self.start_write()
         wholestring = ""
-        etype = self._convertType_Genesis(self.hardware_type)
+        etype = self._convert_type_genesis(self.hardware_type)
         if "mark" in etype.lower():
             return f"{index}{self.name}: {etype} = " + "{};\n"
         string = f"{index}{self.name}: {etype} = " + "{"
         keys = []
         for key, value in self.full_dump().items():
             if (
-                    not key == "name"
-                    and not key == "type"
-                    and not key == "commandtype"
-                    and self._convertKeyword_Genesis(key) in elements_Genesis[etype]
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convert_keyword_genesis(key) in elements_genesis[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Genesis(key)
+                    key = self._convert_keyword_genesis(key)
                     if key == "aw" and not self.magnetic.helical:
                         value /= np.sqrt(2)
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
-                        string += key + " = " + str(value) + ', '
+                        string += key + " = " + str(value) + ", "
                     keys.append(key)
         wholestring += string[:-2] + "};\n"
         return wholestring
 
 
-
 class CorrectorTranslator(BaseElementTranslator):
     """
-    Translator class for converting a :class:`~laura.models.element.Horizontal_Corrector`,
-    :class:`~laura.models.element.Vertical_Corrector`, or
-    :class:`~laura.models.element.Combined_Corrector` element instance into a string or
+    Translator class for converting a :class:`~laura.models.element.HorizontalCorrector`,
+    :class:`~laura.models.element.VerticalCorrector`, or
+    :class:`~laura.models.element.CombinedCorrector` element instance into a string or
     object that can be understood by various simulation codes.
 
-    Correctors use :class:`~laura.models.magnetic.Corrector_Magnet`, which stores
+    Correctors use :class:`~laura.models.magnetic.CorrectorMagnet`, which stores
     the horizontal and vertical kick angles as two independent, explicitly-named
-    fields (unlike :class:`Dipole_Magnet`, whose multipole ``normal``/``skew``
+    fields (unlike :class:`DipoleMagnet`, whose multipole ``normal``/``skew``
     components denote field orientation, not beam plane) -- so this does *not*
     subclass :class:`MagnetTranslator`, whose ``k1``/``k2``/``k3`` etc. and
     ASTRA/CSRTrack/GPT writers assume a multipole-based magnetic model.
-    A :class:`~laura.models.element.Horizontal_Corrector`/
-    :class:`~laura.models.element.Vertical_Corrector` is expected to populate only
-    its own plane; a :class:`~laura.models.element.Combined_Corrector` can carry
+    A :class:`~laura.models.element.HorizontalCorrector`/
+    :class:`~laura.models.element.VerticalCorrector` is expected to populate only
+    its own plane; a :class:`~laura.models.element.CombinedCorrector` can carry
     both simultaneously.
     """
 
-    magnetic: Corrector_Magnet
+    magnetic: CorrectorMagnet
     """Corrector magnetic element."""
 
     simulation: MagnetSimulationElement
@@ -1278,7 +1291,7 @@ class CorrectorTranslator(BaseElementTranslator):
 
     def to_ocelot(self) -> object:
         """
-        Generates an Ocelot object (or, for a :class:`~laura.models.element.Combined_Corrector`,
+        Generates an Ocelot object (or, for a :class:`~laura.models.element.CombinedCorrector`,
         a pair of objects) for the corrector.
 
         Ocelot's ``Hcor``/``Vcor`` are single-plane elements with no combined
@@ -1319,7 +1332,7 @@ class CorrectorTranslator(BaseElementTranslator):
 
         Represented as an ``xtrack.Multipole`` with the horizontal kick as
         ``knl[0]`` and the vertical kick as ``ksl[0]``, so a
-        :class:`~laura.models.element.Combined_Corrector` carries both planes
+        :class:`~laura.models.element.CombinedCorrector` carries both planes
         simultaneously in a single element (unlike Ocelot, which has no
         combined-plane element and must be split -- see :meth:`to_ocelot`).
 
@@ -1353,5 +1366,5 @@ class NonLinearLensTranslator(BaseElementTranslator):
     object that can be understood by various simulation codes.
     """
 
-    magnetic: NonLinearLens_Magnet
-    """NLL magnetic element."""
+    magnetic: NonLinearLensMagnet
+    """NLL lens magnetic element"""
