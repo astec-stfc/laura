@@ -16,11 +16,12 @@ try:
         Drift,
         Matrix,
     )
+
     _OCELOT_AVAILABLE = True
 except ImportError as _err:
     raise ImportError(
         "ocelot-desy is not installed. "
-        "Install with: pip install \"laura-accelerator[ocelot]\""
+        'Install with: pip install "laura-accelerator[ocelot]"'
     ) from _err
 
 ocelot_conversion_rules = {

@@ -115,7 +115,7 @@ def generate_astra_field_data(self) -> np.ndarray:
                 raise ValueError(
                     "start_cell_z, end_cell_z",
                     "mode_numerator",
-                    "mode_denominator" "must be defined for TravellingWave cavities",
+                    "mode_denominatormust be defined for TravellingWave cavities",
                 )
             preamble = np.array(
                 [

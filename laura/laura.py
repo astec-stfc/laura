@@ -38,6 +38,7 @@ characters and most real element files declare ``name:`` after that (falling bac
 filename), so a summary would simply be named after its file."""
 
 
+
 def flatten(xss):
     """Flatten a list of lists."""
     return list(chain.from_iterable(xss))
@@ -163,7 +164,7 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
                 elems = read_yaml_combined_file(el_list)
-                values = {y.name: y for y in elems if hasattr(y, 'name')}
+                values = {y.name: y for y in elems if hasattr(y, "name")}
                 self.elements.update(values)
             elif os.path.isdir(el_list):
                 files = glob.glob(

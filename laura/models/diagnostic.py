@@ -177,6 +177,7 @@ class CameraDiagnostic(_CameraDiagnosticElementBase):
 
     pass
 
+
 def camera_diagnostic_type(type: str = "PCO", **kwargs) -> CameraDiagnostic:
     if type.lower() == "pco":
         return pco_camera_diagnostic(type=type, **kwargs)

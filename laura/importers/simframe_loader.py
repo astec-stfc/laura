@@ -36,7 +36,7 @@ from ..models.element import (
 from ..models.diagnostic import camera_diagnostic_type
 
 with open(
-        os.path.dirname(os.path.abspath(__file__)) + "/camera_assignments.yaml", "r"
+    os.path.dirname(os.path.abspath(__file__)) + "/camera_assignments.yaml", "r"
 ) as stream:
     camera_assignments = yaml.load(stream, Loader=yaml.Loader)
     camera_types = {}
@@ -64,9 +64,7 @@ SimFrame_Elements = {
     "solenoid": SimFrameConversion(typeclass=Solenoid, hardware_class="Magnet"),
     "marker": SimFrameConversion(typeclass=Marker, hardware_class="Simulation"),
     "aperture": SimFrameConversion(typeclass=Aperture, hardware_class="Simulation"),
-    "collimator": SimFrameConversion(
-        typeclass=Collimator, hardware_class="Simulation"
-    ),
+    "collimator": SimFrameConversion(typeclass=Collimator, hardware_class="Simulation"),
     "beam_position_monitor": SimFrameConversion(
         typeclass=BeamPositionMonitor, hardware_class="Diagnostic"
     ),
@@ -87,15 +85,11 @@ SimFrame_Elements = {
     ),
     "screen": SimFrameConversion(typeclass=Screen, hardware_class="Diagnostic"),
     # 'rf_deflecting_cavity': SimFrame_Conversion(typeclass=Sextupole, PV_class='Magnet'),
-    "kicker": SimFrameConversion(
-        typeclass=CombinedCorrector, hardware_class="Magnet"
-    ),
+    "kicker": SimFrameConversion(typeclass=CombinedCorrector, hardware_class="Magnet"),
     "hkicker": SimFrameConversion(
         typeclass=HorizontalCorrector, hardware_class="Magnet"
     ),
-    "vkicker": SimFrameConversion(
-        typeclass=VerticalCorrector, hardware_class="Magnet"
-    ),
+    "vkicker": SimFrameConversion(typeclass=VerticalCorrector, hardware_class="Magnet"),
     # 'monitor': SimFrame_Conversion(typeclass=Sextupole, PV_class='Magnet'),
     "longitudinal_wakefield": SimFrameConversion(
         typeclass=Wakefield, hardware_class="Simulation"
@@ -184,7 +178,9 @@ def read_simframe_yaml(filename):
                 )
                 _log.debug(
                     "Screen '%s': camera '%s' type='%s'",
-                    elemmodel.name, elemmodel.diagnostic.camera_name, camtype,
+                    elemmodel.name,
+                    elemmodel.diagnostic.camera_name,
+                    camtype,
                 )
                 elemmodelcam = Camera(
                     name=elemmodel.diagnostic.camera_name,
@@ -202,7 +198,8 @@ def read_simframe_yaml(filename):
             # pass
             _log.warning(
                 "Skipping SimFrame element '%s': unrecognised type '%s'",
-                name, elem["type"],
+                name,
+                elem["type"],
             )
         if "sub_elements" in elem:
             for subname, subelem in elem["sub_elements"].items():

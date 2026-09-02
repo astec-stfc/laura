@@ -116,12 +116,12 @@ def read_sdds_field_file(self, filename: str, field_type: str):
     self.reset_dicts()
     setattr(self, "field_type", field_type)
     try:
-        elegantObject = SDDSFile(index=1, ascii=True)
+        elegant_object = SDDSFile(index=1, ascii=True)
     except Exception:
-        elegantObject = SDDSFile(index=1, ascii=False)
-    elegantObject.read_file(filename, page=-1)
+        elegant_object = SDDSFile(index=1, ascii=False)
+    elegant_object.read_file(filename, page=-1)
     if field_type in ["LongitudinalWake", "3DWake", "TransverseWake"]:
-        for key, val in elegantObject._columns.items():
+        for key, val in elegant_object._columns.items():
             data = np.array(val.data)
             if val.unit == "m":
                 setattr(
@@ -158,6 +158,7 @@ def read_sdds_field_file(self, filename: str, field_type: str):
         raise NotImplementedError(
             f"{field_type} loading not implemented for SDDS files"
         )
+
 
 # ---------------------------------------------------------------------------
 # Backwards compatibility: names renamed for PEP 8. Served lazily with a

@@ -22,6 +22,7 @@ RF-Track CERN page. Import is therefore guarded so the rest of LAURA keeps
 working without it installed — call :func:`get_rftrack` to fail with a clear
 message only at the point RF-Track is actually needed.
 """
+
 import math
 from warnings import warn
 
@@ -148,8 +149,10 @@ def repr_quadrupole(t, P_Q: float = float("nan"), **kwargs) -> tuple:
     """
     return (
         f"Quadrupole({_format_args(_quadrupole_args(t))})",
-        [f"# P_Q (beam rigidity) at this element = {P_Q!r} MV/c "
-         f"-- unused here, Quadrupole defers to autophase()"],
+        [
+            f"# P_Q (beam rigidity) at this element = {P_Q!r} MV/c "
+            f"-- unused here, Quadrupole defers to autophase()"
+        ],
     )
 
 
@@ -467,7 +470,11 @@ def _tw_structure_args(t) -> tuple:
     amplitude = t.simulation.field_amplitude
     ph_adv = _resolve_ph_advance(t)
     return (
-        np.array([1. / np.sqrt(2) * amplitude]), 0, float(cav.frequency), ph_adv, int(3 + cav.n_cells),
+        np.array([1.0 / np.sqrt(2) * amplitude]),
+        0,
+        float(cav.frequency),
+        ph_adv,
+        int(3 + cav.n_cells),
     ), cav.phase
 
 
@@ -538,7 +545,9 @@ def _cavity_fieldmap_args(t) -> tuple:
     # real physical length, not approximate a multi-cell structure.
     amplitude = t.simulation.field_amplitude * (cav.n_cells or 1)
     args = fields_rftrack.rf_fieldmap_1d_args(
-        t.simulation.field_definition, amplitude=amplitude, frequency=float(cav.frequency)
+        t.simulation.field_definition,
+        amplitude=amplitude,
+        frequency=float(cav.frequency),
     )
     return args, cav.phase
 

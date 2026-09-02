@@ -136,6 +136,7 @@ from .simulation import (
     BeamBeamSimulationElement,
     RFMultipoleSimulationElement,
 )
+
 # Re-export from utils for backwards compatibility
 flatten = flatten_dict
 string_with_quotes = StringWithQuotes
@@ -164,7 +165,9 @@ def _coerce_nested_model(value: Any, model_cls):
     return value
 
 
-class BaseElement(DeprecatedMethodAliases, CascadingAccessMixin, _AcceleratorElementBase, IgnoreExtra):
+class BaseElement(
+    DeprecatedMethodAliases, CascadingAccessMixin, _AcceleratorElementBase, IgnoreExtra
+):
     """
     Base-level element class. All LAURA elements derive from this.
 
@@ -367,7 +370,10 @@ class Magnet(PhysicalBaseElement, _MagnetBase):
         """
         Rotation of the magnet based on its bending angle.
         """
-        if self.magnetic is not None and getattr(self.magnetic, 'angle', None) is not None:
+        if (
+            self.magnetic is not None
+            and getattr(self.magnetic, "angle", None) is not None
+        ):
             # angle may be stored symbolically as a functional-definition name;
             # geometry needs a number, and KnL() always resolves.
             return Rotation.from_list([0, 0, self.magnetic.KnL(0)])
@@ -714,7 +720,8 @@ class PhotonMonitor(Diagnostic):
     """
 
     hardware_type: str = Field(
-        default="Photon_Monitor", frozen=True,
+        default="Photon_Monitor",
+        frozen=True,
     )
     """Photon monitor hardware type."""
 

@@ -170,6 +170,7 @@ def write_hdf5_field_file(self):
                     dataset.attrs["units"] = getattr(self, dset).value.units
     return self.filename
 
+
 from laura._compat import deprecated_aliases  # noqa: E402
 
 __getattr__ = deprecated_aliases(

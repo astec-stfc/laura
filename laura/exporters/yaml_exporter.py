@@ -44,7 +44,11 @@ def _clean_export_data(data: dict, ele: PhysicalElement) -> dict:
     if "physical" in data and isinstance(data["physical"], dict):
         data["physical"].pop("_physical_angle", None)
         phys_dict = data["physical"]
-        if "s" in phys_dict and "middle" not in phys_dict and ele.physical.middle is not None:
+        if (
+            "s" in phys_dict
+            and "middle" not in phys_dict
+            and ele.physical.middle is not None
+        ):
             phys_dict["middle"] = ele.physical.middle.model_dump(exclude_defaults=True)
 
     # --- Computed fields on MagneticElement / Dipole_Magnet ---
@@ -163,7 +167,9 @@ def _apply_position_mode(
                 phys_dict["s_point"] = phys.s_point
 
     elif mode == "reference":
-        prev_phys = getattr(prev_ele, "physical", None) if prev_ele is not None else None
+        prev_phys = (
+            getattr(prev_ele, "physical", None) if prev_ele is not None else None
+        )
         if (
             prev_name is not None
             and prev_phys is not None

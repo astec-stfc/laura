@@ -238,36 +238,37 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         from ..conversion_rules.codes import ocelot_conversion
 
-        type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+        type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
         self.start_write()
         self.generate_field_file_name(
             self.simulation.wakefield_definition, code="astra"
         )
-        obj = type_conversion_rules_Ocelot[self.hardware_type](eid=self.name)
+        obj = type_conversion_rules_ocelot[self.hardware_type](eid=self.name)
         for key, value in self.full_dump().items():
             if (
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convert_keyword_ocelot(key) in obj.__class__().element.__dict__
+                and value
+                and self._convert_keyword_ocelot(key)
+                in obj.__class__().element.__dict__
             ):
-                if value:
-                    key = self._convert_keyword_ocelot(key).lower()
-                    if self.hardware_type in ["RFCavity", "RFDeflectingCavity"]:
-                        if key == "v":
-                            if self.structure_type == "TravellingWave":
-                                value = (
-                                    value
-                                    * 1e-9
-                                    * abs(
-                                        (self.get_cells() + 3.8)
-                                        * self.cavity.cell_length
-                                        * (1 / np.sqrt(2))
-                                    )
+                key = self._convert_keyword_ocelot(key).lower()
+                if self.hardware_type in ["RFCavity", "RFDeflectingCavity"]:
+                    if key == "v":
+                        if self.structure_type == "TravellingWave":
+                            value = (
+                                value
+                                * 1e-9
+                                * abs(
+                                    (self.get_cells() + 3.8)
+                                    * self.cavity.cell_length
+                                    * (1 / np.sqrt(2))
                                 )
-                            else:
-                                value = value * 1e-9
-                    setattr(obj, key, value)
+                            )
+                        else:
+                            value = value * 1e-9
+                setattr(obj, key, value)
         return obj
 
     def to_cheetah(self) -> object:
@@ -282,9 +283,9 @@ class RFCavityTranslator(BaseElementTranslator):
         from ..conversion_rules.codes import cheetah_conversion
         from torch import tensor, float64
 
-        type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
+        type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_Cheetah[self.hardware_type](
+        obj = type_conversion_rules_cheetah[self.hardware_type](
             name=self.name,
             length=tensor(self.physical.length, dtype=float64),
             sanitize_name=True,
@@ -438,9 +439,9 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         from ..conversion_rules.codes import xsuite_conversion
 
-        type_conversion_rules_Xsuite = xsuite_conversion.xsuite_conversion_rules
+        type_conversion_rules_xsuite = xsuite_conversion.xsuite_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_Xsuite[self.hardware_type]
+        obj = type_conversion_rules_xsuite[self.hardware_type]
         properties = {}
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (key not in ["name", "type", "commandtype"]) and (
@@ -507,7 +508,9 @@ class RFCavityTranslator(BaseElementTranslator):
                     key = self._convert_keyword_madx(
                         key, updated_type=self.hardware_type
                     )
-                    functional = self.is_functional(value) and not self._resolve_functional
+                    functional = (
+                        self.is_functional(value) and not self._resolve_functional
+                    )
                     deferred = functional
                     if key == "lag":
                         value = (
@@ -687,13 +690,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     + ";\n"
                 )
             else:
-                output += (
-                    "ffac"
-                    + subname
-                    + " = "
-                    + str(self.field_amplitude)
-                    + ";\n"
-                )
+                output += "ffac" + subname + " = " + str(self.field_amplitude) + ";\n"
 
             # if False and self.Structure_Type == 'TravellingWave' and hasattr(self, 'attenuation_constant') and hasattr(self, 'shunt_impedance') and hasattr(self, 'design_power') and hasattr(self, 'design_gamma'):
             #     '''

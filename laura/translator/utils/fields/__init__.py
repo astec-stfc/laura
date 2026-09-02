@@ -449,6 +449,7 @@ class FieldMap(BaseModel):
         elif code.lower() == "hdf5":
             return hdf5.write_hdf5_field_file(self)
 
+
 from laura._compat import deprecated_aliases  # noqa: E402
 
 __getattr__ = deprecated_aliases(
