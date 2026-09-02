@@ -428,8 +428,8 @@ class Horizontal_Corrector(Dipole, _HorizontalCorrectorBase):
     Attributes:
         hardware_type (str): The hardware type of the corrector.
         magnetic (:class:`~laura.models.magnetic.Corrector_Magnet`): The magnetic
-        attributes of the corrector -- only ``horizontal_kick`` is expected to be
-        set.
+        attributes of the corrector -- only ``horizontal_kick`` (equivalently the
+        normal component of ``multipoles.K0L``) is expected to be set.
     """
 
     hardware_type: str = Field(default="Horizontal_Corrector", frozen=True)
@@ -446,8 +446,8 @@ class Vertical_Corrector(Dipole, _VerticalCorrectorBase):
     Attributes:
         hardware_type (str): The hardware type of the corrector.
         magnetic (:class:`~laura.models.magnetic.Corrector_Magnet`): The magnetic
-        attributes of the corrector -- only ``vertical_kick`` is expected to be
-        set.
+        attributes of the corrector -- only ``vertical_kick`` (equivalently the
+        skew component of ``multipoles.K0L``) is expected to be set.
     """
 
     hardware_type: str = Field(default="Vertical_Corrector", frozen=True)
@@ -465,7 +465,8 @@ class Combined_Corrector(Dipole, _CombinedCorrectorBase):
         hardware_type (str): The hardware type of the corrector.
         magnetic (:class:`~laura.models.magnetic.Corrector_Magnet`): The magnetic
         attributes of the corrector; both ``horizontal_kick`` and ``vertical_kick``
-        may be set independently.
+        may be set independently. The two kicks are the normal and skew
+        components of one ``multipoles.K0L``.
         Horizontal_Corrector (str): Name of a separately-defined
         :class:`Horizontal_Corrector` element this combined corrector is paired
         with, for hardware/PS bookkeeping (see e.g. ``LAURA.get_correctors``) --

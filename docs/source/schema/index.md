@@ -71,7 +71,6 @@ Name: laura_schema
 | [ChannelNames](ChannelNames.md) | Names for LLRF channels 1 |
 | [ControlsInformation](ControlsInformation.md) | Collection of process-variable definitions for an element's control interface |
 | [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |
-| [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field, expressed as horizontal and vertical kicks rather t... |
 | [DegaussableElement](DegaussableElement.md) | Degaussing (demagnetisation cycle) parameters for magnets that require a fiel... |
 | [DiagnosticElement](DiagnosticElement.md) | Base class for diagnostic instrument sub-models |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[BAMDiagnosticElement](BAMDiagnosticElement.md) | Beam-arrival monitor (BAM) diagnostic data |
@@ -99,6 +98,7 @@ Name: laura_schema
 | [MachineModel](MachineModel.md) | Top-level container for a complete accelerator lattice: elements, sections, l... |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[DipoleMagnet](DipoleMagnet.md) |  |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[QuadrupoleMagnet](QuadrupoleMagnet.md) |  |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |

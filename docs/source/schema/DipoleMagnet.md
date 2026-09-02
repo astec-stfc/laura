@@ -17,6 +17,11 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
       MagneticElement <|-- DipoleMagnet
         click MagneticElement href "../MagneticElement/"
       
+
+      DipoleMagnet <|-- CorrectorMagnet
+        click CorrectorMagnet href "../CorrectorMagnet/"
+      
+
       DipoleMagnet : angle
         
       DipoleMagnet : bore
@@ -121,6 +126,7 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
 ## Inheritance
 * [MagneticElement](MagneticElement.md)
     * **DipoleMagnet**
+        * [CorrectorMagnet](CorrectorMagnet.md)
 
 
 ## Slots
@@ -237,7 +243,6 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
     minimum_value: -1
@@ -263,7 +268,6 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
@@ -422,7 +426,6 @@ attributes:
     owner: Dipole_Magnet
     domain_of:
     - MagneticElement
-    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad

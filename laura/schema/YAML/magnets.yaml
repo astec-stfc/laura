@@ -99,36 +99,42 @@ classes:
         ifabsent: Octupole
 
   # -- Correctors ---------------------------------------------------------------
-  # Correctors are dipoles in Python (``is_a: Dipole``) but carry a kick-based
-  # magnetic model rather than a multipole one.
 
   Corrector_Magnet:
+    is_a: Dipole_Magnet
     description: >-
-      Steering-corrector field, expressed as horizontal and vertical kicks
-      rather than multipole coefficients.
+      Steering-corrector field. A dipole magnet whose order-0 multipole is
+      addressed by beam plane: the normal component is the horizontal kick and
+      the skew component is the vertical kick. Inherits from 
+      Dipole_Magnet / MagneticElement.
     class_uri: laura:Corrector_Magnet
     attributes:
-      length:
-        range: float
-        ifabsent: float(0.0)
-        description: Magnetic length [m].
-        minimum_value: 0
-      order:
-        range: integer
-        ifabsent: int(0)
-        description: Multipole order (0, a dipole field).
-      tilt:
-        range: float
-        ifabsent: float(0.0)
-        description: Roll of the corrector about the beam axis [rad].
       horizontal_kick:
         range: float
+        any_of:
+          - range: float
+          - range: string
+        in_subset:
+          - functional_parameters
         ifabsent: float(0.0)
-        description: Horizontal deflection [rad]. May be a functional expression.
+        description: >-
+          Horizontal deflection [rad]. May be a functional expression. Derived
+          from multipoles.K0L.normal.
+        unit:
+          ucum_code: rad
       vertical_kick:
         range: float
+        any_of:
+          - range: float
+          - range: string
+        in_subset:
+          - functional_parameters
         ifabsent: float(0.0)
-        description: Vertical deflection [rad]. May be a functional expression.
+        description: >-
+          Vertical deflection [rad]. May be a functional expression. Derived
+          from multipoles.K0L.skew.
+        unit:
+          ucum_code: rad
 
   HorizontalCorrector:
     is_a: Dipole

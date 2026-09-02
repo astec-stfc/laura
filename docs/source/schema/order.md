@@ -21,7 +21,7 @@ URI: [laura:order](https://w3id.org/laura/order)
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  yes  |
 | [SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |  yes  |
 | [OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |  yes  |
-| [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field, expressed as horizontal and vertical kicks rather t... |  no  |
+| [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field |  no  |
 | [SolenoidMagnet](SolenoidMagnet.md) | Solenoid field model, including systematic and random field errors and the cu... |  no  |
 
 
@@ -36,7 +36,7 @@ URI: [laura:order](https://w3id.org/laura/order)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [Multipole](Multipole.md), [MagneticElement](MagneticElement.md), [CorrectorMagnet](CorrectorMagnet.md), [SolenoidMagnet](SolenoidMagnet.md) |
+| Domain Of | [Multipole](Multipole.md), [MagneticElement](MagneticElement.md), [SolenoidMagnet](SolenoidMagnet.md) |
 
 ### Cardinality and Requirements
 
@@ -77,7 +77,6 @@ name: order
 domain_of:
 - Multipole
 - MagneticElement
-- Corrector_Magnet
 - Solenoid_Magnet
 range: string
 

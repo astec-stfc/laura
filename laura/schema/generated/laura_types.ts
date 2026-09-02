@@ -1654,18 +1654,12 @@ export interface Octupole extends Magnet {
 
 
 /**
- * Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.
+ * Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. length, order, tilt, multipoles, field_integral_coefficients and linear_saturation_coefficients are all inherited from Dipole_Magnet / MagneticElement.
  */
-export interface CorrectorMagnet {
-    /** Magnetic length [m]. */
-    length?: number,
-    /** Multipole order (0, a dipole field). */
-    order?: number,
-    /** Roll of the corrector about the beam axis [rad]. */
-    tilt?: number,
-    /** Horizontal deflection [rad]. May be a functional expression. */
+export interface CorrectorMagnet extends DipoleMagnet {
+    /** Horizontal deflection [rad]. May be a functional expression. Derived from multipoles.K0L.normal. */
     horizontal_kick?: number,
-    /** Vertical deflection [rad]. May be a functional expression. */
+    /** Vertical deflection [rad]. May be a functional expression. Derived from multipoles.K0L.skew. */
     vertical_kick?: number,
 }
 
@@ -1696,7 +1690,7 @@ export interface CombinedCorrector extends Dipole {
 
 
 /**
- * Solenoid integrated axial field components ``S0L``–``S12L`` [T.m].
+ * Solenoid integrated axial field components ``S0L``â€“``S12L`` [T.m].
  */
 export interface SolenoidFields {
     /** Integrated solenoid field, order 0 [T.m]. */

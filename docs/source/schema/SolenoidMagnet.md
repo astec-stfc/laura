@@ -176,7 +176,6 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
@@ -190,7 +189,6 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
   fields:
@@ -266,7 +264,6 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
@@ -281,7 +278,6 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
   fields:

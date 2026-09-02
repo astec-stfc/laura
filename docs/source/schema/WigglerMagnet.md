@@ -136,7 +136,6 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
@@ -247,7 +246,6 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet

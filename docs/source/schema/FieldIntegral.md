@@ -55,6 +55,7 @@ URI: [laura:FieldIntegral](https://w3id.org/laura/FieldIntegral)
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) | [field_integral_coefficients](field_integral_coefficients.md) | range | [FieldIntegral](FieldIntegral.md) |
 | [SextupoleMagnet](SextupoleMagnet.md) | [field_integral_coefficients](field_integral_coefficients.md) | range | [FieldIntegral](FieldIntegral.md) |
 | [OctupoleMagnet](OctupoleMagnet.md) | [field_integral_coefficients](field_integral_coefficients.md) | range | [FieldIntegral](FieldIntegral.md) |
+| [CorrectorMagnet](CorrectorMagnet.md) | [field_integral_coefficients](field_integral_coefficients.md) | range | [FieldIntegral](FieldIntegral.md) |
 | [SolenoidMagnet](SolenoidMagnet.md) | [field_integral_coefficients](field_integral_coefficients.md) | range | [FieldIntegral](FieldIntegral.md) |
 
 

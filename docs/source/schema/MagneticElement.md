@@ -245,7 +245,6 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
     minimum_value: -1
@@ -268,7 +267,6 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
@@ -412,7 +410,6 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - MagneticElement
-    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad
@@ -485,7 +482,6 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
     minimum_value: -1
@@ -510,7 +506,6 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
@@ -669,7 +664,6 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
-    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad

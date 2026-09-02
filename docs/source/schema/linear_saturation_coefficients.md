@@ -20,6 +20,7 @@ URI: [laura:linear_saturation_coefficients](https://w3id.org/laura/linear_satura
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
 | [SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |  no  |
 | [OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |  no  |
+| [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field |  no  |
 | [SolenoidMagnet](SolenoidMagnet.md) | Solenoid field model, including systematic and random field errors and the cu... |  no  |
 
 

@@ -1,5 +1,10 @@
 # Slot: tilt 
 
+
+_Global tilt about the beam axis [rad]._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -20,7 +25,7 @@ URI: [laura:tilt](https://w3id.org/laura/tilt)
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
 | [SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |  no  |
 | [OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |  no  |
-| [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field, expressed as horizontal and vertical kicks rather t... |  no  |
+| [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field |  no  |
 
 
 
@@ -33,13 +38,31 @@ URI: [laura:tilt](https://w3id.org/laura/tilt)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
-| Domain Of | [MagneticElement](MagneticElement.md), [CorrectorMagnet](CorrectorMagnet.md) |
+| Range | [Float](Float.md) |
+| Domain Of | [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+### Slot Characteristics
+
+| Property | Value |
+| --- | --- |
+| If Absent | `float(0.0)` |
+| Owner | [MagneticElement](MagneticElement.md) |
+
+
+<details>
+<summary>Additional Constraints</summary>
+**Unit:**
+
+| Property | Value |
+| --- | --- |
+| ucum_code | rad |
+
+</details>
+
 
 
 
@@ -53,6 +76,13 @@ URI: [laura:tilt](https://w3id.org/laura/tilt)
 ## Identifier and Mapping Information
 
 
+
+
+
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
 
 
 
@@ -72,10 +102,16 @@ URI: [laura:tilt](https://w3id.org/laura/tilt)
 <details>
 ```yaml
 name: tilt
+description: Global tilt about the beam axis [rad].
+from_schema: https://w3id.org/laura/schema
+rank: 1000
+ifabsent: float(0.0)
+owner: MagneticElement
 domain_of:
 - MagneticElement
-- Corrector_Magnet
-range: string
+range: float
+unit:
+  ucum_code: rad
 
 ```
 </details></div>

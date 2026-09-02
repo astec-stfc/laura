@@ -1246,12 +1246,6 @@ class CorrectorTranslator(BaseElementTranslator):
     :class:`~laura.models.element.Combined_Corrector` element instance into a string or
     object that can be understood by various simulation codes.
 
-    Correctors use :class:`~laura.models.magnetic.Corrector_Magnet`, which stores
-    the horizontal and vertical kick angles as two independent, explicitly-named
-    fields (unlike :class:`Dipole_Magnet`, whose multipole ``normal``/``skew``
-    components denote field orientation, not beam plane) -- so this does *not*
-    subclass :class:`MagnetTranslator`, whose ``k1``/``k2``/``k3`` etc. and
-    ASTRA/CSRTrack/GPT writers assume a multipole-based magnetic model.
     A :class:`~laura.models.element.Horizontal_Corrector`/
     :class:`~laura.models.element.Vertical_Corrector` is expected to populate only
     its own plane; a :class:`~laura.models.element.Combined_Corrector` can carry
@@ -1324,10 +1318,7 @@ class CorrectorTranslator(BaseElementTranslator):
         combined-plane element and must be split -- see :meth:`to_ocelot`).
 
         Xtrack's normal-multipole convention deflects toward *negative* x for a
-        positive ``knl`` -- the opposite of the "positive kick deflects toward
-        positive x/y" convention used by MAD-X/Ocelot/Cheetah (verified against
-        each by direct particle tracking) -- so ``knl[0]`` is the *negated*
-        horizontal kick; the skew component (``ksl[0]``) needs no such negation.
+        positive ``knl``.
 
         Returns
         -------

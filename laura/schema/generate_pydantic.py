@@ -537,14 +537,10 @@ def _add_attribute_docstrings(content: str) -> str:
 #: subclass property shadowing an inherited field makes the property object
 #: itself the field default, which then fails validation.
 _PYDANTIC_EXCLUDED_SLOTS: dict[str, frozenset[str]] = {
-    # MagneticElement.angle is derived from multipoles.K0L so that a symbolic
-    # (functional) bend angle survives round-tripping and reads follow the
-    # global resolution mode. The Dipole/Quadrupole magnet bases repeat the slot
-    # and are excluded too, so the property stays usable if a wrapper is ever
-    # pointed at them.
     "_MagneticElementBase": frozenset({"angle"}),
     "_DipoleMagnetBase": frozenset({"angle"}),
     "_QuadrupoleMagnetBase": frozenset({"angle"}),
+    "_CorrectorMagnetBase": frozenset({"angle", "horizontal_kick", "vertical_kick"}),
 }
 
 

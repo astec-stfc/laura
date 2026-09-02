@@ -286,6 +286,7 @@ URI: [FunctionalParameters](FunctionalParameters.md)
 
 
 
+        
 
 
 
@@ -492,6 +493,7 @@ URI: [FunctionalParameters](FunctionalParameters.md)
 
 
 
+        
 
 
 
@@ -539,9 +541,11 @@ URI: [FunctionalParameters](FunctionalParameters.md)
 | [entrance_edge_angle](entrance_edge_angle.md) | Fringe-field entrance edge angle [rad] |
 | [exit_edge_angle](exit_edge_angle.md) | Fringe-field exit edge angle [rad] |
 | [field_amplitude](field_amplitude.md) | Field amplitude scaling |
+| [horizontal_kick](horizontal_kick.md) | Horizontal deflection [rad] |
 | [normal](normal.md) | Integrated normal (upright) multipole strength [T |
 | [phase](phase.md) | Operating phase offset [deg] |
 | [skew](skew.md) | Integrated skew (rotated) multipole strength [T |
+| [vertical_kick](vertical_kick.md) | Vertical deflection [rad] |
 
 
 

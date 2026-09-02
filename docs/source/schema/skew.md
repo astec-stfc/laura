@@ -21,6 +21,7 @@ URI: [laura:skew](https://w3id.org/laura/skew)
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
 | [SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |  no  |
 | [OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |  no  |
+| [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field |  no  |
 
 
 

@@ -221,3 +221,87 @@ class TestXsuite:
         )
         name, cls, properties = translate_elements([hc])["hc1"].to_xsuite(beam_length=1)
         assert properties["knl"] == pytest.approx([-0.02])
+
+
+class TestCorrectorMagnetIsADipoleMagnet:
+    """``Corrector_Magnet`` inherits ``Dipole_Magnet``: the two kicks are the
+    normal/skew components of the same ``K0L``, so the whole ``MagneticElement``
+    toolkit (calibration, gradient, rho) applies to a corrector."""
+
+    def test_inherits_magnetic_element_toolkit(self):
+        from laura.models.magnetic import Corrector_Magnet, Dipole_Magnet, MagneticElement
+
+        m = Corrector_Magnet(magnetic_length=0.2, horizontal_kick=0.02)
+        assert isinstance(m, (Dipole_Magnet, MagneticElement))
+        assert m.KnL(0) == pytest.approx(0.02)
+        assert m.Kn() == pytest.approx(0.1)
+        assert m.rho == pytest.approx(10.0)
+
+    def test_kicks_are_the_k0l_components(self):
+        from laura.models.magnetic import Corrector_Magnet
+
+        m = Corrector_Magnet(magnetic_length=0.1, horizontal_kick=0.02, vertical_kick=0.03)
+        assert (m.multipoles.K0L.normal, m.multipoles.K0L.skew) == (0.02, 0.03)
+        m.horizontal_kick = 0.5
+        assert m.multipoles.K0L.normal == pytest.approx(0.5)
+        assert m.vertical_kick == pytest.approx(0.03)
+
+    @pytest.mark.parametrize("key", ["angle", "k0l", "kl"])
+    def test_angle_and_k0l_transfer_to_the_horizontal_kick(self, key):
+        from laura.models.magnetic import Corrector_Magnet
+
+        assert Corrector_Magnet(**{"magnetic_length": 0.1, key: 0.02}).horizontal_kick == (
+            pytest.approx(0.02)
+        )
+
+    @pytest.mark.parametrize(
+        "key,lands_in_skew",
+        [("angle", True), ("kl", True), ("k0l", False)],
+    )
+    def test_kick_from_angle_moves_the_value_to_the_named_plane(self, key, lands_in_skew):
+        from laura.models.magnetic import Corrector_Magnet
+
+        m = Corrector_Magnet(**{"magnetic_length": 0.1, key: 0.02, "skew": True})
+        assert m.vertical_kick == pytest.approx(0.02 if lands_in_skew else 0.0)
+        assert m.kick_from_angle() == pytest.approx(0.02)
+        assert m.vertical_kick == pytest.approx(0.02)
+        assert m.horizontal_kick == pytest.approx(0.0)
+
+    def test_symbolic_kicks_survive_and_resolve(self):
+        from laura.models.magnetic import Corrector_Magnet
+
+        set_functional_definitions({"hk": 0.011, "vk": -0.004})
+        m = Corrector_Magnet(magnetic_length=0.1, horizontal_kick="hk", vertical_kick="vk")
+        assert (m.horizontal_kick, m.vertical_kick) == ("hk", "vk")
+        assert m.resolved_kicks() == pytest.approx((0.011, -0.004))
+
+    def test_legacy_lattice_magnetic_block_round_trips(self):
+        """A corrector YAML written before this change carries a dipole-shaped
+        ``magnetic`` block and no kick keys; it must still load, and must now
+        keep the calibration data that ``IgnoreExtra`` used to silently drop."""
+        from laura.models.element import Horizontal_Corrector
+
+        legacy = {
+            "length": 0.21, "order": 0, "skew": False, "settle_time": 45.0,
+            "multipoles": {}, "systematic_multipoles": {}, "random_multipoles": {},
+            "field_integral_coefficients": {"coefficients": [0]},
+            "linear_saturation_coefficients": {"m": 0.142, "a": 0.0, "d": 0.0,
+                                               "f": 0.0, "I0": 0.0, "I_max": 5.0,
+                                               "L": 137.8},
+            # computed fields present in a dumped file
+            "rho": 0, "half_gap": 0.016,
+        }
+        hc = Horizontal_Corrector(name="hc1", machine_area="S", magnetic=legacy)
+        assert hc.magnetic.length == pytest.approx(0.21)
+        assert hc.magnetic.horizontal_kick == pytest.approx(0.0)
+        assert hc.magnetic.settle_time == pytest.approx(45.0)
+        assert hc.magnetic.linear_saturation_coefficients.m == pytest.approx(0.142)
+        # Correctors inherit Dipole_Magnet's currentToK, which scales by 1/1000
+        # (mrad-calibrated fit data) and adds the `degrees` key.
+        converted = hc.magnetic.currentToK(current=1.0, momentum=35e6)
+        assert converted["int_strength"] == pytest.approx(0.142 / 1000)
+        assert "degrees" in converted
+        # dumps by field name, not by the magnetic_length alias
+        dumped = hc.model_dump()["magnetic"]
+        assert "length" in dumped and "magnetic_length" not in dumped
+        assert dumped["horizontal_kick"] == pytest.approx(0.0)

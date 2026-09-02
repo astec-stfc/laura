@@ -560,9 +560,6 @@ class Dipole_Magnet(MagneticElement):
     order: int = Field(repr=False, default=0)
     """Magnetic order of the dipole."""
 
-    # `angle` is deliberately not a schema slot (see magnetic.yaml): it is
-    # derived from multipoles.K0L here, so a symbolic bend angle survives
-    # round-tripping and reads follow the global resolution mode.
     @property
     def angle(self) -> Union[int, float, str]:
         """Bend angle as configured. By default (global resolution mode off) this
@@ -746,12 +743,6 @@ class Solenoid_Magnet(_SolenoidMagnetBase, IgnoreExtra):
     Solenoid magnet including higher order fields.
     """
 
-    # _SolenoidMagnetBase pulls in ConfiguredBaseModel's serialize_by_alias=True.
-    # Fields below use `alias=` (bidirectional) rather than the generated
-    # classes' input-only `validation_alias=`, so with serialize_by_alias on,
-    # model_dump() would emit YAML aliases (e.g. "mag_set_max_wait_time")
-    # instead of field names -- breaking flatten_dict()-based full_dump() and
-    # every export path that reads dumps by field name. Pin it back off.
     model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
@@ -854,42 +845,92 @@ class NonLinearLens_Magnet(_NonLinearLensMagnetBase, IgnoreExtra):
         super().__init__(**data)
 
 
-class Corrector_Magnet(_CorrectorMagnetBase, IgnoreExtra):
+class Corrector_Magnet(Dipole_Magnet, _CorrectorMagnetBase):
     """
     Corrector (steering) magnet.
 
-    Unlike :class:`Dipole_Magnet` -- whose single ``K0L`` multipole's ``normal``/
-    ``skew`` components denote the magnetic field's orientation, not a beam
-    plane -- a corrector's kick is stored as two explicitly-named, independent
-    kick angles, so a :class:`~laura.models.element.Horizontal_Corrector` or
-    :class:`~laura.models.element.Vertical_Corrector` populates only its own
-    plane, while a :class:`~laura.models.element.Combined_Corrector` can carry
-    both simultaneously.
+    The two kick angles are the two components of the *same* order-0 multipole,
+    addressed by beam plane: `horizontal_kick` goes to `multipoles.K0L.normal`
+    and `vertical_kick` goes to `multipoles.K0L.vertical`.
+
+    Use :meth:`resolved_kicks` for the resolved numbers regardless of mode.
     """
 
-    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
-    model_config = ConfigDict(serialize_by_alias=False)
+    def __init__(self, /, **data: Any) -> None:
+        super().__init__(**data)
+        if data.get("horizontal_kick") is not None:
+            self.horizontal_kick = data["horizontal_kick"]
+        if data.get("vertical_kick") is not None:
+            self.vertical_kick = data["vertical_kick"]
 
-    length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
-    """Magnetic length [m]."""
+    def _k0l(self) -> Multipole:
+        """The order-0 multipole, creating ``multipoles`` if it is unset."""
+        if self.multipoles is None:
+            object.__setattr__(self, "multipoles", Multipoles())
+        return self.multipoles.K0L
 
-    order: int = Field(repr=False, default=0, frozen=True)
-    """Corrector multipole order (0 = dipole-like kick)."""
+    @computed_field
+    @property
+    def horizontal_kick(self) -> Union[int, float, str]:
+        """Horizontal kick angle [rad] -- the normal component of ``K0L``."""
+        return resolve_functional_parameter(self._k0l().normal)
 
-    tilt: float = Field(default=0.0)
-    """Tilt angle of the corrector [degrees]."""
+    @horizontal_kick.setter
+    def horizontal_kick(self, value: Union[int, float, str]) -> None:
+        k0l = self._k0l()
+        k0l.normal = value
+        k0l.order = 0
 
-    horizontal_kick: Union[float, str] = Field(
-        default=0.0, json_schema_extra={"functional": True}
-    )
-    """Horizontal kick angle [rad]. Stored verbatim: a number, or the name of a
-    functional definition."""
+    @computed_field
+    @property
+    def vertical_kick(self) -> Union[int, float, str]:
+        """Vertical kick angle [rad] -- the skew component of ``K0L``."""
+        return resolve_functional_parameter(self._k0l().skew)
 
-    vertical_kick: Union[float, str] = Field(
-        default=0.0, json_schema_extra={"functional": True}
-    )
-    """Vertical kick angle [rad]. Stored verbatim: a number, or the name of a
-    functional definition."""
+    @vertical_kick.setter
+    def vertical_kick(self, value: Union[int, float, str]) -> None:
+        k0l = self._k0l()
+        k0l.skew = value
+        k0l.order = 0
+
+    def resolved_kicks(self) -> tuple[float, float]:
+        """
+        Both kick angles as numbers, the kick counterpart of
+        :meth:`~MagneticElement.KnL`.
+
+        Returns:
+            tuple[float, float]: ``(horizontal_kick, vertical_kick)`` [rad].
+        """
+        k0l = self._k0l()
+        return (
+            resolve_functional_parameter(k0l.normal, force=True),
+            resolve_functional_parameter(k0l.skew, force=True),
+        )
+
+    def kick_from_angle(self, skew: bool = None) -> Union[int, float, str]:
+        """
+        Transfer this magnet's bend angle (equivalently ``k0l`` / ``kl``) onto
+        the kick of the plane implied by *skew*, and return it.
+
+        Args:
+            skew (bool, optional): Put the angle in the vertical (skew) plane
+                rather than the horizontal (normal) one. Defaults to this
+                magnet's :attr:`skew` flag.
+
+        Returns:
+            Union[int, float, str]: The kick now held by the selected plane,
+            as stored.
+        """
+        skew = self.skew if skew is None else skew
+        k0l = self._k0l()
+        source = "skew" if skew else "normal"
+        other = "normal" if skew else "skew"
+        value = getattr(k0l, source)
+        if not _is_set(value) and _is_set(getattr(k0l, other)):
+            value = getattr(k0l, other)
+            setattr(k0l, source, value)
+            setattr(k0l, other, 0.0)
+        return value
 
 
 class Wiggler_Magnet(_WigglerMagnetBase, IgnoreExtra):
