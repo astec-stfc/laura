@@ -928,17 +928,15 @@ Corrector Magnet
 :py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>`,
 :py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>`, and
 :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` are steering
-(kicker) magnets. Although they extend :py:class:`Dipole <laura.models.element.Dipole>`
-at the element level, they do **not** use :py:class:`Dipole_Magnet <laura.models.magnetic.Dipole_Magnet>`
-for their ``magnetic`` attribute -- a dipole's ``normal``/``skew`` multipole components denote the
-magnetic field's *orientation*, not a beam plane, and reusing them to mean "horizontal" and "vertical"
-would be opaque. Instead, correctors use
-:py:class:`Corrector_Magnet <laura.models.magnetic.Corrector_Magnet>`, which stores the two planes as
+(kicker) magnets. They extend :py:class:`Dipole <laura.models.element.Dipole>`
+at the element level, using :py:class:`Corrector_Magnet <laura.models.magnetic.Corrector_Magnet>`
+for their ``magnetic`` attribute, which stores the two planes as
 two independent, explicitly-named fields:
 
 * ``horizontal_kick: float`` -- horizontal kick angle [rad].
 * ``vertical_kick: float`` -- vertical kick angle [rad].
 
+These are mapped automatically to ``multipoles.K0L.normal`` and ``multipoles.K0L.skew``, respectively.
 A :py:class:`Horizontal_Corrector <laura.models.element.Horizontal_Corrector>` or
 :py:class:`Vertical_Corrector <laura.models.element.Vertical_Corrector>` is expected to populate only its
 own plane; a :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>` may set both
