@@ -214,7 +214,7 @@ class MagnetTranslator(BaseElementTranslator):
             )
             return ""
 
-    def to_csrtrack(self, n: int = 0) -> str:
+    def to_csrtrack(self, n: int = 0, **kwargs) -> str:
         """
         Writes the quadrupole element string for CSRTrack;
         calls :func:`_write_CSRTrack_quadrupole`.
@@ -342,7 +342,7 @@ class MagnetTranslator(BaseElementTranslator):
 
     def _write_csrtrack(self, n: int) -> str:
         """
-        Writes the screen element string for CSRTrack.
+        Writes the magnet element string for CSRTrack.
 
         Parameters
         ----------
@@ -1128,7 +1128,7 @@ class SolenoidTranslator(BaseElementTranslator):
             output = (
                 "map3D_B"
                 + '(" '
-                + ccs
+                + self.ccs.name
                 + '", '
                 + ccs_label
                 + ", "
