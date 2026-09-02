@@ -37,6 +37,24 @@ def add_bool(self, node):
     return self.construct_scalar(node)
 
 
+def _lattice_root(lattice: Any) -> str | None:
+    """
+    Return the top-level directory of a machine lattice package.
+
+    Looks for ``master_lattice``; if this is not set, look for absolute file paths.
+    """
+    root = getattr(lattice, "master_lattice", None)
+    if root is None:
+        filename = getattr(lattice, "__file__", None)
+        if filename:
+            root = os.path.dirname(os.path.abspath(filename))
+    if root is None:
+        data_files = getattr(lattice, "data_files", None)
+        if data_files:
+            root = os.path.dirname(os.path.abspath(data_files))
+    return root
+
+
 Constructor.add_constructor("tag:yaml.org,2002:bool", add_bool)
 
 
@@ -76,8 +94,10 @@ class LAURA(MachineModel):
             data.setdefault("layout", lattice.layout)
             data.setdefault("section", lattice.section)
             data.setdefault("element_list", lattice.element_list)
-            if hasattr(lattice, "data_files") and "master_lattice" not in data:
-                data["master_lattice"] = lattice.data_files
+            if "master_lattice" not in data:
+                root = _lattice_root(lattice)
+                if root is not None:
+                    data["master_lattice"] = root
         else:
             raise ValueError(
                 "lattice must be a module (e.g. laura_lattices.CLARA) or an object "
