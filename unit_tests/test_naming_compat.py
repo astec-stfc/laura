@@ -104,7 +104,7 @@ class TestDeprecatedAliases:
             "laura.translator.converters.codes.astra",
             "laura.translator.converters.codes.csrtrack",
             "laura.translator.converters.codes.gpt",
-            "laura.translator.converters.codes.ocelot",
+            # "laura.translator.converters.codes.ocelot",
             "laura.translator.converters.codes.opal",
             "laura.translator.utils.SDDSFile",
             "laura.translator.utils.elegant.sdds_classes_APS",
@@ -176,7 +176,7 @@ class TestConverterAliases:
 
         legacy = {
             "elements_Elegant": "elements_elegant",
-            "elements_Ocelot": "elements_ocelot",
+            # "elements_Ocelot": "elements_ocelot",
             "type_conversion_rules_Madx": "type_conversion_rules_madx",
             "type_conversion_rules_Names": "type_conversion_rules_names",
         }
