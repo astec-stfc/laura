@@ -4,9 +4,11 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict
 from pydantic_core import PydanticUndefinedType
 from typing import Any, Dict, List, TYPE_CHECKING
+
 try:
     import xtrack as xt
     from xtrack.beam_elements.elements import _HasKnlKsl
+
     _XTRACK_AVAILABLE = True
 except ImportError as _err:
     _XTRACK_AVAILABLE = False
@@ -33,7 +35,6 @@ type_conversion_rules_xsuite_reversed = (
 
 
 class XsuiteLatticeConverter(BaseModel):
-
     model_config = ConfigDict(
         extra="allow",
         arbitrary_types_allowed=True,
@@ -58,23 +59,26 @@ class XsuiteLatticeConverter(BaseModel):
 
     initial_rotation: List[float] = [0, 0, 0]
 
-    def rotation_matrix_from_survey(self, row):
+    @staticmethod
+    def rotation_matrix_from_survey(row):
         """Builds rotation matrix (local→global) from survey row."""
-        R = np.array(
+        r = np.array(
             [
                 [row["ex"][0], row["ex"][1], row["ex"][2]],
                 [row["ey"][0], row["ey"][1], row["ey"][2]],
                 [row["ez"][0], row["ez"][1], row["ez"][2]],
             ]
         )
-        return R
+        return r
 
-    def Ry(self, angle):
+    @staticmethod
+    def Ry(angle): # noqa N806
         """Rotation matrix about local y axis."""
         c, s = np.cos(angle), np.sin(angle)
         return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
 
-    def rotation_about_axis(self, axis, angle):
+    @staticmethod
+    def rotation_about_axis(axis, angle):
         """
         Rodrigues rotation formula.
         axis must be unit vector (local coordinates).
@@ -82,16 +86,18 @@ class XsuiteLatticeConverter(BaseModel):
         axis = axis / np.linalg.norm(axis)
         c = np.cos(angle)
         s = np.sin(angle)
-        C = 1 - c
+        C = 1 - c # noqa N806
         x, y, z = axis
 
-        return np.array([
-            [c + x * x * C, x * y * C - z * s, x * z * C + y * s],
-            [y * x * C + z * s, c + y * y * C, y * z * C - x * s],
-            [z * x * C - y * s, z * y * C + x * s, c + z * z * C]
-        ])
+        return np.array(
+            [
+                [c + x * x * C, x * y * C - z * s, x * z * C + y * s],
+                [y * x * C + z * s, c + y * y * C, y * z * C - x * s],
+                [z * x * C - y * s, z * y * C + x * s, c + z * z * C],
+            ]
+        )
 
-    def compute_element_center(self, P0, R0, L, theta=0.0, tilt=0.0):
+    def compute_element_center(self, P0, R0, L, theta=0.0, tilt=0.0): # noqa N806
         """
         tilt = rotation around local z axis (radians)
         theta = bending angle
@@ -101,36 +107,32 @@ class XsuiteLatticeConverter(BaseModel):
         if abs(theta) < 1e-12:
             local_mid = np.array([0.0, 0.0, L / 2])
         else:
-            Rbend = L / theta
+            r_bend = L / theta
             phi = theta / 2
-            local_mid = np.array([
-                Rbend * (1 - np.cos(phi)),
-                0.0,
-                Rbend * np.sin(phi)
-            ])
+            local_mid = np.array([r_bend * (1 - np.cos(phi)), 0.0, r_bend * np.sin(phi)])
 
         # ---- rotate midpoint by tilt ----
         if abs(tilt) > 1e-12:
-            Rtilt = self.rotation_about_axis(np.array([0, 0, 1]), tilt)
-            local_mid = Rtilt @ local_mid
+            r_tilt = self.rotation_about_axis(np.array([0, 0, 1]), tilt)
+            local_mid = r_tilt @ local_mid
 
         # ---- global midpoint ----
-        Pcenter = P0 + R0 @ local_mid
+        p_center = P0 + R0 @ local_mid
 
         # ---- orientation at midpoint ----
         if abs(theta) < 1e-12:
-            Rcenter_local = np.eye(3)
+            r_center_local = np.eye(3)
         else:
             # bending axis = rotated y-axis
             bend_axis = np.array([0, 1, 0])
             if abs(tilt) > 1e-12:
-                bend_axis = Rtilt @ bend_axis
+                bend_axis = r_tilt @ bend_axis
 
-            Rcenter_local = self.rotation_about_axis(bend_axis, theta / 2)
+            r_center_local = self.rotation_about_axis(bend_axis, theta / 2)
 
-        Rcenter = R0 @ Rcenter_local
+        r_center = R0 @ r_center_local
 
-        return Pcenter, Rcenter
+        return p_center, r_center
 
     # Example for a batch of elements:
     def midpoints_for_line(self, element_and_survey, local_axes_map=None):
@@ -157,27 +159,27 @@ class XsuiteLatticeConverter(BaseModel):
         - ``mids``: (N,3) ndarray of midpoint positions
         """
         elem_pos = {}
-        yhat = np.array([0, 1, 0])  # assuming horizontal bending plane
+        # yhat = np.array([0, 1, 0])  # assuming horizontal bending plane
 
         for i, survey in enumerate(element_and_survey.values()):
             el = self.line.elements[i]
             # try several common attribute names for angle (xtrack names vary)
-            L = getattr(el, "length", getattr(el, "L", 0.0))
+            l = getattr(el, "length", getattr(el, "L", 0.0))
             theta = getattr(el, "angle", getattr(el, "bending_angle", 0.0))
             tilt = getattr(el, "tilt", getattr(el, "rot_s_rad", 0.0))
-            P0 = np.array([survey["x"], survey["y"], survey["z"]])
-            R0 = self.rotation_matrix_from_survey(survey)
+            p0 = np.array([survey["x"], survey["y"], survey["z"]])
+            r0 = self.rotation_matrix_from_survey(survey)
             print(list(element_and_survey.keys())[i], tilt)
 
-            Pmid, Rmid = self.compute_element_center(P0, R0, L, theta=theta, tilt=tilt)
-            ex, ey, ez = Rmid[:, 0], Rmid[:, 1], Rmid[:, 2]
+            p_mid, r_mid = self.compute_element_center(p0, r0, l, theta=theta, tilt=tilt)
+            #ex, ey, ez = r_mid[:, 0], r_mid[:, 1], r_mid[:, 2]
 
             elem_pos.update(
                 {
                     list(element_and_survey.keys())[i]: {
-                        "x": Pmid[0],
-                        "y": Pmid[1],
-                        "z": Pmid[2],
+                        "x": p_mid[0],
+                        "y": p_mid[1],
+                        "z": p_mid[2],
                         "phi": survey["phi"],
                         "psi": survey["psi"],
                         "theta": survey["theta"],

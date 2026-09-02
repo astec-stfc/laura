@@ -355,7 +355,11 @@ class MagnetTranslator(BaseElementTranslator):
             String representation of the element for CSRTrack
         """
         z = self.physical.middle.z
-        s_comment = f"! quad{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
+        s_comment = (
+            f"! quad{n} s={self.physical.s:.6f}\n"
+            if self.physical.s is not None
+            else ""
+        )
         return (
             s_comment
             + """quadrupole{\nposition{rho="""
@@ -760,7 +764,11 @@ class DipoleTranslator(BaseElementTranslator):
         """
         z1 = self.physical.start.z
         z2 = self.physical.end.z
-        s_comment = f"! dipole{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
+        s_comment = (
+            f"! dipole{n} s={self.physical.s:.6f}\n"
+            if self.physical.s is not None
+            else ""
+        )
         return (
             s_comment
             + """dipole{\nposition{rho="""
@@ -804,9 +812,7 @@ class DipoleTranslator(BaseElementTranslator):
                 list(self.physical.global_rotation.model_dump().values()),
             )
             coord = self.ccs.gpt_coordinates(
-                relpos,
-                angle=self.magnetic.KnL(0),
-                tilt=self.magnetic.tilt
+                relpos, angle=self.magnetic.KnL(0), tilt=self.magnetic.tilt
             )
             new_ccs = self.new_ccs(self.ccs)
             b1 = np.round(
@@ -830,14 +836,20 @@ class DipoleTranslator(BaseElementTranslator):
             sectormagnet( "wcs", "bend1", rho, field, e1, e2, 0., 100., 0 ) ;
             """
             output = (
-                "ccs( \"" + self.ccs.name + "\", " + coord + ", \"" + new_ccs.name + "\");\n"
+                'ccs( "'
+                + self.ccs.name
+                + '", '
+                + coord
+                + ', "'
+                + new_ccs.name
+                + '");\n'
             )
             output += (
                 'sectormagnet("'
                 + self.ccs.name
-                + '", \"'
+                + '", "'
                 + new_ccs.name
-                + "\", "
+                + '", '
                 + str(abs(self.magnetic.rho))
                 + ", "
                 + str(abs(field))
@@ -1222,10 +1234,10 @@ class WigglerTranslator(BaseElementTranslator):
         keys = []
         for key, value in self.full_dump().items():
             if (
-                    not key == "name"
-                    and not key == "type"
-                    and not key == "commandtype"
-                    and self._convert_keyword_genesis(key) in elements_genesis[etype]
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convert_keyword_genesis(key) in elements_genesis[etype]
             ):
                 if value is not None:
                     key = self._convert_keyword_genesis(key)
@@ -1234,11 +1246,10 @@ class WigglerTranslator(BaseElementTranslator):
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
-                        string += key + " = " + str(value) + ', '
+                        string += key + " = " + str(value) + ", "
                     keys.append(key)
         wholestring += string[:-2] + "};\n"
         return wholestring
-
 
 
 class CorrectorTranslator(BaseElementTranslator):

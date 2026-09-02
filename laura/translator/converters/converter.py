@@ -18,7 +18,8 @@ from laura.models.element import (
     HorizontalCorrector,
     VerticalCorrector,
     NonLinearLens,
-    TwissMatch, Screen,
+    TwissMatch,
+    Screen,
 )
 
 from .base import BaseElementTranslator
@@ -85,7 +86,11 @@ def translate_elements(
             translator = RFCavityTranslator
         elif isinstance(elem, Drift):
             translator = DriftTranslator
-        elif isinstance(elem, Diagnostic) or isinstance(elem, Marker) or isinstance(elem, Screen):
+        elif (
+            isinstance(elem, Diagnostic)
+            or isinstance(elem, Marker)
+            or isinstance(elem, Screen)
+        ):
             translator = DiagnosticTranslator
         elif isinstance(elem, Aperture):
             translator = ApertureTranslator
@@ -98,9 +103,13 @@ def translate_elements(
         else:
             translator = BaseElementTranslator
         try:
-            elem_dict.update({elem.name: translator.model_validate(elem.model_dump(by_alias=False))})
+            elem_dict.update(
+                {elem.name: translator.model_validate(elem.model_dump(by_alias=False))}
+            )
         except Exception as exc:
-            raise Exception(f"Element {elem.name} failed validation: {elem.model_dump().keys()}")
+            raise Exception(
+                f"Element {elem.name} failed validation: {elem.model_dump().keys()}"
+            )
         elem_dict[elem.name].master_lattice = master_lattice
         elem_dict[elem.name].directory = directory
     return elem_dict

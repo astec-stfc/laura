@@ -3,6 +3,7 @@ ASTRA namelist generator.
 
 .. _ASTRA manual: https://www.desy.de/~mpyflo/Astra_dokumentation/
 """
+
 from laura._compat import DeprecatedMethodAliases
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, List, Any
@@ -56,7 +57,7 @@ class AstraHeader(DeprecatedMethodAliases, BaseModel):
         "global_parameters",
         "particle_definition",
         "output_particle_definition",
-        "twiss"
+        "twiss",
     ]
 
     astradict: Dict = {}
@@ -66,7 +67,9 @@ class AstraHeader(DeprecatedMethodAliases, BaseModel):
         if isinstance(v, bool):
             return "T" if v else "F"
         if isinstance(v, str):
-            if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
+            if (v.startswith("'") and v.endswith("'")) or (
+                v.startswith('"') and v.endswith('"')
+            ):
                 return v
             return f"'{v}'"
         return str(v)
@@ -464,6 +467,7 @@ class AstraErrors(AstraHeader):
             "global_errors": "errors",
             "generate_output": "lerror",
         }
+
 
 from laura._compat import deprecated_aliases  # noqa: E402
 

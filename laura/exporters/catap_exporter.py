@@ -45,6 +45,7 @@ def export_machine_dict(machine: MachineModel) -> list:
             _log.debug("Exporting element '%s'", name)
             yield element_to_catap(elem)
 
+
 # ---------------------------------------------------------------------------
 # Backwards compatibility: names renamed for PEP 8. Served lazily with a
 # FutureWarning so downstream consumers (astec-stfc/simba) keep working.

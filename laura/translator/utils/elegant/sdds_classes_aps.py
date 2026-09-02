@@ -14,11 +14,10 @@ from ...converters import (
     keyword_conversion_rules_elegant,
     element_keywords,
 )
-import laura.models.element as LAURA_elements
+import laura.models.element as laura_elements
 
 
 class SddsFloor:
-
     duplicates: list = []
 
     sdds_position_columns = [
@@ -56,14 +55,14 @@ class SddsFloor:
         # return elem
 
     def import_sdds_floor_file(self, filename: str, page: int = 0, index=1) -> list:
-        elegantObject = SDDSFile(index=index)
-        elegantObject.read_file(filename, page=page)
-        elegantData = elegantObject.data
+        elegant_object = SDDSFile(index=index)
+        elegant_object.read_file(filename, page=page)
+        elegant_data = elegant_object.data
         for a in self.sdds_position_columns + self.sdds_angle_columns:
-            if np.array(elegantData[a]).ndim > 1:
-                setattr(self, a, elegantData[a][page])
+            if np.array(elegant_data[a]).ndim > 1:
+                setattr(self, a, elegant_data[a][page])
             else:
-                setattr(self, a, elegantData[a])
+                setattr(self, a, elegant_data[a])
         self.counter = Counter()
         self.duplicates = self.get_duplicate_element_names()
         self.ElementName = [self.number_element(e) for e in self.ElementName]
@@ -93,49 +92,48 @@ class SddsFloor:
 
 
 class SddsParams:
-
     def __init__(self, filename: str, page: int = 0):
         self.filename = filename
         self.page = page
-        self.elegantObject = None
-        self.elegantData = None
-        self.elegantParams = None
+        self.elegant_object = None
+        self.elegant_data = None
+        self.elegant_params = None
 
     def import_sdds_params_file(self, index=1) -> None:
-        self.elegantObject = SDDSFile(index=index)
-        self.elegantObject.read_file(self.filename, page=self.page)
-        self.elegantData = self.elegantObject.data
+        self.elegant_object = SDDSFile(index=index)
+        self.elegant_object.read_file(self.filename, page=self.page)
+        self.elegant_data = self.elegant_object.data
 
     def join_params(self) -> None:
-        if not self.elegantData:
+        if not self.elegant_data:
             self.import_sdds_params_file()
-        self.elegantParams = {}
-        for i, k in enumerate(self.elegantData["ElementName"]):
+        self.elegant_params = {}
+        for i, k in enumerate(self.elegant_data["ElementName"]):
             if (
-                f"{k}.{self.elegantData['ElementOccurence'][i]}"
-                not in self.elegantParams
+                f"{k}.{self.elegant_data['ElementOccurence'][i]}"
+                not in self.elegant_params
             ):
-                self.elegantParams.update(
+                self.elegant_params.update(
                     {
-                        f"{k}.{self.elegantData['ElementOccurence'][i]}": {
-                            param: [] for param in list(self.elegantData.keys())[1:]
+                        f"{k}.{self.elegant_data['ElementOccurence'][i]}": {
+                            param: [] for param in list(self.elegant_data.keys())[1:]
                         }
                     }
                 )
-            for val in list(self.elegantData.keys())[1:]:
-                if self.elegantData["ElementName"][i] == k:
-                    self.elegantParams[
-                        f"{k}.{self.elegantData['ElementOccurence'][i]}"
-                    ][val].append(self.elegantData[val][i])
+            for val in list(self.elegant_data.keys())[1:]:
+                if self.elegant_data["ElementName"][i] == k:
+                    self.elegant_params[
+                        f"{k}.{self.elegant_data['ElementOccurence'][i]}"
+                    ][val].append(self.elegant_data[val][i])
 
     def create_element_dictionary(self) -> tuple:
-        if not self.elegantParams:
+        if not self.elegant_params:
             self.join_params()
         sfconvert = {}
         # disallowed = ["bore", "zwakefile"]
         filenames = {}
         sfconvert = {}
-        for k, v in self.elegantParams.items():
+        for k, v in self.elegant_params.items():
             elemtype = v["ElementType"][0].lower()
             if elemtype in element_keywords and "drift" not in elemtype:
                 sfconvert.update(
@@ -192,19 +190,19 @@ class SddsParams:
             try:
                 if sftype == "kicker":
                     model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, "Combined_Corrector")
+                        getattr(laura_elements, "Combined_Corrector")
                     )
                     sfconvert[k]["hardware_type"] = "Combined_Corrector"
                 elif "Cavity" not in sftype:
                     model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, sftype.capitalize())
+                        getattr(laura_elements, sftype.capitalize())
                     )
                     sfconvert[k]["hardware_type"] = sfconvert[k][
                         "hardware_type"
                     ].capitalize()
                 else:
                     model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, sftype)
+                        getattr(laura_elements, sftype)
                     )
             except AttributeError:
                 print(f"type {sftype} not recognized")
@@ -219,7 +217,14 @@ class SddsParams:
                     }
                 )
                 continue
-            for subk in ["magnetic", "cavity", "simulation", "diagnostic", "physical", "aperture"]:
+            for subk in [
+                "magnetic",
+                "cavity",
+                "simulation",
+                "diagnostic",
+                "physical",
+                "aperture",
+            ]:
                 if subk in model_fields:
                     sfconvert[k].update({subk: {}})
             if sfconvert[k]["hardware_type"] == "Drift":

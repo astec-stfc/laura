@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.models.base_models import IgnoreExtra
+from laura.translator.utils.fields import FieldMap
 from typing import Any, Dict, Type
 
 
@@ -97,25 +98,25 @@ class Counter(dict):
         super().__init__()
         self.sub = sub
 
-    def counter(self, type):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
+    def counter(self, typ):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
             return 1
-        return self[type] + 1
+        return self[typ] + 1
 
-    def value(self, type):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
+    def value(self, typ):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
             return 1
-        return self[type]
+        return self[typ]
 
-    def add(self, type, n=1):
-        type = self.sub[type] if type in self.sub else type
-        if type not in self:
-            self[type] = n
+    def add(self, typ, n=1):
+        typ = self.sub[typ] if typ in self.sub else typ
+        if typ not in self:
+            self[typ] = n
         else:
-            self[type] += n
-        return self[type]
+            self[typ] += n
+        return self[typ]
 
 
 def convert_numpy_types(v):
@@ -211,7 +212,10 @@ def path_function(a):
         return os.path.abspath(a)
     return "./"
 
-def expand_substitution(self, param, master_lattice="./", subs=None, elements=None, absolute=False):
+
+def expand_substitution(
+    self, param, master_lattice="./", subs=None, elements=None, absolute=False
+):
     subs = subs or {}
     elements = elements or {}
     if isinstance(param, str):
@@ -255,7 +259,9 @@ def check_value(self, d, default=None):
             return (
                 d["value"]
                 if d["value"] is not None
-                else d["default"] if "default" in d else default
+                else d["default"]
+                if "default" in d
+                else default
             )
     elif isinstance(d, str):
         return (
@@ -277,17 +283,18 @@ def tw_cavity_energy_gain(cavity):
     """
 
     # Approximate effective accelerating gradient
-    E_acc = cavity.field_amplitude * np.sin(
+    e_acc = cavity.field_amplitude * np.sin(
         np.pi * cavity.mode_numerator * 2 / cavity.mode_denominator / 2
     )
 
     # Total cavity length
-    L_total = cavity.n_cells * cavity.cell_length
+    l_total = cavity.n_cells * cavity.cell_length
 
     # Energy gain in MeV (since 1 MV/m * 1 m = 1 MeV for charge = e)
-    delta_W = E_acc * L_total * np.cos(np.pi * cavity.phase / 180)
+    delta_w = e_acc * l_total * np.cos(np.pi * cavity.phase / 180)
 
-    return delta_W
+    return delta_w
+
 
 from laura._compat import deprecated_aliases  # noqa: E402
 

@@ -9,9 +9,7 @@ import numpy as np
 import yaml
 
 
-def flatten_dict(
-    dictionary: Dict, parent_key: str = "", separator: str = "_"
-) -> Dict:
+def flatten_dict(dictionary: Dict, parent_key: str = "", separator: str = "_") -> Dict:
     """
     Flatten a nested dictionary into a single level.
 
@@ -34,9 +32,7 @@ def flatten_dict(
         if isinstance(key, str):
             new_key = parent_key + separator + key if parent_key else key
             if isinstance(value, MutableMapping):
-                items.extend(
-                    flatten_dict(value, new_key, separator=separator).items()
-                )
+                items.extend(flatten_dict(value, new_key, separator=separator).items())
             else:
                 items.append((new_key, value))
     return dict(items)

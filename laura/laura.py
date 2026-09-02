@@ -29,6 +29,7 @@ from .importers.yaml_loader import (
 import numpy as np
 import time
 
+
 def flatten(xss):
     """Flatten a list of lists."""
     return list(chain.from_iterable(xss))
@@ -90,6 +91,7 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
                 "with 'layout', 'section', and 'element_list' attributes"
             )
         return data
+
     """List of top-level keys to exclude when reading YAML files"""
 
     @field_validator("element_list", mode="before")
@@ -111,7 +113,11 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
 
     def model_post_init(self, __context):
         el_list = self.element_list
-        if isinstance(el_list, str) and not os.path.exists(el_list) and self.master_lattice:
+        if (
+            isinstance(el_list, str)
+            and not os.path.exists(el_list)
+            and self.master_lattice
+        ):
             candidate = os.path.join(self.master_lattice, el_list)
             if os.path.exists(candidate):
                 el_list = candidate
@@ -129,7 +135,7 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
                 elems = read_yaml_combined_file(el_list)
-                values = {y.name: y for y in elems if hasattr(y, 'name')}
+                values = {y.name: y for y in elems if hasattr(y, "name")}
                 self.elements.update(values)
             elif os.path.isdir(el_list):
                 files = glob.glob(
@@ -141,12 +147,19 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
                     filenames[meta["name"]] = fn
                 # Create lazy dict instead of loading all!
                 if not self.eager_mode:
-                    self.elements = LazyElementDict(filenames, exclude_keys=self.exclude_keys)
+                    self.elements = LazyElementDict(
+                        filenames, exclude_keys=self.exclude_keys
+                    )
                 else:
-                    elems = [read_yaml_element_file(fn, exclude_keys=self.exclude_keys) for fn in files]
-                    self.elements.update({y.name: y for y in elems if isinstance(y, BaseElement)})
+                    elems = [
+                        read_yaml_element_file(fn, exclude_keys=self.exclude_keys)
+                        for fn in files
+                    ]
+                    self.elements.update(
+                        {y.name: y for y in elems if isinstance(y, BaseElement)}
+                    )
         elif el_list:
-            values = {y.name: y for y in el_list if hasattr(y, 'name')}
+            values = {y.name: y for y in el_list if hasattr(y, "name")}
             self.elements.update(values)
 
         super().model_post_init(__context)
@@ -194,7 +207,9 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
                     length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
                     vector = dot((d[1] - d[0]), [0, 0, 1])
                 except Exception as exc:
-                    _log.error("Drift calculation error near element '%s': %s", e[0], exc)
+                    _log.error(
+                        "Drift calculation error near element '%s': %s", e[0], exc
+                    )
                     _log.debug("Position data: %s", d)
                     raise exc
                 if round(length, 6) > 0:

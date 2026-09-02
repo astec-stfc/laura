@@ -52,7 +52,6 @@ class SddsTypes(enum.IntEnum, metaclass=MyEnumMeta):
 
 
 class SDDSObject(munch.Munch):
-
     def __init__(
         self,
         index=1,
@@ -135,7 +134,7 @@ class SDDSObject(munch.Munch):
     @fieldlength.setter
     def fieldlength(self, length):
         if isinstance(length, (int, float)):
-            self._fieldlength = int(fieldlength)
+            self._fieldlength = int(length)
         return self._fieldlength
 
     @property
@@ -169,7 +168,6 @@ class SDDSObject(munch.Munch):
 
 
 class SDDSColumn(SDDSObject):
-
     def __init__(
         self,
         name=None,
@@ -206,7 +204,6 @@ class SDDSColumn(SDDSObject):
 
 
 class SDDSParameter(SDDSObject):
-
     def __init__(
         self,
         name=None,
@@ -243,7 +240,6 @@ class SDDSParameter(SDDSObject):
 
 
 class SDDSArray(munch.Munch):
-
     def __init__(self, columns):
         super().__init__(columns)
 
@@ -479,7 +475,7 @@ class SDDSFile(object):
         self._sddsObject.load(filename)
         sddsref = self._sddsObject
         for col in range(len(sddsref.columnName)):
-            symbol, unit, description, formatString, type, fieldLength = (
+            symbol, unit, description, formatstring, type, fieldlength = (
                 sddsref.columnDefinition[col]
             )
             column_data = np.array(sddsref.columnData[col][page])
@@ -489,14 +485,14 @@ class SDDSFile(object):
                 type=type,
                 unit=unit,
                 symbol=symbol,
-                formatstring=formatString,
-                fieldlength=fieldLength,
+                formatstring=formatstring,
+                fieldlength=fieldlength,
                 description=description,
             )
         # sddsobject.SDDSparameterNames = list()
         for param in range(len(sddsref.parameterName)):
             name = sddsref.parameterName[param]
-            symbol, unit, description, formatString, type, fieldLength = (
+            symbol, unit, description, formatstring, type, fieldlength = (
                 sddsref.parameterDefinition[param]
             )
             parameter_data = sddsref.parameterData[param]
@@ -506,14 +502,15 @@ class SDDSFile(object):
                 type=type,
                 unit=unit,
                 symbol=symbol,
-                formatstring=formatString,
-                fieldlength=fieldLength,
+                formatstring=formatstring,
+                fieldlength=fieldlength,
                 description=description,
             )
 
     @property
     def data(self):
         return {k: v.data for k, v in {**self._parameters, **self._columns}.items()}
+
 
 from laura._compat import deprecated_aliases  # noqa: E402
 

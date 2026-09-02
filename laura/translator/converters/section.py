@@ -136,9 +136,9 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[
-                            key
-                        ] += f"{section_header_text_astra[key]} = True\n"
+                        element_headers[key] += (
+                            f"{section_header_text_astra[key]} = True\n"
+                        )
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
@@ -164,9 +164,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers[
-                                "&WAKE"
-                            ] += f"{section_header_text_astra['&WAKE']} = True\n"
+                            element_headers["&WAKE"] += (
+                                f"{section_header_text_astra['&WAKE']} = True\n"
+                            )
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += e.cavity.n_cells
@@ -187,12 +187,12 @@ class SectionLatticeTranslator(SectionLattice):
         return astrastr
 
     def to_gpt(
-            self,
-            startz: float,
-            endz: float,
-            Brho: float = 0.0,
-            dtmin: float | None = None,
-            charge_sign: int = -1,
+        self,
+        startz: float,
+        endz: float,
+        Brho: float = 0.0,
+        dtmin: float | None = None,
+        charge_sign: int = -1,
     ) -> str:
         """
         Create a GPT-compatible input file based on the lattice information and
@@ -233,7 +233,9 @@ class SectionLatticeTranslator(SectionLattice):
                 ccs = GptCcs(
                     name="wcs",
                     position=list(element.physical.start.model_dump().values()),
-                    rotation=list(element.physical.global_rotation.model_dump().values()),
+                    rotation=list(
+                        element.physical.global_rotation.model_dump().values()
+                    ),
                 )
             element.ccs = ccs
             fulltext += element.to_gpt(Brho, **kwargs)
@@ -266,8 +268,11 @@ class SectionLatticeTranslator(SectionLattice):
                 relpos = list(element.physical.middle.model_dump().values())
             screen0pos = 0
             ccs = deepcopy(new_ccs)
-            if element.hardware_class.lower() == "diagnostic" or element.hardware_type.lower() == "marker":
-                fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2]+0.001)}, {ccs.name_as_str});\n'
+            if (
+                element.hardware_class.lower() == "diagnostic"
+                or element.hardware_type.lower() == "marker"
+            ):
+                fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2] + 0.001)}, {ccs.name_as_str});\n'
                 # if self.gpt_headers["setfile"].particle_definition == "laser":
         lastelem = list(elem_dict.values())[-1]
         lastscreen = DiagnosticTranslator(
@@ -285,9 +290,7 @@ class SectionLatticeTranslator(SectionLattice):
             list(lastelem.physical.end.model_dump().values()),
             list(lastelem.physical.global_rotation.model_dump().values()),
         )
-        fulltext += (
-            f'screen("wcs", "I", {lastelem.physical.end.z}, "wcs");\n'
-        )
+        fulltext += f'screen("wcs", "I", {lastelem.physical.end.z}, "wcs");\n'
         zminmax = GptZMinMax(
             ECS='"wcs", "I"',
             zmin=startz - 0.1,
@@ -378,7 +381,7 @@ class SectionLatticeTranslator(SectionLattice):
 
     def format_string(self, string: str):
         fulltext = ""
-        for s in string.strip().split(', '):
+        for s in string.strip().split(", "):
             if len((fulltext + s).splitlines()[-1]) > 60:
                 fulltext += "&\n"
             fulltext += s + ", "
@@ -445,10 +448,18 @@ class SectionLatticeTranslator(SectionLattice):
         for elem in section_with_drifts.keys():
             lstring += f"{elem}, "
         lstring = f"{lstring[:-2]})" + "\n"
-        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return elegant_functional_definitions(self.functional_definitions) + string + lstring
+        lstring = "&\n".join(
+            wrap(lstring, 80, break_long_words=False, break_on_hyphens=False)
+        )
+        return (
+            elegant_functional_definitions(self.functional_definitions)
+            + string
+            + lstring
+        )
 
-    def to_genesis(self, split_element: str | None = None, chicanes: Dict | None = None) -> str:
+    def to_genesis(
+        self, split_element: str | None = None, chicanes: Dict | None = None
+    ) -> str:
         """
         Create a Genesis-compatible input file based on the lattice information.
 
@@ -493,13 +504,16 @@ class SectionLatticeTranslator(SectionLattice):
                     elem_dict_upd.update({k: v})
                 else:
                     if not chicane_done:
-                        cstr = f"{chicane_index}{starts[chicane_index-1]}: CHICANE = " + "{"
+                        cstr = (
+                            f"{chicane_index}{starts[chicane_index - 1]}: CHICANE = "
+                            + "{"
+                        )
                         chicname = list(chicanes.keys())[chicane_index - 1]
                         cstr += f"l = {chicanes[chicname]['length']}, "
                         cstr += f"delay = {2 * chicanes[chicname]['r56']}, "
                         cstr += f"lb = {chicanes[chicname]['dipole_length']}, "
                         cstr += f"ld = {chicanes[chicname]['drift_length']}" + "};\n"
-                        elem_dict_upd.update({f"{starts[chicane_index-1]}": cstr})
+                        elem_dict_upd.update({f"{starts[chicane_index - 1]}": cstr})
                         chicane_index += 1
                         chicane_done = True
                 if k in ends:
@@ -507,7 +521,7 @@ class SectionLatticeTranslator(SectionLattice):
             elem_dict = elem_dict_upd
 
         for i, d in enumerate(elem_dict.values()):
-            if isinstance(d , str):
+            if isinstance(d, str):
                 string += d
             else:
                 string += d.to_genesis(index=i)
@@ -542,9 +556,10 @@ class SectionLatticeTranslator(SectionLattice):
                             string += f"{i}{elem}, "
                 string = f"{string[:-2]}" + "};\n"
             else:
-                warn(f"Element {split_element} not found in section {self.name} for GENESIS split.")
+                warn(
+                    f"Element {split_element} not found in section {self.name} for GENESIS split."
+                )
         return string
-
 
     def to_ocelot(self, save=False) -> "MagneticLattice":
         """
@@ -594,7 +609,9 @@ class SectionLatticeTranslator(SectionLattice):
 
         return maglat
 
-    def to_rftrack(self, P_Q: float = float("nan"), save: bool = False, sc_nsteps: int = 0) -> object:
+    def to_rftrack(
+        self, P_Q: float = float("nan"), save: bool = False, sc_nsteps: int = 0
+    ) -> object:
         """
         Create an RF-Track ``Lattice`` object based on the lattice information.
 
@@ -644,7 +661,7 @@ class SectionLatticeTranslator(SectionLattice):
             # BaseElementTranslator.to_rftrack's docstring for why (avoids
             # nesting a Lattice inside a Lattice inside a Volume, which
             # verified breaks Volume.autophase() for the inner elements).
-            for e in (elem if isinstance(elem, list) else [elem]):
+            for e in elem if isinstance(elem, list) else [elem]:
                 if sc_nsteps > 0:
                     e.set_sc_nsteps(sc_nsteps)
                 lattice.append(e)
@@ -652,7 +669,9 @@ class SectionLatticeTranslator(SectionLattice):
             self._save_rftrack_py_file(elem_dict, P_Q, sc_nsteps)
         return lattice
 
-    def to_rftrack_volume(self, P_Q: float = float("nan"), save: bool = False) -> object:
+    def to_rftrack_volume(
+        self, P_Q: float = float("nan"), save: bool = False
+    ) -> object:
         """
         Create an RF-Track ``Volume`` (time-integration environment) for this
         section by wrapping the ``Lattice`` from :func:`to_rftrack` and adding it
@@ -687,7 +706,9 @@ class SectionLatticeTranslator(SectionLattice):
         volume.add(lattice, 0.0, 0.0, 0.0)
         return volume
 
-    def _save_rftrack_py_file(self, elem_dict: dict, P_Q: float, sc_nsteps: int = 0) -> None:
+    def _save_rftrack_py_file(
+        self, elem_dict: dict, P_Q: float, sc_nsteps: int = 0
+    ) -> None:
         """
         Write a standalone Python script to ``{self.directory}/{self.name}.py``
         that reconstructs this lattice using only ``RF_Track``/``numpy`` --
@@ -801,6 +822,7 @@ class SectionLatticeTranslator(SectionLattice):
             master_lattice=self.master_lattice,
             directory=self.directory,
         )
+
         def _is_symbolic(value: Any) -> bool:
             if isinstance(value, str):
                 return True
@@ -871,9 +893,7 @@ class SectionLatticeTranslator(SectionLattice):
             csrtrackstr += h.write_csrtrack()
         return csrtrackstr
 
-    def to_madx(
-        self, beam: Dict[str, Any] | None = None, refer: str = "entry"
-    ) -> str:
+    def to_madx(self, beam: Dict[str, Any] | None = None, refer: str = "entry") -> str:
         """
         Create a MAD-X-compatible ``SEQUENCE`` definition based on the lattice
         information, suitable for :meth:`cpymad.madx.Madx.input` (see the
@@ -929,7 +949,9 @@ class SectionLatticeTranslator(SectionLattice):
                 beamstr += f", {k.upper()}={v}"
             beamstr += f", SEQUENCE = {sanitize_string(self.name)};\n"
             seqstring += beamstr
-        seqstring += f"{sanitize_string(self.name)}: SEQUENCE, refer={refer}, l = {length};\n"
+        seqstring += (
+            f"{sanitize_string(self.name)}: SEQUENCE, refer={refer}, l = {length};\n"
+        )
         seqstring += fulltext
         seqstring += "ENDSEQUENCE;\n"
         if has_beam:

@@ -55,10 +55,8 @@ LEGACY_MODULES: dict[str, str] = {
     # --- laura/translator ---------------------------------------------------
     "laura.translator.utils.SDDSFile": "laura.translator.utils.sdds_file",
     "laura.translator.utils.elegant.SDDSFile": "laura.translator.utils.elegant.sdds_file",
-    "laura.translator.utils.elegant.sdds_classes_APS":
-        "laura.translator.utils.elegant.sdds_classes_aps",
-    "laura.translator.utils.fields.FieldParameter":
-        "laura.translator.utils.fields.field_parameter",
+    "laura.translator.utils.elegant.sdds_classes_APS": "laura.translator.utils.elegant.sdds_classes_aps",
+    "laura.translator.utils.fields.FieldParameter": "laura.translator.utils.fields.field_parameter",
 }
 
 

@@ -57,8 +57,14 @@ class MachineLayoutTranslator(MachineLayout):
             for elem in section_with_drifts.keys():
                 lstring += f"{elem}, "
             lstring = f"{lstring[:-2]})" + "\n\n\n"
-        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return elegant_functional_definitions(self.functional_definitions) + string + lstring
+        lstring = "&\n".join(
+            wrap(lstring, 80, break_long_words=False, break_on_hyphens=False)
+        )
+        return (
+            elegant_functional_definitions(self.functional_definitions)
+            + string
+            + lstring
+        )
 
     def to_genesis(self, string: str = "") -> str:
         for section in self.sections.values():
@@ -90,7 +96,9 @@ class MachineLayoutTranslator(MachineLayout):
             )
         return lattices
 
-    def to_rftrack(self, P_Q: float = float("nan"), save: bool = False) -> Dict[str, object]:
+    def to_rftrack(
+        self, P_Q: float = float("nan"), save: bool = False
+    ) -> Dict[str, object]:
         """
         Create one RF-Track ``Lattice`` per section in this layout.
 
@@ -153,12 +161,16 @@ class MachineLayoutTranslator(MachineLayout):
     def to_madx(self, beam: Dict[str, Dict[str, Any]] | None = None) -> Dict[str, str]:
         lattices = {}
         for section in self.sections.values():
-            b = beam[section.name] if isinstance(beam, Dict) and section.name in beam.keys() else None
+            b = (
+                beam[section.name]
+                if isinstance(beam, Dict) and section.name in beam.keys()
+                else None
+            )
             lattices.update(
                 {
-                    sanitize_string(section.name): SectionLatticeTranslator.from_section(
-                        section
-                    ).to_madx(beam=b)
+                    sanitize_string(
+                        section.name
+                    ): SectionLatticeTranslator.from_section(section).to_madx(beam=b)
                 }
             )
         return lattices

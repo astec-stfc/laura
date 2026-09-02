@@ -128,11 +128,11 @@ class LAURAQuery:
         return [
             r["name"]
             for r in self.sparql(
-                f'SELECT ?name WHERE {{\n'
-                f'    ?elem laura:machine_area ?a ;\n'
-                f'          laura:name ?name .\n'
+                f"SELECT ?name WHERE {{\n"
+                f"    ?elem laura:machine_area ?a ;\n"
+                f"          laura:name ?name .\n"
                 f'    FILTER(str(?a) = "{safe}")\n'
-                f'}}'
+                f"}}"
             )
         ]
 
@@ -168,10 +168,10 @@ class LAURAQuery:
         return [
             r["name"]
             for r in self.sparql(
-                f'SELECT ?name WHERE {{\n'
-                f'    ?elem laura:hardware_class ?c ;\n'
-                f'          laura:name ?name .\n'
+                f"SELECT ?name WHERE {{\n"
+                f"    ?elem laura:hardware_class ?c ;\n"
+                f"          laura:name ?name .\n"
                 f'    FILTER(str(?c) = "{safe}")\n'
-                f'}}'
+                f"}}"
             )
         ]

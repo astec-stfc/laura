@@ -10,11 +10,11 @@ def read_yaml(fname: str) -> BaseModel:
     fields = {key: (type(value), value) for key, value in data.items()}
 
     # Create and return the dynamic model class
-    DynamicModel = create_model(
+    dynamic_model = create_model(
         "DynamicModel",
         __base__=BaseModel,
         __module__=__name__,
         # model_config=model_config,
         **fields,
     )
-    return DynamicModel(**data)
+    return dynamic_model(**data)

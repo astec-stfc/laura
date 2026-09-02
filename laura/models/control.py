@@ -3,7 +3,8 @@ from pydantic import (
     ValidationError,
     field_validator,
     model_serializer,
-    ConfigDict, Field,
+    ConfigDict,
+    Field,
 )
 from pydantic import ValidationInfo
 from typing import Any, Callable, Dict, Type
@@ -89,7 +90,9 @@ def validate_callable_spec(
         v = {key: path(v)}
 
     if not isinstance(v, dict):
-        warn(f"`{field}` for {who} must be a {label} class, instance or dict, got {type(v).__name__}")
+        warn(
+            f"`{field}` for {who} must be a {label} class, instance or dict, got {type(v).__name__}"
+        )
         return None
 
     if key not in v:

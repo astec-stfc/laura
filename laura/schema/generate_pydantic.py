@@ -70,6 +70,7 @@ _HEADER = """\
 
 # ── Step 1: run gen-pydantic ──────────────────────────────────────────────────
 
+
 def _run_gen_pydantic(schema_path: str) -> str:
     """Invoke gen-pydantic and return its stdout as a string."""
     # Locate gen-pydantic next to the active Python interpreter.
@@ -95,13 +96,12 @@ def _run_gen_pydantic(schema_path: str) -> str:
     )
     if result.returncode != 0:
         sys.stderr.write(result.stderr)
-        raise RuntimeError(
-            f"gen-pydantic failed with exit code {result.returncode}"
-        )
+        raise RuntimeError(f"gen-pydantic failed with exit code {result.returncode}")
     return result.stdout
 
 
 # ── Step 2: collect schema-defined class names ────────────────────────────────
+
 
 def _collect_schema_classes(
     content: str,
@@ -132,6 +132,7 @@ def _collect_schema_classes(
 
 # ── Step 3: apply renaming ────────────────────────────────────────────────────
 
+
 def _rename_classes(content: str, model_names: set[str]) -> str:
     """
     Rename every schema model class (those in *model_names*) to ``_XxxBase``
@@ -151,9 +152,7 @@ def _rename_classes(content: str, model_names: set[str]) -> str:
     def _replace_class_def(m: re.Match) -> str:
         cls_name = new_name(m.group(1))
         # Rename each base class identifier
-        new_bases = re.sub(
-            r"\b(\w+)\b", lambda bm: new_name(bm.group(1)), m.group(2)
-        )
+        new_bases = re.sub(r"\b(\w+)\b", lambda bm: new_name(bm.group(1)), m.group(2))
         return f"class {cls_name}({new_bases}):"
 
     content = re.sub(
@@ -202,6 +201,7 @@ def _rename_classes(content: str, model_names: set[str]) -> str:
 
 # ── Step 4: apply ifabsent defaults, fix multivalued, inject AliasChoices ────
 
+
 def _parse_ifabsent(value: str) -> str | None:
     """Convert a LinkML ifabsent directive to a Python literal string.
 
@@ -228,7 +228,13 @@ def _parse_ifabsent(value: str) -> str | None:
 
 def _parse_schema_info(
     schema_path: str,
-) -> tuple[dict[str, str], set[str], set[str], dict[str, list[str]], dict[str, dict[str, list[str]]]]:
+) -> tuple[
+    dict[str, str],
+    set[str],
+    set[str],
+    dict[str, list[str]],
+    dict[str, dict[str, list[str]]],
+]:
     """Read the schema YAML and extract field-level metadata.
 
     Returns a five-tuple:
@@ -293,7 +299,10 @@ def _parse_schema_info(
                         defaults[slot_name] = parsed
                 if slot_def.get("multivalued"):
                     multivalued.add(slot_name)
-                    if slot_def.get("inlined") and slot_def.get("inlined_as_list") is False:
+                    if (
+                        slot_def.get("inlined")
+                        and slot_def.get("inlined_as_list") is False
+                    ):
                         dict_valued.add(slot_name)
                 slot_aliases = slot_def.get("aliases")
                 if slot_aliases:
@@ -338,7 +347,9 @@ def _apply_schema_fixes(content: str, schema_path: str) -> str:
     An ``AliasChoices`` import is spliced into the pydantic import block if
     any field requires it.
     """
-    defaults, multivalued, dict_valued, global_aliases, class_aliases = _parse_schema_info(schema_path)
+    defaults, multivalued, dict_valued, global_aliases, class_aliases = (
+        _parse_schema_info(schema_path)
+    )
 
     needs_alias_choices = False
 
@@ -362,7 +373,9 @@ def _apply_schema_fixes(content: str, schema_path: str) -> str:
             current_class_orig = hdr.group(1)
 
         # Choose the most specific alias map available for this class
-        per_class = class_aliases.get(current_class_orig, {}) if current_class_orig else {}
+        per_class = (
+            class_aliases.get(current_class_orig, {}) if current_class_orig else {}
+        )
         merged_aliases = {**global_aliases, **per_class}
 
         line = _fix_field_line(line, defaults, multivalued, dict_valued, merged_aliases)
@@ -411,7 +424,9 @@ def _fix_field_line(
         field_name = optlist_m.group(2)
         if field_name in dict_valued:
             inner = optlist_m.group(3)
-            line = re.sub(r"Optional\[list\[(\w+)\]\]", f"dict[str, {inner}]", line, count=1)
+            line = re.sub(
+                r"Optional\[list\[(\w+)\]\]", f"dict[str, {inner}]", line, count=1
+            )
             line = line.replace("default=None,", "default_factory=dict,", 1)
         elif field_name in multivalued:
             line = re.sub(r"Optional\[list\[(\w+)\]\]", r"list[\1]", line, count=1)
@@ -428,7 +443,11 @@ def _fix_field_line(
         field_name = opt_m.group(2)
         field_type = opt_m.group(3)
 
-        if field_name in defaults and field_type in _PRIMITIVE_TYPES and "default=None" not in line:
+        if (
+            field_name in defaults
+            and field_type in _PRIMITIVE_TYPES
+            and "default=None" not in line
+        ):
             line = re.sub(r"Optional\[(\w+)\]", r"\1", line, count=1)
 
         line = _inject_alias_choices(line, field_name, aliases)
@@ -463,7 +482,9 @@ def _inject_alias_choices(
     alias_kwarg = f"validation_alias=AliasChoices({args}), "
     # Inject just before json_schema_extra (or before closing paren if absent)
     if ", json_schema_extra" in line:
-        line = line.replace(", json_schema_extra", f", {alias_kwarg}json_schema_extra", 1)
+        line = line.replace(
+            ", json_schema_extra", f", {alias_kwarg}json_schema_extra", 1
+        )
     elif line.rstrip().endswith(")"):
         line = line.rstrip()[:-1] + f", {alias_kwarg})"
     return line
@@ -485,6 +506,7 @@ def _inject_alias_choices_import(content: str) -> str:
 
 # ── Step 5: mirror field descriptions as attribute docstrings ────────────────
 
+
 def _add_attribute_docstrings(content: str) -> str:
     """Repeat each field's ``description`` as a PEP 224 attribute docstring.
 
@@ -505,7 +527,9 @@ def _add_attribute_docstrings(content: str) -> str:
         if not isinstance(cls, ast.ClassDef):
             continue
         for node in cls.body:
-            if not isinstance(node, ast.AnnAssign) or not isinstance(node.value, ast.Call):
+            if not isinstance(node, ast.AnnAssign) or not isinstance(
+                node.value, ast.Call
+            ):
                 continue
             desc = next(
                 (

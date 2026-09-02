@@ -298,13 +298,14 @@ class BaseElementTranslator(PhysicalBaseElement):
         from ocelot.cpbd.elements import Marker, Aperture
         from ..conversion_rules.codes import ocelot_conversion
 
-        type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+        type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_Ocelot[self.hardware_type](eid=self.name)
+        obj = type_conversion_rules_ocelot[self.hardware_type](eid=self.name)
         for key, value in self.full_dump().items():
             if (key not in ["name", "type", "commandtype"]) and (
                 not type(obj) in [Aperture, Marker]
-                and self._convert_keyword_ocelot(key) in obj.__class__().element.__dict__
+                and self._convert_keyword_ocelot(key)
+                in obj.__class__().element.__dict__
             ):
                 if value is not None:
                     key = self._convert_keyword_ocelot(key)
@@ -332,16 +333,16 @@ class BaseElementTranslator(PhysicalBaseElement):
         from ..conversion_rules.codes import cheetah_conversion
         from torch import tensor, float64
 
-        type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
+        type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
         try:
-            obj = type_conversion_rules_Cheetah[self.hardware_type](
+            obj = type_conversion_rules_cheetah[self.hardware_type](
                 name=self.name,
                 length=tensor(self.physical.length, dtype=float64),
                 sanitize_name=True,
             )
         except Exception as e:
-            if self.hardware_type in type_conversion_rules_Cheetah:
+            if self.hardware_type in type_conversion_rules_cheetah:
                 if self.physical.length > 0:
                     obj = Drift_Cheetah(
                         name=self.name,
@@ -408,16 +409,16 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         from ..conversion_rules.codes import xsuite_conversion
 
-        type_conversion_rules_Xsuite = xsuite_conversion.xsuite_conversion_rules
+        type_conversion_rules_xsuite = xsuite_conversion.xsuite_conversion_rules
         self.start_write()
-        if self.hardware_type in type_conversion_rules_Xsuite:
-            obj = type_conversion_rules_Xsuite[self.hardware_type]
+        if self.hardware_type in type_conversion_rules_xsuite:
+            obj = type_conversion_rules_xsuite[self.hardware_type]
         else:
             warn(
                 f"Could not find hardware type {self.hardware_type} in xsuite conversion rules "
                 f"for element {self.name}; setting as drift"
             )
-            obj = type_conversion_rules_Xsuite["Drift"]
+            obj = type_conversion_rules_xsuite["Drift"]
         properties = {}
         from xtrack.monitors import ParticlesMonitor
 
@@ -434,7 +435,10 @@ class BaseElementTranslator(PhysicalBaseElement):
                 self._convert_keyword_xsuite(key) in list(obj.__dict__.keys())
             ):
                 key = self._convert_keyword_xsuite(key)
-                if key in ["k1", "k2", "k3", "k4", "k5", "k6"] and not self._resolve_functional:
+                if (
+                    key in ["k1", "k2", "k3", "k4", "k5", "k6"]
+                    and not self._resolve_functional
+                ):
                     # Carry a symbolic functional strength through to Xsuite as the
                     # normalized k = KnL/length, referencing the Environment
                     # variable; else use the number.
@@ -458,7 +462,11 @@ class BaseElementTranslator(PhysicalBaseElement):
                             )
                 if self.hardware_type.lower() == "dipole":
                     properties.update({"num_multipole_kicks": 10})
-                if "edge" in key and isinstance(value, str) and not self.is_functional(value):
+                if (
+                    "edge" in key
+                    and isinstance(value, str)
+                    and not self.is_functional(value)
+                ):
                     if value == "angle":
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
@@ -576,7 +584,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             )
             builder = build_drift
         obj = builder(self, P_Q=P_Q)
-        for o in (obj if isinstance(obj, list) else [obj]):
+        for o in obj if isinstance(obj, list) else [obj]:
             o.set_name(self.name)
             self._apply_rftrack_aperture(o)
         return obj
@@ -702,9 +710,9 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         from ..conversion_rules.codes import wake_t_conversion
 
-        type_conversion_rules_Wake_T = wake_t_conversion.wake_t_conversion_rules
-        if self.hardware_type in type_conversion_rules_Wake_T:
-            obj = type_conversion_rules_Wake_T[self.hardware_type]()
+        type_conversion_rules_wake_t = wake_t_conversion.wake_t_conversion_rules
+        if self.hardware_type in type_conversion_rules_wake_t:
+            obj = type_conversion_rules_wake_t[self.hardware_type]()
         else:
             if "drift" not in self.hardware_type.lower():
                 warn(
@@ -797,7 +805,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 return stripped
         return keyword
 
-    def to_madx(self, at: float = None) -> str:
+    def to_madx(self, at: float | None = None) -> str:
         """
         Generates a string representation of the object's properties in the MAD-X
         format (see the `MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html>`_),
@@ -912,7 +920,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         else:
             conversion_rules = self.conversion_rules["genesis"]
             element = elements_genesis.get(
-                self._convert_type_genesis(self.hardware_type), elements_genesis["drift"]
+                self._convert_type_genesis(self.hardware_type),
+                elements_genesis["drift"],
             )
         return self._convert_keyword(keyword, conversion_rules, element)
 
@@ -1154,7 +1163,7 @@ class BaseElementTranslator(PhysicalBaseElement):
     def dz_rot(self) -> float:
         return self.physical.error.rotation.psi
 
-    def get_field_reference_position(self, if_none: str = 'start') -> np.ndarray:
+    def get_field_reference_position(self, if_none: str = "start") -> np.ndarray:
         """
         Returns the position of the field reference point based on the `field_reference_position` attribute.
 
@@ -1171,9 +1180,16 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         if self.simulation.field_reference_position is not None:
             try:
-                return np.array(list(getattr(
-                    self.physical, self.simulation.field_reference_position.lower()
-                ).model_dump().values()))
+                return np.array(
+                    list(
+                        getattr(
+                            self.physical,
+                            self.simulation.field_reference_position.lower(),
+                        )
+                        .model_dump()
+                        .values()
+                    )
+                )
             except AttributeError:
                 warn(
                     "field_reference_position should be (start/middle/end) not"
@@ -1182,9 +1198,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                 )
         else:
             try:
-                return np.array(list(getattr(
-                    self.physical, if_none.lower()
-                ).model_dump().values()))
+                return np.array(
+                    list(getattr(self.physical, if_none.lower()).model_dump().values())
+                )
             except AttributeError:
                 return np.array(list(self.physical.start.model_dump().values()))
         return np.array(list(self.physical.start.model_dump().values()))
@@ -1201,7 +1217,9 @@ class BaseElementTranslator(PhysicalBaseElement):
             ):
                 field_kwargs = {
                     "filename": expand_substitution(
-                        self, self.simulation.field_definition, self.master_lattice,
+                        self,
+                        self.simulation.field_definition,
+                        self.master_lattice,
                     ),
                     # "field_type": self.field_type,
                 }
@@ -1216,7 +1234,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                 try:
                     self.simulation.field_definition = FieldMap(**field_kwargs)
                 except Exception as exc:
-                    raise Exception(f"Setting field definition on {self.name} failed: {field_kwargs}")
+                    raise Exception(
+                        f"Setting field definition on {self.name} failed: {field_kwargs}"
+                    )
             if (
                 hasattr(self.simulation, "wakefield_definition")
                 and self.simulation.wakefield_definition is not None
@@ -1233,7 +1253,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                         cavity_type = (self.cavity.structure_type,)
                     self.simulation.wakefield_definition = FieldMap(
                         filename=expand_substitution(
-                            self, self.simulation.wakefield_definition, self.master_lattice,
+                            self,
+                            self.simulation.wakefield_definition,
+                            self.master_lattice,
                         ),
                         # field_type=self.field_type,
                         n_cells=self.cavity.n_cells,
@@ -1242,7 +1264,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                 else:
                     self.simulation.wakefield_definition = FieldMap(
                         filename=expand_substitution(
-                            self, self.simulation.wakefield_definition, self.master_lattice,
+                            self,
+                            self.simulation.wakefield_definition,
+                            self.master_lattice,
                         ),
                     )
 

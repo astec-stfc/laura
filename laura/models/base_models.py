@@ -4,8 +4,7 @@ import numpy as np
 from pydantic_core.core_schema import SerializationInfo
 
 from ..utils.dict_utils import (
-    StringWithQuotes as string_with_quotes,
-    FlowList as flow_list,
+    FlowList,
     numpy_scalar_to_python,
 )
 
@@ -210,7 +209,7 @@ def convert_numpy_types(v: Any) -> Any:
     if isinstance(v, (dict)):
         return {k: convert_numpy_types(l) for k, l in v.items()}
     if isinstance(v, (np.ndarray, list, tuple)):
-        return flow_list([convert_numpy_types(arr) for arr in v])
+        return FlowList([convert_numpy_types(arr) for arr in v])
     return numpy_scalar_to_python(v)
 
 
@@ -374,7 +373,6 @@ class NumpyVectorModel(NumpyModel):
 
 
 class ObjectList(IgnoreExtra):
-
     def __iter__(self) -> iter:
         cls = self.__class__
         return iter(getattr(self, list(cls.model_fields.keys())[0]))

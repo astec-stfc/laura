@@ -3,6 +3,7 @@ import inspect
 from laura.utils.resolution import object_path, resolve_callable_dataclass, type_checked
 import numpy as np
 
+
 @dataclass(kw_only=True)
 @type_checked
 class RandomWalk:
@@ -10,6 +11,7 @@ class RandomWalk:
 
     def __call__(self, value: float = 0.0):
         return value + np.random.normal(scale=self.noise)
+
 
 @dataclass(kw_only=True)
 @type_checked
@@ -20,9 +22,7 @@ class Sinusoid:
     phase: float = 0.0
 
     def __call__(self, t):
-        y = self.amplitude * np.sin(
-            2*np.pi*t/self.period + self.phase
-        )
+        y = self.amplitude * np.sin(2 * np.pi * t / self.period + self.phase)
 
         if self.noise:
             y += np.random.normal(scale=self.noise)

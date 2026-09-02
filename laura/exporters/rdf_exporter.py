@@ -82,7 +82,7 @@ def build_rdf_graph(
     rdflib = _require_rdflib()
     from rdflib import Graph, Literal, Namespace, RDF, URIRef, XSD  # noqa: PLC0415
 
-    LAURA = Namespace(_LAURA_NS)
+    LAURA = Namespace(_LAURA_NS) # noqa N806
     g = Graph()
     g.bind("laura", LAURA)
     g.bind("schema", "http://schema.org/")

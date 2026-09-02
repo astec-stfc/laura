@@ -2,10 +2,8 @@ from laura._compat import DeprecatedMethodAliases
 import numpy as np
 from .constants import speed_of_light, pi
 from pydantic import (
-    BaseModel,
     ConfigDict,
     model_serializer,
-    model_validator,
     Field,
     field_validator,
     NonNegativeInt,
@@ -47,7 +45,9 @@ def _coerce_field_integral(v: Union[str, List, dict, Any, None]) -> Any:
         return v
     if v is None:
         return None
-    raise ValueError("field_integral_coefficients should be a string or a list of floats")
+    raise ValueError(
+        "field_integral_coefficients should be a string or a list of floats"
+    )
 
 
 Pi = pi
@@ -259,30 +259,30 @@ class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
                 length of the magnet, gradient is the magnetic field gradient, and integrated strength is the
                 integrated field strength.
         """
-        abs_I = abs(current)
-        m, I_max, f, a, I0, d, L = list(self.coefficients)
-        L = 1e-3 * L
+        abs_i = abs(current)
+        m, i_max, f, a, i0, d, l = list(self.coefficients)
+        l = 1e-3 * l
         int_strength = (
             m * current
-            if I_max == 0 or abs_I < I_max
-            else np.copysign((f * abs_I**3 + a * (abs_I - I0) ** 2 + d), current)
+            if i_max == 0 or abs_i < i_max
+            else np.copysign((f * abs_i**3 + a * (abs_i - i0) ** 2 + d), current)
         )
-        gradient = int_strength / L if L != 0 else 0.0
+        gradient = int_strength / l if l != 0 else 0.0
         if momentum is not None:
             # order-0 (dipoles/correctors): m in mT·m/A → scale c/1e9
             # order-1+ (quadrupoles etc.): m in T/A      → scale c/1e6
             scale = 1e9 if self.order == 0 else 1e6
-            KL = (speed_of_light / scale) * int_strength / momentum
+            kl = (speed_of_light / scale) * int_strength / momentum
             return {
-                "K": KL / L if L != 0 else 0.0,
-                "KL": KL,
+                "K": kl / l if l != 0 else 0.0,
+                "KL": kl,
                 "gradient": gradient,
                 "int_strength": int_strength,
             }
         else:
             return {"gradient": gradient, "int_strength": int_strength}
 
-    def kl_to_current(self, KL: float | dict, momentum: float) -> float:
+    def kl_to_current(self, KL: float | dict, momentum: float) -> float: # noqa N806
         """
         Convert the normalized strength (K value) of the magnetic field to the corresponding current.
 
@@ -299,16 +299,16 @@ class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
         Returns:
             float: The current (in amperes) required to produce the given K value.
         """
-        m, I_max, f, a, I0, d, L = list(self.coefficients)
+        m, i_max, f, a, i0, d, l = list(self.coefficients)
         if isinstance(KL, dict):
             if "KL" in KL:
-                KL = KL["KL"]
+                KL = KL["KL"] # noqa N806
             elif "K" in KL:
-                KL = KL["K"] * L / 1000
-        K = KL / (L / 1000) if L != 0 else 0.0
-        return self.k_to_current(K, momentum)
+                KL = KL["K"] * l / 1000  # noqa N806
+        k = KL / (l / 1000) if l != 0 else 0.0
+        return self.k_to_current(k, momentum)
 
-    def k_to_current(self, K: float | dict, momentum: float) -> float:
+    def k_to_current(self, K: float | dict, momentum: float) -> float: # noqa N806
         """
         Convert the normalized strength (K value) of the magnetic field to the corresponding current.
         This method calculates the current required to produce a given normalized strength (K value)
@@ -324,31 +324,31 @@ class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
         Returns:
             float: The current (in amperes) required to produce the given K value.
         """
-        m, I_max, f, a, I0, d, L = list(self.coefficients)
+        m, i_max, f, a, i0, d, l = list(self.coefficients)
         if isinstance(K, dict):
             if "K" in K:
-                K = K["K"]
+                K = K["K"]  # noqa N806
             elif "KL" in K:
-                K = K["KL"] / (L / 1000) if L != 0 else 0.0
+                K = K["KL"] / (l / 1000) if l != 0 else 0.0  # noqa N806
             else:
                 raise ValueError(f"K value not found in the dictionary {K}")
         # Inverse of currentToK scale: order-0 uses 1e9, order-1+ uses 1e6
         scale = 1e9 if self.order == 0 else 1e6
-        int_strength = scale * K * L * momentum / (speed_of_light)
+        int_strength = scale * K * l * momentum / speed_of_light
         int_strength *= 1e-3  # L is in mm, convert K·L_m back to int_strength units
         abs_str = abs(int_strength)
         linear_current = int_strength / m
-        if I_max == 0 or abs(linear_current) < I_max:
+        if i_max == 0 or abs(linear_current) < i_max:
             return linear_current
         elif f == 0:
-            abs_current = I0 - sqrt((abs_str - d) / a)
+            abs_current = i0 - sqrt((abs_str - d) / a)
             return np.sign(K) * abs_current
         else:
-            p = (-6 * f * a * I0 - a**2) / (3 * f**2)
+            p = (-6 * f * a * i0 - a**2) / (3 * f**2)
             q = (
                 (2 * a**3)
-                + (18 * f * a**2 * I0)
-                + (27 * f**2 * (a * I0**2 + d - abs_str))
+                + (18 * f * a**2 * i0)
+                + (27 * f**2 * (a * i0**2 + d - abs_str))
             ) / (27 * f**3)
             r = sqrt((p / 3) ** 3)
             theta = np.arccos(-q / (2 * r))
@@ -357,9 +357,7 @@ class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
             return t3 - a / (3 * f)
 
     def __iter__(self) -> iter:
-        return iter(
-            [getattr(self, k) for k in self._COEFF_KEYS]
-        )
+        return iter([getattr(self, k) for k in self._COEFF_KEYS])
 
 
 class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalMixin):
@@ -458,7 +456,7 @@ class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalM
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
     def validate_field_integral_coefficients(
-            cls, v: Union[str, List, dict | None]
+        cls, v: Union[str, List, dict | None]
     ) -> FieldIntegral | None:
         return _coerce_field_integral(v)
 
@@ -595,21 +593,21 @@ class DipoleMagnet(MagneticElement):
         output_dict.update({"degrees": output_dict["KL"] * 360 / (2.0 * np.pi)})
         return output_dict
 
-    def k_to_current(self, K, momentum):
+    def k_to_current(self, K, momentum): # noqa N806
         """Reverse the /1000 scaling applied by currentToK."""
         if isinstance(K, dict):
-            K = {k: v * 1000 for k, v in K.items() if isinstance(v, (int, float))}
+            k = {k: v * 1000 for k, v in K.items() if isinstance(v, (int, float))}
         else:
-            K = K * 1000
-        return self.linear_saturation_coefficients.k_to_current(K, momentum)
+            k = K * 1000
+        return self.linear_saturation_coefficients.k_to_current(k, momentum)
 
-    def kl_to_current(self, KL, momentum):
+    def kl_to_current(self, KL, momentum): # noqa N806
         """Reverse the /1000 scaling applied by currentToK."""
         if isinstance(KL, dict):
-            KL = {k: v * 1000 for k, v in KL.items() if isinstance(v, (int, float))}
+            kl = {k: v * 1000 for k, v in KL.items() if isinstance(v, (int, float))}
         else:
-            KL = KL * 1000
-        return self.linear_saturation_coefficients.kl_to_current(KL, momentum)
+            kl = KL * 1000
+        return self.linear_saturation_coefficients.kl_to_current(kl, momentum)
 
     @computed_field
     @property
@@ -626,9 +624,7 @@ class DipoleMagnet(MagneticElement):
         except KeyError:
             return 0
         return (
-            self.length / angle
-            if self.length is not None and abs(angle) > 1e-9
-            else 0
+            self.length / angle if self.length is not None and abs(angle) > 1e-9 else 0
         )
 
     def field_strength(self, momentum: float) -> float:

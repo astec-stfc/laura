@@ -5,7 +5,8 @@ import numpy as np
 from ...utils.classes import get_grid_size
 from ...utils.functions import chop
 
-def orthonormalize(M):
+
+def orthonormalize(M): # noqa N806
     """
     Enforce orthonormal rotation matrix using Gram-Schmidt.
     """
@@ -22,31 +23,20 @@ def orthonormalize(M):
 
     return np.column_stack((x, y, z))
 
-def Rx(a):
+
+def Rx(a): # noqa N806
     c, s = np.cos(a), np.sin(a)
-    return np.array([
-        [1, 0, 0],
-        [0, c, -s],
-        [0, s,  c]
-    ])
+    return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
 
 
-def Ry(a):
+def Ry(a): # noqa N806
     c, s = np.cos(a), np.sin(a)
-    return np.array([
-        [ c, 0, s],
-        [ 0, 1, 0],
-        [-s, 0, c]
-    ])
+    return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
 
 
-def Rz(a):
+def Rz(a): # noqa N806
     c, s = np.cos(a), np.sin(a)
-    return np.array([
-        [c, -s, 0],
-        [s,  c, 0],
-        [0,  0, 1]
-    ])
+    return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
 
 
 def euler_to_matrix(psi, phi, theta):
@@ -56,28 +46,28 @@ def euler_to_matrix(psi, phi, theta):
     """
     return Rz(theta) @ Ry(phi) @ Rx(psi)
 
-def matrix_to_euler(M):
+
+def matrix_to_euler(M): # noqa N806
     """
     Inverse of:
     M = Rz(theta) @ Ry(phi) @ Rx(psi)
     Returns psi, phi, theta
     """
 
-    phi = np.arcsin(-M[2,0])
+    phi = np.arcsin(-M[2, 0])
 
     if abs(np.cos(phi)) > 1e-12:
-        psi   = np.arctan2(M[2,1], M[2,2])
-        theta = np.arctan2(M[1,0], M[0,0])
+        psi = np.arctan2(M[2, 1], M[2, 2])
+        theta = np.arctan2(M[1, 0], M[0, 0])
     else:
         # Gimbal lock fallback
-        psi   = 0.0
-        theta = np.arctan2(-M[0,1], M[1,1])
+        psi = 0.0
+        theta = np.arctan2(-M[0, 1], M[1, 1])
 
     return psi, phi, theta
 
 
 class GptCcs(DeprecatedMethodAliases, BaseModel):
-
     _DEPRECATED_METHOD_ALIASES = {
         "M": "rotation_matrix",
     }
@@ -157,10 +147,6 @@ class GptCcs(DeprecatedMethodAliases, BaseModel):
         finalpos = np.array([0, 0, abs(self.intersect) + length])
         return finalpos, finalrot
 
-    @property
-    def name_as_str(self):
-        return '"' + self.name + '"'
-
     def ccs_text(self, position, rotation):
         finalpos, finalrot = self.relative_position(position, rotation)
         x, y, z = finalpos
@@ -190,11 +176,11 @@ class GptCcs(DeprecatedMethodAliases, BaseModel):
             value_text = "," + str(0)
         return '"' + ccs_label + '"', value_text.strip(",")
 
+    @staticmethod
     def gpt_coordinates(
-            self,
-            position: list | np.ndarray,
-            angle: float = 0.0,
-            tilt: float = 0.0,
+        position: list | np.ndarray,
+        angle: float = 0.0,
+        tilt: float = 0.0,
     ) -> str:
         """
         Get the GPT coordinates for a given position and rotation
@@ -203,8 +189,10 @@ class GptCcs(DeprecatedMethodAliases, BaseModel):
         ----------
         position: list | np.ndarray
             The lattice position.
-        rotation: float
-            The element rotation
+        angle: float
+            The angle of the element
+        tilt: float
+            The tilt of the element
 
         Returns
         -------
@@ -215,7 +203,7 @@ class GptCcs(DeprecatedMethodAliases, BaseModel):
         output = ""
         for c in [-x, y, z]:
             output += str(c) + ", "
-        if np.isclose(tilt, np.pi/2):
+        if np.isclose(tilt, np.pi / 2):
             output += f"0, cos({angle}), -sin({angle}), -sin({tilt}), cos({tilt}) ,0"
         else:
             output += f"cos({angle}), 0, -sin({angle}), -sin({tilt}), cos({tilt}) ,0"

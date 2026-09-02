@@ -42,31 +42,35 @@ def euler_angles_to_rotation_matrix(
     sr = np.sin(roll)
 
     # Rotation matrices
-    Ry = np.array([
-        [cy, 0, -sy],
-        [0, 1, 0],
-        [sy, 0, cy],
-    ])
-    
-    Rx = np.array([
-        [1, 0, 0],
-        [0, cp, -sp],
-        [0, sp, cp],
-    ])
-    
-    Rz = np.array([
-        [cr, -sr, 0],
-        [sr, cr, 0],
-        [0, 0, 1],
-    ])
+    Ry = np.array(
+        [
+            [cy, 0, -sy],
+            [0, 1, 0],
+            [sy, 0, cy],
+        ]
+    )
+
+    Rx = np.array(
+        [
+            [1, 0, 0],
+            [0, cp, -sp],
+            [0, sp, cp],
+        ]
+    )
+
+    Rz = np.array(
+        [
+            [cr, -sr, 0],
+            [sr, cr, 0],
+            [0, 0, 1],
+        ]
+    )
 
     # Apply in order: Rz @ Rx @ Ry (rightmost is applied first to column vectors)
     return np.dot(Rz, np.dot(Rx, Ry))
 
 
-def position_rotated(
-    position: "Position", rotation: "Rotation"
-) -> "Position":
+def position_rotated(position: "Position", rotation: "Rotation") -> "Position":
     """
     Apply rotation to a position vector.
 
@@ -110,7 +114,7 @@ def element_start_position(
     # Rotate to element frame
     matrix = euler_angles_to_rotation_matrix(rotation.theta, rotation.phi, rotation.psi)
     offset = matrix @ upstream
-    
+
     return Position(
         x=middle.x + offset[0],
         y=middle.y + offset[1],
@@ -118,7 +122,7 @@ def element_start_position(
     )
 
 
-def rotation_matrix_to_euler(R: np.ndarray) -> tuple:
+def rotation_matrix_to_euler(R: np.ndarray) -> tuple: # noqa N803
     """
     Extract (yaw, pitch, roll) Euler angles from a 3x3 rotation matrix.
 
@@ -170,7 +174,7 @@ def element_end_position(
     # Rotate to element frame
     matrix = euler_angles_to_rotation_matrix(rotation.theta, rotation.phi, rotation.psi)
     offset = matrix @ downstream
-    
+
     return Position(
         x=middle.x + offset[0],
         y=middle.y + offset[1],

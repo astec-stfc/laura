@@ -7,7 +7,6 @@ from yaml.resolver import Resolver
 
 
 class MySafeLoader(Reader, Scanner, Parser, Composer, MySafeConstructor, Resolver):
-
     def __init__(self, stream):
         Reader.__init__(self, stream)
         Scanner.__init__(self)

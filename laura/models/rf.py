@@ -1,8 +1,8 @@
 from laura._compat import DeprecatedMethodAliases
 from pydantic import Field, field_validator, create_model
-from typing import List, Type, Union
+from typing import List, Union
 
-from .base_models import IgnoreExtra, T, ModelBase, FunctionalMixin
+from .base_models import IgnoreExtra, ModelBase, FunctionalMixin
 from ._generated import (
     _RFCavityElementBase,
     _WakefieldElementBase,
@@ -65,11 +65,10 @@ class RFDeflectingCavityElement(_RFDeflectingCavityElementBase, FunctionalMixin)
 
 
 class PIDPhaseRange(_PIDPhaseRangeBase):
-
     def __str__(self) -> str:
         return str([self.min, self.max])
 
-    def __repr__(self) -> repr:
+    def __repr__(self) -> str:
         return self.__str__()
 
     def __iter__(self) -> iter:
@@ -91,7 +90,9 @@ class PIDElement(_PIDElementBase):
 
     @field_validator("phase_weight_range", mode="before")
     @classmethod
-    def validate_phase_weight_range(cls, v: Union[str, List, None]) -> PIDWeightRange | None:
+    def validate_phase_weight_range(
+        cls, v: Union[str, List, None]
+    ) -> PIDWeightRange | None:
         return _coerce_pid_range(v, PIDWeightRange)
 
 
@@ -132,7 +133,6 @@ class LLRFTimings(_LLRFTimingsBase):
 
 
 class LowLevelRFElement(DeprecatedMethodAliases, _LowLevelRFElementBase, IgnoreExtra):
-
     _DEPRECATED_METHOD_ALIASES = {
         "_create_LLRFChannels_Model": "_create_llrf_channels_model",
     }
@@ -140,7 +140,8 @@ class LowLevelRFElement(DeprecatedMethodAliases, _LowLevelRFElementBase, IgnoreE
     # available cavity/channel combinations at runtime.
     one_record: LLRFChannelsBase
 
-    def _create_llrf_channels_model(self, fields: dict):
+    @staticmethod
+    def _create_llrf_channels_model(fields: dict):
         inputs = {}
         for name in llrffieldnames:
             if "ONE_RECORD_" + str.upper(name) + "_POWER" in fields:
@@ -159,11 +160,11 @@ class LowLevelRFElement(DeprecatedMethodAliases, _LowLevelRFElementBase, IgnoreE
                         power=fields[substr + "_POWER"], phase=fields[substr + "_PHASE"]
                     )
         model_fields = {i: (LLRFChannelIndex, Field()) for i in inputs.keys()}
-        LLRFChannels = create_model(
+        llrf_channels = create_model(
             "LLRFChannels", **model_fields, __base__=LLRFChannelsBase
         )
         fields["labels"] = list(model_fields.keys())
-        return LLRFChannels
+        return llrf_channels
 
 
 class RFModulatorElement(_RFModulatorElementBase):

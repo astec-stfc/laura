@@ -46,9 +46,7 @@ def deprecated_aliases(
     def __getattr__(name: str) -> object:
         current = aliases.get(name)
         if current is None:
-            raise AttributeError(
-                f"module {module_name!r} has no attribute {name!r}"
-            )
+            raise AttributeError(f"module {module_name!r} has no attribute {name!r}")
         warnings.warn(
             f"{module_name}.{name} was renamed to {current} for PEP 8 "
             f"compliance. The old name still works but will be removed in a "
