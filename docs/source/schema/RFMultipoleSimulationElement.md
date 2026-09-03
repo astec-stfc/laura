@@ -1,4 +1,4 @@
-# Class: RFMultipoleSimulationElement
+# Class: RFMultipoleSimulationElement 
 
 
 _Simulation attributes for a thin RF multipole kick._
@@ -21,64 +21,64 @@ URI: [laura:RFMultipoleSimulationElement](https://w3id.org/laura/RFMultipoleSimu
     click RFMultipoleSimulationElement href "../RFMultipoleSimulationElement/"
       SimulationElement <|-- RFMultipoleSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       RFMultipoleSimulationElement : csr_enable
-
+        
       RFMultipoleSimulationElement : csr_method
-
+        
       RFMultipoleSimulationElement : csrdz
-
+        
       RFMultipoleSimulationElement : deltaL
-
+        
       RFMultipoleSimulationElement : field_amplitude
-
+        
       RFMultipoleSimulationElement : field_definition
-
+        
       RFMultipoleSimulationElement : field_reference_position
-
+        
       RFMultipoleSimulationElement : frequency
-
+        
       RFMultipoleSimulationElement : horizontal_offset
-
+        
       RFMultipoleSimulationElement : integration_order
-
+        
       RFMultipoleSimulationElement : knl
-
+        
       RFMultipoleSimulationElement : ksl
-
+        
       RFMultipoleSimulationElement : lsc_bins
-
+        
       RFMultipoleSimulationElement : lsc_enable
-
+        
       RFMultipoleSimulationElement : mat6_calc_method
-
+        
       RFMultipoleSimulationElement : n_kicks
-
+        
       RFMultipoleSimulationElement : num_steps
-
+        
       RFMultipoleSimulationElement : phase
-
+        
       RFMultipoleSimulationElement : pnl
-
+        
       RFMultipoleSimulationElement : psl
-
+        
       RFMultipoleSimulationElement : scale_field
-
+        
       RFMultipoleSimulationElement : smooth
-
+        
       RFMultipoleSimulationElement : space_charge_method
-
+        
       RFMultipoleSimulationElement : spin_tracking_method
-
+        
       RFMultipoleSimulationElement : tracking_method
-
+        
       RFMultipoleSimulationElement : vertical_offset
-
+        
       RFMultipoleSimulationElement : wakefield_definition
-
+        
       RFMultipoleSimulationElement : wakefield_enable
-
-
+        
+      
 ```
 
 

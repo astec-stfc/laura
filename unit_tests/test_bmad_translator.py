@@ -21,8 +21,8 @@ from laura.models.element import (  # noqa: E402
     CombinedSolenoidQuadrupole,
     Dipole,
     ElectrostaticSeparator,
-    MatrixTransform,
     Marker,
+    MatrixTransform,
     Quadrupole,
     RFCavity,
     RFDeflectingCavity,
@@ -500,9 +500,7 @@ def test_bmad_leading_twiss_match_becomes_beginning_not_a_match_element():
         elements=[
             quadrupole,
             seed.model_copy(
-                update={
-                    "physical": PhysicalElement(length=0, middle=Position(z=1.0))
-                }
+                update={"physical": PhysicalElement(length=0, middle=Position(z=1.0))}
             ),
         ],
         geometry="open",
@@ -637,13 +635,9 @@ def test_bmad_section_superimposes_overlapping_elements():
     assert "Q_OVER: quadrupole" in text
     assert "S_EMBED: solenoid" in text
     assert "OVERLAP: line = (Q_BASE, OVERLAP_drift_1, Q_NEXT)" in text
+    assert ("superimpose, element = Q_OVER, offset = 2, ele_origin = beginning") in text
     assert (
-        "superimpose, element = Q_OVER, offset = 2, "
-        "ele_origin = beginning"
-    ) in text
-    assert (
-        "superimpose, element = S_EMBED, offset = 0, "
-        "ele_origin = beginning"
+        "superimpose, element = S_EMBED, offset = 0, ele_origin = beginning"
     ) in text
 
 
@@ -673,9 +667,7 @@ def test_bmad_section_uses_thin_kicker_inside_bend():
     text = SectionLatticeTranslator.from_section(section).to_bmad()
 
     assert "K: kicker, l = 0.0, hkick = 0.01, vkick = -0.02" in text
-    assert (
-        "superimpose, element = K, offset = 0.5, ele_origin = beginning"
-    ) in text
+    assert ("superimpose, element = K, offset = 0.5, ele_origin = beginning") in text
 
 
 def _cavity_ring(geometry):
@@ -793,13 +785,16 @@ def _lead_section(with_origin):
                 name="BEGINNING",
                 machine_area="S",
                 physical=PhysicalElement(length=0.0, middle=Position(z=0.0)),
-                simulation={"beta_x": 2.0, "alpha_x": 0.0, "beta_y": 3.0, "alpha_y": 0.0},
+                simulation={
+                    "beta_x": 2.0,
+                    "alpha_x": 0.0,
+                    "beta_y": 3.0,
+                    "alpha_y": 0.0,
+                },
             ),
         )
         order.insert(0, "BEGINNING")
-    return SectionLattice(
-        name="S", order=order, elements=elements, geometry="open"
-    )
+    return SectionLattice(name="S", order=order, elements=elements, geometry="open")
 
 
 def test_bmad_export_restores_the_run_up_to_the_first_element():
@@ -1004,3 +999,64 @@ def test_bmad_export_leaves_the_model_it_exported_alone():
     SectionLatticeTranslator.from_section(section).to_bmad()
 
     assert section.elements["SCR"].physical.length == 0.3
+
+
+def test_bmad_bend_writes_fintx_only_when_the_exit_face_differs():
+    """``fintx``/``hgapx`` are Bmad's exit-face fringe attributes, and Bmad
+    defaults each to its entrance twin.
+
+    Both halves matter. A symmetric bend must export exactly as it did before
+    -- silence on the exit face is what makes the change safe for every lattice
+    already written -- and an asymmetric one must say so explicitly.
+    """
+    symmetric = Dipole(
+        name="B-SYM",
+        machine_area="S",
+        magnetic={
+            "magnetic_length": 1.0,
+            "k0l": 0.2,
+            "gap": 0.04,
+            "edge_field_integral": 0.3,
+        },
+    )
+    bend = _bmad(symmetric)
+    assert "hgap = 0.02" in bend
+    assert "fint = 0.3" in bend
+    assert "fintx" not in bend
+    assert "hgapx" not in bend
+
+    entrance_half = Dipole(
+        name="B-1",
+        machine_area="S",
+        magnetic={
+            "magnetic_length": 0.5,
+            "k0l": 0.1,
+            "gap": 0.03,
+            "edge_field_integral": 0.45,
+            "exit_gap": 0.0,
+            "exit_edge_field_integral": 0.0,
+        },
+    )
+    bend = _bmad(entrance_half)
+    assert "fint = 0.45" in bend
+    assert "hgap = 0.015" in bend
+    assert "fintx = 0" in bend
+    assert "hgapx = 0" in bend
+
+    exit_half = Dipole(
+        name="B-2",
+        machine_area="S",
+        magnetic={
+            "magnetic_length": 0.5,
+            "k0l": 0.1,
+            "gap": 0.0,
+            "edge_field_integral": 0.0,
+            "exit_gap": 0.03,
+            "exit_edge_field_integral": 0.45,
+        },
+    )
+    bend = _bmad(exit_half)
+    assert "fint = 0" in bend
+    assert "hgap = 0" in bend
+    assert "fintx = 0.45" in bend
+    assert "hgapx = 0.015" in bend

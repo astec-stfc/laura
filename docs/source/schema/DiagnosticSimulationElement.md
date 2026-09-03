@@ -1,4 +1,4 @@
-# Class: DiagnosticSimulationElement
+# Class: DiagnosticSimulationElement 
 
 
 _Simulation attributes for beam-diagnostic elements._
@@ -21,52 +21,52 @@ URI: [laura:DiagnosticSimulationElement](https://w3id.org/laura/DiagnosticSimula
     click DiagnosticSimulationElement href "../DiagnosticSimulationElement/"
       SimulationElement <|-- DiagnosticSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       DiagnosticSimulationElement : csr_enable
-
+        
       DiagnosticSimulationElement : csr_method
-
+        
       DiagnosticSimulationElement : csrdz
-
+        
       DiagnosticSimulationElement : deltaL
-
+        
       DiagnosticSimulationElement : field_definition
-
+        
       DiagnosticSimulationElement : field_reference_position
-
+        
       DiagnosticSimulationElement : horizontal_offset
-
+        
       DiagnosticSimulationElement : integration_order
-
+        
       DiagnosticSimulationElement : lsc_bins
-
+        
       DiagnosticSimulationElement : lsc_enable
-
+        
       DiagnosticSimulationElement : mat6_calc_method
-
+        
       DiagnosticSimulationElement : n_kicks
-
+        
       DiagnosticSimulationElement : num_steps
-
+        
       DiagnosticSimulationElement : output_filename
-
+        
       DiagnosticSimulationElement : scale_field
-
+        
       DiagnosticSimulationElement : smooth
-
+        
       DiagnosticSimulationElement : space_charge_method
-
+        
       DiagnosticSimulationElement : spin_tracking_method
-
+        
       DiagnosticSimulationElement : tracking_method
-
+        
       DiagnosticSimulationElement : vertical_offset
-
+        
       DiagnosticSimulationElement : wakefield_definition
-
+        
       DiagnosticSimulationElement : wakefield_enable
-
-
+        
+      
 ```
 
 

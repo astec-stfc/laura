@@ -1,4 +1,4 @@
-# Class: RFCavitySimulationElement
+# Class: RFCavitySimulationElement 
 
 
 _Simulation attributes for RF cavity elements._
@@ -21,86 +21,86 @@ URI: [laura:RFCavitySimulationElement](https://w3id.org/laura/RFCavitySimulation
     click RFCavitySimulationElement href "../RFCavitySimulationElement/"
       SimulationElement <|-- RFCavitySimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       RFCavitySimulationElement : body_focus_model
-
+        
       RFCavitySimulationElement : change_p0
-
+        
       RFCavitySimulationElement : csr_enable
-
+        
       RFCavitySimulationElement : csr_method
-
+        
       RFCavitySimulationElement : csrdz
-
+        
       RFCavitySimulationElement : current_bins
-
+        
       RFCavitySimulationElement : deltaL
-
+        
       RFCavitySimulationElement : end1_focus
-
+        
       RFCavitySimulationElement : end2_focus
-
+        
       RFCavitySimulationElement : ez_peak
-
+        
       RFCavitySimulationElement : field_amplitude
-
+        
       RFCavitySimulationElement : field_definition
-
+        
       RFCavitySimulationElement : field_file_name
-
+        
       RFCavitySimulationElement : field_reference_position
-
+        
       RFCavitySimulationElement : horizontal_offset
-
+        
       RFCavitySimulationElement : integration_order
-
+        
       RFCavitySimulationElement : interpolate_current_bins
-
+        
       RFCavitySimulationElement : lsc_bins
-
+        
       RFCavitySimulationElement : lsc_enable
-
+        
       RFCavitySimulationElement : mat6_calc_method
-
+        
       RFCavitySimulationElement : n_kicks
-
+        
       RFCavitySimulationElement : num_steps
-
+        
       RFCavitySimulationElement : scale_field
-
+        
       RFCavitySimulationElement : smooth
-
+        
       RFCavitySimulationElement : smooth_current_bins
-
+        
       RFCavitySimulationElement : space_charge_method
-
+        
       RFCavitySimulationElement : spin_tracking_method
-
+        
       RFCavitySimulationElement : t_column
-
+        
       RFCavitySimulationElement : tracking_method
-
+        
       RFCavitySimulationElement : trwakefile
-
+        
       RFCavitySimulationElement : vertical_offset
-
+        
       RFCavitySimulationElement : wakefield_definition
-
+        
       RFCavitySimulationElement : wakefield_enable
-
+        
       RFCavitySimulationElement : wakefile
-
+        
       RFCavitySimulationElement : wx_column
-
+        
       RFCavitySimulationElement : wy_column
-
+        
       RFCavitySimulationElement : wz_column
-
+        
       RFCavitySimulationElement : z_column
-
+        
       RFCavitySimulationElement : zwakefile
-
-
+        
+      
 ```
 
 

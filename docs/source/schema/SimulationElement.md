@@ -1,4 +1,4 @@
-# Class: SimulationElement
+# Class: SimulationElement 
 
 
 _Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes._
@@ -45,50 +45,50 @@ URI: [laura:SimulationElement](https://w3id.org/laura/SimulationElement)
         click BeamBeamSimulationElement href "../BeamBeamSimulationElement/"
       SimulationElement <|-- RFMultipoleSimulationElement
         click RFMultipoleSimulationElement href "../RFMultipoleSimulationElement/"
-
+      
       SimulationElement : csr_enable
-
+        
       SimulationElement : csr_method
-
+        
       SimulationElement : csrdz
-
+        
       SimulationElement : deltaL
-
+        
       SimulationElement : field_definition
-
+        
       SimulationElement : field_reference_position
-
+        
       SimulationElement : horizontal_offset
-
+        
       SimulationElement : integration_order
-
+        
       SimulationElement : lsc_bins
-
+        
       SimulationElement : lsc_enable
-
+        
       SimulationElement : mat6_calc_method
-
+        
       SimulationElement : n_kicks
-
+        
       SimulationElement : num_steps
-
+        
       SimulationElement : scale_field
-
+        
       SimulationElement : smooth
-
+        
       SimulationElement : space_charge_method
-
+        
       SimulationElement : spin_tracking_method
-
+        
       SimulationElement : tracking_method
-
+        
       SimulationElement : vertical_offset
-
+        
       SimulationElement : wakefield_definition
-
+        
       SimulationElement : wakefield_enable
-
-
+        
+      
 ```
 
 

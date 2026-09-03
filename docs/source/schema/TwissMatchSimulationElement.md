@@ -1,4 +1,4 @@
-# Class: TwissMatchSimulationElement
+# Class: TwissMatchSimulationElement 
 
 
 _Simulation attributes for Twiss-matching points._
@@ -21,68 +21,68 @@ URI: [laura:TwissMatchSimulationElement](https://w3id.org/laura/TwissMatchSimula
     click TwissMatchSimulationElement href "../TwissMatchSimulationElement/"
       SimulationElement <|-- TwissMatchSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       TwissMatchSimulationElement : alpha_x
-
+        
       TwissMatchSimulationElement : alpha_y
-
+        
       TwissMatchSimulationElement : beta_x
-
+        
       TwissMatchSimulationElement : beta_y
-
+        
       TwissMatchSimulationElement : csr_enable
-
+        
       TwissMatchSimulationElement : csr_method
-
+        
       TwissMatchSimulationElement : csrdz
-
+        
       TwissMatchSimulationElement : deltaL
-
+        
       TwissMatchSimulationElement : eta_x
-
+        
       TwissMatchSimulationElement : eta_xp
-
+        
       TwissMatchSimulationElement : eta_y
-
+        
       TwissMatchSimulationElement : eta_yp
-
+        
       TwissMatchSimulationElement : field_definition
-
+        
       TwissMatchSimulationElement : field_reference_position
-
+        
       TwissMatchSimulationElement : from_beam
-
+        
       TwissMatchSimulationElement : horizontal_offset
-
+        
       TwissMatchSimulationElement : integration_order
-
+        
       TwissMatchSimulationElement : lsc_bins
-
+        
       TwissMatchSimulationElement : lsc_enable
-
+        
       TwissMatchSimulationElement : mat6_calc_method
-
+        
       TwissMatchSimulationElement : n_kicks
-
+        
       TwissMatchSimulationElement : num_steps
-
+        
       TwissMatchSimulationElement : scale_field
-
+        
       TwissMatchSimulationElement : smooth
-
+        
       TwissMatchSimulationElement : space_charge_method
-
+        
       TwissMatchSimulationElement : spin_tracking_method
-
+        
       TwissMatchSimulationElement : tracking_method
-
+        
       TwissMatchSimulationElement : vertical_offset
-
+        
       TwissMatchSimulationElement : wakefield_definition
-
+        
       TwissMatchSimulationElement : wakefield_enable
-
-
+        
+      
 ```
 
 

@@ -239,14 +239,14 @@ export interface Position {
 
 
 /**
- * Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi].
+ * Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi]. The composition is Rz(psi) . Rx(phi) . Ry(theta), as implemented by laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each angle below names the axis that factor turns about. psi and theta were described the other way round until 2026-09-01, which is how the Bmad importer came to read x_pitch (a rotation about y) into psi.
  */
 export interface Rotation {
     /** Rotation about the horizontal (x) axis [rad]. */
     phi?: number,
-    /** Rotation about the vertical (y) axis [rad]. */
-    psi?: number,
     /** Rotation about the longitudinal (z) axis [rad]. */
+    psi?: number,
+    /** Rotation about the vertical (y) axis [rad]. */
     theta?: number,
 }
 
@@ -670,7 +670,7 @@ export interface MagnetSimulationElement extends SimulationElement {
     field_amplitude?: number,
     /** Number of longitudinal slices for thick-lens tracking. */
     n_slices?: number,
-    /** Fringe-field integral for edge focussing. */
+    /** Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``", which is what every element wants unless a study is deliberately varying the edge focussing independently of the magnet. It used to default to 0.5, and because the keyword converters strip the sub-model prefix before looking a name up, that default reached the exporters ahead of the magnet's own value and shadowed it: a magnet with ``edge_field_integral = 0.3`` exported ``fint = 0.5`` to MAD-X, ELEGANT, OPAL, Ocelot and Xsuite. Only Bmad escaped, because ``_bmad_parameters`` overwrites ``fint`` after the loop. */
     edge_field_integral?: number,
     /** Enable entrance-edge focussing effects. */
     edge1_effects?: boolean,
@@ -1074,8 +1074,12 @@ export interface MagneticElement {
     width?: number,
     /** Global tilt about the beam axis [rad]. */
     tilt?: number,
-    /** Enge fringe-field integral parameter (dimensionless). */
+    /** Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise. */
     edge_field_integral?: number,
+    /** Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check. */
+    exit_edge_field_integral?: number,
+    /** Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``. */
+    exit_gap?: number,
     /** Coefficient controlling the fringe-field roll-off rate. */
     fringe_field_coefficient?: number,
     /** Peak field gradient [T/m] (quads) or peak field [T] (dipoles). */

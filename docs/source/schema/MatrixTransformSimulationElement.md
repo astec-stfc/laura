@@ -1,4 +1,4 @@
-# Class: MatrixTransformSimulationElement
+# Class: MatrixTransformSimulationElement 
 
 
 _Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model._
@@ -21,107 +21,107 @@ URI: [laura:MatrixTransformSimulationElement](https://w3id.org/laura/MatrixTrans
     click MatrixTransformSimulationElement href "../MatrixTransformSimulationElement/"
       SimulationElement <|-- MatrixTransformSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       MatrixTransformSimulationElement : apply
-
+        
       MatrixTransformSimulationElement : c_matrix
-
-
-
-
-
+        
+          
+    
+        
+        
         MatrixTransformSimulationElement --> "0..1" MatrixValue : c_matrix
         click MatrixValue href "../MatrixValue/"
+    
 
-
-
+        
       MatrixTransformSimulationElement : csr_enable
-
+        
       MatrixTransformSimulationElement : csr_method
-
+        
       MatrixTransformSimulationElement : csrdz
-
+        
       MatrixTransformSimulationElement : deltaL
-
+        
       MatrixTransformSimulationElement : field_definition
-
+        
       MatrixTransformSimulationElement : field_reference_position
-
+        
       MatrixTransformSimulationElement : horizontal_offset
-
+        
       MatrixTransformSimulationElement : integration_order
-
+        
       MatrixTransformSimulationElement : lsc_bins
-
+        
       MatrixTransformSimulationElement : lsc_enable
-
+        
       MatrixTransformSimulationElement : mat6_calc_method
-
+        
       MatrixTransformSimulationElement : n_kicks
-
+        
       MatrixTransformSimulationElement : num_steps
-
+        
       MatrixTransformSimulationElement : r_matrix
-
-
-
-
-
+        
+          
+    
+        
+        
         MatrixTransformSimulationElement --> "0..1" MatrixValue : r_matrix
         click MatrixValue href "../MatrixValue/"
+    
 
-
-
+        
       MatrixTransformSimulationElement : scale_field
-
+        
       MatrixTransformSimulationElement : smooth
-
+        
       MatrixTransformSimulationElement : space_charge_method
-
+        
       MatrixTransformSimulationElement : spin_taylor
-
-
-
-
-
+        
+          
+    
+        
+        
         MatrixTransformSimulationElement --> "0..1" MatrixValue : spin_taylor
         click MatrixValue href "../MatrixValue/"
+    
 
-
-
+        
       MatrixTransformSimulationElement : spin_tracking_method
-
+        
       MatrixTransformSimulationElement : t_matrix
-
-
-
-
-
+        
+          
+    
+        
+        
         MatrixTransformSimulationElement --> "0..1" MatrixValue : t_matrix
         click MatrixValue href "../MatrixValue/"
+    
 
-
-
+        
       MatrixTransformSimulationElement : tracking_method
-
+        
       MatrixTransformSimulationElement : u_matrix
-
-
-
-
-
+        
+          
+    
+        
+        
         MatrixTransformSimulationElement --> "0..1" MatrixValue : u_matrix
         click MatrixValue href "../MatrixValue/"
+    
 
-
-
+        
       MatrixTransformSimulationElement : vertical_offset
-
+        
       MatrixTransformSimulationElement : wakefield_definition
-
+        
       MatrixTransformSimulationElement : wakefield_enable
-
-
+        
+      
 ```
 
 

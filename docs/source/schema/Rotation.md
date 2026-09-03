@@ -1,7 +1,7 @@
 # Class: Rotation 
 
 
-_Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi]._
+_Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi]. The composition is Rz(psi) . Rx(phi) . Ry(theta), as implemented by laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each angle below names the axis that factor turns about. psi and theta were described the other way round until 2026-09-01, which is how the Bmad importer came to read x_pitch (a rotation about y) into psi._
 
 
 
@@ -45,8 +45,8 @@ URI: [laura:Rotation](https://w3id.org/laura/Rotation)
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [phi](phi.md) | 0..1 <br/> [Float](Float.md) | Rotation about the horizontal (x) axis [rad] | direct |
-| [psi](psi.md) | 0..1 <br/> [Float](Float.md) | Rotation about the vertical (y) axis [rad] | direct |
-| [theta](theta.md) | 0..1 <br/> [Float](Float.md) | Rotation about the longitudinal (z) axis [rad] | direct |
+| [psi](psi.md) | 0..1 <br/> [Float](Float.md) | Rotation about the longitudinal (z) axis [rad] | direct |
+| [theta](theta.md) | 0..1 <br/> [Float](Float.md) | Rotation about the vertical (y) axis [rad] | direct |
 
 
 
@@ -114,7 +114,11 @@ URI: [laura:Rotation](https://w3id.org/laura/Rotation)
 ```yaml
 name: Rotation
 description: Euler-angle rotation relative to the global coordinate system. All angles
-  are in radians, bounded to [-pi, pi].
+  are in radians, bounded to [-pi, pi]. The composition is Rz(psi) . Rx(phi) . Ry(theta),
+  as implemented by laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each
+  angle below names the axis that factor turns about. psi and theta were described
+  the other way round until 2026-09-01, which is how the Bmad importer came to read
+  x_pitch (a rotation about y) into psi.
 in_subset:
 - physical_properties
 from_schema: https://w3id.org/laura/schema
@@ -134,7 +138,7 @@ attributes:
       ucum_code: rad
   psi:
     name: psi
-    description: Rotation about the vertical (y) axis [rad].
+    description: Rotation about the longitudinal (z) axis [rad].
     from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: float(0)
@@ -147,7 +151,7 @@ attributes:
       ucum_code: rad
   theta:
     name: theta
-    description: Rotation about the longitudinal (z) axis [rad].
+    description: Rotation about the vertical (y) axis [rad].
     from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: float(0)
@@ -169,7 +173,11 @@ class_uri: laura:Rotation
 ```yaml
 name: Rotation
 description: Euler-angle rotation relative to the global coordinate system. All angles
-  are in radians, bounded to [-pi, pi].
+  are in radians, bounded to [-pi, pi]. The composition is Rz(psi) . Rx(phi) . Ry(theta),
+  as implemented by laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each
+  angle below names the axis that factor turns about. psi and theta were described
+  the other way round until 2026-09-01, which is how the Bmad importer came to read
+  x_pitch (a rotation about y) into psi.
 in_subset:
 - physical_properties
 from_schema: https://w3id.org/laura/schema
@@ -190,7 +198,7 @@ attributes:
       ucum_code: rad
   psi:
     name: psi
-    description: Rotation about the vertical (y) axis [rad].
+    description: Rotation about the longitudinal (z) axis [rad].
     from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: float(0)
@@ -204,7 +212,7 @@ attributes:
       ucum_code: rad
   theta:
     name: theta
-    description: Rotation about the longitudinal (z) axis [rad].
+    description: Rotation about the vertical (y) axis [rad].
     from_schema: https://w3id.org/laura/schema/geometry
     rank: 1000
     ifabsent: float(0)

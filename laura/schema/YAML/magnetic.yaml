@@ -7,15 +7,15 @@ version: "0.1.0"
 license: Apache Software License 2.0
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
 
 default_prefix: laura
 default_range: string
@@ -26,7 +26,7 @@ imports:
 enums:
   BendingPlaneEnum:
     description: >-
-        Bending plane enum.
+      Bending plane enum.
     permissible_values:
       Horizontal:
         description: Horizontal bending plane.
@@ -274,7 +274,23 @@ classes:
       edge_field_integral:
         range: float
         ifabsent: float(0.5)
-        description: Enge fringe-field integral parameter (dimensionless).
+        description: >-
+          Enge fringe-field integral parameter (dimensionless) at the entrance
+          face, and at both faces unless ``exit_edge_field_integral`` says
+          otherwise.
+      exit_edge_field_integral:
+        range: float
+        description: >-
+          Enge fringe-field integral at the exit face. Absent means the exit
+          face matches the entrance.
+      exit_gap:
+        range: float
+        description: >-
+          Full gap between pole faces at the exit face [m]. Absent means the
+          same as ``gap``. See ``exit_edge_field_integral``.
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
       fringe_field_coefficient:
         ifabsent: float(0.0)
         range: float

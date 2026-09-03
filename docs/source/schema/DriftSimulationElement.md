@@ -1,4 +1,4 @@
-# Class: DriftSimulationElement
+# Class: DriftSimulationElement 
 
 
 _Simulation attributes for field-free drift sections._
@@ -21,62 +21,62 @@ URI: [laura:DriftSimulationElement](https://w3id.org/laura/DriftSimulationElemen
     click DriftSimulationElement href "../DriftSimulationElement/"
       SimulationElement <|-- DriftSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       DriftSimulationElement : csr_enable
-
+        
       DriftSimulationElement : csr_method
-
+        
       DriftSimulationElement : csrdz
-
+        
       DriftSimulationElement : deltaL
-
+        
       DriftSimulationElement : field_definition
-
+        
       DriftSimulationElement : field_reference_position
-
+        
       DriftSimulationElement : horizontal_offset
-
+        
       DriftSimulationElement : integration_order
-
+        
       DriftSimulationElement : lsc_bins
-
+        
       DriftSimulationElement : lsc_enable
-
+        
       DriftSimulationElement : lsc_high_frequency_cutoff_end
-
+        
       DriftSimulationElement : lsc_high_frequency_cutoff_start
-
+        
       DriftSimulationElement : lsc_interpolate
-
+        
       DriftSimulationElement : lsc_low_frequency_cutoff_end
-
+        
       DriftSimulationElement : lsc_low_frequency_cutoff_start
-
+        
       DriftSimulationElement : mat6_calc_method
-
+        
       DriftSimulationElement : n_kicks
-
+        
       DriftSimulationElement : num_steps
-
+        
       DriftSimulationElement : scale_field
-
+        
       DriftSimulationElement : smooth
-
+        
       DriftSimulationElement : space_charge_method
-
+        
       DriftSimulationElement : spin_tracking_method
-
+        
       DriftSimulationElement : tracking_method
-
+        
       DriftSimulationElement : use_stupakov
-
+        
       DriftSimulationElement : vertical_offset
-
+        
       DriftSimulationElement : wakefield_definition
-
+        
       DriftSimulationElement : wakefield_enable
-
-
+        
+      
 ```
 
 

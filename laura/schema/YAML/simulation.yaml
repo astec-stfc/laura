@@ -8,15 +8,15 @@ version: "0.1.0"
 license: Apache Software License 2.0
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
 
 default_prefix: laura
 default_range: string
@@ -109,8 +109,9 @@ classes:
         minimum_value: 1
       edge_field_integral:
         range: float
-        description: Fringe-field integral for edge focussing.
-        ifabsent: float(0.5)
+        description: >-
+          Per-simulation override of the magnet's fringe-field integral.
+          Absent means "use ``MagneticElement.edge_field_integral``".
       edge1_effects:
         range: boolean
         description: Enable entrance-edge focussing effects.

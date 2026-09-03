@@ -11,6 +11,8 @@ dipole:
   angle: angle
   half_gap: hgap
   edge_field_integral: fint
+  exit_half_gap: hgapx
+  exit_edge_field_integral: fintx
   tilt: ref_tilt
 quadrupole:
   k1l: k1

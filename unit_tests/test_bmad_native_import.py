@@ -36,7 +36,9 @@ pytestmark = pytest.mark.skipif(
         ("jlab_fel/bates.bmad", 113),
     ],
 )
-def test_documentation_lattice_matches_tao_s_positions(relative_path, expected_elements):
+def test_documentation_lattice_matches_tao_s_positions(
+    relative_path, expected_elements
+):
     importer = BmadLatticeImporter(
         lattice_file=str(LATTICES / relative_path),
         libtao=str(LIBTAO),
@@ -90,14 +92,18 @@ def test_documentation_lattice_matches_tao_s_positions(relative_path, expected_e
         for branch, names in branches.items():
             elements = converted[branch]
             for name, length, s_position in zip(
-                names, importer.lengths[universe][branch], importer.spos[universe][branch]
+                names,
+                importer.lengths[universe][branch],
+                importer.spos[universe][branch],
             ):
                 if name in elements:
                     assert elements[name].physical.s == pytest.approx(
                         s_position - length / 2
                     )
             assert layout.sections[branch].order == [
-                name for name, element in elements.items() if not element.is_subelement()
+                name
+                for name, element in elements.items()
+                if not element.is_subelement()
             ]
 
     assert imported_count == expected_elements
@@ -167,7 +173,9 @@ def test_multiword_branch_name_is_resolved_by_index():
     """
     importer = BmadLatticeImporter(
         lattice_file=str(
-            LATTICES / "rowland_circle_spectrometer" / "rowland_circle_spectrometer.bmad"
+            LATTICES
+            / "rowland_circle_spectrometer"
+            / "rowland_circle_spectrometer.bmad"
         ),
         libtao=str(LIBTAO),
     )
@@ -328,9 +336,7 @@ def test_match_matrix_reproduces_declared_exit_twiss(tmp_path):
     match = importer.create_laura_element_dictionary(1)[branch]["M"]
 
     def exit_twiss(beta, alpha, matrix):
-        sigma = np.array(
-            [[beta, -alpha], [-alpha, (1 + alpha**2) / beta]]
-        )
+        sigma = np.array([[beta, -alpha], [-alpha, (1 + alpha**2) / beta]])
         sigma = matrix @ sigma @ matrix.T
         return sigma[0, 0], -sigma[0, 1]
 
@@ -452,8 +458,7 @@ def test_floor_mode_reproduces_taos_exit_frame_as_well_as_its_entrance(lattice):
     tracked = tao.lat_branch_list(ix_uni=1)[0]["n_ele_track"]
 
     named = [
-        (index, tao.ele_head(f"1@0>>{index}")["name"])
-        for index in range(tracked + 1)
+        (index, tao.ele_head(f"1@0>>{index}")["name"]) for index in range(tracked + 1)
     ]
     kept = {name.split(".")[0] for name in section.order}
     named = [(index, name) for index, name in named if name in kept]
@@ -848,9 +853,7 @@ def test_bmad_misalignments_survive_the_round_trip(tmp_path):
 
     # An element with no alignment error is written exactly as it was: no
     # ``x_offset = 0.0`` padding on every definition in the lattice.
-    definition = next(
-        line for line in written.splitlines() if line.startswith("Q2:")
-    )
+    definition = next(line for line in written.splitlines() if line.startswith("Q2:"))
     assert "offset" not in definition
     assert "pitch" not in definition
 
@@ -902,9 +905,7 @@ def test_bmad_collimator_apertures_survive_the_round_trip(tmp_path):
         for index in range(tao.lat_branch_list(ix_uni=1)[0]["n_ele_track"] + 1):
             head = tao.ele_head(f"1@0>>{index}")
             gen = tao.ele_gen_attribs(f"1@0>>{index}")
-            found[head["name"].upper()] = {
-                key: gen.get(key, 0.0) for key in limits
-            }
+            found[head["name"].upper()] = {key: gen.get(key, 0.0) for key in limits}
         return found
 
     before = apertures(source)
@@ -1224,3 +1225,51 @@ def test_the_exported_wake_tracks_the_way_the_modes_it_came_from_do(
     # 1e-7 in practice.
     assert from_table == pytest.approx(from_modes, rel=1e-6)
     assert from_modes[0] < 0.0
+
+
+def test_bmad_split_bend_keeps_its_exit_fringe_field(tmp_path):
+    """A bend split by superposition owns its faces separately.
+
+    Superimposing a marker inside a bend replaces it with two tracking
+    super-slaves, and Bmad divides the fringe between them: the first piece
+    carries ``FINT``/``HGAP`` and zero at its exit, the last carries zero at its
+    entrance and ``FINTX``/``HGAPX``. The interior faces are not physical, and
+    Bmad is careful to say so.
+
+    An unsplit bend must stay single-valued: absent means "same as the
+    entrance", so a lattice quoting one integral reads, and writes, as it
+    always did.
+    """
+    source = tmp_path / "split.bmad"
+    source.write_text(
+        "beginning[e_tot] = 1e9\n"
+        "parameter[geometry] = open\n"
+        "D: drift, l = 0.5\n"
+        "B: sbend, l = 1.0, angle = 0.1, fint = 0.45, hgap = 0.015\n"
+        "WHOLE: sbend, l = 1.0, angle = 0.1, fint = 0.45, hgap = 0.015\n"
+        "M: marker, superimpose, ref = B, offset = 0.0\n"
+        "L: line = (D, B, D, WHOLE)\n"
+        "use, L\n"
+    )
+    importer = BmadLatticeImporter(
+        lattice_file=str(source), libtao=str(LIBTAO), position_mode="floor"
+    )
+    branch = importer.branches[1][0]
+    converted = importer.create_laura_element_dictionary(1)[branch]
+    bends = {name.upper(): element for name, element in converted.items()}
+
+    entrance, exit_ = bends["B#1"].magnetic, bends["B#2"].magnetic
+    assert entrance.edge_field_integral == pytest.approx(0.45)
+    assert entrance.half_gap == pytest.approx(0.015)
+    assert entrance.exit_fringe_integral == 0.0
+    assert entrance.exit_half_gap == 0.0
+    assert exit_.edge_field_integral == 0.0
+    assert exit_.half_gap == 0.0
+    assert exit_.exit_fringe_integral == pytest.approx(0.45)
+    assert exit_.exit_half_gap == pytest.approx(0.015)
+
+    whole = bends["WHOLE"].magnetic
+    assert whole.exit_edge_field_integral is None
+    assert whole.exit_gap is None
+    assert whole.exit_fringe_integral == pytest.approx(0.45)
+    assert whole.exit_half_gap == pytest.approx(0.015)

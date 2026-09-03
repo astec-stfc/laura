@@ -1,4 +1,4 @@
-# Class: WakefieldSimulationElement
+# Class: WakefieldSimulationElement 
 
 
 _Simulation attributes for passive wakefield structures._
@@ -21,90 +21,90 @@ URI: [laura:WakefieldSimulationElement](https://w3id.org/laura/WakefieldSimulati
     click WakefieldSimulationElement href "../WakefieldSimulationElement/"
       SimulationElement <|-- WakefieldSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       WakefieldSimulationElement : allow_long_beam
-
+        
       WakefieldSimulationElement : bunched_beam
-
+        
       WakefieldSimulationElement : change_momentum
-
+        
       WakefieldSimulationElement : csr_enable
-
+        
       WakefieldSimulationElement : csr_method
-
+        
       WakefieldSimulationElement : csrdz
-
+        
       WakefieldSimulationElement : deltaL
-
+        
       WakefieldSimulationElement : equal_grid
-
+        
       WakefieldSimulationElement : factor
-
+        
       WakefieldSimulationElement : field_definition
-
+        
       WakefieldSimulationElement : field_reference_position
-
+        
       WakefieldSimulationElement : horizontal_offset
-
+        
       WakefieldSimulationElement : integration_order
-
+        
       WakefieldSimulationElement : interpolate
-
+        
       WakefieldSimulationElement : interpolation_method
-
+        
       WakefieldSimulationElement : lsc_bins
-
+        
       WakefieldSimulationElement : lsc_enable
-
+        
       WakefieldSimulationElement : mat6_calc_method
-
+        
       WakefieldSimulationElement : n_kicks
-
+        
       WakefieldSimulationElement : num_steps
-
+        
       WakefieldSimulationElement : scale_field
-
+        
       WakefieldSimulationElement : scale_field_ex
-
+        
       WakefieldSimulationElement : scale_field_ey
-
+        
       WakefieldSimulationElement : scale_field_ez
-
+        
       WakefieldSimulationElement : scale_field_hx
-
+        
       WakefieldSimulationElement : scale_field_hy
-
+        
       WakefieldSimulationElement : scale_field_hz
-
+        
       WakefieldSimulationElement : scale_kick
-
+        
       WakefieldSimulationElement : smooth
-
+        
       WakefieldSimulationElement : space_charge_method
-
+        
       WakefieldSimulationElement : spin_tracking_method
-
+        
       WakefieldSimulationElement : subbins
-
+        
       WakefieldSimulationElement : t_column
-
+        
       WakefieldSimulationElement : tracking_method
-
+        
       WakefieldSimulationElement : vertical_offset
-
+        
       WakefieldSimulationElement : wakefield_definition
-
+        
       WakefieldSimulationElement : wakefield_enable
-
+        
       WakefieldSimulationElement : wx_column
-
+        
       WakefieldSimulationElement : wy_column
-
+        
       WakefieldSimulationElement : wz_column
-
+        
       WakefieldSimulationElement : z_column
-
-
+        
+      
 ```
 
 

@@ -1112,6 +1112,8 @@ type MagneticElement
     width: Float
     tilt: Float
     edgeFieldIntegral: Float
+    exitEdgeFieldIntegral: Float
+    exitGap: Float
     fringeFieldCoefficient: Float
     gradient: Float
     angle: Float

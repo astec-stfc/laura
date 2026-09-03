@@ -1,4 +1,4 @@
-# Class: ACDipoleSimulationElement
+# Class: ACDipoleSimulationElement 
 
 
 _Simulation attributes for an AC dipole / tune exciter._
@@ -21,58 +21,58 @@ URI: [laura:ACDipoleSimulationElement](https://w3id.org/laura/ACDipoleSimulation
     click ACDipoleSimulationElement href "../ACDipoleSimulationElement/"
       SimulationElement <|-- ACDipoleSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       ACDipoleSimulationElement : csr_enable
-
+        
       ACDipoleSimulationElement : csr_method
-
+        
       ACDipoleSimulationElement : csrdz
-
+        
       ACDipoleSimulationElement : deltaL
-
+        
       ACDipoleSimulationElement : field_amplitude
-
+        
       ACDipoleSimulationElement : field_definition
-
+        
       ACDipoleSimulationElement : field_reference_position
-
+        
       ACDipoleSimulationElement : frequency
-
+        
       ACDipoleSimulationElement : horizontal_offset
-
+        
       ACDipoleSimulationElement : integration_order
-
+        
       ACDipoleSimulationElement : lsc_bins
-
+        
       ACDipoleSimulationElement : lsc_enable
-
+        
       ACDipoleSimulationElement : mat6_calc_method
-
+        
       ACDipoleSimulationElement : n_kicks
-
+        
       ACDipoleSimulationElement : num_steps
-
+        
       ACDipoleSimulationElement : phase
-
+        
       ACDipoleSimulationElement : ramp
-
+        
       ACDipoleSimulationElement : scale_field
-
+        
       ACDipoleSimulationElement : smooth
-
+        
       ACDipoleSimulationElement : space_charge_method
-
+        
       ACDipoleSimulationElement : spin_tracking_method
-
+        
       ACDipoleSimulationElement : tracking_method
-
+        
       ACDipoleSimulationElement : vertical_offset
-
+        
       ACDipoleSimulationElement : wakefield_definition
-
+        
       ACDipoleSimulationElement : wakefield_enable
-
-
+        
+      
 ```
 
 

@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 from warnings import warn
 
 import numpy as np
@@ -371,7 +371,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                         value = 2 * value
                     setattr(obj, self._convertKeyword_Ocelot(key), value)
                     if key == "fint" and hasattr(obj.element, "fintx"):
-                        setattr(obj, "fintx", value)
+                        setattr(obj, "fintx", self.magnetic.exit_fringe_integral)
         return obj
 
     @staticmethod
@@ -453,7 +453,13 @@ class BaseElementTranslator(PhysicalBaseElement):
                         obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
                     )
                 if key == "fringe_integral" and "fringe_integral_exit" in buffers:
-                    setattr(obj, "fringe_integral_exit", tensor(value, dtype=float64))
+                    # As for Ocelot above: Cheetah's exit integral does not
+                    # inherit the entrance's, so write the resolved value.
+                    setattr(
+                        obj,
+                        "fringe_integral_exit",
+                        tensor(self.magnetic.exit_fringe_integral, dtype=float64),
+                    )
                     # else:
                     #     from torch import get_default_dtype
                     #     dt = get_default_dtype()
@@ -540,9 +546,9 @@ class BaseElementTranslator(PhysicalBaseElement):
             properties.update(
                 {
                     "edge_entry_fint": self.magnetic.edge_field_integral,
-                    "edge_exit_fint": self.magnetic.edge_field_integral,
+                    "edge_exit_fint": self.magnetic.exit_fringe_integral,
                     "edge_entry_hgap": self.magnetic.half_gap,
-                    "edge_exit_hgap": self.magnetic.half_gap,
+                    "edge_exit_hgap": self.magnetic.exit_half_gap,
                 }
             )
         return self.name, obj, properties
@@ -907,6 +913,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         etype = self._convertType_Madx(self.hardware_type)
         string = sanitize_string(self.name) + ": " + etype
         keys = []
+        fringe = self._madx_fringe(etype)
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (
                 not key == "name"
@@ -916,6 +923,8 @@ class BaseElementTranslator(PhysicalBaseElement):
             ):
                 if value is not None:
                     key = self._convertKeyword_Madx(key)
+                    if key in fringe:
+                        value = fringe[key]
                     deferred = False
                     if value in ("angle", "angle/2") and key in ("e1", "e2"):
                         raw = (
@@ -971,9 +980,49 @@ class BaseElementTranslator(PhysicalBaseElement):
                         op = ":=" if deferred else "="
                         string += f", {key} {op} {value}"
                     keys.append(key)
+        for key, value in fringe.items():
+            if key not in keys and key in elements_Madx[etype]:
+                string += f", {key} = {value}"
+                keys.append(key)
         if at is not None:
             string += f", at = {at}"
         return string + ";\n"
+
+    def _fringe_integrals(self) -> Tuple[Any, Any]:
+        """The entrance and exit fringe-field integrals to export."""
+        override = getattr(
+            getattr(self, "simulation", None), "edge_field_integral", None
+        )
+        if override is not None:
+            return override, override
+        return self.magnetic.edge_field_integral, self.magnetic.exit_fringe_integral
+
+    def _madx_fringe(self, etype: str) -> Dict[str, float]:
+        """Return a bend's MAD-X fringe attributes, folded onto one half gap.
+
+        MAD-X carries `fint` and `fintx` but only a single `hgap` for both
+        faces, where Bmad has `hgap` and `hgapx`.
+
+        `fintx` is written only when it differs from `fint`.
+        """
+        magnetic = getattr(self, "magnetic", None)
+        if etype not in ("sbend", "rbend") or magnetic is None:
+            return {}
+        faces = self._fringe_integrals() + (
+            magnetic.half_gap,
+            magnetic.exit_half_gap,
+        )
+        if not all(isinstance(value, (int, float)) for value in faces):
+            return {}  # a functional parameter; leave it to the normal path
+        entry_fint, exit_fint, entry_hgap, exit_hgap = faces
+        hgap = entry_hgap or exit_hgap
+        if not hgap:
+            return {"fint": 0.0, "hgap": 0.0}
+        fringe = {"fint": entry_fint * entry_hgap / hgap, "hgap": hgap}
+        scaled_exit = exit_fint * exit_hgap / hgap
+        if scaled_exit != fringe["fint"]:
+            fringe["fintx"] = scaled_exit
+        return fringe
 
     def _convertType_Elegant(self, etype: str) -> str:
         """Converts the element type to the corresponding Elegant type using predefined rules."""
@@ -1260,8 +1309,13 @@ class BaseElementTranslator(PhysicalBaseElement):
         if "l" in element:
             parameters["l"] = length
         if etype in ("sbend", "rbend"):
+            entry_fint, exit_fint = self._fringe_integrals()
             parameters["hgap"] = self.magnetic.half_gap
-            parameters["fint"] = self.magnetic.edge_field_integral
+            parameters["fint"] = entry_fint
+            exit_hgap = self.magnetic.exit_half_gap
+            if exit_hgap != parameters["hgap"] or exit_fint != parameters["fint"]:
+                parameters["hgapx"] = exit_hgap
+                parameters["fintx"] = exit_fint
         return parameters
 
     def _bmad_common_parameters(self) -> Dict[str, Any]:

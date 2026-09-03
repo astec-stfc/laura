@@ -1,4 +1,4 @@
-# Class: MagnetSimulationElement
+# Class: MagnetSimulationElement 
 
 
 _Simulation attributes specific to magnets: integrator settings, fringe-field model, and radiation flags._
@@ -21,74 +21,74 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
     click MagnetSimulationElement href "../MagnetSimulationElement/"
       SimulationElement <|-- MagnetSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       MagnetSimulationElement : csr_bins
-
+        
       MagnetSimulationElement : csr_enable
-
+        
       MagnetSimulationElement : csr_method
-
+        
       MagnetSimulationElement : csrdz
-
+        
       MagnetSimulationElement : deltaL
-
+        
       MagnetSimulationElement : edge1_effects
-
+        
       MagnetSimulationElement : edge2_effects
-
+        
       MagnetSimulationElement : edge_field_integral
-
+        
       MagnetSimulationElement : edge_order
-
+        
       MagnetSimulationElement : field_amplitude
-
+        
       MagnetSimulationElement : field_definition
-
+        
       MagnetSimulationElement : field_reference_position
-
+        
       MagnetSimulationElement : horizontal_offset
-
+        
       MagnetSimulationElement : integration_order
-
+        
       MagnetSimulationElement : isr_enable
-
+        
       MagnetSimulationElement : lsc_bins
-
+        
       MagnetSimulationElement : lsc_enable
-
+        
       MagnetSimulationElement : mat6_calc_method
-
+        
       MagnetSimulationElement : n_kicks
-
+        
       MagnetSimulationElement : n_slices
-
+        
       MagnetSimulationElement : nonlinear
-
+        
       MagnetSimulationElement : num_steps
-
+        
       MagnetSimulationElement : scale_field
-
+        
       MagnetSimulationElement : smooth
-
+        
       MagnetSimulationElement : smooth_points
-
+        
       MagnetSimulationElement : smoothing_half_width
-
+        
       MagnetSimulationElement : space_charge_method
-
+        
       MagnetSimulationElement : spin_tracking_method
-
+        
       MagnetSimulationElement : sr_enable
-
+        
       MagnetSimulationElement : tracking_method
-
+        
       MagnetSimulationElement : vertical_offset
-
+        
       MagnetSimulationElement : wakefield_definition
-
+        
       MagnetSimulationElement : wakefield_enable
-
-
+        
+      
 ```
 
 
@@ -113,7 +113,7 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | ---  | --- | --- | --- |
 | [field_amplitude](field_amplitude.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Field amplitude scaling for magnet tracking | direct |
 | [n_slices](n_slices.md) | 0..1 <br/> [Integer](Integer.md) | Number of longitudinal slices for thick-lens tracking | direct |
-| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for edge focussing | direct |
+| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Per-simulation override of the magnet's fringe-field integral | direct |
 | [edge1_effects](edge1_effects.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable entrance-edge focussing effects | direct |
 | [edge2_effects](edge2_effects.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable exit-edge focussing effects | direct |
 | [sr_enable](sr_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable synchrotron-radiation energy loss | direct |
@@ -254,10 +254,17 @@ attributes:
     minimum_value: 1
   edge_field_integral:
     name: edge_field_integral
-    description: Fringe-field integral for edge focussing.
+    description: 'Per-simulation override of the magnet''s fringe-field integral.
+      Absent means "use ``MagneticElement.edge_field_integral``", which is what every
+      element wants unless a study is deliberately varying the edge focussing independently
+      of the magnet. It used to default to 0.5, and because the keyword converters
+      strip the sub-model prefix before looking a name up, that default reached the
+      exporters ahead of the magnet''s own value and shadowed it: a magnet with ``edge_field_integral
+      = 0.3`` exported ``fint = 0.5`` to MAD-X, ELEGANT, OPAL, Ocelot and Xsuite.
+      Only Bmad escaped, because ``_bmad_parameters`` overwrites ``fint`` after the
+      loop.'
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
-    ifabsent: float(0.5)
     domain_of:
     - MagnetSimulationElement
     - MagneticElement
@@ -391,10 +398,17 @@ attributes:
     minimum_value: 1
   edge_field_integral:
     name: edge_field_integral
-    description: Fringe-field integral for edge focussing.
+    description: 'Per-simulation override of the magnet''s fringe-field integral.
+      Absent means "use ``MagneticElement.edge_field_integral``", which is what every
+      element wants unless a study is deliberately varying the edge focussing independently
+      of the magnet. It used to default to 0.5, and because the keyword converters
+      strip the sub-model prefix before looking a name up, that default reached the
+      exporters ahead of the magnet''s own value and shadowed it: a magnet with ``edge_field_integral
+      = 0.3`` exported ``fint = 0.5`` to MAD-X, ELEGANT, OPAL, Ocelot and Xsuite.
+      Only Bmad escaped, because ``_bmad_parameters`` overwrites ``fint`` after the
+      loop.'
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
-    ifabsent: float(0.5)
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement

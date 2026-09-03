@@ -237,7 +237,7 @@ Name: laura_schema
 | [dz_fields](dz_fields.md) | Interval for plasma wakefield updates |
 | [edge1_effects](edge1_effects.md) | Enable entrance-edge focussing effects |
 | [edge2_effects](edge2_effects.md) | Enable exit-edge focussing effects |
-| [edge_field_integral](edge_field_integral.md) | Fringe-field integral for edge focussing |
+| [edge_field_integral](edge_field_integral.md) | Per-simulation override of the magnet's fringe-field integral |
 | [edge_order](edge_order.md) | Polynomial order of the edge-field expansion |
 | [electrical](electrical.md) | Power-supply electrical limits |
 | [element](element.md) | Name of the reference element |
@@ -254,6 +254,8 @@ Name: laura_schema
 | [eta_y](eta_y.md) | Vertical dispersion |
 | [eta_yp](eta_yp.md) | Vertical dispersion derivative |
 | [exit_edge_angle](exit_edge_angle.md) | Fringe-field exit edge angle [rad] |
+| [exit_edge_field_integral](exit_edge_field_integral.md) | Enge fringe-field integral at the exit face |
+| [exit_gap](exit_gap.md) | Full gap between pole faces at the exit face [m] |
 | [expression](expression.md) | Expression graph computing the value written to ``target``, as nested mapping... |
 | [ez_peak](ez_peak.md) | Peak longitudinal electric field |
 | [f](f.md) | Saturation fraction (slope ratio below/above I_max) |
@@ -404,7 +406,7 @@ Name: laura_schema
 | [prot_type](prot_type.md) | Protection system type |
 | [protection](protection.md) | RF protection parameters |
 | [protocol](protocol.md) | Control-system protocol (e |
-| [psi](psi.md) | Rotation about the vertical (y) axis [rad] |
+| [psi](psi.md) | Rotation about the longitudinal (z) axis [rad] |
 | [psl](psl.md) | Skew multipole phases [deg], dipole through decapole |
 | [pulse_duration_fwhm](pulse_duration_fwhm.md) | Pulse duration at FWHM [s] |
 | [pulse_energy](pulse_energy.md) | Laser pulse energy [J] |
@@ -488,7 +490,7 @@ Name: laura_schema
 | [t_column](t_column.md) | Time column in the wake file |
 | [t_matrix](t_matrix.md) | T-matrix (second-order transfer tensor) |
 | [target](target.md) | Dotted attribute path on the owning element that ``expression`` writes to (e |
-| [theta](theta.md) | Rotation about the longitudinal (z) axis [rad] |
+| [theta](theta.md) | Rotation about the vertical (y) axis [rad] |
 | [tilt](tilt.md) | Rotation about the beam axis [rad] |
 | [timings](timings.md) | Timing windows for LLRF channels |
 | [tolerance](tolerance.md) | Current tolerance band during the degauss cycle [A] |

@@ -1,4 +1,4 @@
-# Class: WireSimulationElement
+# Class: WireSimulationElement 
 
 
 _Simulation attributes for a compensating wire._
@@ -21,54 +21,54 @@ URI: [laura:WireSimulationElement](https://w3id.org/laura/WireSimulationElement)
     click WireSimulationElement href "../WireSimulationElement/"
       SimulationElement <|-- WireSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       WireSimulationElement : csr_enable
-
+        
       WireSimulationElement : csr_method
-
+        
       WireSimulationElement : csrdz
-
+        
       WireSimulationElement : current
-
+        
       WireSimulationElement : deltaL
-
+        
       WireSimulationElement : field_definition
-
+        
       WireSimulationElement : field_reference_position
-
+        
       WireSimulationElement : horizontal_offset
-
+        
       WireSimulationElement : integration_order
-
+        
       WireSimulationElement : interaction_length
-
+        
       WireSimulationElement : lsc_bins
-
+        
       WireSimulationElement : lsc_enable
-
+        
       WireSimulationElement : mat6_calc_method
-
+        
       WireSimulationElement : n_kicks
-
+        
       WireSimulationElement : num_steps
-
+        
       WireSimulationElement : scale_field
-
+        
       WireSimulationElement : smooth
-
+        
       WireSimulationElement : space_charge_method
-
+        
       WireSimulationElement : spin_tracking_method
-
+        
       WireSimulationElement : tracking_method
-
+        
       WireSimulationElement : vertical_offset
-
+        
       WireSimulationElement : wakefield_definition
-
+        
       WireSimulationElement : wakefield_enable
-
-
+        
+      
 ```
 
 

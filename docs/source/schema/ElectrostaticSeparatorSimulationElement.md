@@ -1,4 +1,4 @@
-# Class: ElectrostaticSeparatorSimulationElement
+# Class: ElectrostaticSeparatorSimulationElement 
 
 
 _Simulation attributes for a static electrostatic separator._
@@ -21,56 +21,56 @@ URI: [laura:ElectrostaticSeparatorSimulationElement](https://w3id.org/laura/Elec
     click ElectrostaticSeparatorSimulationElement href "../ElectrostaticSeparatorSimulationElement/"
       SimulationElement <|-- ElectrostaticSeparatorSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       ElectrostaticSeparatorSimulationElement : csr_enable
-
+        
       ElectrostaticSeparatorSimulationElement : csr_method
-
+        
       ElectrostaticSeparatorSimulationElement : csrdz
-
+        
       ElectrostaticSeparatorSimulationElement : deltaL
-
+        
       ElectrostaticSeparatorSimulationElement : field_definition
-
+        
       ElectrostaticSeparatorSimulationElement : field_reference_position
-
+        
       ElectrostaticSeparatorSimulationElement : horizontal_field
-
+        
       ElectrostaticSeparatorSimulationElement : horizontal_offset
-
+        
       ElectrostaticSeparatorSimulationElement : integration_order
-
+        
       ElectrostaticSeparatorSimulationElement : lsc_bins
-
+        
       ElectrostaticSeparatorSimulationElement : lsc_enable
-
+        
       ElectrostaticSeparatorSimulationElement : mat6_calc_method
-
+        
       ElectrostaticSeparatorSimulationElement : n_kicks
-
+        
       ElectrostaticSeparatorSimulationElement : num_steps
-
+        
       ElectrostaticSeparatorSimulationElement : scale_field
-
+        
       ElectrostaticSeparatorSimulationElement : smooth
-
+        
       ElectrostaticSeparatorSimulationElement : space_charge_method
-
+        
       ElectrostaticSeparatorSimulationElement : spin_tracking_method
-
+        
       ElectrostaticSeparatorSimulationElement : tilt
-
+        
       ElectrostaticSeparatorSimulationElement : tracking_method
-
+        
       ElectrostaticSeparatorSimulationElement : vertical_field
-
+        
       ElectrostaticSeparatorSimulationElement : vertical_offset
-
+        
       ElectrostaticSeparatorSimulationElement : wakefield_definition
-
+        
       ElectrostaticSeparatorSimulationElement : wakefield_enable
-
-
+        
+      
 ```
 
 

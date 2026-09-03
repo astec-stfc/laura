@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, PrivateAttr, model_validator
 
 import laura.models.element as LAURA_elements
 from laura.models.elementList import ElementList, MachineLayout, SectionLattice
+
 from ....Exporters.YAML import PositionMode, export_machine_combined_file
 
 xsuite_unsupported = [
@@ -145,15 +146,15 @@ class XsuiteLatticeImporter(BaseModel):
                     "xsuite is not installed. Install with: "
                     'pip install "laura-accelerator[xsuite]"'
                 ) from exc
-            source_class = json.loads(Path(self.source_file).read_text()).get("__class__")
+            source_class = json.loads(Path(self.source_file).read_text()).get(
+                "__class__"
+            )
             loaded = (
                 xt.Environment.from_json(
                     self.source_file, classes=(xt.ParticlesMonitor,)
                 )
                 if source_class == "Environment"
-                else xt.Line.from_json(
-                    self.source_file, classes=(xt.ParticlesMonitor,)
-                )
+                else xt.Line.from_json(self.source_file, classes=(xt.ParticlesMonitor,))
             )
             object.__setattr__(self, "line", loaded)
             object.__setattr__(self, "source_file", None)
@@ -240,15 +241,15 @@ class XsuiteLatticeImporter(BaseModel):
         }
         definitions = dict(self.functional_definitions)
         definitions.update(
-            getattr(self.line, "metadata", {}).get(
-                "laura_functional_definitions", {}
-            )
+            getattr(self.line, "metadata", {}).get("laura_functional_definitions", {})
         )
-        definitions.update({
-            name: float(self.line.varval[name])
-            for name in names
-            if name not in {"t_turn_s", "__vary_default"}
-        })
+        definitions.update(
+            {
+                name: float(self.line.varval[name])
+                for name in names
+                if name not in {"t_turn_s", "__vary_default"}
+            }
+        )
         object.__setattr__(self, "functional_definitions", definitions)
         self._raw_definitions = dict(definitions)
 
@@ -258,11 +259,7 @@ class XsuiteLatticeImporter(BaseModel):
         if not expr:
             return None
         return next(
-            (
-                name
-                for name in self.functional_definitions
-                if expr == f"vars['{name}']"
-            ),
+            (name for name in self.functional_definitions if expr == f"vars['{name}']"),
             None,
         )
 
@@ -295,11 +292,7 @@ class XsuiteLatticeImporter(BaseModel):
         self._conflicting_symbols = conflicting
         definitions = dict(self.functional_definitions)
         definitions.update(
-            {
-                name: value
-                for name, value in scaled.items()
-                if name not in conflicting
-            }
+            {name: value for name, value in scaled.items() if name not in conflicting}
         )
         object.__setattr__(self, "functional_definitions", definitions)
 
@@ -312,7 +305,8 @@ class XsuiteLatticeImporter(BaseModel):
         for name in self.functional_definitions:
             token = f"vars['{name}']"
             if expr == token or (
-                length and expr.replace("(", "").replace(")", "").replace(" ", "")
+                length
+                and expr.replace("(", "").replace(")", "").replace(" ", "")
                 == f"{token}/{length}".replace(" ", "")
             ):
                 if name in self._conflicting_symbols and expr == token:
@@ -341,7 +335,9 @@ class XsuiteLatticeImporter(BaseModel):
             return name
         return float(np.degrees(phase) + lag)
 
-    def _multipoles(self, element_name: str, native, length: float, native_type: str) -> dict:
+    def _multipoles(
+        self, element_name: str, native, length: float, native_type: str
+    ) -> dict:
         normal = [float(value) for value in getattr(native, "knl", [])]
         skew = [float(value) for value in getattr(native, "ksl", [])]
         if native_type in _MAGNET_ORDERS:
@@ -435,8 +431,18 @@ class XsuiteLatticeImporter(BaseModel):
                 field_map = {
                     "edge_entry_angle": ("entrance_edge_angle", "e1", entry_edge),
                     "edge_exit_angle": ("exit_edge_angle", "e1", exit_edge),
-                    "edge_entry_fint": ("edge_field_integral", "fint", entry_edge or exit_edge),
+                    "edge_entry_fint": (
+                        "edge_field_integral",
+                        "fint",
+                        entry_edge or exit_edge,
+                    ),
                     "edge_entry_hgap": ("gap", "hgap", entry_edge or exit_edge),
+                    "edge_exit_fint": (
+                        "exit_edge_field_integral",
+                        "fint",
+                        exit_edge or entry_edge,
+                    ),
+                    "edge_exit_hgap": ("exit_gap", "hgap", exit_edge or entry_edge),
                 }
                 for source, (target, edge_attr, fallback_edge) in field_map.items():
                     if hasattr(native, source):
@@ -445,7 +451,15 @@ class XsuiteLatticeImporter(BaseModel):
                         )
                         if value == 0.0 and fallback_edge is not None:
                             value = float(getattr(fallback_edge, edge_attr, 0.0))
-                        magnetic[target] = 2 * value if target == "gap" else value
+                        magnetic[target] = (
+                            2 * value if target in ("gap", "exit_gap") else value
+                        )
+                for exit_field, entry_field in (
+                    ("exit_edge_field_integral", "edge_field_integral"),
+                    ("exit_gap", "gap"),
+                ):
+                    if magnetic.get(exit_field) == magnetic.get(entry_field):
+                        magnetic.pop(exit_field, None)
             return {"magnetic": magnetic}
         if native_type in {"Solenoid", "UniformSolenoid"}:
             strength = self._symbol(element_name, "ks", length)
@@ -607,8 +621,7 @@ class XsuiteLatticeImporter(BaseModel):
                 )
             else:
                 twiss_name = (
-                    getattr(self.initial_twiss, "element_name", None)
-                    or "initial_twiss"
+                    getattr(self.initial_twiss, "element_name", None) or "initial_twiss"
                 )
                 self.elements[twiss_name] = LAURA_elements.TwissMatch(
                     name=twiss_name,
@@ -626,9 +639,7 @@ class XsuiteLatticeImporter(BaseModel):
                         "from_beam": False,
                     },
                 )
-        stored_types = getattr(self.line, "metadata", {}).get(
-            "laura_element_types", {}
-        )
+        stored_types = getattr(self.line, "metadata", {}).get("laura_element_types", {})
         element_names = list(self.line.element_names)
         self._rescale_strength_symbols()
         absorbed_edges: Dict[str, Dict[str, Any]] = {}
@@ -642,8 +653,14 @@ class XsuiteLatticeImporter(BaseModel):
                     continue
                 neighbor = self.line.element_dict[element_names[neighbor_index]]
                 if type(neighbor).__name__ in {"Bend", "RBend"}:
-                    side = "entry" if str(getattr(native, "side", "entry")) == "entry" else "exit"
-                    absorbed_edges.setdefault(element_names[neighbor_index], {})[side] = native
+                    side = (
+                        "entry"
+                        if str(getattr(native, "side", "entry")) == "entry"
+                        else "exit"
+                    )
+                    absorbed_edges.setdefault(element_names[neighbor_index], {})[
+                        side
+                    ] = native
                     skip_indices.add(index)
                     break
 
@@ -655,7 +672,9 @@ class XsuiteLatticeImporter(BaseModel):
             if index in skip_indices:
                 continue
             stored_type = stored_types.get(element_name)
-            laura_type = getattr(LAURA_elements, stored_type, None) if stored_type else None
+            laura_type = (
+                getattr(LAURA_elements, stored_type, None) if stored_type else None
+            )
             if laura_type is None and native_type == "Multipole":
                 laura_type = self._multipole_type(native)
             if laura_type is None and native_type == "ACDipole":

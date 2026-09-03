@@ -1,31 +1,33 @@
+from typing import Any, ClassVar, Dict, List, Union
+
 import numpy as np
-from .constants import speed_of_light, pi
 from pydantic import (
     BaseModel,
     ConfigDict,
+    Field,
+    NonNegativeFloat,
+    NonNegativeInt,
+    computed_field,
+    create_model,
+    field_validator,
     model_serializer,
     model_validator,
-    Field,
-    field_validator,
-    NonNegativeInt,
-    create_model,
-    NonNegativeFloat,
-    computed_field,
 )
-from typing import ClassVar, Dict, Any, List, Union
-from .baseModels import IgnoreExtra, T, resolve_functional_parameter, FunctionalMixin
+
 from ._generated import (
-    _MultipoleBase,
+    _CombinedSolenoidQuadrupoleMagnetBase,
+    _CorrectorMagnetBase,
     _FieldIntegralBase,
     _LinearSaturationFitBase,
     _MagneticElementBase,
+    _MultipoleBase,
+    _NonLinearLensMagnetBase,
     _SolenoidFieldsBase,
     _SolenoidMagnetBase,
-    _CombinedSolenoidQuadrupoleMagnetBase,
-    _NonLinearLensMagnetBase,
-    _CorrectorMagnetBase,
     _WigglerMagnetBase,
 )
+from .baseModels import FunctionalMixin, IgnoreExtra, T, resolve_functional_parameter
+from .constants import pi, speed_of_light
 
 
 def Power(a, b):
@@ -47,7 +49,9 @@ def _coerce_field_integral(v: Union[str, List, dict, Any, None]) -> Any:
         return v
     if v is None:
         return None
-    raise ValueError("field_integral_coefficients should be a string or a list of floats")
+    raise ValueError(
+        "field_integral_coefficients should be a string or a list of floats"
+    )
 
 
 Pi = pi
@@ -347,9 +351,7 @@ class LinearSaturationFit(_LinearSaturationFitBase):
             return t3 - a / (3 * f)
 
     def __iter__(self) -> iter:
-        return iter(
-            [getattr(self, k) for k in self._COEFF_KEYS]
-        )
+        return iter([getattr(self, k) for k in self._COEFF_KEYS])
 
 
 class MagneticElement(_MagneticElementBase, FunctionalMixin):
@@ -455,7 +457,7 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
     def validate_field_integral_coefficients(
-            cls, v: Union[str, List, dict | None]
+        cls, v: Union[str, List, dict | None]
     ) -> FieldIntegral | None:
         return _coerce_field_integral(v)
 
@@ -520,6 +522,21 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
     @property
     def half_gap(self) -> float:
         return self.gap / 2
+
+    @property
+    def exit_half_gap(self) -> float:
+        """Half gap at the exit face. Falls back to :attr:`half_gap`."""
+        if self.exit_gap is None:
+            return self.half_gap
+        return self.exit_gap / 2
+
+    @property
+    def exit_fringe_integral(self) -> float:
+        """Fringe-field integral at the exit face.
+        Falls back to :attr:`edge_field_integral`."""
+        if self.exit_edge_field_integral is None:
+            return self.edge_field_integral
+        return self.exit_edge_field_integral
 
     def get_gradient(self, momentum: float) -> float:
         """
@@ -628,9 +645,7 @@ class Dipole_Magnet(MagneticElement):
         except KeyError:
             return 0
         return (
-            self.length / angle
-            if self.length is not None and abs(angle) > 1e-9
-            else 0
+            self.length / angle if self.length is not None and abs(angle) > 1e-9 else 0
         )
 
     def field_strength(self, momentum: float) -> float:

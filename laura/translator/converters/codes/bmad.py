@@ -939,6 +939,18 @@ class BmadLatticeImporter(BaseModel):
                     fint = _native_keyword(hardware_type, "edge_field_integral")
                     if fint in parameters:
                         kl["edge_field_integral"] = parameters[fint]
+                    hgapx = _native_keyword(hardware_type, "exit_half_gap")
+                    if hgapx in parameters:
+                        kl["exit_gap"] = 2 * parameters[hgapx]
+                    fintx = _native_keyword(hardware_type, "exit_edge_field_integral")
+                    if fintx in parameters:
+                        kl["exit_edge_field_integral"] = parameters[fintx]
+                    for exit_field, entrance_field in (
+                        ("exit_edge_field_integral", "edge_field_integral"),
+                        ("exit_gap", "gap"),
+                    ):
+                        if kl.get(exit_field) == kl.get(entrance_field):
+                            kl.pop(exit_field, None)
                     tilt = parameters.get(
                         _native_keyword(hardware_type, "tilt")
                     ) or parameters.get("TILT")

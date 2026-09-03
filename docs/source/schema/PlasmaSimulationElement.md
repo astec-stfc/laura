@@ -1,4 +1,4 @@
-# Class: PlasmaSimulationElement
+# Class: PlasmaSimulationElement 
 
 
 _Simulation attributes for plasma-accelerator stages._
@@ -21,76 +21,76 @@ URI: [laura:PlasmaSimulationElement](https://w3id.org/laura/PlasmaSimulationElem
     click PlasmaSimulationElement href "../PlasmaSimulationElement/"
       SimulationElement <|-- PlasmaSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       PlasmaSimulationElement : bunch_pusher
-
+        
       PlasmaSimulationElement : csr_enable
-
+        
       PlasmaSimulationElement : csr_method
-
+        
       PlasmaSimulationElement : csrdz
-
+        
       PlasmaSimulationElement : deltaL
-
+        
       PlasmaSimulationElement : dt_bunch
-
+        
       PlasmaSimulationElement : dz_fields
-
+        
       PlasmaSimulationElement : field_definition
-
+        
       PlasmaSimulationElement : field_reference_position
-
+        
       PlasmaSimulationElement : horizontal_offset
-
+        
       PlasmaSimulationElement : integration_order
-
+        
       PlasmaSimulationElement : lsc_bins
-
+        
       PlasmaSimulationElement : lsc_enable
-
+        
       PlasmaSimulationElement : mat6_calc_method
-
+        
       PlasmaSimulationElement : max_longitudinal_position
-
+        
       PlasmaSimulationElement : min_longitudinal_position
-
+        
       PlasmaSimulationElement : n_kicks
-
+        
       PlasmaSimulationElement : n_longitudinal
-
+        
       PlasmaSimulationElement : n_out
-
+        
       PlasmaSimulationElement : n_radial
-
+        
       PlasmaSimulationElement : num_steps
-
+        
       PlasmaSimulationElement : plasma_particles_per_cell
-
+        
       PlasmaSimulationElement : plasma_pusher
-
+        
       PlasmaSimulationElement : r_max
-
+        
       PlasmaSimulationElement : r_max_plasma
-
+        
       PlasmaSimulationElement : scale_field
-
+        
       PlasmaSimulationElement : smooth
-
+        
       PlasmaSimulationElement : space_charge_method
-
+        
       PlasmaSimulationElement : spin_tracking_method
-
+        
       PlasmaSimulationElement : tracking_method
-
+        
       PlasmaSimulationElement : vertical_offset
-
+        
       PlasmaSimulationElement : wakefield_definition
-
+        
       PlasmaSimulationElement : wakefield_enable
-
+        
       PlasmaSimulationElement : wakefield_model
-
-
+        
+      
 ```
 
 

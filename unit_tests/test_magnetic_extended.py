@@ -126,6 +126,40 @@ class TestMagneticElement:
         # half_gap is a computed field: gap / 2
         assert me.half_gap == pytest.approx(0.02)
 
+    def test_exit_face_defaults_to_the_entrance(self):
+        # A magnet quoting one integral and one gap has the same fringe at
+        # both faces -- which is what every lattice written before the exit
+        # slots existed means, and what Bmad's own FINTX/HGAPX defaults do.
+        me = MagneticElement(gap=0.04, edge_field_integral=0.3)
+        assert me.exit_gap is None
+        assert me.exit_edge_field_integral is None
+        assert me.exit_half_gap == pytest.approx(0.02)
+        assert me.exit_fringe_integral == pytest.approx(0.3)
+
+    def test_exit_face_is_used_when_it_is_given(self):
+        # The asymmetric case: a bend split by superposition keeps the
+        # entrance fringe on its first piece and the exit fringe on its last.
+        me = MagneticElement(
+            gap=0.0, edge_field_integral=0.0, exit_gap=0.03,
+            exit_edge_field_integral=0.45,
+        )
+        assert me.half_gap == 0.0
+        assert me.edge_field_integral == 0.0
+        assert me.exit_half_gap == pytest.approx(0.015)
+        assert me.exit_fringe_integral == pytest.approx(0.45)
+
+    def test_the_resolved_exit_face_is_not_serialised(self):
+        # The fallback is a reading of a stored value, not a new one. If these
+        # became computed fields every already-exported magnet would grow two
+        # keys it never had.
+        dumped = MagneticElement(gap=0.04, edge_field_integral=0.3).model_dump(
+            exclude_defaults=True
+        )
+        assert "exit_half_gap" not in dumped
+        assert "exit_fringe_integral" not in dumped
+        assert "exit_gap" not in dumped
+        assert "exit_edge_field_integral" not in dumped
+
 
 # ---------------------------------------------------------------------------
 # Magnet subtypes

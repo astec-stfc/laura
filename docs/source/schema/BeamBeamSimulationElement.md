@@ -1,4 +1,4 @@
-# Class: BeamBeamSimulationElement
+# Class: BeamBeamSimulationElement 
 
 
 _Simulation attributes for a weak-strong beam-beam interaction._
@@ -21,60 +21,60 @@ URI: [laura:BeamBeamSimulationElement](https://w3id.org/laura/BeamBeamSimulation
     click BeamBeamSimulationElement href "../BeamBeamSimulationElement/"
       SimulationElement <|-- BeamBeamSimulationElement
         click SimulationElement href "../SimulationElement/"
-
+      
       BeamBeamSimulationElement : charge
-
+        
       BeamBeamSimulationElement : csr_enable
-
+        
       BeamBeamSimulationElement : csr_method
-
+        
       BeamBeamSimulationElement : csrdz
-
+        
       BeamBeamSimulationElement : deltaL
-
+        
       BeamBeamSimulationElement : field_definition
-
+        
       BeamBeamSimulationElement : field_reference_position
-
+        
       BeamBeamSimulationElement : horizontal_offset
-
+        
       BeamBeamSimulationElement : horizontal_sigma
-
+        
       BeamBeamSimulationElement : integration_order
-
+        
       BeamBeamSimulationElement : lsc_bins
-
+        
       BeamBeamSimulationElement : lsc_enable
-
+        
       BeamBeamSimulationElement : mat6_calc_method
-
+        
       BeamBeamSimulationElement : n_kicks
-
+        
       BeamBeamSimulationElement : n_particles
-
+        
       BeamBeamSimulationElement : num_steps
-
+        
       BeamBeamSimulationElement : scale_field
-
+        
       BeamBeamSimulationElement : smooth
-
+        
       BeamBeamSimulationElement : space_charge_method
-
+        
       BeamBeamSimulationElement : spin_tracking_method
-
+        
       BeamBeamSimulationElement : tracking_method
-
+        
       BeamBeamSimulationElement : vertical_offset
-
+        
       BeamBeamSimulationElement : vertical_sigma
-
+        
       BeamBeamSimulationElement : wakefield_definition
-
+        
       BeamBeamSimulationElement : wakefield_enable
-
+        
       BeamBeamSimulationElement : width
-
-
+        
+      
 ```
 
 
