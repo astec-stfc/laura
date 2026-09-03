@@ -1,5 +1,6 @@
-from .base import BaseElementTranslator
 from laura.models.simulation import DiagnosticSimulationElement
+
+from .base import BaseElementTranslator
 
 
 class DiagnosticTranslator(BaseElementTranslator):
@@ -13,6 +14,21 @@ class DiagnosticTranslator(BaseElementTranslator):
 
     directory: str = ""
     """Directory to which files will be written."""
+
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad lattice element string.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        etype = self._convertType_Bmad(self.hardware_type)
+        return self._format_bmad(
+            etype, self._bmad_sr_wake(self._bmad_parameters(etype))
+        )
 
     def to_elegant(self) -> str:
         """

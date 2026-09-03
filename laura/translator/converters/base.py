@@ -1575,6 +1575,57 @@ class BaseElementTranslator(PhysicalBaseElement):
                         ),
                     )
 
+    def _wakefield_active(self) -> bool:
+        """
+        Whether this element should be written with its wakefield applied.
+
+        False if wakefields have been switched off for the element, if no
+        wakefield definition is set, or if the definition carries no usable
+        data.
+
+        Returns
+        -------
+        bool
+            True if a usable wakefield is defined and enabled
+        """
+        if not getattr(self.simulation, "wakefield_enable", True):
+            return False
+        wake = getattr(self.simulation, "wakefield_definition", None)
+        if wake is None or wake == "":
+            return False
+        if not isinstance(wake, str):
+            # a field object: only usable if it has a longitudinal coordinate
+            try:
+                wake.z_values
+            except Exception:
+                return False
+        return True
+
+    def _bmad_sr_wake(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Add this element's short-range wake to its Bmad parameters, if it has one. Bmad
+        takes a tabulated wake by ``call::`` and not inline.
+
+        Parameters
+        ----------
+        parameters: Dict[str, Any]
+            Bmad parameters for the element, modified in place
+
+        Returns
+        -------
+        Dict[str, Any]
+            The same parameters
+        """
+        if self._wakefield_active():
+            wake = self.generate_field_file_name(
+                self.simulation.wakefield_definition,
+                code="bmad",
+                verbose=getattr(self, "verbose", True),
+            )
+            if wake:
+                parameters["sr_wake"] = f"call::{wake}"
+        return parameters
+
     def generate_field_file_name(self, param: field, code: str, **kwargs) -> str | None:
         """
         Generates a field file name based on the provided frameworkElement and tracking code.

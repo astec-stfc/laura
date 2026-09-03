@@ -24,6 +24,7 @@ from ..utils.bmad import (
     bmad_beginning_datum,
     bmad_leading_drift,
     bmad_patch,
+    bmad_safe_names,
 )
 from ..utils.fields import field
 from ..utils.functions import (
@@ -245,7 +246,7 @@ class SectionLatticeTranslator(SectionLattice):
         backbone_section = self.model_copy(
             update={"order": [element.name for element in backbone]}
         )
-        section = backbone_section.createDrifts()
+        section = backbone_section.createDrifts(keep_diagnostic_length=True)
         keys = list(section)
         at = {key: index for index, key in enumerate(keys)}
         patch_definitions = ""
@@ -292,6 +293,11 @@ class SectionLatticeTranslator(SectionLattice):
             for element in superimposed
             if target_types[element.name] in {"kicker", "hkicker", "vkicker"}
         }
+        renames = bmad_safe_names([*elements, *ordered_members, self.name])
+
+        def rename(item: str) -> str:
+            return renames.get(item, item)
+
         header = bmad_functional_definitions(self.functional_definitions)
         if particle:
             header += f"parameter[particle] = {particle}\n"
@@ -314,6 +320,8 @@ class SectionLatticeTranslator(SectionLattice):
         header += bmad_beginning_datum(backbone[0], lead)
         definitions = lead_definition + patch_definitions
         for element_name, translator in elements.items():
+            if element_name in renames:
+                translator.name = renames[element_name]
             if element_name in thin_kickers:
                 parameters = translator._bmad_parameters()
                 parameters["l"] = 0.0
@@ -338,8 +346,8 @@ class SectionLatticeTranslator(SectionLattice):
             ):
                 if value:
                     header += f"beginning[{attribute}] = {value}\n"
-        name = sanitize_string(self.name)
-        member_names = [sanitize_string(item) for item in ordered_members]
+        name = sanitize_string(rename(self.name))
+        member_names = [sanitize_string(rename(item)) for item in ordered_members]
         if lead_name is not None:
             member_names.insert(0, lead_name)
         members = ", ".join(member_names)
@@ -358,7 +366,7 @@ class SectionLatticeTranslator(SectionLattice):
             if abs(offset) < 1e-12:
                 offset = 0.0
             superpositions += (
-                f"superimpose, element = {sanitize_string(element.name)}, "
+                f"superimpose, element = {sanitize_string(rename(element.name))}, "
                 f"offset = {offset:.16g}, ele_origin = beginning\n"
             )
         return (

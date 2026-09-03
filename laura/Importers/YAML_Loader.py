@@ -1,41 +1,55 @@
-import re
-from typing import List
+import functools
 import json
 import logging
-import yaml
 import os
 import pathlib
-import functools
-from yaml import CSafeLoader as Loader
-from pydantic import TypeAdapter, BaseModel
+import re
 from typing import List
+
+import yaml
+from pydantic import BaseModel, TypeAdapter
+from yaml import CSafeLoader as Loader
 
 # Import elements before building registry
 from ..models.element import ELEMENT_REGISTRY
 
 _log = logging.getLogger("laura.loader")
 
-# Fast metadata extraction regex
-_NAME_RE = re.compile(r'^\s*name:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE)
-_AREA_RE = re.compile(r'^\s*machine_area:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE)
+# Fast metadata extraction regex.
+_NAME_RE = re.compile(r"^[ \t]*name:[ \t]*(.*)$", re.MULTILINE)
+_AREA_RE = re.compile(r"^[ \t]*machine_area:[ \t]*(.*)$", re.MULTILINE)
+_COMMENT_RE = re.compile(r"(?:(?<=\s)|^)#")
+
+
+def _yaml_scalar(raw: str) -> str:
+    """Unquote a plain YAML scalar and drop any trailing comment."""
+    raw = raw.strip()
+    if raw[:1] in ('"', "'"):
+        quote = raw[0]
+        end = raw.find(quote, 1)
+        return raw[1:end] if end > 0 else raw[1:]
+    return _COMMENT_RE.split(raw, maxsplit=1)[0].strip()
+
 
 def fast_get_element_metadata(filename: str) -> dict:
     """Quickly extract metadata from a YAML file without full parsing."""
     metadata = {"name": None, "machine_area": None}
     try:
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             # Metadata is usually in first 2000 chars
             content = f.read(2000)
             name_match = _NAME_RE.search(content)
             if name_match:
-                metadata["name"] = name_match.group(1).strip()
+                metadata["name"] = _yaml_scalar(name_match.group(1))
             area_match = _AREA_RE.search(content)
             if area_match:
-                metadata["machine_area"] = area_match.group(1).strip()
+                metadata["machine_area"] = _yaml_scalar(area_match.group(1))
     except Exception:
         pass
     if not metadata["name"]:
-        metadata["name"] = os.path.basename(filename).replace('.yaml', '').replace('.yml', '')
+        metadata["name"] = (
+            os.path.basename(filename).replace(".yaml", "").replace(".yml", "")
+        )
     return metadata
 
 
@@ -43,6 +57,7 @@ class LazyElementDict(dict):
     """
     Dictionary that loads elements from YAML files only when accessed.
     """
+
     def __init__(self, filenames, exclude_keys=None):
         # Initialise with keys but None values to satisfy tools that check keys()
         super().__init__({k: None for k in filenames.keys()})
@@ -56,7 +71,10 @@ class LazyElementDict(dict):
             elem = super().__getitem__(name)
             if elem is None:
                 return None
-            return {"name": elem.name, "machine_area": getattr(elem, "machine_area", None)}
+            return {
+                "name": elem.name,
+                "machine_area": getattr(elem, "machine_area", None),
+            }
         if name in self._metadata_cache:
             return self._metadata_cache[name]
         if name in self._filenames:
@@ -80,7 +98,9 @@ class LazyElementDict(dict):
                 return val
         if key in self._filenames:
             # Only load when needed
-            elem = read_YAML_Element_File(self._filenames[key], exclude_keys=self._exclude_keys)
+            elem = read_YAML_Element_File(
+                self._filenames[key], exclude_keys=self._exclude_keys
+            )
             super().__setitem__(key, elem)
             return elem
         raise KeyError(key)
@@ -98,9 +118,6 @@ class LazyElementDict(dict):
         return sorted(set(self._filenames.keys()) | set(super().keys()))
 
     def values(self):
-        # We MUST return the full models if someone calls .values() 
-        # but we can detect if it's MachineModel building indexes and return stubs instead
-        # However, it's safer to just let indexing call its own metadata lookup.
         for k in self.keys():
             yield self[k]
 
@@ -118,7 +135,9 @@ def get_all_subclasses(cls):
         subclasses.update(get_all_subclasses(sub))
     return subclasses
 
+
 _MODEL_REGISTRY = None
+
 
 def get_model_registry():
     global _MODEL_REGISTRY
@@ -126,7 +145,6 @@ def get_model_registry():
         ALL_MODELS = get_all_subclasses(BaseModel)
         _MODEL_REGISTRY = {cls.__name__: cls for cls in ALL_MODELS}
     return _MODEL_REGISTRY
-
 
 
 class LazyAdapterDict(dict):
@@ -191,6 +209,7 @@ def filter_top_level(elem: dict, exclude_keys: List[str] | None = None) -> dict:
         return {k: v for k, v in elem.items() if k not in exclude_keys}
     return {k: v for k, v in elem.items()}
 
+
 def interpret_YAML_Element(elem: dict, exclude_set=None):
     hw_type = elem.get("hardware_type")
     if not hw_type:
@@ -201,7 +220,9 @@ def interpret_YAML_Element(elem: dict, exclude_set=None):
     adapter = ADAPTERS.get(hw_type)
     if adapter is None:
         name = elem.get("name", "<unknown>")
-        _log.warning("Skipping element '%s': unregistered hardware_type '%s'", name, hw_type)
+        _log.warning(
+            "Skipping element '%s': unregistered hardware_type '%s'", name, hw_type
+        )
         return None
 
     if exclude_set:
@@ -215,7 +236,9 @@ def interpret_YAML_Element(elem: dict, exclude_set=None):
         name = elem.get("name", "<unknown>")
         _log.error(
             "Failed to parse '%s' [%s]: %s",
-            name, hw_type, exc,
+            name,
+            hw_type,
+            exc,
         )
         _log.debug("Validation error detail for '%s':", name, exc_info=True)
         return None
@@ -289,14 +312,15 @@ def read_YAML_Combined_File(
 
     _log.debug("Parsing %d elements from '%s'", len(elements), filename)
     results = [
-        interpret_YAML_Element(element, exclude_set)
-        for element in elements.values()
+        interpret_YAML_Element(element, exclude_set) for element in elements.values()
     ]
     loaded = sum(1 for r in results if r is not None)
     failed = len(results) - loaded
     _log.info(
         "Loaded %d/%d elements from '%s'%s",
-        loaded, len(results), filename,
+        loaded,
+        len(results),
+        filename,
         f" ({failed} failed — enable DEBUG for details)" if failed else "",
     )
     return results

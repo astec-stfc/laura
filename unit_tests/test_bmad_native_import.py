@@ -919,3 +919,308 @@ def test_bmad_collimator_apertures_survive_the_round_trip(tmp_path):
     assert after["R1"]["X1_LIMIT"] == pytest.approx(0.01)
     assert after["R1"]["Y1_LIMIT"] == pytest.approx(0.02)
     assert after["E1"]["X1_LIMIT"] == pytest.approx(0.003)
+
+
+def test_bmad_cavity_phase_round_trip_keeps_the_sign_of_the_chirp(tmp_path):
+    """The importer used to read ``phi0`` straight through, and the exporter
+    negates it, so every cavity came back off-crest the other way.
+
+    Nothing about a single element gives the mistake away -- the reference
+    energy gain goes as ``cos(phi0)``, which does not care about the sign -- so
+    the test is the energy a particle picks up as a function of where it sits
+    in the bunch. That is what a linac is actually set up for, and flipping it
+    turns bunch compression into decompression: tracking the LCLS CU_HXR
+    lattice end to end, the round-tripped copy left the beam 96 times longer
+    than Bmad's own run of the same lattice.
+
+    ``phi0 = -0.05972222`` is the real setting of the first L1 cavity there.
+    """
+    from pytao import Tao
+
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    header = (
+        "beginning[e_tot] = 1.35e8\n"
+        "beginning[beta_a] = 5.0\n"
+        "beginning[beta_b] = 3.0\n"
+        "parameter[geometry] = open\n"
+        "parameter[particle] = electron\n"
+    )
+    source = tmp_path / "chirp.bmad"
+    source.write_text(
+        header + "C1: lcavity, l = 1.0, rf_frequency = 2856e6, voltage = 2e7, "
+        "phi0 = -0.05972222\n"
+        "L: line = (C1)\n"
+        "use, L\n"
+    )
+    importer = BmadLatticeImporter(
+        lattice_file=str(source), libtao=str(LIBTAO), position_mode="s"
+    )
+    branch = importer.branches[1][0]
+    section = importer.create_section(1, branch)[branch]
+    exported = tmp_path / "chirp_rt.bmad"
+    exported.write_text(
+        header
+        + SectionLatticeTranslator.from_section(section).to_bmad(particle="Electron")
+    )
+
+    def cavity(path):
+        tao = Tao(lattice_file=str(path), so_lib=str(LIBTAO), noplot=True)
+        last = tao.lat_branch_list(ix_uni=1)[0]["n_ele_track"]
+        gain = {}
+        for offset in (-1e-3, 1e-3):
+            tao.cmd(f"set particle_start z = {offset}")
+            gain[offset] = tao.ele_orbit(f"1@0>>{last}")["pz"]
+        return tao.ele_gen_attribs("1@0>>1")["PHI0"], gain
+
+    phi0_before, chirp_before = cavity(source)
+    phi0_after, chirp_after = cavity(exported)
+
+    assert phi0_after == pytest.approx(phi0_before)
+    for offset, value in chirp_before.items():
+        assert chirp_after[offset] == pytest.approx(value, rel=1e-9)
+    # The head of the bunch (z > 0 in Bmad) is the end that loses energy at a
+    # negative phi0 -- the sign that compresses downstream.
+    assert chirp_before[1e-3] < 0.0 < chirp_before[-1e-3]
+
+
+def test_reserved_names_export_to_a_lattice_bmad_will_actually_parse(tmp_path):
+    """Bmad keeps a set of names for itself, and an element carrying one is a
+    hard parse failure -- ``BEGINNING`` comes back as ``RESERVED WORD``, and
+    every element class is rejected as ``NOT ALLOWED TO BE THE SAME AS AN
+    ELEMENT CLASS``. ``END`` parses but is then confused with the end-of-branch
+    element Bmad makes itself.
+
+    The LCLS cu_hxr lattice really does end on a marker called END, so this is
+    the difference between a round trip Tao can read back and one it cannot.
+    """
+    from pytao import Tao
+
+    from laura.models.element import Marker, Quadrupole
+    from laura.models.elementList import SectionLattice
+    from laura.models.physical import PhysicalElement, Position
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    section = SectionLattice(
+        name="S",
+        order=["BEGINNING", "Q", "MARKER", "END"],
+        elements=[
+            Marker(
+                name="BEGINNING",
+                machine_area="S",
+                physical=PhysicalElement(length=0.0, middle=Position(z=0.0)),
+            ),
+            Quadrupole(
+                name="Q",
+                machine_area="S",
+                magnetic={"magnetic_length": 0.5, "k1l": 0.15},
+                physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
+            ),
+            Marker(
+                name="MARKER",
+                machine_area="S",
+                physical=PhysicalElement(length=0.0, middle=Position(z=0.5)),
+            ),
+            Marker(
+                name="END",
+                machine_area="S",
+                physical=PhysicalElement(length=0.0, middle=Position(z=1.0)),
+            ),
+        ],
+        geometry="open",
+    )
+    with pytest.warns(UserWarning, match="reserves"):
+        body = SectionLatticeTranslator.from_section(section).to_bmad(
+            particle="Electron"
+        )
+    path = tmp_path / "reserved.bmad"
+    path.write_text(
+        "beginning[e_tot] = 1.35e8\n"
+        "beginning[beta_a] = 5.0\n"
+        "beginning[beta_b] = 3.0\n" + body
+    )
+
+    tao = Tao(lattice_file=str(path), so_lib=str(LIBTAO), noplot=True)
+    names = [
+        tao.ele_head(f"1@0>>{index}")["name"]
+        for index in range(tao.lat_branch_list(ix_uni=1)[0]["n_ele_track"] + 1)
+    ]
+
+    assert "BEGINNING_ELEMENT" in names
+    assert "MARKER_ELEMENT" in names
+    assert "END_ELEMENT" in names
+    # Bmad's own end-of-branch element is still the one called END, and the
+    # renamed marker sits before it rather than merging into it.
+    assert names.index("END_ELEMENT") < len(names) - 1
+    assert names[-1] == "END"
+
+
+_WAKE_LATTICE = """beginning[p0c] = 1.35e8
+beginning[beta_a] = 5.0
+beginning[beta_b] = 3.0
+parameter[geometry] = open
+parameter[particle] = electron
+C1: lcavity, l = 2.0, rf_frequency = 2856e6, voltage = 0, phi0 = 0,
+    sr_wake = {z_max = 0.01, amp_scale = 2, scale_with_length = F,
+      longitudinal = {1e14, 200, 0, 0.25, none}}
+M1: marker, sr_wake = {z_max = 0.01, amp_scale = 1, scale_with_length = F,
+      longitudinal = {5e13, 500, 1000, 0.25, none}}
+SPLIT: marker, superimpose, ref = C1, offset = 0
+L: line = (C1, M1)
+use, L
+"""
+
+
+def _wake_model(tmp_path):
+    """Import a lattice whose wake sits on a cavity, on a lord, and on a marker."""
+    path = tmp_path / "wakes.bmad"
+    path.write_text(_WAKE_LATTICE)
+    importer = BmadLatticeImporter(
+        lattice_file=str(path), libtao=str(LIBTAO), position_mode="s"
+    )
+    converted = importer.create_laura_element_dictionary(1)
+    return next(iter(converted.values()))
+
+
+def test_a_short_range_wake_is_imported_as_sampled_arrays(tmp_path):
+    """Bmad states a short-range wake as a sum of damped sinusoids and LAURA's
+    field model holds sampled arrays, so the modes are evaluated onto a grid on
+    the way in. amp_scale multiplies them; the mode here is a quarter turn, so
+    W(0) is amp_scale * amp exactly.
+    """
+    elements = _wake_model(tmp_path)
+
+    wake = elements["C1#1"].simulation.wakefield_definition
+    assert wake.field_type == "LongitudinalWake"
+    assert wake.z.value.val[-1] == 0.0
+    assert wake.z.value.val[0] == pytest.approx(-0.01)
+    assert wake.Wz.value.val[-1] == pytest.approx(2.0e14)
+
+
+def test_a_super_lord_s_wake_reaches_the_slaves_that_are_tracked(tmp_path):
+    """A superimposed element splits the cavity into slaves and turns the
+    cavity itself into a lord. ``lat_list`` returns only the slaves, the wake
+    stays on the lord, and asking a slave for it is an error -- so the lords
+    have to be swept separately and mapped back down.
+    """
+    elements = _wake_model(tmp_path)
+
+    for slave in ("C1#1", "C1#2"):
+        wake = elements[slave].simulation.wakefield_definition
+        assert wake is not None, f"{slave} lost its lord's wake"
+        assert wake.Wz.value.val[-1] == pytest.approx(2.0e14)
+
+
+def test_a_wake_on_a_marker_is_imported_too(tmp_path):
+    """A zero-length marker is how a Bmad lattice hangs a resistive-wall wake
+    off a point in the line -- cu_hxr does it three times -- and markers are
+    built by a different path from every other element.
+    """
+    elements = _wake_model(tmp_path)
+
+    wake = elements["M1"].simulation.wakefield_definition
+    assert wake is not None
+    assert wake.Wz.value.val[-1] == pytest.approx(5.0e13)
+
+
+def test_an_exported_element_keeps_its_wake_beside_it(tmp_path):
+    """Thousands of samples do not belong inline in an element's YAML, and a
+    field with no file behind it has nothing to name. So export writes the
+    samples out and records the file, which is how a wake read from a file is
+    stored in the first place.
+    """
+    import h5py
+
+    from laura.Exporters.YAML import export_as_yaml
+
+    elements = _wake_model(tmp_path)
+    output = tmp_path / "export"
+    output.mkdir()
+
+    export_as_yaml(str(output / "M1.yaml"), elements["M1"])
+
+    sidecar = output / "M1_wake.hdf5"
+    assert sidecar.is_file()
+    with h5py.File(sidecar, "r") as written:
+        assert written["Wz"][-1] == pytest.approx(5.0e13)
+        assert written["z"].attrs["units"] == "m"
+    assert "M1_wake.hdf5" in (output / "M1.yaml").read_text()
+
+
+def test_the_exported_wake_tracks_the_way_the_modes_it_came_from_do(
+    tmp_path, monkeypatch
+):
+    """The whole point of sampling. Bmad applies a tabulated wake by FFT
+    convolution against a binned bunch rather than mode by mode, so the two
+    agree only if the grid, its sign and its zero point are all right: the
+    table is indexed by the trailing particle's position minus the source's,
+    which is negative, and w(0) is not halved the way the mode sum's self-wake
+    is.
+    """
+    from pytao import Tao
+
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    charge, separation = 1e-10, 2.0e-3
+    elements = _wake_model(tmp_path)
+    beam = tmp_path / "two.beam0"
+    beam.write_text(
+        "!ASCII::3\n0\n1\n2\nBEGIN_BUNCH\nelectron\n"
+        f"{2 * charge:.16e}\n0\n0\n"
+        + "".join(f" 0 0 0 0 {z:.16e} 0 {charge:.16e} 1\n" for z in (separation, 0.0))
+        + "END_BUNCH\n"
+    )
+
+    def track(lattice: Path) -> np.ndarray:
+        init = lattice.with_suffix(".init")
+        init.write_text(
+            "&tao_start\n n_universes = 1\n/\n"
+            f"&tao_design_lattice\n design_lattice(1)%file = '{lattice}'\n/\n"
+            "&tao_params\n global%track_type = 'beam'\n global%plot_on = F\n/\n"
+            '&tao_beam_init\n ix_universe = 1\n beam_saved_at = "*"\n'
+            f" beam_init%position_file = '{beam}'\n/\n"
+        )
+        tao = Tao(init_file=str(init), so_lib=str(LIBTAO), noplot=True)
+        tao.cmd("set global track_type = beam")
+        pz = np.array(tao.bunch1("1@0>>1", coordinate="pz", which="model", ix_bunch=1))
+        z = np.array(tao.bunch1("1@0>>1", coordinate="z", which="model", ix_bunch=1))
+        return pz[np.argsort(-z)]
+
+    modes = tmp_path / "modes.bmad"
+    modes.write_text(
+        "beginning[p0c] = 1.35e8\nbeginning[beta_a] = 5.0\nbeginning[beta_b] = 3.0\n"
+        "parameter[geometry] = open\nparameter[particle] = electron\n"
+        "W1: lcavity, l = 2.0, rf_frequency = 2856e6, voltage = 0, phi0 = 0,\n"
+        "    sr_wake = {z_max = 0.01, amp_scale = 2, scale_with_length = F,\n"
+        "      longitudinal = {1e14, 200, 0, 0.25, none}}\n"
+        "L: line = (W1)\nuse, L\n"
+    )
+
+    from laura.models.elementList import SectionLattice
+    from laura.models.physical import Position
+
+    element = elements["C1#1"].model_copy(deep=True)
+    element.name = "W1"
+    element.physical.length = 2.0
+    element.simulation.wakefield_definition.filename = "W1_wake.bmad"
+    element.physical.middle = Position(z=1.0)
+    section = SectionLattice(
+        name="L", order=["W1"], elements=[element], geometry="open"
+    )
+    # to_bmad writes the wake sidecar beside whatever the working directory is,
+    # and refers to it by name, so the lattice has to be written there too.
+    monkeypatch.chdir(tmp_path)
+    sampled = tmp_path / "sampled.bmad"
+    sampled.write_text(
+        "beginning[p0c] = 1.35e8\nbeginning[beta_a] = 5.0\nbeginning[beta_b] = 3.0\n"
+        "parameter[geometry] = open\nparameter[particle] = electron\n"
+        + SectionLatticeTranslator.from_section(section).to_bmad(particle="Electron")
+    )
+
+    from_modes, from_table = track(modes), track(sampled)
+
+    # Two point particles interpolate the table rather than convolving with
+    # it, so the grid's own resolution barely shows: this agrees to better than
+    # 1e-7 in practice.
+    assert from_table == pytest.approx(from_modes, rel=1e-6)
+    assert from_modes[0] < 0.0

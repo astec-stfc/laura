@@ -1,30 +1,28 @@
-from pydantic import (
-    computed_field,
-    field_validator,
-    Field
-)
-from typing import Any, ClassVar, Dict, Union, List
-from .baseModels import FunctionalMixin
-import numpy as np
 import re
-from ._generated import (
-    _ApertureElementBase,
-    _SimulationElementBase,
-    _MagnetSimulationElementBase,
-    _RFCavitySimulationElementBase,
-    _WakefieldSimulationElementBase,
-    _DriftSimulationElementBase,
-    _DiagnosticSimulationElementBase,
-    _PlasmaSimulationElementBase,
-    _TwissMatchSimulationElementBase,
-    _MatrixTransformSimulationElementBase,
-    _ElectrostaticSeparatorSimulationElementBase,
-    _ACDipoleSimulationElementBase,
-    _WireSimulationElementBase,
-    _BeamBeamSimulationElementBase,
-    _RFMultipoleSimulationElementBase,
-)
+from typing import Any, ClassVar, Dict, List, Union
+
+import numpy as np
+from pydantic import Field, computed_field, field_validator
+
 from ..translator.utils.fields import field
+from ._generated import (
+    _ACDipoleSimulationElementBase,
+    _ApertureElementBase,
+    _BeamBeamSimulationElementBase,
+    _DiagnosticSimulationElementBase,
+    _DriftSimulationElementBase,
+    _ElectrostaticSeparatorSimulationElementBase,
+    _MagnetSimulationElementBase,
+    _MatrixTransformSimulationElementBase,
+    _PlasmaSimulationElementBase,
+    _RFCavitySimulationElementBase,
+    _RFMultipoleSimulationElementBase,
+    _SimulationElementBase,
+    _TwissMatchSimulationElementBase,
+    _WakefieldSimulationElementBase,
+    _WireSimulationElementBase,
+)
+from .baseModels import FunctionalMixin
 
 
 class ApertureElement(_ApertureElementBase):
@@ -65,11 +63,13 @@ class DriftSimulationElement(_DriftSimulationElementBase):
     Drift simulation element model.
     """
 
-    pass
+    wakefield_definition: str | field | None = None
+    """A wake file name, or the sampled wake itself."""
 
 
 class DiagnosticSimulationElement(_DiagnosticSimulationElementBase):
-    pass
+    wakefield_definition: str | field | None = None
+    """A wake file name, or the sampled wake itself."""
 
 
 class PlasmaSimulationElement(_PlasmaSimulationElementBase):
@@ -199,9 +199,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
                 idx = int(m.group(1)) - 1
 
                 if not (0 <= idx < 6):
-                    raise ValueError(
-                        f"C-matrix index out of range: {key}"
-                    )
+                    raise ValueError(f"C-matrix index out of range: {key}")
 
                 vector[idx] = float(value)
 
@@ -210,9 +208,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
         arr = np.asarray(v, dtype=float)
 
         if arr.shape != (6,):
-            raise ValueError(
-                f"c_matrix must have shape (6,), got {arr.shape}"
-            )
+            raise ValueError(f"c_matrix must have shape (6,), got {arr.shape}")
 
         return arr
 
@@ -233,9 +229,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
                 col = int(m.group(2)) - 1
 
                 if not (0 <= row < 6 and 0 <= col < 6):
-                    raise ValueError(
-                        f"R-matrix index out of range: {key}"
-                    )
+                    raise ValueError(f"R-matrix index out of range: {key}")
 
                 matrix[row, col] = float(value)
 
@@ -244,9 +238,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
         arr = np.asarray(v, dtype=float)
 
         if arr.shape != (6, 6):
-            raise ValueError(
-                f"r_matrix must have shape (6,6), got {arr.shape}"
-            )
+            raise ValueError(f"r_matrix must have shape (6,6), got {arr.shape}")
 
         return arr
 
@@ -268,9 +260,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
                 k = int(m.group(3)) - 1
 
                 if not all(0 <= idx < 6 for idx in (i, j, k)):
-                    raise ValueError(
-                        f"T-matrix index out of range: {key}"
-                    )
+                    raise ValueError(f"T-matrix index out of range: {key}")
 
                 tensor[i, j, k] = float(value)
 
@@ -279,9 +269,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
         arr = np.asarray(v, dtype=float)
 
         if arr.shape != (6, 6, 6):
-            raise ValueError(
-                f"t_matrix must have shape (6,6,6), got {arr.shape}"
-            )
+            raise ValueError(f"t_matrix must have shape (6,6,6), got {arr.shape}")
 
         return arr
 
@@ -308,9 +296,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
 
         arr = np.asarray(v, dtype=float)
         if arr.shape != (6, 6, 6, 6):
-            raise ValueError(
-                f"u_matrix must have shape (6,6,6,6), got {arr.shape}"
-            )
+            raise ValueError(f"u_matrix must have shape (6,6,6,6), got {arr.shape}")
         return arr
 
     @field_validator("spin_taylor", mode="before")
@@ -343,7 +329,9 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
         return B
 
 
-class ElectrostaticSeparatorSimulationElement(_ElectrostaticSeparatorSimulationElementBase):
+class ElectrostaticSeparatorSimulationElement(
+    _ElectrostaticSeparatorSimulationElementBase
+):
     """
     Electrostatic separator simulation element model.
     """

@@ -1,20 +1,26 @@
 import logging
 import math
 import os
+import warnings
 from functools import cmp_to_key
+from typing import Any, Dict, List, Literal, Optional, Union
+from warnings import warn
+
 import numpy as np
-from typing import List, Dict, Any, Union, Literal, Optional
 from pydantic import (
-    ConfigDict,
-    field_validator,
-    model_validator,
     BaseModel,
-    ValidationInfo,
+    ConfigDict,
     Field,
     PositiveInt,
+    field_validator,
+    model_validator,
 )
-from warnings import warn
 from yaml import safe_load
+
+from ..utils.rotation_matrix import (
+    euler_angles_to_rotation_matrix,
+    rotation_matrix_to_euler,
+)
 from ._functions import read_yaml
 from ._generated import (
     LatticeGeometryEnum,
@@ -22,20 +28,17 @@ from ._generated import (
     _MachineModelBase,
     _SectionLatticeBase,
 )
-from .element import baseElement, Drift, PhysicalBaseElement, Diagnostic
-from .physical import PhysicalElement, Position, Rotation
-from .trajectory import Trajectory
-from ..utils.rotation_matrix import euler_angles_to_rotation_matrix, rotation_matrix_to_euler
 from .baseModels import (
     ModelBase,
     set_functional_definitions,
     set_resolve_functional,
     validate_functional_references,
 )
+from .element import Diagnostic, Drift, PhysicalBaseElement, baseElement
 from .exceptions import LatticeError
-import warnings
-
+from .physical import PhysicalElement, Position, Rotation
 from .simulation import DriftSimulationElement
+from .trajectory import Trajectory
 
 _log = logging.getLogger("laura.model")
 
@@ -120,7 +123,7 @@ def dot(a, b) -> float:
 def chunks(li, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(li), n):
-        yield li[i: i + n]
+        yield li[i : i + n]
 
 
 class BaseLatticeModel(ModelBase):
@@ -218,14 +221,21 @@ class ElementList(ModelBase):
     elements: Dict[str, Union[baseElement, dict, None]]
 
     def __str__(self):
-        return str([e["name"] if isinstance(e, dict) else e.name for e in self.elements.values()])
+        return str(
+            [
+                e["name"] if isinstance(e, dict) else e.name
+                for e in self.elements.values()
+            ]
+        )
 
     def __getitem__(self, item: str) -> int:
         return self.elements[item]
 
     @property
     def names(self) -> list:
-        return [e["name"] if isinstance(e, dict) else e.name for e in self.elements.values()]
+        return [
+            e["name"] if isinstance(e, dict) else e.name for e in self.elements.values()
+        ]
 
     def index(self, element: Union[str, baseElement]):
         if isinstance(element, str):
@@ -359,8 +369,9 @@ class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
         csr_enable: bool = True,
         lsc_enable: bool = True,
         lsc_bins: PositiveInt = 20,
+        keep_diagnostic_length: bool = False,
     ):
-        """Insert drifts into a sequence of 'elements'"""
+        """Insert drifts into a sequence of 'elements'."""
         positions = []
         originalelements = dict()
         elementno = 0
@@ -385,9 +396,13 @@ class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
 
         for elem in elements:
             if not elem.subelement:
+                if isinstance(elem, Diagnostic) and not keep_diagnostic_length:
+                    elem = elem.model_copy(
+                        update={
+                            "physical": elem.physical.model_copy(update={"length": 0.0})
+                        }
+                    )
                 originalelements[elem.name] = elem
-                if isinstance(elem, Diagnostic):
-                    elem.physical.length = 0
                 start = elem.physical.start.array
                 end = elem.physical.end.array
                 try:
@@ -411,7 +426,9 @@ class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
                     length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
                     vector = dot((d[1] - d[0]), [0, 0, 1])
                 except Exception as exc:
-                    _log.error("Drift calculation error near element '%s': %s", e[0], exc)
+                    _log.error(
+                        "Drift calculation error near element '%s': %s", e[0], exc
+                    )
                     _log.debug("Position data: %s", d)
                     raise exc
                 if length > 1e-12:
@@ -593,10 +610,6 @@ class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
                 return s - L
             return s  # 'start'
 
-        # Equal entrance positions can differ by floating-point noise (for
-        # example a zero-length marker immediately before a cavity).
-        # math.isclose's relative tolerance scales with magnitude instead of
-        # using one fixed absolute cutoff, so it stays robust.
         def _compare_s_start(a: object, b: object) -> int:
             sa, sb = _s_start(a), _s_start(b)
             if math.isclose(sa, sb, rel_tol=1e-9, abs_tol=1e-9):
@@ -638,8 +651,12 @@ class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
                 # Arc in the bend plane using LAURA's Ry(-angle) convention.
                 rho = L / angle
                 half = angle / 2.0
-                local_mid = np.array([rho * (1.0 - np.cos(half)), 0.0, rho * np.sin(half)])
-                local_end = np.array([rho * (1.0 - np.cos(angle)), 0.0, rho * np.sin(angle)])
+                local_mid = np.array(
+                    [rho * (1.0 - np.cos(half)), 0.0, rho * np.sin(half)]
+                )
+                local_end = np.array(
+                    [rho * (1.0 - np.cos(angle)), 0.0, rho * np.sin(angle)]
+                )
                 mid_pos = current_pos + current_R @ local_mid
                 end_pos = current_pos + current_R @ local_end
                 ct, st = np.cos(angle), np.sin(angle)
@@ -666,7 +683,9 @@ class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
 
         return Trajectory(np.array(s_list), np.array(pos_list), np.array(rot_list))
 
-    def _build_trajectory_and_assign_s(self, element_registry: dict) -> Optional[Trajectory]:
+    def _build_trajectory_and_assign_s(
+        self, element_registry: dict
+    ) -> Optional[Trajectory]:
         """Build a :class:`~laura.models.trajectory.Trajectory` from all resolved elements.
 
         Walks elements in section order, traces the arc-length through start /
@@ -696,7 +715,11 @@ class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
             except RuntimeError:
                 continue
 
-            gap = float(np.linalg.norm(start_arr - prev_end)) if prev_end is not None else float(np.linalg.norm(start_arr))
+            gap = (
+                float(np.linalg.norm(start_arr - prev_end))
+                if prev_end is not None
+                else float(np.linalg.norm(start_arr))
+            )
             s_elem_start = current_s + gap
 
             mid_arr = np.array([phys.middle.x, phys.middle.y, phys.middle.z])
@@ -711,7 +734,9 @@ class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
 
             s_list.extend([s_elem_start, s_elem_mid, s_elem_end])
             pos_list.extend([start_arr, mid_arr, end_arr])
-            rot_list.extend([phys.rotation_matrix, phys.rotation_matrix, phys.end_rotation_matrix])
+            rot_list.extend(
+                [phys.rotation_matrix, phys.rotation_matrix, phys.end_rotation_matrix]
+            )
 
             phys.s = s_elem_mid
             phys.s_point = "middle"
@@ -800,7 +825,7 @@ class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
                 ref_R = ref_phys.end_rotation_matrix
             elif rp.point == "start":
                 ref_pos = ref_phys.start
-                ref_R = ref_phys.rotation_matrix   # entry frame = element rotation
+                ref_R = ref_phys.rotation_matrix  # entry frame = element rotation
             else:  # "middle"
                 ref_pos = ref_phys.middle
                 ref_R = ref_phys.rotation_matrix
@@ -810,7 +835,9 @@ class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
                 off = np.array([rp.offset.x, rp.offset.y, rp.offset.z])
                 delta = ref_R @ off
             elif rp.world_offset is not None:
-                delta = np.array([rp.world_offset.x, rp.world_offset.y, rp.world_offset.z])
+                delta = np.array(
+                    [rp.world_offset.x, rp.world_offset.y, rp.world_offset.z]
+                )
             elif rp.s_offset is not None:
                 # s_offset is a scalar along the local beam direction (z-axis of ref frame)
                 delta = ref_R @ np.array([0.0, 0.0, rp.s_offset])
@@ -876,8 +903,7 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
 
         if isinstance(lattice_type, list):
             return {
-                normalise_lattice_type(value, context=context)
-                for value in lattice_type
+                normalise_lattice_type(value, context=context) for value in lattice_type
             }
 
         raise TypeError(f"{context} filter must be a str or list[str]")
@@ -953,7 +979,11 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
         List[str]
             Names of all elements.
         """
-        return [e.name for e in self._get_all_elements() if isinstance(e, PhysicalBaseElement)]
+        return [
+            e.name
+            for e in self._get_all_elements()
+            if isinstance(e, PhysicalBaseElement)
+        ]
 
     def get_element(self, name: str) -> baseElement:
         """
@@ -1210,14 +1240,15 @@ class MachineModel(ModelBase, _MachineModelBase):
 
         if isinstance(lattice_type, list):
             return {
-                normalise_lattice_type(value, context=context)
-                for value in lattice_type
+                normalise_lattice_type(value, context=context) for value in lattice_type
             }
 
         raise TypeError(f"{context} filter must be a str or list[str]")
 
     @staticmethod
-    def _normalise_section_definitions(sections: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def _normalise_section_definitions(
+        sections: Dict[str, Any],
+    ) -> Dict[str, Dict[str, Any]]:
         normalised_sections = {}
 
         for section_name, section_data in sections.items():
@@ -1235,9 +1266,7 @@ class MachineModel(ModelBase, _MachineModelBase):
                     context=f"section '{section_name}'",
                 )
             else:
-                raise TypeError(
-                    f"Section '{section_name}' must be a list or dict"
-                )
+                raise TypeError(f"Section '{section_name}' must be a list or dict")
 
             if not isinstance(elements, list):
                 raise TypeError(f"Section '{section_name}' elements must be a list")
@@ -1509,10 +1538,7 @@ class MachineModel(ModelBase, _MachineModelBase):
             if area in self.sections:
                 continue
 
-            order = [
-                e["name"] if isinstance(e, dict) else e.name
-                for e in new_elements
-            ]
+            order = [e["name"] if isinstance(e, dict) else e.name for e in new_elements]
 
             self.sections[area] = SectionLattice(
                 name=area,
@@ -1549,12 +1575,12 @@ class MachineModel(ModelBase, _MachineModelBase):
                     area,
                     section_definition,
                 )
-                new_elements = [
-                    by_name[name]
-                    for name in elem_names
-                    if name in by_name
-                ]
-                _log.debug("Section %s elements=(%s)", area, [elem.name for elem in new_elements])
+                new_elements = [by_name[name] for name in elem_names if name in by_name]
+                _log.debug(
+                    "Section %s elements=(%s)",
+                    area,
+                    [elem.name for elem in new_elements],
+                )
                 self.sections[area] = SectionLattice(
                     name=area,
                     elements=new_elements,
@@ -1575,11 +1601,13 @@ class MachineModel(ModelBase, _MachineModelBase):
                             self._section_definitions[area],
                         )
                         new_elements = [
-                            by_name[name]
-                            for name in elem_names
-                            if name in by_name
+                            by_name[name] for name in elem_names if name in by_name
                         ]
-                        _log.debug("Section %s elements=(%s)", area, [elem.name for elem in new_elements])
+                        _log.debug(
+                            "Section %s elements=(%s)",
+                            area,
+                            [elem.name for elem in new_elements],
+                        )
                         self.sections[area] = SectionLattice(
                             name=area,
                             elements=new_elements,

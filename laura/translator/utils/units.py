@@ -1,7 +1,6 @@
-import warnings
 import numpy as np
+
 from .pmd_units import unit
-import re
 
 try:
     np.warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
@@ -60,7 +59,7 @@ SHORT_PREFIX_FACTOR = {
 # Inverse
 SHORT_PREFIX = dict((v, k) for k, v in SHORT_PREFIX_FACTOR.items())
 
-RF_BANDS: {
+RF_BANDS = {
     "HF": [3e6, 3e7],
     "VHF": [3e7, 3e8],
     "UHF": [3e8, 1e9],
@@ -189,7 +188,7 @@ def unit_fraction(string):
                     substrings.append(substring)
                 substring = ""
                 if individe and inbracket:
-                    substrings = nom
+                    substrings = num
                 else:
                     substrings = denom
             else:
@@ -355,6 +354,15 @@ class UnitValue(np.ndarray):
         """
         self.units = getattr(obj, "units", "")
 
+    def __reduce__(self):
+        """Keep the units through a pickle."""
+        reconstruct, args, state = super().__reduce__()
+        return reconstruct, args, state + (self.units,)
+
+    def __setstate__(self, state):
+        self.units = state[-1]
+        super().__setstate__(state[:-1])
+
     # def __array_wrap__(self, obj, context=None):
     #     result = obj.view(type(self))
     #     # try:
@@ -384,9 +392,7 @@ class UnitValue(np.ndarray):
         else:
             outputs = (None,) * ufunc.nout
         # call numpys implementation of __array_ufunc__
-        results = super().__array_ufunc__(
-            ufunc, method, *args, **kwargs
-        )  # pylint: disable=no-member
+        results = super().__array_ufunc__(ufunc, method, *args, **kwargs)  # pylint: disable=no-member
         # print(results)
         if results is NotImplemented:
             return NotImplemented

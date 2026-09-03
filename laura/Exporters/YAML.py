@@ -1,16 +1,48 @@
 import logging
 import os
+from typing import Literal, Optional, Union
+
 import yaml
-from typing import Union, Literal, Optional
-from ..models.elementList import MachineModel, MachineLayout, SectionLattice
+
 from ..models.element import PhysicalElement
+from ..models.elementList import MachineLayout, MachineModel, SectionLattice
 from ..models.magnetic import MagneticElement
+from ..translator.utils.fields import field
 
 _log = logging.getLogger("laura.exporter.yaml")
 
 PositionMode = Literal["global", "s", "reference"]
 
 ExportSource = Union[SectionLattice, MachineLayout, MachineModel]
+
+_FIELD_SLOTS = ("field_definition", "wakefield_definition")
+
+
+def _externalise_fields(ele, directory: str | None):
+    """Write out any field the element carries as samples rather than as a name.
+
+    Returns a shallow copy of *ele* holding the file names; the caller's model
+    keeps its samples.
+    """
+    simulation = getattr(ele, "simulation", None)
+    if simulation is None or directory is None:
+        return ele
+    written = {}
+    for slot in _FIELD_SLOTS:
+        value = getattr(simulation, slot, None)
+        if not isinstance(value, field) or not value.read or not value.filename:
+            continue
+        sidecar = value.model_copy()
+        sidecar.filename = os.path.abspath(
+            os.path.join(directory, os.path.basename(value.filename))
+        )
+        path = sidecar.write_field_file(code="hdf5", location=sidecar.filename)
+        replacement = field(field_type=value.field_type)
+        replacement.filename = path or sidecar.filename
+        written[slot] = replacement
+    if not written:
+        return ele
+    return ele.model_copy(update={"simulation": simulation.model_copy(update=written)})
 
 
 def represent_tuple(dumper, data):
@@ -30,14 +62,12 @@ def _clean_export_data(data: dict, ele: PhysicalElement) -> dict:
     # --- Computed fields on PhysicalElement ---
     if "physical" in data and isinstance(data["physical"], dict):
         data["physical"].pop("_physical_angle", None)
-        # exclude_defaults=True can silently drop 'middle' when it equals the
-        # all-zero Position() default (e.g. an element sitting at the global
-        # origin). If 's' is present, 'middle' must be too — otherwise this
-        # element alone round-trips as s-only and conflicts with sibling
-        # elements that do have 'middle', tripping the mixed-coordinate-
-        # system check on reload.
         phys_dict = data["physical"]
-        if "s" in phys_dict and "middle" not in phys_dict and ele.physical.middle is not None:
+        if (
+            "s" in phys_dict
+            and "middle" not in phys_dict
+            and ele.physical.middle is not None
+        ):
             phys_dict["middle"] = ele.physical.middle.model_dump(exclude_defaults=True)
 
     # --- Computed fields on MagneticElement / Dipole_Magnet ---
@@ -90,7 +120,9 @@ def _apply_position_mode(
                 phys_dict["s_point"] = phys.s_point
 
     elif mode == "reference":
-        prev_phys = getattr(prev_ele, "physical", None) if prev_ele is not None else None
+        prev_phys = (
+            getattr(prev_ele, "physical", None) if prev_ele is not None else None
+        )
         if (
             prev_name is not None
             and prev_phys is not None
@@ -142,7 +174,9 @@ def _iter_section_order(source: ExportSource):
 
     seen: set = set()
     for section in sections:
-        section_registry = registry if registry is not None else section.elements.elements
+        section_registry = (
+            registry if registry is not None else section.elements.elements
+        )
         prev_name: Optional[str] = None
         prev_elem = None
         for name in section.order:
@@ -167,6 +201,7 @@ def export_as_yaml(
     *,
     prev_name: Optional[str] = None,
     prev_ele=None,
+    field_directory: Optional[str] = None,
 ) -> Union[dict, None]:
     """Export a single element as YAML.
 
@@ -192,7 +227,13 @@ def export_as_yaml(
         ``"reference"`` mode).
     prev_ele:
         Preceding element object (used by ``"reference"`` mode).
+    field_directory:
+        Where to write any field the element holds as samples rather than as a
+        file name. Defaults to *filename*'s own directory.
     """
+    if field_directory is None and filename is not None:
+        field_directory = os.path.dirname(os.path.abspath(filename))
+    ele = _externalise_fields(ele, field_directory)
     try:
         dump = ele.base_model_dump(exclude_defaults=True)
     except Exception:
@@ -232,7 +273,12 @@ def export_machine_combined_file(
     combined_yaml = {}
     for name, elem, prev_name, prev_elem in _iter_section_order(machine):
         combined_yaml[name] = export_as_yaml(
-            None, elem, position_mode, prev_name=prev_name, prev_ele=prev_elem
+            None,
+            elem,
+            position_mode,
+            prev_name=prev_name,
+            prev_ele=prev_elem,
+            field_directory=path,
         )
     with open(filename, "w") as yaml_file:
         yaml.default_flow_style = True

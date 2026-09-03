@@ -1,5 +1,6 @@
 """Focused regression tests for native Bmad lattice export."""
 
+import warnings
 from itertools import permutations
 
 import numpy as np
@@ -25,6 +26,7 @@ from laura.models.element import (  # noqa: E402
     Quadrupole,
     RFCavity,
     RFDeflectingCavity,
+    Screen,
     Solenoid,
     TwissMatch,
     Wakefield,
@@ -823,3 +825,182 @@ def test_bmad_export_invents_no_run_up_without_a_declared_start():
 
     assert "lead_drift" not in text
     assert "S: line = (Q)" in text
+
+
+def _reserved_name_section(extra=()):
+    """A section whose markers carry names Bmad keeps for itself."""
+    elements = [
+        Quadrupole(
+            name="Q",
+            machine_area="S",
+            magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+            physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
+        ),
+        Marker(
+            name="BEGINNING",
+            machine_area="S",
+            physical=PhysicalElement(length=0.0, middle=Position(z=0.5)),
+        ),
+        Marker(
+            name="END",
+            machine_area="S",
+            physical=PhysicalElement(length=0.0, middle=Position(z=1.0)),
+        ),
+    ]
+    order = ["Q", "BEGINNING", "END"]
+    for offset, name in enumerate(extra, start=2):
+        elements.append(
+            Marker(
+                name=name,
+                machine_area="S",
+                physical=PhysicalElement(length=0.0, middle=Position(z=offset)),
+            )
+        )
+        order.append(name)
+    return SectionLattice(name="S", order=order, elements=elements, geometry="open")
+
+
+def test_bmad_export_renames_the_names_bmad_keeps_for_itself():
+    """Bmad refuses a lattice outright if an element is called BEGINNING --
+    ``RESERVED WORD`` from the parser -- and silently confuses one called END
+    with the end-of-branch element it makes itself. Neither is hypothetical:
+    the LCLS cu_hxr lattice ends on a marker named END, and importing it and
+    writing it back produced a file Bmad could not round-trip.
+    """
+    with pytest.warns(UserWarning, match="END -> END_ELEMENT"):
+        text = SectionLatticeTranslator.from_section(_reserved_name_section()).to_bmad()
+
+    assert "END_ELEMENT: marker" in text
+    assert "BEGINNING_ELEMENT: marker" in text
+    assert "END_ELEMENT, " in text or "END_ELEMENT)" in text
+    assert "BEGINNING_ELEMENT," in text
+    # The definitions and the line have to agree, or the line names an element
+    # that was never defined.
+    line = next(line for line in text.splitlines() if line.startswith("S: line"))
+    assert "END_ELEMENT" in line and "BEGINNING_ELEMENT" in line
+
+
+def test_bmad_export_leaves_unreserved_names_exactly_as_they_were():
+    """The rename must be surgical. ENDGUN, ENDL0 and ENDDMPH all sit in the
+    same lattice as END and none of them are reserved.
+    """
+    section = _reserved_name_section(extra=("ENDGUN", "ENDL0"))
+    with pytest.warns(UserWarning, match="reserves"):
+        text = SectionLatticeTranslator.from_section(section).to_bmad()
+
+    assert "ENDGUN: marker" in text
+    assert "ENDL0: marker" in text
+    assert "ENDGUN_ELEMENT" not in text
+    assert "ENDL0_ELEMENT" not in text
+
+
+def test_bmad_export_does_not_collide_a_rename_with_itself():
+    """The exporter offers every name twice -- once as a definition, once as a
+    line member. Renaming on the second sighting used to walk into the
+    replacement the first sighting had just claimed, so cu_hxr's END came out
+    as END_ELEMENT_2 with nothing called END_ELEMENT anywhere in the file.
+    """
+    with pytest.warns(UserWarning, match="reserves"):
+        text = SectionLatticeTranslator.from_section(_reserved_name_section()).to_bmad()
+
+    assert "END_ELEMENT_2" not in text
+    assert "BEGINNING_ELEMENT_2" not in text
+
+
+def test_bmad_rename_steps_over_a_name_already_in_the_lattice():
+    """Only if the obvious replacement is taken does the counter come out."""
+    section = _reserved_name_section(extra=("END_ELEMENT",))
+    with pytest.warns(UserWarning, match="END -> END_ELEMENT_2"):
+        text = SectionLatticeTranslator.from_section(section).to_bmad()
+
+    # The pre-existing element keeps its name; the reserved one steps past it.
+    assert text.count("END_ELEMENT: marker") == 1
+    assert "END_ELEMENT_2: marker" in text
+
+
+def test_bmad_export_of_an_unreserved_lattice_warns_about_nothing():
+    section = SectionLattice(
+        name="S",
+        order=["Q"],
+        elements=[
+            Quadrupole(
+                name="Q",
+                machine_area="S",
+                magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+                physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
+            )
+        ],
+        geometry="open",
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        text = SectionLatticeTranslator.from_section(section).to_bmad()
+
+    assert "_ELEMENT" not in text
+
+
+def _thick_diagnostic_section():
+    """A screen that genuinely occupies 0.3 m, between two quadrupoles."""
+    return SectionLattice(
+        name="S",
+        order=["Q1", "SCR", "Q2"],
+        elements=[
+            Quadrupole(
+                name="Q1",
+                machine_area="S",
+                magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+                physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
+            ),
+            Screen(
+                name="SCR",
+                machine_area="S",
+                physical=PhysicalElement(length=0.3, middle=Position(z=1.15)),
+            ),
+            Quadrupole(
+                name="Q2",
+                machine_area="S",
+                magnetic={"magnetic_length": 0.5, "k1l": -0.3},
+                physical=PhysicalElement(length=0.5, middle=Position(z=2.05)),
+            ),
+        ],
+        geometry="open",
+    )
+
+
+def test_bmad_export_keeps_a_thick_diagnostic_thick():
+    """createDrifts() collapses a Diagnostic to a point because not every code
+    can express a marker that occupies space. Bmad's monitor and instrument
+    both take an ``l``, so collapsing it there moves the recorded position half
+    an element-length upstream of where the diagnostic really sits -- worth
+    150 mm on an LCLS screen.
+    """
+    text = SectionLatticeTranslator.from_section(_thick_diagnostic_section()).to_bmad()
+
+    assert "SCR: instrument, l = 0.3" in text
+
+
+def test_bmad_export_does_not_shorten_the_lattice_it_was_given():
+    """Whether the diagnostic keeps its length or the drifts either side
+    absorb it, the section has to come out the same length.
+    """
+    text = SectionLatticeTranslator.from_section(_thick_diagnostic_section()).to_bmad()
+
+    total = 0.0
+    for line in text.splitlines():
+        if ": drift, l = " in line or ": instrument, l = " in line:
+            total += float(line.rsplit("= ", 1)[1])
+        elif ": quadrupole" in line:
+            total += float(line.split("l = ")[1].split(",")[0])
+    assert total == pytest.approx(2.3)
+
+
+def test_bmad_export_leaves_the_model_it_exported_alone():
+    """The collapse used to be an assignment straight into the caller's model,
+    so one export permanently zeroed every diagnostic length in it -- and
+    every later export, to any code or back to YAML, inherited the loss.
+    """
+    section = _thick_diagnostic_section()
+    SectionLatticeTranslator.from_section(section).to_bmad()
+    SectionLatticeTranslator.from_section(section).to_bmad()
+
+    assert section.elements["SCR"].physical.length == 0.3

@@ -17,12 +17,12 @@ from laura.translator.converters.codes.bmad import (
     _switch_dict,
     _taylor_matrices,
 )
+from laura.translator.converters.converter import translate_elements
 from laura.translator.utils.bmad import (
     bmad_floor_angles_from_matrix,
     bmad_floor_angles_to_laura,
     bmad_floor_rotation_matrix,
 )
-from laura.translator.converters.converter import translate_elements
 from laura.utils.rotation_matrix import euler_angles_to_rotation_matrix
 
 
@@ -284,6 +284,7 @@ def test_bmad_additional_element_mappings():
     importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
     importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
     importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
+    importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
     elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
         "LINE_1"
     ]
@@ -341,6 +342,7 @@ def test_bmad_fixers_and_empty_multipoles_are_kept_as_markers():
     importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
     importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
     importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
+    importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
 
     with pytest.warns(UserWarning) as record:
         elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
@@ -349,8 +351,7 @@ def test_bmad_fixers_and_empty_multipoles_are_kept_as_markers():
 
     messages = [str(warning.message) for warning in record]
     assert any(
-        "Fixer 'fixer' is not the active fixer" in m and "Marker" in m
-        for m in messages
+        "Fixer 'fixer' is not the active fixer" in m and "Marker" in m for m in messages
     )
     assert any(
         "'bare_multipole' has no multipole content" in m and "Marker" in m
@@ -458,6 +459,7 @@ def _patch_importer(position_mode):
     importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
     importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
     importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
+    importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
     return importer
 
 
@@ -515,9 +517,17 @@ def test_bmad_patch_reference_energy_jump_warns_in_every_mode(position_mode):
     assert "moves the reference frame" not in messages[0]
 
 
-def test_bmad_non_positive_n_cell_falls_back_to_a_single_cell():
-    """Bmad leaves ``n_cell`` at a non-positive sentinel when a cavity's active
-    region is not defined by a cell count."""
+def test_bmad_non_positive_n_cell_fills_the_element_with_cells():
+    """``n_cell = -1`` is a request to fill the cavity, not an absent value.
+
+    Bmad's cells are half an RF wavelength long, and a non-positive ``n_cell``
+    asks it to fit as many of them into the element as it can; the length it
+    settles on comes back as ``l_active``. Reading the sentinel as a single
+    cell used to shrink a 3 m S-band structure's active region to 52 mm, which
+    leaves the energy gain intact -- that comes from ``voltage`` -- and throws
+    the RF focusing away. Tracking the LCLS CU_HXR L1 cavity both ways puts the
+    exit beta at 3.41 m against Bmad's own 6.53 m.
+    """
     names = ["sentinel_cav", "nine_cell_cav"]
     importer = SimpleNamespace(
         names_numbered={1: {"LINE_1": names}},
@@ -550,18 +560,19 @@ def test_bmad_non_positive_n_cell_falls_back_to_a_single_cell():
     importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
     importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
     importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
+    importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
 
     elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
         "LINE_1"
     ]
 
     sentinel = elements["sentinel_cav"]
-    assert sentinel.cavity.n_cells == 1
-    assert sentinel.cavity.cell_length == pytest.approx(3.0441)
-    # A genuine cell count is still honoured.
+    assert sentinel.cavity.cell_length == pytest.approx(299792458.0 / (2 * 2.856e9))
+    assert sentinel.cavity.n_cells == 57
+    assert sentinel.cavity.n_cells * sentinel.cavity.cell_length <= 3.0441
     nine = elements["nine_cell_cav"]
     assert nine.cavity.n_cells == 9
-    assert nine.cavity.cell_length == pytest.approx(1.0)
+    assert nine.cavity.cell_length == pytest.approx(299792458.0 / (2 * 1.3e9))
 
 
 def test_bmad_taylor_reference_orbit_feeddown():

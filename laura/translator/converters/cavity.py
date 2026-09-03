@@ -144,14 +144,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 "travellingwave": "traveling_wave",
                 "travelingwave": "traveling_wave",
             }.get(structure, structure)
-        if self._wakefield_active():
-            wake = self.generate_field_file_name(
-                self.simulation.wakefield_definition,
-                code="bmad",
-                verbose=getattr(self, "verbose", True),
-            )
-            if wake:
-                parameters["sr_wake"] = f"call::{wake}"
+        self._bmad_sr_wake(parameters)
         return self._format_bmad(etype, parameters)
 
     def set_wakefield_column_names(self, wakefield_file_name: str) -> None:
@@ -176,32 +169,6 @@ class RFCavityTranslator(BaseElementTranslator):
         ):
             self.trwakefile = '"' + wakefield_file_name + '"'
             return
-
-    def _wakefield_active(self) -> bool:
-        """
-        Whether this cavity should be written with its wakefield applied.
-
-        False if wakefields have been switched off for the element, if no
-        wakefield definition is set, or if the definition carries no usable
-        data.
-
-        Returns
-        -------
-        bool
-            True if a usable wakefield is defined and enabled
-        """
-        if not getattr(self.simulation, "wakefield_enable", True):
-            return False
-        wake = self.simulation.wakefield_definition
-        if wake is None or wake == "":
-            return False
-        if not isinstance(wake, str):
-            # a field object: only usable if it has a longitudinal coordinate
-            try:
-                wake.z_values
-            except Exception:
-                return False
-        return True
 
     def to_elegant(self) -> str:
         """

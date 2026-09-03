@@ -3,11 +3,12 @@ import re
 import tempfile
 from itertools import permutations
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, get_args
 from warnings import warn
 
 import numpy as np
 from pydantic import BaseModel, Field, PrivateAttr, model_validator
+from scipy.constants import speed_of_light
 
 import laura.models.element as LAURA_elements
 from laura.models.element import (
@@ -24,8 +25,17 @@ from laura.models.elementList import (
 )
 
 from ....Exporters.YAML import PositionMode, export_machine_combined_file
-from ...utils.bmad import bmad_floor_angles_to_laura, is_flat_roll, is_half_turn
+from ...utils.bmad import (
+    BMAD_SR_WAKE_SAMPLES,
+    bmad_floor_angles_to_laura,
+    is_flat_roll,
+    is_half_turn,
+    sample_bmad_sr_wake,
+)
+from ...utils.fields import field
+from ...utils.fields.FieldParameter import FieldParameter
 from ...utils.functions import merge_layout_elements, number_repeated_names
+from ...utils.units import UnitValue
 from .. import keyword_conversion_rules_bmad, type_conversion_rules_Bmad
 from . import magnetic_orders
 
@@ -218,6 +228,133 @@ def _read_lattice_text(path: Path, _seen: Optional[set] = None) -> str:
     return re.sub(r"(?im)^\s*call\s*,\s*file\s*=\s*([^\s;]+)\s*;?\s*$", _inline, text)
 
 
+def _bmad_cavity_cells(
+    n_cell: Any, l_active: Any, length: float, cell_length: float
+) -> int:
+    """How many cells Bmad actually gave a cavity, not how many were asked for.
+
+    ``n_cell`` is a request. A non-positive value -- ``-1`` is what the LCLS
+    linac uses -- means "fill the element with as many half-wavelength cells as
+    will fit", and Bmad reports the length it settled on in ``l_active``. A
+    positive value is still capped the same way: a nine-cell request in a
+    one-cell-long element gets one cell.
+
+    Reading the sentinel as a single cell shrank a 2.87 m S-band structure's
+    active region to 52 mm. The energy gain survives that, because it comes
+    from ``voltage``, but the RF focusing does not: the exit beta of the first
+    L1 cavity came out at 3.41 m against Bmad's own 6.53 m.
+    """
+    if cell_length <= 0.0:
+        return int(n_cell) if n_cell and n_cell >= 1 else 1
+    fits = int(length // cell_length)
+    if n_cell and n_cell >= 1:
+        wanted = int(n_cell)
+    elif l_active:
+        wanted = round(l_active / cell_length)
+    else:
+        wanted = fits
+    return max(min(wanted, fits), 1)
+
+
+def _wake_tables(tao, element_id: str) -> Dict[str, Any] | None:
+    """Read one element's short-range wake, or ``None`` if it has none.
+
+    ``ele_wake`` is the only wake accessor pytao offers, and it *errors* rather
+    than returning empty for an element without a wake, so the exception is the
+    test. Read the scalars from here rather than from the ``call::`` file the
+    lattice names: the file's values may be expressions the lattice evaluates
+    (``z_scale = 1/0.0017``) and the lattice may override them per element
+    (``RWWAKE3H[sr_wake%amp_scale] = 182``).
+    """
+    try:
+        base = tao.ele_wake(element_id, who="base")
+    except Exception:
+        return None
+    if not base:
+        return None
+
+    def table(who: str) -> List[Any]:
+        try:
+            return list(tao.ele_wake(element_id, who=who) or [])
+        except Exception:
+            return []
+
+    tables = {
+        "base": base,
+        "sr_long": table("sr_long_table"),
+        "sr_trans": table("sr_trans_table"),
+    }
+    if not tables["sr_long"] and not tables["sr_trans"]:
+        # A long-range wake, a tabulated z-wake, or a wake struct that carries
+        # nothing this importer reads. Say so once rather than dropping it in
+        # silence.
+        if base.get("has#lr_mode") or base.get("has#sr_z_long"):
+            warn(
+                f"Bmad element {element_id!r} carries a long-range or "
+                "tabulated short-range wake. Only short-range pseudo-mode "
+                "wakes are imported, so this one is dropped."
+            )
+        return None
+    return tables
+
+
+def _lord_wakes(tao, universe: int, branch_index: int) -> Dict[int, Dict[str, Any]]:
+    """Wakes that live on a super-lord, keyed by the tracking index they act on.
+
+    ``lat_list`` returns the tracking elements only. A structure Bmad has split
+    -- ``K30_6A`` into ``K30_6A#1`` .. ``#6`` -- keeps its wake on the lord, and
+    ``ele_wake`` on a slave errors. In LCLS ``cu_hxr`` that is 84 of the 300
+    elements carrying a wake, all of them accelerating structures, so skipping
+    the lord region loses most of the linac's longitudinal wake.
+    """
+    found: Dict[int, Dict[str, Any]] = {}
+    try:
+        info = tao.lat_branch_list(ix_uni=universe)[branch_index]
+        first, last = int(info["n_ele_track"]) + 1, int(info["n_ele_max"])
+    except Exception:
+        return found
+    for index in range(first, last + 1):
+        element_id = f"{universe}@{branch_index}>>{index}"
+        tables = _wake_tables(tao, element_id)
+        if not tables:
+            continue
+        try:
+            rows = tao.ele_lord_slave(element_id)
+        except Exception:
+            continue
+        location = f"{branch_index}>>{index}"
+        # The response walks the whole hierarchy; the section that opens on
+        # this element is the only one whose slaves are its own.
+        mine = False
+        for row in rows:
+            if row.get("type") == "Element":
+                mine = row.get("location_name") == location
+            elif mine and row.get("type") == "Slave":
+                slave = str(row.get("location_name") or "")
+                if slave.startswith(f"{branch_index}>>"):
+                    found.setdefault(int(slave.split(">>")[1]), tables)
+    return found
+
+
+def _holds_a_wake_field(hardware_type: str) -> bool:
+    """Can this LAURA element hold a sampled wake, rather than just a file name?
+
+    ``wakefield_definition`` is generated as a ``str``; only the classes that
+    widen it to ``str | field`` can take the arrays a Bmad pseudo-mode wake
+    samples down to. Asked here so an unexpected element type warns instead of
+    raising a validation error part-way through an import.
+    """
+    element = getattr(LAURA_elements, hardware_type, None)
+    simulation = getattr(element, "model_fields", {}).get("simulation")
+    if simulation is None:
+        return False
+    for candidate in get_args(simulation.annotation) or (simulation.annotation,):
+        definition = getattr(candidate, "model_fields", {}).get("wakefield_definition")
+        if definition is not None and field in get_args(definition.annotation):
+            return True
+    return False
+
+
 def _ac_kicker_data(tao, element_id: str) -> Dict[str, list]:
     # pytao cannot parse the nested ele:ac_kicker response in current releases.
     result = {"frequencies": [], "amp_vs_time": []}
@@ -320,6 +457,14 @@ class BmadLatticeImporter(BaseModel):
 
     libtao: Optional[str] = None
     """libtao.so file"""
+
+    wake_samples: int = BMAD_SR_WAKE_SAMPLES
+    """Points used when a Bmad pseudo-mode wake is sampled onto a grid.
+
+    See :data:`~laura.translator.utils.bmad.BMAD_SR_WAKE_SAMPLES`. Raising it
+    tightens the agreement with Bmad's own mode tracking at the cost of a
+    proportionally larger wake sidecar per element on export.
+    """
 
     position_mode: Literal["floor", "s"] = "floor"
     """How element placement is taken from Tao.
@@ -513,7 +658,13 @@ class BmadLatticeImporter(BaseModel):
                                 ele=f"{ind}>>{i}",
                                 s_offset=0.0,
                             )
+                    wake = _wake_tables(tao, element_id)
+                    if wake:
+                        attributes["_WAKE"] = wake
                     params.append(attributes)
+                for index, wake in _lord_wakes(tao, self.n_universes, ind).items():
+                    if 0 <= index < len(params):
+                        params[index].setdefault("_WAKE", wake)
                 self.names[self.n_universes].update({b: names})
                 self.names_numbered[self.n_universes].update({b: names_numbered})
                 self.types[self.n_universes].update({b: types})
@@ -526,6 +677,55 @@ class BmadLatticeImporter(BaseModel):
             k: [f"{i['branch_name']}_{k}" for i in tao.lat_branch_list(ix_uni=k)]
             for k in range(1, self.n_universes)
         }
+
+    def _wake_field(
+        self,
+        name: str,
+        parameters: Dict[str, Any],
+        length: float,
+        hardware_type: str,
+    ) -> Dict[str, Any]:
+        """Sample this element's Bmad wake into a LAURA ``field``, if it has one."""
+        tables = parameters.get("_WAKE")
+        if not tables:
+            return {}
+        if not _holds_a_wake_field(hardware_type):
+            warn(
+                f"Bmad element {name!r} carries a short-range wake but LAURA's "
+                f"{hardware_type} holds wakefield_definition as a file name only; "
+                "the wake was not imported."
+            )
+            return {}
+        sampled = sample_bmad_sr_wake(
+            tables["base"],
+            tables["sr_long"],
+            tables["sr_trans"],
+            length=length,
+            name=name,
+            samples=self.wake_samples,
+        )
+        if not sampled:
+            return {}
+        units = {"z": "m", "Wz": "V/C", "Wx": "V/C/m", "Wy": "V/C/m"}
+        transverse = "Wx" in sampled or "Wy" in sampled
+        if not transverse:
+            field_type = "LongitudinalWake"
+        elif "Wz" in sampled:
+            field_type = "3DWake"
+        else:
+            field_type = "TransverseWake"
+        wake = field(
+            field_type=field_type,
+            origin_code="Bmad",
+            length=length,
+            filename=re.sub(r"[^A-Za-z0-9_.-]", "_", name) + "_wake.bmad",
+            **{
+                key: FieldParameter(name=key, value=UnitValue(values, units=units[key]))
+                for key, values in sampled.items()
+            },
+        )
+        wake.read = True
+        return {"simulation": {"wakefield_definition": wake}}
 
     def _physical_common(self, universe: int, b: str, i: int) -> dict:
         """Build this element's shared ``physical`` sub-dict (position + length).
@@ -591,6 +791,12 @@ class BmadLatticeImporter(BaseModel):
                     hardware_type=hardware_type,
                     machine_area=getattr(self, "machine_area", "Lattice"),
                     **_aperture(parameters),
+                    **self._wake_field(
+                        name,
+                        parameters,
+                        float(physical.get("length") or 0.0),
+                        hardware_type,
+                    ),
                 )
             }
         )
@@ -744,22 +950,26 @@ class BmadLatticeImporter(BaseModel):
                     }
                 elif etype in _CAVITY_TYPES:
                     hardware_type = mapped_type
-                    n_cells = parameters.get(
-                        _native_keyword(hardware_type, "n_cells"), 1
+                    frequency = parameters[_native_keyword(hardware_type, "frequency")]
+                    cell_length = (
+                        speed_of_light / (2.0 * frequency) if frequency else 0.0
                     )
-                    n_cells = int(n_cells) if n_cells and n_cells >= 1 else 1
+                    n_cells = _bmad_cavity_cells(
+                        parameters.get(_native_keyword(hardware_type, "n_cells"), 1),
+                        parameters.get("L_ACTIVE"),
+                        length,
+                        cell_length,
+                    )
                     elem_data = {
                         "hardware_type": hardware_type,
                         "cavity": {
-                            "phase": parameters.get(
+                            "phase": -360.0
+                            * parameters.get(
                                 _native_keyword(hardware_type, "phase"), 0.0
-                            )
-                            * 360.0,
-                            "frequency": parameters[
-                                _native_keyword(hardware_type, "frequency")
-                            ],
+                            ),
+                            "frequency": frequency,
                             "n_cells": n_cells,
-                            "cell_length": length / n_cells,
+                            "cell_length": cell_length or length / n_cells,
                             "structure_type": str(
                                 parameters.get(
                                     _native_keyword(hardware_type, "structure_type"),
@@ -1042,6 +1252,13 @@ class BmadLatticeImporter(BaseModel):
                     )
 
                 if elem_data:
+                    wake_data = self._wake_field(
+                        nam, parameters, length, elem_data.get("hardware_type", "")
+                    )
+                    if wake_data:
+                        simulation = dict(elem_data.get("simulation") or {})
+                        simulation.update(wake_data["simulation"])
+                        elem_data["simulation"] = simulation
                     elems = {
                         nam: {
                             "physical": dict(phys_common),
