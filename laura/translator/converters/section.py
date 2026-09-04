@@ -926,7 +926,7 @@ class SectionLatticeTranslator(SectionLattice):
             simulation=DiagnosticSimulationElement(
                 output_filename="end_screen.csrtrack"
             ),
-            physical=lastelem.physical,
+            physical=lastelem.physical.model_copy(update={"middle": lastelem.physical.end}),
         )
         csrtrackstr += lastscreen.to_csrtrack(n=counter["screen"])
         csrtrackstr += "}\n"

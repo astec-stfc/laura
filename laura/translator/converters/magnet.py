@@ -340,32 +340,33 @@ class MagnetTranslator(BaseElementTranslator):
         else:
             return ""
 
-    def _write_CSRTrack(self, n: int) -> str:
+    def _write_CSRTrack_quadrupole(self, n: int) -> str:
         """
-        Writes the screen element string for CSRTrack.
+        Writes the quadrupole element string for CSRTrack.
 
         Parameters
         ----------
         n: int
-            Screen index
+            Quad index
 
         Returns
         -------
         str
             String representation of the element for CSRTrack
         """
-        z = self.physical.middle.z
+        z1 = self.physical.start.z
+        z2 = self.physical.end.z
         s_comment = f"! quad{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
         return (
             s_comment
             + """quadrupole{\nposition{rho="""
-            + str(z)
+            + str(z1)
             + """, psi=0.0, marker=quad"""
             + str(n)
             + """a}\nproperties{strength="""
             + str(self.magnetic.KnL(1))
             + """, alpha=0, horizontal_offset=0,vertical_offset=0}\nposition{rho="""
-            + str(z + self.physical.length)
+            + str(z2)
             + """, psi=0.0, marker=quad"""
             + str(n)
             + """b}\n}\n"""
@@ -981,9 +982,6 @@ class SolenoidTranslator(BaseElementTranslator):
     @computed_field
     @property
     def ks(self) -> Union[float, str]:
-        # Follows the global resolution mode: a resolved number, or the functional
-        # name (passed through symbolically to codes that support it, e.g. the
-        # ELEGANT ``ks`` keyword / Xsuite Environment variable).
         return self.magnetic.ks
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
@@ -1116,7 +1114,7 @@ class SolenoidTranslator(BaseElementTranslator):
             output = (
                 "map3D_B"
                 + '(" '
-                + ccs
+                + self.ccs.name
                 + '", '
                 + ccs_label
                 + ", "

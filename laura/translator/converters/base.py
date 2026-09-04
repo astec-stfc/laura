@@ -6,7 +6,7 @@ from laura.models.physical import PhysicalElement, Position  # noqa E402
 from laura.models.element import PhysicalBaseElement
 from laura.models.baseModels import IgnoreExtra
 from laura.utils import flatten_dict
-from typing import Dict, Any
+from typing import ClassVar, Dict, Any
 from warnings import warn
 
 from ..converters import (
@@ -799,8 +799,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
-    _KEYWORD_STRIP_PREFIXES = ["", "simulation_", "cavity_", "magnetic_", "aperture_"]
-    _KEYWORD_STRIP_PREFIXES_WAKE_T = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
+    _KEYWORD_STRIP_PREFIXES: ClassVar[list] = ["", "simulation_", "cavity_", "magnetic_", "aperture_"]
+    _KEYWORD_STRIP_PREFIXES_WAKE_T: ClassVar[list] = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
 
     @staticmethod
     def _convert_type(etype: str, rules: dict, default):
