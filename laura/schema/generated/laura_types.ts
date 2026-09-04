@@ -1654,7 +1654,7 @@ export interface Octupole extends Magnet {
 
 
 /**
- * Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. length, order, tilt, multipoles, field_integral_coefficients and linear_saturation_coefficients are all inherited from Dipole_Magnet / MagneticElement.
+ * Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  Dipole_Magnet / MagneticElement.
  */
 export interface CorrectorMagnet extends DipoleMagnet {
     /** Horizontal deflection [rad]. May be a functional expression. Derived from multipoles.K0L.normal. */
@@ -1675,6 +1675,17 @@ export interface HorizontalCorrector extends Dipole {
  * Vertical steering corrector.
  */
 export interface VerticalCorrector extends Dipole {
+}
+
+
+/**
+ * The pair of steering-corrector fields inside one combined corrector. The two planes are separate magnets with separate windings, so they must not share a magnetic model: in the CLARA magnet table the horizontal and vertical halves of a single unit have different slope [units/A] and different magnetic lengths, so one shared calibration converts current to angle correctly for at most one of the two planes.
+ */
+export interface CombinedCorrectorMagnet {
+    /** Horizontal-plane corrector field, with its own calibration. */
+    horizontal?: CorrectorMagnet,
+    /** Vertical-plane corrector field, with its own calibration. */
+    vertical?: CorrectorMagnet,
 }
 
 

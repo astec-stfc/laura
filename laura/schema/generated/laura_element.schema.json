@@ -2043,7 +2043,7 @@
         "magnetic": {
           "anyOf": [
             {
-              "$ref": "#/$defs/CorrectorMagnet"
+              "$ref": "#/$defs/CombinedCorrectorMagnet"
             },
             {
               "type": "null"
@@ -2139,6 +2139,36 @@
         "hardware_class"
       ],
       "title": "CombinedCorrector",
+      "type": "object"
+    },
+    "CombinedCorrectorMagnet": {
+      "additionalProperties": false,
+      "description": "The pair of steering-corrector fields inside one combined corrector. The two planes are separate magnets with separate windings, so they must not share a magnetic model: in the CLARA magnet table the horizontal and vertical halves of a single unit have different slope [units/A] and different magnetic lengths, so one shared calibration converts current to angle correctly for at most one of the two planes.",
+      "properties": {
+        "horizontal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrectorMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Horizontal-plane corrector field, with its own calibration."
+        },
+        "vertical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrectorMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vertical-plane corrector field, with its own calibration."
+        }
+      },
+      "title": "CombinedCorrectorMagnet",
       "type": "object"
     },
     "ControlTypeEnum": {
@@ -2295,7 +2325,7 @@
     },
     "CorrectorMagnet": {
       "additionalProperties": false,
-      "description": "Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. length, order, tilt, multipoles, field_integral_coefficients and linear_saturation_coefficients are all inherited from Dipole_Magnet / MagneticElement.",
+      "description": "Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  Dipole_Magnet / MagneticElement.",
       "properties": {
         "angle": {
           "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",

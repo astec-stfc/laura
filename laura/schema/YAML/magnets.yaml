@@ -158,6 +158,18 @@ classes:
         equals_string: Vertical_Corrector
         ifabsent: Vertical_Corrector
 
+  Combined_Corrector_Magnet:
+    description: >-
+      The pair of steering-corrector fields inside one combined corrector.
+    class_uri: laura:Combined_Corrector_Magnet
+    attributes:
+      horizontal:
+        range: Corrector_Magnet
+        description: Horizontal-plane corrector field, with its own calibration.
+      vertical:
+        range: Corrector_Magnet
+        description: Vertical-plane corrector field, with its own calibration.
+
   CombinedCorrector:
     is_a: Dipole
     description: >-
@@ -166,7 +178,7 @@ classes:
     class_uri: laura:CombinedCorrector
     slot_usage:
       magnetic:
-        range: Corrector_Magnet
+        range: Combined_Corrector_Magnet
       hardware_type:
         equals_string: Combined_Corrector
         ifabsent: Combined_Corrector

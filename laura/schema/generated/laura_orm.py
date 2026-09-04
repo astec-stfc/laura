@@ -1241,6 +1241,27 @@ class PlasmaElement(Base):
     
 
 
+class CombinedCorrectorMagnet(Base):
+    """
+    The pair of steering-corrector fields inside one combined corrector. The two planes are separate magnets with separate windings, so they must not share a magnetic model: in the CLARA magnet table the horizontal and vertical halves of a single unit have different slope [units/A] and different magnetic lengths, so one shared calibration converts current to angle correctly for at most one of the two planes.
+    """
+    __tablename__ = 'Combined_Corrector_Magnet'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    horizontal_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
+    horizontal = relationship("CorrectorMagnet", uselist=False, foreign_keys=[horizontal_id])
+    vertical_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
+    vertical = relationship("CorrectorMagnet", uselist=False, foreign_keys=[vertical_id])
+    
+
+    def __repr__(self):
+        return f"Combined_Corrector_Magnet(id={self.id},horizontal_id={self.horizontal_id},vertical_id={self.vertical_id},)"
+
+
+
+    
+
+
 class SolenoidFields(Base):
     """
     Solenoid integrated axial field components ``S0L``–``S12L`` [T.m].
@@ -7808,7 +7829,7 @@ class LaserAttenuator(StandardElement):
 
 class CorrectorMagnet(DipoleMagnet):
     """
-    Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. length, order, tilt, multipoles, field_integral_coefficients and linear_saturation_coefficients are all inherited from Dipole_Magnet / MagneticElement.
+    Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  Dipole_Magnet / MagneticElement.
     """
     __tablename__ = 'Corrector_Magnet'
 
@@ -10224,8 +10245,8 @@ class CombinedCorrector(Dipole):
     machine_area = Column(Text())
     virtual_name = Column(Text())
     subelement = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
-    magnetic = relationship("CorrectorMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic_id = Column(Integer(), ForeignKey('Combined_Corrector_Magnet.id'))
+    magnetic = relationship("CombinedCorrectorMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))

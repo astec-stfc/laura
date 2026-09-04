@@ -104,8 +104,8 @@ URI: [laura:CombinedCorrector](https://w3id.org/laura/CombinedCorrector)
     
         
         
-        CombinedCorrector --> "0..1" CorrectorMagnet : magnetic
-        click CorrectorMagnet href "../CorrectorMagnet/"
+        CombinedCorrector --> "0..1" CombinedCorrectorMagnet : magnetic
+        click CombinedCorrectorMagnet href "../CombinedCorrectorMagnet/"
     
 
         
@@ -213,7 +213,7 @@ URI: [laura:CombinedCorrector](https://w3id.org/laura/CombinedCorrector)
 | ---  | --- | --- | --- |
 | [Horizontal_Corrector](Horizontal_Corrector.md) | 0..1 <br/> [String](String.md) | Name of the horizontal-plane corrector element | direct |
 | [Vertical_Corrector](Vertical_Corrector.md) | 0..1 <br/> [String](String.md) | Name of the vertical-plane corrector element | direct |
-| [magnetic](magnetic.md) | 0..1 <br/> [CorrectorMagnet](CorrectorMagnet.md) | Magnetic field parameters | [Magnet](Magnet.md) |
+| [magnetic](magnetic.md) | 0..1 <br/> [CombinedCorrectorMagnet](CombinedCorrectorMagnet.md) | Magnetic field parameters | [Magnet](Magnet.md) |
 | [degauss](degauss.md) | 0..1 <br/> [DegaussableElement](DegaussableElement.md) | Degaussing-cycle parameters | [Magnet](Magnet.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
@@ -290,7 +290,7 @@ is_a: Dipole
 slot_usage:
   magnetic:
     name: magnetic
-    range: Corrector_Magnet
+    range: Combined_Corrector_Magnet
   hardware_type:
     name: hardware_type
     ifabsent: Combined_Corrector
@@ -329,7 +329,7 @@ is_a: Dipole
 slot_usage:
   magnetic:
     name: magnetic
-    range: Corrector_Magnet
+    range: Combined_Corrector_Magnet
   hardware_type:
     name: hardware_type
     ifabsent: Combined_Corrector
@@ -363,7 +363,7 @@ attributes:
     owner: CombinedCorrector
     domain_of:
     - Magnet
-    range: Corrector_Magnet
+    range: Combined_Corrector_Magnet
   degauss:
     name: degauss
     description: Degaussing-cycle parameters.

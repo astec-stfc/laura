@@ -1,7 +1,7 @@
 # Class: CorrectorMagnet 
 
 
-_Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. length, order, tilt, multipoles, field_integral_coefficients and linear_saturation_coefficients are all inherited from Dipole_Magnet / MagneticElement._
+_Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  Dipole_Magnet / MagneticElement._
 
 
 
@@ -177,7 +177,8 @@ URI: [laura:Corrector_Magnet](https://w3id.org/laura/Corrector_Magnet)
 | ---  | --- | --- | --- |
 | [HorizontalCorrector](HorizontalCorrector.md) | [magnetic](magnetic.md) | range | [CorrectorMagnet](CorrectorMagnet.md) |
 | [VerticalCorrector](VerticalCorrector.md) | [magnetic](magnetic.md) | range | [CorrectorMagnet](CorrectorMagnet.md) |
-| [CombinedCorrector](CombinedCorrector.md) | [magnetic](magnetic.md) | range | [CorrectorMagnet](CorrectorMagnet.md) |
+| [CombinedCorrectorMagnet](CombinedCorrectorMagnet.md) | [horizontal](horizontal.md) | range | [CorrectorMagnet](CorrectorMagnet.md) |
+| [CombinedCorrectorMagnet](CombinedCorrectorMagnet.md) | [vertical](vertical.md) | range | [CorrectorMagnet](CorrectorMagnet.md) |
 
 
 
@@ -227,8 +228,7 @@ URI: [laura:Corrector_Magnet](https://w3id.org/laura/Corrector_Magnet)
 name: Corrector_Magnet
 description: 'Steering-corrector field. A dipole magnet whose order-0 multipole is
   addressed by beam plane: the normal component is the horizontal kick and the skew
-  component is the vertical kick. length, order, tilt, multipoles, field_integral_coefficients
-  and linear_saturation_coefficients are all inherited from Dipole_Magnet / MagneticElement.'
+  component is the vertical kick. Inherits from  Dipole_Magnet / MagneticElement.'
 from_schema: https://w3id.org/laura/schema
 is_a: Dipole_Magnet
 attributes:
@@ -278,8 +278,7 @@ class_uri: laura:Corrector_Magnet
 name: Corrector_Magnet
 description: 'Steering-corrector field. A dipole magnet whose order-0 multipole is
   addressed by beam plane: the normal component is the horizontal kick and the skew
-  component is the vertical kick. length, order, tilt, multipoles, field_integral_coefficients
-  and linear_saturation_coefficients are all inherited from Dipole_Magnet / MagneticElement.'
+  component is the vertical kick. Inherits from  Dipole_Magnet / MagneticElement.'
 from_schema: https://w3id.org/laura/schema
 is_a: Dipole_Magnet
 attributes:

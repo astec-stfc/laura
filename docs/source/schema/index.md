@@ -69,6 +69,7 @@ Name: laura_schema
 | [CameraPixelResultsNames](CameraPixelResultsNames.md) | Names of camera pixel-analysis result arrays |
 | [CameraSensor](CameraSensor.md) | Camera sensor hardware configuration |
 | [ChannelNames](ChannelNames.md) | Names for LLRF channels 1 |
+| [CombinedCorrectorMagnet](CombinedCorrectorMagnet.md) | The pair of steering-corrector fields inside one combined corrector |
 | [ControlsInformation](ControlsInformation.md) | Collection of process-variable definitions for an element's control interface |
 | [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |
 | [DegaussableElement](DegaussableElement.md) | Degaussing (demagnetisation cycle) parameters for magnets that require a fiel... |
@@ -260,6 +261,7 @@ Name: laura_schema
 | [has_led](has_led.md) | True if the camera mount includes an LED backlight |
 | [heartbeat](heartbeat.md) | RF heartbeat parameters |
 | [helical](helical.md) | True for a helical device, False for planar |
+| [horizontal](horizontal.md) | Horizontal-plane corrector field, with its own calibration |
 | [horizontal_channel](horizontal_channel.md) | Horizontal control channel index |
 | [Horizontal_Corrector](Horizontal_Corrector.md) | Name of the horizontal-plane corrector element |
 | [horizontal_kick](horizontal_kick.md) | Horizontal deflection [rad] |
@@ -463,6 +465,7 @@ Name: laura_schema
 | [values](values.md) | Sequence of peak currents applied during the degauss cycle [A] |
 | [valve](valve.md) | Valve configuration |
 | [variables](variables.md) | Named control variables keyed by logical name |
+| [vertical](vertical.md) | Vertical-plane corrector field, with its own calibration |
 | [vertical_channel](vertical_channel.md) | Vertical control channel index |
 | [Vertical_Corrector](Vertical_Corrector.md) | Name of the vertical-plane corrector element |
 | [vertical_kick](vertical_kick.md) | Vertical deflection [rad] |

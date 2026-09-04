@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Union
 
-from pydantic import computed_field
+from pydantic import computed_field, field_validator
 from warnings import warn
 from .base import BaseElementTranslator
 from laura.models.magnetic import (
@@ -11,6 +11,7 @@ from laura.models.magnetic import (
     Wiggler_Magnet,
     NonLinearLens_Magnet,
     Corrector_Magnet,
+    Combined_Corrector_Magnet,
 )
 from laura.models.simulation import MagnetSimulationElement
 from ..utils.functions import _rotation_matrix, chop, expand_substitution
@@ -1252,11 +1253,20 @@ class CorrectorTranslator(BaseElementTranslator):
     both simultaneously.
     """
 
-    magnetic: Corrector_Magnet
-    """Corrector magnetic element."""
+    magnetic: Corrector_Magnet | Combined_Corrector_Magnet
+    """Corrector magnetic element. A ``Combined_Corrector`` carries the
+    per-plane pair (``horizontal``/``vertical``)."""
 
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
+
+    @field_validator("magnetic", mode="before")
+    @classmethod
+    def _select_magnetic_shape(cls, v):
+        """Pick the pair model when the payload carries per-plane magnets."""
+        if isinstance(v, dict) and {"horizontal", "vertical"} & v.keys():
+            return Combined_Corrector_Magnet(**v)
+        return v
 
     @computed_field
     @property
@@ -1276,12 +1286,8 @@ class CorrectorTranslator(BaseElementTranslator):
         a pair of objects) for the corrector.
 
         Ocelot's ``Hcor``/``Vcor`` are single-plane elements with no combined
-        horizontal+vertical equivalent, so a `Combined_Corrector` is represented
-        as an ``Hcor`` immediately followed by a ``Vcor``, each given half this
-        element's length -- so the pair has the same total length as the
-        original single element -- and its own plane's kick. Ocelot has no
-        symbolic/deferred-expression support, so a functional kick is resolved
-        to a number here regardless of the global resolution mode.
+        horizontal+vertical equivalent, so a `Combined_Corrector` splits this into
+        an ``Hcor`` and a ``Vcor``.
 
         Returns
         -------

@@ -80,6 +80,7 @@ from .magnetic import (
     NonLinearLens_Magnet,
     Wiggler_Magnet,
     Corrector_Magnet,
+    Combined_Corrector_Magnet,
 )
 from .plasma import PlasmaElement
 from .diagnostic import (
@@ -463,10 +464,10 @@ class Combined_Corrector(Dipole, _CombinedCorrectorBase):
 
     Attributes:
         hardware_type (str): The hardware type of the corrector.
-        magnetic (:class:`~laura.models.magnetic.Corrector_Magnet`): The magnetic
-        attributes of the corrector; both ``horizontal_kick`` and ``vertical_kick``
-        may be set independently. The two kicks are the normal and skew
-        components of one ``multipoles.K0L``.
+        magnetic (:class:`~laura.models.magnetic.Combined_Corrector_Magnet`): The
+        magnetic attributes of the corrector -- a *pair* of
+        :class:`~laura.models.magnetic.Corrector_Magnet`, ``horizontal`` and
+        ``vertical``.
         Horizontal_Corrector (str): Name of a separately-defined
         :class:`Horizontal_Corrector` element this combined corrector is paired
         with, for hardware/PS bookkeeping (see e.g. ``LAURA.get_correctors``) --
@@ -478,8 +479,10 @@ class Combined_Corrector(Dipole, _CombinedCorrectorBase):
     hardware_type: str = Field(default="Combined_Corrector", frozen=True)
     """Combined corrector hardware type."""
 
-    magnetic: Corrector_Magnet = Field(default_factory=Corrector_Magnet)
-    """Corrector magnetic attributes."""
+    magnetic: Combined_Corrector_Magnet = Field(
+        default_factory=Combined_Corrector_Magnet
+    )
+    """Per-plane corrector magnetic attributes."""
 
     Horizontal_Corrector: str | None = Field(default=None, frozen=True)
     """Name of horizontal corrector."""
@@ -1336,8 +1339,6 @@ class Drift(PhysicalBaseElement, _DriftBase):
 
 
 
-# ponytail: derived from this module's own classes rather than a hand-kept list,
-# which silently dropped PowerSupply/LaserHalfWavePlate when new elements landed.
 ELEMENT_REGISTRY: dict[str, type] = {
     _field.default: _cls
     for _cls in list(vars().values())

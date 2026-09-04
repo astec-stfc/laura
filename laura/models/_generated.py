@@ -2324,7 +2324,7 @@ class _OctupoleMagnetBase(_MagneticElementBase):
 
 class _CorrectorMagnetBase(_DipoleMagnetBase):
     """
-    Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. length, order, tilt, multipoles, field_integral_coefficients and linear_saturation_coefficients are all inherited from Dipole_Magnet / MagneticElement.
+    Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  Dipole_Magnet / MagneticElement.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Corrector_Magnet',
          'from_schema': 'https://w3id.org/laura/schema/magnetic'})
@@ -2391,6 +2391,19 @@ class _CorrectorMagnetBase(_DipoleMagnetBase):
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
+
+
+class _CombinedCorrectorMagnetBase(ConfiguredBaseModel):
+    """
+    The pair of steering-corrector fields inside one combined corrector. The two planes are separate magnets with separate windings, so they must not share a magnetic model: in the CLARA magnet table the horizontal and vertical halves of a single unit have different slope [units/A] and different magnetic lengths, so one shared calibration converts current to angle correctly for at most one of the two planes.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Combined_Corrector_Magnet',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic'})
+
+    horizontal: Optional[_CorrectorMagnetBase] = Field(default=None, description="""Horizontal-plane corrector field, with its own calibration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Combined_Corrector_Magnet']} })
+    """Horizontal-plane corrector field, with its own calibration."""
+    vertical: Optional[_CorrectorMagnetBase] = Field(default=None, description="""Vertical-plane corrector field, with its own calibration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Combined_Corrector_Magnet']} })
+    """Vertical-plane corrector field, with its own calibration."""
 
 
 class _SolenoidFieldsBase(ConfiguredBaseModel):
@@ -5074,13 +5087,14 @@ class _CombinedCorrectorBase(_DipoleBase):
          'slot_usage': {'hardware_type': {'equals_string': 'Combined_Corrector',
                                           'ifabsent': 'Combined_Corrector',
                                           'name': 'hardware_type'},
-                        'magnetic': {'name': 'magnetic', 'range': 'Corrector_Magnet'}}})
+                        'magnetic': {'name': 'magnetic',
+                                     'range': 'Combined_Corrector_Magnet'}}})
 
     Horizontal_Corrector: Optional[str] = Field(default=None, description="""Name of the horizontal-plane corrector element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CombinedCorrector']} })
     """Name of the horizontal-plane corrector element."""
     Vertical_Corrector: Optional[str] = Field(default=None, description="""Name of the vertical-plane corrector element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CombinedCorrector']} })
     """Name of the vertical-plane corrector element."""
-    magnetic: Optional[_CorrectorMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
+    magnetic: Optional[_CombinedCorrectorMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
     """Magnetic field parameters."""
     degauss: Optional[_DegaussableElementBase] = Field(default=None, description="""Degaussing-cycle parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet']} })
     """Degaussing-cycle parameters."""
@@ -5369,6 +5383,7 @@ _QuadrupoleMagnetBase.model_rebuild()
 _SextupoleMagnetBase.model_rebuild()
 _OctupoleMagnetBase.model_rebuild()
 _CorrectorMagnetBase.model_rebuild()
+_CombinedCorrectorMagnetBase.model_rebuild()
 _SolenoidFieldsBase.model_rebuild()
 _SolenoidMagnetBase.model_rebuild()
 _WigglerMagnetBase.model_rebuild()
