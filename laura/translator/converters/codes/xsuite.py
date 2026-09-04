@@ -27,6 +27,12 @@ from ...utils.functions import introspect_model_defaults
 from ...conversion_rules.codes import xsuite_conversion
 from warnings import warn
 
+xsuite_unsupported = [
+    "Laser",
+    "Wakefield",
+    "ActivePlasmaLens",
+]
+
 type_conversion_rules_xsuite_reversed = (
     xsuite_conversion.xsuite_conversion_rules_reverse
 )
