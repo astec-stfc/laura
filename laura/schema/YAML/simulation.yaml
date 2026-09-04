@@ -26,6 +26,12 @@ imports:
 
 classes:
 
+  MatrixValue:
+    class_uri: linkml:Any
+    description: >-
+      An unconstrained serializable matrix value. The handwritten matrix model
+      validates dense arrays and named coefficient mappings into NumPy arrays.
+
   SimulationElement:
     description: >-
       Base simulation attributes: field-map files and reference positions
@@ -428,3 +434,193 @@ classes:
         range: boolean
         description: Compute transform from tracked beam properties.
         ifabsent: "True"
+
+  MatrixTransformSimulationElement:
+    is_a: SimulationElement
+    description: >-
+      Zero-, first-, and second-order transfer-map coefficients for a matrix
+      transform element. Each coefficient collection accepts the dense form or
+      the named coefficient mapping understood by the Python model.
+    class_uri: laura:MatrixTransformSimulationElement
+    attributes:
+      apply:
+        range: boolean
+        description: Whether to apply the transfer map.
+        ifabsent: "False"
+      c_matrix:
+        range: MatrixValue
+        description: C-matrix (zeroth-order transfer vector).
+      r_matrix:
+        range: MatrixValue
+        description: R-matrix (first-order transfer matrix).
+      t_matrix:
+        range: MatrixValue
+        description: T-matrix (second-order transfer tensor).
+
+  ElectrostaticSeparatorSimulationElement:
+    is_a: SimulationElement
+    description: Simulation attributes for a static electrostatic separator.
+    class_uri: laura:ElectrostaticSeparatorSimulationElement
+    attributes:
+      horizontal_field:
+        range: float
+        any_of:
+          - range: float
+          - range: string
+        in_subset:
+          - functional_parameters
+        description: Horizontal deflecting electric field [V/m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: V/m
+      vertical_field:
+        range: float
+        any_of:
+          - range: float
+          - range: string
+        in_subset:
+          - functional_parameters
+        description: Vertical deflecting electric field [V/m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: V/m
+      tilt:
+        range: float
+        description: Rotation about the beam axis [rad].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: rad
+
+  ACDipoleSimulationElement:
+    is_a: SimulationElement
+    description: Simulation attributes for an AC dipole / tune exciter.
+    class_uri: laura:ACDipoleSimulationElement
+    slots:
+      - field_amplitude
+      - frequency
+      - phase
+    slot_usage:
+      field_amplitude:
+        description: Peak kick voltage/amplitude of the exciter.
+        ifabsent: float(0.0)
+      frequency:
+        description: Drive frequency [Hz].
+        ifabsent: float(0.0)
+      phase:
+        description: Phase lag [deg].
+        ifabsent: float(0.0)
+    attributes:
+      ramp:
+        range: integer
+        multivalued: true
+        description: Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp.
+
+  WireSimulationElement:
+    is_a: SimulationElement
+    description: Simulation attributes for a compensating wire.
+    class_uri: laura:WireSimulationElement
+    attributes:
+      current:
+        range: float
+        description: Current carried by the wire [A].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: A
+      interaction_length:
+        range: float
+        description: Effective interaction length [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+      horizontal_offset:
+        range: float
+        description: Horizontal wire offset from the reference orbit [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+      vertical_offset:
+        range: float
+        description: Vertical wire offset from the reference orbit [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+
+  BeamBeamSimulationElement:
+    is_a: SimulationElement
+    description: Simulation attributes for a weak-strong beam-beam interaction.
+    class_uri: laura:BeamBeamSimulationElement
+    attributes:
+      charge:
+        range: float
+        description: Opposing-beam particle charge in units of the elementary charge.
+        ifabsent: float(1.0)
+      n_particles:
+        range: float
+        description: Number of particles in the opposing bunch.
+        ifabsent: float(0.0)
+      horizontal_offset:
+        range: float
+        description: Horizontal opposing-bunch centroid offset [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+      vertical_offset:
+        range: float
+        description: Vertical opposing-bunch centroid offset [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+      horizontal_sigma:
+        range: float
+        description: Horizontal RMS size of the opposing bunch [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+      vertical_sigma:
+        range: float
+        description: Vertical RMS size of the opposing bunch [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+      width:
+        range: float
+        description: Opposing-bunch length for the 3-D weak-strong model [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+
+  RFMultipoleSimulationElement:
+    is_a: SimulationElement
+    description: Simulation attributes for a thin RF multipole kick.
+    class_uri: laura:RFMultipoleSimulationElement
+    slots:
+      - frequency
+      - phase
+      - field_amplitude
+    slot_usage:
+      frequency:
+        description: RF frequency [Hz].
+        ifabsent: float(0.0)
+      phase:
+        description: Overall phase lag [deg].
+        ifabsent: float(0.0)
+      field_amplitude:
+        description: Longitudinal voltage [V].
+        ifabsent: float(0.0)
+    attributes:
+      knl:
+        range: float
+        multivalued: true
+        description: Integrated normal multipole strengths, dipole through decapole.
+      ksl:
+        range: float
+        multivalued: true
+        description: Integrated skew multipole strengths, dipole through decapole.
+      pnl:
+        range: float
+        multivalued: true
+        description: Normal multipole phases [deg], dipole through decapole.
+      psl:
+        range: float
+        multivalued: true
+        description: Skew multipole phases [deg], dipole through decapole.

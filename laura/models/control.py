@@ -306,17 +306,26 @@ class ControlVariable(_ControlVariableBase):
         "description": "Default Description",
     }
 
-    @model_serializer
-    def serialize(self):
-        # Collect declared fields + extra fields (e.g. auto_buffer, buffer_size)
+    def unstripped_dump(self) -> dict:
+        """As `serialize`, but keeping fields that happen to equal a documented
+        default. Used where exact values matter regardless of whether they're
+        the default -- e.g. diffing against a schema when collapsing a
+        resolved element back down for export, where a field explicitly reset
+        to its default still needs to appear if the schema itself specifies a
+        non-default value for it."""
         data = {k: getattr(self, k) for k in self.__class__.model_fields}
         if self.model_extra:
             data.update(self.model_extra)
+        data["type"] = data.pop("control_type")
         # Convert dtype to its string name
         if isinstance(data.get("dtype"), type):
             data["dtype"] = data["dtype"].__name__
         # Remove None values
-        data = {k: v for k, v in data.items() if v is not None}
+        return {k: v for k, v in data.items() if v is not None}
+
+    @model_serializer
+    def serialize(self):
+        data = self.unstripped_dump()
         # Remove known defaults
         for key, default_val in self._SERIALIZE_DEFAULTS.items():
             if data.get(key) == default_val:
@@ -337,6 +346,22 @@ class ControlVariable(_ControlVariableBase):
 class ControlsInformation(_ControlsInformationBase):
     """
     Model representing a collection of control variables.
+
+    A ``schema`` may be given instead of writing out ``variables`` in full: it
+    names a YAML file (see :func:`laura.Importers.YAML_Loader.resolve_controls_schema`)
+    defining a shared template of variables for elements of a given type (e.g.
+    all Quadrupoles). Templated variables have their ``identifier`` (and any
+    other string field) filled in wherever the file uses the ``{name}``
+    placeholder; set ``identifier_pattern``
+    to substitute a different string for every ``{name}`` in the template
+    instead. Any ``variables`` given alongside ``schema`` are layered on top,
+    field by field, so a single entry can be added or overridden without
+    repeating the rest of the template.
+
+    This expansion happens while an element YAML file is loaded (before this
+    model is constructed), so ``variables`` here is always the fully resolved
+    dict; ``schema``/``identifier_pattern`` are retained only as a record of
+    where it came from.
     """
 
     # Narrowed from the generated base's `_ControlVariableBase` values so the
@@ -344,11 +369,30 @@ class ControlsInformation(_ControlsInformationBase):
     variables: Dict[str, ControlVariable]
     """Dictionary mapping variable names to `~laura.models.control.ControlVariable` instances."""
 
+    schema_: str | None = Field(default=None, alias="schema")
+    """Path to a shared controls schema file that `variables` was expanded from, if any."""
+
+    identifier_pattern: str | None = None
+    """Overrides what `{name}` in the schema is substituted with (defaults to the
+    element's own name); use when this element's identifiers are prefixed with
+    something other than its own name."""
+
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         extra="allow",
         frozen=True,
+        populate_by_name=True,
     )
+
+    @model_serializer(mode="wrap")
+    def serialize(self, handler):
+        # Emit "schema" (the YAML/input spelling), matching how ControlVariable
+        # renames control_type -> "type"; otherwise a dumped dict can't be fed
+        # back in under the name it was written with.
+        data = handler(self)
+        if "schema_" in data:
+            data["schema"] = data.pop("schema_")
+        return data
 
     def __getattr__(self, name: str) -> ControlVariable:
         try:
