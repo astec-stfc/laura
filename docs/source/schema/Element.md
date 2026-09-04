@@ -317,6 +317,7 @@ attributes:
     domain_of:
     - AcceleratorElement
     - ControlVariable
+    - FunctionalDefinition
     - SectionLattice
     - MachineLayout
     range: string

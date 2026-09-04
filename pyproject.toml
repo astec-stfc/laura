@@ -97,6 +97,7 @@ test = [
     # requirements -- but without them ~35 tests silently skip, which is worse
     # than useless in CI.
     "rdflib>=7.0",
+    "pyshacl>=0.26",
     "sqlalchemy>=2.0",
     "jsonschema>=4.0",
 ]
@@ -124,8 +125,12 @@ schema = [
 
 # RDF / Linked-Data export support
 # Install with: pip install "laura-accelerator[rdf]"
+# pyshacl is here rather than in [schema] because it validates *exported
+# machines* against laura_shacl.ttl, which is what unit_tests/test_shacl.py
+# does; regenerating the shapes is the [schema] extra's job.
 rdf = [
     "rdflib>=7.0",
+    "pyshacl>=0.26",
 ]
 
 # SQL export support (laura.Exporters.SQL + laura/schema/generated/laura_orm.py)
@@ -155,6 +160,7 @@ full = [
     "linkml-runtime>=1.8",
     "jsonschema>=4.0",
     "rdflib>=7.0",
+    "pyshacl>=0.26",
     "sqlalchemy>=2.0",
 ]
 

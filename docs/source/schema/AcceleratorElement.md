@@ -184,6 +184,7 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [Lighting](Lighting.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [PowerSupply](PowerSupply.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [PowerSupply](PowerSupply.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [SectionLattice](SectionLattice.md) | [elements](elements.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [MachineModel](MachineModel.md) | [elements](elements.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Magnet](Magnet.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Magnet](Magnet.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
@@ -317,6 +318,7 @@ attributes:
     domain_of:
     - AcceleratorElement
     - ControlVariable
+    - FunctionalDefinition
     - SectionLattice
     - MachineLayout
     range: string
@@ -451,6 +453,7 @@ attributes:
     domain_of:
     - AcceleratorElement
     - ControlVariable
+    - FunctionalDefinition
     - SectionLattice
     - MachineLayout
     range: string

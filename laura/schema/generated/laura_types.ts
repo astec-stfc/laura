@@ -19,6 +19,7 @@ export type CollimatorName = string;
 export type DriftName = string;
 export type LightingName = string;
 export type PowerSupplyName = string;
+export type FunctionalDefinitionName = string;
 export type SectionLatticeName = string;
 export type MachineLayoutName = string;
 export type MagnetName = string;
@@ -127,6 +128,18 @@ export enum ApertureShapeEnum {
     circular = "circular",
     rectangular = "rectangular",
     elliptical = "elliptical",
+};
+/**
+* What a section or layout carries.  Mirrors ``laura.models.elementList.LatticeType``.
+*/
+export enum LatticeTypeEnum {
+    
+    /** A beamline. */
+    beam = "beam",
+    /** An RF distribution line. */
+    rf = "rf",
+    /** A laser transport line. */
+    laser = "laser",
 };
 /**
 * Bending plane enum.
@@ -309,7 +322,7 @@ export interface PhysicalElement {
  * A single process-variable entry mapping a logical name to a control-system PV identifier.
  */
 export interface ControlVariable {
-    /** Logical name of this variable within its element, e.g. ``SETI``. This is the key ``ControlsInformation.variables`` maps from, so YAML gives it as the mapping key rather than repeating it inside the entry, and the Pydantic model omits it (see ``_PYDANTIC_EXCLUDED_SLOTS`` in ``generate_pydantic.py``).  It is declared here so the formats without a native map type -- SQL, SHACL, JSON Schema -- have somewhere to put the name instead of silently dropping it. */
+    /** Logical name of this variable within its element. */
     name: string,
     /** Protocol-specific PV name (e.g., EPICS PV address). */
     identifier?: string,
@@ -552,28 +565,51 @@ export interface PowerSupply extends StandardElement {
 
 
 /**
- * An ordered list of element names defining a contiguous beamline section.
+ * One named constant a lattice makes available to its elements, e.g. ``quad1_k1l: -2``.  A class rather than a bare map because LinkML has no free-form mapping type; the same keyed-inlined pattern as ControlVariable.
+ */
+export interface FunctionalDefinition {
+    /** The name elements refer to this definition by. */
+    name: string,
+    /** The number it resolves to.  The Python model accepts int or float and stores whichever was given; both go out as a double. */
+    value: number,
+}
+
+
+/**
+ * A contiguous beamline section: an ordered run of elements.
  */
 export interface SectionLattice {
     /** Unique section name. */
     name: string,
     /** Name of the master lattice this section belongs to. */
     master_lattice?: string,
-    /** Ordered list of element names in this section. */
-    elements?: string[],
+    /** The elements in this section, keyed by name.  References into MachineModel.elements rather than inlining them -- the Python ElementList holds the same objects, not copies.  The Python model's ``order`` has no slot here: no LinkML multivalued collection is ordered, so the sequence would not survive any export.  Recover it from each element's physical.s. */
+    elements?: AcceleratorElementName[],
+    /** What this section carries. */
+    section_type?: string,
+    /** Named constants this section's elements may refer to, keyed by name. The Python model also accepts a path to a YAML file holding the mapping, but resolves it at construction, so only the resolved mapping is ever exported. */
+    functional_definitions?: {[index: FunctionalDefinitionName]: FunctionalDefinition },
+    /** The ring's revolution frequency [Hz], if this section is part of a closed ring. */
+    revolution_frequency?: number,
 }
 
 
 /**
- * An ordered list of section names defining a beamline layout (a contiguous sequence of sections).
+ * A beamline layout: a contiguous sequence of sections.
  */
 export interface MachineLayout {
     /** Unique layout name. */
     name: string,
     /** Name of the master lattice this layout belongs to. */
     master_lattice?: string,
-    /** Ordered list of section names. */
-    sections?: string[],
+    /** The sections making up this layout, keyed by name.  References into MachineModel.sections rather than inlining them. */
+    sections?: SectionLatticeName[],
+    /** What this layout carries. */
+    layout_type?: string,
+    /** Named constants this layout's elements may refer to, keyed by name. */
+    functional_definitions?: {[index: FunctionalDefinitionName]: FunctionalDefinition },
+    /** The ring's revolution frequency [Hz], if this layout is a closed ring. */
+    revolution_frequency?: number,
 }
 
 
@@ -1062,7 +1098,7 @@ export interface MagneticElement {
     fringe_field_coefficient?: number,
     /** Peak field gradient [T/m] (quads) or peak field [T] (dipoles). */
     gradient?: number,
-    /** Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default. */
+    /** Integrated bending angle [rad]. Dipoles only. */
     angle?: number,
 }
 

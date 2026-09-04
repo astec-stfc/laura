@@ -94,6 +94,7 @@ Name: laura_schema
 | [ElementPositionError](ElementPositionError.md) | Alignment position and rotation errors for a physically-located element |
 | [ElementSurvey](ElementSurvey.md) | Survey-measured position and rotation of an element |
 | [FieldIntegral](FieldIntegral.md) | Polynomial fit of integrated field strength as a function of magnet current |
+| [FunctionalDefinition](FunctionalDefinition.md) | One named constant a lattice makes available to its elements, e |
 | [LaserElement](LaserElement.md) | Laser-beam parameters (wavelength, pulse energy, profile, etc |
 | [LaserEnergyMeterElement](LaserEnergyMeterElement.md) | Laser energy-meter sub-model (no additional fields) |
 | [LaserHalfWavePlateElement](LaserHalfWavePlateElement.md) | Half-wave plate sub-model (no additional fields) |
@@ -104,7 +105,7 @@ Name: laura_schema
 | [LLRFTiming](LLRFTiming.md) | Start/end window timing definition |
 | [LLRFTimings](LLRFTimings.md) | Collection of timing windows for key LLRF channels |
 | [LowLevelRFElement](LowLevelRFElement.md) | Low-level RF (LLRF) system parameters |
-| [MachineLayout](MachineLayout.md) | An ordered list of section names defining a beamline layout (a contiguous seq... |
+| [MachineLayout](MachineLayout.md) | A beamline layout: a contiguous sequence of sections |
 | [MachineModel](MachineModel.md) | Top-level container for a complete accelerator lattice: elements, sections, l... |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[DipoleMagnet](DipoleMagnet.md) |  |
@@ -130,7 +131,7 @@ Name: laura_schema
 | [RFModulatorElement](RFModulatorElement.md) | RF modulator (klystron driver) parameters |
 | [RFProtectionElement](RFProtectionElement.md) | RF protection system parameters |
 | [Rotation](Rotation.md) | Euler-angle rotation relative to the global coordinate system |
-| [SectionLattice](SectionLattice.md) | An ordered list of element names defining a contiguous beamline section |
+| [SectionLattice](SectionLattice.md) | A contiguous beamline section: an ordered run of elements |
 | [ShutterElement](ShutterElement.md) | Shutter interlock configuration |
 | [SimulationElement](SimulationElement.md) | Base simulation attributes: field-map files and reference positions for track... |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ACDipoleSimulationElement](ACDipoleSimulationElement.md) | Simulation attributes for an AC dipole / tune exciter |
@@ -240,7 +241,7 @@ Name: laura_schema
 | [edge_order](edge_order.md) | Polynomial order of the edge-field expansion |
 | [electrical](electrical.md) | Power-supply electrical limits |
 | [element](element.md) | Name of the reference element |
-| [elements](elements.md) | Ordered list of element names in this section |
+| [elements](elements.md) | The elements in this section, keyed by name |
 | [enable](enable.md) | Enable command/value |
 | [end](end.md) | End time |
 | [end1_focus](end1_focus.md) | Apply entrance focusing |
@@ -271,6 +272,7 @@ Name: laura_schema
 | [frequency](frequency.md) | Operating frequency [Hz] |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | Coefficient controlling the fringe-field roll-off rate |
 | [from_beam](from_beam.md) | Compute transform from tracked beam properties |
+| [functional_definitions](functional_definitions.md) | Named constants this section's elements may refer to, keyed by name |
 | [gap](gap.md) | Full gap between pole faces [m] |
 | [global_rotation](global_rotation.md) | Accumulated global rotation including parent-frame contributions |
 | [gradient](gradient.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) |
@@ -318,6 +320,7 @@ Name: laura_schema
 | [L](L.md) | Effective magnetic length [m] |
 | [laguerre_polynomial_order_p](laguerre_polynomial_order_p.md) | Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian... |
 | [laser](laser.md) | Laser-beam parameters |
+| [layout_type](layout_type.md) | What this layout carries |
 | [layouts](layouts.md) | All named beamline layouts |
 | [left](left.md) | Left sense value |
 | [length](length.md) | Effective length along the beam axis [m] |
@@ -420,6 +423,7 @@ Name: laura_schema
 | [readback](readback.md) | Name of the readback variable this set-point drives |
 | [reference](reference.md) | Links to design drawings and files |
 | [reference_placement](reference_placement.md) | Place this element relative to another element's frame instead of using absol... |
+| [revolution_frequency](revolution_frequency.md) | The ring's revolution frequency [Hz], if this section is part of a closed rin... |
 | [right](right.md) | Right sense value |
 | [rotation](rotation.md) | Angular misalignment error [rad] |
 | [s](s.md) | Arc-length position [m] along the design trajectory (s=0 at the global origin... |
@@ -447,7 +451,8 @@ Name: laura_schema
 | [scale_field_hz](scale_field_hz.md) | z-component of the horizontal direction vector |
 | [scale_kick](scale_kick.md) | Factor by which to scale wake kicks |
 | [screen_name](screen_name.md) | Name of the screen element to which this camera is attached |
-| [sections](sections.md) | Ordered list of section names |
+| [section_type](section_type.md) | What this section carries |
+| [sections](sections.md) | The sections making up this layout, keyed by name |
 | [sense](sense.md) | Mirror sense/interlock configuration |
 | [sensor](sensor.md) | Camera sensor hardware configuration |
 | [serial_number](serial_number.md) | Manufacturer serial number |
@@ -542,6 +547,7 @@ Name: laura_schema
 | [IOTypeEnum](IOTypeEnum.md) | Input types for accelerator elements |
 | [LaserPolarizationEnum](LaserPolarizationEnum.md) | Polarization state of a laser beam |
 | [LaserProfileTypeEnum](LaserProfileTypeEnum.md) | Transverse intensity profile model for a laser beam |
+| [LatticeTypeEnum](LatticeTypeEnum.md) | What a section or layout carries |
 
 
 ## Types

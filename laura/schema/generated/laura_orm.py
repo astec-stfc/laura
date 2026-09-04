@@ -408,23 +408,49 @@ class ApertureElement(Base):
     
 
 
+class FunctionalDefinition(Base):
+    """
+    One named constant a lattice makes available to its elements, e.g. ``quad1_k1l: -2``.  A class rather than a bare map because LinkML has no free-form mapping type; the same keyed-inlined pattern as ControlVariable.
+    """
+    __tablename__ = 'FunctionalDefinition'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True)
+    name = Column(Text(), nullable=False )
+    value = Column(Float(), nullable=False )
+    SectionLattice_name = Column(Text(), ForeignKey('SectionLattice.name'))
+    MachineLayout_name = Column(Text(), ForeignKey('MachineLayout.name'))
+    
+
+    def __repr__(self):
+        return f"FunctionalDefinition(name={self.name},value={self.value},SectionLattice_name={self.SectionLattice_name},MachineLayout_name={self.MachineLayout_name},)"
+
+
+
+    
+
+
 class SectionLattice(Base):
     """
-    An ordered list of element names defining a contiguous beamline section.
+    A contiguous beamline section: an ordered run of elements.
     """
     __tablename__ = 'SectionLattice'
 
     name = Column(Text(), primary_key=True, nullable=False )
     master_lattice = Column(Text())
+    section_type = Column(Enum('beam', 'rf', 'laser', name='LatticeTypeEnum'))
+    revolution_frequency = Column(Float())
     
     
-    elements_rel = relationship( "SectionLatticeElements" )
-    elements = association_proxy("elements_rel", "elements",
-                                  creator=lambda x_: SectionLatticeElements(elements=x_))
+    # ManyToMany
+    elements = relationship( "AcceleratorElement", secondary="SectionLattice_elements")
+    
+    
+    # One-To-Many: OneToAnyMapping(source_class='SectionLattice', source_slot='functional_definitions', mapping_type=None, target_class='FunctionalDefinition', target_slot='SectionLattice_name', join_class=None, uses_join_table=None, multivalued=False)
+    functional_definitions = relationship( "FunctionalDefinition", foreign_keys="[FunctionalDefinition.SectionLattice_name]")
     
 
     def __repr__(self):
-        return f"SectionLattice(name={self.name},master_lattice={self.master_lattice},)"
+        return f"SectionLattice(name={self.name},master_lattice={self.master_lattice},section_type={self.section_type},revolution_frequency={self.revolution_frequency},)"
 
 
 
@@ -433,21 +459,26 @@ class SectionLattice(Base):
 
 class MachineLayout(Base):
     """
-    An ordered list of section names defining a beamline layout (a contiguous sequence of sections).
+    A beamline layout: a contiguous sequence of sections.
     """
     __tablename__ = 'MachineLayout'
 
     name = Column(Text(), primary_key=True, nullable=False )
     master_lattice = Column(Text())
+    layout_type = Column(Enum('beam', 'rf', 'laser', name='LatticeTypeEnum'))
+    revolution_frequency = Column(Float())
     
     
-    sections_rel = relationship( "MachineLayoutSections" )
-    sections = association_proxy("sections_rel", "sections",
-                                  creator=lambda x_: MachineLayoutSections(sections=x_))
+    # ManyToMany
+    sections = relationship( "SectionLattice", secondary="MachineLayout_sections")
+    
+    
+    # One-To-Many: OneToAnyMapping(source_class='MachineLayout', source_slot='functional_definitions', mapping_type=None, target_class='FunctionalDefinition', target_slot='MachineLayout_name', join_class=None, uses_join_table=None, multivalued=False)
+    functional_definitions = relationship( "FunctionalDefinition", foreign_keys="[FunctionalDefinition.MachineLayout_name]")
     
 
     def __repr__(self):
-        return f"MachineLayout(name={self.name},master_lattice={self.master_lattice},)"
+        return f"MachineLayout(name={self.name},master_lattice={self.master_lattice},layout_type={self.layout_type},revolution_frequency={self.revolution_frequency},)"
 
 
 
@@ -3610,11 +3641,11 @@ class SectionLatticeElements(Base):
     __tablename__ = 'SectionLattice_elements'
 
     SectionLattice_name = Column(Text(), ForeignKey('SectionLattice.name'), primary_key=True)
-    elements = Column(Text(), primary_key=True)
+    elements_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
     
 
     def __repr__(self):
-        return f"SectionLattice_elements(SectionLattice_name={self.SectionLattice_name},elements={self.elements},)"
+        return f"SectionLattice_elements(SectionLattice_name={self.SectionLattice_name},elements_name={self.elements_name},)"
 
 
 
@@ -3628,11 +3659,11 @@ class MachineLayoutSections(Base):
     __tablename__ = 'MachineLayout_sections'
 
     MachineLayout_name = Column(Text(), ForeignKey('MachineLayout.name'), primary_key=True)
-    sections = Column(Text(), primary_key=True)
+    sections_name = Column(Text(), ForeignKey('SectionLattice.name'), primary_key=True)
     
 
     def __repr__(self):
-        return f"MachineLayout_sections(MachineLayout_name={self.MachineLayout_name},sections={self.sections},)"
+        return f"MachineLayout_sections(MachineLayout_name={self.MachineLayout_name},sections_name={self.sections_name},)"
 
 
 

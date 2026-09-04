@@ -195,7 +195,22 @@ def _rename_classes(content: str, model_names: set[str]) -> str:
         content,
     )
 
-    # ── Pattern 6: model_rebuild() calls at module level ─────────────────────
+    # ── Pattern 6: members of a Union[...] ───────────────────────────────────
+    # A keyed class with exactly two slots gets gen-pydantic's "simple dict"
+    # treatment -- SectionLattice.functional_definitions comes out as
+    # ``dict[str, Union[float, FunctionalDefinition]]``, so the class name sits
+    # inside a Union and every pattern above misses it.  Left unrenamed it is a
+    # forward reference to a name that no longer exists, and model_rebuild()
+    # raises PydanticUndefinedAnnotation at import.
+    content = re.sub(
+        r"Union\[([\w, ]+)\]",
+        lambda m: "Union["
+        + re.sub(r"\b(\w+)\b", lambda i: new_name(i.group(1)), m.group(1))
+        + "]",
+        content,
+    )
+
+    # ── Pattern 7: model_rebuild() calls at module level ─────────────────────
     # ``Xxx.model_rebuild()``
     content = re.sub(
         r"^(\w+)\.model_rebuild\(\)",

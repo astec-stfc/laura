@@ -83,7 +83,7 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [name](name.md) | 1 <br/> [String](String.md) | Logical name of this variable within its element, e | direct |
+| [name](name.md) | 1 <br/> [String](String.md) | Logical name of this variable within its element | direct |
 | [identifier](identifier.md) | 0..1 <br/> [String](String.md) | Protocol-specific PV name (e | direct |
 | [dtype](dtype.md) | 0..1 <br/> [String](String.md) | Data type, held as a Python type and serialised by name (e | direct |
 | [protocol](protocol.md) | 0..1 <br/> [String](String.md) | Control-system protocol (e | direct |
@@ -164,17 +164,13 @@ from_schema: https://w3id.org/laura/schema
 attributes:
   name:
     name: name
-    description: Logical name of this variable within its element, e.g. ``SETI``.
-      This is the key ``ControlsInformation.variables`` maps from, so YAML gives it
-      as the mapping key rather than repeating it inside the entry, and the Pydantic
-      model omits it (see ``_PYDANTIC_EXCLUDED_SLOTS`` in ``generate_pydantic.py``).  It
-      is declared here so the formats without a native map type -- SQL, SHACL, JSON
-      Schema -- have somewhere to put the name instead of silently dropping it.
+    description: Logical name of this variable within its element.
     from_schema: https://w3id.org/laura/schema/controls
     key: true
     domain_of:
     - AcceleratorElement
     - ControlVariable
+    - FunctionalDefinition
     - SectionLattice
     - MachineLayout
     range: string
@@ -238,6 +234,7 @@ attributes:
     rank: 1000
     domain_of:
     - ControlVariable
+    - FunctionalDefinition
     range: string
     any_of:
     - range: double
@@ -352,18 +349,14 @@ from_schema: https://w3id.org/laura/schema
 attributes:
   name:
     name: name
-    description: Logical name of this variable within its element, e.g. ``SETI``.
-      This is the key ``ControlsInformation.variables`` maps from, so YAML gives it
-      as the mapping key rather than repeating it inside the entry, and the Pydantic
-      model omits it (see ``_PYDANTIC_EXCLUDED_SLOTS`` in ``generate_pydantic.py``).  It
-      is declared here so the formats without a native map type -- SQL, SHACL, JSON
-      Schema -- have somewhere to put the name instead of silently dropping it.
+    description: Logical name of this variable within its element.
     from_schema: https://w3id.org/laura/schema/controls
     key: true
     owner: ControlVariable
     domain_of:
     - AcceleratorElement
     - ControlVariable
+    - FunctionalDefinition
     - SectionLattice
     - MachineLayout
     range: string
@@ -435,6 +428,7 @@ attributes:
     owner: ControlVariable
     domain_of:
     - ControlVariable
+    - FunctionalDefinition
     range: string
     any_of:
     - range: double

@@ -40,8 +40,9 @@ URI: [laura:name](https://w3id.org/laura/name)
 | [Drift](Drift.md) | Field-free drift space between elements |  no  |
 | [Lighting](Lighting.md) | Experimental-hall lighting element |  no  |
 | [PowerSupply](PowerSupply.md) | Generic power-supply unit providing control/setpoint-driven outputs (for exam... |  no  |
-| [SectionLattice](SectionLattice.md) | An ordered list of element names defining a contiguous beamline section |  no  |
-| [MachineLayout](MachineLayout.md) | An ordered list of section names defining a beamline layout (a contiguous seq... |  no  |
+| [FunctionalDefinition](FunctionalDefinition.md) | One named constant a lattice makes available to its elements, e |  no  |
+| [SectionLattice](SectionLattice.md) | A contiguous beamline section: an ordered run of elements |  no  |
+| [MachineLayout](MachineLayout.md) | A beamline layout: a contiguous sequence of sections |  no  |
 | [Magnet](Magnet.md) | Base class for all magnetic focusing and bending elements |  no  |
 | [RFCavity](RFCavity.md) | Accelerating RF cavity |  no  |
 | [RFDeflectingCavity](RFDeflectingCavity.md) | Transverse-deflecting (streak) RF cavity |  no  |
@@ -91,7 +92,7 @@ URI: [laura:name](https://w3id.org/laura/name)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [AcceleratorElement](AcceleratorElement.md), [ControlVariable](ControlVariable.md), [SectionLattice](SectionLattice.md), [MachineLayout](MachineLayout.md) |
+| Domain Of | [AcceleratorElement](AcceleratorElement.md), [ControlVariable](ControlVariable.md), [FunctionalDefinition](FunctionalDefinition.md), [SectionLattice](SectionLattice.md), [MachineLayout](MachineLayout.md) |
 
 ### Cardinality and Requirements
 
@@ -132,6 +133,7 @@ name: name
 domain_of:
 - AcceleratorElement
 - ControlVariable
+- FunctionalDefinition
 - SectionLattice
 - MachineLayout
 range: string

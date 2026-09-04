@@ -105,6 +105,20 @@ def _coerce_hardware_class(value: Optional[str]) -> str:
     return "Generic"
 
 
+def _functional_definition_rows(lattice: Any, orm: Any) -> List[Any]:
+    """Rows for a lattice's resolved ``functional_definitions`` mapping.
+
+    BaseLatticeModel.model_post_init has already turned a YAML path into the
+    mapping it names, so this only ever sees ``{name: number}``.
+    """
+    return [
+        orm.FunctionalDefinition(name=str(name), value=float(value))
+        for name, value in (
+            getattr(lattice, "functional_definitions", None) or {}
+        ).items()
+    ]
+
+
 def _export_position(pos, orm, session) -> Optional[Any]:
     """Persist a Position sub-model and return the ORM row, or ``None``."""
     if pos is None:
@@ -223,8 +237,22 @@ def export_machine(
             )
             existing = session.get(orm.SectionLattice, sec_name)
             if existing is None:
-                sec_row = orm.SectionLattice(name=sec_name, master_lattice=master)
-                sec_row.elements = list(getattr(section, "order", []))
+                sec_row = orm.SectionLattice(
+                    name=sec_name,
+                    master_lattice=master,
+                    section_type=getattr(section, "section_type", None),
+                    revolution_frequency=getattr(
+                        section, "revolution_frequency", None
+                    ),
+                )
+                sec_row.functional_definitions = _functional_definition_rows(
+                    section, orm
+                )
+                sec_row.elements = [
+                    elem_rows[n]
+                    for n in getattr(section, "order", [])
+                    if n in elem_rows
+                ]
                 session.add(sec_row)
                 section_rows[sec_name] = sec_row
             else:
@@ -241,9 +269,19 @@ def export_machine(
             existing_layout = session.get(orm.MachineLayout, layout_name)
             if existing_layout is None:
                 layout_row = orm.MachineLayout(
-                    name=layout_name, master_lattice=master
+                    name=layout_name,
+                    master_lattice=master,
+                    layout_type=getattr(layout, "layout_type", None),
+                    revolution_frequency=getattr(
+                        layout, "revolution_frequency", None
+                    ),
                 )
-                layout_row.sections = list(layout.sections.keys())
+                layout_row.functional_definitions = _functional_definition_rows(
+                    layout, orm
+                )
+                layout_row.sections = [
+                    section_rows[n] for n in layout.sections if n in section_rows
+                ]
                 session.add(layout_row)
                 layout_rows[layout_name] = layout_row
             else:
@@ -323,8 +361,9 @@ def load_machine_sections(
     Returns
     -------
     dict
-        ``{section_name: [element_name, ...]}`` preserving the section order
-        stored at export time.
+        ``{section_name: [element_name, ...]}``.  The join table is a set, so
+        the beamline order is not preserved; sort on the elements' geometry if
+        you need it.
 
     Raises
     ------
@@ -338,4 +377,5 @@ def load_machine_sections(
         mm = session.get(orm.MachineModel, machine_id)
         if mm is None:
             raise KeyError(f"No MachineModel with id={machine_id}")
-        return {sec.name: list(sec.elements) for sec in mm.sections}
+        # sec.elements holds AcceleratorElement rows now, not name strings.
+        return {sec.name: [e.name for e in sec.elements] for sec in mm.sections}

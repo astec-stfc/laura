@@ -43,16 +43,12 @@ echo "Generating JSON-LD context..."
 gen-jsonld-context "$SCHEMA" > "$OUT_DIR/laura_context.jsonld"
 
 echo "Generating SHACL shapes..."
-# NOTE: gen-shacl (linkml 1.11.x) fails on multi-file schemas with a KeyError.
-# Workaround: merge with gen-yaml first, then run gen-shacl on the merged output.
-(
-  cd "laura/schema/YAML"
-  gen-yaml --mergeimports laura_schema.yaml \
-    | grep -v "UserWarning\|warnings.warn\|RequestsDependency" \
-    > _merged_temp.yaml
-  gen-shacl _merged_temp.yaml > ../generated/laura_shacl.ttl
-  rm -f _merged_temp.yaml
-)
+# Must go through generate_shacl.py, not raw gen-shacl: it does the gen-yaml
+# merge gen-shacl needs to cope with a multi-file schema, then collapses the
+# duplicate sh:property blocks gen-shacl emits -- which leave six classes
+# unsatisfiable, because an overridden slot_usage keeps the inherited
+# constraint alongside the overriding one.
+python "laura/schema/generate_shacl.py"
 
 echo "Generating TypeScript types..."
 gen-typescript "$SCHEMA" > "$OUT_DIR/laura_types.ts"

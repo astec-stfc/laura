@@ -15,7 +15,7 @@ URI: [laura:elements](https://w3id.org/laura/elements)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [SectionLattice](SectionLattice.md) | An ordered list of element names defining a contiguous beamline section |  no  |
+| [SectionLattice](SectionLattice.md) | A contiguous beamline section: an ordered run of elements |  no  |
 | [MachineModel](MachineModel.md) | Top-level container for a complete accelerator lattice: elements, sections, l... |  no  |
 
 

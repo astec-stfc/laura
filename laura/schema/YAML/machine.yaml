@@ -26,12 +26,41 @@ default_range: string
 imports:
   - linkml:types
 
+enums:
+
+  LatticeTypeEnum:
+    description: >-
+      What a section or layout carries.  Mirrors
+      ``laura.models.elementList.LatticeType``.
+    permissible_values:
+      beam:
+        description: A beamline.
+      rf:
+        description: An RF distribution line.
+      laser:
+        description: A laser transport line.
+
 classes:
+
+  FunctionalDefinition:
+    description: >-
+      One named constant a lattice makes available to its elements.
+    class_uri: laura:FunctionalDefinition
+    attributes:
+      name:
+        key: true
+        range: string
+        description: The name elements refer to this definition by.
+      value:
+        range: double
+        required: true
+        description: >-
+          The number it resolves to.  The Python model accepts int or float and
+          stores whichever was given; both go out as a double.
 
   SectionLattice:
     description: >-
-      An ordered list of element names defining a contiguous beamline
-      section.
+      A contiguous beamline section: an ordered run of elements.
     class_uri: laura:SectionLattice
     attributes:
       name:
@@ -43,13 +72,29 @@ classes:
         description: Name of the master lattice this section belongs to.
       elements:
         multivalued: true
-        range: string
-        description: Ordered list of element names in this section.
+        range: AcceleratorElement
+        description: >-
+          The elements in this section, keyed by name.
+      section_type:
+        range: LatticeTypeEnum
+        ifabsent: string(beam)
+        description: What this section carries.
+      functional_definitions:
+        multivalued: true
+        inlined: true
+        inlined_as_list: false
+        range: FunctionalDefinition
+        description: >-
+          Named constants this section's elements may refer to, keyed by name.
+      revolution_frequency:
+        range: double
+        description: >-
+          The ring's revolution frequency [Hz], if this section is part of a
+          closed ring.
 
   MachineLayout:
     description: >-
-      An ordered list of section names defining a beamline layout
-      (a contiguous sequence of sections).
+      A beamline layout: a contiguous sequence of sections.
     class_uri: laura:MachineLayout
     attributes:
       name:
@@ -61,8 +106,25 @@ classes:
         description: Name of the master lattice this layout belongs to.
       sections:
         multivalued: true
-        range: string
-        description: Ordered list of section names.
+        range: SectionLattice
+        description: >-
+          The sections making up this layout, keyed by name.  References into
+          MachineModel.sections rather than inlining them.
+      layout_type:
+        range: LatticeTypeEnum
+        ifabsent: string(beam)
+        description: What this layout carries.
+      functional_definitions:
+        multivalued: true
+        inlined: true
+        inlined_as_list: false
+        range: FunctionalDefinition
+        description: >-
+          Named constants this layout's elements may refer to, keyed by name.
+      revolution_frequency:
+        range: double
+        description: >-
+          The ring's revolution frequency [Hz], if this layout is a closed ring.
 
   MachineModel:
     description: >-

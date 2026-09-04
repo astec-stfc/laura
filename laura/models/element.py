@@ -55,6 +55,8 @@ from ._generated import (
     _CollimatorBase,
     _DriftBase,
     _MatrixTransformBase,
+    _PhotonMonitorBase,
+    _PowerSupplyBase,
     _ElectrostaticSeparatorBase,
     _ACDipoleBase,
     _HorizontalACDipoleBase,
@@ -608,7 +610,7 @@ class TwissMatch(PhysicalBaseElement, _TwissMatchBase):
         super().model_post_init(__context)
         _ensure_nested_default(self, "simulation", TwissMatchSimulationElement)
 
-class MatrixTransform(PhysicalBaseElement):
+class MatrixTransform(PhysicalBaseElement, _MatrixTransformBase):
     """
     Matrix transform element. Applies an instantaneous matrix kick to the beam, up to 2nd order.
 
@@ -727,7 +729,7 @@ class Bunch_Length_Monitor(Diagnostic, _BunchLengthMonitorBase):
         _ensure_nested_default(self, "diagnostic", Bunch_Length_Monitor_Diagnostic)
 
 
-class Photon_Monitor(Diagnostic):
+class Photon_Monitor(Diagnostic, _PhotonMonitorBase):
     """
     Photon monitor element.
 
@@ -1060,7 +1062,7 @@ class Lighting(Element, _LightingBase):
         _ensure_nested_default(self, "lights", LightingElement)
 
 
-class PowerSupply(Element):
+class PowerSupply(Element, _PowerSupplyBase):
     """
     Generic power supply element.
 

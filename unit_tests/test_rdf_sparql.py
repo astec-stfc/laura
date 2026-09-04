@@ -29,6 +29,21 @@ def sample_quad():
         machine_area="SEC",
         magnetic={"length": 0.3, "k1l": -1.5},
         physical={"length": 0.3, "middle": {"x": 1.0, "y": 0.0, "z": 2.0}},
+        downstream=["D1"],
+        controls={
+            "variables": {
+                "SETI": {
+                    "identifier": "SEC-Q1:SETI",
+                    "protocol": "EPICS",
+                    "units": "A",
+                    "read_only": False,
+                    "control_type": "scalar",
+                    "target": "magnetic.k1l",
+                    "buffer_size": 10,
+                },
+                "GETI": {"identifier": "SEC-Q1:GETI", "protocol": "EPICS"},
+            }
+        },
     )
 
 
@@ -39,6 +54,7 @@ def sample_dipole():
         machine_area="SEC",
         magnetic={"length": 0.5},
         physical={"length": 0.5, "middle": {"x": 0.0, "y": 0.0, "z": 5.0}},
+        upstream=["Q1"],
     )
 
 
@@ -221,6 +237,167 @@ class TestBuildRdfGraph:
         quad_uri = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
         areas = list(g.objects(quad_uri, LAURA_NS["machine_area"]))
         assert rdflib.Literal("SEC") in areas
+
+
+# ---------------------------------------------------------------------------
+# Relations: sections, layouts, controls, upstream/downstream
+# ---------------------------------------------------------------------------
+
+LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
+MACHINE = rdflib.URIRef("https://w3id.org/laura/test")
+
+
+class TestRelations:
+    """Without these the export is a bag of unconnected element nodes."""
+
+    def test_machine_node_links_every_element(self, small_machine):
+        from laura.Exporters.RDF import build_rdf_graph
+
+        g = build_rdf_graph(small_machine, machine_name="test")
+        assert (MACHINE, rdflib.RDF.type, LAURA_NS["MachineModel"]) in g
+        linked = {str(u).rsplit("/", 1)[-1] for u in g.objects(MACHINE, LAURA_NS["elements"])}
+        assert linked == {"M1", "Q1", "D1", "HCOR1"}
+
+    def test_section_membership(self, small_machine):
+        from laura.Exporters.RDF import build_rdf_graph
+
+        g = build_rdf_graph(small_machine, machine_name="test")
+        sec = rdflib.URIRef("https://w3id.org/laura/test/sections/SEC")
+        assert (MACHINE, LAURA_NS["sections"], sec) in g
+        assert (sec, rdflib.RDF.type, LAURA_NS["SectionLattice"]) in g
+        assert rdflib.Literal("SEC") in set(g.objects(sec, LAURA_NS["name"]))
+        names = ("M1", "Q1", "D1", "HCOR1")
+        # IRIs, not names: SectionLattice.elements is range AcceleratorElement.
+        assert set(g.objects(sec, LAURA_NS["elements"])) == {
+            rdflib.URIRef(f"https://w3id.org/laura/test/SEC/{n}") for n in names
+        }
+
+    def test_lattice_metadata(self, small_machine):
+        """The BaseLatticeModel slots both SectionLattice and MachineLayout have."""
+        from laura.Exporters.RDF import build_rdf_graph
+
+        section = small_machine.sections["SEC"]
+        section.section_type = "rf"
+        section.revolution_frequency = 1.2e6
+        section.functional_definitions = {"quad1_k1l": -2, "cav1_phase": 90.5}
+        small_machine.lattices["beam"].layout_type = "laser"
+
+        g = build_rdf_graph(small_machine, machine_name="test")
+        sec = rdflib.URIRef("https://w3id.org/laura/test/sections/SEC")
+        layout = rdflib.URIRef("https://w3id.org/laura/test/layouts/beam")
+
+        # Enum-ranged, so plain literals: the shapes carry sh:in and no
+        # sh:datatype, and sh:in compares terms, not lexical forms.
+        assert set(g.objects(sec, LAURA_NS["section_type"])) == {rdflib.Literal("rf")}
+        assert set(g.objects(layout, LAURA_NS["layout_type"])) == {
+            rdflib.Literal("laser")
+        }
+        assert set(g.objects(sec, LAURA_NS["revolution_frequency"])) == {
+            rdflib.Literal(1.2e6, datatype=rdflib.XSD.double)
+        }
+
+        defs = {
+            str(next(g.objects(d, LAURA_NS["name"]))): float(
+                next(g.objects(d, LAURA_NS["value"]))
+            )
+            for d in g.objects(sec, LAURA_NS["functional_definitions"])
+        }
+        assert defs == {"quad1_k1l": -2.0, "cav1_phase": 90.5}
+
+    def test_layout_membership(self, small_machine):
+        from laura.Exporters.RDF import build_rdf_graph
+
+        g = build_rdf_graph(small_machine, machine_name="test")
+        layout = rdflib.URIRef("https://w3id.org/laura/test/layouts/beam")
+        assert (MACHINE, LAURA_NS["layouts"], layout) in g
+        assert (layout, rdflib.RDF.type, LAURA_NS["MachineLayout"]) in g
+        assert set(g.objects(layout, LAURA_NS["sections"])) == {
+            rdflib.URIRef("https://w3id.org/laura/test/sections/SEC")
+        }
+
+    def test_upstream_downstream_are_iris_between_elements(self, small_machine):
+        from laura.Exporters.RDF import build_rdf_graph
+
+        g = build_rdf_graph(small_machine, machine_name="test")
+        q1 = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
+        d1 = rdflib.URIRef("https://w3id.org/laura/test/SEC/D1")
+        assert (q1, LAURA_NS["downstream"], d1) in g
+        assert (d1, LAURA_NS["upstream"], q1) in g
+
+    def test_unknown_upstream_name_is_skipped(self, sample_marker):
+        """A dangling IRI would fail the sh:class constraint on the slot."""
+        from laura.Exporters.RDF import build_rdf_graph
+
+        sample_marker.upstream = ["NOT_IN_THIS_MACHINE"]
+        machine = LAURA(
+            element_list=[sample_marker],
+            layout={"default_layout": "beam", "layouts": {"beam": ["SEC"]}},
+            section={"sections": {"SEC": ["M1"]}},
+        )
+        g = build_rdf_graph(machine, machine_name="test")
+        assert list(g.objects(None, LAURA_NS["upstream"])) == []
+
+    def test_control_variables(self, small_machine):
+        from laura.Exporters.RDF import build_rdf_graph
+
+        g = build_rdf_graph(small_machine, machine_name="test")
+        q1 = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
+        controls = next(g.objects(q1, LAURA_NS["controls"]))
+        assert (controls, rdflib.RDF.type, LAURA_NS["ControlsInformation"]) in g
+
+        seti = rdflib.URIRef(f"{controls}/SETI")
+        assert (controls, LAURA_NS["variables"], seti) in g
+        assert (seti, rdflib.RDF.type, LAURA_NS["ControlVariable"]) in g
+        # name is the key the variable is filed under; the Pydantic model has no
+        # such field, so this triple can only come from the mapping key.
+        assert next(g.objects(seti, LAURA_NS["name"])) == rdflib.Literal("SETI")
+        assert next(g.objects(seti, LAURA_NS["identifier"])) == rdflib.Literal(
+            "SEC-Q1:SETI", datatype=rdflib.XSD.string
+        )
+        assert next(g.objects(seti, LAURA_NS["read_only"])) == rdflib.Literal(
+            False, datatype=rdflib.XSD.boolean
+        )
+        assert next(g.objects(seti, LAURA_NS["buffer_size"])) == rdflib.Literal(
+            10, datatype=rdflib.XSD.integer
+        )
+        # Enum-ranged: plain literal, because the shape carries sh:in and no
+        # sh:datatype, and rdflib keeps the two terms distinct.
+        assert next(g.objects(seti, LAURA_NS["control_type"])) == rdflib.Literal(
+            "scalar"
+        )
+
+    def test_dtype_is_serialised_by_name(self, small_machine):
+        """It is held as the Python type object, not a string."""
+        from laura.Exporters.RDF import build_rdf_graph
+
+        g = build_rdf_graph(small_machine, machine_name="test")
+        dtypes = set(g.objects(None, LAURA_NS["dtype"]))
+        assert dtypes and all(
+            str(d) in {"float", "int", "str", "bool"} for d in dtypes
+        ), dtypes
+
+    def test_pv_for_a_magnet_is_reachable_by_sparql(self, small_machine):
+        """The point of the exercise: one query from machine to PV address."""
+        from laura.Exporters.RDF import build_rdf_graph
+
+        g = build_rdf_graph(small_machine, machine_name="test")
+        rows = list(
+            g.query(
+                """
+                PREFIX laura: <https://w3id.org/laura/>
+                SELECT ?elem ?var ?pv WHERE {
+                    ?m a laura:MachineModel ; laura:elements ?e .
+                    ?e laura:name ?elem ;
+                       laura:controls/laura:variables ?v .
+                    ?v laura:name ?var ; laura:identifier ?pv .
+                }
+                """
+            )
+        )
+        assert {(str(r[0]), str(r[1]), str(r[2])) for r in rows} == {
+            ("Q1", "SETI", "SEC-Q1:SETI"),
+            ("Q1", "GETI", "SEC-Q1:GETI"),
+        }
 
 
 # ---------------------------------------------------------------------------

@@ -301,6 +301,24 @@ class ApertureShapeEnum(str, Enum):
     elliptical = "elliptical"
 
 
+class LatticeTypeEnum(str, Enum):
+    """
+    What a section or layout carries.  Mirrors ``laura.models.elementList.LatticeType``.
+    """
+    beam = "beam"
+    """
+    A beamline.
+    """
+    rf = "rf"
+    """
+    An RF distribution line.
+    """
+    laser = "laser"
+    """
+    A laser transport line.
+    """
+
+
 class BendingPlaneEnum(str, Enum):
     """
     Bending plane enum.
@@ -596,7 +614,7 @@ class _ControlVariableBase(ConfiguredBaseModel):
     read_only: Optional[bool] = Field(default=True, description="""Whether the variable is read-only.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable'], 'ifabsent': 'True'} })
     """Whether the variable is read-only."""
     value: Optional[Union[float, int, str]] = Field(default=None, description="""Last-read value. Scalar for most control types; a list for ``waveform``.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'double'}, {'range': 'integer'}, {'range': 'string'}],
-         'domain_of': ['ControlVariable']} })
+         'domain_of': ['ControlVariable', 'FunctionalDefinition']} })
     """Last-read value. Scalar for most control types; a list for ``waveform``."""
     control_type: Optional[ControlTypeEnum] = Field(default=ControlTypeEnum.statistical, description="""Kind of quantity this variable carries. Accepted in YAML as ``type``.""", validation_alias=AliasChoices('control_type', 'type'), json_schema_extra = { "linkml_meta": {'aliases': ['type'],
          'domain_of': ['ControlVariable'],
@@ -692,40 +710,71 @@ class _ApertureElementBase(ConfiguredBaseModel):
     """Downstream / outer extent [m]."""
 
 
+class _FunctionalDefinitionBase(ConfiguredBaseModel):
+    """
+    One named constant a lattice makes available to its elements, e.g. ``quad1_k1l: -2``.  A class rather than a bare map because LinkML has no free-form mapping type; the same keyed-inlined pattern as ControlVariable.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:FunctionalDefinition',
+         'from_schema': 'https://w3id.org/laura/schema/machine'})
+
+    name: str = Field(default=..., description="""The name elements refer to this definition by.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
+                       'SectionLattice',
+                       'MachineLayout',
+                       'AcceleratorElement']} })
+    """The name elements refer to this definition by."""
+    value: float = Field(default=..., description="""The number it resolves to.  The Python model accepts int or float and stores whichever was given; both go out as a double.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable', 'FunctionalDefinition']} })
+    """The number it resolves to.  The Python model accepts int or float and stores whichever was given; both go out as a double."""
+
+
 class _SectionLatticeBase(ConfiguredBaseModel):
     """
-    An ordered list of element names defining a contiguous beamline section.
+    A contiguous beamline section: an ordered run of elements.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:SectionLattice',
          'from_schema': 'https://w3id.org/laura/schema/machine'})
 
     name: str = Field(default=..., description="""Unique section name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
     """Unique section name."""
     master_lattice: Optional[str] = Field(default=None, description="""Name of the master lattice this section belongs to.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
     """Name of the master lattice this section belongs to."""
-    elements: list[str] = Field(default_factory=list, description="""Ordered list of element names in this section.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
-    """Ordered list of element names in this section."""
+    elements: list[str] = Field(default_factory=list, description="""The elements in this section, keyed by name.  References into MachineModel.elements rather than inlining them -- the Python ElementList holds the same objects, not copies.  The Python model's ``order`` has no slot here: no LinkML multivalued collection is ordered, so the sequence would not survive any export.  Recover it from each element's physical.s.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
+    """The elements in this section, keyed by name.  References into MachineModel.elements rather than inlining them -- the Python ElementList holds the same objects, not copies.  The Python model's ``order`` has no slot here: no LinkML multivalued collection is ordered, so the sequence would not survive any export.  Recover it from each element's physical.s."""
+    section_type: Optional[LatticeTypeEnum] = Field(default=LatticeTypeEnum.beam, description="""What this section carries.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice'], 'ifabsent': 'string(beam)'} })
+    """What this section carries."""
+    functional_definitions: Optional[dict[str, Union[float, _FunctionalDefinitionBase]]] = Field(default=None, description="""Named constants this section's elements may refer to, keyed by name. The Python model also accepts a path to a YAML file holding the mapping, but resolves it at construction, so only the resolved mapping is ever exported.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
+    """Named constants this section's elements may refer to, keyed by name. The Python model also accepts a path to a YAML file holding the mapping, but resolves it at construction, so only the resolved mapping is ever exported."""
+    revolution_frequency: Optional[float] = Field(default=None, description="""The ring's revolution frequency [Hz], if this section is part of a closed ring.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
+    """The ring's revolution frequency [Hz], if this section is part of a closed ring."""
 
 
 class _MachineLayoutBase(ConfiguredBaseModel):
     """
-    An ordered list of section names defining a beamline layout (a contiguous sequence of sections).
+    A beamline layout: a contiguous sequence of sections.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MachineLayout',
          'from_schema': 'https://w3id.org/laura/schema/machine'})
 
     name: str = Field(default=..., description="""Unique layout name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
     """Unique layout name."""
     master_lattice: Optional[str] = Field(default=None, description="""Name of the master lattice this layout belongs to.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
     """Name of the master lattice this layout belongs to."""
-    sections: list[str] = Field(default_factory=list, description="""Ordered list of section names.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
-    """Ordered list of section names."""
+    sections: list[str] = Field(default_factory=list, description="""The sections making up this layout, keyed by name.  References into MachineModel.sections rather than inlining them.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
+    """The sections making up this layout, keyed by name.  References into MachineModel.sections rather than inlining them."""
+    layout_type: Optional[LatticeTypeEnum] = Field(default=LatticeTypeEnum.beam, description="""What this layout carries.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout'], 'ifabsent': 'string(beam)'} })
+    """What this layout carries."""
+    functional_definitions: Optional[dict[str, Union[float, _FunctionalDefinitionBase]]] = Field(default=None, description="""Named constants this layout's elements may refer to, keyed by name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
+    """Named constants this layout's elements may refer to, keyed by name."""
+    revolution_frequency: Optional[float] = Field(default=None, description="""The ring's revolution frequency [Hz], if this layout is a closed ring.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
+    """The ring's revolution frequency [Hz], if this layout is a closed ring."""
 
 
 class _MachineModelBase(ConfiguredBaseModel):
@@ -2572,8 +2621,8 @@ class _SextupoleMagnetBase(_MagneticElementBase):
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
-    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default."""
+    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
+    """Integrated bending angle [rad]. Dipoles only."""
 
 
 class _OctupoleMagnetBase(_MagneticElementBase):
@@ -2653,8 +2702,8 @@ class _OctupoleMagnetBase(_MagneticElementBase):
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
     """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
-    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
-    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default."""
+    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
+    """Integrated bending angle [rad]. Dipoles only."""
 
 
 class _CorrectorMagnetBase(ConfiguredBaseModel):
@@ -2877,6 +2926,7 @@ class _AcceleratorElementBase(ConfiguredBaseModel):
          'tree_root': True})
 
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -2923,6 +2973,7 @@ class _StandardElementBase(_AcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -2973,6 +3024,7 @@ class _LightingBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3023,6 +3075,7 @@ class _PowerSupplyBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3075,6 +3128,7 @@ class _LowLevelRFBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3127,6 +3181,7 @@ class _RFModulatorBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3179,6 +3234,7 @@ class _RFProtectionBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3231,6 +3287,7 @@ class _RFHeartbeatBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3283,6 +3340,7 @@ class _PIDBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3341,6 +3399,7 @@ class _LaserEnergyMeterBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3399,6 +3458,7 @@ class _LaserHalfWavePlateBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3457,6 +3517,7 @@ class _LaserMirrorBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3513,6 +3574,7 @@ class _LaserAttenuatorBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3560,6 +3622,7 @@ class _ElementBase(_StandardElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3609,6 +3672,7 @@ class _PhysicalAcceleratorElementBase(_ElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3662,6 +3726,7 @@ class _TwissMatchBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3717,6 +3782,7 @@ class _MatrixTransformBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3772,6 +3838,7 @@ class _ElectrostaticSeparatorBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3826,6 +3893,7 @@ class _ACDipoleBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3877,6 +3945,7 @@ class _HorizontalACDipoleBase(_ACDipoleBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3930,6 +3999,7 @@ class _VerticalACDipoleBase(_ACDipoleBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -3985,6 +4055,7 @@ class _WireBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4040,6 +4111,7 @@ class _BeamBeamBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4095,6 +4167,7 @@ class _RFMultipoleBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4148,6 +4221,7 @@ class _StageBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4201,6 +4275,7 @@ class _VacuumGaugeBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4262,6 +4337,7 @@ class _LaserBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4317,6 +4393,7 @@ class _ShutterBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4372,6 +4449,7 @@ class _ValveBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4425,6 +4503,7 @@ class _MarkerBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4480,6 +4559,7 @@ class _ApertureBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4535,6 +4615,7 @@ class _CollimatorBase(_ApertureBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4590,6 +4671,7 @@ class _DriftBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4647,6 +4729,7 @@ class _MagnetBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4703,6 +4786,7 @@ class _RFCavityBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4759,6 +4843,7 @@ class _RFDeflectingCavityBase(_RFCavityBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4815,6 +4900,7 @@ class _CrabCavityBase(_RFCavityBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4872,6 +4958,7 @@ class _WakefieldBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4935,6 +5022,7 @@ class _DiagnosticBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -4996,6 +5084,7 @@ class _BeamPositionMonitorBase(_DiagnosticBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5059,6 +5148,7 @@ class _BeamArrivalMonitorBase(_DiagnosticBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5122,6 +5212,7 @@ class _BunchLengthMonitorBase(_DiagnosticBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5185,6 +5276,7 @@ class _CameraBase(_DiagnosticBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5248,6 +5340,7 @@ class _ScreenBase(_DiagnosticBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5311,6 +5404,7 @@ class _ChargeDiagnosticBase(_DiagnosticBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5374,6 +5468,7 @@ class _WallCurrentMonitorBase(_ChargeDiagnosticBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5437,6 +5532,7 @@ class _FaradayCupMonitorBase(_ChargeDiagnosticBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5500,6 +5596,7 @@ class _IntegratedCurrentTransformerBase(_ChargeDiagnosticBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5565,6 +5662,7 @@ class _PhotonMonitorBase(_DiagnosticBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5629,6 +5727,7 @@ class _PlasmaBase(_PhysicalAcceleratorElementBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5684,6 +5783,7 @@ class _DipoleBase(_MagnetBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5739,6 +5839,7 @@ class _QuadrupoleBase(_MagnetBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5798,6 +5899,7 @@ class _SextupoleBase(_MagnetBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5857,6 +5959,7 @@ class _OctupoleBase(_MagnetBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5916,6 +6019,7 @@ class _HorizontalCorrectorBase(_DipoleBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -5975,6 +6079,7 @@ class _VerticalCorrectorBase(_DipoleBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -6038,6 +6143,7 @@ class _CombinedCorrectorBase(_DipoleBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -6097,6 +6203,7 @@ class _SolenoidBase(_MagnetBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -6163,6 +6270,7 @@ class _WigglerBase(_MagnetBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -6223,6 +6331,7 @@ class _NonLinearLensBase(_MagnetBase):
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
     name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable',
+                       'FunctionalDefinition',
                        'SectionLattice',
                        'MachineLayout',
                        'AcceleratorElement']} })
@@ -6267,6 +6376,7 @@ _ShutterElementBase.model_rebuild()
 _ValveElementBase.model_rebuild()
 _LightingElementBase.model_rebuild()
 _ApertureElementBase.model_rebuild()
+_FunctionalDefinitionBase.model_rebuild()
 _SectionLatticeBase.model_rebuild()
 _MachineLayoutBase.model_rebuild()
 _MachineModelBase.model_rebuild()

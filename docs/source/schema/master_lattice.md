@@ -15,8 +15,8 @@ URI: [laura:master_lattice](https://w3id.org/laura/master_lattice)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [SectionLattice](SectionLattice.md) | An ordered list of element names defining a contiguous beamline section |  no  |
-| [MachineLayout](MachineLayout.md) | An ordered list of section names defining a beamline layout (a contiguous seq... |  no  |
+| [SectionLattice](SectionLattice.md) | A contiguous beamline section: an ordered run of elements |  no  |
+| [MachineLayout](MachineLayout.md) | A beamline layout: a contiguous sequence of sections |  no  |
 
 
 

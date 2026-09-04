@@ -2739,7 +2739,7 @@
           ]
         },
         "name": {
-          "description": "Logical name of this variable within its element, e.g. ``SETI``. This is the key ``ControlsInformation.variables`` maps from, so YAML gives it as the mapping key rather than repeating it inside the entry, and the Pydantic model omits it (see ``_PYDANTIC_EXCLUDED_SLOTS`` in ``generate_pydantic.py``).  It is declared here so the formats without a native map type -- SQL, SHACL, JSON Schema -- have somewhere to put the name instead of silently dropping it.",
+          "description": "Logical name of this variable within its element.",
           "type": "string"
         },
         "protocol": {
@@ -2882,7 +2882,7 @@
           ]
         },
         "name": {
-          "description": "Logical name of this variable within its element, e.g. ``SETI``. This is the key ``ControlsInformation.variables`` maps from, so YAML gives it as the mapping key rather than repeating it inside the entry, and the Pydantic model omits it (see ``_PYDANTIC_EXCLUDED_SLOTS`` in ``generate_pydantic.py``).  It is declared here so the formats without a native map type -- SQL, SHACL, JSON Schema -- have somewhere to put the name instead of silently dropping it.",
+          "description": "Logical name of this variable within its element.",
           "type": "string"
         },
         "protocol": {
@@ -3686,7 +3686,7 @@
       "description": "",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only.",
           "type": [
             "number",
             "null"
@@ -4852,6 +4852,45 @@
         }
       },
       "title": "FieldIntegral",
+      "type": "object"
+    },
+    "FunctionalDefinition": {
+      "additionalProperties": false,
+      "description": "One named constant a lattice makes available to its elements, e.g. ``quad1_k1l: -2``.  A class rather than a bare map because LinkML has no free-form mapping type; the same keyed-inlined pattern as ControlVariable.",
+      "properties": {
+        "name": {
+          "description": "The name elements refer to this definition by.",
+          "type": "string"
+        },
+        "value": {
+          "description": "The number it resolves to.  The Python model accepts int or float and stores whichever was given; both go out as a double.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "FunctionalDefinition",
+      "type": "object"
+    },
+    "FunctionalDefinition__identifier_optional": {
+      "additionalProperties": false,
+      "description": "One named constant a lattice makes available to its elements, e.g. ``quad1_k1l: -2``.  A class rather than a bare map because LinkML has no free-form mapping type; the same keyed-inlined pattern as ControlVariable.",
+      "properties": {
+        "name": {
+          "description": "The name elements refer to this definition by.",
+          "type": "string"
+        },
+        "value": {
+          "description": "The number it resolves to.  The Python model accepts int or float and stores whichever was given; both go out as a double.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "FunctionalDefinition",
       "type": "object"
     },
     "HardwareClassEnum": {
@@ -6609,6 +6648,16 @@
       "title": "LaserProfileTypeEnum",
       "type": "string"
     },
+    "LatticeTypeEnum": {
+      "description": "What a section or layout carries.  Mirrors ``laura.models.elementList.LatticeType``.",
+      "enum": [
+        "beam",
+        "rf",
+        "laser"
+      ],
+      "title": "LatticeTypeEnum",
+      "type": "string"
+    },
     "Lighting": {
       "additionalProperties": false,
       "description": "Experimental-hall lighting element.",
@@ -7073,8 +7122,30 @@
     },
     "MachineLayout": {
       "additionalProperties": false,
-      "description": "An ordered list of section names defining a beamline layout (a contiguous sequence of sections).",
+      "description": "A beamline layout: a contiguous sequence of sections.",
       "properties": {
+        "functional_definitions": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FunctionalDefinition__identifier_optional"
+              },
+              {
+                "description": "The number it resolves to.  The Python model accepts int or float and stores whichever was given; both go out as a double.",
+                "type": "number"
+              }
+            ]
+          },
+          "description": "Named constants this layout's elements may refer to, keyed by name.",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "layout_type": {
+          "$ref": "#/$defs/LatticeTypeEnum",
+          "description": "What this layout carries."
+        },
         "master_lattice": {
           "description": "Name of the master lattice this layout belongs to.",
           "type": [
@@ -7086,8 +7157,15 @@
           "description": "Unique layout name.",
           "type": "string"
         },
+        "revolution_frequency": {
+          "description": "The ring's revolution frequency [Hz], if this layout is a closed ring.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "sections": {
-          "description": "Ordered list of section names.",
+          "description": "The sections making up this layout, keyed by name.  References into MachineModel.sections rather than inlining them.",
           "items": {
             "type": "string"
           },
@@ -7511,7 +7589,7 @@
       "description": "Magnetic field parameters for a beamline magnet, including multipole components, field integrals, and geometric edge parameters.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only.",
           "type": [
             "number",
             "null"
@@ -8692,7 +8770,7 @@
       "description": "Octupole magnet field, principal multipole order 3.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only.",
           "type": [
             "number",
             "null"
@@ -10444,7 +10522,7 @@
       "description": "",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only.",
           "type": [
             "number",
             "null"
@@ -12595,15 +12673,33 @@
     },
     "SectionLattice": {
       "additionalProperties": false,
-      "description": "An ordered list of element names defining a contiguous beamline section.",
+      "description": "A contiguous beamline section: an ordered run of elements.",
       "properties": {
         "elements": {
-          "description": "Ordered list of element names in this section.",
+          "description": "The elements in this section, keyed by name.  References into MachineModel.elements rather than inlining them -- the Python ElementList holds the same objects, not copies.  The Python model's ``order`` has no slot here: no LinkML multivalued collection is ordered, so the sequence would not survive any export.  Recover it from each element's physical.s.",
           "items": {
             "type": "string"
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "functional_definitions": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FunctionalDefinition__identifier_optional"
+              },
+              {
+                "description": "The number it resolves to.  The Python model accepts int or float and stores whichever was given; both go out as a double.",
+                "type": "number"
+              }
+            ]
+          },
+          "description": "Named constants this section's elements may refer to, keyed by name. The Python model also accepts a path to a YAML file holding the mapping, but resolves it at construction, so only the resolved mapping is ever exported.",
+          "type": [
+            "object",
             "null"
           ]
         },
@@ -12617,6 +12713,17 @@
         "name": {
           "description": "Unique section name.",
           "type": "string"
+        },
+        "revolution_frequency": {
+          "description": "The ring's revolution frequency [Hz], if this section is part of a closed ring.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "section_type": {
+          "$ref": "#/$defs/LatticeTypeEnum",
+          "description": "What this section carries."
         }
       },
       "required": [
@@ -12824,7 +12931,7 @@
       "description": "Sextupole magnet field, principal multipole order 2.",
       "properties": {
         "angle": {
-          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "description": "Integrated bending angle [rad]. Dipoles only.",
           "type": [
             "number",
             "null"

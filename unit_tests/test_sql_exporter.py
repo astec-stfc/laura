@@ -76,6 +76,14 @@ def _import_sql():
     return export_machine, load_machine_elements, load_machine_sections
 
 
+def _load_orm_module():
+    """The generated ORM, for assertions the public API does not expose."""
+    pytest.importorskip("sqlalchemy")
+    from laura.Exporters.SQL import _load_orm
+
+    return _load_orm()
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -127,7 +135,7 @@ class TestSQLExporterBasic:
             sections = load_machine_sections(db_url=db_url, machine_id=machine_id)
 
         assert "S01" in sections
-        # The junction table stores element names but has no position column,
+        # The junction table is a set of foreign keys with no position column,
         # so retrieval order is not guaranteed — compare as a set.
         assert set(sections["S01"]) == {"M1", "Q1", "D1"}
 
@@ -286,6 +294,45 @@ def multi_section_machine():
         "layouts": {"full": ["A01", "B01"], "half": ["A01"]},
     }
     return LAURA(element_list=[m1, q1, m2, d1], layout=layouts, section=sections)
+
+
+class TestLatticeMetadata:
+    """The BaseLatticeModel slots SectionLattice and MachineLayout share."""
+
+    def test_lattice_metadata_round_trips(self, small_machine):
+        """section_type, revolution_frequency and functional_definitions persist.
+
+        functional_definitions is the awkward one: it is a keyed class two
+        different classes own, so gen-sqla put both owners' foreign keys in the
+        primary key and every insert failed on the NULL one.  laura/schema/
+        generate_orm.py gives such a table a surrogate id instead; this is the
+        check that it still does.
+        """
+        export_machine, _, _ = _import_sql()
+        section = small_machine.sections["S01"]
+        section.section_type = "rf"
+        section.revolution_frequency = 1.2e6
+        section.functional_definitions = {"quad1_k1l": -2, "cav1_phase": 90.5}
+        small_machine.lattices["line1"].functional_definitions = {"quad1_k1l": -2}
+
+        orm = _load_orm_module()
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_url = f"sqlite:///{Path(tmpdir) / 'meta.db'}"
+            export_machine(small_machine, db_url=db_url)
+
+            with sessionmaker(bind=create_engine(db_url))() as session:
+                row = session.get(orm.SectionLattice, "S01")
+                assert row.section_type == "rf"
+                assert row.revolution_frequency == pytest.approx(1.2e6)
+                assert {d.name: d.value for d in row.functional_definitions} == {
+                    "quad1_k1l": -2.0,
+                    "cav1_phase": 90.5,
+                }
+                layout = session.get(orm.MachineLayout, "line1")
+                assert [d.name for d in layout.functional_definitions] == ["quad1_k1l"]
 
 
 class TestSQLExporterEdgeCases:

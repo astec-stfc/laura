@@ -53,15 +53,18 @@ def _run_gen_sqla(schema_path: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _class_blocks(content: str) -> list[tuple[int, int, str]]:
-    """Return [(start, end, class_name), ...] for every ``class X(Base):`` block."""
-    positions = [
-        (m.start(), m.group(1))
-        for m in re.finditer(r'^class (\w+)\(Base\):', content, re.MULTILINE)
-    ]
+    """Return [(start, end, class_name), ...] for every ``class X(Base):`` block.
+
+    A block ends at the next ``class`` of any kind, not the next ``(Base)`` one:
+    gen-sqla declares subclasses (``class StandardElement(AcceleratorElement)``)
+    between the Base-derived tables, and a block that swallowed them would
+    attribute their columns to the class above.
+    """
+    starts = [m.start() for m in re.finditer(r'^class \w+\(', content, re.MULTILINE)]
     blocks = []
-    for i, (start, name) in enumerate(positions):
-        end = positions[i + 1][0] if i + 1 < len(positions) else len(content)
-        blocks.append((start, end, name))
+    for m in re.finditer(r'^class (\w+)\(Base\):', content, re.MULTILINE):
+        end = next((s for s in starts if s > m.start()), len(content))
+        blocks.append((m.start(), end, m.group(1)))
     return blocks
 
 
@@ -211,15 +214,44 @@ def _fix_key_slot_pk(cont: str) -> str:
     (ControlsInformation_id, name)``, so keep ``primary_key=True`` on the
     non-nullable column and the foreign key and strip it from the rest.
 
+    A keyed class that more than one class owns cannot be keyed that way at all:
+    gen-sqla puts *every* owner's foreign key in the primary key, but a row
+    belongs to exactly one owner, so the rest are NULL and the insert fails with
+    ``NOT NULL constraint failed``.  ``FunctionalDefinition`` is reachable from
+    both ``SectionLattice`` and ``MachineLayout``.  Those tables get the
+    surrogate ``id`` gen-sqla gives an unkeyed class instead.
+
     Junction tables legitimately have a two-column composite key and are left
     alone.
     """
     col_re = re.compile(r"^    (\w+) = Column\((.*)\)\s*$", re.MULTILINE)
+    fk_re = re.compile(r"ForeignKey\('(\w+)\.")
+
+    def _strip_pk(line: str) -> str:
+        return line.replace(", primary_key=True", "").replace("primary_key=True, ", "")
 
     def _fix_block(block: str) -> str:
         pk_cols = [m for m in col_re.finditer(block) if "primary_key=True" in m.group(2)]
         if len(pk_cols) <= 2:
             return block
+
+        owners = {
+            m.group(1)
+            for col in pk_cols
+            for m in [fk_re.search(col.group(2))]
+            if m
+        }
+        if len(owners) > 1:
+            for col in pk_cols:
+                block = block.replace(col.group(0), _strip_pk(col.group(0)), 1)
+            return re.sub(
+                r"^(    __tablename__ = .*\n)",
+                r"\1\n    id = Column(Integer(), primary_key=True, autoincrement=True)",
+                block,
+                count=1,
+                flags=re.MULTILINE,
+            )
+
         keep = {
             m.group(1)
             for m in pk_cols
@@ -230,10 +262,7 @@ def _fix_key_slot_pk(cont: str) -> str:
         for m in pk_cols:
             if m.group(1) in keep:
                 continue
-            stripped = m.group(0).replace(", primary_key=True", "").replace(
-                "primary_key=True, ", ""
-            )
-            block = block.replace(m.group(0), stripped, 1)
+            block = block.replace(m.group(0), _strip_pk(m.group(0)), 1)
         return block
 
     blocks = _class_blocks(cont)

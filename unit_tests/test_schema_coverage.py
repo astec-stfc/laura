@@ -207,26 +207,17 @@ def test_control_variable_primary_key_is_narrow(artefact):
         )
 
 
-# These three Python classes do not inherit from their generated base at all --
-# _MatrixTransformBase, _PhotonMonitorBase and _PowerSupplyBase are in
-# _generated.py but nothing in laura/models/ subclasses them -- so there is no
-# class_uri anywhere in the MRO and the element resolves to its parent.  Not a
-# linkml_class_name() bug: wiring them up would also pull in the generated
-# fields and validators, which is a model-layer change, not an exporter one.
-_UNWIRED_TO_THEIR_GENERATED_BASE = {"MatrixTransform", "Photon_Monitor", "PowerSupply"}
-
-
 @pytest.mark.parametrize("hardware_type", sorted(ELEMENT_REGISTRY))
 def test_linkml_class_name_resolves_to_this_element_own_class(hardware_type):
     """``linkml_class_name()`` must name the element's own class, not an ancestor.
 
     It drives ``rdf:type`` in the RDF exporter, so an ancestor here silently
-    mistypes the element.  ``LaserMirror(Element, _LaserMirrorBase)`` linearises
-    ``_ElementBase`` ahead of ``_LaserMirrorBase``, which typed every laser
-    mirror, energy meter and attenuator as the generic ``laura:Element``.
+    mistypes the element.  Two ways that used to happen: an element not
+    subclassing its generated base at all (MatrixTransform, Photon_Monitor and
+    PowerSupply), and MRO order -- ``LaserMirror(Element, _LaserMirrorBase)``
+    linearises ``_ElementBase`` ahead of ``_LaserMirrorBase``, which typed every
+    laser mirror, energy meter and attenuator as the generic ``laura:Element``.
     """
-    if hardware_type in _UNWIRED_TO_THEIR_GENERATED_BASE:
-        pytest.xfail(f"{hardware_type} does not subclass its generated base")
     resolved = ELEMENT_REGISTRY[hardware_type].linkml_class_name()
     assert _normalise(resolved) == _normalise(hardware_type), (
         f"'{hardware_type}' resolves to schema class '{resolved}'"
