@@ -33,7 +33,7 @@ URI: [laura:smooth_points](https://w3id.org/laura/smooth_points)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(2)
 owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement
-range: float
+range: double
 
 ```
 </details></div>

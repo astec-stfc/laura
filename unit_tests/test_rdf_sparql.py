@@ -154,27 +154,64 @@ class TestBuildRdfGraph:
         assert rdflib.Literal("Q1") in names
 
     def test_physical_length_triple(self, small_machine):
+        """``length`` hangs off the PhysicalElement node, not the element."""
         from laura.Exporters.RDF import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
         quad_uri = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
-        lengths = list(g.objects(quad_uri, LAURA_NS["length"]))
+
+        assert list(g.objects(quad_uri, LAURA_NS["length"])) == []
+
+        phys = list(g.objects(quad_uri, LAURA_NS["physical"]))
+        assert len(phys) == 1
+        assert (phys[0], rdflib.RDF.type, LAURA_NS["PhysicalElement"]) in g
+        lengths = list(g.objects(phys[0], LAURA_NS["length"]))
         assert len(lengths) == 1
         assert abs(float(lengths[0]) - 0.3) < 1e-9
 
     def test_position_triples(self, small_machine):
+        """Coordinates live on a laura:Position node under laura:middle."""
         from laura.Exporters.RDF import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
         LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
         quad_uri = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
-        xs = list(g.objects(quad_uri, LAURA_NS["position_x"]))
-        zs = list(g.objects(quad_uri, LAURA_NS["position_z"]))
-        assert len(xs) == 1
-        assert abs(float(xs[0]) - 1.0) < 1e-9
-        assert len(zs) == 1
-        assert abs(float(zs[0]) - 2.0) < 1e-9
+
+        # The old flat spelling was not a slot of anything in the schema.
+        for gone in ("position_x", "position_y", "position_z"):
+            assert list(g.objects(quad_uri, LAURA_NS[gone])) == []
+
+        (phys,) = g.objects(quad_uri, LAURA_NS["physical"])
+        (middle,) = g.objects(phys, LAURA_NS["middle"])
+        assert (middle, rdflib.RDF.type, LAURA_NS["Position"]) in g
+        coords = {
+            axis: float(next(g.objects(middle, LAURA_NS[axis])))
+            for axis in ("x", "y", "z")
+        }
+        assert coords == pytest.approx({"x": 1.0, "y": 0.0, "z": 2.0})
+
+    def test_position_is_reachable_by_sparql_through_the_schema_path(
+        self, small_machine
+    ):
+        """The nesting is what makes an ontology-driven query possible at all."""
+        from laura.Exporters.RDF import build_rdf_graph
+
+        g = build_rdf_graph(small_machine, machine_name="test")
+        rows = list(
+            g.query(
+                """
+                PREFIX laura: <https://w3id.org/laura/>
+                SELECT ?name ?z WHERE {
+                    ?e laura:name ?name ;
+                       laura:physical/laura:middle/laura:z ?z .
+                }
+                """
+            )
+        )
+        assert {str(r[0]): float(r[1]) for r in rows} == pytest.approx(
+            {"M1": 0.0, "Q1": 2.0, "D1": 5.0, "HCOR1": 7.0}
+        )
 
     def test_machine_area_triple(self, small_machine):
         from laura.Exporters.RDF import build_rdf_graph

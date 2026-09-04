@@ -78,13 +78,13 @@ URI: [laura:LaserElement](https://w3id.org/laura/LaserElement)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [initial_position](initial_position.md) | 0..1 <br/> [Float](Float.md) | Initial longitudinal position of the laser pulse [m] | direct |
-| [waist](waist.md) | 0..1 <br/> [Float](Float.md) | Laser beam waist (1/e^2 radius) [m] | direct |
-| [wavelength](wavelength.md) | 0..1 <br/> [Float](Float.md) | Laser wavelength [m] | direct |
-| [pulse_energy](pulse_energy.md) | 0..1 <br/> [Float](Float.md) | Laser pulse energy [J] | direct |
-| [pulse_duration_fwhm](pulse_duration_fwhm.md) | 0..1 <br/> [Float](Float.md) | Pulse duration at FWHM [s] | direct |
-| [focal_position](focal_position.md) | 0..1 <br/> [Float](Float.md) | Focal (waist) position along the propagation axis [m] | direct |
-| [cep_phase](cep_phase.md) | 0..1 <br/> [Float](Float.md) | Carrier-envelope phase [rad] | direct |
+| [initial_position](initial_position.md) | 0..1 <br/> [Double](Double.md) | Initial longitudinal position of the laser pulse [m] | direct |
+| [waist](waist.md) | 0..1 <br/> [Double](Double.md) | Laser beam waist (1/e^2 radius) [m] | direct |
+| [wavelength](wavelength.md) | 0..1 <br/> [Double](Double.md) | Laser wavelength [m] | direct |
+| [pulse_energy](pulse_energy.md) | 0..1 <br/> [Double](Double.md) | Laser pulse energy [J] | direct |
+| [pulse_duration_fwhm](pulse_duration_fwhm.md) | 0..1 <br/> [Double](Double.md) | Pulse duration at FWHM [s] | direct |
+| [focal_position](focal_position.md) | 0..1 <br/> [Double](Double.md) | Focal (waist) position along the propagation axis [m] | direct |
+| [cep_phase](cep_phase.md) | 0..1 <br/> [Double](Double.md) | Carrier-envelope phase [rad] | direct |
 | [polarization](polarization.md) | 0..1 <br/> [LaserPolarizationEnum](LaserPolarizationEnum.md) | Laser polarization state | direct |
 | [profile_type](profile_type.md) | 0..1 <br/> [LaserProfileTypeEnum](LaserProfileTypeEnum.md) | Transverse intensity profile model | direct |
 | [laguerre_polynomial_order_p](laguerre_polynomial_order_p.md) | 0..1 <br/> [Integer](Integer.md) | Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian... | direct |
@@ -168,7 +168,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - LaserElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   waist:
@@ -179,7 +179,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - LaserElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -190,7 +190,7 @@ attributes:
     rank: 1000
     domain_of:
     - LaserElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -201,7 +201,7 @@ attributes:
     rank: 1000
     domain_of:
     - LaserElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: J
@@ -212,7 +212,7 @@ attributes:
     rank: 1000
     domain_of:
     - LaserElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: s
@@ -224,7 +224,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - LaserElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   cep_phase:
@@ -235,7 +235,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - LaserElement
-    range: float
+    range: double
     unit:
       ucum_code: rad
   polarization:
@@ -301,7 +301,7 @@ attributes:
     owner: LaserElement
     domain_of:
     - LaserElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   waist:
@@ -313,7 +313,7 @@ attributes:
     owner: LaserElement
     domain_of:
     - LaserElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -325,7 +325,7 @@ attributes:
     owner: LaserElement
     domain_of:
     - LaserElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -337,7 +337,7 @@ attributes:
     owner: LaserElement
     domain_of:
     - LaserElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: J
@@ -349,7 +349,7 @@ attributes:
     owner: LaserElement
     domain_of:
     - LaserElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: s
@@ -362,7 +362,7 @@ attributes:
     owner: LaserElement
     domain_of:
     - LaserElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   cep_phase:
@@ -374,7 +374,7 @@ attributes:
     owner: LaserElement
     domain_of:
     - LaserElement
-    range: float
+    range: double
     unit:
       ucum_code: rad
   polarization:

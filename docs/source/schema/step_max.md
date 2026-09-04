@@ -33,7 +33,7 @@ URI: [laura:step_max](https://w3id.org/laura/step_max)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [LaserMirrorElement](LaserMirrorElement.md) |
 
 ### Cardinality and Requirements
@@ -92,7 +92,7 @@ rank: 1000
 owner: LaserMirrorElement
 domain_of:
 - LaserMirrorElement
-range: float
+range: double
 
 ```
 </details></div>

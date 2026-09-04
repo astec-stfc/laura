@@ -55,7 +55,7 @@ URI: [laura:LaserMirrorElement](https://w3id.org/laura/LaserMirrorElement)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [step_max](step_max.md) | 0..1 <br/> [Float](Float.md) | Maximum step size for mirror adjustment | direct |
+| [step_max](step_max.md) | 0..1 <br/> [Double](Double.md) | Maximum step size for mirror adjustment | direct |
 | [sense](sense.md) | 0..1 <br/> [LaserMirrorSense](LaserMirrorSense.md) | Mirror sense/interlock configuration | direct |
 | [vertical_channel](vertical_channel.md) | 0..1 <br/> [Integer](Integer.md) | Vertical control channel index | direct |
 | [horizontal_channel](horizontal_channel.md) | 0..1 <br/> [Integer](Integer.md) | Horizontal control channel index | direct |
@@ -126,7 +126,7 @@ attributes:
     rank: 1000
     domain_of:
     - LaserMirrorElement
-    range: float
+    range: double
   sense:
     name: sense
     description: Mirror sense/interlock configuration.
@@ -172,7 +172,7 @@ attributes:
     owner: LaserMirrorElement
     domain_of:
     - LaserMirrorElement
-    range: float
+    range: double
   sense:
     name: sense
     description: Mirror sense/interlock configuration.

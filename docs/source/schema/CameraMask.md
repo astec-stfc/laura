@@ -46,9 +46,9 @@ URI: [laura:CameraMask](https://w3id.org/laura/CameraMask)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [middle](middle.md) | * <br/> [Float](Float.md) | Center of the mask in pixels [x, y] | direct |
-| [radius](radius.md) | * <br/> [Float](Float.md) | Mask radius in pixels [x, y] | direct |
-| [maximum](maximum.md) | * <br/> [Float](Float.md) | Maximum mask radius in pixels [x, y] | direct |
+| [middle](middle.md) | * <br/> [Double](Double.md) | Center of the mask in pixels [x, y] | direct |
+| [radius](radius.md) | * <br/> [Double](Double.md) | Mask radius in pixels [x, y] | direct |
+| [maximum](maximum.md) | * <br/> [Double](Double.md) | Maximum mask radius in pixels [x, y] | direct |
 | [use_maximum_values](use_maximum_values.md) | 0..1 <br/> [Boolean](Boolean.md) | If True, use maximum mask radius constraints | direct |
 
 
@@ -118,7 +118,7 @@ attributes:
     - PhysicalElement
     - CameraMask
     - CameraSensor
-    range: float
+    range: double
     multivalued: true
   radius:
     name: radius
@@ -128,7 +128,7 @@ attributes:
     - ApertureElement
     - Multipole
     - CameraMask
-    range: float
+    range: double
     multivalued: true
   maximum:
     name: maximum
@@ -139,7 +139,7 @@ attributes:
     - CameraMask
     - CameraSensor
     - LaserAttenuator
-    range: float
+    range: double
     multivalued: true
   use_maximum_values:
     name: use_maximum_values
@@ -174,7 +174,7 @@ attributes:
     - PhysicalElement
     - CameraMask
     - CameraSensor
-    range: float
+    range: double
     multivalued: true
   radius:
     name: radius
@@ -185,7 +185,7 @@ attributes:
     - ApertureElement
     - Multipole
     - CameraMask
-    range: float
+    range: double
     multivalued: true
   maximum:
     name: maximum
@@ -197,7 +197,7 @@ attributes:
     - CameraMask
     - CameraSensor
     - LaserAttenuator
-    range: float
+    range: double
     multivalued: true
   use_maximum_values:
     name: use_maximum_values

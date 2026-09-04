@@ -34,7 +34,7 @@ URI: [laura:design_gamma](https://w3id.org/laura/design_gamma)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -93,7 +93,7 @@ rank: 1000
 domain_of:
 - RFCavityElement
 - RFDeflectingCavityElement
-range: float
+range: double
 minimum_value: 1.0
 
 ```

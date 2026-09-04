@@ -1,7 +1,7 @@
-# Slot: ramp_up 
+# Slot: buffer_size 
 
 
-_Entrance density-ramp length [m]._
+_Number of readings retained in the buffer._
 
 
 
@@ -9,7 +9,7 @@ _Entrance density-ramp length [m]._
 
 
 
-URI: [laura:ramp_up](https://w3id.org/laura/ramp_up)
+URI: [laura:buffer_size](https://w3id.org/laura/buffer_size)
 <!-- no inheritance hierarchy -->
 
 
@@ -20,7 +20,7 @@ URI: [laura:ramp_up](https://w3id.org/laura/ramp_up)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [PlasmaElement](PlasmaElement.md) | Plasma channel parameters for a laser-driven plasma-accelerator stage |  no  |
+| [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |  no  |
 
 
 
@@ -33,8 +33,8 @@ URI: [laura:ramp_up](https://w3id.org/laura/ramp_up)
 
 | Property | Value |
 | --- | --- |
-| Range | [Double](Double.md) |
-| Domain Of | [PlasmaElement](PlasmaElement.md) |
+| Range | [Integer](Integer.md) |
+| Domain Of | [ControlVariable](ControlVariable.md) |
 
 ### Cardinality and Requirements
 
@@ -44,8 +44,7 @@ URI: [laura:ramp_up](https://w3id.org/laura/ramp_up)
 
 | Property | Value |
 | --- | --- |
-| If Absent | `float(0.001)` |
-| Owner | [PlasmaElement](PlasmaElement.md) |
+| Owner | [ControlVariable](ControlVariable.md) |
 
 
 ### Value Constraints
@@ -54,16 +53,6 @@ URI: [laura:ramp_up](https://w3id.org/laura/ramp_up)
 | --- | --- |
 | Minimum Value | 0 |
 
-
-<details>
-<summary>Additional Constraints</summary>
-**Unit:**
-
-| Property | Value |
-| --- | --- |
-| ucum_code | m |
-
-</details>
 
 
 
@@ -93,8 +82,8 @@ URI: [laura:ramp_up](https://w3id.org/laura/ramp_up)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:ramp_up |
-| native | laura:ramp_up |
+| self | laura:buffer_size |
+| native | laura:buffer_size |
 
 
 
@@ -103,18 +92,15 @@ URI: [laura:ramp_up](https://w3id.org/laura/ramp_up)
 
 <details>
 ```yaml
-name: ramp_up
-description: Entrance density-ramp length [m].
+name: buffer_size
+description: Number of readings retained in the buffer.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: float(0.001)
-owner: PlasmaElement
+owner: ControlVariable
 domain_of:
-- PlasmaElement
-range: double
-minimum_value: 0.0
-unit:
-  ucum_code: m
+- ControlVariable
+range: integer
+minimum_value: 0
 
 ```
 </details></div>

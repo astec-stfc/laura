@@ -33,7 +33,7 @@ URI: [laura:vertical_field](https://w3id.org/laura/vertical_field)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) |
+| Range | [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) |
 | Domain Of | [ElectrostaticSeparatorSimulationElement](ElectrostaticSeparatorSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -63,7 +63,7 @@ URI: [laura:vertical_field](https://w3id.org/laura/vertical_field)
 #### Any Of
 
 Value must satisfy at least one of:
-- AnonymousSlotExpression({'range': 'float'})
+- AnonymousSlotExpression({'range': 'double'})
 - AnonymousSlotExpression({'range': 'string'})
 
 </details>
@@ -122,11 +122,11 @@ ifabsent: float(0.0)
 owner: ElectrostaticSeparatorSimulationElement
 domain_of:
 - ElectrostaticSeparatorSimulationElement
-range: float
+range: double
 unit:
   ucum_code: V/m
 any_of:
-- range: float
+- range: double
 - range: string
 
 ```

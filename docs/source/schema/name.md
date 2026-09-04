@@ -19,6 +19,7 @@ URI: [laura:name](https://w3id.org/laura/name)
 | [StandardElement](StandardElement.md) | Accelerator element with control-system, electrical, manufacturer, simulation... |  no  |
 | [Element](Element.md) | Concrete schema counterpart of the Python ``Element`` wrapper class |  no  |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | Accelerator element with a well-defined physical position and orientation in ... |  no  |
+| [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |  no  |
 | [TwissMatch](TwissMatch.md) | Virtual Twiss-parameter matching point -- a zero-length marker that defines t... |  no  |
 | [MatrixTransform](MatrixTransform.md) | Transfer-map element with zero-, first-, and second-order coefficients |  no  |
 | [ElectrostaticSeparator](ElectrostaticSeparator.md) | Static electrostatic transverse-deflection element |  no  |
@@ -90,7 +91,7 @@ URI: [laura:name](https://w3id.org/laura/name)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [AcceleratorElement](AcceleratorElement.md), [SectionLattice](SectionLattice.md), [MachineLayout](MachineLayout.md) |
+| Domain Of | [AcceleratorElement](AcceleratorElement.md), [ControlVariable](ControlVariable.md), [SectionLattice](SectionLattice.md), [MachineLayout](MachineLayout.md) |
 
 ### Cardinality and Requirements
 
@@ -130,6 +131,7 @@ URI: [laura:name](https://w3id.org/laura/name)
 name: name
 domain_of:
 - AcceleratorElement
+- ControlVariable
 - SectionLattice
 - MachineLayout
 range: string

@@ -33,7 +33,7 @@ URI: [laura:x_pixels_to_mm](https://w3id.org/laura/x_pixels_to_mm)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [CameraSensor](CameraSensor.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(0.0134)
 owner: CameraSensor
 domain_of:
 - CameraSensor
-range: float
+range: double
 
 ```
 </details></div>

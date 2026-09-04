@@ -139,6 +139,100 @@ def test_generated_artefact_is_utf8(path):
         )
 
 
+def test_control_variable_name_is_not_a_pydantic_field():
+    """``ControlVariable.name`` must stay out of the generated model.
+
+    The slot exists so the formats without a native map type have somewhere to
+    put the logical name, and because LinkML cannot inline a collection as a
+    dict without a key. But a key slot is required, and lattice YAML gives the
+    name as the mapping key rather than inside the entry, so materialising it
+    would make every existing controls block fail validation.
+    """
+    from laura.models.control import ControlsInformation
+
+    assert "name" not in ControlsInformation.model_fields["variables"].annotation.__args__[1].model_fields
+
+    # The shape lattice YAML actually uses still loads.
+    info = ControlsInformation(
+        variables={"SETI": {"identifier": "MAG-01:SETI", "protocol": "EPICS"}}
+    )
+    assert list(info.variables) == ["SETI"]
+    assert info.variables["SETI"].identifier == "MAG-01:SETI"
+
+
+def test_control_variable_extras_still_ride_along():
+    """Declaring ``auto_buffer``/``buffer_size`` must not close the class.
+
+    They are modelled because they are widespread enough to be worth exporting,
+    but ControlVariable keeps ``extra="allow"`` so a protocol LAURA has never
+    seen still round-trips. Declared slots that are absent stay absent from the
+    dump, so nothing gains a spurious default.
+    """
+    from laura.models.control import ControlVariable
+
+    cv = ControlVariable(
+        identifier="MAG-01:SETI",
+        protocol="EPICS",
+        auto_buffer=True,
+        some_future_protocol_field="kept",
+    )
+    dumped = cv.serialize()
+    assert dumped["auto_buffer"] is True
+    assert dumped["some_future_protocol_field"] == "kept"
+    assert "buffer_size" not in dumped
+
+
+@pytest.mark.parametrize("artefact", ["laura_orm.py", "laura_schema.sql"])
+def test_control_variable_primary_key_is_narrow(artefact):
+    """gen-sqla and gen-sqltables put every column in ControlVariable's key.
+
+    A primary-key column cannot be NULL and almost every ControlVariable column
+    is optional, so the table would be unwritable. generate_orm.py and
+    generate_sql.py narrow it to (ControlsInformation_id, name); this is the
+    check that they still run.
+    """
+    text = (GENERATED_DIR / artefact).read_text(encoding="utf-8")
+    if artefact.endswith(".sql"):
+        block = text.split('CREATE TABLE "ControlVariable" (')[1].split("\n);")[0]
+        pk = [line for line in block.splitlines() if line.strip().startswith("PRIMARY KEY")]
+        assert pk, "no PRIMARY KEY found for ControlVariable"
+        cols = pk[0].split("(", 1)[1].rsplit(")", 1)[0].split(",")
+        assert len(cols) <= 2, f"primary key is too wide: {pk[0].strip()}"
+    else:
+        block = text.split("class ControlVariable(Base):")[1].split("\nclass ")[0]
+        pk_cols = [ln for ln in block.splitlines() if "primary_key=True" in ln]
+        assert 0 < len(pk_cols) <= 2, (
+            f"ControlVariable has {len(pk_cols)} primary-key columns; "
+            "generate_orm.py should have narrowed it to two"
+        )
+
+
+# These three Python classes do not inherit from their generated base at all --
+# _MatrixTransformBase, _PhotonMonitorBase and _PowerSupplyBase are in
+# _generated.py but nothing in laura/models/ subclasses them -- so there is no
+# class_uri anywhere in the MRO and the element resolves to its parent.  Not a
+# linkml_class_name() bug: wiring them up would also pull in the generated
+# fields and validators, which is a model-layer change, not an exporter one.
+_UNWIRED_TO_THEIR_GENERATED_BASE = {"MatrixTransform", "Photon_Monitor", "PowerSupply"}
+
+
+@pytest.mark.parametrize("hardware_type", sorted(ELEMENT_REGISTRY))
+def test_linkml_class_name_resolves_to_this_element_own_class(hardware_type):
+    """``linkml_class_name()`` must name the element's own class, not an ancestor.
+
+    It drives ``rdf:type`` in the RDF exporter, so an ancestor here silently
+    mistypes the element.  ``LaserMirror(Element, _LaserMirrorBase)`` linearises
+    ``_ElementBase`` ahead of ``_LaserMirrorBase``, which typed every laser
+    mirror, energy meter and attenuator as the generic ``laura:Element``.
+    """
+    if hardware_type in _UNWIRED_TO_THEIR_GENERATED_BASE:
+        pytest.xfail(f"{hardware_type} does not subclass its generated base")
+    resolved = ELEMENT_REGISTRY[hardware_type].linkml_class_name()
+    assert _normalise(resolved) == _normalise(hardware_type), (
+        f"'{hardware_type}' resolves to schema class '{resolved}'"
+    )
+
+
 def test_ontology_declares_every_schema_class():
     """Every schema class should have an ``owl:Class`` in the committed ontology.
 

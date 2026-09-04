@@ -33,7 +33,7 @@ URI: [laura:csrdz](https://w3id.org/laura/csrdz)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [DriftSimulationElement](DriftSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(0.01)
 owner: DriftSimulationElement
 domain_of:
 - DriftSimulationElement
-range: float
+range: double
 
 ```
 </details></div>

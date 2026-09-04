@@ -408,6 +408,7 @@ attributes:
     owner: PhysicalAcceleratorElement
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

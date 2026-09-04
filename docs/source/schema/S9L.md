@@ -33,7 +33,7 @@ URI: [laura:S9L](https://w3id.org/laura/S9L)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [SolenoidFields](SolenoidFields.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(0.0)
 owner: SolenoidFields
 domain_of:
 - SolenoidFields
-range: float
+range: double
 
 ```
 </details></div>

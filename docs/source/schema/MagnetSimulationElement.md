@@ -90,10 +90,10 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [n_kicks](n_kicks.md) | 0..1 <br/> [Integer](Integer.md) | Number of integration kicks | direct |
-| [field_amplitude](field_amplitude.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Field amplitude scaling for magnet tracking | direct |
+| [field_amplitude](field_amplitude.md) | 0..1 <br/> [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) | Field amplitude scaling for magnet tracking | direct |
 | [n_slices](n_slices.md) | 0..1 <br/> [Integer](Integer.md) | Number of longitudinal slices for thick-lens tracking | direct |
 | [smooth](smooth.md) | 0..1 <br/> [Integer](Integer.md) | Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smoot... | direct |
-| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for edge focussing | direct |
+| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Double](Double.md) | Fringe-field integral for edge focussing | direct |
 | [edge1_effects](edge1_effects.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable entrance-edge focussing effects | direct |
 | [edge2_effects](edge2_effects.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable exit-edge focussing effects | direct |
 | [sr_enable](sr_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable synchrotron-radiation energy loss | direct |
@@ -104,13 +104,13 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | [nonlinear](nonlinear.md) | 0..1 <br/> [Boolean](Boolean.md) | Include higher-order (sextupole+) field components | direct |
 | [smoothing_half_width](smoothing_half_width.md) | 0..1 <br/> [Integer](Integer.md) | Half-width of the current-profile smoothing kernel | direct |
 | [edge_order](edge_order.md) | 0..1 <br/> [Integer](Integer.md) | Polynomial order of the edge-field expansion | direct |
-| [deltaL](deltaL.md) | 0..1 <br/> [Float](Float.md) | Longitudinal step-size override for thick-lens integration [m] | direct |
-| [smooth_points](smooth_points.md) | 0..1 <br/> [Float](Float.md) | Number of points used to smooth the field map [ASTRA] | direct |
+| [deltaL](deltaL.md) | 0..1 <br/> [Double](Double.md) | Longitudinal step-size override for thick-lens integration [m] | direct |
+| [smooth_points](smooth_points.md) | 0..1 <br/> [Double](Double.md) | Number of points used to smooth the field map [ASTRA] | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -226,7 +226,7 @@ attributes:
     domain_of:
     - MagnetSimulationElement
     - MagneticElement
-    range: float
+    range: double
   edge1_effects:
     name: edge1_effects
     description: Enable entrance-edge focussing effects.
@@ -323,7 +323,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - MagnetSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   smooth_points:
@@ -334,7 +334,7 @@ attributes:
     ifabsent: float(2)
     domain_of:
     - MagnetSimulationElement
-    range: float
+    range: double
 class_uri: laura:MagnetSimulationElement
 
 ```
@@ -393,7 +393,7 @@ attributes:
     domain_of:
     - MagnetSimulationElement
     - MagneticElement
-    range: float
+    range: double
   edge1_effects:
     name: edge1_effects
     description: Enable entrance-edge focussing effects.
@@ -501,7 +501,7 @@ attributes:
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   smooth_points:
@@ -513,7 +513,7 @@ attributes:
     owner: MagnetSimulationElement
     domain_of:
     - MagnetSimulationElement
-    range: float
+    range: double
   n_kicks:
     name: n_kicks
     description: Number of integration kicks.
@@ -540,9 +540,9 @@ attributes:
     - RFCavitySimulationElement
     - ACDipoleSimulationElement
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     any_of:
-    - range: float
+    - range: double
     - range: string
   field_definition:
     name: field_definition
@@ -592,7 +592,7 @@ attributes:
     owner: MagnetSimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:MagnetSimulationElement
 
 ```

@@ -33,7 +33,7 @@ URI: [laura:eta_x](https://w3id.org/laura/eta_x)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [TwissMatchSimulationElement](TwissMatchSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(0.0)
 owner: TwissMatchSimulationElement
 domain_of:
 - TwissMatchSimulationElement
-range: float
+range: double
 
 ```
 </details></div>

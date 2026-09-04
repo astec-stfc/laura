@@ -33,7 +33,7 @@ URI: [laura:min_i](https://w3id.org/laura/min_i)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [ElectricalElement](ElectricalElement.md) |
 
 ### Cardinality and Requirements
@@ -111,7 +111,7 @@ ifabsent: float(0)
 owner: ElectricalElement
 domain_of:
 - ElectricalElement
-range: float
+range: double
 unit:
   ucum_code: A
 

@@ -33,7 +33,7 @@ URI: [laura:ksl](https://w3id.org/laura/ksl)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [RFMultipoleSimulationElement](RFMultipoleSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -93,7 +93,7 @@ rank: 1000
 owner: RFMultipoleSimulationElement
 domain_of:
 - RFMultipoleSimulationElement
-range: float
+range: double
 multivalued: true
 
 ```

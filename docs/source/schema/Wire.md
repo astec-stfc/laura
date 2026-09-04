@@ -347,6 +347,7 @@ attributes:
     owner: Wire
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

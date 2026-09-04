@@ -33,7 +33,7 @@ URI: [laura:positive_extent](https://w3id.org/laura/positive_extent)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [ApertureElement](ApertureElement.md) |
 
 ### Cardinality and Requirements
@@ -102,7 +102,7 @@ rank: 1000
 owner: ApertureElement
 domain_of:
 - ApertureElement
-range: float
+range: double
 unit:
   ucum_code: m
 

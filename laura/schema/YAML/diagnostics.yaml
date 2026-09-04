@@ -221,7 +221,7 @@ classes:
         aliases:
           - intensity_monitor_type
       intensity:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Measured photon intensity.
 
@@ -349,15 +349,15 @@ classes:
     class_uri: laura:CameraMask
     attributes:
       middle:
-        range: float
+        range: double
         multivalued: true
         description: Center of the mask in pixels [x, y].
       radius:
-        range: float
+        range: double
         multivalued: true
         description: Mask radius in pixels [x, y].
       maximum:
-        range: float
+        range: double
         multivalued: true
         description: Maximum mask radius in pixels [x, y].
       use_maximum_values:
@@ -392,28 +392,28 @@ classes:
         ifabsent: int(2)
         aliases: [Y_PIX_SCALE_FACTOR]
       beam_pixel_average:
-        range: float
+        range: double
         description: Average pixel value for beam detection.
         ifabsent: float(97.2)
         aliases: [AVG_PIXEL_VALUE_FOR_BEAM]
       middle:
-        range: float
+        range: double
         multivalued: true
         description: Sensor optical center in pixels [x, y].
       x_pixels_to_mm:
-        range: float
+        range: double
         description: Pixel-to-mm scale factor in x.
         ifabsent: float(0.0134)
       y_pixels_to_mm:
-        range: float
+        range: double
         description: Pixel-to-mm scale factor in y.
         ifabsent: float(0.0134)
       minimum:
-        range: float
+        range: double
         multivalued: true
         description: Minimum pixel positions [x, y].
       maximum:
-        range: float
+        range: double
         multivalued: true
         description: Maximum pixel positions [x, y].
       bit_depth:
@@ -421,11 +421,11 @@ classes:
         description: Camera bit depth.
         ifabsent: int(16)
       operating_middle:
-        range: float
+        range: double
         multivalued: true
         description: Operating center positions in pixels [x, y].
       mechanical_middle:
-        range: float
+        range: double
         multivalued: true
         description: Mechanical center of the camera in pixels [x, y].
 
@@ -460,7 +460,7 @@ classes:
           - ARRAY_DATA_NUM_PIX_Y
           - epics_y_pixels
       rotation:
-        range: float
+        range: double
         description: Camera rotation relative to the screen plane [deg].
         ifabsent: float(0)
         unit:

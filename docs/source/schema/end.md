@@ -33,7 +33,7 @@ URI: [laura:end](https://w3id.org/laura/end)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [LLRFTiming](LLRFTiming.md) |
 
 ### Cardinality and Requirements
@@ -92,7 +92,7 @@ rank: 1000
 owner: LLRFTiming
 domain_of:
 - LLRFTiming
-range: float
+range: double
 
 ```
 </details></div>

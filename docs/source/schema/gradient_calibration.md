@@ -33,7 +33,7 @@ URI: [laura:gradient_calibration](https://w3id.org/laura/gradient_calibration)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -93,7 +93,7 @@ rank: 1000
 owner: RFCavityElement
 domain_of:
 - RFCavityElement
-range: float
+range: double
 multivalued: true
 
 ```

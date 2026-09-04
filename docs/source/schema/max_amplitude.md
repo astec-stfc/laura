@@ -33,7 +33,7 @@ URI: [laura:max_amplitude](https://w3id.org/laura/max_amplitude)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [LowLevelRFElement](LowLevelRFElement.md) |
 
 ### Cardinality and Requirements
@@ -99,7 +99,7 @@ rank: 1000
 owner: LowLevelRFElement
 domain_of:
 - LowLevelRFElement
-range: float
+range: double
 
 ```
 </details></div>

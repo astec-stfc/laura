@@ -54,14 +54,14 @@ URI: [laura:PlasmaElement](https://w3id.org/laura/PlasmaElement)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [density](density.md) | 0..1 <br/> [Float](Float.md) | Plasma (electron) number density [m^-^3] | direct |
+| [density](density.md) | 0..1 <br/> [Double](Double.md) | Plasma (electron) number density [m^-^3] | direct |
 | [species](species.md) | 0..1 <br/> [String](String.md) | Plasma species name (e | direct |
-| [ramp_up](ramp_up.md) | 0..1 <br/> [Float](Float.md) | Entrance density-ramp length [m] | direct |
-| [plateau](plateau.md) | 0..1 <br/> [Float](Float.md) | Flat-top plateau length [m] | direct |
-| [ramp_down](ramp_down.md) | 0..1 <br/> [Float](Float.md) | Exit density-ramp length [m] | direct |
-| [ramp_decay_length](ramp_decay_length.md) | 0..1 <br/> [Float](Float.md) | Exponential decay length of the density ramp [m] | direct |
+| [ramp_up](ramp_up.md) | 0..1 <br/> [Double](Double.md) | Entrance density-ramp length [m] | direct |
+| [plateau](plateau.md) | 0..1 <br/> [Double](Double.md) | Flat-top plateau length [m] | direct |
+| [ramp_down](ramp_down.md) | 0..1 <br/> [Double](Double.md) | Exit density-ramp length [m] | direct |
+| [ramp_decay_length](ramp_decay_length.md) | 0..1 <br/> [Double](Double.md) | Exponential decay length of the density ramp [m] | direct |
 | [density_profile](density_profile.md) | 0..1 <br/> [Boolean](Boolean.md) | If True, use a user-defined profile; if False, use a flat-top model | direct |
-| [parabolic_coefficient](parabolic_coefficient.md) | 0..1 <br/> [Float](Float.md) | Parabolic coefficient for a transverse density profile | direct |
+| [parabolic_coefficient](parabolic_coefficient.md) | 0..1 <br/> [Double](Double.md) | Parabolic coefficient for a transverse density profile | direct |
 
 
 
@@ -129,7 +129,7 @@ attributes:
     rank: 1000
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m-3
@@ -150,7 +150,7 @@ attributes:
     ifabsent: float(0.001)
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -162,7 +162,7 @@ attributes:
     ifabsent: float(0.001)
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -174,7 +174,7 @@ attributes:
     ifabsent: float(0.001)
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -186,7 +186,7 @@ attributes:
     ifabsent: float(0.001)
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -207,7 +207,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
 class_uri: laura:PlasmaElement
 
 ```
@@ -229,7 +229,7 @@ attributes:
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m-3
@@ -252,7 +252,7 @@ attributes:
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -265,7 +265,7 @@ attributes:
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -278,7 +278,7 @@ attributes:
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -291,7 +291,7 @@ attributes:
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -314,7 +314,7 @@ attributes:
     owner: PlasmaElement
     domain_of:
     - PlasmaElement
-    range: float
+    range: double
 class_uri: laura:PlasmaElement
 
 ```

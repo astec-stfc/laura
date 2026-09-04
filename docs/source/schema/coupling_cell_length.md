@@ -35,7 +35,7 @@ URI: [laura:coupling_cell_length](https://w3id.org/laura/coupling_cell_length)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [WakefieldElement](WakefieldElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -113,7 +113,7 @@ domain_of:
 - RFCavityElement
 - WakefieldElement
 - RFDeflectingCavityElement
-range: float
+range: double
 minimum_value: 0.0
 unit:
   ucum_code: m

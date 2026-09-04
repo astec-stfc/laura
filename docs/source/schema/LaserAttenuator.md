@@ -174,8 +174,8 @@ URI: [laura:LaserAttenuator](https://w3id.org/laura/LaserAttenuator)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [maximum](maximum.md) | 0..1 <br/> [Float](Float.md) | Maximum attenuation angle [deg] | direct |
-| [minimum](minimum.md) | 0..1 <br/> [Float](Float.md) | Minimum attenuation angle [deg] | direct |
+| [maximum](maximum.md) | 0..1 <br/> [Double](Double.md) | Maximum attenuation angle [deg] | direct |
+| [minimum](minimum.md) | 0..1 <br/> [Double](Double.md) | Minimum attenuation angle [deg] | direct |
 | [simulation](simulation.md) | 0..1 <br/> [SimulationElement](SimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -267,7 +267,7 @@ attributes:
     - CameraMask
     - CameraSensor
     - LaserAttenuator
-    range: float
+    range: double
     unit:
       ucum_code: deg
   minimum:
@@ -277,7 +277,7 @@ attributes:
     domain_of:
     - CameraSensor
     - LaserAttenuator
-    range: float
+    range: double
     unit:
       ucum_code: deg
 class_uri: laura:LaserAttenuator
@@ -309,7 +309,7 @@ attributes:
     - CameraMask
     - CameraSensor
     - LaserAttenuator
-    range: float
+    range: double
     unit:
       ucum_code: deg
   minimum:
@@ -320,7 +320,7 @@ attributes:
     domain_of:
     - CameraSensor
     - LaserAttenuator
-    range: float
+    range: double
     unit:
       ucum_code: deg
   simulation:
@@ -377,6 +377,7 @@ attributes:
     owner: LaserAttenuator
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

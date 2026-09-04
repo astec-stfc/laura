@@ -63,15 +63,15 @@ URI: [laura:ACDipoleSimulationElement](https://w3id.org/laura/ACDipoleSimulation
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [field_amplitude](field_amplitude.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Peak kick voltage/amplitude of the exciter | direct |
-| [frequency](frequency.md) | 0..1 <br/> [Float](Float.md) | Drive frequency [Hz] | direct |
-| [phase](phase.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Phase lag [deg] | direct |
+| [field_amplitude](field_amplitude.md) | 0..1 <br/> [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) | Peak kick voltage/amplitude of the exciter | direct |
+| [frequency](frequency.md) | 0..1 <br/> [Double](Double.md) | Drive frequency [Hz] | direct |
+| [phase](phase.md) | 0..1 <br/> [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) | Phase lag [deg] | direct |
 | [ramp](ramp.md) | * <br/> [Integer](Integer.md) | Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -212,9 +212,9 @@ attributes:
     - RFCavitySimulationElement
     - ACDipoleSimulationElement
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     any_of:
-    - range: float
+    - range: double
     - range: string
   frequency:
     name: frequency
@@ -228,7 +228,7 @@ attributes:
     - RFMultipoleSimulationElement
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: Hz
@@ -246,11 +246,11 @@ attributes:
     - RFMultipoleSimulationElement
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     unit:
       ucum_code: deg
     any_of:
-    - range: float
+    - range: double
     - range: string
   field_definition:
     name: field_definition
@@ -300,7 +300,7 @@ attributes:
     owner: ACDipoleSimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:ACDipoleSimulationElement
 
 ```

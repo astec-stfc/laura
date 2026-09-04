@@ -33,7 +33,7 @@ URI: [laura:pulse_duration_fwhm](https://w3id.org/laura/pulse_duration_fwhm)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [LaserElement](LaserElement.md) |
 
 ### Cardinality and Requirements
@@ -109,7 +109,7 @@ rank: 1000
 owner: LaserElement
 domain_of:
 - LaserElement
-range: float
+range: double
 minimum_value: 0.0
 unit:
   ucum_code: s

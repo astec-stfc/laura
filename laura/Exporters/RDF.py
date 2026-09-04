@@ -64,8 +64,20 @@ def build_rdf_graph(
 
     Core metadata slots (``name``, ``hardware_type``, ``hardware_class``,
     ``hardware_model``, ``machine_area``) are emitted as datatype properties
-    under the ``laura:`` namespace.  Physical sub-model data (``length``,
-    midpoint ``x``/``y``/``z``) is included when present.
+    under the ``laura:`` namespace.
+
+    Physical data is nested as the schema declares it, not flattened onto the
+    element::
+
+        <element> laura:physical <element>/physical .
+        <element>/physical a laura:PhysicalElement ;
+            laura:length 0.3 ;
+            laura:middle <element>/physical/middle .
+        <element>/physical/middle a laura:Position ;
+            laura:x 1.0 ; laura:y 0.0 ; laura:z 2.0 .
+
+    The intermediate nodes get derived IRIs rather than blank nodes so that
+    successive exports of the same machine diff cleanly.
 
     Parameters
     ----------
@@ -97,10 +109,6 @@ def build_rdf_graph(
         area = str(getattr(elem, "machine_area", None) or "unknown")
         elem_uri = URIRef(f"{base}{area}/{name}")
 
-        # rdf:type is the element's LinkML class, which the schema declares and
-        # the generated ontology carries -- never hardware_type, which is a
-        # dispatch label that only sometimes matches the class name.  See
-        # baseElement.linkml_class_name.
         g.add((elem_uri, RDF.type, LAURA[elem.linkml_class_name()]))
 
         # Core metadata
@@ -119,45 +127,40 @@ def build_rdf_graph(
         if hw_model:
             g.add((elem_uri, LAURA["hardware_model"], Literal(str(hw_model))))
 
-        # Physical sub-model
         physical = getattr(elem, "physical", None)
         if physical is not None:
-            length = getattr(physical, "length", None)
-            if length is not None:
-                g.add(
-                    (
-                        elem_uri,
-                        LAURA["length"],
-                        Literal(float(length), datatype=XSD.double),
-                    )
-                )
+            phys_uri = URIRef(f"{elem_uri}/physical")
+            g.add((elem_uri, LAURA["physical"], phys_uri))
+            g.add((phys_uri, RDF.type, LAURA["PhysicalElement"]))
 
-            middle = getattr(physical, "middle", None)
-            if middle is not None:
-                try:
+            for slot in ("length", "s"):
+                value = getattr(physical, slot, None)
+                if value is not None:
                     g.add(
                         (
-                            elem_uri,
-                            LAURA["position_x"],
-                            Literal(float(middle.x), datatype=XSD.double),
+                            phys_uri,
+                            LAURA[slot],
+                            Literal(float(value), datatype=XSD.double),
                         )
                     )
-                    g.add(
-                        (
-                            elem_uri,
-                            LAURA["position_y"],
-                            Literal(float(middle.y), datatype=XSD.double),
+
+            for slot in ("middle", "datum"):
+                pos = getattr(physical, slot, None)
+                if pos is None:
+                    continue
+                pos_uri = URIRef(f"{phys_uri}/{slot}")
+                g.add((phys_uri, LAURA[slot], pos_uri))
+                g.add((pos_uri, RDF.type, LAURA["Position"]))
+                for axis in ("x", "y", "z"):
+                    coord = getattr(pos, axis, None)
+                    if coord is not None:
+                        g.add(
+                            (
+                                pos_uri,
+                                LAURA[axis],
+                                Literal(float(coord), datatype=XSD.double),
+                            )
                         )
-                    )
-                    g.add(
-                        (
-                            elem_uri,
-                            LAURA["position_z"],
-                            Literal(float(middle.z), datatype=XSD.double),
-                        )
-                    )
-                except Exception:
-                    pass
 
     return g
 

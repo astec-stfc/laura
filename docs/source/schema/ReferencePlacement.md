@@ -70,7 +70,7 @@ URI: [laura:ReferencePlacement](https://w3id.org/laura/ReferencePlacement)
 | [point](point.md) | 0..1 <br/> [String](String.md) | Which point on the reference element to use as the origin frame: 'start', 'mi... | direct |
 | [offset](offset.md) | 0..1 <br/> [Position](Position.md) | Offset expressed in the reference element's local frame at the chosen point | direct |
 | [world_offset](world_offset.md) | 0..1 <br/> [Position](Position.md) | Offset already expressed in global world coordinates | direct |
-| [s_offset](s_offset.md) | 0..1 <br/> [Float](Float.md) | Scalar offset [m] along the local beam direction (s-axis) from the reference ... | direct |
+| [s_offset](s_offset.md) | 0..1 <br/> [Double](Double.md) | Scalar offset [m] along the local beam direction (s-axis) from the reference ... | direct |
 
 
 
@@ -187,7 +187,7 @@ attributes:
     rank: 1000
     domain_of:
     - ReferencePlacement
-    range: float
+    range: double
     unit:
       ucum_code: m
 class_uri: laura:ReferencePlacement
@@ -258,7 +258,7 @@ attributes:
     owner: ReferencePlacement
     domain_of:
     - ReferencePlacement
-    range: float
+    range: double
     unit:
       ucum_code: m
 class_uri: laura:ReferencePlacement

@@ -34,7 +34,7 @@ URI: [laura:design_power](https://w3id.org/laura/design_power)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -111,7 +111,7 @@ ifabsent: float(25000000)
 domain_of:
 - RFCavityElement
 - RFDeflectingCavityElement
-range: float
+range: double
 minimum_value: 0.0
 unit:
   ucum_code: W

@@ -32,6 +32,10 @@ URI: [laura:HardwareClassEnum](https://w3id.org/laura/HardwareClassEnum)
 | Generic | None | Generic element |
 | Monitor | None | Beam monitor element |
 | Simulation | None | Simulation element |
+| Valve | None | Vacuum gate valve |
+| LaserMirror | None | Laser steering or focusing mirror |
+| LaserEnergyMeter | None | Laser pulse-energy meter |
+| LaserAttenuator | None | Laser attenuator |
 
 
 
@@ -131,6 +135,18 @@ permissible_values:
   Simulation:
     text: Simulation
     description: Simulation element.
+  Valve:
+    text: Valve
+    description: Vacuum gate valve.
+  LaserMirror:
+    text: LaserMirror
+    description: Laser steering or focusing mirror.
+  LaserEnergyMeter:
+    text: LaserEnergyMeter
+    description: Laser pulse-energy meter.
+  LaserAttenuator:
+    text: LaserAttenuator
+    description: Laser attenuator.
 
 ```
 </details>

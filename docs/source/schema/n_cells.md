@@ -35,7 +35,7 @@ URI: [laura:n_cells](https://w3id.org/laura/n_cells)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [WakefieldElement](WakefieldElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -103,7 +103,7 @@ domain_of:
 - RFCavityElement
 - WakefieldElement
 - RFDeflectingCavityElement
-range: float
+range: double
 minimum_value: 0
 
 ```

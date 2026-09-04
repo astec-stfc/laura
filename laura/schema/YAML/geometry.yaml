@@ -37,19 +37,19 @@ classes:
       - physical_properties
     attributes:
       x:
-        range: float
+        range: double
         ifabsent: float(0)
         description: Horizontal component [m].
         unit:
           ucum_code: m
       y:
-        range: float
+        range: double
         ifabsent: float(0)
         description: Vertical component [m].
         unit:
           ucum_code: m
       z:
-        range: float
+        range: double
         ifabsent: float(0)
         description: Longitudinal (beam-direction) component [m].
         unit:
@@ -64,7 +64,7 @@ classes:
       - physical_properties
     attributes:
       phi:
-        range: float
+        range: double
         ifabsent: float(0)
         description: Rotation about the horizontal (x) axis [rad].
         minimum_value: -3.141592653589793
@@ -72,7 +72,7 @@ classes:
         unit:
           ucum_code: rad
       psi:
-        range: float
+        range: double
         ifabsent: float(0)
         description: Rotation about the vertical (y) axis [rad].
         minimum_value: -3.141592653589793
@@ -80,7 +80,7 @@ classes:
         unit:
           ucum_code: rad
       theta:
-        range: float
+        range: double
         ifabsent: float(0)
         description: Rotation about the longitudinal (z) axis [rad].
         minimum_value: -3.141592653589793
@@ -142,7 +142,7 @@ classes:
         description: >-
           Offset already expressed in global world coordinates.
       s_offset:
-        range: float
+        range: double
         description: >-
           Scalar offset [m] along the local beam direction (s-axis) from the
           reference point.  Equivalent to ``offset: [0, 0, s_offset]`` but
@@ -183,14 +183,14 @@ classes:
         range: ElementSurvey
         description: Survey-measured position and rotation.
       length:
-        range: float
+        range: double
         ifabsent: float(0)
         description: Effective length along the beam axis [m].
         minimum_value: 0.0
         unit:
           ucum_code: m
       physical_angle:
-        range: float
+        range: double
         ifabsent: float(0)
         description: >-
           Bending angle in the horizontal plane [rad].
@@ -206,7 +206,7 @@ classes:
         in_subset:
           - physical_properties
       s:
-        range: float
+        range: double
         description: >-
           Arc-length position [m] along the design trajectory (s=0 at the
           global origin along +Z).  Alternative to absolute world coordinates

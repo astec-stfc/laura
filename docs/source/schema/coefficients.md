@@ -33,7 +33,7 @@ URI: [laura:coefficients](https://w3id.org/laura/coefficients)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [FieldIntegral](FieldIntegral.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ rank: 1000
 owner: FieldIntegral
 domain_of:
 - FieldIntegral
-range: float
+range: double
 multivalued: true
 
 ```

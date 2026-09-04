@@ -183,13 +183,16 @@ class baseElement(CascadingAccessMixin, _AcceleratorElementBase, IgnoreExtra):
         class's ``class_uri`` onto the generated base, and where the schema
         declares none the base's own name is the class name.
         """
-        for klass in cls.__mro__:
+
+        own_base = f"_{cls.__name__.replace('_', '')}Base"
+        candidates = [k for k in cls.__mro__ if k.__name__ == own_base]
+        candidates += [k for k in cls.__mro__ if k.__name__ != own_base]
+
+        for klass in candidates:
             meta = klass.__dict__.get("linkml_meta")
             if meta is not None and "class_uri" in meta:
                 # Accepts both the CURIE the schema uses and a full IRI.
                 return str(meta["class_uri"]).rsplit("/", 1)[-1].split(":")[-1]
-            # gen-pydantic spells the schema class ``Quadrupole`` as the base
-            # class ``_QuadrupoleBase``.
             if klass.__name__.startswith("_") and klass.__name__.endswith("Base"):
                 return klass.__name__[1:-4]
         return cls.__name__
@@ -1586,8 +1589,6 @@ class RFMultipole(PhysicalBaseElement, _RFMultipoleBase):
         _ensure_nested_default(self, "simulation", RFMultipoleSimulationElement)
 
 
-# ponytail: derived from this module's own classes rather than a hand-kept list,
-# which silently dropped PowerSupply/LaserHalfWavePlate when new elements landed.
 ELEMENT_REGISTRY: dict[str, type] = {
     _field.default: _cls
     for _cls in list(vars().values())

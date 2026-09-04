@@ -44,9 +44,9 @@ URI: [laura:Position](https://w3id.org/laura/Position)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [x](x.md) | 0..1 <br/> [Float](Float.md) | Horizontal component [m] | direct |
-| [y](y.md) | 0..1 <br/> [Float](Float.md) | Vertical component [m] | direct |
-| [z](z.md) | 0..1 <br/> [Float](Float.md) | Longitudinal (beam-direction) component [m] | direct |
+| [x](x.md) | 0..1 <br/> [Double](Double.md) | Horizontal component [m] | direct |
+| [y](y.md) | 0..1 <br/> [Double](Double.md) | Vertical component [m] | direct |
+| [z](z.md) | 0..1 <br/> [Double](Double.md) | Longitudinal (beam-direction) component [m] | direct |
 
 
 
@@ -131,7 +131,7 @@ attributes:
     - Position
     - CameraPixelResultsIndices
     - CameraPixelResultsNames
-    range: float
+    range: double
     unit:
       ucum_code: m
   y:
@@ -144,7 +144,7 @@ attributes:
     - Position
     - CameraPixelResultsIndices
     - CameraPixelResultsNames
-    range: float
+    range: double
     unit:
       ucum_code: m
   z:
@@ -155,7 +155,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - Position
-    range: float
+    range: double
     unit:
       ucum_code: m
 class_uri: laura:Position
@@ -185,7 +185,7 @@ attributes:
     - Position
     - CameraPixelResultsIndices
     - CameraPixelResultsNames
-    range: float
+    range: double
     unit:
       ucum_code: m
   y:
@@ -199,7 +199,7 @@ attributes:
     - Position
     - CameraPixelResultsIndices
     - CameraPixelResultsNames
-    range: float
+    range: double
     unit:
       ucum_code: m
   z:
@@ -211,7 +211,7 @@ attributes:
     owner: Position
     domain_of:
     - Position
-    range: float
+    range: double
     unit:
       ucum_code: m
 class_uri: laura:Position

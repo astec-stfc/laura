@@ -99,14 +99,14 @@ URI: [laura:Solenoid_Magnet](https://w3id.org/laura/Solenoid_Magnet)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [length](length.md) | 0..1 <br/> [Float](Float.md) | Magnetic length [m] | direct |
+| [length](length.md) | 0..1 <br/> [Double](Double.md) | Magnetic length [m] | direct |
 | [order](order.md) | 0..1 <br/> [Integer](Integer.md) | Principal solenoid multipole order | direct |
 | [fields](fields.md) | 0..1 <br/> [SolenoidFields](SolenoidFields.md) | Nominal integrated axial field components | direct |
 | [systematic_fields](systematic_fields.md) | 0..1 <br/> [SolenoidFields](SolenoidFields.md) | Systematic field errors | direct |
 | [random_fields](random_fields.md) | 0..1 <br/> [SolenoidFields](SolenoidFields.md) | Random field errors | direct |
 | [field_integral_coefficients](field_integral_coefficients.md) | 0..1 <br/> [FieldIntegral](FieldIntegral.md) | Polynomial current-to-integrated-field coefficients | direct |
 | [linear_saturation_coefficients](linear_saturation_coefficients.md) | 0..1 <br/> [LinearSaturationFit](LinearSaturationFit.md) | Linear-plus-saturation fit of field against current | direct |
-| [settle_time](settle_time.md) | 0..1 <br/> [Float](Float.md) | Time to wait after a set before the field is stable [s] | direct |
+| [settle_time](settle_time.md) | 0..1 <br/> [Double](Double.md) | Time to wait after a set before the field is stable [s] | direct |
 
 
 
@@ -180,7 +180,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0
   order:
     name: order
@@ -241,7 +241,7 @@ attributes:
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
-    range: float
+    range: double
     minimum_value: 0
 class_uri: laura:Solenoid_Magnet
 
@@ -270,7 +270,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0
   order:
     name: order
@@ -338,7 +338,7 @@ attributes:
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
-    range: float
+    range: double
     minimum_value: 0
 class_uri: laura:Solenoid_Magnet
 

@@ -37,7 +37,7 @@ URI: [laura:gap](https://w3id.org/laura/gap)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
@@ -115,7 +115,7 @@ ifabsent: float(0.032)
 owner: MagneticElement
 domain_of:
 - MagneticElement
-range: float
+range: double
 minimum_value: 0.0
 unit:
   ucum_code: m

@@ -33,7 +33,7 @@ URI: [laura:read_tolerance](https://w3id.org/laura/read_tolerance)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [ElectricalElement](ElectricalElement.md) |
 
 ### Cardinality and Requirements
@@ -101,7 +101,7 @@ ifabsent: float(0.1)
 owner: ElectricalElement
 domain_of:
 - ElectricalElement
-range: float
+range: double
 
 ```
 </details></div>

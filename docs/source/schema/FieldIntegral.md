@@ -40,7 +40,7 @@ URI: [laura:FieldIntegral](https://w3id.org/laura/FieldIntegral)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [coefficients](coefficients.md) | * <br/> [Float](Float.md) | Polynomial coefficients ordered from lowest to highest degree: ``FieldIntegra... | direct |
+| [coefficients](coefficients.md) | * <br/> [Double](Double.md) | Polynomial coefficients ordered from lowest to highest degree: ``FieldIntegra... | direct |
 
 
 
@@ -114,7 +114,7 @@ attributes:
     rank: 1000
     domain_of:
     - FieldIntegral
-    range: float
+    range: double
     multivalued: true
 class_uri: laura:FieldIntegral
 
@@ -138,7 +138,7 @@ attributes:
     owner: FieldIntegral
     domain_of:
     - FieldIntegral
-    range: float
+    range: double
     multivalued: true
 class_uri: laura:FieldIntegral
 

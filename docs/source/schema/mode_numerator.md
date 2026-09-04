@@ -34,7 +34,7 @@ URI: [laura:mode_numerator](https://w3id.org/laura/mode_numerator)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -86,7 +86,7 @@ rank: 1000
 domain_of:
 - RFCavityElement
 - RFDeflectingCavityElement
-range: float
+range: double
 
 ```
 </details></div>

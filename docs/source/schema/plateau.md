@@ -33,7 +33,7 @@ URI: [laura:plateau](https://w3id.org/laura/plateau)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [PlasmaElement](PlasmaElement.md) |
 
 ### Cardinality and Requirements
@@ -111,7 +111,7 @@ ifabsent: float(0.001)
 owner: PlasmaElement
 domain_of:
 - PlasmaElement
-range: float
+range: double
 minimum_value: 0.0
 unit:
   ucum_code: m

@@ -33,7 +33,7 @@ URI: [laura:dz_fields](https://w3id.org/laura/dz_fields)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [PlasmaSimulationElement](PlasmaSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -92,7 +92,7 @@ rank: 1000
 owner: PlasmaSimulationElement
 domain_of:
 - PlasmaSimulationElement
-range: float
+range: double
 
 ```
 </details></div>

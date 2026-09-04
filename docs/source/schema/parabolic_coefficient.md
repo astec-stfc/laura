@@ -33,7 +33,7 @@ URI: [laura:parabolic_coefficient](https://w3id.org/laura/parabolic_coefficient)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [PlasmaElement](PlasmaElement.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(0)
 owner: PlasmaElement
 domain_of:
 - PlasmaElement
-range: float
+range: double
 
 ```
 </details></div>

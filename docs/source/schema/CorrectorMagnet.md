@@ -48,11 +48,11 @@ URI: [laura:Corrector_Magnet](https://w3id.org/laura/Corrector_Magnet)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [length](length.md) | 0..1 <br/> [Float](Float.md) | Magnetic length [m] | direct |
+| [length](length.md) | 0..1 <br/> [Double](Double.md) | Magnetic length [m] | direct |
 | [order](order.md) | 0..1 <br/> [Integer](Integer.md) | Multipole order (0, a dipole field) | direct |
-| [tilt](tilt.md) | 0..1 <br/> [Float](Float.md) | Roll of the corrector about the beam axis [rad] | direct |
-| [horizontal_kick](horizontal_kick.md) | 0..1 <br/> [Float](Float.md) | Horizontal deflection [rad] | direct |
-| [vertical_kick](vertical_kick.md) | 0..1 <br/> [Float](Float.md) | Vertical deflection [rad] | direct |
+| [tilt](tilt.md) | 0..1 <br/> [Double](Double.md) | Roll of the corrector about the beam axis [rad] | direct |
+| [horizontal_kick](horizontal_kick.md) | 0..1 <br/> [Double](Double.md) | Horizontal deflection [rad] | direct |
+| [vertical_kick](vertical_kick.md) | 0..1 <br/> [Double](Double.md) | Vertical deflection [rad] | direct |
 
 
 
@@ -128,7 +128,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0
   order:
     name: order
@@ -150,7 +150,7 @@ attributes:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
-    range: float
+    range: double
   horizontal_kick:
     name: horizontal_kick
     description: Horizontal deflection [rad]. May be a functional expression.
@@ -159,7 +159,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - Corrector_Magnet
-    range: float
+    range: double
   vertical_kick:
     name: vertical_kick
     description: Vertical deflection [rad]. May be a functional expression.
@@ -168,7 +168,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - Corrector_Magnet
-    range: float
+    range: double
 class_uri: laura:Corrector_Magnet
 
 ```
@@ -196,7 +196,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0
   order:
     name: order
@@ -220,7 +220,7 @@ attributes:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
-    range: float
+    range: double
   horizontal_kick:
     name: horizontal_kick
     description: Horizontal deflection [rad]. May be a functional expression.
@@ -230,7 +230,7 @@ attributes:
     owner: Corrector_Magnet
     domain_of:
     - Corrector_Magnet
-    range: float
+    range: double
   vertical_kick:
     name: vertical_kick
     description: Vertical deflection [rad]. May be a functional expression.
@@ -240,7 +240,7 @@ attributes:
     owner: Corrector_Magnet
     domain_of:
     - Corrector_Magnet
-    range: float
+    range: double
 class_uri: laura:Corrector_Magnet
 
 ```

@@ -33,7 +33,7 @@ URI: [laura:mechanical_middle](https://w3id.org/laura/mechanical_middle)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [CameraSensor](CameraSensor.md) |
 
 ### Cardinality and Requirements
@@ -93,7 +93,7 @@ rank: 1000
 owner: CameraSensor
 domain_of:
 - CameraSensor
-range: float
+range: double
 multivalued: true
 
 ```

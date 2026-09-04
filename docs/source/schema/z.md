@@ -33,7 +33,7 @@ URI: [laura:z](https://w3id.org/laura/z)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [Position](Position.md) |
 
 ### Cardinality and Requirements
@@ -104,7 +104,7 @@ ifabsent: float(0)
 owner: Position
 domain_of:
 - Position
-range: float
+range: double
 unit:
   ucum_code: m
 

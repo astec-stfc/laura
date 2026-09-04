@@ -150,24 +150,24 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 | ---  | --- | --- | --- |
 | [order](order.md) | 0..1 <br/> [Integer](Integer.md) | Principal multipole order (0 = dipole, 1 = quad, ?) | direct |
 | [skew](skew.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the magnet is rotated 45? to produce a skew field component | direct |
-| [length](length.md) | 0..1 <br/> [Float](Float.md) | Magnetic (effective) length [m] | direct |
+| [length](length.md) | 0..1 <br/> [Double](Double.md) | Magnetic (effective) length [m] | direct |
 | [multipoles](multipoles.md) | 0..1 <br/> [Multipoles](Multipoles.md) | Integrated multipole field components | direct |
 | [systematic_multipoles](systematic_multipoles.md) | 0..1 <br/> [Multipoles](Multipoles.md) | Systematic (design) multipole errors at the reference radius | direct |
 | [random_multipoles](random_multipoles.md) | 0..1 <br/> [Multipoles](Multipoles.md) | Random multipole errors at the reference radius | direct |
 | [field_integral_coefficients](field_integral_coefficients.md) | 0..1 <br/> [FieldIntegral](FieldIntegral.md) | Polynomial calibration of integrated field vs | direct |
 | [linear_saturation_coefficients](linear_saturation_coefficients.md) | 0..1 <br/> [LinearSaturationFit](LinearSaturationFit.md) | Bi-linear saturation calibration | direct |
-| [settle_time](settle_time.md) | 0..1 <br/> [Float](Float.md) | Power-supply settle time after a change [s] | direct |
-| [entrance_edge_angle](entrance_edge_angle.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md) | Fringe-field entrance edge angle [rad] | direct |
-| [exit_edge_angle](exit_edge_angle.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md) | Fringe-field exit edge angle [rad] | direct |
-| [gap](gap.md) | 0..1 <br/> [Float](Float.md) | Full gap between pole faces [m] | direct |
-| [bore](bore.md) | 0..1 <br/> [Float](Float.md) | Magnet bore radius [m] | direct |
+| [settle_time](settle_time.md) | 0..1 <br/> [Double](Double.md) | Power-supply settle time after a change [s] | direct |
+| [entrance_edge_angle](entrance_edge_angle.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Double](Double.md) | Fringe-field entrance edge angle [rad] | direct |
+| [exit_edge_angle](exit_edge_angle.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Double](Double.md) | Fringe-field exit edge angle [rad] | direct |
+| [gap](gap.md) | 0..1 <br/> [Double](Double.md) | Full gap between pole faces [m] | direct |
+| [bore](bore.md) | 0..1 <br/> [Double](Double.md) | Magnet bore radius [m] | direct |
 | [plane](plane.md) | 0..1 <br/> [BendingPlaneEnum](BendingPlaneEnum.md) | Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combin... | direct |
-| [width](width.md) | 0..1 <br/> [Float](Float.md) | Physical width of the magnet in the bending plane [m] | direct |
-| [tilt](tilt.md) | 0..1 <br/> [Float](Float.md) | Global tilt about the beam axis [rad] | direct |
-| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless) | direct |
-| [fringe_field_coefficient](fringe_field_coefficient.md) | 0..1 <br/> [Float](Float.md) | Coefficient controlling the fringe-field roll-off rate | direct |
-| [gradient](gradient.md) | 0..1 <br/> [Float](Float.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) | direct |
-| [angle](angle.md) | 0..1 <br/> [Float](Float.md) | Integrated bending angle [rad] | direct |
+| [width](width.md) | 0..1 <br/> [Double](Double.md) | Physical width of the magnet in the bending plane [m] | direct |
+| [tilt](tilt.md) | 0..1 <br/> [Double](Double.md) | Global tilt about the beam axis [rad] | direct |
+| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Double](Double.md) | Enge fringe-field integral parameter (dimensionless) | direct |
+| [fringe_field_coefficient](fringe_field_coefficient.md) | 0..1 <br/> [Double](Double.md) | Coefficient controlling the fringe-field roll-off rate | direct |
+| [gradient](gradient.md) | 0..1 <br/> [Double](Double.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) | direct |
+| [angle](angle.md) | 0..1 <br/> [Double](Double.md) | Integrated bending angle [rad] | direct |
 
 
 
@@ -272,7 +272,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -326,7 +326,7 @@ attributes:
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
-    range: float
+    range: double
     unit:
       ucum_code: s
   entrance_edge_angle:
@@ -342,7 +342,7 @@ attributes:
     unit:
       ucum_code: rad
     any_of:
-    - range: float
+    - range: double
     - range: string
   exit_edge_angle:
     name: exit_edge_angle
@@ -357,7 +357,7 @@ attributes:
     unit:
       ucum_code: rad
     any_of:
-    - range: float
+    - range: double
     - range: string
   gap:
     name: gap
@@ -367,7 +367,7 @@ attributes:
     ifabsent: float(0.032)
     domain_of:
     - MagneticElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -379,7 +379,7 @@ attributes:
     ifabsent: float(0.037)
     domain_of:
     - MagneticElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -401,7 +401,7 @@ attributes:
     domain_of:
     - BeamBeamSimulationElement
     - MagneticElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   tilt:
@@ -413,7 +413,7 @@ attributes:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
-    range: float
+    range: double
     unit:
       ucum_code: rad
   edge_field_integral:
@@ -424,7 +424,7 @@ attributes:
     domain_of:
     - MagnetSimulationElement
     - MagneticElement
-    range: float
+    range: double
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.
@@ -433,7 +433,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - MagneticElement
-    range: float
+    range: double
   gradient:
     name: gradient
     description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
@@ -441,7 +441,7 @@ attributes:
     rank: 1000
     domain_of:
     - MagneticElement
-    range: float
+    range: double
     unit:
       ucum_code: T.m-1
   angle:
@@ -457,7 +457,7 @@ attributes:
     rank: 1000
     domain_of:
     - MagneticElement
-    range: float
+    range: double
     unit:
       ucum_code: rad
 class_uri: laura:MagneticElement
@@ -514,7 +514,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -574,7 +574,7 @@ attributes:
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
-    range: float
+    range: double
     unit:
       ucum_code: s
   entrance_edge_angle:
@@ -592,7 +592,7 @@ attributes:
     unit:
       ucum_code: rad
     any_of:
-    - range: float
+    - range: double
     - range: string
   exit_edge_angle:
     name: exit_edge_angle
@@ -609,7 +609,7 @@ attributes:
     unit:
       ucum_code: rad
     any_of:
-    - range: float
+    - range: double
     - range: string
   gap:
     name: gap
@@ -620,7 +620,7 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -633,7 +633,7 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -657,7 +657,7 @@ attributes:
     domain_of:
     - BeamBeamSimulationElement
     - MagneticElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   tilt:
@@ -670,7 +670,7 @@ attributes:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
-    range: float
+    range: double
     unit:
       ucum_code: rad
   edge_field_integral:
@@ -682,7 +682,7 @@ attributes:
     domain_of:
     - MagnetSimulationElement
     - MagneticElement
-    range: float
+    range: double
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.
@@ -692,7 +692,7 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
-    range: float
+    range: double
   gradient:
     name: gradient
     description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
@@ -701,7 +701,7 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
-    range: float
+    range: double
     unit:
       ucum_code: T.m-1
   angle:
@@ -718,7 +718,7 @@ attributes:
     owner: MagneticElement
     domain_of:
     - MagneticElement
-    range: float
+    range: double
     unit:
       ucum_code: rad
 class_uri: laura:MagneticElement

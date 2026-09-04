@@ -55,7 +55,7 @@ classes:
         range: string
         description: Longitudinal origin of the field map [m].
       scale_field:
-        range: float
+        range: double
         description: Multiplicative scale factor applied to the field map.
         ifabsent: float(1)
 
@@ -86,7 +86,7 @@ classes:
         range: integer
         description: Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).
       edge_field_integral:
-        range: float
+        range: double
         description: Fringe-field integral for edge focussing.
         ifabsent: float(0.5)
       edge1_effects:
@@ -127,13 +127,13 @@ classes:
         description: Polynomial order of the edge-field expansion.
         ifabsent: int(2)
       deltaL:
-        range: float
+        range: double
         description: Longitudinal step-size override for thick-lens integration [m].
         ifabsent: float(0.0)
         unit:
           ucum_code: m
       smooth_points:
-        range: float
+        range: double
         description: Number of points used to smooth the field map [ASTRA].
         ifabsent: float(2)
 
@@ -189,7 +189,7 @@ classes:
         range: integer
         description: Cavity smoothing parameter.
       ez_peak:
-        range: float
+        range: double
         description: Peak longitudinal electric field.
       field_file_name:
         range: string
@@ -204,9 +204,9 @@ classes:
         range: string
         description: Transverse wake file name.
       field_amplitude:
-        range: float
+        range: double
         any_of:
-          - range: float
+          - range: double
           - range: string
         in_subset:
           - functional_parameters
@@ -237,7 +237,7 @@ classes:
         description: Allow wakefield to change bunch momentum.
         ifabsent: "True"
       factor:
-        range: float
+        range: double
         description: Wake scaling factor.
         ifabsent: float(1)
       interpolate:
@@ -245,35 +245,35 @@ classes:
         description: Interpolate points in wake file.
         ifabsent: "True"
       scale_kick:
-        range: float
+        range: double
         description: Factor by which to scale wake kicks.
         ifabsent: float(1)
       scale_field_ex:
-        range: float
+        range: double
         description: x-component of the longitudinal direction vector.
         ifabsent: float(0.0)
       scale_field_ey:
-        range: float
+        range: double
         description: y-component of the longitudinal direction vector.
         ifabsent: float(0.0)
       scale_field_ez:
-        range: float
+        range: double
         description: z-component of the longitudinal direction vector.
         ifabsent: float(1.0)
       scale_field_hx:
-        range: float
+        range: double
         description: x-component of the horizontal direction vector.
         ifabsent: float(1.0)
       scale_field_hy:
-        range: float
+        range: double
         description: y-component of the horizontal direction vector.
         ifabsent: float(0.0)
       scale_field_hz:
-        range: float
+        range: double
         description: z-component of the horizontal direction vector.
         ifabsent: float(0.0)
       equal_grid:
-        range: float
+        range: double
         description: Interpolation between equidistant and equal-charge grids.
         ifabsent: float(0.66)
       interpolation_method:
@@ -281,7 +281,7 @@ classes:
         description: Interpolation method for ASTRA.
         ifabsent: int(2)
       smooth:
-        range: float
+        range: double
         description: Smoothing parameter for Gaussian interpolation.
         ifabsent: float(0.25)
       subbins:
@@ -317,20 +317,20 @@ classes:
         description: Use Stupakov formula.
         ifabsent: int(1)
       csrdz:
-        range: float
+        range: double
         description: Step size for CSR calculations.
         ifabsent: float(0.01)
       lsc_high_frequency_cutoff_start:
-        range: float
+        range: double
         description: High-frequency cutoff start for LSC.
       lsc_high_frequency_cutoff_end:
-        range: float
+        range: double
         description: High-frequency cutoff end for LSC.
       lsc_low_frequency_cutoff_start:
-        range: float
+        range: double
         description: Low-frequency cutoff start for LSC.
       lsc_low_frequency_cutoff_end:
-        range: float
+        range: double
         description: Low-frequency cutoff end for LSC.
 
   DiagnosticSimulationElement:
@@ -363,11 +363,11 @@ classes:
         description: Number of distribution dumps during the plasma stage.
         ifabsent: int(1)
       min_longitudinal_position:
-        range: float
+        range: double
         description: Minimum longitudinal position [m].
         ifabsent: float(0)
       max_longitudinal_position:
-        range: float
+        range: double
         description: Maximum longitudinal position [m].
         ifabsent: float(0)
       n_longitudinal:
@@ -383,14 +383,14 @@ classes:
         description: Number of plasma particles per cell.
         ifabsent: int(2)
       r_max:
-        range: float
+        range: double
         description: Radial extent of the simulation box [m].
         ifabsent: float(0)
       r_max_plasma:
-        range: float
+        range: double
         description: Maximum radial extension of the plasma column.
       dz_fields:
-        range: float
+        range: double
         description: Interval for plasma wakefield updates.
       plasma_pusher:
         range: string
@@ -403,31 +403,31 @@ classes:
     class_uri: laura:TwissMatchSimulationElement
     attributes:
       beta_x:
-        range: float
+        range: double
         description: Horizontal beta.
       beta_y:
-        range: float
+        range: double
         description: Vertical beta.
       alpha_x:
-        range: float
+        range: double
         description: Horizontal alpha.
       alpha_y:
-        range: float
+        range: double
         description: Vertical alpha.
       eta_x:
-        range: float
+        range: double
         description: Horizontal dispersion.
         ifabsent: float(0.0)
       eta_y:
-        range: float
+        range: double
         description: Vertical dispersion.
         ifabsent: float(0.0)
       eta_xp:
-        range: float
+        range: double
         description: Horizontal dispersion derivative.
         ifabsent: float(0.0)
       eta_yp:
-        range: float
+        range: double
         description: Vertical dispersion derivative.
         ifabsent: float(0.0)
       from_beam:
@@ -463,9 +463,9 @@ classes:
     class_uri: laura:ElectrostaticSeparatorSimulationElement
     attributes:
       horizontal_field:
-        range: float
+        range: double
         any_of:
-          - range: float
+          - range: double
           - range: string
         in_subset:
           - functional_parameters
@@ -474,9 +474,9 @@ classes:
         unit:
           ucum_code: V/m
       vertical_field:
-        range: float
+        range: double
         any_of:
-          - range: float
+          - range: double
           - range: string
         in_subset:
           - functional_parameters
@@ -485,7 +485,7 @@ classes:
         unit:
           ucum_code: V/m
       tilt:
-        range: float
+        range: double
         description: Rotation about the beam axis [rad].
         ifabsent: float(0.0)
         unit:
@@ -521,25 +521,25 @@ classes:
     class_uri: laura:WireSimulationElement
     attributes:
       current:
-        range: float
+        range: double
         description: Current carried by the wire [A].
         ifabsent: float(0.0)
         unit:
           ucum_code: A
       interaction_length:
-        range: float
+        range: double
         description: Effective interaction length [m].
         ifabsent: float(0.0)
         unit:
           ucum_code: m
       horizontal_offset:
-        range: float
+        range: double
         description: Horizontal wire offset from the reference orbit [m].
         ifabsent: float(0.0)
         unit:
           ucum_code: m
       vertical_offset:
-        range: float
+        range: double
         description: Vertical wire offset from the reference orbit [m].
         ifabsent: float(0.0)
         unit:
@@ -551,39 +551,39 @@ classes:
     class_uri: laura:BeamBeamSimulationElement
     attributes:
       charge:
-        range: float
+        range: double
         description: Opposing-beam particle charge in units of the elementary charge.
         ifabsent: float(1.0)
       n_particles:
-        range: float
+        range: double
         description: Number of particles in the opposing bunch.
         ifabsent: float(0.0)
       horizontal_offset:
-        range: float
+        range: double
         description: Horizontal opposing-bunch centroid offset [m].
         ifabsent: float(0.0)
         unit:
           ucum_code: m
       vertical_offset:
-        range: float
+        range: double
         description: Vertical opposing-bunch centroid offset [m].
         ifabsent: float(0.0)
         unit:
           ucum_code: m
       horizontal_sigma:
-        range: float
+        range: double
         description: Horizontal RMS size of the opposing bunch [m].
         ifabsent: float(0.0)
         unit:
           ucum_code: m
       vertical_sigma:
-        range: float
+        range: double
         description: Vertical RMS size of the opposing bunch [m].
         ifabsent: float(0.0)
         unit:
           ucum_code: m
       width:
-        range: float
+        range: double
         description: Opposing-bunch length for the 3-D weak-strong model [m].
         ifabsent: float(0.0)
         unit:
@@ -609,18 +609,18 @@ classes:
         ifabsent: float(0.0)
     attributes:
       knl:
-        range: float
+        range: double
         multivalued: true
         description: Integrated normal multipole strengths, dipole through decapole.
       ksl:
-        range: float
+        range: double
         multivalued: true
         description: Integrated skew multipole strengths, dipole through decapole.
       pnl:
-        range: float
+        range: double
         multivalued: true
         description: Normal multipole phases [deg], dipole through decapole.
       psl:
-        range: float
+        range: double
         multivalued: true
         description: Skew multipole phases [deg], dipole through decapole.

@@ -85,20 +85,20 @@ URI: [laura:PlasmaSimulationElement](https://w3id.org/laura/PlasmaSimulationElem
 | [bunch_pusher](bunch_pusher.md) | 0..1 <br/> [String](String.md) | Pusher used to evolve bunch particles in time | direct |
 | [dt_bunch](dt_bunch.md) | 0..1 <br/> [String](String.md) | Time-step control for bunch evolution (or 'auto') | direct |
 | [n_out](n_out.md) | 0..1 <br/> [Integer](Integer.md) | Number of distribution dumps during the plasma stage | direct |
-| [min_longitudinal_position](min_longitudinal_position.md) | 0..1 <br/> [Float](Float.md) | Minimum longitudinal position [m] | direct |
-| [max_longitudinal_position](max_longitudinal_position.md) | 0..1 <br/> [Float](Float.md) | Maximum longitudinal position [m] | direct |
+| [min_longitudinal_position](min_longitudinal_position.md) | 0..1 <br/> [Double](Double.md) | Minimum longitudinal position [m] | direct |
+| [max_longitudinal_position](max_longitudinal_position.md) | 0..1 <br/> [Double](Double.md) | Maximum longitudinal position [m] | direct |
 | [n_longitudinal](n_longitudinal.md) | 0..1 <br/> [Integer](Integer.md) | Number of grid points in the longitudinal direction | direct |
 | [n_radial](n_radial.md) | 0..1 <br/> [Integer](Integer.md) | Number of grid points in the radial direction | direct |
 | [plasma_particles_per_cell](plasma_particles_per_cell.md) | 0..1 <br/> [Integer](Integer.md) | Number of plasma particles per cell | direct |
-| [r_max](r_max.md) | 0..1 <br/> [Float](Float.md) | Radial extent of the simulation box [m] | direct |
-| [r_max_plasma](r_max_plasma.md) | 0..1 <br/> [Float](Float.md) | Maximum radial extension of the plasma column | direct |
-| [dz_fields](dz_fields.md) | 0..1 <br/> [Float](Float.md) | Interval for plasma wakefield updates | direct |
+| [r_max](r_max.md) | 0..1 <br/> [Double](Double.md) | Radial extent of the simulation box [m] | direct |
+| [r_max_plasma](r_max_plasma.md) | 0..1 <br/> [Double](Double.md) | Maximum radial extension of the plasma column | direct |
+| [dz_fields](dz_fields.md) | 0..1 <br/> [Double](Double.md) | Interval for plasma wakefield updates | direct |
 | [plasma_pusher](plasma_pusher.md) | 0..1 <br/> [String](String.md) | Pusher used to evolve the plasma in time | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -203,7 +203,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - PlasmaSimulationElement
-    range: float
+    range: double
   max_longitudinal_position:
     name: max_longitudinal_position
     description: Maximum longitudinal position [m].
@@ -212,7 +212,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - PlasmaSimulationElement
-    range: float
+    range: double
   n_longitudinal:
     name: n_longitudinal
     description: Number of grid points in the longitudinal direction.
@@ -248,7 +248,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - PlasmaSimulationElement
-    range: float
+    range: double
   r_max_plasma:
     name: r_max_plasma
     description: Maximum radial extension of the plasma column.
@@ -256,7 +256,7 @@ attributes:
     rank: 1000
     domain_of:
     - PlasmaSimulationElement
-    range: float
+    range: double
   dz_fields:
     name: dz_fields
     description: Interval for plasma wakefield updates.
@@ -264,7 +264,7 @@ attributes:
     rank: 1000
     domain_of:
     - PlasmaSimulationElement
-    range: float
+    range: double
   plasma_pusher:
     name: plasma_pusher
     description: Pusher used to evolve the plasma in time.
@@ -336,7 +336,7 @@ attributes:
     owner: PlasmaSimulationElement
     domain_of:
     - PlasmaSimulationElement
-    range: float
+    range: double
   max_longitudinal_position:
     name: max_longitudinal_position
     description: Maximum longitudinal position [m].
@@ -346,7 +346,7 @@ attributes:
     owner: PlasmaSimulationElement
     domain_of:
     - PlasmaSimulationElement
-    range: float
+    range: double
   n_longitudinal:
     name: n_longitudinal
     description: Number of grid points in the longitudinal direction.
@@ -386,7 +386,7 @@ attributes:
     owner: PlasmaSimulationElement
     domain_of:
     - PlasmaSimulationElement
-    range: float
+    range: double
   r_max_plasma:
     name: r_max_plasma
     description: Maximum radial extension of the plasma column.
@@ -395,7 +395,7 @@ attributes:
     owner: PlasmaSimulationElement
     domain_of:
     - PlasmaSimulationElement
-    range: float
+    range: double
   dz_fields:
     name: dz_fields
     description: Interval for plasma wakefield updates.
@@ -404,7 +404,7 @@ attributes:
     owner: PlasmaSimulationElement
     domain_of:
     - PlasmaSimulationElement
-    range: float
+    range: double
   plasma_pusher:
     name: plasma_pusher
     description: Pusher used to evolve the plasma in time.
@@ -463,7 +463,7 @@ attributes:
     owner: PlasmaSimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:PlasmaSimulationElement
 
 ```

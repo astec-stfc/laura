@@ -58,7 +58,10 @@ echo "Generating TypeScript types..."
 gen-typescript "$SCHEMA" > "$OUT_DIR/laura_types.ts"
 
 echo "Generating SQL DDL..."
-gen-sqltables "$SCHEMA" > "$OUT_DIR/laura_schema.sql"
+# Must go through generate_sql.py, not raw gen-sqltables: it narrows the
+# all-columns primary key gen-sqltables emits for a class with a key slot
+# (ControlVariable) down to the key the same run emits as UNIQUE.
+python "laura/schema/generate_sql.py"
 
 echo "Generating SQLAlchemy ORM..."
 # Must go through generate_orm.py, not raw gen-sqla: it runs gen-sqla and then

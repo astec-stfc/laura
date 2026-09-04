@@ -1,3 +1,4 @@
+export type ControlVariableName = string;
 export type TwissMatchName = string;
 export type MatrixTransformName = string;
 export type ElectrostaticSeparatorName = string;
@@ -180,6 +181,14 @@ export enum HardwareClassEnum {
     Monitor = "Monitor",
     /** Simulation element. */
     Simulation = "Simulation",
+    /** Vacuum gate valve. */
+    Valve = "Valve",
+    /** Laser steering or focusing mirror. */
+    LaserMirror = "LaserMirror",
+    /** Laser pulse-energy meter. */
+    LaserEnergyMeter = "LaserEnergyMeter",
+    /** Laser attenuator. */
+    LaserAttenuator = "LaserAttenuator",
 };
 /**
 * Polarization state of a laser beam.
@@ -300,6 +309,8 @@ export interface PhysicalElement {
  * A single process-variable entry mapping a logical name to a control-system PV identifier.
  */
 export interface ControlVariable {
+    /** Logical name of this variable within its element, e.g. ``SETI``. This is the key ``ControlsInformation.variables`` maps from, so YAML gives it as the mapping key rather than repeating it inside the entry, and the Pydantic model omits it (see ``_PYDANTIC_EXCLUDED_SLOTS`` in ``generate_pydantic.py``).  It is declared here so the formats without a native map type -- SQL, SHACL, JSON Schema -- have somewhere to put the name instead of silently dropping it. */
+    name: string,
     /** Protocol-specific PV name (e.g., EPICS PV address). */
     identifier?: string,
     /** Data type, held as a Python type and serialised by name (e.g., ``float``, ``int``, ``str``). */
@@ -330,6 +341,10 @@ export interface ControlVariable {
     update?: string,
     /** Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``. */
     dynamics?: string,
+    /** Whether the control system buffers readings for this variable automatically. */
+    auto_buffer?: boolean,
+    /** Number of readings retained in the buffer. */
+    buffer_size?: number,
 }
 
 
@@ -338,7 +353,7 @@ export interface ControlVariable {
  */
 export interface ControlsInformation {
     /** Named control variables keyed by logical name. */
-    variables?: ControlVariable[],
+    variables?: {[index: ControlVariableName]: ControlVariable },
 }
 
 

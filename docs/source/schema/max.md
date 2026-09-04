@@ -34,7 +34,7 @@ URI: [laura:max](https://w3id.org/laura/max)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [PIDPhaseRange](PIDPhaseRange.md) |
 
 ### Cardinality and Requirements
@@ -93,7 +93,7 @@ rank: 1000
 owner: PIDPhaseRange
 domain_of:
 - PIDPhaseRange
-range: float
+range: double
 
 ```
 </details></div>

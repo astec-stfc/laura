@@ -37,7 +37,7 @@ URI: [laura:exit_edge_angle](https://w3id.org/laura/exit_edge_angle)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md) |
+| Range | [String](String.md)&nbsp;or&nbsp;<br />[Double](Double.md) |
 | Domain Of | [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
@@ -66,7 +66,7 @@ URI: [laura:exit_edge_angle](https://w3id.org/laura/exit_edge_angle)
 #### Any Of
 
 Value must satisfy at least one of:
-- AnonymousSlotExpression({'range': 'float'})
+- AnonymousSlotExpression({'range': 'double'})
 - AnonymousSlotExpression({'range': 'string'})
 
 </details>
@@ -130,7 +130,7 @@ range: string
 unit:
   ucum_code: rad
 any_of:
-- range: float
+- range: double
 - range: string
 
 ```

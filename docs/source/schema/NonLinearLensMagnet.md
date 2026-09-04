@@ -44,9 +44,9 @@ URI: [laura:NonLinearLens_Magnet](https://w3id.org/laura/NonLinearLens_Magnet)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [length](length.md) | 0..1 <br/> [Float](Float.md) | Magnetic length [m] | direct |
-| [integrated_strength](integrated_strength.md) | 0..1 <br/> [Float](Float.md) | Integrated lens strength (MAD-X ``knll``) | direct |
-| [dimensional_parameter](dimensional_parameter.md) | 0..1 <br/> [Float](Float.md) | Dimensional parameter setting the transverse scale (MAD-X ``cnll``) | direct |
+| [length](length.md) | 0..1 <br/> [Double](Double.md) | Magnetic length [m] | direct |
+| [integrated_strength](integrated_strength.md) | 0..1 <br/> [Double](Double.md) | Integrated lens strength (MAD-X ``knll``) | direct |
+| [dimensional_parameter](dimensional_parameter.md) | 0..1 <br/> [Double](Double.md) | Dimensional parameter setting the transverse scale (MAD-X ``cnll``) | direct |
 
 
 
@@ -120,7 +120,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0
   integrated_strength:
     name: integrated_strength
@@ -130,7 +130,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0
   dimensional_parameter:
     name: dimensional_parameter
@@ -141,7 +141,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - NonLinearLens_Magnet
-    range: float
+    range: double
 class_uri: laura:NonLinearLens_Magnet
 
 ```
@@ -169,7 +169,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0
   integrated_strength:
     name: integrated_strength
@@ -180,7 +180,7 @@ attributes:
     owner: NonLinearLens_Magnet
     domain_of:
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0
   dimensional_parameter:
     name: dimensional_parameter
@@ -192,7 +192,7 @@ attributes:
     owner: NonLinearLens_Magnet
     domain_of:
     - NonLinearLens_Magnet
-    range: float
+    range: double
 class_uri: laura:NonLinearLens_Magnet
 
 ```

@@ -374,6 +374,7 @@ attributes:
     owner: IntegratedCurrentTransformer
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

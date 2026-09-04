@@ -19,6 +19,10 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
  classDiagram
     class ControlVariable
     click ControlVariable href "../ControlVariable/"
+      ControlVariable : auto_buffer
+        
+      ControlVariable : buffer_size
+        
       ControlVariable : control_type
         
           
@@ -39,6 +43,8 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
       ControlVariable : expression
         
       ControlVariable : identifier
+        
+      ControlVariable : name
         
       ControlVariable : protocol
         
@@ -77,13 +83,14 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
+| [name](name.md) | 1 <br/> [String](String.md) | Logical name of this variable within its element, e | direct |
 | [identifier](identifier.md) | 0..1 <br/> [String](String.md) | Protocol-specific PV name (e | direct |
 | [dtype](dtype.md) | 0..1 <br/> [String](String.md) | Data type, held as a Python type and serialised by name (e | direct |
 | [protocol](protocol.md) | 0..1 <br/> [String](String.md) | Control-system protocol (e | direct |
 | [units](units.md) | 0..1 <br/> [String](String.md) | Physical units string (e | direct |
 | [description](description.md) | 0..1 <br/> [String](String.md) | Human-readable description | direct |
 | [read_only](read_only.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the variable is read-only | direct |
-| [value](value.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[Integer](Integer.md) | Last-read value | direct |
+| [value](value.md) | 0..1 <br/> [String](String.md)&nbsp;or&nbsp;<br />[Double](Double.md)&nbsp;or&nbsp;<br />[Integer](Integer.md) | Last-read value | direct |
 | [control_type](control_type.md) | 0..1 <br/> [ControlTypeEnum](ControlTypeEnum.md) | Kind of quantity this variable carries | direct |
 | [target](target.md) | 0..1 <br/> [String](String.md) | Dotted attribute path on the owning element that ``expression`` writes to (e | direct |
 | [expression](expression.md) | 0..1 <br/> [String](String.md) | Expression graph computing the value written to ``target``, as nested mapping... | direct |
@@ -92,6 +99,8 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
 | [setpoint](setpoint.md) | 0..1 <br/> [String](String.md) | Name of the set-point variable this readback follows | direct |
 | [update](update.md) | 0..1 <br/> [String](String.md) | Signal generating this variable's value over time, as ``{function: <import pa... | direct |
 | [dynamics](dynamics.md) | 0..1 <br/> [String](String.md) | Response model describing how this variable's readback follows its set-point,... | direct |
+| [auto_buffer](auto_buffer.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the control system buffers readings for this variable automatically | direct |
+| [buffer_size](buffer_size.md) | 0..1 <br/> [Integer](Integer.md) | Number of readings retained in the buffer | direct |
 
 
 
@@ -153,6 +162,22 @@ description: A single process-variable entry mapping a logical name to a control
   PV identifier.
 from_schema: https://w3id.org/laura/schema
 attributes:
+  name:
+    name: name
+    description: Logical name of this variable within its element, e.g. ``SETI``.
+      This is the key ``ControlsInformation.variables`` maps from, so YAML gives it
+      as the mapping key rather than repeating it inside the entry, and the Pydantic
+      model omits it (see ``_PYDANTIC_EXCLUDED_SLOTS`` in ``generate_pydantic.py``).  It
+      is declared here so the formats without a native map type -- SQL, SHACL, JSON
+      Schema -- have somewhere to put the name instead of silently dropping it.
+    from_schema: https://w3id.org/laura/schema/controls
+    key: true
+    domain_of:
+    - AcceleratorElement
+    - ControlVariable
+    - SectionLattice
+    - MachineLayout
+    range: string
   identifier:
     name: identifier
     description: Protocol-specific PV name (e.g., EPICS PV address).
@@ -215,7 +240,7 @@ attributes:
     - ControlVariable
     range: string
     any_of:
-    - range: float
+    - range: double
     - range: integer
     - range: string
   control_type:
@@ -294,6 +319,23 @@ attributes:
     domain_of:
     - ControlVariable
     range: string
+  auto_buffer:
+    name: auto_buffer
+    description: Whether the control system buffers readings for this variable automatically.
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    domain_of:
+    - ControlVariable
+    range: boolean
+  buffer_size:
+    name: buffer_size
+    description: Number of readings retained in the buffer.
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    domain_of:
+    - ControlVariable
+    range: integer
+    minimum_value: 0
 class_uri: laura:ControlVariable
 
 ```
@@ -308,6 +350,24 @@ description: A single process-variable entry mapping a logical name to a control
   PV identifier.
 from_schema: https://w3id.org/laura/schema
 attributes:
+  name:
+    name: name
+    description: Logical name of this variable within its element, e.g. ``SETI``.
+      This is the key ``ControlsInformation.variables`` maps from, so YAML gives it
+      as the mapping key rather than repeating it inside the entry, and the Pydantic
+      model omits it (see ``_PYDANTIC_EXCLUDED_SLOTS`` in ``generate_pydantic.py``).  It
+      is declared here so the formats without a native map type -- SQL, SHACL, JSON
+      Schema -- have somewhere to put the name instead of silently dropping it.
+    from_schema: https://w3id.org/laura/schema/controls
+    key: true
+    owner: ControlVariable
+    domain_of:
+    - AcceleratorElement
+    - ControlVariable
+    - SectionLattice
+    - MachineLayout
+    range: string
+    required: true
   identifier:
     name: identifier
     description: Protocol-specific PV name (e.g., EPICS PV address).
@@ -377,7 +437,7 @@ attributes:
     - ControlVariable
     range: string
     any_of:
-    - range: float
+    - range: double
     - range: integer
     - range: string
   control_type:
@@ -464,6 +524,25 @@ attributes:
     domain_of:
     - ControlVariable
     range: string
+  auto_buffer:
+    name: auto_buffer
+    description: Whether the control system buffers readings for this variable automatically.
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    owner: ControlVariable
+    domain_of:
+    - ControlVariable
+    range: boolean
+  buffer_size:
+    name: buffer_size
+    description: Number of readings retained in the buffer.
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    owner: ControlVariable
+    domain_of:
+    - ControlVariable
+    range: integer
+    minimum_value: 0
 class_uri: laura:ControlVariable
 
 ```

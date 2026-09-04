@@ -33,7 +33,7 @@ URI: [laura:normal](https://w3id.org/laura/normal)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) |
+| Range | [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) |
 | Domain Of | [Multipole](Multipole.md) |
 
 ### Cardinality and Requirements
@@ -53,7 +53,7 @@ URI: [laura:normal](https://w3id.org/laura/normal)
 #### Any Of
 
 Value must satisfy at least one of:
-- AnonymousSlotExpression({'range': 'float'})
+- AnonymousSlotExpression({'range': 'double'})
 - AnonymousSlotExpression({'range': 'string'})
 
 </details>
@@ -112,9 +112,9 @@ ifabsent: float(0)
 owner: Multipole
 domain_of:
 - Multipole
-range: float
+range: double
 any_of:
-- range: float
+- range: double
 - range: string
 
 ```

@@ -349,6 +349,7 @@ attributes:
     owner: TwissMatch
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

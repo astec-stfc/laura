@@ -36,7 +36,7 @@ URI: [laura:phase](https://w3id.org/laura/phase)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) |
+| Range | [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) |
 | Domain Of | [ACDipoleSimulationElement](ACDipoleSimulationElement.md), [RFMultipoleSimulationElement](RFMultipoleSimulationElement.md), [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -65,7 +65,7 @@ URI: [laura:phase](https://w3id.org/laura/phase)
 #### Any Of
 
 Value must satisfy at least one of:
-- AnonymousSlotExpression({'range': 'float'})
+- AnonymousSlotExpression({'range': 'double'})
 - AnonymousSlotExpression({'range': 'string'})
 
 </details>
@@ -126,11 +126,11 @@ domain_of:
 - RFMultipoleSimulationElement
 - RFCavityElement
 - RFDeflectingCavityElement
-range: float
+range: double
 unit:
   ucum_code: deg
 any_of:
-- range: float
+- range: double
 - range: string
 
 ```

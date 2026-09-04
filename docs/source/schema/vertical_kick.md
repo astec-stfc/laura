@@ -33,7 +33,7 @@ URI: [laura:vertical_kick](https://w3id.org/laura/vertical_kick)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [CorrectorMagnet](CorrectorMagnet.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(0.0)
 owner: Corrector_Magnet
 domain_of:
 - Corrector_Magnet
-range: float
+range: double
 
 ```
 </details></div>

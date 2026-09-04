@@ -346,6 +346,7 @@ attributes:
     owner: RFHeartbeat
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

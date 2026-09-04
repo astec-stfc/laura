@@ -33,7 +33,7 @@ URI: [laura:I_max](https://w3id.org/laura/I_max)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [LinearSaturationFit](LinearSaturationFit.md) |
 
 ### Cardinality and Requirements
@@ -104,7 +104,7 @@ ifabsent: float(0)
 owner: LinearSaturationFit
 domain_of:
 - LinearSaturationFit
-range: float
+range: double
 unit:
   ucum_code: A
 

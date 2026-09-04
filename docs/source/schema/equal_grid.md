@@ -33,7 +33,7 @@ URI: [laura:equal_grid](https://w3id.org/laura/equal_grid)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [WakefieldSimulationElement](WakefieldSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(0.66)
 owner: WakefieldSimulationElement
 domain_of:
 - WakefieldSimulationElement
-range: float
+range: double
 
 ```
 </details></div>

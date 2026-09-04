@@ -380,6 +380,7 @@ attributes:
     owner: RFDeflectingCavity
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

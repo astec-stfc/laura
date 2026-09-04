@@ -172,15 +172,15 @@ classes:
         aliases:
           - structure_Type
       attenuation_constant:
-        range: float
+        range: double
         description: Attenuation constant ? of a travelling-wave structure [Np/m].
         ifabsent: float(0)
       power_calibration:
-        range: float
+        range: double
         multivalued: true
         description: Calibration constant relating measured power to cavity gradient.
       gradient_calibration:
-        range: float
+        range: double
         multivalued: true
         description: "Calibration relating measured signal to gradient [MV/m per a.u.]."
 
@@ -219,13 +219,13 @@ classes:
     class_uri: laura:PIDElement
     attributes:
       Kp:
-        range: float
+        range: double
         description: Proportional gain.
       Ki:
-        range: float
+        range: double
         description: Integral gain.
       Kd:
-        range: float
+        range: double
         description: Derivative gain.
       forward_channel:
         range: integer
@@ -251,10 +251,10 @@ classes:
     class_uri: laura:PIDPhaseRange
     attributes:
       min:
-        range: float
+        range: double
         description: Minimum value.
       max:
-        range: float
+        range: double
         description: Maximum value.
 
   PIDWeightRange:
@@ -325,10 +325,10 @@ classes:
     class_uri: laura:LLRFTiming
     attributes:
       start:
-        range: float
+        range: double
         description: Start time.
       end:
-        range: float
+        range: double
         description: End time.
 
   LLRFTimings:
@@ -359,14 +359,14 @@ classes:
         range: Trace
         description: Trace metadata.
       max_amplitude:
-        range: float
+        range: double
         description: Maximum allowed amplitude.
         aliases: [MAX_AMPLITUDE]
       channel_names:
         range: ChannelNames
         description: Channel labels.
       crest_phase:
-        range: float
+        range: double
         description: Cavity crest phase.
       timings:
         range: LLRFTimings

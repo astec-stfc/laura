@@ -33,7 +33,7 @@ URI: [laura:beam_pixel_average](https://w3id.org/laura/beam_pixel_average)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [CameraSensor](CameraSensor.md) |
 
 ### Cardinality and Requirements
@@ -101,7 +101,7 @@ ifabsent: float(97.2)
 owner: CameraSensor
 domain_of:
 - CameraSensor
-range: float
+range: double
 
 ```
 </details></div>

@@ -371,6 +371,7 @@ attributes:
     owner: Valve
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

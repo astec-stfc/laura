@@ -76,9 +76,9 @@ URI: [laura:LowLevelRFElement](https://w3id.org/laura/LowLevelRFElement)
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [trace](trace.md) | 0..1 <br/> [Trace](Trace.md) | Trace metadata | direct |
-| [max_amplitude](max_amplitude.md) | 0..1 <br/> [Float](Float.md) | Maximum allowed amplitude | direct |
+| [max_amplitude](max_amplitude.md) | 0..1 <br/> [Double](Double.md) | Maximum allowed amplitude | direct |
 | [channel_names](channel_names.md) | 0..1 <br/> [ChannelNames](ChannelNames.md) | Channel labels | direct |
-| [crest_phase](crest_phase.md) | 0..1 <br/> [Float](Float.md) | Cavity crest phase | direct |
+| [crest_phase](crest_phase.md) | 0..1 <br/> [Double](Double.md) | Cavity crest phase | direct |
 | [timings](timings.md) | 0..1 <br/> [LLRFTimings](LLRFTimings.md) | Timing windows for LLRF channels | direct |
 
 
@@ -157,7 +157,7 @@ attributes:
     rank: 1000
     domain_of:
     - LowLevelRFElement
-    range: float
+    range: double
   channel_names:
     name: channel_names
     description: Channel labels.
@@ -173,7 +173,7 @@ attributes:
     rank: 1000
     domain_of:
     - LowLevelRFElement
-    range: float
+    range: double
   timings:
     name: timings
     description: Timing windows for LLRF channels.
@@ -214,7 +214,7 @@ attributes:
     owner: LowLevelRFElement
     domain_of:
     - LowLevelRFElement
-    range: float
+    range: double
   channel_names:
     name: channel_names
     description: Channel labels.
@@ -232,7 +232,7 @@ attributes:
     owner: LowLevelRFElement
     domain_of:
     - LowLevelRFElement
-    range: float
+    range: double
   timings:
     name: timings
     description: Timing windows for LLRF channels.

@@ -44,9 +44,9 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [min_i](min_i.md) | 0..1 <br/> [Float](Float.md) | Minimum current [A] | direct |
-| [max_i](max_i.md) | 0..1 <br/> [Float](Float.md) | Maximum current [A] | direct |
-| [read_tolerance](read_tolerance.md) | 0..1 <br/> [Float](Float.md) | Read-back vs | direct |
+| [min_i](min_i.md) | 0..1 <br/> [Double](Double.md) | Minimum current [A] | direct |
+| [max_i](max_i.md) | 0..1 <br/> [Double](Double.md) | Maximum current [A] | direct |
+| [read_tolerance](read_tolerance.md) | 0..1 <br/> [Double](Double.md) | Read-back vs | direct |
 
 
 
@@ -175,7 +175,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - ElectricalElement
-    range: float
+    range: double
     unit:
       ucum_code: A
   max_i:
@@ -188,7 +188,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - ElectricalElement
-    range: float
+    range: double
     unit:
       ucum_code: A
   read_tolerance:
@@ -201,7 +201,7 @@ attributes:
     ifabsent: float(0.1)
     domain_of:
     - ElectricalElement
-    range: float
+    range: double
 class_uri: laura:ElectricalElement
 
 ```
@@ -226,7 +226,7 @@ attributes:
     owner: ElectricalElement
     domain_of:
     - ElectricalElement
-    range: float
+    range: double
     unit:
       ucum_code: A
   max_i:
@@ -240,7 +240,7 @@ attributes:
     owner: ElectricalElement
     domain_of:
     - ElectricalElement
-    range: float
+    range: double
     unit:
       ucum_code: A
   read_tolerance:
@@ -254,7 +254,7 @@ attributes:
     owner: ElectricalElement
     domain_of:
     - ElectricalElement
-    range: float
+    range: double
 class_uri: laura:ElectricalElement
 
 ```

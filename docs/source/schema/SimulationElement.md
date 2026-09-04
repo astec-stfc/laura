@@ -95,7 +95,7 @@ URI: [laura:SimulationElement](https://w3id.org/laura/SimulationElement)
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | direct |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | direct |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | direct |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | direct |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | direct |
 
 
 
@@ -221,7 +221,7 @@ attributes:
     ifabsent: float(1)
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:SimulationElement
 
 ```
@@ -284,7 +284,7 @@ attributes:
     owner: SimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:SimulationElement
 
 ```

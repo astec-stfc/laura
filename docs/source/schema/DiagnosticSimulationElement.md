@@ -62,7 +62,7 @@ URI: [laura:DiagnosticSimulationElement](https://w3id.org/laura/DiagnosticSimula
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -213,7 +213,7 @@ attributes:
     owner: DiagnosticSimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:DiagnosticSimulationElement
 
 ```

@@ -33,7 +33,7 @@ URI: [laura:attenuation_constant](https://w3id.org/laura/attenuation_constant)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(0)
 owner: RFCavityElement
 domain_of:
 - RFCavityElement
-range: float
+range: double
 
 ```
 </details></div>

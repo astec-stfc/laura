@@ -33,7 +33,7 @@ URI: [laura:deltaL](https://w3id.org/laura/deltaL)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -104,7 +104,7 @@ ifabsent: float(0.0)
 owner: MagnetSimulationElement
 domain_of:
 - MagnetSimulationElement
-range: float
+range: double
 unit:
   ucum_code: m
 

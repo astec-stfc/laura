@@ -34,7 +34,7 @@ URI: [laura:crest](https://w3id.org/laura/crest)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -104,7 +104,7 @@ ifabsent: float(0)
 domain_of:
 - RFCavityElement
 - RFDeflectingCavityElement
-range: float
+range: double
 unit:
   ucum_code: deg
 

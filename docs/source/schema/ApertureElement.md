@@ -62,12 +62,12 @@ URI: [laura:ApertureElement](https://w3id.org/laura/ApertureElement)
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [number_of_elements](number_of_elements.md) | 0..1 <br/> [Integer](Integer.md) | Number of aperture sub-elements (e | direct |
-| [horizontal_size](horizontal_size.md) | 0..1 <br/> [Float](Float.md) | Full horizontal aperture [m] | direct |
-| [vertical_size](vertical_size.md) | 0..1 <br/> [Float](Float.md) | Full vertical aperture [m] | direct |
+| [horizontal_size](horizontal_size.md) | 0..1 <br/> [Double](Double.md) | Full horizontal aperture [m] | direct |
+| [vertical_size](vertical_size.md) | 0..1 <br/> [Double](Double.md) | Full vertical aperture [m] | direct |
 | [shape](shape.md) | 0..1 <br/> [ApertureShapeEnum](ApertureShapeEnum.md) | Cross-sectional aperture shape | direct |
-| [radius](radius.md) | 0..1 <br/> [Float](Float.md) | Radius for circular apertures [m] | direct |
-| [negative_extent](negative_extent.md) | 0..1 <br/> [Float](Float.md) | Upstream / inner extent [m] | direct |
-| [positive_extent](positive_extent.md) | 0..1 <br/> [Float](Float.md) | Downstream / outer extent [m] | direct |
+| [radius](radius.md) | 0..1 <br/> [Double](Double.md) | Radius for circular apertures [m] | direct |
+| [negative_extent](negative_extent.md) | 0..1 <br/> [Double](Double.md) | Upstream / inner extent [m] | direct |
+| [positive_extent](positive_extent.md) | 0..1 <br/> [Double](Double.md) | Downstream / outer extent [m] | direct |
 
 
 
@@ -147,7 +147,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - ApertureElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -159,7 +159,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - ApertureElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -180,7 +180,7 @@ attributes:
     - ApertureElement
     - Multipole
     - CameraMask
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -191,7 +191,7 @@ attributes:
     rank: 1000
     domain_of:
     - ApertureElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   positive_extent:
@@ -201,7 +201,7 @@ attributes:
     rank: 1000
     domain_of:
     - ApertureElement
-    range: float
+    range: double
     unit:
       ucum_code: m
 class_uri: laura:ApertureElement
@@ -237,7 +237,7 @@ attributes:
     owner: ApertureElement
     domain_of:
     - ApertureElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -250,7 +250,7 @@ attributes:
     owner: ApertureElement
     domain_of:
     - ApertureElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -273,7 +273,7 @@ attributes:
     - ApertureElement
     - Multipole
     - CameraMask
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -285,7 +285,7 @@ attributes:
     owner: ApertureElement
     domain_of:
     - ApertureElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   positive_extent:
@@ -296,7 +296,7 @@ attributes:
     owner: ApertureElement
     domain_of:
     - ApertureElement
-    range: float
+    range: double
     unit:
       ucum_code: m
 class_uri: laura:ApertureElement

@@ -341,6 +341,7 @@ attributes:
     owner: Marker
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

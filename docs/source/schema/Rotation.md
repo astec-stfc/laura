@@ -44,9 +44,9 @@ URI: [laura:Rotation](https://w3id.org/laura/Rotation)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [phi](phi.md) | 0..1 <br/> [Float](Float.md) | Rotation about the horizontal (x) axis [rad] | direct |
-| [psi](psi.md) | 0..1 <br/> [Float](Float.md) | Rotation about the vertical (y) axis [rad] | direct |
-| [theta](theta.md) | 0..1 <br/> [Float](Float.md) | Rotation about the longitudinal (z) axis [rad] | direct |
+| [phi](phi.md) | 0..1 <br/> [Double](Double.md) | Rotation about the horizontal (x) axis [rad] | direct |
+| [psi](psi.md) | 0..1 <br/> [Double](Double.md) | Rotation about the vertical (y) axis [rad] | direct |
+| [theta](theta.md) | 0..1 <br/> [Double](Double.md) | Rotation about the longitudinal (z) axis [rad] | direct |
 
 
 
@@ -127,7 +127,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - Rotation
-    range: float
+    range: double
     minimum_value: -3.141592653589793
     maximum_value: 3.141592653589793
     unit:
@@ -140,7 +140,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - Rotation
-    range: float
+    range: double
     minimum_value: -3.141592653589793
     maximum_value: 3.141592653589793
     unit:
@@ -153,7 +153,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - Rotation
-    range: float
+    range: double
     minimum_value: -3.141592653589793
     maximum_value: 3.141592653589793
     unit:
@@ -183,7 +183,7 @@ attributes:
     owner: Rotation
     domain_of:
     - Rotation
-    range: float
+    range: double
     minimum_value: -3.141592653589793
     maximum_value: 3.141592653589793
     unit:
@@ -197,7 +197,7 @@ attributes:
     owner: Rotation
     domain_of:
     - Rotation
-    range: float
+    range: double
     minimum_value: -3.141592653589793
     maximum_value: 3.141592653589793
     unit:
@@ -211,7 +211,7 @@ attributes:
     owner: Rotation
     domain_of:
     - Rotation
-    range: float
+    range: double
     minimum_value: -3.141592653589793
     maximum_value: 3.141592653589793
     unit:

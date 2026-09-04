@@ -33,7 +33,7 @@ URI: [laura:operating_middle](https://w3id.org/laura/operating_middle)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [CameraSensor](CameraSensor.md) |
 
 ### Cardinality and Requirements
@@ -93,7 +93,7 @@ rank: 1000
 owner: CameraSensor
 domain_of:
 - CameraSensor
-range: float
+range: double
 multivalued: true
 
 ```

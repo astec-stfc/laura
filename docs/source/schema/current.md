@@ -33,7 +33,7 @@ URI: [laura:current](https://w3id.org/laura/current)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [WireSimulationElement](WireSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -104,7 +104,7 @@ ifabsent: float(0.0)
 owner: WireSimulationElement
 domain_of:
 - WireSimulationElement
-range: float
+range: double
 unit:
   ucum_code: A
 

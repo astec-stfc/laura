@@ -346,6 +346,7 @@ attributes:
     owner: RFModulator
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

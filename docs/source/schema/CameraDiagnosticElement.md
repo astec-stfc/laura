@@ -108,7 +108,7 @@ URI: [laura:CameraDiagnosticElement](https://w3id.org/laura/CameraDiagnosticElem
 | [type](type.md) | 0..1 <br/> [String](String.md) | Camera type / model string (e | direct |
 | [x_pixels](x_pixels.md) | 0..1 <br/> [Integer](Integer.md) | Image width reported by the control system [pix] | direct |
 | [y_pixels](y_pixels.md) | 0..1 <br/> [Integer](Integer.md) | Image height reported by the control system [pix] | direct |
-| [rotation](rotation.md) | 0..1 <br/> [Float](Float.md) | Camera rotation relative to the screen plane [deg] | direct |
+| [rotation](rotation.md) | 0..1 <br/> [Double](Double.md) | Camera rotation relative to the screen plane [deg] | direct |
 | [flipped_horizontally](flipped_horizontally.md) | 0..1 <br/> [Boolean](Boolean.md) | True if the image is mirrored left-right | direct |
 | [flipped_vertically](flipped_vertically.md) | 0..1 <br/> [Boolean](Boolean.md) | True if the image is mirrored top-bottom | direct |
 | [screen_name](screen_name.md) | 0..1 <br/> [String](String.md) | Name of the screen element to which this camera is attached | direct |
@@ -237,7 +237,7 @@ attributes:
     - ElementSurvey
     - PhysicalElement
     - CameraDiagnosticElement
-    range: float
+    range: double
     unit:
       ucum_code: deg
   flipped_horizontally:
@@ -382,7 +382,7 @@ attributes:
     - ElementSurvey
     - PhysicalElement
     - CameraDiagnosticElement
-    range: float
+    range: double
     unit:
       ucum_code: deg
   flipped_horizontally:

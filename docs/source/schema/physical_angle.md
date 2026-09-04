@@ -33,7 +33,7 @@ URI: [laura:physical_angle](https://w3id.org/laura/physical_angle)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [PhysicalElement](PhysicalElement.md) |
 
 ### Cardinality and Requirements
@@ -105,7 +105,7 @@ ifabsent: float(0)
 owner: PhysicalElement
 domain_of:
 - PhysicalElement
-range: float
+range: double
 unit:
   ucum_code: rad
 

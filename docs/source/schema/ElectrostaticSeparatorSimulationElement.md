@@ -61,14 +61,14 @@ URI: [laura:ElectrostaticSeparatorSimulationElement](https://w3id.org/laura/Elec
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [horizontal_field](horizontal_field.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Horizontal deflecting electric field [V/m] | direct |
-| [vertical_field](vertical_field.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Vertical deflecting electric field [V/m] | direct |
-| [tilt](tilt.md) | 0..1 <br/> [Float](Float.md) | Rotation about the beam axis [rad] | direct |
+| [horizontal_field](horizontal_field.md) | 0..1 <br/> [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) | Horizontal deflecting electric field [V/m] | direct |
+| [vertical_field](vertical_field.md) | 0..1 <br/> [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) | Vertical deflecting electric field [V/m] | direct |
+| [tilt](tilt.md) | 0..1 <br/> [Double](Double.md) | Rotation about the beam axis [rad] | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -140,11 +140,11 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - ElectrostaticSeparatorSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: V/m
     any_of:
-    - range: float
+    - range: double
     - range: string
   vertical_field:
     name: vertical_field
@@ -156,11 +156,11 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - ElectrostaticSeparatorSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: V/m
     any_of:
-    - range: float
+    - range: double
     - range: string
   tilt:
     name: tilt
@@ -172,7 +172,7 @@ attributes:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
-    range: float
+    range: double
     unit:
       ucum_code: rad
 class_uri: laura:ElectrostaticSeparatorSimulationElement
@@ -200,11 +200,11 @@ attributes:
     owner: ElectrostaticSeparatorSimulationElement
     domain_of:
     - ElectrostaticSeparatorSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: V/m
     any_of:
-    - range: float
+    - range: double
     - range: string
   vertical_field:
     name: vertical_field
@@ -217,11 +217,11 @@ attributes:
     owner: ElectrostaticSeparatorSimulationElement
     domain_of:
     - ElectrostaticSeparatorSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: V/m
     any_of:
-    - range: float
+    - range: double
     - range: string
   tilt:
     name: tilt
@@ -234,7 +234,7 @@ attributes:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
-    range: float
+    range: double
     unit:
       ucum_code: rad
   field_definition:
@@ -285,7 +285,7 @@ attributes:
     owner: ElectrostaticSeparatorSimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:ElectrostaticSeparatorSimulationElement
 
 ```

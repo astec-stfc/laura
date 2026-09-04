@@ -33,7 +33,7 @@ URI: [laura:down](https://w3id.org/laura/down)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [LaserMirrorSense](LaserMirrorSense.md) |
 
 ### Cardinality and Requirements
@@ -99,7 +99,7 @@ rank: 1000
 owner: LaserMirrorSense
 domain_of:
 - LaserMirrorSense
-range: float
+range: double
 
 ```
 </details></div>

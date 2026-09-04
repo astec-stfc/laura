@@ -69,18 +69,18 @@ URI: [laura:RFMultipoleSimulationElement](https://w3id.org/laura/RFMultipoleSimu
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [frequency](frequency.md) | 0..1 <br/> [Float](Float.md) | RF frequency [Hz] | direct |
-| [phase](phase.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Overall phase lag [deg] | direct |
-| [field_amplitude](field_amplitude.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Longitudinal voltage [V] | direct |
-| [knl](knl.md) | * <br/> [Float](Float.md) | Integrated normal multipole strengths, dipole through decapole | direct |
-| [ksl](ksl.md) | * <br/> [Float](Float.md) | Integrated skew multipole strengths, dipole through decapole | direct |
-| [pnl](pnl.md) | * <br/> [Float](Float.md) | Normal multipole phases [deg], dipole through decapole | direct |
-| [psl](psl.md) | * <br/> [Float](Float.md) | Skew multipole phases [deg], dipole through decapole | direct |
+| [frequency](frequency.md) | 0..1 <br/> [Double](Double.md) | RF frequency [Hz] | direct |
+| [phase](phase.md) | 0..1 <br/> [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) | Overall phase lag [deg] | direct |
+| [field_amplitude](field_amplitude.md) | 0..1 <br/> [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) | Longitudinal voltage [V] | direct |
+| [knl](knl.md) | * <br/> [Double](Double.md) | Integrated normal multipole strengths, dipole through decapole | direct |
+| [ksl](ksl.md) | * <br/> [Double](Double.md) | Integrated skew multipole strengths, dipole through decapole | direct |
+| [pnl](pnl.md) | * <br/> [Double](Double.md) | Normal multipole phases [deg], dipole through decapole | direct |
+| [psl](psl.md) | * <br/> [Double](Double.md) | Skew multipole phases [deg], dipole through decapole | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -166,7 +166,7 @@ attributes:
     rank: 1000
     domain_of:
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     multivalued: true
   ksl:
     name: ksl
@@ -175,7 +175,7 @@ attributes:
     rank: 1000
     domain_of:
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     multivalued: true
   pnl:
     name: pnl
@@ -184,7 +184,7 @@ attributes:
     rank: 1000
     domain_of:
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     multivalued: true
   psl:
     name: psl
@@ -193,7 +193,7 @@ attributes:
     rank: 1000
     domain_of:
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     multivalued: true
 class_uri: laura:RFMultipoleSimulationElement
 
@@ -230,7 +230,7 @@ attributes:
     owner: RFMultipoleSimulationElement
     domain_of:
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     multivalued: true
   ksl:
     name: ksl
@@ -240,7 +240,7 @@ attributes:
     owner: RFMultipoleSimulationElement
     domain_of:
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     multivalued: true
   pnl:
     name: pnl
@@ -250,7 +250,7 @@ attributes:
     owner: RFMultipoleSimulationElement
     domain_of:
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     multivalued: true
   psl:
     name: psl
@@ -260,7 +260,7 @@ attributes:
     owner: RFMultipoleSimulationElement
     domain_of:
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     multivalued: true
   frequency:
     name: frequency
@@ -274,7 +274,7 @@ attributes:
     - RFMultipoleSimulationElement
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: Hz
@@ -292,11 +292,11 @@ attributes:
     - RFMultipoleSimulationElement
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     unit:
       ucum_code: deg
     any_of:
-    - range: float
+    - range: double
     - range: string
   field_amplitude:
     name: field_amplitude
@@ -312,9 +312,9 @@ attributes:
     - RFCavitySimulationElement
     - ACDipoleSimulationElement
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     any_of:
-    - range: float
+    - range: double
     - range: string
   field_definition:
     name: field_definition
@@ -364,7 +364,7 @@ attributes:
     owner: RFMultipoleSimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:RFMultipoleSimulationElement
 
 ```

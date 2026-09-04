@@ -377,6 +377,7 @@ attributes:
     owner: Aperture
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

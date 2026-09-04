@@ -73,20 +73,20 @@ URI: [laura:TwissMatchSimulationElement](https://w3id.org/laura/TwissMatchSimula
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [beta_x](beta_x.md) | 0..1 <br/> [Float](Float.md) | Horizontal beta | direct |
-| [beta_y](beta_y.md) | 0..1 <br/> [Float](Float.md) | Vertical beta | direct |
-| [alpha_x](alpha_x.md) | 0..1 <br/> [Float](Float.md) | Horizontal alpha | direct |
-| [alpha_y](alpha_y.md) | 0..1 <br/> [Float](Float.md) | Vertical alpha | direct |
-| [eta_x](eta_x.md) | 0..1 <br/> [Float](Float.md) | Horizontal dispersion | direct |
-| [eta_y](eta_y.md) | 0..1 <br/> [Float](Float.md) | Vertical dispersion | direct |
-| [eta_xp](eta_xp.md) | 0..1 <br/> [Float](Float.md) | Horizontal dispersion derivative | direct |
-| [eta_yp](eta_yp.md) | 0..1 <br/> [Float](Float.md) | Vertical dispersion derivative | direct |
+| [beta_x](beta_x.md) | 0..1 <br/> [Double](Double.md) | Horizontal beta | direct |
+| [beta_y](beta_y.md) | 0..1 <br/> [Double](Double.md) | Vertical beta | direct |
+| [alpha_x](alpha_x.md) | 0..1 <br/> [Double](Double.md) | Horizontal alpha | direct |
+| [alpha_y](alpha_y.md) | 0..1 <br/> [Double](Double.md) | Vertical alpha | direct |
+| [eta_x](eta_x.md) | 0..1 <br/> [Double](Double.md) | Horizontal dispersion | direct |
+| [eta_y](eta_y.md) | 0..1 <br/> [Double](Double.md) | Vertical dispersion | direct |
+| [eta_xp](eta_xp.md) | 0..1 <br/> [Double](Double.md) | Horizontal dispersion derivative | direct |
+| [eta_yp](eta_yp.md) | 0..1 <br/> [Double](Double.md) | Vertical dispersion derivative | direct |
 | [from_beam](from_beam.md) | 0..1 <br/> [Boolean](Boolean.md) | Compute transform from tracked beam properties | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -155,7 +155,7 @@ attributes:
     rank: 1000
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   beta_y:
     name: beta_y
     description: Vertical beta.
@@ -163,7 +163,7 @@ attributes:
     rank: 1000
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   alpha_x:
     name: alpha_x
     description: Horizontal alpha.
@@ -171,7 +171,7 @@ attributes:
     rank: 1000
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   alpha_y:
     name: alpha_y
     description: Vertical alpha.
@@ -179,7 +179,7 @@ attributes:
     rank: 1000
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   eta_x:
     name: eta_x
     description: Horizontal dispersion.
@@ -188,7 +188,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   eta_y:
     name: eta_y
     description: Vertical dispersion.
@@ -197,7 +197,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   eta_xp:
     name: eta_xp
     description: Horizontal dispersion derivative.
@@ -206,7 +206,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   eta_yp:
     name: eta_yp
     description: Vertical dispersion derivative.
@@ -215,7 +215,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   from_beam:
     name: from_beam
     description: Compute transform from tracked beam properties.
@@ -247,7 +247,7 @@ attributes:
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   beta_y:
     name: beta_y
     description: Vertical beta.
@@ -256,7 +256,7 @@ attributes:
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   alpha_x:
     name: alpha_x
     description: Horizontal alpha.
@@ -265,7 +265,7 @@ attributes:
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   alpha_y:
     name: alpha_y
     description: Vertical alpha.
@@ -274,7 +274,7 @@ attributes:
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   eta_x:
     name: eta_x
     description: Horizontal dispersion.
@@ -284,7 +284,7 @@ attributes:
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   eta_y:
     name: eta_y
     description: Vertical dispersion.
@@ -294,7 +294,7 @@ attributes:
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   eta_xp:
     name: eta_xp
     description: Horizontal dispersion derivative.
@@ -304,7 +304,7 @@ attributes:
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   eta_yp:
     name: eta_yp
     description: Vertical dispersion derivative.
@@ -314,7 +314,7 @@ attributes:
     owner: TwissMatchSimulationElement
     domain_of:
     - TwissMatchSimulationElement
-    range: float
+    range: double
   from_beam:
     name: from_beam
     description: Compute transform from tracked beam properties.
@@ -373,7 +373,7 @@ attributes:
     owner: TwissMatchSimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:TwissMatchSimulationElement
 
 ```

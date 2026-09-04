@@ -44,8 +44,8 @@ URI: [laura:DegaussableElement](https://w3id.org/laura/DegaussableElement)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [tolerance](tolerance.md) | 0..1 <br/> [Float](Float.md) | Current tolerance band during the degauss cycle [A] | direct |
-| [values](values.md) | * <br/> [Float](Float.md) | Sequence of peak currents applied during the degauss cycle [A] | direct |
+| [tolerance](tolerance.md) | 0..1 <br/> [Double](Double.md) | Current tolerance band during the degauss cycle [A] | direct |
+| [values](values.md) | * <br/> [Double](Double.md) | Sequence of peak currents applied during the degauss cycle [A] | direct |
 | [steps](steps.md) | 0..1 <br/> [Integer](Integer.md) | Number of degauss steps per half-cycle | direct |
 
 
@@ -136,7 +136,7 @@ attributes:
     ifabsent: float(0.5)
     domain_of:
     - DegaussableElement
-    range: float
+    range: double
     unit:
       ucum_code: A
   values:
@@ -148,7 +148,7 @@ attributes:
     rank: 1000
     domain_of:
     - DegaussableElement
-    range: float
+    range: double
     multivalued: true
     unit:
       ucum_code: A
@@ -191,7 +191,7 @@ attributes:
     owner: DegaussableElement
     domain_of:
     - DegaussableElement
-    range: float
+    range: double
     unit:
       ucum_code: A
   values:
@@ -204,7 +204,7 @@ attributes:
     owner: DegaussableElement
     domain_of:
     - DegaussableElement
-    range: float
+    range: double
     multivalued: true
     unit:
       ucum_code: A

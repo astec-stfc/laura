@@ -33,7 +33,7 @@ URI: [laura:s](https://w3id.org/laura/s)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [PhysicalElement](PhysicalElement.md) |
 
 ### Cardinality and Requirements
@@ -104,7 +104,7 @@ rank: 1000
 owner: PhysicalElement
 domain_of:
 - PhysicalElement
-range: float
+range: double
 unit:
   ucum_code: m
 

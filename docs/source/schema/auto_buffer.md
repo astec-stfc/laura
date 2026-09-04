@@ -1,7 +1,7 @@
-# Slot: Ki 
+# Slot: auto_buffer 
 
 
-_Integral gain._
+_Whether the control system buffers readings for this variable automatically._
 
 
 
@@ -9,7 +9,7 @@ _Integral gain._
 
 
 
-URI: [laura:Ki](https://w3id.org/laura/Ki)
+URI: [laura:auto_buffer](https://w3id.org/laura/auto_buffer)
 <!-- no inheritance hierarchy -->
 
 
@@ -20,7 +20,7 @@ URI: [laura:Ki](https://w3id.org/laura/Ki)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [PIDElement](PIDElement.md) | PID feedback-controller parameters |  no  |
+| [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |  no  |
 
 
 
@@ -33,8 +33,8 @@ URI: [laura:Ki](https://w3id.org/laura/Ki)
 
 | Property | Value |
 | --- | --- |
-| Range | [Double](Double.md) |
-| Domain Of | [PIDElement](PIDElement.md) |
+| Range | [Boolean](Boolean.md) |
+| Domain Of | [ControlVariable](ControlVariable.md) |
 
 ### Cardinality and Requirements
 
@@ -44,7 +44,7 @@ URI: [laura:Ki](https://w3id.org/laura/Ki)
 
 | Property | Value |
 | --- | --- |
-| Owner | [PIDElement](PIDElement.md) |
+| Owner | [ControlVariable](ControlVariable.md) |
 
 
 
@@ -75,8 +75,8 @@ URI: [laura:Ki](https://w3id.org/laura/Ki)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:Ki |
-| native | laura:Ki |
+| self | laura:auto_buffer |
+| native | laura:auto_buffer |
 
 
 
@@ -85,14 +85,14 @@ URI: [laura:Ki](https://w3id.org/laura/Ki)
 
 <details>
 ```yaml
-name: Ki
-description: Integral gain.
+name: auto_buffer
+description: Whether the control system buffers readings for this variable automatically.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-owner: PIDElement
+owner: ControlVariable
 domain_of:
-- PIDElement
-range: double
+- ControlVariable
+range: boolean
 
 ```
 </details></div>

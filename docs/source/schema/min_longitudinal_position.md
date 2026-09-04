@@ -33,7 +33,7 @@ URI: [laura:min_longitudinal_position](https://w3id.org/laura/min_longitudinal_p
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [PlasmaSimulationElement](PlasmaSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(0)
 owner: PlasmaSimulationElement
 domain_of:
 - PlasmaSimulationElement
-range: float
+range: double
 
 ```
 </details></div>

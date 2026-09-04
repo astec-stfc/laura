@@ -109,7 +109,7 @@ classes:
     class_uri: laura:Corrector_Magnet
     attributes:
       length:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Magnetic length [m].
         minimum_value: 0
@@ -118,15 +118,15 @@ classes:
         ifabsent: int(0)
         description: Multipole order (0, a dipole field).
       tilt:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Roll of the corrector about the beam axis [rad].
       horizontal_kick:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Horizontal deflection [rad]. May be a functional expression.
       vertical_kick:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Vertical deflection [rad]. May be a functional expression.
 
@@ -180,55 +180,55 @@ classes:
     class_uri: laura:SolenoidFields
     attributes:
       S0L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 0 [T.m]."
       S1L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 1 [T.m]."
       S2L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 2 [T.m]."
       S3L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 3 [T.m]."
       S4L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 4 [T.m]."
       S5L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 5 [T.m]."
       S6L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 6 [T.m]."
       S7L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 7 [T.m]."
       S8L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 8 [T.m]."
       S9L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 9 [T.m]."
       S10L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 10 [T.m]."
       S11L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 11 [T.m]."
       S12L:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: "Integrated solenoid field, order 12 [T.m]."
 
@@ -239,7 +239,7 @@ classes:
     class_uri: laura:Solenoid_Magnet
     attributes:
       length:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Magnetic length [m].
         minimum_value: 0
@@ -263,7 +263,7 @@ classes:
         range: LinearSaturationFit
         description: Linear-plus-saturation fit of field against current.
       settle_time:
-        range: float
+        range: double
         ifabsent: float(45.0)
         description: Time to wait after a set before the field is stable [s].
         minimum_value: 0
@@ -286,22 +286,22 @@ classes:
     class_uri: laura:Wiggler_Magnet
     attributes:
       length:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Magnetic length [m].
         minimum_value: 0
       strength:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: >-
           Deflection parameter K. May be a functional expression.
         minimum_value: 0
       peak_magnetic_field:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Peak on-axis field [T].
       period:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Magnetic period length [m].
       num_periods:
@@ -314,19 +314,19 @@ classes:
         ifabsent: "False"
         description: True for a helical device, False for planar.
       quadratic_roll_off_x:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Quadratic field roll-off in x [1/m^2].
       quadratic_roll_off_y:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Quadratic field roll-off in y [1/m^2].
       transverse_gradient_x:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Transverse field gradient in x [1/m].
       transverse_gradient_y:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Transverse field gradient in y [1/m].
 
@@ -355,19 +355,19 @@ classes:
     class_uri: laura:NonLinearLens_Magnet
     attributes:
       length:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: Magnetic length [m].
         minimum_value: 0
       integrated_strength:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: >-
           Integrated lens strength (MAD-X ``knll``). May be a functional
           expression.
         minimum_value: 0
       dimensional_parameter:
-        range: float
+        range: double
         ifabsent: float(0.0)
         description: >-
           Dimensional parameter setting the transverse scale (MAD-X ``cnll``).

@@ -195,14 +195,14 @@ classes:
         minimum_value: 0
         ifabsent: int(0)
       horizontal_size:
-        range: float
+        range: double
         description: Full horizontal aperture [m].
         ifabsent: float(0.0)
         minimum_value: 0.0
         unit:
           ucum_code: m
       vertical_size:
-        range: float
+        range: double
         description: Full vertical aperture [m].
         ifabsent: float(0.0)
         minimum_value: 0.0
@@ -212,18 +212,18 @@ classes:
         range: ApertureShapeEnum
         description: Cross-sectional aperture shape.
       radius:
-        range: float
+        range: double
         description: Radius for circular apertures [m].
         minimum_value: 0.0
         unit:
           ucum_code: m
       negative_extent:
-        range: float
+        range: double
         description: Upstream / inner extent [m].
         unit:
           ucum_code: m
       positive_extent:
-        range: float
+        range: double
         description: Downstream / outer extent [m].
         unit:
           ucum_code: m

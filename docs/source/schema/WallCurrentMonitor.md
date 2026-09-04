@@ -372,6 +372,7 @@ attributes:
     owner: WallCurrentMonitor
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

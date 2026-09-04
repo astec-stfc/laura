@@ -60,16 +60,16 @@ URI: [laura:RFDeflectingCavityElement](https://w3id.org/laura/RFDeflectingCavity
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [cell_length](cell_length.md) | 0..1 <br/> [Float](Float.md) | Length of a single cell [m] | direct |
-| [coupling_cell_length](coupling_cell_length.md) | 0..1 <br/> [Float](Float.md) | Length of the coupling cell [m] | direct |
-| [crest](crest.md) | 0..1 <br/> [Float](Float.md) | On-crest phase offset providing maximum energy gain [deg] | direct |
-| [design_gamma](design_gamma.md) | 0..1 <br/> [Float](Float.md) | Design Lorentz factor | direct |
-| [design_power](design_power.md) | 0..1 <br/> [Float](Float.md) | Design peak power [W] | direct |
-| [frequency](frequency.md) | 0..1 <br/> [Float](Float.md) | Operating frequency [Hz] | direct |
-| [n_cells](n_cells.md) | 0..1 <br/> [Float](Float.md) | Number of cells | direct |
-| [phase](phase.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Operating phase offset [deg] | direct |
-| [shunt_impedance](shunt_impedance.md) | 0..1 <br/> [Float](Float.md) | Shunt impedance [M?/m] | direct |
-| [mode_numerator](mode_numerator.md) | 0..1 <br/> [Float](Float.md) | Mode fraction numerator | direct |
+| [cell_length](cell_length.md) | 0..1 <br/> [Double](Double.md) | Length of a single cell [m] | direct |
+| [coupling_cell_length](coupling_cell_length.md) | 0..1 <br/> [Double](Double.md) | Length of the coupling cell [m] | direct |
+| [crest](crest.md) | 0..1 <br/> [Double](Double.md) | On-crest phase offset providing maximum energy gain [deg] | direct |
+| [design_gamma](design_gamma.md) | 0..1 <br/> [Double](Double.md) | Design Lorentz factor | direct |
+| [design_power](design_power.md) | 0..1 <br/> [Double](Double.md) | Design peak power [W] | direct |
+| [frequency](frequency.md) | 0..1 <br/> [Double](Double.md) | Operating frequency [Hz] | direct |
+| [n_cells](n_cells.md) | 0..1 <br/> [Double](Double.md) | Number of cells | direct |
+| [phase](phase.md) | 0..1 <br/> [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) | Operating phase offset [deg] | direct |
+| [shunt_impedance](shunt_impedance.md) | 0..1 <br/> [Double](Double.md) | Shunt impedance [M?/m] | direct |
+| [mode_numerator](mode_numerator.md) | 0..1 <br/> [Double](Double.md) | Mode fraction numerator | direct |
 | [mode_denominator](mode_denominator.md) | 0..1 <br/> [Integer](Integer.md) | Mode fraction denominator | direct |
 
 
@@ -179,7 +179,7 @@ attributes:
     - RFCavityElement
     - WakefieldElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -194,7 +194,7 @@ attributes:
     - RFCavityElement
     - WakefieldElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -208,7 +208,7 @@ attributes:
     domain_of:
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     unit:
       ucum_code: deg
   design_gamma:
@@ -220,7 +220,7 @@ attributes:
     domain_of:
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     minimum_value: 1.0
   design_power:
     name: design_power
@@ -232,7 +232,7 @@ attributes:
     domain_of:
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: W
@@ -248,7 +248,7 @@ attributes:
     - RFMultipoleSimulationElement
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: Hz
@@ -263,7 +263,7 @@ attributes:
     - RFCavityElement
     - WakefieldElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     minimum_value: 0
   phase:
     name: phase
@@ -279,11 +279,11 @@ attributes:
     - RFMultipoleSimulationElement
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
     unit:
       ucum_code: deg
     any_of:
-    - range: float
+    - range: double
     - range: string
   shunt_impedance:
     name: shunt_impedance
@@ -294,7 +294,7 @@ attributes:
     domain_of:
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
   mode_numerator:
     name: mode_numerator
     description: Mode fraction numerator.
@@ -304,7 +304,7 @@ attributes:
     domain_of:
     - RFCavityElement
     - RFDeflectingCavityElement
-    range: float
+    range: double
   mode_denominator:
     name: mode_denominator
     description: Mode fraction denominator.

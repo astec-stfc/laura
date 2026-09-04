@@ -33,7 +33,7 @@ URI: [laura:value](https://w3id.org/laura/value)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md)&nbsp;or&nbsp;<br />[Float](Float.md)&nbsp;or&nbsp;<br />[Integer](Integer.md) |
+| Range | [String](String.md)&nbsp;or&nbsp;<br />[Double](Double.md)&nbsp;or&nbsp;<br />[Integer](Integer.md) |
 | Domain Of | [ControlVariable](ControlVariable.md) |
 
 ### Cardinality and Requirements
@@ -52,7 +52,7 @@ URI: [laura:value](https://w3id.org/laura/value)
 #### Any Of
 
 Value must satisfy at least one of:
-- AnonymousSlotExpression({'range': 'float'})
+- AnonymousSlotExpression({'range': 'double'})
 - AnonymousSlotExpression({'range': 'integer'})
 - AnonymousSlotExpression({'range': 'string'})
 
@@ -105,7 +105,7 @@ domain_of:
 - ControlVariable
 range: string
 any_of:
-- range: float
+- range: double
 - range: integer
 - range: string
 

@@ -42,8 +42,8 @@ URI: [laura:LLRFTiming](https://w3id.org/laura/LLRFTiming)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [start](start.md) | 0..1 <br/> [Float](Float.md) | Start time | direct |
-| [end](end.md) | 0..1 <br/> [Float](Float.md) | End time | direct |
+| [start](start.md) | 0..1 <br/> [Double](Double.md) | Start time | direct |
+| [end](end.md) | 0..1 <br/> [Double](Double.md) | End time | direct |
 
 
 
@@ -115,7 +115,7 @@ attributes:
     rank: 1000
     domain_of:
     - LLRFTiming
-    range: float
+    range: double
   end:
     name: end
     description: End time.
@@ -123,7 +123,7 @@ attributes:
     rank: 1000
     domain_of:
     - LLRFTiming
-    range: float
+    range: double
 class_uri: laura:LLRFTiming
 
 ```
@@ -145,7 +145,7 @@ attributes:
     owner: LLRFTiming
     domain_of:
     - LLRFTiming
-    range: float
+    range: double
   end:
     name: end
     description: End time.
@@ -154,7 +154,7 @@ attributes:
     owner: LLRFTiming
     domain_of:
     - LLRFTiming
-    range: float
+    range: double
 class_uri: laura:LLRFTiming
 
 ```

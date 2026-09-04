@@ -58,16 +58,16 @@ URI: [laura:Wiggler_Magnet](https://w3id.org/laura/Wiggler_Magnet)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [length](length.md) | 0..1 <br/> [Float](Float.md) | Magnetic length [m] | direct |
-| [strength](strength.md) | 0..1 <br/> [Float](Float.md) | Deflection parameter K | direct |
-| [peak_magnetic_field](peak_magnetic_field.md) | 0..1 <br/> [Float](Float.md) | Peak on-axis field [T] | direct |
-| [period](period.md) | 0..1 <br/> [Float](Float.md) | Magnetic period length [m] | direct |
+| [length](length.md) | 0..1 <br/> [Double](Double.md) | Magnetic length [m] | direct |
+| [strength](strength.md) | 0..1 <br/> [Double](Double.md) | Deflection parameter K | direct |
+| [peak_magnetic_field](peak_magnetic_field.md) | 0..1 <br/> [Double](Double.md) | Peak on-axis field [T] | direct |
+| [period](period.md) | 0..1 <br/> [Double](Double.md) | Magnetic period length [m] | direct |
 | [num_periods](num_periods.md) | 0..1 <br/> [Integer](Integer.md) | Number of full magnetic periods | direct |
 | [helical](helical.md) | 0..1 <br/> [Boolean](Boolean.md) | True for a helical device, False for planar | direct |
-| [quadratic_roll_off_x](quadratic_roll_off_x.md) | 0..1 <br/> [Float](Float.md) | Quadratic field roll-off in x [1/m^2] | direct |
-| [quadratic_roll_off_y](quadratic_roll_off_y.md) | 0..1 <br/> [Float](Float.md) | Quadratic field roll-off in y [1/m^2] | direct |
-| [transverse_gradient_x](transverse_gradient_x.md) | 0..1 <br/> [Float](Float.md) | Transverse field gradient in x [1/m] | direct |
-| [transverse_gradient_y](transverse_gradient_y.md) | 0..1 <br/> [Float](Float.md) | Transverse field gradient in y [1/m] | direct |
+| [quadratic_roll_off_x](quadratic_roll_off_x.md) | 0..1 <br/> [Double](Double.md) | Quadratic field roll-off in x [1/m^2] | direct |
+| [quadratic_roll_off_y](quadratic_roll_off_y.md) | 0..1 <br/> [Double](Double.md) | Quadratic field roll-off in y [1/m^2] | direct |
+| [transverse_gradient_x](transverse_gradient_x.md) | 0..1 <br/> [Double](Double.md) | Transverse field gradient in x [1/m] | direct |
+| [transverse_gradient_y](transverse_gradient_y.md) | 0..1 <br/> [Double](Double.md) | Transverse field gradient in y [1/m] | direct |
 
 
 
@@ -140,7 +140,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0
   strength:
     name: strength
@@ -150,7 +150,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
     minimum_value: 0
   peak_magnetic_field:
     name: peak_magnetic_field
@@ -160,7 +160,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
   period:
     name: period
     description: Magnetic period length [m].
@@ -169,7 +169,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
   num_periods:
     name: num_periods
     description: Number of full magnetic periods.
@@ -197,7 +197,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
   quadratic_roll_off_y:
     name: quadratic_roll_off_y
     description: Quadratic field roll-off in y [1/m^2].
@@ -206,7 +206,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
   transverse_gradient_x:
     name: transverse_gradient_x
     description: Transverse field gradient in x [1/m].
@@ -215,7 +215,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
   transverse_gradient_y:
     name: transverse_gradient_y
     description: Transverse field gradient in y [1/m].
@@ -224,7 +224,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
 class_uri: laura:Wiggler_Magnet
 
 ```
@@ -251,7 +251,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0
   strength:
     name: strength
@@ -262,7 +262,7 @@ attributes:
     owner: Wiggler_Magnet
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
     minimum_value: 0
   peak_magnetic_field:
     name: peak_magnetic_field
@@ -273,7 +273,7 @@ attributes:
     owner: Wiggler_Magnet
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
   period:
     name: period
     description: Magnetic period length [m].
@@ -283,7 +283,7 @@ attributes:
     owner: Wiggler_Magnet
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
   num_periods:
     name: num_periods
     description: Number of full magnetic periods.
@@ -314,7 +314,7 @@ attributes:
     owner: Wiggler_Magnet
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
   quadratic_roll_off_y:
     name: quadratic_roll_off_y
     description: Quadratic field roll-off in y [1/m^2].
@@ -324,7 +324,7 @@ attributes:
     owner: Wiggler_Magnet
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
   transverse_gradient_x:
     name: transverse_gradient_x
     description: Transverse field gradient in x [1/m].
@@ -334,7 +334,7 @@ attributes:
     owner: Wiggler_Magnet
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
   transverse_gradient_y:
     name: transverse_gradient_y
     description: Transverse field gradient in y [1/m].
@@ -344,7 +344,7 @@ attributes:
     owner: Wiggler_Magnet
     domain_of:
     - Wiggler_Magnet
-    range: float
+    range: double
 class_uri: laura:Wiggler_Magnet
 
 ```

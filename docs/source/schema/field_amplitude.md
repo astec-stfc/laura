@@ -36,7 +36,7 @@ URI: [laura:field_amplitude](https://w3id.org/laura/field_amplitude)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) |
+| Range | [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) |
 | Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md), [RFCavitySimulationElement](RFCavitySimulationElement.md), [ACDipoleSimulationElement](ACDipoleSimulationElement.md), [RFMultipoleSimulationElement](RFMultipoleSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -48,7 +48,7 @@ URI: [laura:field_amplitude](https://w3id.org/laura/field_amplitude)
 #### Any Of
 
 Value must satisfy at least one of:
-- AnonymousSlotExpression({'range': 'float'})
+- AnonymousSlotExpression({'range': 'double'})
 - AnonymousSlotExpression({'range': 'string'})
 
 </details>
@@ -108,9 +108,9 @@ domain_of:
 - RFCavitySimulationElement
 - ACDipoleSimulationElement
 - RFMultipoleSimulationElement
-range: float
+range: double
 any_of:
-- range: float
+- range: double
 - range: string
 
 ```

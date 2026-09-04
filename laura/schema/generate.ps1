@@ -84,7 +84,10 @@ Write-Host "Generating TypeScript types..." -ForegroundColor Cyan
 gen-typescript $SCHEMA | Write-Utf8 "$OUT_DIR/laura_types.ts"
 
 Write-Host "Generating SQL DDL..." -ForegroundColor Cyan
-gen-sqltables $SCHEMA | Write-Utf8 "$OUT_DIR/laura_schema.sql"
+# Must go through generate_sql.py, not raw gen-sqltables: it narrows the
+# all-columns primary key gen-sqltables emits for a class with a key slot
+# (ControlVariable) down to the key the same run emits as UNIQUE.
+python "laura/schema/generate_sql.py"
 
 Write-Host "Generating SQLAlchemy ORM..." -ForegroundColor Cyan
 python "laura/schema/generate_orm.py"

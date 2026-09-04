@@ -185,7 +185,17 @@ def _rename_classes(content: str, model_names: set[str]) -> str:
         content,
     )
 
-    # ── Pattern 5: model_rebuild() calls at module level ─────────────────────
+    # ── Pattern 5: dict[str, Xxx] ────────────────────────────────────────────
+    # gen-pydantic emits this itself for a slot inlined as a dict whose range
+    # declares a key (ControlsInformation.variables); where the range has no
+    # key, step 4 synthesises the same shape from list[Xxx] after this rename.
+    content = re.sub(
+        r"dict\[str, (\w+)\]",
+        lambda m: f"dict[str, {new_name(m.group(1))}]",
+        content,
+    )
+
+    # ── Pattern 6: model_rebuild() calls at module level ─────────────────────
     # ``Xxx.model_rebuild()``
     content = re.sub(
         r"^(\w+)\.model_rebuild\(\)",
@@ -419,6 +429,23 @@ def _fix_field_line(
         line = _inject_alias_choices(line, field_name, aliases)
         return line
 
+    # ── Optional[dict[str, T]] = Field(default=None, …) — a dict-inlined slot
+    # gen-pydantic converted itself, because its range declares a key ────────
+    # Normalised to the same non-Optional, default_factory shape the branches
+    # above produce for a range without one, so declaring a key on the range
+    # does not change the model.
+    optdict_m = re.match(
+        r"^( {4})(\w+): Optional\[dict\[str, (\w+)\]\] = Field\(default=None, ",
+        line,
+    )
+    if optdict_m:
+        field_name = optdict_m.group(2)
+        if field_name in dict_valued:
+            line = re.sub(r"Optional\[(dict\[str, \w+\])\]", r"\1", line, count=1)
+            line = line.replace("default=None,", "default_factory=dict,", 1)
+        line = _inject_alias_choices(line, field_name, aliases)
+        return line
+
     # ── Optional[T] = Field(…) ───────────────────────────────────────────────
     opt_m = re.match(
         r"^( {4})(\w+): Optional\[(\w+)\] = Field\(",
@@ -537,14 +564,10 @@ def _add_attribute_docstrings(content: str) -> str:
 #: subclass property shadowing an inherited field makes the property object
 #: itself the field default, which then fails validation.
 _PYDANTIC_EXCLUDED_SLOTS: dict[str, frozenset[str]] = {
-    # MagneticElement.angle is derived from multipoles.K0L so that a symbolic
-    # (functional) bend angle survives round-tripping and reads follow the
-    # global resolution mode. The Dipole/Quadrupole magnet bases repeat the slot
-    # and are excluded too, so the property stays usable if a wrapper is ever
-    # pointed at them.
     "_MagneticElementBase": frozenset({"angle"}),
     "_DipoleMagnetBase": frozenset({"angle"}),
     "_QuadrupoleMagnetBase": frozenset({"angle"}),
+    "_ControlVariableBase": frozenset({"name"}),
 }
 
 

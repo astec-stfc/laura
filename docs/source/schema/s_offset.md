@@ -33,7 +33,7 @@ URI: [laura:s_offset](https://w3id.org/laura/s_offset)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [ReferencePlacement](ReferencePlacement.md) |
 
 ### Cardinality and Requirements
@@ -104,7 +104,7 @@ rank: 1000
 owner: ReferencePlacement
 domain_of:
 - ReferencePlacement
-range: float
+range: double
 unit:
   ucum_code: m
 

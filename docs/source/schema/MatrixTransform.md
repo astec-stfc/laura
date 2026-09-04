@@ -347,6 +347,7 @@ attributes:
     owner: MatrixTransform
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

@@ -50,7 +50,7 @@ URI: [laura:PhotonIntensityMonitorDiagnostic](https://w3id.org/laura/PhotonInten
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [type](type.md) | 0..1 <br/> [String](String.md) | Photon intensity monitor type | direct |
-| [intensity](intensity.md) | 0..1 <br/> [Float](Float.md) | Measured photon intensity | direct |
+| [intensity](intensity.md) | 0..1 <br/> [Double](Double.md) | Measured photon intensity | direct |
 
 
 
@@ -144,7 +144,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - PhotonIntensityMonitorDiagnostic
-    range: float
+    range: double
 class_uri: laura:PhotonIntensityMonitorDiagnostic
 
 ```
@@ -187,7 +187,7 @@ attributes:
     owner: PhotonIntensityMonitorDiagnostic
     domain_of:
     - PhotonIntensityMonitorDiagnostic
-    range: float
+    range: double
 class_uri: laura:PhotonIntensityMonitorDiagnostic
 
 ```

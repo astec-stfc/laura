@@ -36,7 +36,7 @@ URI: [laura:frequency](https://w3id.org/laura/frequency)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [ACDipoleSimulationElement](ACDipoleSimulationElement.md), [RFMultipoleSimulationElement](RFMultipoleSimulationElement.md), [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
@@ -115,7 +115,7 @@ domain_of:
 - RFMultipoleSimulationElement
 - RFCavityElement
 - RFDeflectingCavityElement
-range: float
+range: double
 minimum_value: 0.0
 unit:
   ucum_code: Hz

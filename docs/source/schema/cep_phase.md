@@ -33,7 +33,7 @@ URI: [laura:cep_phase](https://w3id.org/laura/cep_phase)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [LaserElement](LaserElement.md) |
 
 ### Cardinality and Requirements
@@ -104,7 +104,7 @@ ifabsent: float(0)
 owner: LaserElement
 domain_of:
 - LaserElement
-range: float
+range: double
 unit:
   ucum_code: rad
 

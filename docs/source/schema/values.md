@@ -33,7 +33,7 @@ URI: [laura:values](https://w3id.org/laura/values)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [DegaussableElement](DegaussableElement.md) |
 
 ### Cardinality and Requirements
@@ -110,7 +110,7 @@ rank: 1000
 owner: DegaussableElement
 domain_of:
 - DegaussableElement
-range: float
+range: double
 multivalued: true
 unit:
   ucum_code: A

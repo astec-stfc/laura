@@ -33,7 +33,7 @@ URI: [laura:ez_peak](https://w3id.org/laura/ez_peak)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [RFCavitySimulationElement](RFCavitySimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -92,7 +92,7 @@ rank: 1000
 owner: RFCavitySimulationElement
 domain_of:
 - RFCavitySimulationElement
-range: float
+range: double
 
 ```
 </details></div>

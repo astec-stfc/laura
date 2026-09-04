@@ -33,7 +33,7 @@ URI: [laura:f](https://w3id.org/laura/f)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [LinearSaturationFit](LinearSaturationFit.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(0)
 owner: LinearSaturationFit
 domain_of:
 - LinearSaturationFit
-range: float
+range: double
 
 ```
 </details></div>

@@ -33,7 +33,7 @@ URI: [laura:horizontal_size](https://w3id.org/laura/horizontal_size)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [ApertureElement](ApertureElement.md) |
 
 ### Cardinality and Requirements
@@ -111,7 +111,7 @@ ifabsent: float(0.0)
 owner: ApertureElement
 domain_of:
 - ApertureElement
-range: float
+range: double
 minimum_value: 0.0
 unit:
   ucum_code: m

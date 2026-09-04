@@ -64,19 +64,19 @@ URI: [laura:SolenoidFields](https://w3id.org/laura/SolenoidFields)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [S0L](S0L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 0 [T | direct |
-| [S1L](S1L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 1 [T | direct |
-| [S2L](S2L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 2 [T | direct |
-| [S3L](S3L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 3 [T | direct |
-| [S4L](S4L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 4 [T | direct |
-| [S5L](S5L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 5 [T | direct |
-| [S6L](S6L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 6 [T | direct |
-| [S7L](S7L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 7 [T | direct |
-| [S8L](S8L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 8 [T | direct |
-| [S9L](S9L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 9 [T | direct |
-| [S10L](S10L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 10 [T | direct |
-| [S11L](S11L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 11 [T | direct |
-| [S12L](S12L.md) | 0..1 <br/> [Float](Float.md) | Integrated solenoid field, order 12 [T | direct |
+| [S0L](S0L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 0 [T | direct |
+| [S1L](S1L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 1 [T | direct |
+| [S2L](S2L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 2 [T | direct |
+| [S3L](S3L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 3 [T | direct |
+| [S4L](S4L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 4 [T | direct |
+| [S5L](S5L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 5 [T | direct |
+| [S6L](S6L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 6 [T | direct |
+| [S7L](S7L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 7 [T | direct |
+| [S8L](S8L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 8 [T | direct |
+| [S9L](S9L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 9 [T | direct |
+| [S10L](S10L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 10 [T | direct |
+| [S11L](S11L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 11 [T | direct |
+| [S12L](S12L.md) | 0..1 <br/> [Double](Double.md) | Integrated solenoid field, order 12 [T | direct |
 
 
 
@@ -147,7 +147,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S1L:
     name: S1L
     description: Integrated solenoid field, order 1 [T.m].
@@ -156,7 +156,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S2L:
     name: S2L
     description: Integrated solenoid field, order 2 [T.m].
@@ -165,7 +165,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S3L:
     name: S3L
     description: Integrated solenoid field, order 3 [T.m].
@@ -174,7 +174,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S4L:
     name: S4L
     description: Integrated solenoid field, order 4 [T.m].
@@ -183,7 +183,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S5L:
     name: S5L
     description: Integrated solenoid field, order 5 [T.m].
@@ -192,7 +192,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S6L:
     name: S6L
     description: Integrated solenoid field, order 6 [T.m].
@@ -201,7 +201,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S7L:
     name: S7L
     description: Integrated solenoid field, order 7 [T.m].
@@ -210,7 +210,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S8L:
     name: S8L
     description: Integrated solenoid field, order 8 [T.m].
@@ -219,7 +219,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S9L:
     name: S9L
     description: Integrated solenoid field, order 9 [T.m].
@@ -228,7 +228,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S10L:
     name: S10L
     description: Integrated solenoid field, order 10 [T.m].
@@ -237,7 +237,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S11L:
     name: S11L
     description: Integrated solenoid field, order 11 [T.m].
@@ -246,7 +246,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S12L:
     name: S12L
     description: Integrated solenoid field, order 12 [T.m].
@@ -255,7 +255,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
 class_uri: laura:SolenoidFields
 
 ```
@@ -278,7 +278,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S1L:
     name: S1L
     description: Integrated solenoid field, order 1 [T.m].
@@ -288,7 +288,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S2L:
     name: S2L
     description: Integrated solenoid field, order 2 [T.m].
@@ -298,7 +298,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S3L:
     name: S3L
     description: Integrated solenoid field, order 3 [T.m].
@@ -308,7 +308,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S4L:
     name: S4L
     description: Integrated solenoid field, order 4 [T.m].
@@ -318,7 +318,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S5L:
     name: S5L
     description: Integrated solenoid field, order 5 [T.m].
@@ -328,7 +328,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S6L:
     name: S6L
     description: Integrated solenoid field, order 6 [T.m].
@@ -338,7 +338,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S7L:
     name: S7L
     description: Integrated solenoid field, order 7 [T.m].
@@ -348,7 +348,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S8L:
     name: S8L
     description: Integrated solenoid field, order 8 [T.m].
@@ -358,7 +358,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S9L:
     name: S9L
     description: Integrated solenoid field, order 9 [T.m].
@@ -368,7 +368,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S10L:
     name: S10L
     description: Integrated solenoid field, order 10 [T.m].
@@ -378,7 +378,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S11L:
     name: S11L
     description: Integrated solenoid field, order 11 [T.m].
@@ -388,7 +388,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
   S12L:
     name: S12L
     description: Integrated solenoid field, order 12 [T.m].
@@ -398,7 +398,7 @@ attributes:
     owner: SolenoidFields
     domain_of:
     - SolenoidFields
-    range: float
+    range: double
 class_uri: laura:SolenoidFields
 
 ```

@@ -33,7 +33,7 @@ URI: [laura:focal_position](https://w3id.org/laura/focal_position)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [LaserElement](LaserElement.md) |
 
 ### Cardinality and Requirements
@@ -104,7 +104,7 @@ ifabsent: float(0.0)
 owner: LaserElement
 domain_of:
 - LaserElement
-range: float
+range: double
 unit:
   ucum_code: m
 

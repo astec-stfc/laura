@@ -388,6 +388,7 @@ attributes:
     owner: BunchLengthMonitor
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

@@ -80,16 +80,16 @@ URI: [laura:DriftSimulationElement](https://w3id.org/laura/DriftSimulationElemen
 | [csr_enable](csr_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable CSR drift calculations | direct |
 | [lsc_enable](lsc_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable LSC drift calculations | direct |
 | [use_stupakov](use_stupakov.md) | 0..1 <br/> [Integer](Integer.md) | Use Stupakov formula | direct |
-| [csrdz](csrdz.md) | 0..1 <br/> [Float](Float.md) | Step size for CSR calculations | direct |
-| [lsc_high_frequency_cutoff_start](lsc_high_frequency_cutoff_start.md) | 0..1 <br/> [Float](Float.md) | High-frequency cutoff start for LSC | direct |
-| [lsc_high_frequency_cutoff_end](lsc_high_frequency_cutoff_end.md) | 0..1 <br/> [Float](Float.md) | High-frequency cutoff end for LSC | direct |
-| [lsc_low_frequency_cutoff_start](lsc_low_frequency_cutoff_start.md) | 0..1 <br/> [Float](Float.md) | Low-frequency cutoff start for LSC | direct |
-| [lsc_low_frequency_cutoff_end](lsc_low_frequency_cutoff_end.md) | 0..1 <br/> [Float](Float.md) | Low-frequency cutoff end for LSC | direct |
+| [csrdz](csrdz.md) | 0..1 <br/> [Double](Double.md) | Step size for CSR calculations | direct |
+| [lsc_high_frequency_cutoff_start](lsc_high_frequency_cutoff_start.md) | 0..1 <br/> [Double](Double.md) | High-frequency cutoff start for LSC | direct |
+| [lsc_high_frequency_cutoff_end](lsc_high_frequency_cutoff_end.md) | 0..1 <br/> [Double](Double.md) | High-frequency cutoff end for LSC | direct |
+| [lsc_low_frequency_cutoff_start](lsc_low_frequency_cutoff_start.md) | 0..1 <br/> [Double](Double.md) | Low-frequency cutoff start for LSC | direct |
+| [lsc_low_frequency_cutoff_end](lsc_low_frequency_cutoff_end.md) | 0..1 <br/> [Double](Double.md) | Low-frequency cutoff end for LSC | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -202,7 +202,7 @@ attributes:
     ifabsent: float(0.01)
     domain_of:
     - DriftSimulationElement
-    range: float
+    range: double
   lsc_high_frequency_cutoff_start:
     name: lsc_high_frequency_cutoff_start
     description: High-frequency cutoff start for LSC.
@@ -210,7 +210,7 @@ attributes:
     rank: 1000
     domain_of:
     - DriftSimulationElement
-    range: float
+    range: double
   lsc_high_frequency_cutoff_end:
     name: lsc_high_frequency_cutoff_end
     description: High-frequency cutoff end for LSC.
@@ -218,7 +218,7 @@ attributes:
     rank: 1000
     domain_of:
     - DriftSimulationElement
-    range: float
+    range: double
   lsc_low_frequency_cutoff_start:
     name: lsc_low_frequency_cutoff_start
     description: Low-frequency cutoff start for LSC.
@@ -226,7 +226,7 @@ attributes:
     rank: 1000
     domain_of:
     - DriftSimulationElement
-    range: float
+    range: double
   lsc_low_frequency_cutoff_end:
     name: lsc_low_frequency_cutoff_end
     description: Low-frequency cutoff end for LSC.
@@ -234,7 +234,7 @@ attributes:
     rank: 1000
     domain_of:
     - DriftSimulationElement
-    range: float
+    range: double
 class_uri: laura:DriftSimulationElement
 
 ```
@@ -303,7 +303,7 @@ attributes:
     owner: DriftSimulationElement
     domain_of:
     - DriftSimulationElement
-    range: float
+    range: double
   lsc_high_frequency_cutoff_start:
     name: lsc_high_frequency_cutoff_start
     description: High-frequency cutoff start for LSC.
@@ -312,7 +312,7 @@ attributes:
     owner: DriftSimulationElement
     domain_of:
     - DriftSimulationElement
-    range: float
+    range: double
   lsc_high_frequency_cutoff_end:
     name: lsc_high_frequency_cutoff_end
     description: High-frequency cutoff end for LSC.
@@ -321,7 +321,7 @@ attributes:
     owner: DriftSimulationElement
     domain_of:
     - DriftSimulationElement
-    range: float
+    range: double
   lsc_low_frequency_cutoff_start:
     name: lsc_low_frequency_cutoff_start
     description: Low-frequency cutoff start for LSC.
@@ -330,7 +330,7 @@ attributes:
     owner: DriftSimulationElement
     domain_of:
     - DriftSimulationElement
-    range: float
+    range: double
   lsc_low_frequency_cutoff_end:
     name: lsc_low_frequency_cutoff_end
     description: Low-frequency cutoff end for LSC.
@@ -339,7 +339,7 @@ attributes:
     owner: DriftSimulationElement
     domain_of:
     - DriftSimulationElement
-    range: float
+    range: double
   lsc_bins:
     name: lsc_bins
     description: Number of bins for LSC calculations.
@@ -399,7 +399,7 @@ attributes:
     owner: DriftSimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:DriftSimulationElement
 
 ```

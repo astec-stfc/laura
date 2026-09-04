@@ -74,9 +74,9 @@ URI: [laura:PIDElement](https://w3id.org/laura/PIDElement)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [Kp](Kp.md) | 0..1 <br/> [Float](Float.md) | Proportional gain | direct |
-| [Ki](Ki.md) | 0..1 <br/> [Float](Float.md) | Integral gain | direct |
-| [Kd](Kd.md) | 0..1 <br/> [Float](Float.md) | Derivative gain | direct |
+| [Kp](Kp.md) | 0..1 <br/> [Double](Double.md) | Proportional gain | direct |
+| [Ki](Ki.md) | 0..1 <br/> [Double](Double.md) | Integral gain | direct |
+| [Kd](Kd.md) | 0..1 <br/> [Double](Double.md) | Derivative gain | direct |
 | [forward_channel](forward_channel.md) | 0..1 <br/> [Integer](Integer.md) | Forward channel index | direct |
 | [probe_channel](probe_channel.md) | 0..1 <br/> [Integer](Integer.md) | Probe channel index | direct |
 | [enable](enable.md) | 0..1 <br/> [String](String.md) | Enable command/value | direct |
@@ -150,7 +150,7 @@ attributes:
     rank: 1000
     domain_of:
     - PIDElement
-    range: float
+    range: double
   Ki:
     name: Ki
     description: Integral gain.
@@ -158,7 +158,7 @@ attributes:
     rank: 1000
     domain_of:
     - PIDElement
-    range: float
+    range: double
   Kd:
     name: Kd
     description: Derivative gain.
@@ -166,7 +166,7 @@ attributes:
     rank: 1000
     domain_of:
     - PIDElement
-    range: float
+    range: double
   forward_channel:
     name: forward_channel
     description: Forward channel index.
@@ -236,7 +236,7 @@ attributes:
     owner: PIDElement
     domain_of:
     - PIDElement
-    range: float
+    range: double
   Ki:
     name: Ki
     description: Integral gain.
@@ -245,7 +245,7 @@ attributes:
     owner: PIDElement
     domain_of:
     - PIDElement
-    range: float
+    range: double
   Kd:
     name: Kd
     description: Derivative gain.
@@ -254,7 +254,7 @@ attributes:
     owner: PIDElement
     domain_of:
     - PIDElement
-    range: float
+    range: double
   forward_channel:
     name: forward_channel
     description: Forward channel index.

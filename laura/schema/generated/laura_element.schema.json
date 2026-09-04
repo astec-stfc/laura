@@ -2684,6 +2684,21 @@
       "additionalProperties": false,
       "description": "A single process-variable entry mapping a logical name to a control-system PV identifier.",
       "properties": {
+        "auto_buffer": {
+          "description": "Whether the control system buffers readings for this variable automatically.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "buffer_size": {
+          "description": "Number of readings retained in the buffer.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "control_type": {
           "$ref": "#/$defs/ControlTypeEnum",
           "description": "Kind of quantity this variable carries. Accepted in YAML as ``type``."
@@ -2722,6 +2737,10 @@
             "string",
             "null"
           ]
+        },
+        "name": {
+          "description": "Logical name of this variable within its element, e.g. ``SETI``. This is the key ``ControlsInformation.variables`` maps from, so YAML gives it as the mapping key rather than repeating it inside the entry, and the Pydantic model omits it (see ``_PYDANTIC_EXCLUDED_SLOTS`` in ``generate_pydantic.py``).  It is declared here so the formats without a native map type -- SQL, SHACL, JSON Schema -- have somewhere to put the name instead of silently dropping it.",
+          "type": "string"
         },
         "protocol": {
           "description": "Control-system protocol (e.g., ``EPICS``, ``Tango``).",
@@ -2798,6 +2817,150 @@
           "type": "string"
         }
       },
+      "required": [
+        "name"
+      ],
+      "title": "ControlVariable",
+      "type": "object"
+    },
+    "ControlVariable__identifier_optional": {
+      "additionalProperties": false,
+      "description": "A single process-variable entry mapping a logical name to a control-system PV identifier.",
+      "properties": {
+        "auto_buffer": {
+          "description": "Whether the control system buffers readings for this variable automatically.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "buffer_size": {
+          "description": "Number of readings retained in the buffer.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "control_type": {
+          "$ref": "#/$defs/ControlTypeEnum",
+          "description": "Kind of quantity this variable carries. Accepted in YAML as ``type``."
+        },
+        "description": {
+          "description": "Human-readable description.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dtype": {
+          "description": "Data type, held as a Python type and serialised by name (e.g., ``float``, ``int``, ``str``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dynamics": {
+          "description": "Response model describing how this variable's readback follows its set-point, as ``{model: <import path>, **kwargs}`` -- see ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or ``setpoint``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expression": {
+          "description": "Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "identifier": {
+          "description": "Protocol-specific PV name (e.g., EPICS PV address).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Logical name of this variable within its element, e.g. ``SETI``. This is the key ``ControlsInformation.variables`` maps from, so YAML gives it as the mapping key rather than repeating it inside the entry, and the Pydantic model omits it (see ``_PYDANTIC_EXCLUDED_SLOTS`` in ``generate_pydantic.py``).  It is declared here so the formats without a native map type -- SQL, SHACL, JSON Schema -- have somewhere to put the name instead of silently dropping it.",
+          "type": "string"
+        },
+        "protocol": {
+          "description": "Control-system protocol (e.g., ``EPICS``, ``Tango``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "read_only": {
+          "description": "Whether the variable is read-only.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "readback": {
+          "description": "Name of the readback variable this set-point drives.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "setpoint": {
+          "description": "Name of the set-point variable this readback follows.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "states": {
+          "description": "Mapping of state name to underlying control-system value, for ``control_type: state``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target": {
+          "description": "Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "units": {
+          "description": "Physical units string (e.g., ``A``, ``T/m``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "update": {
+          "description": "Signal generating this variable's value over time, as ``{function: <import path>, **kwargs}`` -- see ``laura.utils.signals``. Stored with ``function`` as a fully qualified import path so it resolves without LAURA.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Last-read value. Scalar for most control types; a list for ``waveform``.",
+          "type": "string"
+        }
+      },
+      "required": [],
       "title": "ControlVariable",
       "type": "object"
     },
@@ -2806,12 +2969,19 @@
       "description": "Collection of process-variable definitions for an element's control interface.",
       "properties": {
         "variables": {
-          "description": "Named control variables keyed by logical name.",
-          "items": {
-            "$ref": "#/$defs/ControlVariable"
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ControlVariable__identifier_optional"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
+          "description": "Named control variables keyed by logical name.",
           "type": [
-            "array",
+            "object",
             "null"
           ]
         }
@@ -4704,7 +4874,11 @@
         "Drift",
         "Generic",
         "Monitor",
-        "Simulation"
+        "Simulation",
+        "Valve",
+        "LaserMirror",
+        "LaserEnergyMeter",
+        "LaserAttenuator"
       ],
       "title": "HardwareClassEnum",
       "type": "string"

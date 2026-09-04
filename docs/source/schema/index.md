@@ -168,12 +168,14 @@ Name: laura_schema
 | [aperture](aperture.md) | Aperture geometry parameters |
 | [apply](apply.md) | Whether to apply the transfer map |
 | [attenuation_constant](attenuation_constant.md) | Attenuation constant ? of a travelling-wave structure [Np/m] |
+| [auto_buffer](auto_buffer.md) | Whether the control system buffers readings for this variable automatically |
 | [beam_pixel_average](beam_pixel_average.md) | Average pixel value for beam detection |
 | [beta_x](beta_x.md) | Horizontal beta |
 | [beta_y](beta_y.md) | Vertical beta |
 | [bit_depth](bit_depth.md) | Camera bit depth |
 | [body_focus_model](body_focus_model.md) | Cavity body focusing model |
 | [bore](bore.md) | Magnet bore radius [m] |
+| [buffer_size](buffer_size.md) | Number of readings retained in the buffer |
 | [bunch_pusher](bunch_pusher.md) | Pusher used to evolve bunch particles in time |
 | [bunched_beam](bunched_beam.md) | Use bunched beam mode |
 | [c_matrix](c_matrix.md) | C-matrix (zeroth-order transfer vector) |

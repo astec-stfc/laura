@@ -33,7 +33,7 @@ URI: [laura:scale_kick](https://w3id.org/laura/scale_kick)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [WakefieldSimulationElement](WakefieldSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(1)
 owner: WakefieldSimulationElement
 domain_of:
 - WakefieldSimulationElement
-range: float
+range: double
 
 ```
 </details></div>

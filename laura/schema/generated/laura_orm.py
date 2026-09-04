@@ -82,7 +82,7 @@ class AcceleratorElement(Base):
     __tablename__ = 'AcceleratorElement'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -278,7 +278,7 @@ class ControlVariable(Base):
     """
     __tablename__ = 'ControlVariable'
 
-    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    name = Column(Text(), primary_key=True, nullable=False )
     identifier = Column(Text())
     dtype = Column(Text())
     protocol = Column(Text())
@@ -294,11 +294,13 @@ class ControlVariable(Base):
     setpoint = Column(Text())
     update = Column(Text())
     dynamics = Column(Text())
-    ControlsInformation_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    auto_buffer = Column(Boolean())
+    buffer_size = Column(Integer())
+    ControlsInformation_id = Column(Integer(), ForeignKey('ControlsInformation.id'), primary_key=True)
     
 
     def __repr__(self):
-        return f"ControlVariable(id={self.id},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},states={self.states},readback={self.readback},setpoint={self.setpoint},update={self.update},dynamics={self.dynamics},ControlsInformation_id={self.ControlsInformation_id},)"
+        return f"ControlVariable(name={self.name},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},states={self.states},readback={self.readback},setpoint={self.setpoint},update={self.update},dynamics={self.dynamics},auto_buffer={self.auto_buffer},buffer_size={self.buffer_size},ControlsInformation_id={self.ControlsInformation_id},)"
 
 
 
@@ -7262,7 +7264,7 @@ class StandardElement(AcceleratorElement):
     __tablename__ = 'StandardElement'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8214,7 +8216,7 @@ class Element(StandardElement):
     __tablename__ = 'Element'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8275,7 +8277,7 @@ class Lighting(StandardElement):
     __tablename__ = 'Lighting'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8338,7 +8340,7 @@ class PowerSupply(StandardElement):
     __tablename__ = 'PowerSupply'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8399,7 +8401,7 @@ class LowLevelRF(StandardElement):
     __tablename__ = 'LowLevelRF'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8462,7 +8464,7 @@ class RFModulator(StandardElement):
     __tablename__ = 'RFModulator'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8525,7 +8527,7 @@ class RFProtection(StandardElement):
     __tablename__ = 'RFProtection'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8588,7 +8590,7 @@ class RFHeartbeat(StandardElement):
     __tablename__ = 'RFHeartbeat'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8651,7 +8653,7 @@ class PID(StandardElement):
     __tablename__ = 'PID'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8714,7 +8716,7 @@ class LaserEnergyMeter(StandardElement):
     __tablename__ = 'LaserEnergyMeter'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8777,7 +8779,7 @@ class LaserHalfWavePlate(StandardElement):
     __tablename__ = 'LaserHalfWavePlate'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8840,7 +8842,7 @@ class LaserMirror(StandardElement):
     __tablename__ = 'LaserMirror'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8905,7 +8907,7 @@ class LaserAttenuator(StandardElement):
     maximum = Column(Float())
     minimum = Column(Float())
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -8966,7 +8968,7 @@ class PhysicalAcceleratorElement(Element):
     __tablename__ = 'PhysicalAcceleratorElement'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9029,7 +9031,7 @@ class TwissMatch(PhysicalAcceleratorElement):
     __tablename__ = 'TwissMatch'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9092,7 +9094,7 @@ class MatrixTransform(PhysicalAcceleratorElement):
     __tablename__ = 'MatrixTransform'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9155,7 +9157,7 @@ class ElectrostaticSeparator(PhysicalAcceleratorElement):
     __tablename__ = 'ElectrostaticSeparator'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9218,7 +9220,7 @@ class ACDipole(PhysicalAcceleratorElement):
     __tablename__ = 'ACDipole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9281,7 +9283,7 @@ class Wire(PhysicalAcceleratorElement):
     __tablename__ = 'Wire'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9344,7 +9346,7 @@ class BeamBeam(PhysicalAcceleratorElement):
     __tablename__ = 'BeamBeam'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9407,7 +9409,7 @@ class RFMultipole(PhysicalAcceleratorElement):
     __tablename__ = 'RFMultipole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9470,7 +9472,7 @@ class Stage(PhysicalAcceleratorElement):
     __tablename__ = 'Stage'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9533,7 +9535,7 @@ class VacuumGauge(PhysicalAcceleratorElement):
     __tablename__ = 'VacuumGauge'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9596,7 +9598,7 @@ class Laser(PhysicalAcceleratorElement):
     __tablename__ = 'Laser'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9661,7 +9663,7 @@ class Shutter(PhysicalAcceleratorElement):
     __tablename__ = 'Shutter'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9726,7 +9728,7 @@ class Valve(PhysicalAcceleratorElement):
     __tablename__ = 'Valve'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9791,7 +9793,7 @@ class Marker(PhysicalAcceleratorElement):
     __tablename__ = 'Marker'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9854,7 +9856,7 @@ class Aperture(PhysicalAcceleratorElement):
     __tablename__ = 'Aperture'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9919,7 +9921,7 @@ class Drift(PhysicalAcceleratorElement):
     __tablename__ = 'Drift'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -9982,7 +9984,7 @@ class Magnet(PhysicalAcceleratorElement):
     __tablename__ = 'Magnet'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10049,7 +10051,7 @@ class RFCavity(PhysicalAcceleratorElement):
     __tablename__ = 'RFCavity'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10114,7 +10116,7 @@ class Wakefield(PhysicalAcceleratorElement):
     __tablename__ = 'Wakefield'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10179,7 +10181,7 @@ class Diagnostic(PhysicalAcceleratorElement):
     __tablename__ = 'Diagnostic'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10244,7 +10246,7 @@ class Plasma(PhysicalAcceleratorElement):
     __tablename__ = 'Plasma'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10311,7 +10313,7 @@ class HorizontalACDipole(ACDipole):
     __tablename__ = 'Horizontal_AC_Dipole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10374,7 +10376,7 @@ class VerticalACDipole(ACDipole):
     __tablename__ = 'Vertical_AC_Dipole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10437,7 +10439,7 @@ class Collimator(Aperture):
     __tablename__ = 'Collimator'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10502,7 +10504,7 @@ class RFDeflectingCavity(RFCavity):
     __tablename__ = 'RFDeflectingCavity'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10567,7 +10569,7 @@ class CrabCavity(RFCavity):
     __tablename__ = 'CrabCavity'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10632,7 +10634,7 @@ class BeamPositionMonitor(Diagnostic):
     __tablename__ = 'BeamPositionMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10697,7 +10699,7 @@ class BeamArrivalMonitor(Diagnostic):
     __tablename__ = 'BeamArrivalMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10762,7 +10764,7 @@ class BunchLengthMonitor(Diagnostic):
     __tablename__ = 'BunchLengthMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10827,7 +10829,7 @@ class Camera(Diagnostic):
     __tablename__ = 'Camera'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10892,7 +10894,7 @@ class Screen(Diagnostic):
     __tablename__ = 'Screen'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -10957,7 +10959,7 @@ class ChargeDiagnostic(Diagnostic):
     __tablename__ = 'ChargeDiagnostic'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11022,7 +11024,7 @@ class PhotonMonitor(Diagnostic):
     __tablename__ = 'PhotonMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11087,7 +11089,7 @@ class Dipole(Magnet):
     __tablename__ = 'Dipole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11154,7 +11156,7 @@ class Quadrupole(Magnet):
     __tablename__ = 'Quadrupole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11221,7 +11223,7 @@ class Sextupole(Magnet):
     __tablename__ = 'Sextupole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11288,7 +11290,7 @@ class Octupole(Magnet):
     __tablename__ = 'Octupole'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11355,7 +11357,7 @@ class Solenoid(Magnet):
     __tablename__ = 'Solenoid'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11422,7 +11424,7 @@ class Wiggler(Magnet):
     __tablename__ = 'Wiggler'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11491,7 +11493,7 @@ class NonLinearLens(Magnet):
     __tablename__ = 'NonLinearLens'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11558,7 +11560,7 @@ class WallCurrentMonitor(ChargeDiagnostic):
     __tablename__ = 'WallCurrentMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11623,7 +11625,7 @@ class FaradayCupMonitor(ChargeDiagnostic):
     __tablename__ = 'FaradayCupMonitor'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11688,7 +11690,7 @@ class IntegratedCurrentTransformer(ChargeDiagnostic):
     __tablename__ = 'IntegratedCurrentTransformer'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11753,7 +11755,7 @@ class HorizontalCorrector(Dipole):
     __tablename__ = 'HorizontalCorrector'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11820,7 +11822,7 @@ class VerticalCorrector(Dipole):
     __tablename__ = 'VerticalCorrector'
 
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())
@@ -11889,7 +11891,7 @@ class CombinedCorrector(Dipole):
     Horizontal_Corrector = Column(Text())
     Vertical_Corrector = Column(Text())
     name = Column(Text(), primary_key=True, nullable=False )
-    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', name='HardwareClassEnum'), nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'Valve', 'LaserMirror', 'LaserEnergyMeter', 'LaserAttenuator', name='HardwareClassEnum'), nullable=False )
     hardware_type = Column(Text())
     hardware_model = Column(Text())
     machine_area = Column(Text())

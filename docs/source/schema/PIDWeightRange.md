@@ -49,8 +49,8 @@ URI: [laura:PIDWeightRange](https://w3id.org/laura/PIDWeightRange)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [min](min.md) | 0..1 <br/> [Float](Float.md) | Minimum value | [PIDPhaseRange](PIDPhaseRange.md) |
-| [max](max.md) | 0..1 <br/> [Float](Float.md) | Maximum value | [PIDPhaseRange](PIDPhaseRange.md) |
+| [min](min.md) | 0..1 <br/> [Double](Double.md) | Minimum value | [PIDPhaseRange](PIDPhaseRange.md) |
+| [max](max.md) | 0..1 <br/> [Double](Double.md) | Maximum value | [PIDPhaseRange](PIDPhaseRange.md) |
 
 
 
@@ -133,7 +133,7 @@ attributes:
     owner: PIDWeightRange
     domain_of:
     - PIDPhaseRange
-    range: float
+    range: double
   max:
     name: max
     description: Maximum value.
@@ -142,7 +142,7 @@ attributes:
     owner: PIDWeightRange
     domain_of:
     - PIDPhaseRange
-    range: float
+    range: double
 class_uri: laura:PIDWeightRange
 
 ```

@@ -33,7 +33,7 @@ URI: [laura:r_max_plasma](https://w3id.org/laura/r_max_plasma)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [PlasmaSimulationElement](PlasmaSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -92,7 +92,7 @@ rank: 1000
 owner: PlasmaSimulationElement
 domain_of:
 - PlasmaSimulationElement
-range: float
+range: double
 
 ```
 </details></div>

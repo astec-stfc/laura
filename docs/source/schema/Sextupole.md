@@ -394,6 +394,7 @@ attributes:
     owner: Sextupole
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

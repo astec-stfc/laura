@@ -90,6 +90,11 @@ classes:
       control-system PV identifier.
     class_uri: laura:ControlVariable
     attributes:
+      name:
+        key: true
+        range: string
+        description: >-
+          Logical name of this variable within its element.
       identifier:
         range: string
         description: Protocol-specific PV name (e.g., EPICS PV address).
@@ -117,7 +122,7 @@ classes:
       value:
         range: string
         any_of:
-          - range: float
+          - range: double
           - range: integer
           - range: string
         description: >-
@@ -167,6 +172,15 @@ classes:
           set-point, as ``{model: <import path>, **kwargs}`` -- see
           ``laura.utils.dynamics``. Only meaningful alongside ``readback`` or
           ``setpoint``.
+      auto_buffer:
+        range: boolean
+        description: >-
+          Whether the control system buffers readings for this variable
+          automatically.
+      buffer_size:
+        range: integer
+        description: Number of readings retained in the buffer.
+        minimum_value: 0
 
   ControlsInformation:
     description: >-

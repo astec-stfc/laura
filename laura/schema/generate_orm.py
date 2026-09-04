@@ -198,13 +198,58 @@ def _fix_self_referential_m2m(content: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Step 4: narrow the primary key of classes whose range declares a key slot
+# ---------------------------------------------------------------------------
+
+def _fix_key_slot_pk(cont: str) -> str:
+    """Reduce an all-columns primary key to the columns that actually key the row.
+
+    Where a class has a ``key: true`` slot but no ``identifier``, gen-sqla drops
+    the surrogate ``id`` and marks *every* column ``primary_key=True``.
+    That table cannot be written to.  The real key is the key slot plus the FK to the owning row,
+    which is what gen-sqltables independently emits as ``UNIQUE
+    (ControlsInformation_id, name)``, so keep ``primary_key=True`` on the
+    non-nullable column and the foreign key and strip it from the rest.
+
+    Junction tables legitimately have a two-column composite key and are left
+    alone.
+    """
+    col_re = re.compile(r"^    (\w+) = Column\((.*)\)\s*$", re.MULTILINE)
+
+    def _fix_block(block: str) -> str:
+        pk_cols = [m for m in col_re.finditer(block) if "primary_key=True" in m.group(2)]
+        if len(pk_cols) <= 2:
+            return block
+        keep = {
+            m.group(1)
+            for m in pk_cols
+            if "nullable=False" in m.group(2) or "ForeignKey(" in m.group(2)
+        }
+        if not keep:
+            return block
+        for m in pk_cols:
+            if m.group(1) in keep:
+                continue
+            stripped = m.group(0).replace(", primary_key=True", "").replace(
+                "primary_key=True, ", ""
+            )
+            block = block.replace(m.group(0), stripped, 1)
+        return block
+
+    blocks = _class_blocks(cont)
+    for start, end, _name in reversed(blocks):
+        cont = cont[:start] + _fix_block(cont[start:end]) + cont[end:]
+    return cont
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
 def generate(schema_path: str = "laura/schema/YAML/laura_schema.yaml") -> str:
     """Generate and return the full content of the SQLAlchemy ORM module."""
     raw = _run_gen_sqla(schema_path)
-    return _fix_self_referential_m2m(raw)
+    return _fix_key_slot_pk(_fix_self_referential_m2m(raw))
 
 
 # ---------------------------------------------------------------------------

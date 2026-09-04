@@ -46,7 +46,7 @@ URI: [laura:scale_field](https://w3id.org/laura/scale_field)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [SimulationElement](SimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -107,7 +107,7 @@ ifabsent: float(1)
 owner: SimulationElement
 domain_of:
 - SimulationElement
-range: float
+range: double
 
 ```
 </details></div>

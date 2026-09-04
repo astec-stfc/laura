@@ -364,6 +364,7 @@ attributes:
     owner: LaserHalfWavePlate
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

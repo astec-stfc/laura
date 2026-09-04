@@ -346,6 +346,7 @@ attributes:
     owner: Lighting
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

@@ -46,10 +46,10 @@ URI: [laura:LaserMirrorSense](https://w3id.org/laura/LaserMirrorSense)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [left](left.md) | 0..1 <br/> [Float](Float.md) | Left sense value | direct |
-| [right](right.md) | 0..1 <br/> [Float](Float.md) | Right sense value | direct |
-| [up](up.md) | 0..1 <br/> [Float](Float.md) | Up sense value | direct |
-| [down](down.md) | 0..1 <br/> [Float](Float.md) | Down sense value | direct |
+| [left](left.md) | 0..1 <br/> [Double](Double.md) | Left sense value | direct |
+| [right](right.md) | 0..1 <br/> [Double](Double.md) | Right sense value | direct |
+| [up](up.md) | 0..1 <br/> [Double](Double.md) | Up sense value | direct |
+| [down](down.md) | 0..1 <br/> [Double](Double.md) | Down sense value | direct |
 
 
 
@@ -119,7 +119,7 @@ attributes:
     rank: 1000
     domain_of:
     - LaserMirrorSense
-    range: float
+    range: double
   right:
     name: right
     description: Right sense value.
@@ -129,7 +129,7 @@ attributes:
     rank: 1000
     domain_of:
     - LaserMirrorSense
-    range: float
+    range: double
   up:
     name: up
     description: Up sense value.
@@ -139,7 +139,7 @@ attributes:
     rank: 1000
     domain_of:
     - LaserMirrorSense
-    range: float
+    range: double
   down:
     name: down
     description: Down sense value.
@@ -149,7 +149,7 @@ attributes:
     rank: 1000
     domain_of:
     - LaserMirrorSense
-    range: float
+    range: double
 class_uri: laura:LaserMirrorSense
 
 ```
@@ -173,7 +173,7 @@ attributes:
     owner: LaserMirrorSense
     domain_of:
     - LaserMirrorSense
-    range: float
+    range: double
   right:
     name: right
     description: Right sense value.
@@ -184,7 +184,7 @@ attributes:
     owner: LaserMirrorSense
     domain_of:
     - LaserMirrorSense
-    range: float
+    range: double
   up:
     name: up
     description: Up sense value.
@@ -195,7 +195,7 @@ attributes:
     owner: LaserMirrorSense
     domain_of:
     - LaserMirrorSense
-    range: float
+    range: double
   down:
     name: down
     description: Down sense value.
@@ -206,7 +206,7 @@ attributes:
     owner: LaserMirrorSense
     domain_of:
     - LaserMirrorSense
-    range: float
+    range: double
 class_uri: laura:LaserMirrorSense
 
 ```

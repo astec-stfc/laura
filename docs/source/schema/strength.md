@@ -33,7 +33,7 @@ URI: [laura:strength](https://w3id.org/laura/strength)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [WigglerMagnet](WigglerMagnet.md) |
 
 ### Cardinality and Requirements
@@ -101,7 +101,7 @@ ifabsent: float(0.0)
 owner: Wiggler_Magnet
 domain_of:
 - Wiggler_Magnet
-range: float
+range: double
 minimum_value: 0
 
 ```

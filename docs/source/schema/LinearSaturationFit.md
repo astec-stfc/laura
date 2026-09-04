@@ -52,13 +52,13 @@ URI: [laura:LinearSaturationFit](https://w3id.org/laura/LinearSaturationFit)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [m](m.md) | 0..1 <br/> [Float](Float.md) | Linear slope of the unsaturated region | direct |
-| [I_max](I_max.md) | 0..1 <br/> [Float](Float.md) | Current at which saturation begins [A] | direct |
-| [f](f.md) | 0..1 <br/> [Float](Float.md) | Saturation fraction (slope ratio below/above I_max) | direct |
-| [a](a.md) | 0..1 <br/> [Float](Float.md) | Quadratic saturation coefficient | direct |
-| [I0](I0.md) | 0..1 <br/> [Float](Float.md) | Current offset [A] | direct |
-| [d](d.md) | 0..1 <br/> [Float](Float.md) | Constant offset term | direct |
-| [L](L.md) | 0..1 <br/> [Float](Float.md) | Effective magnetic length [m] | direct |
+| [m](m.md) | 0..1 <br/> [Double](Double.md) | Linear slope of the unsaturated region | direct |
+| [I_max](I_max.md) | 0..1 <br/> [Double](Double.md) | Current at which saturation begins [A] | direct |
+| [f](f.md) | 0..1 <br/> [Double](Double.md) | Saturation fraction (slope ratio below/above I_max) | direct |
+| [a](a.md) | 0..1 <br/> [Double](Double.md) | Quadratic saturation coefficient | direct |
+| [I0](I0.md) | 0..1 <br/> [Double](Double.md) | Current offset [A] | direct |
+| [d](d.md) | 0..1 <br/> [Double](Double.md) | Constant offset term | direct |
+| [L](L.md) | 0..1 <br/> [Double](Double.md) | Effective magnetic length [m] | direct |
 
 
 
@@ -133,7 +133,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
   I_max:
     name: I_max
     description: Current at which saturation begins [A].
@@ -142,7 +142,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
     unit:
       ucum_code: A
   f:
@@ -153,7 +153,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
   a:
     name: a
     description: Quadratic saturation coefficient.
@@ -162,7 +162,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
   I0:
     name: I0
     description: Current offset [A].
@@ -171,7 +171,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
     unit:
       ucum_code: A
   d:
@@ -182,7 +182,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
   L:
     name: L
     description: Effective magnetic length [m].
@@ -191,7 +191,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
     unit:
       ucum_code: m
 class_uri: laura:LinearSaturationFit
@@ -217,7 +217,7 @@ attributes:
     owner: LinearSaturationFit
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
   I_max:
     name: I_max
     description: Current at which saturation begins [A].
@@ -227,7 +227,7 @@ attributes:
     owner: LinearSaturationFit
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
     unit:
       ucum_code: A
   f:
@@ -239,7 +239,7 @@ attributes:
     owner: LinearSaturationFit
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
   a:
     name: a
     description: Quadratic saturation coefficient.
@@ -249,7 +249,7 @@ attributes:
     owner: LinearSaturationFit
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
   I0:
     name: I0
     description: Current offset [A].
@@ -259,7 +259,7 @@ attributes:
     owner: LinearSaturationFit
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
     unit:
       ucum_code: A
   d:
@@ -271,7 +271,7 @@ attributes:
     owner: LinearSaturationFit
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
   L:
     name: L
     description: Effective magnetic length [m].
@@ -281,7 +281,7 @@ attributes:
     owner: LinearSaturationFit
     domain_of:
     - LinearSaturationFit
-    range: float
+    range: double
     unit:
       ucum_code: m
 class_uri: laura:LinearSaturationFit

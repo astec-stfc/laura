@@ -129,10 +129,10 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | [global_rotation](global_rotation.md) | 0..1 <br/> [Rotation](Rotation.md) | Accumulated global rotation including parent-frame contributions | direct |
 | [error](error.md) | 0..1 <br/> [ElementPositionError](ElementPositionError.md) | Alignment errors | direct |
 | [survey](survey.md) | 0..1 <br/> [ElementSurvey](ElementSurvey.md) | Survey-measured position and rotation | direct |
-| [length](length.md) | 0..1 <br/> [Float](Float.md) | Effective length along the beam axis [m] | direct |
-| [physical_angle](physical_angle.md) | 0..1 <br/> [Float](Float.md) | Bending angle in the horizontal plane [rad] | direct |
+| [length](length.md) | 0..1 <br/> [Double](Double.md) | Effective length along the beam axis [m] | direct |
+| [physical_angle](physical_angle.md) | 0..1 <br/> [Double](Double.md) | Bending angle in the horizontal plane [rad] | direct |
 | [reference_placement](reference_placement.md) | 0..1 <br/> [ReferencePlacement](ReferencePlacement.md) | Place this element relative to another element's frame instead of using absol... | direct |
-| [s](s.md) | 0..1 <br/> [Float](Float.md) | Arc-length position [m] along the design trajectory (s=0 at the global origin... | direct |
+| [s](s.md) | 0..1 <br/> [Double](Double.md) | Arc-length position [m] along the design trajectory (s=0 at the global origin... | direct |
 | [s_point](s_point.md) | 0..1 <br/> [String](String.md) | Which point of the element the ``s`` value refers to: ``start``, ``middle``, ... | direct |
 
 
@@ -317,7 +317,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -330,7 +330,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - PhysicalElement
-    range: float
+    range: double
     unit:
       ucum_code: rad
   reference_placement:
@@ -354,7 +354,7 @@ attributes:
     rank: 1000
     domain_of:
     - PhysicalElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   s_point:
@@ -459,7 +459,7 @@ attributes:
     - Solenoid_Magnet
     - Wiggler_Magnet
     - NonLinearLens_Magnet
-    range: float
+    range: double
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -473,7 +473,7 @@ attributes:
     owner: PhysicalElement
     domain_of:
     - PhysicalElement
-    range: float
+    range: double
     unit:
       ucum_code: rad
   reference_placement:
@@ -499,7 +499,7 @@ attributes:
     owner: PhysicalElement
     domain_of:
     - PhysicalElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   s_point:

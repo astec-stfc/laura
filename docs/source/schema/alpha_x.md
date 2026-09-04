@@ -33,7 +33,7 @@ URI: [laura:alpha_x](https://w3id.org/laura/alpha_x)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [TwissMatchSimulationElement](TwissMatchSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -92,7 +92,7 @@ rank: 1000
 owner: TwissMatchSimulationElement
 domain_of:
 - TwissMatchSimulationElement
-range: float
+range: double
 
 ```
 </details></div>

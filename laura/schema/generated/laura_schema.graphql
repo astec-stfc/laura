@@ -44,6 +44,10 @@ enum HardwareClassEnum
     Generic
     Monitor
     Simulation
+    Valve
+    LaserMirror
+    LaserEnergyMeter
+    LaserAttenuator
   }
 
 enum IOTypeEnum
@@ -441,6 +445,7 @@ type ControlsInformation
 
 type ControlVariable
   {
+    name: String!
     identifier: String
     dtype: String
     protocol: String
@@ -456,6 +461,8 @@ type ControlVariable
     setpoint: String
     update: String
     dynamics: String
+    autoBuffer: Boolean
+    bufferSize: Int
   }
 
 type CrabCavity

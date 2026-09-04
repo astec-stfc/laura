@@ -37,7 +37,7 @@ URI: [laura:gradient](https://w3id.org/laura/gradient)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
@@ -106,7 +106,7 @@ rank: 1000
 owner: MagneticElement
 domain_of:
 - MagneticElement
-range: float
+range: double
 unit:
   ucum_code: T.m-1
 

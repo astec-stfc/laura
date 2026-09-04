@@ -33,7 +33,7 @@ URI: [laura:integrated_strength](https://w3id.org/laura/integrated_strength)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [NonLinearLensMagnet](NonLinearLensMagnet.md) |
 
 ### Cardinality and Requirements
@@ -101,7 +101,7 @@ ifabsent: float(0.0)
 owner: NonLinearLens_Magnet
 domain_of:
 - NonLinearLens_Magnet
-range: float
+range: double
 minimum_value: 0
 
 ```

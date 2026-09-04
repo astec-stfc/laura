@@ -33,7 +33,7 @@ URI: [laura:Kp](https://w3id.org/laura/Kp)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [PIDElement](PIDElement.md) |
 
 ### Cardinality and Requirements
@@ -92,7 +92,7 @@ rank: 1000
 owner: PIDElement
 domain_of:
 - PIDElement
-range: float
+range: double
 
 ```
 </details></div>

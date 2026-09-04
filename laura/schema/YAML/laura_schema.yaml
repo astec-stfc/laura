@@ -111,6 +111,14 @@ enums:
         description: Beam monitor element.
       Simulation:
         description: Simulation element.
+      Valve:
+        description: Vacuum gate valve.
+      LaserMirror:
+        description: Laser steering or focusing mirror.
+      LaserEnergyMeter:
+        description: Laser pulse-energy meter.
+      LaserAttenuator:
+        description: Laser attenuator.
 
   LaserPolarizationEnum:
     description: Polarization state of a laser beam.
@@ -133,7 +141,7 @@ slots:
 
   # RF cavity / wakefield shared geometry
   cell_length:
-    range: float
+    range: double
     description: Length of a single cell [m].
     ifabsent: float(0.03333333333333333)
     minimum_value: 0.0
@@ -141,7 +149,7 @@ slots:
       ucum_code: m
 
   coupling_cell_length:
-    range: float
+    range: double
     description: Length of the coupling cell [m].
     ifabsent: float(0.0)
     minimum_value: 0.0
@@ -149,18 +157,18 @@ slots:
       ucum_code: m
 
   n_cells:
-    range: float
+    range: double
     description: Number of cells.
     ifabsent: float(1)
     minimum_value: 0
 
   design_gamma:
-    range: float
+    range: double
     description: Design Lorentz factor.
     minimum_value: 1.0
 
   design_power:
-    range: float
+    range: double
     description: Design peak power [W].
     ifabsent: float(25000000)
     minimum_value: 0.0
@@ -168,7 +176,7 @@ slots:
       ucum_code: W
 
   frequency:
-    range: float
+    range: double
     description: Operating frequency [Hz].
     ifabsent: float(2998500000.0)
     minimum_value: 0.0
@@ -176,16 +184,16 @@ slots:
       ucum_code: Hz
 
   crest:
-    range: float
+    range: double
     description: On-crest phase offset providing maximum energy gain [deg].
     ifabsent: float(0)
     unit:
       ucum_code: deg
 
   phase:
-    range: float
+    range: double
     any_of:
-      - range: float
+      - range: double
       - range: string
     in_subset:
       - functional_parameters
@@ -195,11 +203,11 @@ slots:
       ucum_code: deg
 
   shunt_impedance:
-    range: float
+    range: double
     description: Shunt impedance [M?/m].
 
   mode_numerator:
-    range: float
+    range: double
     description: Mode fraction numerator.
 
   mode_denominator:
@@ -237,9 +245,9 @@ slots:
     description: Number of bins used in longitudinal space-charge calculations.
 
   field_amplitude:
-    range: float
+    range: double
     any_of:
-      - range: float
+      - range: double
       - range: string
     in_subset:
       - functional_parameters
@@ -256,7 +264,7 @@ classes:
     class_uri: laura:ElectricalElement
     attributes:
       min_i:
-        range: float
+        range: double
         ifabsent: float(0)
         description: Minimum current [A].
         aliases:
@@ -264,7 +272,7 @@ classes:
         unit:
           ucum_code: A
       max_i:
-        range: float
+        range: double
         ifabsent: float(0)
         description: Maximum current [A].
         aliases:
@@ -272,7 +280,7 @@ classes:
         unit:
           ucum_code: A
       read_tolerance:
-        range: float
+        range: double
         ifabsent: float(0.1)
         description: >-
           Read-back vs. set-point tolerance fraction (default 0.1 = 10 %).
@@ -371,12 +379,6 @@ classes:
         description: >-
           If set, this element is a logical sub-component of the named
           parent element.
-      # These four describe the control/signal graph, which is separate from
-      # beam-path ordering (that comes from the layout and s-position). The
-      # graph is directed, may contain feedback cycles, and its two directions
-      # are stored rather than derived -- symmetry is a convention, not a
-      # constraint. See examples/testing/sample_rf_control_elements.yaml for a
-      # worked example and signal_graph_example.py for traversal code.
       inputs:
         range: IOTypeEnum
         description: >-

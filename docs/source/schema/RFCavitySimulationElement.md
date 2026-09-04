@@ -112,17 +112,17 @@ URI: [laura:RFCavitySimulationElement](https://w3id.org/laura/RFCavitySimulation
 | [interpolate_current_bins](interpolate_current_bins.md) | 0..1 <br/> [Integer](Integer.md) | Flag indicating current-bin interpolation | direct |
 | [smooth_current_bins](smooth_current_bins.md) | 0..1 <br/> [Integer](Integer.md) | Flag indicating current-bin smoothing | direct |
 | [smooth](smooth.md) | 0..1 <br/> [Integer](Integer.md) | Cavity smoothing parameter | direct |
-| [ez_peak](ez_peak.md) | 0..1 <br/> [Float](Float.md) | Peak longitudinal electric field | direct |
+| [ez_peak](ez_peak.md) | 0..1 <br/> [Double](Double.md) | Peak longitudinal electric field | direct |
 | [field_file_name](field_file_name.md) | 0..1 <br/> [String](String.md) | Cavity field file name | direct |
 | [wakefile](wakefile.md) | 0..1 <br/> [String](String.md) | Wake file name | direct |
 | [zwakefile](zwakefile.md) | 0..1 <br/> [String](String.md) | Longitudinal wake file name | direct |
 | [trwakefile](trwakefile.md) | 0..1 <br/> [String](String.md) | Transverse wake file name | direct |
-| [field_amplitude](field_amplitude.md) | 1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Cavity field amplitude | direct |
+| [field_amplitude](field_amplitude.md) | 1 <br/> [Double](Double.md)&nbsp;or&nbsp;<br />[String](String.md) | Cavity field amplitude | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -282,7 +282,7 @@ attributes:
     rank: 1000
     domain_of:
     - RFCavitySimulationElement
-    range: float
+    range: double
   field_file_name:
     name: field_file_name
     description: Cavity field file name.
@@ -326,10 +326,10 @@ attributes:
     - RFCavitySimulationElement
     - ACDipoleSimulationElement
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     required: true
     any_of:
-    - range: float
+    - range: double
     - range: string
 class_uri: laura:RFCavitySimulationElement
 
@@ -442,7 +442,7 @@ attributes:
     owner: RFCavitySimulationElement
     domain_of:
     - RFCavitySimulationElement
-    range: float
+    range: double
   field_file_name:
     name: field_file_name
     description: Cavity field file name.
@@ -491,10 +491,10 @@ attributes:
     - RFCavitySimulationElement
     - ACDipoleSimulationElement
     - RFMultipoleSimulationElement
-    range: float
+    range: double
     required: true
     any_of:
-    - range: float
+    - range: double
     - range: string
   t_column:
     name: t_column
@@ -616,7 +616,7 @@ attributes:
     owner: RFCavitySimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:RFCavitySimulationElement
 
 ```

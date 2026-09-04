@@ -432,6 +432,7 @@ attributes:
     owner: Magnet
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

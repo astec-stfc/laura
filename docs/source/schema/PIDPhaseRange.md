@@ -49,8 +49,8 @@ URI: [laura:PIDPhaseRange](https://w3id.org/laura/PIDPhaseRange)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [min](min.md) | 0..1 <br/> [Float](Float.md) | Minimum value | direct |
-| [max](max.md) | 0..1 <br/> [Float](Float.md) | Maximum value | direct |
+| [min](min.md) | 0..1 <br/> [Double](Double.md) | Minimum value | direct |
+| [max](max.md) | 0..1 <br/> [Double](Double.md) | Maximum value | direct |
 
 
 
@@ -118,7 +118,7 @@ attributes:
     rank: 1000
     domain_of:
     - PIDPhaseRange
-    range: float
+    range: double
   max:
     name: max
     description: Maximum value.
@@ -126,7 +126,7 @@ attributes:
     rank: 1000
     domain_of:
     - PIDPhaseRange
-    range: float
+    range: double
 class_uri: laura:PIDPhaseRange
 
 ```
@@ -148,7 +148,7 @@ attributes:
     owner: PIDPhaseRange
     domain_of:
     - PIDPhaseRange
-    range: float
+    range: double
   max:
     name: max
     description: Maximum value.
@@ -157,7 +157,7 @@ attributes:
     owner: PIDPhaseRange
     domain_of:
     - PIDPhaseRange
-    range: float
+    range: double
 class_uri: laura:PIDPhaseRange
 
 ```

@@ -92,7 +92,7 @@ classes:
     class_uri: laura:LaserMirrorElement
     attributes:
       step_max:
-        range: float
+        range: double
         description: Maximum step size for mirror adjustment.
       sense:
         range: LaserMirrorSense
@@ -109,19 +109,19 @@ classes:
     class_uri: laura:LaserMirrorSense
     attributes:
       left:
-        range: float
+        range: double
         description: Left sense value.
         aliases: [left_sense]
       right:
-        range: float
+        range: double
         description: Right sense value.
         aliases: [right_sense]
       up:
-        range: float
+        range: double
         description: Up sense value.
         aliases: [up_sense]
       down:
-        range: float
+        range: double
         description: Down sense value.
         aliases: [down_sense]
 
@@ -136,12 +136,12 @@ classes:
         equals_string: LaserAttenuator
     attributes:
       maximum:
-        range: float
+        range: double
         description: Maximum attenuation angle [deg].
         unit:
           ucum_code: deg
       minimum:
-        range: float
+        range: double
         description: Minimum attenuation angle [deg].
         unit:
           ucum_code: deg
@@ -157,44 +157,44 @@ classes:
       - laser_properties
     attributes:
       initial_position:
-        range: float
+        range: double
         description: Initial longitudinal position of the laser pulse [m].
         ifabsent: float(0)
         unit:
           ucum_code: m
       waist:
-        range: float
+        range: double
         description: Laser beam waist (1/e^2 radius) [m].
         ifabsent: float(0)
         minimum_value: 0.0
         unit:
           ucum_code: m
       wavelength:
-        range: float
+        range: double
         description: Laser wavelength [m].
         minimum_value: 0.0
         unit:
           ucum_code: m
       pulse_energy:
-        range: float
+        range: double
         description: Laser pulse energy [J].
         minimum_value: 0.0
         unit:
           ucum_code: J
       pulse_duration_fwhm:
-        range: float
+        range: double
         description: Pulse duration at FWHM [s].
         minimum_value: 0.0
         unit:
           ucum_code: s
       focal_position:
-        range: float
+        range: double
         description: Focal (waist) position along the propagation axis [m].
         ifabsent: float(0.0)
         unit:
           ucum_code: m
       cep_phase:
-        range: float
+        range: double
         description: Carrier-envelope phase [rad].
         ifabsent: float(0)
         unit:
@@ -236,7 +236,7 @@ classes:
     class_uri: laura:PlasmaElement
     attributes:
       density:
-        range: float
+        range: double
         description: "Plasma (electron) number density [m^-^3]."
         minimum_value: 0.0
         unit:
@@ -246,28 +246,28 @@ classes:
         description: "Plasma species name (e.g., ``electron``)."
         ifabsent: string(electron)
       ramp_up:
-        range: float
+        range: double
         description: Entrance density-ramp length [m].
         ifabsent: float(0.001)
         minimum_value: 0.0
         unit:
           ucum_code: m
       plateau:
-        range: float
+        range: double
         description: Flat-top plateau length [m].
         ifabsent: float(0.001)
         minimum_value: 0.0
         unit:
           ucum_code: m
       ramp_down:
-        range: float
+        range: double
         description: Exit density-ramp length [m].
         ifabsent: float(0.001)
         minimum_value: 0.0
         unit:
           ucum_code: m
       ramp_decay_length:
-        range: float
+        range: double
         description: Exponential decay length of the density ramp [m].
         ifabsent: float(0.001)
         minimum_value: 0.0
@@ -280,6 +280,6 @@ classes:
           model.
         ifabsent: "False"
       parabolic_coefficient:
-        range: float
+        range: double
         description: Parabolic coefficient for a transverse density profile.
         ifabsent: float(0)

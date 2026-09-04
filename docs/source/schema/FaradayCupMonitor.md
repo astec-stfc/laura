@@ -372,6 +372,7 @@ attributes:
     owner: FaradayCupMonitor
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

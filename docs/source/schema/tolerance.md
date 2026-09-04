@@ -33,7 +33,7 @@ URI: [laura:tolerance](https://w3id.org/laura/tolerance)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [DegaussableElement](DegaussableElement.md) |
 
 ### Cardinality and Requirements
@@ -111,7 +111,7 @@ ifabsent: float(0.5)
 owner: DegaussableElement
 domain_of:
 - DegaussableElement
-range: float
+range: double
 unit:
   ucum_code: A
 

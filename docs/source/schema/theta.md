@@ -33,7 +33,7 @@ URI: [laura:theta](https://w3id.org/laura/theta)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [Rotation](Rotation.md) |
 
 ### Cardinality and Requirements
@@ -112,7 +112,7 @@ ifabsent: float(0)
 owner: Rotation
 domain_of:
 - Rotation
-range: float
+range: double
 minimum_value: -3.141592653589793
 maximum_value: 3.141592653589793
 unit:

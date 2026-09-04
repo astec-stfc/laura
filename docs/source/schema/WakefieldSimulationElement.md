@@ -105,24 +105,24 @@ URI: [laura:WakefieldSimulationElement](https://w3id.org/laura/WakefieldSimulati
 | [allow_long_beam](allow_long_beam.md) | 0..1 <br/> [Boolean](Boolean.md) | Allow beams longer than the wakefield | direct |
 | [bunched_beam](bunched_beam.md) | 0..1 <br/> [Boolean](Boolean.md) | Use bunched beam mode | direct |
 | [change_momentum](change_momentum.md) | 0..1 <br/> [Boolean](Boolean.md) | Allow wakefield to change bunch momentum | direct |
-| [factor](factor.md) | 0..1 <br/> [Float](Float.md) | Wake scaling factor | direct |
+| [factor](factor.md) | 0..1 <br/> [Double](Double.md) | Wake scaling factor | direct |
 | [interpolate](interpolate.md) | 0..1 <br/> [Boolean](Boolean.md) | Interpolate points in wake file | direct |
-| [scale_kick](scale_kick.md) | 0..1 <br/> [Float](Float.md) | Factor by which to scale wake kicks | direct |
-| [scale_field_ex](scale_field_ex.md) | 0..1 <br/> [Float](Float.md) | x-component of the longitudinal direction vector | direct |
-| [scale_field_ey](scale_field_ey.md) | 0..1 <br/> [Float](Float.md) | y-component of the longitudinal direction vector | direct |
-| [scale_field_ez](scale_field_ez.md) | 0..1 <br/> [Float](Float.md) | z-component of the longitudinal direction vector | direct |
-| [scale_field_hx](scale_field_hx.md) | 0..1 <br/> [Float](Float.md) | x-component of the horizontal direction vector | direct |
-| [scale_field_hy](scale_field_hy.md) | 0..1 <br/> [Float](Float.md) | y-component of the horizontal direction vector | direct |
-| [scale_field_hz](scale_field_hz.md) | 0..1 <br/> [Float](Float.md) | z-component of the horizontal direction vector | direct |
-| [equal_grid](equal_grid.md) | 0..1 <br/> [Float](Float.md) | Interpolation between equidistant and equal-charge grids | direct |
+| [scale_kick](scale_kick.md) | 0..1 <br/> [Double](Double.md) | Factor by which to scale wake kicks | direct |
+| [scale_field_ex](scale_field_ex.md) | 0..1 <br/> [Double](Double.md) | x-component of the longitudinal direction vector | direct |
+| [scale_field_ey](scale_field_ey.md) | 0..1 <br/> [Double](Double.md) | y-component of the longitudinal direction vector | direct |
+| [scale_field_ez](scale_field_ez.md) | 0..1 <br/> [Double](Double.md) | z-component of the longitudinal direction vector | direct |
+| [scale_field_hx](scale_field_hx.md) | 0..1 <br/> [Double](Double.md) | x-component of the horizontal direction vector | direct |
+| [scale_field_hy](scale_field_hy.md) | 0..1 <br/> [Double](Double.md) | y-component of the horizontal direction vector | direct |
+| [scale_field_hz](scale_field_hz.md) | 0..1 <br/> [Double](Double.md) | z-component of the horizontal direction vector | direct |
+| [equal_grid](equal_grid.md) | 0..1 <br/> [Double](Double.md) | Interpolation between equidistant and equal-charge grids | direct |
 | [interpolation_method](interpolation_method.md) | 0..1 <br/> [Integer](Integer.md) | Interpolation method for ASTRA | direct |
-| [smooth](smooth.md) | 0..1 <br/> [Float](Float.md) | Smoothing parameter for Gaussian interpolation | direct |
+| [smooth](smooth.md) | 0..1 <br/> [Double](Double.md) | Smoothing parameter for Gaussian interpolation | direct |
 | [subbins](subbins.md) | 0..1 <br/> [Integer](Integer.md) | Sub-binning parameter | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -225,7 +225,7 @@ attributes:
     ifabsent: float(1)
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   interpolate:
     name: interpolate
     description: Interpolate points in wake file.
@@ -243,7 +243,7 @@ attributes:
     ifabsent: float(1)
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_ex:
     name: scale_field_ex
     description: x-component of the longitudinal direction vector.
@@ -252,7 +252,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_ey:
     name: scale_field_ey
     description: y-component of the longitudinal direction vector.
@@ -261,7 +261,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_ez:
     name: scale_field_ez
     description: z-component of the longitudinal direction vector.
@@ -270,7 +270,7 @@ attributes:
     ifabsent: float(1.0)
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_hx:
     name: scale_field_hx
     description: x-component of the horizontal direction vector.
@@ -279,7 +279,7 @@ attributes:
     ifabsent: float(1.0)
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_hy:
     name: scale_field_hy
     description: y-component of the horizontal direction vector.
@@ -288,7 +288,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_hz:
     name: scale_field_hz
     description: z-component of the horizontal direction vector.
@@ -297,7 +297,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   equal_grid:
     name: equal_grid
     description: Interpolation between equidistant and equal-charge grids.
@@ -306,7 +306,7 @@ attributes:
     ifabsent: float(0.66)
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   interpolation_method:
     name: interpolation_method
     description: Interpolation method for ASTRA.
@@ -325,7 +325,7 @@ attributes:
     - MagnetSimulationElement
     - RFCavitySimulationElement
     - WakefieldSimulationElement
-    range: float
+    range: double
   subbins:
     name: subbins
     description: Sub-binning parameter.
@@ -388,7 +388,7 @@ attributes:
     owner: WakefieldSimulationElement
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   interpolate:
     name: interpolate
     description: Interpolate points in wake file.
@@ -408,7 +408,7 @@ attributes:
     owner: WakefieldSimulationElement
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_ex:
     name: scale_field_ex
     description: x-component of the longitudinal direction vector.
@@ -418,7 +418,7 @@ attributes:
     owner: WakefieldSimulationElement
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_ey:
     name: scale_field_ey
     description: y-component of the longitudinal direction vector.
@@ -428,7 +428,7 @@ attributes:
     owner: WakefieldSimulationElement
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_ez:
     name: scale_field_ez
     description: z-component of the longitudinal direction vector.
@@ -438,7 +438,7 @@ attributes:
     owner: WakefieldSimulationElement
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_hx:
     name: scale_field_hx
     description: x-component of the horizontal direction vector.
@@ -448,7 +448,7 @@ attributes:
     owner: WakefieldSimulationElement
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_hy:
     name: scale_field_hy
     description: y-component of the horizontal direction vector.
@@ -458,7 +458,7 @@ attributes:
     owner: WakefieldSimulationElement
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   scale_field_hz:
     name: scale_field_hz
     description: z-component of the horizontal direction vector.
@@ -468,7 +468,7 @@ attributes:
     owner: WakefieldSimulationElement
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   equal_grid:
     name: equal_grid
     description: Interpolation between equidistant and equal-charge grids.
@@ -478,7 +478,7 @@ attributes:
     owner: WakefieldSimulationElement
     domain_of:
     - WakefieldSimulationElement
-    range: float
+    range: double
   interpolation_method:
     name: interpolation_method
     description: Interpolation method for ASTRA.
@@ -499,7 +499,7 @@ attributes:
     - MagnetSimulationElement
     - RFCavitySimulationElement
     - WakefieldSimulationElement
-    range: float
+    range: double
   subbins:
     name: subbins
     description: Sub-binning parameter.
@@ -608,7 +608,7 @@ attributes:
     owner: WakefieldSimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:WakefieldSimulationElement
 
 ```

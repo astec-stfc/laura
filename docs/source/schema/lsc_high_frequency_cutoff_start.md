@@ -33,7 +33,7 @@ URI: [laura:lsc_high_frequency_cutoff_start](https://w3id.org/laura/lsc_high_fre
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [DriftSimulationElement](DriftSimulationElement.md) |
 
 ### Cardinality and Requirements
@@ -92,7 +92,7 @@ rank: 1000
 owner: DriftSimulationElement
 domain_of:
 - DriftSimulationElement
-range: float
+range: double
 
 ```
 </details></div>

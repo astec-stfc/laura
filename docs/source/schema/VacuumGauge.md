@@ -341,6 +341,7 @@ attributes:
     owner: VacuumGauge
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string

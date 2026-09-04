@@ -68,15 +68,15 @@ URI: [laura:CameraSensor](https://w3id.org/laura/CameraSensor)
 | [y_pixels](y_pixels.md) | 0..1 <br/> [Integer](Integer.md) | Raw sensor pixel count in y | direct |
 | [x_scale_factor](x_scale_factor.md) | 0..1 <br/> [Integer](Integer.md) | Pixel binning factor in x | direct |
 | [y_scale_factor](y_scale_factor.md) | 0..1 <br/> [Integer](Integer.md) | Pixel binning factor in y | direct |
-| [beam_pixel_average](beam_pixel_average.md) | 0..1 <br/> [Float](Float.md) | Average pixel value for beam detection | direct |
-| [middle](middle.md) | * <br/> [Float](Float.md) | Sensor optical center in pixels [x, y] | direct |
-| [x_pixels_to_mm](x_pixels_to_mm.md) | 0..1 <br/> [Float](Float.md) | Pixel-to-mm scale factor in x | direct |
-| [y_pixels_to_mm](y_pixels_to_mm.md) | 0..1 <br/> [Float](Float.md) | Pixel-to-mm scale factor in y | direct |
-| [minimum](minimum.md) | * <br/> [Float](Float.md) | Minimum pixel positions [x, y] | direct |
-| [maximum](maximum.md) | * <br/> [Float](Float.md) | Maximum pixel positions [x, y] | direct |
+| [beam_pixel_average](beam_pixel_average.md) | 0..1 <br/> [Double](Double.md) | Average pixel value for beam detection | direct |
+| [middle](middle.md) | * <br/> [Double](Double.md) | Sensor optical center in pixels [x, y] | direct |
+| [x_pixels_to_mm](x_pixels_to_mm.md) | 0..1 <br/> [Double](Double.md) | Pixel-to-mm scale factor in x | direct |
+| [y_pixels_to_mm](y_pixels_to_mm.md) | 0..1 <br/> [Double](Double.md) | Pixel-to-mm scale factor in y | direct |
+| [minimum](minimum.md) | * <br/> [Double](Double.md) | Minimum pixel positions [x, y] | direct |
+| [maximum](maximum.md) | * <br/> [Double](Double.md) | Maximum pixel positions [x, y] | direct |
 | [bit_depth](bit_depth.md) | 0..1 <br/> [Integer](Integer.md) | Camera bit depth | direct |
-| [operating_middle](operating_middle.md) | * <br/> [Float](Float.md) | Operating center positions in pixels [x, y] | direct |
-| [mechanical_middle](mechanical_middle.md) | * <br/> [Float](Float.md) | Mechanical center of the camera in pixels [x, y] | direct |
+| [operating_middle](operating_middle.md) | * <br/> [Double](Double.md) | Operating center positions in pixels [x, y] | direct |
+| [mechanical_middle](mechanical_middle.md) | * <br/> [Double](Double.md) | Mechanical center of the camera in pixels [x, y] | direct |
 
 
 
@@ -193,7 +193,7 @@ attributes:
     ifabsent: float(97.2)
     domain_of:
     - CameraSensor
-    range: float
+    range: double
   middle:
     name: middle
     description: Sensor optical center in pixels [x, y].
@@ -202,7 +202,7 @@ attributes:
     - PhysicalElement
     - CameraMask
     - CameraSensor
-    range: float
+    range: double
     multivalued: true
   x_pixels_to_mm:
     name: x_pixels_to_mm
@@ -212,7 +212,7 @@ attributes:
     ifabsent: float(0.0134)
     domain_of:
     - CameraSensor
-    range: float
+    range: double
   y_pixels_to_mm:
     name: y_pixels_to_mm
     description: Pixel-to-mm scale factor in y.
@@ -221,7 +221,7 @@ attributes:
     ifabsent: float(0.0134)
     domain_of:
     - CameraSensor
-    range: float
+    range: double
   minimum:
     name: minimum
     description: Minimum pixel positions [x, y].
@@ -230,7 +230,7 @@ attributes:
     domain_of:
     - CameraSensor
     - LaserAttenuator
-    range: float
+    range: double
     multivalued: true
   maximum:
     name: maximum
@@ -240,7 +240,7 @@ attributes:
     - CameraMask
     - CameraSensor
     - LaserAttenuator
-    range: float
+    range: double
     multivalued: true
   bit_depth:
     name: bit_depth
@@ -258,7 +258,7 @@ attributes:
     rank: 1000
     domain_of:
     - CameraSensor
-    range: float
+    range: double
     multivalued: true
   mechanical_middle:
     name: mechanical_middle
@@ -267,7 +267,7 @@ attributes:
     rank: 1000
     domain_of:
     - CameraSensor
-    range: float
+    range: double
     multivalued: true
 class_uri: laura:CameraSensor
 
@@ -343,7 +343,7 @@ attributes:
     owner: CameraSensor
     domain_of:
     - CameraSensor
-    range: float
+    range: double
   middle:
     name: middle
     description: Sensor optical center in pixels [x, y].
@@ -353,7 +353,7 @@ attributes:
     - PhysicalElement
     - CameraMask
     - CameraSensor
-    range: float
+    range: double
     multivalued: true
   x_pixels_to_mm:
     name: x_pixels_to_mm
@@ -364,7 +364,7 @@ attributes:
     owner: CameraSensor
     domain_of:
     - CameraSensor
-    range: float
+    range: double
   y_pixels_to_mm:
     name: y_pixels_to_mm
     description: Pixel-to-mm scale factor in y.
@@ -374,7 +374,7 @@ attributes:
     owner: CameraSensor
     domain_of:
     - CameraSensor
-    range: float
+    range: double
   minimum:
     name: minimum
     description: Minimum pixel positions [x, y].
@@ -384,7 +384,7 @@ attributes:
     domain_of:
     - CameraSensor
     - LaserAttenuator
-    range: float
+    range: double
     multivalued: true
   maximum:
     name: maximum
@@ -395,7 +395,7 @@ attributes:
     - CameraMask
     - CameraSensor
     - LaserAttenuator
-    range: float
+    range: double
     multivalued: true
   bit_depth:
     name: bit_depth
@@ -415,7 +415,7 @@ attributes:
     owner: CameraSensor
     domain_of:
     - CameraSensor
-    range: float
+    range: double
     multivalued: true
   mechanical_middle:
     name: mechanical_middle
@@ -425,7 +425,7 @@ attributes:
     owner: CameraSensor
     domain_of:
     - CameraSensor
-    range: float
+    range: double
     multivalued: true
 class_uri: laura:CameraSensor
 

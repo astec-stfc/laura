@@ -63,15 +63,15 @@ URI: [laura:WireSimulationElement](https://w3id.org/laura/WireSimulationElement)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [current](current.md) | 0..1 <br/> [Float](Float.md) | Current carried by the wire [A] | direct |
-| [interaction_length](interaction_length.md) | 0..1 <br/> [Float](Float.md) | Effective interaction length [m] | direct |
-| [horizontal_offset](horizontal_offset.md) | 0..1 <br/> [Float](Float.md) | Horizontal wire offset from the reference orbit [m] | direct |
-| [vertical_offset](vertical_offset.md) | 0..1 <br/> [Float](Float.md) | Vertical wire offset from the reference orbit [m] | direct |
+| [current](current.md) | 0..1 <br/> [Double](Double.md) | Current carried by the wire [A] | direct |
+| [interaction_length](interaction_length.md) | 0..1 <br/> [Double](Double.md) | Effective interaction length [m] | direct |
+| [horizontal_offset](horizontal_offset.md) | 0..1 <br/> [Double](Double.md) | Horizontal wire offset from the reference orbit [m] | direct |
+| [vertical_offset](vertical_offset.md) | 0..1 <br/> [Double](Double.md) | Vertical wire offset from the reference orbit [m] | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -141,7 +141,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - WireSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: A
   interaction_length:
@@ -152,7 +152,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - WireSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   horizontal_offset:
@@ -164,7 +164,7 @@ attributes:
     domain_of:
     - WireSimulationElement
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   vertical_offset:
@@ -176,7 +176,7 @@ attributes:
     domain_of:
     - WireSimulationElement
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
 class_uri: laura:WireSimulationElement
@@ -202,7 +202,7 @@ attributes:
     owner: WireSimulationElement
     domain_of:
     - WireSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: A
   interaction_length:
@@ -214,7 +214,7 @@ attributes:
     owner: WireSimulationElement
     domain_of:
     - WireSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   horizontal_offset:
@@ -227,7 +227,7 @@ attributes:
     domain_of:
     - WireSimulationElement
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   vertical_offset:
@@ -240,7 +240,7 @@ attributes:
     domain_of:
     - WireSimulationElement
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   field_definition:
@@ -291,7 +291,7 @@ attributes:
     owner: WireSimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:WireSimulationElement
 
 ```

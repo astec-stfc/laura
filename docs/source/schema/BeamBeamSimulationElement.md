@@ -69,18 +69,18 @@ URI: [laura:BeamBeamSimulationElement](https://w3id.org/laura/BeamBeamSimulation
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [charge](charge.md) | 0..1 <br/> [Float](Float.md) | Opposing-beam particle charge in units of the elementary charge | direct |
-| [n_particles](n_particles.md) | 0..1 <br/> [Float](Float.md) | Number of particles in the opposing bunch | direct |
-| [horizontal_offset](horizontal_offset.md) | 0..1 <br/> [Float](Float.md) | Horizontal opposing-bunch centroid offset [m] | direct |
-| [vertical_offset](vertical_offset.md) | 0..1 <br/> [Float](Float.md) | Vertical opposing-bunch centroid offset [m] | direct |
-| [horizontal_sigma](horizontal_sigma.md) | 0..1 <br/> [Float](Float.md) | Horizontal RMS size of the opposing bunch [m] | direct |
-| [vertical_sigma](vertical_sigma.md) | 0..1 <br/> [Float](Float.md) | Vertical RMS size of the opposing bunch [m] | direct |
-| [width](width.md) | 0..1 <br/> [Float](Float.md) | Opposing-bunch length for the 3-D weak-strong model [m] | direct |
+| [charge](charge.md) | 0..1 <br/> [Double](Double.md) | Opposing-beam particle charge in units of the elementary charge | direct |
+| [n_particles](n_particles.md) | 0..1 <br/> [Double](Double.md) | Number of particles in the opposing bunch | direct |
+| [horizontal_offset](horizontal_offset.md) | 0..1 <br/> [Double](Double.md) | Horizontal opposing-bunch centroid offset [m] | direct |
+| [vertical_offset](vertical_offset.md) | 0..1 <br/> [Double](Double.md) | Vertical opposing-bunch centroid offset [m] | direct |
+| [horizontal_sigma](horizontal_sigma.md) | 0..1 <br/> [Double](Double.md) | Horizontal RMS size of the opposing bunch [m] | direct |
+| [vertical_sigma](vertical_sigma.md) | 0..1 <br/> [Double](Double.md) | Vertical RMS size of the opposing bunch [m] | direct |
+| [width](width.md) | 0..1 <br/> [Double](Double.md) | Opposing-bunch length for the 3-D weak-strong model [m] | direct |
 | [field_definition](field_definition.md) | 0..1 <br/> [String](String.md) | Path to the 3-D field-map file | [SimulationElement](SimulationElement.md) |
 | [wakefield_definition](wakefield_definition.md) | 0..1 <br/> [String](String.md) | Path to the wakefield impedance file | [SimulationElement](SimulationElement.md) |
 | [wakefield_enable](wakefield_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether the wakefield named by wakefield_definition is applied | [SimulationElement](SimulationElement.md) |
 | [field_reference_position](field_reference_position.md) | 0..1 <br/> [String](String.md) | Longitudinal origin of the field map [m] | [SimulationElement](SimulationElement.md) |
-| [scale_field](scale_field.md) | 0..1 <br/> [Float](Float.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
+| [scale_field](scale_field.md) | 0..1 <br/> [Double](Double.md) | Multiplicative scale factor applied to the field map | [SimulationElement](SimulationElement.md) |
 
 
 
@@ -150,7 +150,7 @@ attributes:
     ifabsent: float(1.0)
     domain_of:
     - BeamBeamSimulationElement
-    range: float
+    range: double
   n_particles:
     name: n_particles
     description: Number of particles in the opposing bunch.
@@ -159,7 +159,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - BeamBeamSimulationElement
-    range: float
+    range: double
   horizontal_offset:
     name: horizontal_offset
     description: Horizontal opposing-bunch centroid offset [m].
@@ -168,7 +168,7 @@ attributes:
     domain_of:
     - WireSimulationElement
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   vertical_offset:
@@ -179,7 +179,7 @@ attributes:
     domain_of:
     - WireSimulationElement
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   horizontal_sigma:
@@ -190,7 +190,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   vertical_sigma:
@@ -201,7 +201,7 @@ attributes:
     ifabsent: float(0.0)
     domain_of:
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   width:
@@ -213,7 +213,7 @@ attributes:
     domain_of:
     - BeamBeamSimulationElement
     - MagneticElement
-    range: float
+    range: double
     unit:
       ucum_code: m
 class_uri: laura:BeamBeamSimulationElement
@@ -239,7 +239,7 @@ attributes:
     owner: BeamBeamSimulationElement
     domain_of:
     - BeamBeamSimulationElement
-    range: float
+    range: double
   n_particles:
     name: n_particles
     description: Number of particles in the opposing bunch.
@@ -249,7 +249,7 @@ attributes:
     owner: BeamBeamSimulationElement
     domain_of:
     - BeamBeamSimulationElement
-    range: float
+    range: double
   horizontal_offset:
     name: horizontal_offset
     description: Horizontal opposing-bunch centroid offset [m].
@@ -259,7 +259,7 @@ attributes:
     domain_of:
     - WireSimulationElement
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   vertical_offset:
@@ -271,7 +271,7 @@ attributes:
     domain_of:
     - WireSimulationElement
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   horizontal_sigma:
@@ -283,7 +283,7 @@ attributes:
     owner: BeamBeamSimulationElement
     domain_of:
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   vertical_sigma:
@@ -295,7 +295,7 @@ attributes:
     owner: BeamBeamSimulationElement
     domain_of:
     - BeamBeamSimulationElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   width:
@@ -308,7 +308,7 @@ attributes:
     domain_of:
     - BeamBeamSimulationElement
     - MagneticElement
-    range: float
+    range: double
     unit:
       ucum_code: m
   field_definition:
@@ -359,7 +359,7 @@ attributes:
     owner: BeamBeamSimulationElement
     domain_of:
     - SimulationElement
-    range: float
+    range: double
 class_uri: laura:BeamBeamSimulationElement
 
 ```

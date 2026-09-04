@@ -33,7 +33,7 @@ URI: [laura:intensity](https://w3id.org/laura/intensity)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md) |
 
 ### Cardinality and Requirements
@@ -94,7 +94,7 @@ ifabsent: float(0.0)
 owner: PhotonIntensityMonitorDiagnostic
 domain_of:
 - PhotonIntensityMonitorDiagnostic
-range: float
+range: double
 
 ```
 </details></div>

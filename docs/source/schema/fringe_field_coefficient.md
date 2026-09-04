@@ -37,7 +37,7 @@ URI: [laura:fringe_field_coefficient](https://w3id.org/laura/fringe_field_coeffi
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
+| Range | [Double](Double.md) |
 | Domain Of | [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
@@ -98,7 +98,7 @@ ifabsent: float(0.0)
 owner: MagneticElement
 domain_of:
 - MagneticElement
-range: float
+range: double
 
 ```
 </details></div>

@@ -363,6 +363,7 @@ attributes:
     owner: Collimator
     domain_of:
     - AcceleratorElement
+    - ControlVariable
     - SectionLattice
     - MachineLayout
     range: string
