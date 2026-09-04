@@ -1,5 +1,267 @@
 {
   "$defs": {
+    "ACDipole": {
+      "additionalProperties": false,
+      "description": "Base class for horizontal and vertical AC-dipole tune exciters.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ACDipoleSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "ACDipole",
+      "type": "object"
+    },
+    "ACDipoleSimulationElement": {
+      "additionalProperties": false,
+      "description": "Simulation attributes for an AC dipole / tune exciter.",
+      "properties": {
+        "field_amplitude": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Peak kick voltage/amplitude of the exciter.",
+          "type": "number"
+        },
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "frequency": {
+          "description": "Drive frequency [Hz].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "phase": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Phase lag [deg].",
+          "type": "number"
+        },
+        "ramp": {
+          "description": "Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp.",
+          "items": {
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "title": "ACDipoleSimulationElement",
+      "type": "object"
+    },
     "AcceleratorElement": {
       "additionalProperties": false,
       "description": "Root base class for all LAURA accelerator elements.  Every lattice element is an instance of a concrete subclass identified by ``hardware_type``.",
@@ -582,6 +844,270 @@
         "hardware_class"
       ],
       "title": "BeamArrivalMonitor",
+      "type": "object"
+    },
+    "BeamBeam": {
+      "additionalProperties": false,
+      "description": "Weak-strong beam-beam interaction element.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "BeamBeam",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeamBeamSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "BeamBeam",
+      "type": "object"
+    },
+    "BeamBeamSimulationElement": {
+      "additionalProperties": false,
+      "description": "Simulation attributes for a weak-strong beam-beam interaction.",
+      "properties": {
+        "charge": {
+          "description": "Opposing-beam particle charge in units of the elementary charge.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "horizontal_offset": {
+          "description": "Horizontal opposing-bunch centroid offset [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "horizontal_sigma": {
+          "description": "Horizontal RMS size of the opposing bunch [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "n_particles": {
+          "description": "Number of particles in the opposing bunch.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical opposing-bunch centroid offset [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "vertical_sigma": {
+          "description": "Vertical RMS size of the opposing bunch [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "width": {
+          "description": "Opposing-bunch length for the 3-D weak-strong model [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "BeamBeamSimulationElement",
       "type": "object"
     },
     "BeamPositionMonitor": {
@@ -2337,6 +2863,189 @@
       "title": "CorrectorMagnet",
       "type": "object"
     },
+    "CrabCavity": {
+      "additionalProperties": false,
+      "description": "Transverse-deflecting crab cavity for crossing-angle compensation.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "cavity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RFDeflectingCavityElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Crab-cavity RF structure parameters."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "CrabCavity",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RFCavitySimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "CrabCavity",
+      "type": "object"
+    },
     "DegaussableElement": {
       "additionalProperties": false,
       "description": "Degaussing (demagnetisation cycle) parameters for magnets that require a field-reset procedure.",
@@ -3302,6 +4011,258 @@
       "title": "ElectricalElement",
       "type": "object"
     },
+    "ElectrostaticSeparator": {
+      "additionalProperties": false,
+      "description": "Static electrostatic transverse-deflection element.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "ElectrostaticSeparator",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectrostaticSeparatorSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "ElectrostaticSeparator",
+      "type": "object"
+    },
+    "ElectrostaticSeparatorSimulationElement": {
+      "additionalProperties": false,
+      "description": "Simulation attributes for a static electrostatic separator.",
+      "properties": {
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "horizontal_field": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Horizontal deflecting electric field [V/m].",
+          "type": "number"
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tilt": {
+          "description": "Rotation about the beam axis [rad].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "vertical_field": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vertical deflecting electric field [V/m].",
+          "type": "number"
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "title": "ElectrostaticSeparatorSimulationElement",
+      "type": "object"
+    },
     "Element": {
       "additionalProperties": false,
       "description": "Concrete schema counterpart of the Python ``Element`` wrapper class. Inherits standard element composition fields.",
@@ -3747,6 +4708,178 @@
       ],
       "title": "HardwareClassEnum",
       "type": "string"
+    },
+    "HorizontalACDipole": {
+      "additionalProperties": false,
+      "description": "Horizontally deflecting AC-dipole tune exciter.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Horizontal_AC_Dipole",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ACDipoleSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "HorizontalACDipole",
+      "type": "object"
     },
     "HorizontalCorrector": {
       "additionalProperties": false,
@@ -6578,6 +7711,273 @@
       "title": "Marker",
       "type": "object"
     },
+    "MatrixTransform": {
+      "additionalProperties": false,
+      "description": "Transfer-map element with zero-, first-, and second-order coefficients.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "MatrixTransform",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatrixTransformSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "MatrixTransform",
+      "type": "object"
+    },
+    "MatrixTransformSimulationElement": {
+      "additionalProperties": false,
+      "description": "Zero-, first-, and second-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.",
+      "properties": {
+        "apply": {
+          "description": "Whether to apply the transfer map.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "c_matrix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatrixValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "C-matrix (zeroth-order transfer vector)."
+        },
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "r_matrix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatrixValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "R-matrix (first-order transfer matrix)."
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "t_matrix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatrixValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "T-matrix (second-order transfer tensor)."
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "title": "MatrixTransformSimulationElement",
+      "type": "object"
+    },
+    "MatrixValue": {
+      "additionalProperties": true,
+      "description": "An unconstrained serializable matrix value. The handwritten matrix model validates dense arrays and named coefficient mappings into NumPy arrays.",
+      "title": "MatrixValue",
+      "type": [
+        "null",
+        "boolean",
+        "object",
+        "number",
+        "string"
+      ]
+    },
     "Multipole": {
       "additionalProperties": false,
       "description": "Individual multipole field component, characterised by order and integrated normal / skew strengths at a reference radius.",
@@ -7644,7 +9044,7 @@
         "diagnostic": {
           "anyOf": [
             {
-              "$ref": "#/$defs/DiagnosticElement"
+              "$ref": "#/$defs/PhotonIntensityMonitorDiagnostic"
             },
             {
               "type": "null"
@@ -7701,17 +9101,6 @@
             "array",
             "null"
           ]
-        },
-        "intensity": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhotonIntensityMonitorDiagnostic"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Instrument-specific diagnostic parameters."
         },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
@@ -10212,6 +11601,299 @@
       "additionalProperties": false,
       "description": "RF modulator (klystron driver) parameters.",
       "title": "RFModulatorElement",
+      "type": "object"
+    },
+    "RFMultipole": {
+      "additionalProperties": false,
+      "description": "Thin RF-driven multipole kick.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "RFMultipole",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RFMultipoleSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "RFMultipole",
+      "type": "object"
+    },
+    "RFMultipoleSimulationElement": {
+      "additionalProperties": false,
+      "description": "Simulation attributes for a thin RF multipole kick.",
+      "properties": {
+        "field_amplitude": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Longitudinal voltage [V].",
+          "type": "number"
+        },
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "frequency": {
+          "description": "RF frequency [Hz].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "knl": {
+          "description": "Integrated normal multipole strengths, dipole through decapole.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "ksl": {
+          "description": "Integrated skew multipole strengths, dipole through decapole.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "phase": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Overall phase lag [deg].",
+          "type": "number"
+        },
+        "pnl": {
+          "description": "Normal multipole phases [deg], dipole through decapole.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "psl": {
+          "description": "Skew multipole phases [deg], dipole through decapole.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "title": "RFMultipoleSimulationElement",
       "type": "object"
     },
     "RFProtection": {
@@ -12779,6 +14461,178 @@
       "title": "ValveElement",
       "type": "object"
     },
+    "VerticalACDipole": {
+      "additionalProperties": false,
+      "description": "Vertically deflecting AC-dipole tune exciter.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Vertical_AC_Dipole",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ACDipoleSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "VerticalACDipole",
+      "type": "object"
+    },
     "VerticalCorrector": {
       "additionalProperties": false,
       "description": "Vertical steering corrector.",
@@ -13845,6 +15699,249 @@
         }
       },
       "title": "WigglerMagnet",
+      "type": "object"
+    },
+    "Wire": {
+      "additionalProperties": false,
+      "description": "Current-carrying wire for long-range beam-beam compensation.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Wire",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WireSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Wire",
+      "type": "object"
+    },
+    "WireSimulationElement": {
+      "additionalProperties": false,
+      "description": "Simulation attributes for a compensating wire.",
+      "properties": {
+        "current": {
+          "description": "Current carried by the wire [A].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "horizontal_offset": {
+          "description": "Horizontal wire offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "interaction_length": {
+          "description": "Effective interaction length [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical wire offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "title": "WireSimulationElement",
       "type": "object"
     }
   },

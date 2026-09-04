@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 
-from laura.models.element import Quadrupole, Marker, Dipole
+from laura.models.element import Quadrupole, Marker, Dipole, Horizontal_Corrector
 from laura.models.physical import Position
 from laura import LAURA
 
@@ -53,11 +53,22 @@ def sample_marker():
 
 
 @pytest.fixture
-def small_machine(sample_marker, sample_quad, sample_dipole):
-    sections = {"sections": {"SEC": ["M1", "Q1", "D1"]}}
+def sample_corrector():
+    """A type whose hardware_type label and schema class name differ."""
+    return Horizontal_Corrector(
+        name="HCOR1",
+        machine_area="SEC",
+        magnetic={"length": 0.1, "horizontal_kick": 1e-4},
+        physical={"length": 0.1, "middle": {"x": 0.0, "y": 0.0, "z": 7.0}},
+    )
+
+
+@pytest.fixture
+def small_machine(sample_marker, sample_quad, sample_dipole, sample_corrector):
+    sections = {"sections": {"SEC": ["M1", "Q1", "D1", "HCOR1"]}}
     layouts = {"default_layout": "beam", "layouts": {"beam": ["SEC"]}}
     return LAURA(
-        element_list=[sample_marker, sample_quad, sample_dipole],
+        element_list=[sample_marker, sample_quad, sample_dipole, sample_corrector],
         layout=layouts,
         section=sections,
     )
@@ -90,6 +101,48 @@ class TestBuildRdfGraph:
         quad_uri = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
         types = list(g.objects(quad_uri, rdflib.RDF.type))
         assert LAURA_NS["Quadrupole"] in types
+
+    def test_rdf_type_is_the_schema_class_not_the_hardware_type(self, small_machine):
+        """A corrector types as laura:HorizontalCorrector, its ontology class.
+
+        The label is ``Horizontal_Corrector``, and using that built a URI the
+        ontology declares as an owl:DatatypeProperty -- a slot of
+        CombinedCorrector -- rather than a class.
+        """
+        from laura.Exporters.RDF import build_rdf_graph
+
+        g = build_rdf_graph(small_machine, machine_name="test")
+        LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
+        uri = rdflib.URIRef("https://w3id.org/laura/test/SEC/HCOR1")
+        types = list(g.objects(uri, rdflib.RDF.type))
+        assert types == [LAURA_NS["HorizontalCorrector"]]
+        # The label is still available, as a literal.
+        assert rdflib.Literal("Horizontal_Corrector") in set(
+            g.objects(uri, LAURA_NS["hardware_type"])
+        )
+
+    def test_every_rdf_type_is_declared_in_the_ontology(self, small_machine):
+        """No element may be typed with a URI the generated ontology lacks."""
+        import pathlib
+
+        import laura as laura_pkg
+        from laura.Exporters.RDF import build_rdf_graph
+
+        onto = rdflib.Graph()
+        onto.parse(
+            pathlib.Path(laura_pkg.__file__).parent
+            / "schema"
+            / "generated"
+            / "laura_ontology.owl",
+            format="turtle",
+        )
+        g = build_rdf_graph(small_machine, machine_name="test")
+        undeclared = [
+            str(o)
+            for _, _, o in g.triples((None, rdflib.RDF.type, None))
+            if (o, rdflib.RDF.type, rdflib.OWL.Class) not in onto
+        ]
+        assert not undeclared, f"rdf:type URIs absent from the ontology: {undeclared}"
 
     def test_name_triple(self, small_machine):
         from laura.Exporters.RDF import build_rdf_graph
@@ -233,7 +286,7 @@ class TestLAURAQuery:
 
         q = LAURAQuery(small_machine, machine_name="test")
         names = q.get_elements_in_area("SEC")
-        assert set(names) == {"M1", "Q1", "D1"}
+        assert set(names) == {"M1", "Q1", "D1", "HCOR1"}
 
     def test_get_elements_in_area_empty(self, small_machine):
         from laura.query import LAURAQuery
@@ -254,7 +307,7 @@ class TestLAURAQuery:
 
         q = LAURAQuery(small_machine, machine_name="test")
         magnets = q.get_elements_by_hardware_class("Magnet")
-        assert set(magnets) == {"Q1", "D1"}
+        assert set(magnets) == {"Q1", "D1", "HCOR1"}
 
     def test_invalidate_clears_cache(self, small_machine):
         from laura.query import LAURAQuery

@@ -298,6 +298,7 @@ attributes:
     - Camera
     - Screen
     - ChargeDiagnostic
+    - PhotonMonitor
     range: ChargeDiagnosticElement
 class_uri: laura:ChargeDiagnostic
 
@@ -332,6 +333,7 @@ attributes:
     - Camera
     - Screen
     - ChargeDiagnostic
+    - PhotonMonitor
     range: ChargeDiagnosticElement
   physical:
     name: physical

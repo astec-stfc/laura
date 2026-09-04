@@ -1,7 +1,7 @@
-# Slot: multipoles 
+# Class: Multipoles 
 
 
-_Integrated multipole field components._
+_Complete set of integrated multipole strengths up to decapole order, as named slots for efficient element look-up._
 
 
 
@@ -9,46 +9,119 @@ _Integrated multipole field components._
 
 
 
-URI: [laura:multipoles](https://w3id.org/laura/multipoles)
+URI: [laura:MultipoleList](https://w3id.org/laura/MultipoleList)
+
+
+
+
+
+```mermaid
+ classDiagram
+    class Multipoles
+    click Multipoles href "../Multipoles/"
+      Multipoles : K0L
+        
+          
+    
+        
+        
+        Multipoles --> "0..1" Multipole : K0L
+        click Multipole href "../Multipole/"
+    
+
+        
+      Multipoles : K1L
+        
+          
+    
+        
+        
+        Multipoles --> "0..1" Multipole : K1L
+        click Multipole href "../Multipole/"
+    
+
+        
+      Multipoles : K2L
+        
+          
+    
+        
+        
+        Multipoles --> "0..1" Multipole : K2L
+        click Multipole href "../Multipole/"
+    
+
+        
+      Multipoles : K3L
+        
+          
+    
+        
+        
+        Multipoles --> "0..1" Multipole : K3L
+        click Multipole href "../Multipole/"
+    
+
+        
+      Multipoles : K4L
+        
+          
+    
+        
+        
+        Multipoles --> "0..1" Multipole : K4L
+        click Multipole href "../Multipole/"
+    
+
+        
+      
+```
+
+
+
+
 <!-- no inheritance hierarchy -->
 
-
-
-
-
-## Applicable Classes
-
-| Name | Description | Modifies Slot |
-| --- | --- | --- |
-| [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
-| [DipoleMagnet](DipoleMagnet.md) |  |  no  |
-| [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
-| [SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |  no  |
-| [OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |  no  |
-
-
-
-
-
-
-## Properties
-
-### Type and Range
+## Class Properties
 
 | Property | Value |
 | --- | --- |
-| Range | [Multipoles](Multipoles.md) |
-| Domain Of | [MagneticElement](MagneticElement.md) |
+| Class URI | [laura:MultipoleList](https://w3id.org/laura/MultipoleList) |
 
-### Cardinality and Requirements
 
-| Property | Value |
-| --- | --- |
-### Slot Characteristics
+## Slots
 
-| Property | Value |
-| --- | --- |
-| Owner | [MagneticElement](MagneticElement.md) |
+| Name | Cardinality and Range | Description | Inheritance |
+| ---  | --- | --- | --- |
+| [K0L](K0L.md) | 0..1 <br/> [Multipole](Multipole.md) | Integrated dipole field | direct |
+| [K1L](K1L.md) | 0..1 <br/> [Multipole](Multipole.md) | Integrated quadrupole gradient | direct |
+| [K2L](K2L.md) | 0..1 <br/> [Multipole](Multipole.md) | Integrated sextupole strength | direct |
+| [K3L](K3L.md) | 0..1 <br/> [Multipole](Multipole.md) | Integrated octupole strength | direct |
+| [K4L](K4L.md) | 0..1 <br/> [Multipole](Multipole.md) | Integrated decapole strength | direct |
+
+
+
+
+
+## Usages
+
+| used by | used in | type | used |
+| ---  | --- | --- | --- |
+| [MagneticElement](MagneticElement.md) | [multipoles](multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [MagneticElement](MagneticElement.md) | [systematic_multipoles](systematic_multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [MagneticElement](MagneticElement.md) | [random_multipoles](random_multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [DipoleMagnet](DipoleMagnet.md) | [multipoles](multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [DipoleMagnet](DipoleMagnet.md) | [systematic_multipoles](systematic_multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [DipoleMagnet](DipoleMagnet.md) | [random_multipoles](random_multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [QuadrupoleMagnet](QuadrupoleMagnet.md) | [multipoles](multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [QuadrupoleMagnet](QuadrupoleMagnet.md) | [systematic_multipoles](systematic_multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [QuadrupoleMagnet](QuadrupoleMagnet.md) | [random_multipoles](random_multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [SextupoleMagnet](SextupoleMagnet.md) | [multipoles](multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [SextupoleMagnet](SextupoleMagnet.md) | [systematic_multipoles](systematic_multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [SextupoleMagnet](SextupoleMagnet.md) | [random_multipoles](random_multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [OctupoleMagnet](OctupoleMagnet.md) | [multipoles](multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [OctupoleMagnet](OctupoleMagnet.md) | [systematic_multipoles](systematic_multipoles.md) | range | [Multipoles](Multipoles.md) |
+| [OctupoleMagnet](OctupoleMagnet.md) | [random_multipoles](random_multipoles.md) | range | [Multipoles](Multipoles.md) |
 
 
 
@@ -79,24 +152,127 @@ URI: [laura:multipoles](https://w3id.org/laura/multipoles)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:multipoles |
-| native | laura:multipoles |
+| self | laura:MultipoleList |
+| native | laura:Multipoles |
+
+
 
 
 
 
 ## LinkML Source
 
+<!-- TODO: investigate https://stackoverflow.com/questions/37606292/how-to-create-tabbed-code-blocks-in-mkdocs-or-sphinx -->
+
+### Direct
+
 <details>
 ```yaml
-name: multipoles
-description: Integrated multipole field components.
+name: Multipoles
+description: Complete set of integrated multipole strengths up to decapole order,
+  as named slots for efficient element look-up.
 from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: MagneticElement
-domain_of:
-- MagneticElement
-range: Multipoles
+attributes:
+  K0L:
+    name: K0L
+    description: Integrated dipole field.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    domain_of:
+    - Multipoles
+    range: Multipole
+  K1L:
+    name: K1L
+    description: Integrated quadrupole gradient.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    domain_of:
+    - Multipoles
+    range: Multipole
+  K2L:
+    name: K2L
+    description: Integrated sextupole strength.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    domain_of:
+    - Multipoles
+    range: Multipole
+  K3L:
+    name: K3L
+    description: Integrated octupole strength.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    domain_of:
+    - Multipoles
+    range: Multipole
+  K4L:
+    name: K4L
+    description: Integrated decapole strength.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    domain_of:
+    - Multipoles
+    range: Multipole
+class_uri: laura:MultipoleList
+
+```
+</details>
+
+### Induced
+
+<details>
+```yaml
+name: Multipoles
+description: Complete set of integrated multipole strengths up to decapole order,
+  as named slots for efficient element look-up.
+from_schema: https://w3id.org/laura/schema
+attributes:
+  K0L:
+    name: K0L
+    description: Integrated dipole field.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: Multipoles
+    domain_of:
+    - Multipoles
+    range: Multipole
+  K1L:
+    name: K1L
+    description: Integrated quadrupole gradient.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: Multipoles
+    domain_of:
+    - Multipoles
+    range: Multipole
+  K2L:
+    name: K2L
+    description: Integrated sextupole strength.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: Multipoles
+    domain_of:
+    - Multipoles
+    range: Multipole
+  K3L:
+    name: K3L
+    description: Integrated octupole strength.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: Multipoles
+    domain_of:
+    - Multipoles
+    range: Multipole
+  K4L:
+    name: K4L
+    description: Integrated decapole strength.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: Multipoles
+    domain_of:
+    - Multipoles
+    range: Multipole
+class_uri: laura:MultipoleList
 
 ```
 </details></div>

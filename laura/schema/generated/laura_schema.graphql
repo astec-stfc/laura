@@ -98,6 +98,41 @@ type AcceleratorElement
     downstream: [AcceleratorElement]
   }
 
+interface ACDipole
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareType: String
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: ACDipoleSimulationElement
+  }
+
+type ACDipoleSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    fieldAmplitude: Float
+    frequency: Float
+    phase: Float
+    ramp: [Int]
+  }
+
 type Aperture
   {
     name: String!
@@ -158,6 +193,44 @@ type BeamArrivalMonitor
     simulation: DiagnosticSimulationElement
     diagnostic: BAMDiagnosticElement
     hardwareType: String
+  }
+
+type BeamBeam
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    hardwareType: String
+    simulation: BeamBeamSimulationElement
+  }
+
+type BeamBeamSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    charge: Float
+    nParticles: Float
+    horizontalOffset: Float
+    verticalOffset: Float
+    horizontalSigma: Float
+    verticalSigma: Float
+    width: Float
   }
 
 type BeamPositionMonitor
@@ -385,6 +458,29 @@ type ControlVariable
     dynamics: String
   }
 
+type CrabCavity
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: RFCavitySimulationElement
+    cavity: RFDeflectingCavityElement
+    hardwareType: String
+  }
+
 type DegaussableElement
   {
     tolerance: Float
@@ -478,6 +574,40 @@ type ElectricalElement
     readTolerance: Float
   }
 
+type ElectrostaticSeparator
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    hardwareType: String
+    simulation: ElectrostaticSeparatorSimulationElement
+  }
+
+type ElectrostaticSeparatorSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    horizontalField: Float
+    verticalField: Float
+    tilt: Float
+  }
+
 type Element
   {
     name: String!
@@ -537,6 +667,28 @@ type FaradayCupMonitor
 type FieldIntegral
   {
     coefficients: [Float]
+  }
+
+type HorizontalACDipole
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: ACDipoleSimulationElement
+    hardwareType: String
   }
 
 type IntegratedCurrentTransformer
@@ -915,6 +1067,43 @@ type Marker
     hardwareType: String
   }
 
+type MatrixTransform
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    hardwareType: String
+    simulation: MatrixTransformSimulationElement
+  }
+
+type MatrixTransformSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    apply: Boolean
+    cMatrix: MatrixValue
+    rMatrix: MatrixValue
+    tMatrix: MatrixValue
+  }
+
+scalar MatrixValue
+
 type Multipole
   {
     order: Int
@@ -955,9 +1144,8 @@ type PhotonMonitor
     controls: ControlsInformation
     reference: ReferenceElement
     physical: PhysicalElement
-    diagnostic: DiagnosticElement
     simulation: DiagnosticSimulationElement
-    intensity: PhotonIntensityMonitorDiagnostic
+    diagnostic: PhotonIntensityMonitorDiagnostic
     hardwareType: String
     hardwareModel: String
   }
@@ -1311,6 +1499,44 @@ type RFModulatorElement
     _placeholder: Boolean
   }
 
+type RFMultipole
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    hardwareType: String
+    simulation: RFMultipoleSimulationElement
+  }
+
+type RFMultipoleSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    frequency: Float
+    phase: Float
+    fieldAmplitude: Float
+    knl: [Float]
+    ksl: [Float]
+    pnl: [Float]
+    psl: [Float]
+  }
+
 type RFProtection
   {
     name: String!
@@ -1561,6 +1787,28 @@ type ValveElement
     _placeholder: Boolean
   }
 
+type VerticalACDipole
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    simulation: ACDipoleSimulationElement
+    hardwareType: String
+  }
+
 type Wakefield
   {
     name: String!
@@ -1642,5 +1890,40 @@ type WallCurrentMonitor
     simulation: DiagnosticSimulationElement
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
+  }
+
+type Wire
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    hardwareType: String
+    simulation: WireSimulationElement
+  }
+
+type WireSimulationElement
+  {
+    fieldDefinition: String
+    wakefieldDefinition: String
+    wakefieldEnable: Boolean
+    fieldReferencePosition: String
+    scaleField: Float
+    current: Float
+    interactionLength: Float
+    horizontalOffset: Float
+    verticalOffset: Float
   }
 

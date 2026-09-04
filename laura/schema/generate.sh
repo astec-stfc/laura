@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+# Every generator below writes through a plain `>` redirect, so its stdout
+# encoding decides what lands in generated/.
+export PYTHONUTF8=1
+
 SCHEMA="laura/schema/YAML/laura_schema.yaml"
 OUT_DIR="laura/schema/generated"
 DOCS_DIR="docs/source/schema"

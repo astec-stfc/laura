@@ -166,6 +166,34 @@ class baseElement(CascadingAccessMixin, _AcceleratorElementBase, IgnoreExtra):
 
     """
 
+    @classmethod
+    def linkml_class_name(cls) -> str:
+        """Name of the LinkML class this element is an instance of.
+
+        Exporters that mint schema URIs must go through this rather than
+        ``hardware_type``.  ``hardware_type`` is a dispatch label
+        (``Horizontal_Corrector``); the schema class is ``HorizontalCorrector``,
+        and the two agree only by coincidence.  Building URIs from the label
+        left 184 of CLARA's 438 elements typed as something the ontology does
+        not declare, and two of those names -- ``laura:Horizontal_Corrector``,
+        ``laura:Vertical_Corrector`` -- are real terms of the wrong kind
+        (``owl:DatatypeProperty`` slots of ``CombinedCorrector``).
+
+        The schema stays the single source of truth: gen-pydantic carries each
+        class's ``class_uri`` onto the generated base, and where the schema
+        declares none the base's own name is the class name.
+        """
+        for klass in cls.__mro__:
+            meta = klass.__dict__.get("linkml_meta")
+            if meta is not None and "class_uri" in meta:
+                # Accepts both the CURIE the schema uses and a full IRI.
+                return str(meta["class_uri"]).rsplit("/", 1)[-1].split(":")[-1]
+            # gen-pydantic spells the schema class ``Quadrupole`` as the base
+            # class ``_QuadrupoleBase``.
+            if klass.__name__.startswith("_") and klass.__name__.endswith("Base"):
+                return klass.__name__[1:-4]
+        return cls.__name__
+
     @field_validator("name", mode="before")
     @classmethod
     def validate_name(cls, v: str) -> str:

@@ -397,9 +397,9 @@ attributes:
     name: width
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.2)
     domain_of:
+    - BeamBeamSimulationElement
     - MagneticElement
     range: float
     unit:
@@ -408,9 +408,9 @@ attributes:
     name: tilt
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.0)
     domain_of:
+    - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
     range: float
@@ -652,10 +652,10 @@ attributes:
     name: width
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.2)
     owner: MagneticElement
     domain_of:
+    - BeamBeamSimulationElement
     - MagneticElement
     range: float
     unit:
@@ -664,10 +664,10 @@ attributes:
     name: tilt
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.0)
     owner: MagneticElement
     domain_of:
+    - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
     range: float

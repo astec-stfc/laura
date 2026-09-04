@@ -143,16 +143,17 @@ class LAURAQuery:
         ----------
         hardware_type:
             Python class name used for ELEMENT_REGISTRY dispatch
-            (e.g. ``"Quadrupole"``, ``"Screen"``).
+            (e.g. ``"Quadrupole"``, ``"Horizontal_Corrector"``).
         """
-        safe = hardware_type.replace("\\", "\\\\")
+        safe = hardware_type.replace("\\", "\\\\").replace('"', '\\"')
         return [
             r["name"]
             for r in self.sparql(
-                f"SELECT ?name WHERE {{\n"
-                f"    ?elem rdf:type laura:{safe} ;\n"
-                f"          laura:name ?name .\n"
-                f"}}"
+                f'SELECT ?name WHERE {{\n'
+                f'    ?elem laura:hardware_type ?t ;\n'
+                f'          laura:name ?name .\n'
+                f'    FILTER(str(?t) = "{safe}")\n'
+                f'}}'
             )
         ]
 

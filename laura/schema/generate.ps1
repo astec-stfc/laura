@@ -23,6 +23,22 @@ $ER_FILE_AUTO = "$OUT_DIR/element-er-auto.md"
 New-Item -ItemType Directory -Force -Path $OUT_DIR  | Out-Null
 New-Item -ItemType Directory -Force -Path $DOCS_DIR | Out-Null
 
+# ── UTF-8 output ─────────────────────────────────────────────────────────────
+# Every artefact below is written through Write-Utf8 rather than Set-Content.
+$Utf8NoBom = New-Object System.Text.UTF8Encoding $false
+function Write-Utf8 {
+    param(
+        [Parameter(Mandatory, Position = 0)][string] $Path,
+        [Parameter(ValueFromPipeline)][string[]] $InputObject
+    )
+    begin { $lines = New-Object System.Collections.Generic.List[string] }
+    process { if ($null -ne $InputObject) { $lines.AddRange($InputObject) } }
+    end {
+        $full = [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $Path))
+        [System.IO.File]::WriteAllLines($full, $lines, $Utf8NoBom)
+    }
+}
+
 Write-Host "Linting schema..." -ForegroundColor Cyan
 # Advisory only. The schema carries ~50 standard_naming warnings for physics
 # conventions we intend to keep (slots named L, Kp, Ki, Kd, x, y, z, s; enum
@@ -40,17 +56,17 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Generating JSON Schema..." -ForegroundColor Cyan
-gen-json-schema $SCHEMA --indent 2 | Set-Content "$OUT_DIR/laura_element.schema.json" -Encoding ascii
+gen-json-schema $SCHEMA --indent 2 | Write-Utf8 "$OUT_DIR/laura_element.schema.json"
 
 Write-Host "Generating OWL ontology..." -ForegroundColor Cyan
 gen-owl $SCHEMA `
     --skip-vacuous-min-zero-cardinality-axioms `
     --skip-vacuous-local-range-axioms `
     --consolidate-cardinality-axioms `
-  | Set-Content "$OUT_DIR/laura_ontology.owl"
+  | Write-Utf8 "$OUT_DIR/laura_ontology.owl"
 
 Write-Host "Generating JSON-LD context..." -ForegroundColor Cyan
-gen-jsonld-context $SCHEMA | Set-Content "$OUT_DIR/laura_context.jsonld"
+gen-jsonld-context $SCHEMA | Write-Utf8 "$OUT_DIR/laura_context.jsonld"
 
 Write-Host "Generating SHACL shapes..." -ForegroundColor Cyan
 # NOTE: gen-shacl (linkml 1.11.x) fails on multi-file schemas with a KeyError.
@@ -59,22 +75,22 @@ Push-Location "laura/schema/YAML"
 gen-yaml --mergeimports laura_schema.yaml `
     | Where-Object { $_ -notmatch "UserWarning" -and $_ -notmatch "click" -and
                      $_ -notmatch "warnings.warn" -and $_ -notmatch "RequestsDependency" } `
-    | Set-Content "_merged_temp.yaml"
-gen-shacl _merged_temp.yaml | Set-Content "..\generated\laura_shacl.ttl"
+    | Write-Utf8 "_merged_temp.yaml"
+gen-shacl _merged_temp.yaml | Write-Utf8 "..\generated\laura_shacl.ttl"
 Remove-Item "_merged_temp.yaml"
 Pop-Location
 
 Write-Host "Generating TypeScript types..." -ForegroundColor Cyan
-gen-typescript $SCHEMA | Set-Content "$OUT_DIR/laura_types.ts"
+gen-typescript $SCHEMA | Write-Utf8 "$OUT_DIR/laura_types.ts"
 
 Write-Host "Generating SQL DDL..." -ForegroundColor Cyan
-gen-sqltables $SCHEMA | Set-Content "$OUT_DIR/laura_schema.sql"
+gen-sqltables $SCHEMA | Write-Utf8 "$OUT_DIR/laura_schema.sql"
 
 Write-Host "Generating SQLAlchemy ORM..." -ForegroundColor Cyan
 python "laura/schema/generate_orm.py"
 
 Write-Host "Generating GraphQL schema..." -ForegroundColor Cyan
-gen-graphql $SCHEMA | Set-Content "$OUT_DIR/laura_schema.graphql"
+gen-graphql $SCHEMA | Write-Utf8 "$OUT_DIR/laura_schema.graphql"
 # gen-graphql emits empty type bodies for abstract classes, which is invalid
 # GraphQL SDL (object types must have at least one field).  Patch them in-place.
 Write-Host "  Patching empty GraphQL types..." -ForegroundColor DarkGray
@@ -84,7 +100,7 @@ $gql = Get-Content "$OUT_DIR/laura_schema.graphql" -Raw
 # literally, which produced `_placeholder: Boolean`n  }` -- invalid GraphQL SDL.
 # $1 is escaped so PowerShell leaves the regex group reference alone.
 $gql = [regex]::Replace($gql, '(?m)(type \w+\r?\n  \{\r?\n)  \}', "`$1    _placeholder: Boolean`n  }")
-Set-Content "$OUT_DIR/laura_schema.graphql" $gql
+$gql | Write-Utf8 "$OUT_DIR/laura_schema.graphql"
 
 Write-Host "Generating reference documentation..." -ForegroundColor Cyan
 # gen-doc writes but never prunes, so a renamed class or slot would leave its old
@@ -97,7 +113,7 @@ python "laura/schema/postprocess_docs.py" $DOCS_DIR
 Write-Host "Generating ER diagram (auto, written to generated/)..." -ForegroundColor Cyan
 # Written to generated/ — does NOT overwrite the hand-maintained
 # docs/source/Architecture/element-er.md (which has the full classDiagram).
-gen-erdiagram $SCHEMA | Set-Content $ER_FILE_AUTO
+gen-erdiagram $SCHEMA | Write-Utf8 $ER_FILE_AUTO
 
 Write-Host "Generating Pydantic base classes (_generated.py)..." -ForegroundColor Cyan
 python "laura/schema/generate_pydantic.py"

@@ -8,6 +8,10 @@ to_CATAP/
 RFTrack/
 .claude/
 examples/output/
+node_modules/
+package.json
+package-lock.json
+.codegraph/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

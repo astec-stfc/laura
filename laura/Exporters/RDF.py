@@ -97,14 +97,19 @@ def build_rdf_graph(
         area = str(getattr(elem, "machine_area", None) or "unknown")
         elem_uri = URIRef(f"{base}{area}/{name}")
 
-        # rdf:type derived from hardware_type
-        hw_type = getattr(elem, "hardware_type", None)
-        if hw_type:
-            g.add((elem_uri, RDF.type, LAURA[str(hw_type)]))
+        # rdf:type is the element's LinkML class, which the schema declares and
+        # the generated ontology carries -- never hardware_type, which is a
+        # dispatch label that only sometimes matches the class name.  See
+        # baseElement.linkml_class_name.
+        g.add((elem_uri, RDF.type, LAURA[elem.linkml_class_name()]))
 
         # Core metadata
         g.add((elem_uri, LAURA["name"], Literal(name)))
         g.add((elem_uri, LAURA["machine_area"], Literal(area)))
+
+        hw_type = getattr(elem, "hardware_type", None)
+        if hw_type:
+            g.add((elem_uri, LAURA["hardware_type"], Literal(str(hw_type))))
 
         hw_class = getattr(elem, "hardware_class", None)
         if hw_class:

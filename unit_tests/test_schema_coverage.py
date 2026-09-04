@@ -118,3 +118,43 @@ def test_generated_module_covers_the_schema():
         + ", ".join(sorted(missing))
         + ". Regenerate with `python laura/schema/generate_pydantic.py`."
     )
+
+
+GENERATED_DIR = (
+    pathlib.Path(__file__).resolve().parent.parent / "laura" / "schema" / "generated"
+)
+
+
+@pytest.mark.parametrize(
+    "path", sorted(p for p in GENERATED_DIR.iterdir() if p.is_file()), ids=lambda p: p.name
+)
+def test_generated_artefact_is_utf8(path):
+    """Every committed artefact must decode as UTF-8."""
+    try:
+        path.read_bytes().decode("utf-8")
+    except UnicodeDecodeError as exc:
+        pytest.fail(
+            f"{path.name} is not valid UTF-8 at byte {exc.start}: {exc.reason}. "
+            "Regenerate it with laura/schema/generate.sh (or generate.ps1)."
+        )
+
+
+def test_ontology_declares_every_schema_class():
+    """Every schema class should have an ``owl:Class`` in the committed ontology.
+
+    The generated artefacts drift silently — nothing imports them, so a schema
+    class added without a regeneration is invisible until someone reasons over
+    the ontology and finds a third of the lattice untyped.
+    """
+    owl = (GENERATED_DIR / "laura_ontology.owl").read_text(encoding="utf-8")
+    # gen-owl drops underscores, so Solenoid_Magnet becomes laura:SolenoidMagnet.
+    missing = [
+        name
+        for name in _schema_class_names()
+        if f"laura:{name.replace('_', '')} a owl:Class" not in owl
+    ]
+    assert not missing, (
+        "schema classes absent from laura/schema/generated/laura_ontology.owl: "
+        + ", ".join(sorted(missing))
+        + ". Regenerate with `bash laura/schema/generate.sh`."
+    )
