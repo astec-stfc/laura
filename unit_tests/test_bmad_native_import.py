@@ -841,9 +841,9 @@ def test_bmad_misalignments_survive_the_round_trip(tmp_path):
 
     for name in ("Q1", "B1", "S1", "C1", "M1"):
         for key in attributes:
-            assert after[name][key] == pytest.approx(before[name][key]), (
-                f"{name}[{key}]"
-            )
+            assert after[name][key] == pytest.approx(
+                before[name][key]
+            ), f"{name}[{key}]"
     # The bend's roll stays its own attribute, separate from the design plane.
     assert after["B1"]["ROLL"] == pytest.approx(0.033)
     assert after["B1"]["REF_TILT"] == pytest.approx(0.0)
@@ -913,9 +913,9 @@ def test_bmad_collimator_apertures_survive_the_round_trip(tmp_path):
 
     for name in ("R1", "E1"):
         for key in limits:
-            assert after[name][key] == pytest.approx(before[name][key]), (
-                f"{name}[{key}]"
-            )
+            assert after[name][key] == pytest.approx(
+                before[name][key]
+            ), f"{name}[{key}]"
     # Not merely self-consistent: these are the numbers the source file states.
     assert after["R1"]["X1_LIMIT"] == pytest.approx(0.01)
     assert after["R1"]["Y1_LIMIT"] == pytest.approx(0.02)

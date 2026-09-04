@@ -714,7 +714,9 @@ class Octupole_Magnet(MagneticElement):
 
 
 solenoidFields = {
-    "S" + str(no) + "L": (
+    "S"
+    + str(no)
+    + "L": (
         Union[float, str],
         Field(default=0, repr=False, json_schema_extra={"functional": True}),
     )

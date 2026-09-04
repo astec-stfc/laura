@@ -392,7 +392,9 @@ class UnitValue(np.ndarray):
         else:
             outputs = (None,) * ufunc.nout
         # call numpys implementation of __array_ufunc__
-        results = super().__array_ufunc__(ufunc, method, *args, **kwargs)  # pylint: disable=no-member
+        results = super().__array_ufunc__(
+            ufunc, method, *args, **kwargs
+        )  # pylint: disable=no-member
         # print(results)
         if results is NotImplemented:
             return NotImplemented
