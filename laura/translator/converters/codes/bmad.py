@@ -1017,17 +1017,20 @@ class BmadLatticeImporter(BaseModel):
                         },
                     }
                 elif etype == "Solenoid":
-                    bs_field = parameters.get(_native_keyword(mapped_type, "ks"), 0.0)
+                    # Bmad's `ks` is normalised [1/m] and LAURA's S0L is the
+                    # integrated normalised strength, so the length multiplies
+                    # in. (This used to read `bs_field`, which is tesla.)
+                    ks = parameters.get(_native_keyword(mapped_type, "ks"), 0.0)
                     elem_data = {
                         "hardware_type": mapped_type,
                         "magnetic": {
                             "length": length,
-                            "fields": {"S0L": bs_field * length},
+                            "fields": {"S0L": ks * length},
                         },
                     }
                 elif etype == "Sol_Quad":
                     k1 = _native_keyword(mapped_type, "k1l")
-                    bs_field = _native_keyword(mapped_type, "ks")
+                    ks = _native_keyword(mapped_type, "ks")
                     elem_data = {
                         "hardware_type": mapped_type,
                         "magnetic": {
@@ -1035,7 +1038,7 @@ class BmadLatticeImporter(BaseModel):
                             "k1l": self._symbol(nam.split(".", 1)[0], k1, length)
                             or parameters.get(k1, 0.0) * length,
                             "solenoid_fields": {
-                                "S0L": parameters.get(bs_field, 0.0) * length
+                                "S0L": parameters.get(ks, 0.0) * length
                             },
                         },
                     }

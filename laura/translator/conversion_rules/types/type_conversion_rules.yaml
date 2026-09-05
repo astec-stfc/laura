@@ -194,6 +194,41 @@ bmad:
   MatrixTransform: taylor
   ElectrostaticSeparator: elseparator
   Wakefield: drift
+pals:
+  Dipole: Bend
+  Quadrupole: Quadrupole
+  Sextupole: Sextupole
+  Octupole: Octupole
+  Solenoid: Solenoid
+  CombinedSolenoidQuadrupole: Solenoid
+  Drift: Drift
+  Wakefield: Drift
+  Marker: Marker
+  Diagnostic: Instrument
+  Beam_Position_Monitor: Instrument
+  Beam_Arrival_Monitor: Instrument
+  Bunch_Length_Monitor: Instrument
+  Screen: Instrument
+  Camera: Instrument
+  Photon_Monitor: Instrument
+  ChargeDiagnostic: Instrument
+  Wall_Current_Monitor: Instrument
+  Faraday_Cup_Monitor: Instrument
+  Integrated_Current_Transformer: Instrument
+  Aperture: Mask
+  Collimator: Mask
+  RFCavity: RFCavity
+  CrabCavity: CrabCavity
+  RFDeflectingCavity: CrabCavity
+  Horizontal_Corrector: Kicker
+  Vertical_Corrector: Kicker
+  Combined_Corrector: Kicker
+  Horizontal_AC_Dipole: ACKicker
+  Vertical_AC_Dipole: ACKicker
+  Wiggler: Wiggler
+  BeamBeam: BeamBeam
+  TwissMatch: Match
+  MatrixTransform: Taylor
 name:
   dia-bpm: beam_position_monitor
   dia-bam: beam_arrival_monitor

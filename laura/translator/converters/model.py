@@ -58,6 +58,21 @@ class MachineModelTranslator(MachineModel):
             for name, layout in self.lattices.items()
         }
 
+    def to_pals(self) -> Dict[str, str]:
+        """
+        Create one PALS document per machine layout.
+
+        Returns
+        -------
+        dict
+            Layout name -> the contents of a ``*.pals.yaml`` file, each holding
+            that layout's sections as the branches of one lattice.
+        """
+        return {
+            name: self._layout_translator(layout).to_pals(particle=self.particle)
+            for name, layout in self.lattices.items()
+        }
+
     def to_astra(self) -> Dict[str, Dict[str, str]]:
         model = {}
         for name, latt in self.lattices.items():

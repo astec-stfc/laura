@@ -81,6 +81,7 @@ type_conversion_rules_Genesis = LazyDict(lambda: type_conversion_rules["genesis"
 type_conversion_rules_Opal = LazyDict(lambda: type_conversion_rules["opal"])
 type_conversion_rules_Madx = LazyDict(lambda: type_conversion_rules["madx"])
 type_conversion_rules_Bmad = LazyDict(lambda: type_conversion_rules["bmad"])
+type_conversion_rules_Pals = LazyDict(lambda: type_conversion_rules["pals"])
 type_conversion_rules_Names = LazyDict(lambda: type_conversion_rules["name"])
 type_conversion_rules_aliases = LazyDict(lambda: type_conversion_rules["aliases"]["elegant"])
 

@@ -1,27 +1,29 @@
 from copy import deepcopy
 from typing import Union
-
-from pydantic import computed_field, model_validator
 from warnings import warn
-from .base import BaseElementTranslator
+
+import numpy as np
+from pydantic import computed_field, model_validator
+
 from laura.models.magnetic import (
-    MagneticElement,
     CombinedSolenoidQuadrupole_Magnet,
-    Solenoid_Magnet,
-    Dipole_Magnet,
-    Wiggler_Magnet,
-    NonLinearLens_Magnet,
     Corrector_Magnet,
+    Dipole_Magnet,
+    MagneticElement,
+    NonLinearLens_Magnet,
+    Solenoid_Magnet,
+    Wiggler_Magnet,
 )
 from laura.models.simulation import MagnetSimulationElement
-from ..utils.functions import _rotation_matrix, chop, expand_substitution
-import numpy as np
-from .codes.gpt import gpt_ccs
 from laura.translator.utils.fields import field
+
 from ..converters import (
     elements_Genesis,
     elements_Opal,
 )
+from ..utils.functions import _rotation_matrix, chop, expand_substitution
+from .base import BaseElementTranslator
+from .codes.gpt import gpt_ccs
 
 
 def add(x, y):
@@ -224,16 +226,18 @@ class MagnetTranslator(BaseElementTranslator):
             return self._format_bmad(parameters=parameters)
         parameters = self._bmad_parameters()
         strength = self.magnetic.ks
-        parameters["bs_field"] = (
+        parameters["ks"] = (
             f"{strength} / {self.magnetic.length}"
             if (
                 not self._resolve_functional
                 and self.is_functional(strength)
                 and self.magnetic.length
             )
-            else self.resolve(strength) / self.magnetic.length
-            if self.magnetic.length
-            else self.resolve(strength)
+            else (
+                self.resolve(strength) / self.magnetic.length
+                if self.magnetic.length
+                else self.resolve(strength)
+            )
         )
         return self._format_bmad(parameters=parameters)
 
@@ -429,7 +433,11 @@ class MagnetTranslator(BaseElementTranslator):
             String representation of the element for CSRTrack
         """
         z = self.physical.middle.z
-        s_comment = f"! quad{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
+        s_comment = (
+            f"! quad{n} s={self.physical.s:.6f}\n"
+            if self.physical.s is not None
+            else ""
+        )
         return (
             s_comment
             + """quadrupole{\nposition{rho="""
@@ -834,7 +842,11 @@ class DipoleTranslator(BaseElementTranslator):
         """
         z1 = self.physical.start.z
         z2 = self.physical.end.z
-        s_comment = f"! dipole{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
+        s_comment = (
+            f"! dipole{n} s={self.physical.s:.6f}\n"
+            if self.physical.s is not None
+            else ""
+        )
         return (
             s_comment
             + """dipole{\nposition{rho="""
@@ -878,9 +890,7 @@ class DipoleTranslator(BaseElementTranslator):
                 list(self.physical.global_rotation.model_dump().values()),
             )
             coord = self.ccs.gpt_coordinates(
-                relpos,
-                angle=self.magnetic.KnL(0),
-                tilt=self.magnetic.tilt
+                relpos, angle=self.magnetic.KnL(0), tilt=self.magnetic.tilt
             )
             new_ccs = self.new_ccs(self.ccs)
             b1 = np.round(
@@ -904,14 +914,20 @@ class DipoleTranslator(BaseElementTranslator):
             sectormagnet( "wcs", "bend1", rho, field, e1, e2, 0., 100., 0 ) ;
             """
             output = (
-                "ccs( \"" + self.ccs.name + "\", " + coord + ", \"" + new_ccs.name + "\");\n"
+                'ccs( "'
+                + self.ccs.name
+                + '", '
+                + coord
+                + ', "'
+                + new_ccs.name
+                + '");\n'
             )
             output += (
                 'sectormagnet("'
                 + self.ccs.name
-                + '", \"'
+                + '", "'
                 + new_ccs.name
-                + "\", "
+                + '", '
                 + str(abs(self.magnetic.rho))
                 + ", "
                 + str(abs(field))
@@ -1070,20 +1086,20 @@ class SolenoidTranslator(BaseElementTranslator):
         parameters = self._bmad_parameters()
         strength = self.magnetic.ks
         if self.magnetic.length:
-            parameters["bs_field"] = (
+            parameters["ks"] = (
                 f"{strength} / {self.magnetic.length}"
                 if not self._resolve_functional and self.is_functional(strength)
                 else self.resolve(strength) / self.magnetic.length
             )
         else:
-            parameters["bs_field"] = self.resolve(strength)
+            parameters["ks"] = self.resolve(strength)
         MagnetTranslator._add_bmad_magnetic_field(
             self,
             parameters,
-            field_scale=parameters["bs_field"],
+            field_scale=parameters["ks"],
             kind="bs",
             n=0,
-            strength_key="bs_field",
+            strength_key="ks",
         )
         return self._format_bmad(parameters=parameters)
 
@@ -1323,10 +1339,10 @@ class WigglerTranslator(BaseElementTranslator):
         keys = []
         for key, value in self.full_dump().items():
             if (
-                    not key == "name"
-                    and not key == "type"
-                    and not key == "commandtype"
-                    and self._convertKeyword_Genesis(key) in elements_Genesis[etype]
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convertKeyword_Genesis(key) in elements_Genesis[etype]
             ):
                 if value is not None:
                     key = self._convertKeyword_Genesis(key)
@@ -1335,11 +1351,10 @@ class WigglerTranslator(BaseElementTranslator):
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
-                        string += key + " = " + str(value) + ', '
+                        string += key + " = " + str(value) + ", "
                     keys.append(key)
         wholestring += string[:-2] + "};\n"
         return wholestring
-
 
 
 class CorrectorTranslator(BaseElementTranslator):

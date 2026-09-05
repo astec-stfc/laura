@@ -36,30 +36,10 @@ from ..converters.codes.gpt import gpt_ccs
 from ..utils.bmad import bmad_misalignment
 from ..utils.fields import field
 from ..utils.functions import checkValue, expand_substitution, sanitize_string
+from ..utils.pals import pals_element_body
 
 _ASTRA_ROTATION_SIGN = {"x": -1.0, "y": -1.0, "z": 1.0}
-"""Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family.
-
-ASTRA names these for the plane and then spells out the axis -- "rotation
-angle of the quadrupole in the x-z plane, i.e. around the y-axis" -- so the
-pairing with LAURA's ``x_rot``/``y_rot``/``z_rot``, which name the plane too,
-is name for name.  The signs are not: LAURA's ``Ry`` factor turns the
-opposite way to an ordinary right-handed one, so the two transverse angles
-are negated and the roll is not.
-
-Measured against ASTRA itself rather than read off the manual, with a 0.5 m
-k=2 quadrupole at 1 GeV and a 1 m drift after it: ``Q_xrot = +0.05`` puts the
-beam at x = -0.4503 mm, ``Q_yrot = +0.05`` at y = +1.650 mm, and a
-``Q_zrot = +0.3`` with the beam entering at x = +1 mm sends it to
-y = -0.707 mm.  Bmad reproduces all three to within its differing fringe
-model (-0.4464 mm, +1.7105 mm, -0.7071 mm), and Bmad's own pairing with
-LAURA is fixed by the floor-angle matrix conversion in
-:func:`~laura.translator.utils.bmad.angles.bmad_floor_angles_to_laura`.
-
-This stays here rather than moving to ``utils/bmad`` with the rest: it is
-the ASTRA convention, and the only reason it was ever written next to the
-Bmad one is that the two were measured in the same sitting.
-"""
+"""Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family."""
 
 
 class BaseElementTranslator(PhysicalBaseElement):
@@ -1379,6 +1359,19 @@ class BaseElementTranslator(PhysicalBaseElement):
             String representation of the element for Bmad
         """
         return self._format_bmad()
+
+    def to_pals(self) -> Dict[str, Any]:
+        """
+        Generate the PALS facility entry for this element.
+
+        Returns
+        -------
+        dict
+            ``{name: body}``, where the body holds the element's PALS ``kind``,
+            its ``length`` and its parameter groups.
+        """
+        self.start_write()
+        return {self.name: pals_element_body(self)}
 
     def _write_ASTRA_dictionary(self, d: dict, n: int | None = 1) -> str:
         """

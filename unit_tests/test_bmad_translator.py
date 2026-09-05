@@ -197,7 +197,7 @@ def test_bmad_solenoid_generalized_gradient_uses_zero_harmonic(tmp_path):
     text = _bmad(solenoid, tmp_path)
     assert "field_calc = fieldmap" in text
     assert "gen_gradients = call::solenoid.bmad" in text
-    assert "bs_field =" not in text
+    assert "ks =" not in text
     sidecar = (tmp_path / "solenoid.bmad").read_text()
     assert "field_scale = 4" in sidecar
     assert "curve = { kind = bs, n = 0" in sidecar
@@ -249,8 +249,10 @@ def test_bmad_special_element_conversions():
             "solenoid_fields": {"S0L": 0.8},
         },
     )
-    assert "bs_field = 0.4" in _bmad(solenoid)
-    assert "SQ: sol_quad, l = 2.0, k1 = 0.3, bs_field = 0.4" in _bmad(sol_quad)
+    # `ks`, Bmad's normalised strength, and not the tesla-valued `bs_field`:
+    # LAURA's S0L is normalised, so the two differ by the rigidity.
+    assert "ks = 0.4" in _bmad(solenoid)
+    assert "SQ: sol_quad, l = 2.0, k1 = 0.3, ks = 0.4" in _bmad(sol_quad)
 
     cavity = RFCavity(
         name="C1",

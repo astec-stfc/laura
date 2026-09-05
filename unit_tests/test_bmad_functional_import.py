@@ -31,7 +31,7 @@ def test_bmad_conversion_rules_are_loaded():
     assert _switch_dict()["rbend"] == "Dipole"
     assert _switch_dict()["match"] == "MatrixTransform"
     assert _native_keyword("RFCavity", "frequency") == "RF_FREQUENCY"
-    assert "bs_field" in elements_Bmad["sol_quad"]
+    assert "ks" in elements_Bmad["sol_quad"]
     translated = translate_elements([MatrixTransform(name="map", machine_area="test")])[
         "map"
     ]
@@ -269,7 +269,7 @@ def test_bmad_additional_element_mappings():
                     {"E_FIELD": 5.0, "HKICK": 3.0, "VKICK": 4.0},
                     {"_VEC0": np.arange(6), "_MAT6": np.eye(6)},
                     {"_TAYLOR": identity_taylor, "_SPIN_TAYLOR": identity_spin},
-                    {"K1": 0.3, "BS_FIELD": 0.4},
+                    {"K1": 0.3, "KS": 0.4},
                     {},
                     {},
                     {},

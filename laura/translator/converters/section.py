@@ -34,6 +34,7 @@ from ..utils.functions import (
     sanitize_string,
     tw_cavity_energy_gain,
 )
+from ..utils.pals import PalsBeamLine, pals_document, pals_safe_names
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
@@ -47,6 +48,7 @@ from .codes import (
     gpt_unsupported,
     ocelot_unsupported,
     opal_unsupported,
+    pals_unsupported,
     wake_t_unsupported,
     xsuite_unsupported,
 )
@@ -54,6 +56,27 @@ from .codes.gpt import gpt_ccs, gpt_dtmint, gpt_Zminmax
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
 from .wake import WakefieldTranslator
+
+
+def _s_bounds(element) -> tuple:
+    """Arc-length positions of an element's entrance and exit faces.
+
+    ``physical.s`` is the middle of the element, and is only set once
+    ``resolve_positions`` has run; before that the trajectory, or failing that
+    the raw z of the middle, is the best available answer.
+    """
+    physical = element.physical
+    middle = physical.s
+    if middle is None:
+        trajectory = getattr(physical, "_trajectory", None)
+        middle = (
+            trajectory.s_at_xyz(physical.middle)
+            if trajectory is not None
+            else physical.middle.z
+        )
+    half_length = physical.length / 2
+    return middle - half_length, middle + half_length
+
 
 unsupported_elements = {
     "bmad": bmad_unsupported,
@@ -65,6 +88,7 @@ unsupported_elements = {
     "gpt": gpt_unsupported,
     "ocelot": ocelot_unsupported,
     "opal": opal_unsupported,
+    "pals": pals_unsupported,
     "wake_t": wake_t_unsupported,
     "xsuite": xsuite_unsupported,
 }
@@ -198,19 +222,7 @@ class SectionLatticeTranslator(SectionLattice):
                 initial_twiss = seed.simulation
 
         by_name = {element.name: element for element in all_elements}
-
-        def s_bounds(element):
-            physical = element.physical
-            middle = physical.s
-            if middle is None:
-                trajectory = getattr(physical, "_trajectory", None)
-                middle = (
-                    trajectory.s_at_xyz(physical.middle)
-                    if trajectory is not None
-                    else physical.middle.z
-                )
-            half_length = physical.length / 2
-            return middle - half_length, middle + half_length
+        s_bounds = _s_bounds
 
         def logical_corrector_part(element):
             parent = by_name.get(element.subelement)
@@ -374,6 +386,131 @@ class SectionLatticeTranslator(SectionLattice):
             f"{superpositions}use, {name}\n"
         )
 
+    def _pals_beamline(self, particle: str | None = None) -> PalsBeamLine:
+        """
+        Build this section's PALS branch: its definitions and its line.
+
+        Kept apart from :meth:`to_pals` because a PALS document holds a whole
+        machine, so a layout writes one branch per section into a single
+        document rather than one document per section..
+
+        Parameters
+        ----------
+        particle: str | None
+            Reference species for the branch.
+
+        Returns
+        -------
+        PalsBeamLine
+            The branch, ready for
+            :func:`~laura.translator.utils.pals.pals_document`.
+        """
+        self._check_elements_supported("pals")
+        all_elements = list(self.elements.elements.values())
+        ordered_elements = self._get_all_elements()
+        by_name = {element.name: element for element in all_elements}
+
+        initial_twiss = None
+        begin_name = None
+        if ordered_elements and ordered_elements[0].hardware_type == "TwissMatch":
+            seed = ordered_elements[0]
+            initial_twiss = seed.simulation
+            begin_name = seed.name
+            ordered_elements = ordered_elements[1:]
+
+        if not ordered_elements:
+            raise ValueError("A PALS branch needs at least one element")
+
+        def logical_corrector_part(element) -> bool:
+            parent = by_name.get(element.subelement)
+            return (
+                parent is not None
+                and parent.hardware_type == "Combined_Corrector"
+                and element.hardware_type
+                in {"Horizontal_Corrector", "Vertical_Corrector"}
+            )
+
+        dropped = sorted(
+            element.name
+            for element in ordered_elements
+            if element.is_subelement() and not logical_corrector_part(element)
+        )
+        if dropped:
+            warn(
+                f"PALS cannot superimpose one element on another, so {', '.join(dropped)} "
+                f"could not be written into section {self.name!r}. Everything else "
+                "keeps its position."
+            )
+
+        previous_end = None
+        for element in ordered_elements:
+            if element.is_subelement():
+                continue
+            start, end = _s_bounds(element)
+            if previous_end is not None and start < previous_end - 1e-12:
+                warn(
+                    f"LAURA elements {element.name!r} and the one before it overlap; "
+                    "PALS positions an element by the lengths ahead of it, so the "
+                    "exported branch places them end to end and is longer than the "
+                    "section it came from."
+                )
+            previous_end = end
+
+        section = self.model_copy(
+            update={"order": [element.name for element in ordered_elements]}
+        ).createDrifts(
+            csr_enable=self.csr_enable,
+            lsc_enable=self.lsc_enable,
+            lsc_bins=self.lsc_bins,
+            keep_diagnostic_length=True,
+        )
+        elements = translate_elements(
+            section.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        start = max(_s_bounds(ordered_elements[0])[0], 0.0)
+
+        renames = pals_safe_names(
+            [*elements, self.name, *([begin_name] if begin_name else [])]
+        )
+        definitions: Dict[str, Any] = {}
+        line: list = []
+        for name, translator in elements.items():
+            translator.name = renames.get(name, name)
+            definitions.update(translator.to_pals())
+            line.append(translator.name)
+
+        geometry = getattr(self.geometry, "value", self.geometry) or "open"
+        return PalsBeamLine(
+            name=renames.get(self.name, self.name),
+            definitions=definitions,
+            line=line,
+            periodic=str(geometry).lower() == "closed",
+            particle=particle,
+            energy=self.reference_energy,
+            twiss=initial_twiss,
+            begin_name=renames.get(begin_name, begin_name),
+            s_position=start,
+        )
+
+    def to_pals(self, particle: str | None = None) -> str:
+        """
+        Create a PALS document holding this section as a single-branch lattice.
+
+        Parameters
+        ----------
+        particle: str | None
+            Reference species for the branch.
+
+        Returns
+        -------
+        str
+            The contents of a ``*.pals.yaml`` file.
+        """
+        beamline = self._pals_beamline(particle=particle)
+        return pals_document([beamline], f"{beamline.name}_lattice")
+
     def to_astra(self) -> str:
         """
         Create an ASTRA-compatible input file based on the lattice information and
@@ -414,9 +551,9 @@ class SectionLatticeTranslator(SectionLattice):
                     == key
                 ):
                     if key not in written:
-                        element_headers[
-                            key
-                        ] += f"{section_header_text_ASTRA[key]} = True\n"
+                        element_headers[key] += (
+                            f"{section_header_text_ASTRA[key]} = True\n"
+                        )
                         written.append(key)
                     element_headers[key] += e.to_astra(n=count)
                     if key == "&APERTURE":
@@ -442,9 +579,9 @@ class SectionLatticeTranslator(SectionLattice):
                             directory=e.directory,
                         )
                         if "&WAKE" not in written:
-                            element_headers[
-                                "&WAKE"
-                            ] += f"{section_header_text_ASTRA['&WAKE']} = True\n"
+                            element_headers["&WAKE"] += (
+                                f"{section_header_text_ASTRA['&WAKE']} = True\n"
+                            )
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += e.cavity.n_cells

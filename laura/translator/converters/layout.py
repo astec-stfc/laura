@@ -5,6 +5,7 @@ from laura.models.simulation import TwissMatchSimulationElement
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
 from ..utils.functions import elegant_functional_definitions, sanitize_string
+from ..utils.pals import pals_document
 
 if TYPE_CHECKING:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
@@ -56,6 +57,31 @@ class MachineLayoutTranslator(MachineLayout):
             )
             for section in self.sections.values()
         }
+
+    def to_pals(self, particle: str | None = None) -> str:
+        """
+        Create one PALS document holding the whole layout.
+
+        Unlike the other exporters this does not write a file per section: a
+        PALS ``Lattice`` is a set of branches, which is exactly what a layout's
+        sections are, so they all belong in one document.
+
+        Parameters
+        ----------
+        particle: str | None
+            Reference species, if the layout does not name one itself.
+
+        Returns
+        -------
+        str
+            The contents of a ``*.pals.yaml`` file.
+        """
+        particle = self.particle or particle
+        beamlines = [
+            self._section_translator(section)._pals_beamline(particle=particle)
+            for section in self.sections.values()
+        ]
+        return pals_document(beamlines, self.name)
 
     def to_astra(self) -> Dict[str, str]:
         lattices = {}

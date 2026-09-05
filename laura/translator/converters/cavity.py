@@ -129,9 +129,7 @@ class RFCavityTranslator(BaseElementTranslator):
         )
         voltage = parameters.get("voltage")
         if voltage is not None and self.structure_type == "TravellingWave":
-            factor = abs(
-                (self.get_cells() + 3.8) * self.cavity.cell_length * (1 / np.sqrt(2))
-            )
+            factor = self.travelling_wave_voltage_factor()
             parameters["voltage"] = (
                 f"({voltage}) * {factor}"
                 if not self._resolve_functional and self.is_functional(voltage)
@@ -688,6 +686,21 @@ class RFCavityTranslator(BaseElementTranslator):
                 wholestring += f", mode = {mode}"
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
+
+    def travelling_wave_voltage_factor(self) -> float:
+        """
+        Factor turning a travelling-wave field amplitude into a voltage.
+
+        LAURA holds a travelling-wave cavity's ``field_amplitude`` as a
+        gradient-like number rather than as the voltage a standing-wave cavity's
+        amplitude is.
+
+        Returns
+        -------
+        float
+            The effective length [m] to multiply the amplitude by.
+        """
+        return abs((self.get_cells() + 3.8) * self.cavity.cell_length / np.sqrt(2))
 
     def get_cells(self) -> int:
         """

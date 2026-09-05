@@ -41,5 +41,6 @@ from .genesis import genesis_unsupported
 from .gpt import gpt_unsupported
 from .ocelot import ocelot_unsupported
 from .opal import opal_unsupported
+from .pals import pals_unsupported
 from .wake_t import wake_t_unsupported
 from .xsuite import xsuite_unsupported
