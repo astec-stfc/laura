@@ -1,8 +1,7 @@
 from typing import Dict, Any, TYPE_CHECKING
-from textwrap import wrap
 from laura.models.elementList import MachineModel
 from .converter import translate_elements
-from .layout import MachineLayoutTranslator
+from .layout import MachineLayoutTranslator, wrap_lattice_line
 from ..utils.functions import elegant_functional_definitions, sanitize_string
 
 if TYPE_CHECKING:
@@ -66,18 +65,13 @@ class MachineModelTranslator(MachineModel):
         """
         model = {}
         for name, latt in self.lattices.items():
-            model.update({name: MachineLayoutTranslator.from_layout(latt).to_rftrack(P_Q=P_Q, save=save)})
+            model.update(
+                {name: self._layout_translator(latt).to_rftrack(P_Q=P_Q, save=save)}
+            )
         return model
 
-    def format_string(seld, string: str):
-        fulltext = ""
-        for s in string.split(', '):
-            if len((fulltext + s).splitlines()[-1]) > 60:
-                fulltext += "&\n"
-            fulltext += s + ", "
-        return fulltext
-
     def to_elegant(self, string: str = "", charge: float = None) -> str:
+        lstring = ""
         for latt in self.lattices.values():
             for section in latt.sections.values():
                 section_with_drifts = section.createDrifts()
@@ -90,21 +84,17 @@ class MachineModelTranslator(MachineModel):
                     string += f"{section.name}_Q: CHARGE, TOTAL = {charge};\n"
 
                 for d in elem_dict.values():
-                    string += self.format_string(d.to_elegant())
+                    string += d.to_elegant()
 
-                string += f"\n{section.name}: LINE = ("
+                line = f"{section.name}: LINE = ("
                 if charge:
-                    string += f"{section.name}_Q, "
-                for elem in section_with_drifts.keys():
-                    string += f"{elem}, "
-                string = f"{string[:-2]})" + "\n\n\n"
+                    line += f"{section.name}_Q, "
+                line += ", ".join(section_with_drifts.keys()) + ")"
+                lstring += "\n" + wrap_lattice_line(line) + "\n\n\n"
 
         for name, latt in self.lattices.items():
-            lstring = f"{name}: LINE = ("
-            for l in list(latt.keys()):
-                lstring += f"{l}, "
-            lstring = f"{lstring[:-2]})" + "\n\n"
-        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
+            line = f"{name}: LINE = (" + ", ".join(latt.keys()) + ")"
+            lstring += wrap_lattice_line(line) + "\n\n"
         return elegant_functional_definitions(self.functional_definitions) + string + lstring
 
     def to_genesis(self, string: str = "") -> str:
@@ -117,19 +107,15 @@ class MachineModelTranslator(MachineModel):
                     directory=self.directory,
                 )
 
-                for d in elem_dict.values():
-                    string += d.to_genesis()
+                for i, d in enumerate(elem_dict.values()):
+                    string += d.to_genesis(index=i)
 
                 string += f"\n{section.name}: LINE = " + "{"
-                for elem in section_with_drifts.keys():
-                    string += f"{elem}, "
-                string = f"{string[:-2]}" + "}\n\n\n"
+                string += ", ".join(section_with_drifts.keys()) + "};\n\n\n"
 
         for name, latt in self.lattices.items():
             string += f"{name}: LINE = " + "{"
-            for l in list(latt.keys()):
-                string += f"{l}, "
-            string = f"{string[:-2]}" + "};\n\n"
+            string += ", ".join(latt.keys()) + "};\n\n"
         return string
 
     def to_ocelot(self, save=False) -> Dict[str, Dict[str, "MagneticLattice"]]:
@@ -165,8 +151,35 @@ class MachineModelTranslator(MachineModel):
             )
         return model
 
-    def to_madx(self, beam: Dict[str, Dict[str, Dict[str, Any]]]) -> Dict[str, Dict[str, str]]:
+    def to_madx(
+        self,
+        beam: Dict[str, Dict[str, Dict[str, Any]]] | None = None,
+        refer: str = "entry",
+    ) -> Dict[str, Dict[str, str]]:
+        """
+        Create one MAD-X ``SEQUENCE`` per section, grouped by layout.
+
+        Parameters
+        ----------
+        beam: dict
+            ``{layout_name: {section_name: beam_dict}}``, forwarded to each
+            layout's :meth:`MachineLayoutTranslator.to_madx`.
+        refer: str
+            Element reference position, forwarded to every layout.
+
+        Returns
+        -------
+        Dict[str, Dict[str, str]]
+            ``{sanitised_layout_name: {sanitised_section_name: sequence, ...}, ...}``
+        """
         model = {}
         for name, latt in self.lattices.items():
-            model.update({sanitize_string(name): self._layout_translator(latt).to_madx()})
+            b = beam.get(name) if isinstance(beam, dict) else None
+            model.update(
+                {
+                    sanitize_string(name): self._layout_translator(latt).to_madx(
+                        beam=b, refer=refer
+                    )
+                }
+            )
         return model

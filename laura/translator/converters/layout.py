@@ -10,6 +10,19 @@ if TYPE_CHECKING:
     from cheetah import Segment
 
 
+def wrap_lattice_line(line: str) -> str:
+    """
+    Wrap a single elegant ``LINE = (...)`` definition to 80 columns, using
+    elegant's ``&`` line-continuation marker.
+
+    Wrapping is per-definition: :func:`textwrap.wrap` collapses newlines, so
+    running it over several concatenated definitions would merge them.
+    """
+    return "&\n".join(
+        wrap(line, 80, break_long_words=False, break_on_hyphens=False)
+    )
+
+
 class MachineLayoutTranslator(MachineLayout):
     directory: str = "."
 
@@ -48,6 +61,7 @@ class MachineLayoutTranslator(MachineLayout):
         return lattices
 
     def to_elegant(self, string: str = "", charge: float = None) -> str:
+        lstring = ""
         for section in self.sections.values():
             section_with_drifts = section.createDrifts()
             elem_dict = translate_elements(
@@ -61,13 +75,11 @@ class MachineLayoutTranslator(MachineLayout):
             for d in elem_dict.values():
                 string += d.to_elegant()
 
-            lstring = f"\n{section.name}: LINE = ("
+            line = f"{section.name}: LINE = ("
             if charge:
-                lstring += f"{section.name}_Q, "
-            for elem in section_with_drifts.keys():
-                lstring += f"{elem}, "
-            lstring = f"{lstring[:-2]})" + "\n\n\n"
-        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
+                line += f"{section.name}_Q, "
+            line += ", ".join(section_with_drifts.keys()) + ")"
+            lstring += "\n" + wrap_lattice_line(line) + "\n\n\n"
         return elegant_functional_definitions(self.functional_definitions) + string + lstring
 
     def to_genesis(self, string: str = "") -> str:
@@ -120,9 +132,9 @@ class MachineLayoutTranslator(MachineLayout):
         for section in self.sections.values():
             lattices.update(
                 {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_rftrack(P_Q=P_Q, save=save)
+                    section.name: self._section_translator(section).to_rftrack(
+                        P_Q=P_Q, save=save
+                    )
                 }
             )
         return lattices
@@ -154,13 +166,35 @@ class MachineLayoutTranslator(MachineLayout):
             )
         return lattices
 
-    def to_madx(self, beam: Dict[str, Dict[str, Any]] | None = None) -> Dict[str, str]:
+    def to_madx(
+        self, beam: Dict[str, Dict[str, Any]] | None = None, refer: str = "entry"
+    ) -> Dict[str, str]:
+        """
+        Create one MAD-X ``SEQUENCE`` per section in this layout.
+
+        Parameters
+        ----------
+        beam: dict
+            ``{section_name: beam_dict}``. A section named here gets a ``BEAM``
+            declaration and a ``USE`` statement; sections absent from the
+            mapping (or all of them, when ``beam`` is None) get a bare sequence
+            definition. See :meth:`SectionLatticeTranslator.to_madx`.
+        refer: str
+            Element reference position, forwarded to every section.
+
+        Returns
+        -------
+        Dict[str, str]
+            ``{sanitised_section_name: sequence_definition, ...}``
+        """
         lattices = {}
         for section in self.sections.values():
-            b = beam[section.name] if isinstance(beam, Dict) and section.name in beam.keys() else None
+            b = beam.get(section.name) if isinstance(beam, dict) else None
             lattices.update(
                 {
-                    sanitize_string(section.name): self._section_translator(section).to_madx()
+                    sanitize_string(section.name): self._section_translator(
+                        section
+                    ).to_madx(beam=b, refer=refer)
                 }
             )
         return lattices

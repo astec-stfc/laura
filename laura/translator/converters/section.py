@@ -417,7 +417,7 @@ class SectionLatticeTranslator(SectionLattice):
         fulltext += "ENDTRACK;\n\n Quit;\n"
         return fulltext
 
-    def format_string(seld, string: str):
+    def format_string(self, string: str):
         fulltext = ""
         for s in string.strip().split(', '):
             if len((fulltext + s).splitlines()[-1]) > 60:
