@@ -710,15 +710,6 @@ solenoidFieldsData = create_model("solenoidFieldsData", **solenoidFields)
 class SolenoidFields(solenoidFieldsData, _SolenoidFieldsBase):
     """Magnetic multipoles model."""
 
-    # def __str__(self):
-    #     return " ".join(
-    #         [
-    #             "S" + str(i) + "L=" + getattr(self, "S" + str(i) + "L").__str__() + ""
-    #             for i in range(13)
-    #             if abs(getattr(self, "S" + str(i) + "L")) > 0
-    #         ]
-    #     )
-
     def __repr__(self):
         return "SolenoidFields(" + self.__str__() + ")"
 
@@ -786,9 +777,6 @@ class Solenoid_Magnet(_SolenoidMagnetBase, IgnoreExtra):
             self.ks = data["ks"]
         elif "field_amplitude" in data:
             self.ks = data["field_amplitude"] / self.length
-        # else:
-        #     self.ks = 0
-        # setattr(self.fields, 'S'+str(self.order)+'L', self.ks)
 
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
@@ -938,7 +926,6 @@ class Wiggler_Magnet(_WigglerMagnetBase, IgnoreExtra):
 
     def __init__(self, /, **data: Any) -> None:
         super().__init__(**data)
-        # setattr(self.fields, 'S'+str(self.order)+'L', self.ks)
 
     @property
     def normalized_strength(self) -> float:

@@ -158,35 +158,6 @@ class BaseLatticeModel(ModelBase):
                 self._functional_source,
             )
 
-    # def __add__(self, other: dict) -> dict:
-    #     copy = getattr(self, self._basename).copy()
-    #     copy.extend(other)
-    #     return copy
-
-    # def __radd__(self, other: dict) -> dict:
-    #     copy = other.copy()
-    #     copy.extend(getattr(self, self._basename))
-    #     return copy
-
-    # def __sub__(self, other):
-    #     copy = getattr(self, self._basename).copy()
-    #     if other in copy:
-    #         del copy[other]
-    #     return copy
-
-    # def append(self, other: Any) -> None:
-    #     if not isinstance(other, list):
-    #         other = [other]
-    #     super().__init__(name=self.name, elements=self + other)
-    #     setattr(self, self._basename, self + other)
-
-    # def remove(self, other: Any) -> None:
-    #     if other in getattr(self, self._basename):
-    #         copy = getattr(self, self._basename).copy()
-    #         copy.remove(other)
-    #         super().__init__(name=self.name, elements=copy)
-    #         getattr(self, self._basename).remove(other)
-
     def __str__(self):
         return str({k: v.names() for k, v in getattr(self, self._basename).items()})
 
@@ -285,16 +256,6 @@ class SectionLattice(BaseLatticeModel):
             )
         return elements
 
-    #
-    # @model_serializer(mode="plain")
-    # def serialize(self) -> dict:
-    #     data = self.__dict__.copy()
-    #     data['elements'] = {"elements": {}}
-    #     data['elements']["elements"] = {
-    #         k: v.model_dump() for k, v in self.elements.elements.items()
-    #     }
-    #     return data
-
     @property
     def names(self) -> List:
         """List of element names.
@@ -345,21 +306,6 @@ class SectionLattice(BaseLatticeModel):
         newelements = dict()
 
         elements = self._get_all_elements()
-
-        # if any([x != y for x, y in zip(elements[0].physical.start.model_dump(), [0, 0, 0])]):
-        #     machine_area = elements[0].machine_area
-        #     self.order.insert(0, "initial_marker")
-        #     self.elements.elements.update(
-        #         {
-        #             "initial_marker": PhysicalBaseElement(
-        #                 name="initial_marker",
-        #                 hardware_class="Marker",
-        #                 hardware_type="Marker",
-        #                 machine_area=machine_area,
-        #             )
-        #         }
-        #     )
-        #     elements = self._get_all_elements()
 
         for elem in elements:
             if not elem.subelement:
