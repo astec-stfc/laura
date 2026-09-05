@@ -1,14 +1,13 @@
 """Tests for laura.models.baseModels helpers and base classes not already
 exercised by unit_tests/test_base_models.py: functional_annotations'
 bend-angle marker, functional_references, ModelBase's numpy-safe __eq__
-fallback, IgnoreExtra field helpers, and NumpyModel/NumpyVectorModel."""
+fallback, and NumpyModel/NumpyVectorModel."""
 
 import numpy as np
 from pydantic import PrivateAttr
 
 from laura.models.baseModels import (
     ModelBase,
-    IgnoreExtra,
     NumpyVectorModel,
     functional_annotations,
     functional_references,
@@ -66,25 +65,6 @@ class TestModelBaseEqFallback:
         a = self._WithNumpyPrivate()
         assert hash(a) == hash(a)
         assert hash(a) == id(a)
-
-
-class TestIgnoreExtraFieldHelpers:
-    def test_create_field_class_calls_from_catap(self):
-        class FakeFieldClass:
-            @classmethod
-            def from_CATAP(cls, fields):
-                return "built"
-
-        ie = IgnoreExtra()
-        fields = {}
-        ie._create_field_class(fields, "myfield", FakeFieldClass)
-        assert fields["myfield"] == "built"
-
-    def test_create_field_collects_inputs(self):
-        ie = IgnoreExtra()
-        fields = {"a": 1, "b": 2}
-        ie._create_field(fields, "combined", ["a", "b"])
-        assert fields["combined"] == [1, 2]
 
 
 class _Vec3(NumpyVectorModel):
