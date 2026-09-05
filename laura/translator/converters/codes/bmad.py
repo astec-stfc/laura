@@ -195,6 +195,31 @@ def _aperture(parameters: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     }
 
 
+def _an_bn_multipoles(parameters: Dict[str, Any]) -> Dict[int, Dict[str, float]]:
+    """The ``an``/``bn`` content of an ordinary magnet, as integrated strengths.
+
+    Bmad's ``an``/``bn`` are defined with a ``1/n!``, so the factorial goes back
+    in here -- the same scaling the multipole-element branch applies, and the
+    inverse of what :meth:`BaseElementTranslator._add_bmad_multipoles` writes.
+
+    The ``An``/``Bn`` columns are the right ones to read. Tao has already folded
+    ``scale_multipoles`` into them, so a lattice that leaves it at Bmad's default
+    ``T`` reports the effective strength rather than the written coefficient. The
+    ``(w/Tilt)`` columns are deliberately *not* used: they rotate the components
+    by the element's ``tilt``, which LAURA stores separately and re-applies on
+    export, so reading those would apply the roll twice.
+    """
+    components: Dict[int, Dict[str, float]] = {}
+    for row in (parameters.get("_MULTIPOLES") or {}).get("data", []):
+        order = int(row["index"])
+        scale = math.factorial(order)
+        normal = (row.get("Bn") or 0.0) * scale
+        skew = (row.get("An") or 0.0) * scale
+        if normal or skew:
+            components[order] = {"normal": normal, "skew": skew}
+    return components
+
+
 def _native_keyword(hardware_type: str, laura_field: str) -> str:
     """Return the Tao/Bmad spelling for a LAURA field."""
     rules = keyword_conversion_rules_bmad["general"]
@@ -635,7 +660,13 @@ class BmadLatticeImporter(BaseModel):
                     elif etype == "Taylor":
                         attributes["_TAYLOR"] = tao.ele_taylor(element_id)
                         attributes["_SPIN_TAYLOR"] = tao.ele_spin_taylor(element_id)
-                    elif etype in _MULTIPOLE_TYPES:
+                    elif etype in _MULTIPOLE_TYPES or etype in magnetic_orders:
+                        # For the multipole keys this table *is* the element. For
+                        # an ordinary magnet it holds only the `an`/`bn` content,
+                        # which the element definition cannot carry -- Tao leaves
+                        # the main `k1`/`k3` out of it, so there is nothing to
+                        # double-count, and a magnet with no `an`/`bn` reports an
+                        # empty table rather than an error.
                         attributes["_MULTIPOLES"] = tao.ele_multipoles(element_id)
                     elif etype == "AC_Kicker":
                         attributes["_AC_KICKER"] = _ac_kicker_data(tao, element_id)
@@ -956,9 +987,43 @@ class BmadLatticeImporter(BaseModel):
                     ) or parameters.get("TILT")
                     if tilt:
                         kl["tilt"] = tilt
+                    magnetic = {"order": order, "length": length, **kl}
+                    poles = magnetic["multipoles"]
+                    for extra_order, components in _an_bn_multipoles(
+                        parameters
+                    ).items():
+                        pole = poles.setdefault(
+                            f"K{extra_order}L", {"order": extra_order}
+                        )
+                        for component, value in components.items():
+                            # `an`/`bn` are *additional* to the element's own
+                            # strength, so they add rather than replace. A
+                            # symbolic main strength has no number to add to, so
+                            # it wins and the extra term is dropped with a
+                            # warning rather than silently stringified.
+                            standing = pole.get(component) or 0.0
+                            if isinstance(standing, str):
+                                warn(
+                                    f"Bmad {etype} {nam!r} has both a functional "
+                                    f"K{extra_order} and a fixed "
+                                    f"{'a' if component == 'skew' else 'b'}"
+                                    f"{extra_order} = {value}; LAURA holds one "
+                                    "value per component, so the functional "
+                                    "definition was kept and the fixed term "
+                                    "dropped."
+                                )
+                                continue
+                            pole[component] = standing + value
+                    main = poles.get(f"K{order}L", {})
+                    if main.get("skew") and not main.get("normal"):
+                        # A magnet whose own order is pure skew -- `a1` and no
+                        # `k1`. `magnetic.skew` is how LAURA says that, and it
+                        # is what `KnL()` keys on, so without it the strength
+                        # would read back as zero.
+                        magnetic["skew"] = True
                     elem_data = {
                         "hardware_type": hardware_type,
-                        "magnetic": {"order": order, "length": length, **kl},
+                        "magnetic": magnetic,
                     }
                 elif etype in _CAVITY_TYPES:
                     hardware_type = mapped_type
@@ -1017,17 +1082,20 @@ class BmadLatticeImporter(BaseModel):
                         },
                     }
                 elif etype == "Solenoid":
-                    bs_field = parameters.get(_native_keyword(mapped_type, "ks"), 0.0)
+                    # Bmad's `ks` is normalised [1/m] and LAURA's S0L is the
+                    # integrated normalised strength, so the length multiplies
+                    # in. (This used to read `bs_field`, which is tesla.)
+                    ks = parameters.get(_native_keyword(mapped_type, "ks"), 0.0)
                     elem_data = {
                         "hardware_type": mapped_type,
                         "magnetic": {
                             "length": length,
-                            "fields": {"S0L": bs_field * length},
+                            "fields": {"S0L": ks * length},
                         },
                     }
                 elif etype == "Sol_Quad":
                     k1 = _native_keyword(mapped_type, "k1l")
-                    bs_field = _native_keyword(mapped_type, "ks")
+                    ks = _native_keyword(mapped_type, "ks")
                     elem_data = {
                         "hardware_type": mapped_type,
                         "magnetic": {
@@ -1035,7 +1103,7 @@ class BmadLatticeImporter(BaseModel):
                             "k1l": self._symbol(nam.split(".", 1)[0], k1, length)
                             or parameters.get(k1, 0.0) * length,
                             "solenoid_fields": {
-                                "S0L": parameters.get(bs_field, 0.0) * length
+                                "S0L": parameters.get(ks, 0.0) * length
                             },
                         },
                     }

@@ -1,3 +1,4 @@
+import math
 import os
 from typing import Any, Dict, Tuple
 from warnings import warn
@@ -59,6 +60,27 @@ LAURA is fixed by the floor-angle matrix conversion in
 This stays here rather than moving to ``utils/bmad`` with the rest: it is
 the ASTRA convention, and the only reason it was ever written next to the
 Bmad one is that the two were measured in the same sitting.
+"""
+
+_BMAD_MAIN_MULTIPOLE_ORDERS = {
+    "sbend": (0, 1),
+    "rbend": (0, 1),
+    "quadrupole": (1,),
+    "sextupole": (2,),
+    "octupole": (3,),
+    "decapole": (4,),
+}
+"""Multipole orders a Bmad element definition already expresses on its own.
+
+A bend writes ``angle`` and ``k1``, a quadrupole writes ``k1``, and so on; those
+orders must not be repeated in the ``an``/``bn`` list or the field is applied
+twice.  Everything else the element carries goes through
+:meth:`BaseElementTranslator._add_bmad_multipoles`.
+
+Types absent from this table get no ``an``/``bn`` at all.  That is deliberate
+for the correctors and the combined solenoid-quadrupole, whose strengths live in
+named fields (``hkick``/``vkick``, ``ks``) rather than in a multipole of a
+matching order, so there is no safe way to tell a duplicate from an addition.
 """
 
 
@@ -1316,7 +1338,53 @@ class BaseElementTranslator(PhysicalBaseElement):
             if exit_hgap != parameters["hgap"] or exit_fint != parameters["fint"]:
                 parameters["hgapx"] = exit_hgap
                 parameters["fintx"] = exit_fint
+        self._add_bmad_multipoles(parameters, etype)
         return parameters
+
+    def _add_bmad_multipoles(self, parameters: Dict[str, Any], etype: str) -> None:
+        """
+        Write the multipole content that Bmad's main attributes cannot hold.
+        """
+        main_orders = _BMAD_MAIN_MULTIPOLE_ORDERS.get(etype)
+        if main_orders is None:
+            return
+        magnetic = getattr(self, "magnetic", None)
+        multipoles = getattr(magnetic, "multipoles", None) if magnetic else None
+        if multipoles is None:
+            return
+        skewed = bool(getattr(magnetic, "skew", False))
+        length = getattr(magnetic, "length", 0) or 0
+
+        def _resolved(raw, divisor=1):
+            """A stored strength as Bmad wants it, symbolic form preserved."""
+            if not self._resolve_functional and self.is_functional(raw):
+                return raw if divisor == 1 else f"{raw} / {divisor}"
+            value = self.resolve(raw)
+            return value / divisor if divisor != 1 else value
+
+        moved = set()
+        if skewed:
+            for order in main_orders:
+                if f"k{order}" in parameters:
+                    parameters[f"k{order}"] = _resolved(
+                        multipoles.normal(order), length or 1
+                    )
+                    moved.add(order)
+
+        extra: Dict[str, Any] = {}
+        for order in range(5):
+            carried = "skew" if (skewed and order not in moved) else "normal"
+            scale = math.factorial(order)
+            for component, prefix in (("normal", "b"), ("skew", "a")):
+                if order in main_orders and component == carried:
+                    continue
+                value = _resolved(getattr(multipoles, component)(order), scale)
+                if not value:
+                    continue
+                extra[f"{prefix}{order}"] = value
+        if extra:
+            parameters.update(extra)
+            parameters["scale_multipoles"] = False
 
     def _bmad_common_parameters(self) -> Dict[str, Any]:
         """Return common Bmad attributes represented by this element."""

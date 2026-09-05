@@ -88,13 +88,13 @@ wiggler:
   n_period: integer
 solenoid:
   l: double
-  bs_field: double
+  ks: double
   field_calc: string
   gen_gradients: string
 sol_quad:
   l: double
   k1: double
-  bs_field: double
+  ks: double
 elseparator:
   l: double
   e_field: double

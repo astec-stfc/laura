@@ -48,10 +48,14 @@ wiggler:
   period: l_period
   num_periods: n_period
 solenoid:
-  ks: bs_field
+  # LAURA's ks (fields.S0L) is the *integrated normalised* strength, so once the
+  # length is divided out it is Bmad's normalised `ks` [1/m] and not `bs_field`,
+  # which Bmad holds in tesla. The two differ by the rigidity, so writing one
+  # into the other is wrong by a factor that grows with beam energy.
+  ks: ks
 combinedsolenoidquadrupole:
   k1l: k1
-  ks: bs_field
+  ks: ks
 electrostaticseparator:
   field_amplitude: e_field
   horizontal_kick: hkick

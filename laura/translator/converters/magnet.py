@@ -224,7 +224,10 @@ class MagnetTranslator(BaseElementTranslator):
             return self._format_bmad(parameters=parameters)
         parameters = self._bmad_parameters()
         strength = self.magnetic.ks
-        parameters["bs_field"] = (
+        # `ks` and not `bs_field`: LAURA's is the integrated *normalised*
+        # strength, so dividing the length out gives Bmad's normalised `ks`
+        # [1/m]. `bs_field` is tesla, and the two differ by the rigidity.
+        parameters["ks"] = (
             f"{strength} / {self.magnetic.length}"
             if (
                 not self._resolve_functional
@@ -1069,21 +1072,22 @@ class SolenoidTranslator(BaseElementTranslator):
         self.start_write()
         parameters = self._bmad_parameters()
         strength = self.magnetic.ks
+        # `ks` and not `bs_field` -- see the note in `SolenoidTranslator`.
         if self.magnetic.length:
-            parameters["bs_field"] = (
+            parameters["ks"] = (
                 f"{strength} / {self.magnetic.length}"
                 if not self._resolve_functional and self.is_functional(strength)
                 else self.resolve(strength) / self.magnetic.length
             )
         else:
-            parameters["bs_field"] = self.resolve(strength)
+            parameters["ks"] = self.resolve(strength)
         MagnetTranslator._add_bmad_magnetic_field(
             self,
             parameters,
-            field_scale=parameters["bs_field"],
+            field_scale=parameters["ks"],
             kind="bs",
             n=0,
-            strength_key="bs_field",
+            strength_key="ks",
         )
         return self._format_bmad(parameters=parameters)
 

@@ -70,14 +70,15 @@ def bmad_leading_drift(name: str, lead: float) -> tuple:
 
 
 _BMAD_PATCH_TOLERANCE = 1e-9
+_BMAD_ROLL_TOLERANCE = 1e-12
 
 
 def bmad_survey_frame(element, face: str) -> np.ndarray:
     """The orientation Bmad's own survey would report at one face of an element.
 
     For everything but a rolled bend this is just LAURA's frame. A bend whose
-    plane is rolled out of the horizontal is the exception, and it has to be
-    undone here rather than left to the caller.
+    plane is rolled out of the horizontal is the exception, because ``ref_tilt``
+    is self-closing.
     """
     physical = element.physical
     matrix = (
@@ -85,6 +86,9 @@ def bmad_survey_frame(element, face: str) -> np.ndarray:
     )
     roll = getattr(getattr(element, "magnetic", None), "tilt", None) or 0.0
     if not roll or is_flat_roll(roll) or abs(physical._physical_angle) < 1e-9:
+        return matrix
+    placed_roll = getattr(getattr(physical, "global_rotation", None), "psi", 0.0) or 0.0
+    if abs(placed_roll) <= _BMAD_ROLL_TOLERANCE:
         return matrix
     cosine, sine = np.cos(-roll), np.sin(-roll)
     return matrix @ np.array(
