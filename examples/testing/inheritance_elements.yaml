@@ -1,0 +1,103 @@
+# FODO cell — element inheritance.
+#
+# Four quadrupoles of the same physical type. Rather than repeating the
+# bore, length, calibration and controls block four times, each one names a
+# template with ``inherits_from`` and
+# states only what actually differs: where it sits and how hard it kicks.
+#
+# The merge happens on the raw dict before Pydantic parsing, key by key,
+# with the child always winning. Two rules matter:
+#
+#   * Position is NEVER inherited — not ``s``, ``middle``, ``datum``,
+#     ``reference_placement``, ``rotation``, ``survey`` or ``error``.
+#     Inheriting an element would silently stack every child on top of its parent.
+#     ``physical.length`` IS inherited: it is a property of the device.
+#
+#   * Identity and topology are never inherited either — ``name``, ``alias``,
+#     ``virtual_name``, ``subelement``, ``upstream``, ``downstream``.
+#
+# Templates live under the ``_templates`` key. They define, but are not
+# themselves machine elements: ``machine.elements`` below holds exactly the
+# six real elements, not the two templates. (In a directory of one-element
+# files, an ``_``-prefixed filename does the same job.)
+
+_templates:
+
+  # A 6 mm-bore quadrupole. Everything here is true of every one of them.
+  QUAD_TYPE_A:
+    name: QUAD_TYPE_A
+    hardware_class: Magnet
+    hardware_type: Quadrupole
+    machine_area: INJ
+    physical:
+      length: 0.1
+    magnetic:
+      length: 0.1
+      magnet_type: quadrupole
+    controls:
+      variables:
+        SETI:
+          identifier: "{name}:SETI"
+          protocol: EPICS
+          units: A
+
+  BPM_TYPE_A:
+    name: BPM_TYPE_A
+    hardware_class: Diagnostic
+    hardware_type: Beam_Position_Monitor
+    machine_area: INJ
+    physical:
+      length: 0.05
+
+
+GUN_CAVITY:
+  name: GUN_CAVITY
+  hardware_class: RF
+  hardware_type: RFCavity
+  machine_area: INJ
+  physical:
+    length: 0.2
+    s: 0.10
+
+# Focusing. Only the position and the strength are element-specific.
+INJ_QUAD_01:
+  name: INJ_QUAD_01
+  inherits_from: QUAD_TYPE_A
+  physical:
+    s: 0.50
+  magnetic:
+    k1l: 0.85
+
+INJ_QUAD_02:
+  name: INJ_QUAD_02
+  inherits_from: QUAD_TYPE_A
+  physical:
+    s: 1.00
+  magnetic:
+    k1l: -0.85          # defocusing
+
+INJ_QUAD_03:
+  name: INJ_QUAD_03
+  inherits_from: QUAD_TYPE_A
+  physical:
+    s: 1.50
+  magnetic:
+    k1l: 0.85
+
+# A child may override an inherited value outright — here a longer magnet of
+# otherwise the same type. `physical.length` and `magnetic.length` both move.
+INJ_QUAD_04:
+  name: INJ_QUAD_04
+  inherit: QUAD_TYPE_A
+  physical:
+    s: 2.00
+    length: 0.2
+  magnetic:
+    length: 0.2
+    k1l: -0.85
+
+INJ_BPM_01:
+  name: INJ_BPM_01
+  inherits_from: BPM_TYPE_A
+  physical:
+    s: 2.30

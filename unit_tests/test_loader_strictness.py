@@ -55,6 +55,28 @@ BAD_ELEMENTS = [
     pytest.param(INVALID, "validation_error", id="validation_error"),
 ]
 
+# Inheritance is resolved on the raw dict, one layer above
+# ``interpret_YAML_Element``, so its two failure reasons cannot join
+# BAD_ELEMENTS.  They meet the others at the file level, below.
+ORPHAN = {**GOOD_QUAD, "name": "ORPHAN", "inherits_from": "NOT_A_REAL_ELEMENT"}
+
+CYCLE = {
+    "A": {**GOOD_QUAD, "name": "A", "inherits_from": "B"},
+    "B": {**GOOD_QUAD, "name": "B", "inherits_from": "A"},
+}
+
+BAD_DOCUMENTS = [
+    pytest.param({"NOTYPE": NO_TYPE}, "no_hardware_type", id="no_hardware_type"),
+    pytest.param(
+        {"UNREG": UNREGISTERED},
+        "unregistered_hardware_type",
+        id="unregistered_hardware_type",
+    ),
+    pytest.param({"BADLEN": INVALID}, "validation_error", id="validation_error"),
+    pytest.param({"ORPHAN": ORPHAN}, "missing_parent", id="missing_parent"),
+    pytest.param(CYCLE, "inheritance_cycle", id="inheritance_cycle"),
+]
+
 
 def _write(directory, data, filename=None):
     path = directory / (filename or f"{data['name']}.yaml")
@@ -147,6 +169,27 @@ def test_combined_file_reports_every_failure(tmp_path):
         "unregistered_hardware_type",
         "validation_error",
     }
+
+
+@pytest.mark.parametrize("document,reason", BAD_DOCUMENTS)
+def test_every_reason_is_recorded_at_the_file_level(tmp_path, document, reason):
+    """Both failure channels, over the whole set of reasons — including the
+    two that inheritance added, which never reach ``interpret_YAML_Element``."""
+    combined = tmp_path / "summary.yaml"
+    combined.write_text(yaml.safe_dump(document))
+    errors = []
+    read_YAML_Combined_File(str(combined), errors=errors)
+    assert errors
+    assert {e.reason for e in errors} == {reason}
+
+
+@pytest.mark.parametrize("document,reason", BAD_DOCUMENTS)
+def test_every_reason_is_raised_under_strict(tmp_path, document, reason):
+    combined = tmp_path / "summary.yaml"
+    combined.write_text(yaml.safe_dump(document))
+    with pytest.raises(ElementLoadError) as exc:
+        read_YAML_Combined_File(str(combined), strict=True)
+    assert exc.value.reason == reason
 
 
 def test_combined_file_strict_raises_on_the_first_failure(tmp_path):

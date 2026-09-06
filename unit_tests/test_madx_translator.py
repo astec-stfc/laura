@@ -17,21 +17,15 @@ from laura.models.baseModels import (  # noqa: E402
     set_resolve_functional,
 )
 from laura.models.element import (  # noqa: E402
-    Combined_Corrector,
-    Dipole,
-    Horizontal_Corrector,
-    Quadrupole,
-    RFCavity,
-    Vertical_Corrector,
+    Quadrupole, Dipole, RFCavity,
+    Horizontal_Corrector, Vertical_Corrector, Combined_Corrector,
 )
-from laura.models.elementList import SectionLattice  # noqa: E402
 from laura.models.physical import PhysicalElement, Position  # noqa: E402
-from laura.translator.converters.cavity import RFCavityTranslator  # noqa: E402
+from laura.models.elementList import SectionLattice  # noqa: E402
 from laura.translator.converters.magnet import (  # noqa: E402
-    CorrectorTranslator,
-    DipoleTranslator,
-    MagnetTranslator,
+    MagnetTranslator, DipoleTranslator, CorrectorTranslator,
 )
+from laura.translator.converters.cavity import RFCavityTranslator  # noqa: E402
 from laura.translator.converters.section import SectionLatticeTranslator  # noqa: E402
 
 
@@ -46,8 +40,7 @@ def _reset_defs():
 
 def _quad(k1l):
     q = Quadrupole(
-        name="q1",
-        machine_area="S02",
+        name="q1", machine_area="S02",
         magnetic={"magnetic_length": 0.1, "k1l": k1l},
     )
     return MagnetTranslator.model_validate(q.model_dump())
@@ -63,10 +56,12 @@ def _dipole(**magnetic):
 def _cavity(field_amplitude, phase=0.0, structure="StandingWave"):
     cavity = {"phase": phase, "structure_Type": structure}
     if structure.lower() == "travellingwave":
+        # RFCavityElement requires a mode for travelling-wave structures. This
+        # went unnoticed while the check read `.lower ==` (comparing a bound
+        # method to a string, so never true); it is a real constraint.
         cavity |= {"mode_numerator": 2, "mode_denominator": 3}
     cav = RFCavity(
-        name="C1",
-        machine_area="L02",
+        name="C1", machine_area="L02",
         cavity=cavity,
         simulation={"field_amplitude": field_amplitude},
     )
@@ -113,9 +108,7 @@ class TestMadxElements:
         from laura.translator.converters.drift import DriftTranslator
 
         drift = Drift(
-            name="dr1",
-            machine_area="S",
-            hardware_class="Drift",
+            name="dr1", machine_area="S", hardware_class="Drift",
             physical={"length": 1.0},
         )
         dt = DriftTranslator.model_validate(drift.model_dump())
@@ -133,14 +126,10 @@ class TestMadxElements:
 class TestMadxCorrector:
     def test_horizontal_and_vertical_correctors(self):
         hc = Horizontal_Corrector(
-            name="hc1",
-            machine_area="S",
-            magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.02},
+            name="hc1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.02}
         )
         vc = Vertical_Corrector(
-            name="vc1",
-            machine_area="S",
-            magnetic={"magnetic_length": 0.1, "vertical_kick": 0.03},
+            name="vc1", machine_area="S", magnetic={"magnetic_length": 0.1, "vertical_kick": 0.03}
         )
         ht = CorrectorTranslator.model_validate(hc.model_dump())
         vt = CorrectorTranslator.model_validate(vc.model_dump())
@@ -149,13 +138,8 @@ class TestMadxCorrector:
 
     def test_combined_corrector_carries_both_planes(self):
         cc = Combined_Corrector(
-            name="cc1",
-            machine_area="S",
-            magnetic={
-                "magnetic_length": 0.1,
-                "horizontal_kick": 0.04,
-                "vertical_kick": 0.05,
-            },
+            name="cc1", machine_area="S",
+            magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.04, "vertical_kick": 0.05},
         )
         ct = CorrectorTranslator.model_validate(cc.model_dump())
         out = ct.to_madx()
@@ -166,27 +150,21 @@ class TestMadxCorrector:
     def test_symbolic_kick_is_deferred(self):
         set_functional_definitions({"hc_kick": 0.02})
         hc = Horizontal_Corrector(
-            name="hc1",
-            machine_area="S",
-            magnetic={"magnetic_length": 0.1, "horizontal_kick": "hc_kick"},
+            name="hc1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": "hc_kick"}
         )
         ht = CorrectorTranslator.model_validate(hc.model_dump())
-        assert "kick := hc_kick" in ht.to_madx()
+        assert 'kick := hc_kick' in ht.to_madx()
 
     def test_cpymad_tracks_correct_plane(self):
         pytest.importorskip("cpymad")
         from cpymad.madx import Madx
 
         hc = Horizontal_Corrector(
-            name="HC1",
-            machine_area="S",
-            magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.05},
+            name="HC1", machine_area="S", magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.05},
             physical=PhysicalElement(length=0.1, middle=Position(x=0, y=0, z=1.0)),
         )
         vc = Vertical_Corrector(
-            name="VC1",
-            machine_area="S",
-            magnetic={"magnetic_length": 0.1, "vertical_kick": 0.07},
+            name="VC1", machine_area="S", magnetic={"magnetic_length": 0.1, "vertical_kick": 0.07},
             physical=PhysicalElement(length=0.1, middle=Position(x=0, y=0, z=2.0)),
         )
         section = SectionLattice(name="S1", order=["HC1", "VC1"], elements=[hc, vc])
@@ -217,7 +195,6 @@ class TestMadxCavity:
 
     def test_travelling_wave_voltage_scaling(self):
         import numpy as np
-
         ct = _cavity(20e6, structure="TravellingWave")
         out = ct.to_madx()
         factor = abs((ct.get_cells() + 3.8) * ct.cavity.cell_length * (1 / np.sqrt(2)))
@@ -228,30 +205,24 @@ class TestMadxCavity:
 class TestMadxSection:
     def _line(self, elements, defs=None, resolve=False):
         section = SectionLattice(
-            name="S1",
-            order=[e.name for e in elements],
-            elements=elements,
-            functional_definitions=defs or {},
-            resolve_functional=resolve,
+            name="S1", order=[e.name for e in elements], elements=elements,
+            functional_definitions=defs or {}, resolve_functional=resolve,
         )
         return SectionLatticeTranslator.from_section(section).to_madx()
 
     def _magnets(self, k1l=0.3, k0l=0.1, volt=5e6):
         q = Quadrupole(
-            name="Q1",
-            machine_area="S",
+            name="Q1", machine_area="S",
             magnetic={"magnetic_length": 0.5, "k1l": k1l},
             physical=PhysicalElement(length=0.5, middle=Position(x=0, y=0, z=1.0)),
         )
         d = Dipole(
-            name="D1",
-            machine_area="S",
+            name="D1", machine_area="S",
             magnetic={"magnetic_length": 0.5, "k0l": k0l},
             physical=PhysicalElement(length=0.5, middle=Position(x=0, y=0, z=2.0)),
         )
         c = RFCavity(
-            name="C1",
-            machine_area="S",
+            name="C1", machine_area="S",
             cavity={"phase": 0.0, "structure_Type": "StandingWave"},
             simulation={"field_amplitude": volt},
             physical=PhysicalElement(length=1.0, middle=Position(x=0, y=0, z=3.0)),
@@ -297,7 +268,12 @@ class TestMadxSection:
         madx.beam(particle="electron", energy=1.0)
         madx.use(sequence="S1")
         tw = madx.twiss(betx=1, bety=1)
-        assert tw["s"][-1] == pytest.approx(2.7513000197245434)
+        # Depends on PhysicalElement.start/end, so it moves whenever the bend
+        # chord geometry does.  The previous value here (2.7513000197245434)
+        # was captured against a half-chord approximation that under-read every
+        # bend; see test_physical_bend_geometry.py for the exact relation this
+        # length now rests on.
+        assert tw["s"][-1] == pytest.approx(2.751570601951526)
 
     def test_resolved_mode_bakes_numbers_no_header(self):
         pytest.importorskip("cpymad")

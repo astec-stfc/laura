@@ -1,0 +1,95 @@
+# FODO cell — sequential (drift-based) placement.
+#
+# Not one element here states where it sits. There is no ``s``, no
+# ``middle``/``position``/``centre``, no ``reference_placement``. What fixes
+# the geometry is the section order in ``sequential_sections.yaml`` plus the
+# lengths below.
+#
+# Three things follow from that:
+#
+#   * The ``Drift`` elements are real elements, not gaps. LAURA keeps them
+#     (``machine["INJ_DRIFT_LONG"]`` resolves), unlike the importers, which
+#     absorb an imported drift's length into ``s`` and discard it. You named
+#     it, so you get to keep it.
+#
+#   * ``INJ_DRIFT_SHORT`` appears three times in the section order. A machine
+#     model holds one placement per name, so each occurrence is given its own
+#     copy — ``INJ_DRIFT_SHORT.1``, ``.2``, ``.3``. Reusing one drift over and
+#     over is the whole point of writing a lattice this way.
+#
+#   * The line is anchored at the origin. To start it somewhere else, put
+#     ``physical: {s: 12.0, s_point: start}`` on the first element; the rest
+#     accumulate from there. The anchor has to use ``s`` rather than xyz —
+#     turning a stated xyz back into an arc length needs the design
+#     trajectory, which does not exist until placement has run.
+#
+# Templates behave exactly as they do in ``inheritance_elements.yaml``:
+# position is never inherited, so every child of a template arrives
+# unpositioned, which is precisely what puts this section into sequential mode.
+
+_templates:
+
+  QUAD_TYPE_A:
+    name: QUAD_TYPE_A
+    hardware_class: Magnet
+    hardware_type: Quadrupole
+    machine_area: INJ
+    physical:
+      length: 0.1
+    magnetic:
+      length: 0.1
+      magnet_type: quadrupole
+
+
+GUN_CAVITY:
+  name: GUN_CAVITY
+  hardware_class: RF
+  hardware_type: RFCavity
+  machine_area: INJ
+  physical:
+    length: 0.2
+
+# Reused three times over. Each occurrence becomes its own element.
+INJ_DRIFT_SHORT:
+  name: INJ_DRIFT_SHORT
+  hardware_class: Drift
+  hardware_type: Drift
+  machine_area: INJ
+  physical:
+    length: 0.3
+
+INJ_DRIFT_LONG:
+  name: INJ_DRIFT_LONG
+  hardware_class: Drift
+  hardware_type: Drift
+  machine_area: INJ
+  physical:
+    length: 0.75
+
+# The quadrupoles state only their strength: type and length are inherited,
+# and position is worked out from the order.
+INJ_QUAD_01:
+  name: INJ_QUAD_01
+  inherits_from: QUAD_TYPE_A
+  magnetic:
+    k1l: 0.85
+
+INJ_QUAD_02:
+  name: INJ_QUAD_02
+  inherits_from: QUAD_TYPE_A
+  magnetic:
+    k1l: -0.85          # defocusing
+
+INJ_QUAD_03:
+  name: INJ_QUAD_03
+  inherits_from: QUAD_TYPE_A
+  magnetic:
+    k1l: 0.85
+
+INJ_BPM_01:
+  name: INJ_BPM_01
+  hardware_class: Diagnostic
+  hardware_type: Beam_Position_Monitor
+  machine_area: INJ
+  physical:
+    length: 0.05

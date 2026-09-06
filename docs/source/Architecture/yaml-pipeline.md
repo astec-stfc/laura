@@ -15,6 +15,13 @@ yaml.load()  →  Python dict
        │       Raises ValidationError on schema violations.
        │       Pass validate=True to any loader to enable.
        │
+       ├─ resolve_inheritance(dict, namespace)
+       │       If the dict names a parent via `inherits_from` / `inherit`,
+       │       merges the parent's raw dict underneath it. Recurses up the
+       │       chain. Position, identity and topology are never inherited.
+       │       No-op — and returns the same object — for the vast majority
+       │       of elements, which inherit nothing.
+       │
        ▼
 interpret_YAML_Element(dict)
        │
@@ -136,12 +143,189 @@ When `element_list` is a directory, LAURA does **not** parse every YAML file
 upfront. Instead:
 
 1. `glob` finds all `*.yaml` files recursively
-2. `fast_get_element_metadata()` extracts `name` and `machine_area` via **regex**
-   (reads first 2000 chars only — no YAML parsing)
+2. `fast_get_element_metadata()` extracts `name`, `machine_area` and
+   `inherits_from` via **regex** (reads first 2000 chars only — no YAML parsing)
 3. A `LazyElementDict` is created mapping `name → filepath`
 4. Full YAML parsing + model validation happens only on first access to that element
 
 This makes startup fast even for directories with hundreds of YAML files.
+
+Inheritance does not undo that. The dict also holds a `RawFileNamespace` over
+the same `name → filepath` map, which reads and caches a parent's **raw** dict
+on demand — so resolving a child costs one extra file read per distinct parent,
+not per child, and only for children that actually declare one.
+
+## Element Inheritance
+
+An element may name another element's definition and state only what differs:
+
+```yaml
+INJ_QUAD_01:
+  name: INJ_QUAD_01
+  inherits_from: QUAD_TYPE_A    # `inherit:` also accepted, matching PALS
+  physical: {s: 0.50}
+  magnetic: {k1l: 0.85}
+```
+
+See `examples/testing/inheritance_example.py` for a worked FODO cell.
+
+### Why it merges raw dicts, not models
+
+Resolution happens on the parsed-YAML dict, **before** `interpret_YAML_Element`.
+This is the whole reason the step sits where it does: a parent that has already
+been through Pydantic has every default filled in, so a merge of *models* cannot
+tell "the parent set `length: 1.0`" from "the parent never mentioned `length`
+and 1.0 is the default". On raw dicts, a key that is absent is absent.
+
+The merge is recursive and key-by-key, with the child winning. A non-dict value
+(a list of coefficients, say) is replaced outright rather than merged, and an
+explicit `null` in the child unsets the inherited value — distinct from omitting
+the key, which inherits it.
+
+Both sides are canonicalised to the model's own field names before merging.
+Without that, a parent writing `length:` and a child writing `magnetic_length:`
+would produce a dict carrying both — two spellings of one field — and
+`AliasChoices` order would hand the *parent* the win, silently discarding the
+child's override.
+
+### What is never inherited
+
+| Excluded | Why |
+|----------|-----|
+| `name`, `alias`, `virtual_name` | Identity. A child is a different element. |
+| `subelement`, `upstream`, `downstream` | Topology. Inherited neighbours are wrong neighbours. |
+| `physical.middle` / `s` / `s_point` / `datum` / `reference_placement` | Position. |
+| `physical.rotation`, `global_rotation` | Orientation, which is placement. |
+| `physical.survey`, `error`, `physical_angle` | Measured for one specific device. |
+
+Position is the one that matters. In PALS an element carries no position — the
+line places it — so inheriting a definition wholesale is safe. In LAURA position
+lives on the element, so a child that states no position of its own would land
+exactly on top of its parent: a lattice that is wrong but perfectly valid, and
+wrong in every export downstream. Inheriting `reference_placement` alongside a
+parent's `s` would instead trip `_check_placement_exclusivity`, and a failing
+element is a skipped one.
+
+`physical.length` **is** inherited — it is a property of the device, and it is
+most of what makes the compact form worth writing.
+
+### Templates
+
+A definition that exists only to be inherited from should not also become a
+machine element, appearing in the lattice and in every export. Two ways to say
+so, one per loading mode:
+
+| Mode | Template lives in |
+|------|-------------------|
+| Combined file | the top-level `_templates:` key |
+| Directory | any `_`-prefixed filename (`_quad_type_a.yaml`) |
+
+Both are resolvable as parents by name; neither reaches `machine.elements`.
+`collect_template_filenames()` requires an `_`-prefixed file to have both a
+`name:` and a `hardware_type:` before treating it as a template, which keeps
+controls `_schema.yaml` files out.
+
+### Failures and warnings
+
+Two new `ElementLoadError` reasons, on the same channel as every other load
+failure — recorded on `errors` / `machine.load_errors` by default, raised under
+`strict=True`:
+
+| Reason | Condition |
+|--------|-----------|
+| `missing_parent` | the named parent is not in the namespace |
+| `inheritance_cycle` | the chain revisits a name; the detail spells out `A -> B -> A` |
+
+An unresolvable parent is precisely the kind of silent loss the errors list
+exists for: without it the element still parses, just without its length, its
+strength or its controls.
+
+Two conditions warn instead, because the element is fine but something about it
+is quietly wrong:
+
+- **Parent keys the child's model cannot hold.** `baseElement` is
+  `extra="ignore"` (see below), so inheriting a `Magnet` block into a `Drift`
+  drops it without a word.
+- **An inherited literal identifier naming an ancestor.** A parent spelling its
+  PVs out as `Q1:SETI` rather than `{name}:SETI` hands every child the parent's
+  power supply. The whole ancestor chain is checked, not just the immediate
+  parent.
+
+## Sequential (drift-based) placement
+
+An element may state where it sits in one of three ways — global xyz
+(`middle` / `position` / `centre`), an arc length (`s` with `s_point`), or
+`reference_placement` against another element's frame. It may also state none
+of them, and let the section's `order` and the lengths in it do the work:
+
+```yaml
+sections:
+  S01:
+    elements: [Q1, D1, Q2, D2, Q3]   # order + lengths fix everything
+```
+
+This is how MAD-X, elegant and PALS define a lattice, hand-written `Drift`
+elements and all. Before it was supported such a section resolved with every
+element stacked on top of the others at the origin, silently.
+
+### How it resolves
+
+`MachineModel._resolve_all_positions` runs two steps per section ahead of the
+existing `resolve_positions`:
+
+```
+_number_sequential_repeats()               # one element per occurrence
+   └─ section.number_repeated_elements()
+section._resolve_sequential_placement()    # accumulate, write s / s_point
+section.resolve_positions()                # unchanged
+```
+
+The section is **normalised to `s`** rather than given a coordinate system of
+its own. From `resolve_positions` onwards a hand-written drift lattice and an
+imported MAD-X one take the identical, already-tested path — the same bend arc
+geometry, orientation inheritance and trajectory construction — and `s` is left
+on each element afterwards as a real value, so `machine["Q2"].physical.s`
+answers the obvious question.
+
+### Details that matter
+
+- **The trigger** is any element in the section awaiting a position
+  (`SectionLattice.is_sequential`). Sections where everything states a position
+  are untouched.
+- **Drifts stay elements.** The importers consume drifts, absorbing their
+  length into `s`; a hand-written one is kept, because the user named it and
+  will expect `machine["D1"]` to resolve. The exporters synthesise drifts from
+  *gaps*, so a kept drift leaves no gap and nothing is doubled up.
+- **Anchoring.** The first element that states an `s` anchors the line and
+  accumulation resumes from its exit; that is how "this line starts at s=12" is
+  written. An `s` stated mid-line re-anchors the rest, and warns if it disagrees
+  with what the elements before it accumulate to. The anchor has to use `s`:
+  converting a stated xyz back to an arc length needs the trajectory that does
+  not exist yet, so a section mixing sequential elements with xyz-positioned
+  ones still raises from `_detect_coordinate_system`.
+- **Repeated names are split.** Reusing one drift a dozen times over is
+  idiomatic, but a `MachineModel` stores one placement per name, so each
+  occurrence gets its own copy — `D1.1`, `D1.2`, … — matching what the
+  importers produce. The bare original is retired if no other section still
+  lists it.
+- **Section order is the tie-break.** Every `s` here is a sum of floats rather
+  than a number anyone typed, so `_resolve_s_coordinates` compares entrance
+  positions within a tolerance (`math.isclose`) instead of sorting on the raw
+  float. Without that, a zero-length marker immediately before a cavity could
+  come back on either side of it.
+- **`_position_stated`** is the flag the whole thing rests on, taken in
+  `PhysicalElement.model_post_init` *before* `middle` gets its origin default.
+  Afterwards an unpositioned element is indistinguishable from one deliberately
+  placed at the origin — by value and via `model_fields_set` alike, since the
+  default assignment re-runs the validators and marks `middle` set. It does not
+  survive a `model_dump()` round-trip, so placement runs on freshly-loaded
+  objects.
+
+### Interaction with inheritance
+
+Position is never inherited (see above), so every child of a shared template
+arrives unpositioned — which is exactly the sequential trigger. A template
+carrying `length` plus a section order is enough to define a whole lattice.
 
 ## IgnoreExtra Behaviour
 
@@ -164,8 +348,11 @@ declare, it is **silently dropped**. This means:
 - No error or warning is raised.
 - This is the most common cause of "missing data" bugs.
 
-Using `validate=True` on load can surface these issues before they reach
-Pydantic parsing.
+`validate=True` does **not** currently catch this. `validate_element_dict`
+checks against the document root of `laura_element.schema.json`, which sets
+`additionalProperties: true` — so an unknown key passes validation and is then
+dropped by Pydantic exactly as before. Tightening it would reject files that
+load today, so it is tracked as a known issue rather than fixed in passing.
 
 ## hardware_type vs hardware_class
 

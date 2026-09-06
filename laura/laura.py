@@ -24,6 +24,8 @@ import numpy as np
 from .Importers.YAML_Loader import (
     ElementLoadError,
     LazyElementDict,
+    RawFileNamespace,
+    collect_template_filenames,
     collect_unique_by_name,
     collect_unique_filenames,
     read_YAML_Combined_File,
@@ -181,10 +183,12 @@ class LAURA(MachineModel):
                 files = glob.glob(
                     os.path.abspath(el_list + "/**/*.yaml"), recursive=True
                 )
+                auxiliary = [f for f in files if os.path.basename(f).startswith("_")]
                 files = [f for f in files if not os.path.basename(f).startswith("_")]
                 filenames = collect_unique_filenames(
                     files, errors=self._load_errors, strict=self.strict
                 )
+                templates = collect_template_filenames(auxiliary)
                 # Create lazy dict instead of loading all!
                 if not self.eager_mode:
                     self.elements = LazyElementDict(
@@ -192,14 +196,19 @@ class LAURA(MachineModel):
                         exclude_keys=self.exclude_keys,
                         strict=self.strict,
                         errors=self._load_errors,
+                        templates=templates,
                     )
                 else:
+                    namespace = RawFileNamespace({**templates, **filenames})
+                    memo: Dict = {}
                     elems = [
                         read_YAML_Element_File(
                             fn,
                             exclude_keys=self.exclude_keys,
                             strict=self.strict,
                             errors=self._load_errors,
+                            namespace=namespace,
+                            memo=memo,
                         )
                         for fn in files
                     ]
