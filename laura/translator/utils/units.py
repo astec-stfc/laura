@@ -189,7 +189,7 @@ def unit_fraction(string):
                     substrings.append(substring)
                 substring = ""
                 if individe and inbracket:
-                    substrings = nom
+                    substrings = num
                 else:
                     substrings = denom
             else:
