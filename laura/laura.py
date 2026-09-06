@@ -4,29 +4,35 @@ LAURA Main Module
 The main class for handling a full particle accelerator lattice.
 """
 
+import glob
 import logging
 import os
-import glob
 import types
-from math import copysign
 from itertools import chain
-from typing import List, Dict, Any
-from pydantic import field_validator, model_validator
+from math import copysign
+from typing import Any, Dict, List
+
+from pydantic import PrivateAttr, field_validator, model_validator
 from yaml.constructor import Constructor
 
 _log = logging.getLogger("laura.machine")
 
-from .models.physical import PhysicalElement, Position
-from .models.elementList import MachineModel, baseElement, dot, chunks
-from .models.element import Drift
+import time
+
+import numpy as np
+
 from .Importers.YAML_Loader import (
+    ElementLoadError,
+    LazyElementDict,
+    collect_unique_by_name,
+    collect_unique_filenames,
     read_YAML_Combined_File,
     read_YAML_Element_File,
-    LazyElementDict,
-    fast_get_element_metadata,
 )
-import numpy as np
-import time
+from .models.element import Drift
+from .models.elementList import MachineModel, baseElement, chunks, dot
+from .models.physical import PhysicalElement, Position
+
 
 def flatten(xss):
     """Flatten a list of lists."""
@@ -75,6 +81,21 @@ class LAURA(MachineModel):
     eager_mode: bool = False
     """Whether to load all elements into memory immediately (True) or use lazy loading (False, default)"""
 
+    strict: bool = False
+    """Whether an element that fails to load raises
+    :class:`~laura.Importers.YAML_Loader.ElementLoadError` (True) or is skipped
+    (False, default). Errors can be inspected via :attr:`load_errors`."""
+
+    _load_errors: List[ElementLoadError] = PrivateAttr(default_factory=list)
+
+    @property
+    def load_errors(self) -> List[ElementLoadError]:
+        """
+        Elements the files describe that are not in this machine, as
+        :class:`~laura.Importers.YAML_Loader.ElementLoadError` records.
+        """
+        return self._load_errors
+
     @model_validator(mode="before")
     @classmethod
     def _resolve_lattice_package(cls, data: Any) -> Any:
@@ -104,6 +125,7 @@ class LAURA(MachineModel):
                 "with 'layout', 'section', and 'element_list' attributes"
             )
         return data
+
     """List of top-level keys to exclude when reading YAML files"""
 
     @field_validator("element_list", mode="before")
@@ -119,19 +141,17 @@ class LAURA(MachineModel):
             elif os.path.isdir(os.path.abspath(os.path.dirname(__file__) + "/" + v)):
                 return os.path.abspath(os.path.dirname(__file__) + "/" + v)
             else:
-                # Not resolvable relative to the cwd or the laura package;
-                # defer to model_post_init, which resolves the path relative
-                # to master_lattice (the environment-independent anchor the
-                # framework always supplies). Raising here would break any
-                # environment where laura is not installed beside the lattice
-                # files (e.g. laura in site-packages during testing).
                 return v
         else:
             return v
 
     def model_post_init(self, __context):
         el_list = self.element_list
-        if isinstance(el_list, str) and not os.path.exists(el_list) and self.master_lattice:
+        if (
+            isinstance(el_list, str)
+            and not os.path.exists(el_list)
+            and self.master_lattice
+        ):
             candidate = os.path.join(self.master_lattice, el_list)
             if os.path.exists(candidate):
                 el_list = candidate
@@ -148,31 +168,52 @@ class LAURA(MachineModel):
 
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
-                elems = read_YAML_Combined_File(el_list)
-                values = {y.name: y for y in elems if hasattr(y, 'name')}
+                elems = read_YAML_Combined_File(
+                    el_list, strict=self.strict, errors=self._load_errors
+                )
+                values = collect_unique_by_name(
+                    ((y.name, el_list, y) for y in elems if hasattr(y, "name")),
+                    errors=self._load_errors,
+                    strict=self.strict,
+                )
                 self.elements.update(values)
             elif os.path.isdir(el_list):
                 files = glob.glob(
                     os.path.abspath(el_list + "/**/*.yaml"), recursive=True
                 )
-                # Underscore-prefixed files (e.g. `_schema.yaml`, a shared
-                # `controls->schema` template) are auxiliary, not elements.
                 files = [f for f in files if not os.path.basename(f).startswith("_")]
-                filenames = {}
-                for fn in files:
-                    meta = fast_get_element_metadata(fn)
-                    filenames[meta["name"]] = fn
+                filenames = collect_unique_filenames(
+                    files, errors=self._load_errors, strict=self.strict
+                )
                 # Create lazy dict instead of loading all!
                 if not self.eager_mode:
-                    self.elements = LazyElementDict(filenames, exclude_keys=self.exclude_keys)
+                    self.elements = LazyElementDict(
+                        filenames,
+                        exclude_keys=self.exclude_keys,
+                        strict=self.strict,
+                        errors=self._load_errors,
+                    )
                 else:
-                    elems = [read_YAML_Element_File(fn, exclude_keys=self.exclude_keys) for fn in files]
-                    self.elements.update({y.name: y for y in elems if isinstance(y, baseElement)})
+                    elems = [
+                        read_YAML_Element_File(
+                            fn,
+                            exclude_keys=self.exclude_keys,
+                            strict=self.strict,
+                            errors=self._load_errors,
+                        )
+                        for fn in files
+                    ]
+                    self.elements.update(
+                        {y.name: y for y in elems if isinstance(y, baseElement)}
+                    )
         elif el_list:
-            values = {y.name: y for y in el_list if hasattr(y, 'name')}
+            values = collect_unique_by_name(
+                ((y.name, None, y) for y in el_list if hasattr(y, "name")),
+                errors=self._load_errors,
+                strict=self.strict,
+            )
             self.elements.update(values)
 
-        # Call super after populating elements so _build_layouts can work
         super().model_post_init(__context)
 
     def createDrifts(
@@ -198,9 +239,6 @@ class LAURA(MachineModel):
         for name in elements:
             elem = self.elements[name]
             if elem.is_subelement():
-                # Co-located with another element (e.g. a solenoid wrapped
-                # around a cavity) -- excluded from s/drift calculations,
-                # matching MachineLayout.createDrifts in elementList.py.
                 continue
             originalelements[name] = elem
             pos = elem.physical.start.array
@@ -221,7 +259,9 @@ class LAURA(MachineModel):
                     length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
                     vector = dot((d[1] - d[0]), [0, 0, 1])
                 except Exception as exc:
-                    _log.error("Drift calculation error near element '%s': %s", e[0], exc)
+                    _log.error(
+                        "Drift calculation error near element '%s': %s", e[0], exc
+                    )
                     _log.debug("Position data: %s", d)
                     raise exc
                 if round(length, 6) > 0:
@@ -281,13 +321,6 @@ class LAURA(MachineModel):
             s_pos += l
             if not drift:
                 elem_s[elem] = round(s_pos, 6)
-                # A combined corrector is placed as a single physical element,
-                # but get_horizontal_correctors()/get_vertical_correctors()
-                # hand back the names of its individual H/V sub-elements
-                # (separate control PVs at the same location) instead of the
-                # combined corrector's own name. Those sub-names never appear
-                # in the path's element list, so give them the parent's
-                # s-position too.
                 original = self.elements.get(elem)
                 for sub_attr in ("Horizontal_Corrector", "Vertical_Corrector"):
                     sub_name = getattr(original, sub_attr, None)
