@@ -106,7 +106,8 @@ Key methods and properties include:
 * ``createDrifts()``: Automatically inserts drift spaces between elements based on their physical positions. Drifts are named ``{section_name}_drift_{n}``.
 * ``get_s_values(as_dict, at_entrance, starting_s)``: Calculates the cumulative S-position values for elements along the beamline. This operates on the section *with drifts inserted*, so the returned sequence has no gaps.
 * ``get_resolved_s_values(...)``: As ``get_s_values``, but reading the ``s`` values already assigned by ``resolve_positions`` rather than re-accumulating lengths.
-* ``resolve_positions(element_registry)``: Resolves all three :ref:`positioning modes <positioning-modes>` -- ``reference_placement``, ``s``, and global ``middle`` -- into a consistent set of global coordinates, and builds the section's :py:class:`Trajectory <laura.models.trajectory.Trajectory>`. Called automatically when a :ref:`machine-model` is assembled.
+* ``resolve_positions(element_registry)``: Resolves the :ref:`positioning modes <positioning-modes>` -- ``reference_placement``, ``s``, and global ``middle`` -- into a consistent set of global coordinates, and builds the section's :py:class:`Trajectory <laura.models.trajectory.Trajectory>`. Called automatically when a :ref:`machine-model` is assembled.
+* ``is_sequential(element_registry)``: True if any element in the section is awaiting a position, which is the trigger for :ref:`sequential-placement`. Sequential sections are normalised to ``s`` *before* ``resolve_positions`` runs, so it never sees them.
 
 Example usage:
 
@@ -120,6 +121,43 @@ Example usage:
         elements=element_list
     )
     s_positions = section.get_s_values(as_dict=True, at_entrance=True)
+
+.. _sequential-placement:
+
+Sequential (drift-based) placement
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A section whose elements carry no position at all is placed by its ``order``: the lengths are
+accumulated along the line. This is the fourth of the
+:ref:`positioning modes <positioning-modes>`, and the only one that lives on the
+section rather than on the element.
+
+.. code-block:: yaml
+
+    sections:
+      INJ:
+        elements: [GUN, D1, Q1, D1, Q2] # lengths alone place these
+
+Resolution happens on the :py:class:`MachineModel <laura.models.elementList.MachineModel>`,
+before anything else looks at coordinates:
+
+1. **Repeated names are split.** Every section is checked with
+   :py:meth:`is_sequential <laura.models.elementList.SectionLattice.is_sequential>`; in those
+   that are, a name appearing more than once in ``order`` gets one copy per occurrence
+   (``D1.1``, ``D1.2``, ...), because the model stores one placement per name. The original
+   bare name is retired only if no other section still refers to it, and a warning lists the
+   renames.
+2. **The section is normalised to** ``s``. Each unpositioned element receives
+   ``s_point: "end"`` and the running total of the lengths. An element that states a
+   position anchors the line and accumulation resumes from its exit; a warning is raised in
+   case of disagreements.
+3. **Ordinary resolution runs.** ``resolve_positions`` then sees a section that is uniformly
+   ``s``-coordinate and needs no knowledge of the ordering at all.
+
+Drifts in a sequential section are written by hand and are ordinary elements, which is the
+mirror image of ``createDrifts()``: one derives positions from an explicit drift, the other
+derives drifts from explicit positions. A resolved machine can be written back out in this
+compact form with ``position_mode="sequential"`` -- see :ref:`interfaces`.
 
 .. _machine-layout:
 

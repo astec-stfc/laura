@@ -106,7 +106,7 @@ The full specification of an element position therefore consists of:
 * ``angle: float`` -- a simplified way of retrieving the bend angle in the X-Z plane.
 * ``error: ElementError(position=Position(x, y, z), rotation=Rotation(phi, psi, theta))`` -- see :py:class:`ElementError <laura.models.physical.ElementError>` (``ElementPositionError`` in the schema); the reference position for an error is the middle of the element.
 * ``survey: ElementSurvey(position=Position(x, y, z), rotation=Rotation(phi, psi, theta))`` -- see :py:class:`ElementSurvey <laura.models.physical.ElementSurvey>`.
-* ``reference_placement: ReferencePlacement`` and ``s: float`` -- alternatives to giving ``middle`` directly; see :ref:`positioning-modes`.
+* ``reference_placement: ReferencePlacement`` and ``s: float`` -- alternatives to giving ``middle`` directly. An element may also give no position at all, and be placed by its section's ``order``. See :ref:`positioning-modes`.
 
 **Example:** Creating elements with physical properties:
 
@@ -140,7 +140,9 @@ The full specification of an element position therefore consists of:
 Positioning modes
 ~~~~~~~~~~~~~~~~~
 
-An element's longitudinal placement can be expressed in three mutually exclusive ways.
+An element's longitudinal placement can be expressed in four ways: three that state a
+position explicitly (and mutually exclusively), and one -- sequential placement -- that
+states no position at all and lets the section's ``order`` supply it.
 Whichever is used, the lattice resolves all of them to a common set of global
 ``middle`` coordinates plus an arc-length ``s`` when a section is assembled
 (:py:meth:`SectionLattice.resolve_positions <laura.models.elementList.SectionLattice.resolve_positions>`),
@@ -199,8 +201,45 @@ may be given (or none, for zero offset):
         point: end
         s_offset: 1.0
 
+**Sequential placement** (no position given) -- the element states only its ``length``,
+and takes its place from where it sits in the section's ``order``. The line is a sequence
+of elements and drifts:
+
+.. code-block:: yaml
+
+    # elements.yaml -- no coordinates anywhere
+    GUN:
+      hardware_type: Gun
+      physical: {length: 0.25}
+    D1:
+      hardware_type: Drift
+      physical: {length: 0.5}
+    Q1:
+      hardware_type: Quadrupole
+      physical: {length: 0.1}
+
+.. code-block:: yaml
+
+    # _sections.yaml -- the order is what places them
+    sections:
+      INJ:
+        elements: [GUN, D1, Q1, D1, Q1]
+
+A section is treated as sequential as soon as *any* of its elements is awaiting a position
+(:py:meth:`SectionLattice.is_sequential <laura.models.elementList.SectionLattice.is_sequential>`);
+see :ref:`sequential-placement`. At the element level:
+
+* **A positioned element anchors the line.** Mixing is allowed here, unlike the other three
+  modes: an element that *does* state an ``s`` fixes the line at that point and accumulation
+  resumes from its exit. If the accumulated length disagrees with the stated value, the stated
+  value wins and a warning names both.
+* **A repeated name becomes several elements.** ``D1`` appearing twice in ``order`` is split
+  into ``D1.1`` and ``D1.2``, because a resolved machine stores one placement per name.  The
+  numbered names are what appear in the resolved model and in any re-export.
+
 Because a resolved element carries both ``middle`` and ``s``, a machine can be re-exported in
-any of the three forms regardless of how it was written; see :ref:`interfaces`.
+any of these forms regardless of how it was written -- including back into the compact
+sequential form. See :ref:`interfaces` for the ``position_mode`` argument that selects the form.
 
 .. note::
 

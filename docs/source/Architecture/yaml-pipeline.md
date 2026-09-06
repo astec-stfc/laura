@@ -327,6 +327,91 @@ Position is never inherited (see above), so every child of a shared template
 arrives unpositioned — which is exactly the sequential trigger. A template
 carrying `length` plus a section order is enough to define a whole lattice.
 
+## Writing the compact form back out
+
+Loading expands: a template is merged into its children, an order plus lengths
+becomes an `s` on every element. Exporting with the defaults writes that
+expansion, so a lattice written in two hundred compact lines comes back as two
+thousand explicit ones. `laura.Exporters.YAML` can invert each expansion
+instead, and the two are independent flags on the same call:
+
+```python
+export_machine_combined_file(
+    "out", machine,
+    position_mode="sequential",     # order + lengths, no positions
+    collapse_inheritance=True,      # inherits_from + only what differs
+)
+```
+
+Both are off by default. Each is a diff against what the loader would have
+produced, and each fails in the verbose direction: anything that cannot be
+shown to be redundant is written out in full.
+
+### `position_mode="sequential"`
+
+The inverse of the accumulator. An element that abuts its predecessor is
+written with no `s`, `s_point`, `middle` or `reference_placement` at all; the
+first element of a section may drop its position when the section starts at the
+origin. An element that does **not** abut keeps an explicit `s` at
+`s_point: start`, anchoring what follows it, and warns — a gap with no `Drift`
+element in it is spacing that exists nowhere else in the file, and dropping the
+position would close it.
+
+The geometry now lives in the section order, so the export is not reloadable
+without it. `export_machine` and `export_machine_combined_file` therefore write
+`_sections.yaml` alongside the elements in this mode (`write_sections=False` to
+suppress it), holding the orders *after* the repeated-name split, so `D1` listed
+three times comes back out as `[D1.1, D1.2, D1.3]` matching the elements beside
+it. The `_` prefix keeps a directory-mode reload from reading it as an element.
+
+### `collapse_inheritance=True`
+
+The inverse of `resolve_inheritance`. The parent named by `inherits_from` is
+resolved from `template_root` (defaulting to `machine.element_list`, as
+`schema_root` already does) and every key the child holds identically is
+dropped. The comparison is on raw values, so a parent and child that merely
+*look* different — a list against an `{x, y, z}` mapping — keep the key.
+`NON_INHERITED_FIELDS` is honoured in reverse: `name` and the position keys are
+kept however well they match, because dropping one would lose it outright
+rather than shorten it.
+
+The definitions inherited from travel with the export, whole chains of them:
+into the combined file's `_templates:` block, or, in directory mode, to
+`_<name>.yaml` at the export root (`copy_templates=False` to suppress). A
+parent that is itself an exported element is left where it is rather than
+duplicated. A parent that cannot be found warns and the element is written out
+expanded, with the now-dangling `inherits_from` dropped — the same failure
+behaviour as `collapse_schema` one level down.
+
+### Empty containers are pruned
+
+Unconditional, and it applies to every export. `exclude_defaults=True` drops a
+field equal to its default, but a *sub-model* whose own fields are all defaults
+is not equal to anything and dumps as `{}` — so every element used to carry
+`manufacturer: {}`, `simulation: {}`, `electrical: {}`,
+`physical: {error: {}, survey: {}}` and one entry per unused multipole order
+around the two lines that said what it was. `_prune_empty` drops them
+depth-first, along with any key a collapse emptied. Nothing is lost: an absent
+key is rebuilt from the same defaults the empty container stood in for.
+
+`0`, `0.0`, `False` and `""` are values someone may have written and are never
+empty by this test. Two things are pruned only under a rule, both established
+by measurement rather than by reading:
+
+- **`_MEANINGFUL_WHEN_EMPTY`** — `physical.middle` and its siblings are kept
+  even when empty. `Position(0, 0, 0)` *equals* its own default, so a resolved
+  element at the origin exports as `middle: {}`; drop it and the element
+  reloads **unpositioned**, which turns a globally positioned section into a
+  sequential one and raises on the mix. The same "an absent value is not the
+  same as a default one" trap as the `_position_stated` capture, reached from
+  the export side.
+- **`_MULTIPOLE_SLOTS`** — a multipole slot carrying nothing but its own
+  `order` (`K2L: {order: 2}`) is restating its key, and is dropped whole. The
+  container fills `order` in from the slot name for entries the file omits, so
+  that is lossless. Dropping `order` from a slot that *does* carry a strength
+  is not: a supplied entry keeps what the file gave it and would come back as
+  order 0.
+
 ## IgnoreExtra Behaviour
 
 All element models inherit from `IgnoreExtra`:

@@ -21,6 +21,8 @@ Four things this example is meant to show:
      happens when a stated position mid-line disagrees with the drifts.
   4. That the answer matches the same lattice written out with explicit ``s``
      -- including through a bend, where the two could easily disagree.
+  5. That the compact form can be written back out again -- no positions, and
+     inheritance intact -- and reloads to the machine it came from.
 
 Run from the repository root::
 
@@ -30,6 +32,7 @@ Run from the repository root::
 from __future__ import annotations
 
 import sys
+import tempfile
 import warnings
 from pathlib import Path
 
@@ -38,8 +41,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import numpy as np  # noqa: E402
+import yaml  # noqa: E402
 
 from laura import LAURA  # noqa: E402
+from laura.Exporters.YAML import export_machine_combined_file  # noqa: E402
 from laura.models.element import Dipole, Drift, Quadrupole  # noqa: E402
 from laura.models.elementList import MachineModel  # noqa: E402
 
@@ -245,6 +250,59 @@ def demo_oracle() -> None:
 """)
 
 
+def demo_export(machine: LAURA) -> None:
+    _sep("5. Writing the compact form back out")
+    print("""
+  Loading expands: the templates are merged into their children and the order
+  becomes an s on every element. Exporting with the defaults writes that
+  expansion out, which is not the file anyone wrote. Both expansions can be
+  inverted instead, and the two are independent flags on the same call.
+""")
+    with tempfile.TemporaryDirectory() as destination:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            export_machine_combined_file(
+                destination,
+                machine,
+                position_mode="sequential",
+                collapse_inheritance=True,
+            )
+
+        written = Path(destination) / "summary.yaml"
+        with open(written) as handle:
+            dumped = yaml.safe_load(handle)
+        print(f"  {written.name} and _sections.yaml written.\n")
+        print("  INJ_QUAD_01 as exported:")
+        for line in yaml.dump(dumped["INJ_QUAD_01"], sort_keys=True).splitlines():
+            print(f"      {line}")
+        print("""
+  No position at all -- the section order carries it -- and no hardware_type,
+  machine_area or length either: the template supplies those. What is left is
+  k1l, which is what makes this quadrupole itself, and the inherits_from that
+  says where the rest comes from. Five lines of source went out as eight.
+
+  Sequential mode moves the geometry off the elements and into the order, so
+  the order has to travel with them; that is what _sections.yaml is for, and
+  it holds the numbered names:
+""")
+        with open(Path(destination) / "_sections.yaml") as handle:
+            sections = yaml.safe_load(handle)
+        print(f"      {sections['sections']['INJ_LINE']['elements']}\n")
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            reloaded = LAURA(
+                element_list=str(written),
+                section=str(Path(destination) / "_sections.yaml"),
+                layout=str(LAYOUTS),
+            )
+        worst = max(
+            abs(reloaded[name].physical.s - element.physical.s)
+            for name, element in machine.elements.items()
+        )
+        print(f"  Reloaded and compared against the original: max |ds| = {worst:.1e} m")
+
+
 # -- main ----------------------------------------------------------------------
 
 
@@ -256,6 +314,7 @@ def main() -> None:
     demo_drifts(machine, order, messages)
     demo_anchoring()
     demo_oracle()
+    demo_export(machine)
 
     _sep("Summary")
     print("""
@@ -264,6 +323,8 @@ def main() -> None:
   * The first stated s anchors the line; a later one re-anchors and warns on
     disagreement; an xyz anchor is refused rather than guessed.
   * The result is identical to the same lattice written with explicit s.
+  * position_mode="sequential" and collapse_inheritance=True write the compact
+    form back out, and it reloads to the machine it came from.
 """)
 
 
