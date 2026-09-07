@@ -109,7 +109,6 @@ llrffieldnames = [
     "cavity_reverse",
     "cavity_probe",
 ]
-llrftimingsCATAPnames = ["kf", "kr", "cf", "cr", "cp"]
 cavitynames = ["LRRG", "HRRG", "L01", "CALIBRATION"]
 
 
@@ -131,8 +130,6 @@ class LLRFTimings(_LLRFTimingsBase):
 
 
 class Low_Level_RF_Element(_LowLevelRFElementBase, IgnoreExtra):
-    # one_record remains dynamic because CATAP payload keys depend on
-    # available cavity/channel combinations at runtime.
     one_record: LLRFChannelsBase
 
     def _create_LLRFChannels_Model(self, fields: dict):
