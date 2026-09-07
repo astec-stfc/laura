@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from wake_t import Beamline
     from xtrack import Line
 
+from ...models.element import Drift
 from ...models.elementList import SectionLattice
 from ...models.RF import WakefieldElement
 from ...models.simulation import WakefieldSimulationElement, DiagnosticSimulationElement
@@ -622,7 +623,7 @@ class SectionLatticeTranslator(SectionLattice):
         from ocelot.cpbd.transformations.second_order import SecondTM
         from ocelot.cpbd.transformations.kick import KickTM
         from ocelot.cpbd.transformations.runge_kutta import RungeKuttaTM
-        from ocelot.cpbd.elements import Octupole, Undulator
+        from ocelot.cpbd.elements import Octupole, Undulator, Drift as OcelotDrift
         self._check_elements_supported("ocelot")
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
@@ -645,7 +646,8 @@ class SectionLatticeTranslator(SectionLattice):
             oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
             gap = d.physical.length - oce_len
             if gap > 1e-9:
-                elements.append(Drift(l=gap, eid=f"{d.name}_len"))
+                print(f"Adding drift of length {gap} for element {d.name}")
+                elements.append(OcelotDrift(eid=f"{d.name}_drift", l=gap))
 
         maglat = MagneticLattice(elements, method=method)
         if save:
