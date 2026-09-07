@@ -146,7 +146,8 @@ before anything else looks at coordinates:
    that are, a name appearing more than once in ``order`` gets one copy per occurrence
    (``D1.1``, ``D1.2``, ...), because the model stores one placement per name. The original
    bare name is retired only if no other section still refers to it, and a warning lists the
-   renames.
+   renames. The split is undone on the way out again by a ``position_mode="sequential"``
+   export, which writes the repeated name as it was authored -- see :ref:`interfaces`.
 2. **The section is normalised to** ``s``. Each unpositioned element receives
    ``s_point: "end"`` and the running total of the lengths. An element that states a
    position anchors the line and accumulation resumes from its exit; a warning is raised in

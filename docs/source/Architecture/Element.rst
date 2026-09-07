@@ -235,7 +235,9 @@ see :ref:`sequential-placement`. At the element level:
   value wins and a warning names both.
 * **A repeated name becomes several elements.** ``D1`` appearing twice in ``order`` is split
   into ``D1.1`` and ``D1.2``, because a resolved machine stores one placement per name.  The
-  numbered names are what appear in the resolved model and in any re-export.
+  numbered names are what appear in the resolved model, and in a re-export in any mode that
+  writes positions.  A ``position_mode="sequential"`` export writes none, so it puts the
+  repetition back: one ``D1``, listed twice.
 
 Because a resolved element carries both ``middle`` and ``s``, a machine can be re-exported in
 any of these forms regardless of how it was written -- including back into the compact

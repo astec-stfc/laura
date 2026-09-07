@@ -13,6 +13,7 @@ from ..Importers.YAML_Loader import (
     INHERIT_KEYS,
     NON_INHERITED_FIELDS,
     RawFileNamespace,
+    _strip_non_inherited,
     collapse_controls_schema,
     collect_template_filenames,
     get_controls_schema_variables,
@@ -454,49 +455,99 @@ def _apply_position_mode(
     return dump
 
 
-def _iter_section_order(machine: MachineModel):
+def _repeat_signature(elem) -> dict:
+    """What has to match for two occurrences of a repeated name to collapse."""
+    return _strip_non_inherited(elem.model_dump(exclude_defaults=True))
+
+
+def _repeat_aliases(machine: MachineModel, position_mode: PositionMode) -> dict:
+    """``{numbered name: the name to write instead}`` for collapsible repeats.
+
+    The inverse of :meth:`SectionLattice.number_repeated_elements`: a name
+    written three times in a sequential order becomes three elements on load,
+    and writing them back as one keeps the repetition in the file.
+
+    Only in sequential mode, where the position lives in the order rather than
+    on the elements.
+    """
+    if position_mode != "sequential":
+        return {}
+    aliases: dict = {}
+    for section in machine.sections.values():
+        groups: dict = {}
+        for name in section.order:
+            original = section._repeat_origins.get(name)
+            elem = machine.elements.get(name)
+            if original is None or elem is None:
+                continue
+            groups.setdefault(original, []).append((name, _repeat_signature(elem)))
+        for original, members in groups.items():
+            if original in machine.elements:
+                continue
+            if any(signature != members[0][1] for _, signature in members):
+                warn(
+                    f"'{original}' was expanded into "
+                    f"{', '.join(name for name, _ in members)} on load and the copies "
+                    "no longer match each other, so they are written out separately "
+                    "rather than collapsed back into one repeated name."
+                )
+                continue
+            aliases.update({name: original for name, _ in members})
+    return aliases
+
+
+def _iter_section_order(machine: MachineModel, aliases: Optional[dict] = None):
     """Yield ``(name, elem, prev_name, prev_elem)`` in section order.
 
-    Each element appears at most once (first section occurrence wins).
-    Elements not referenced by any section are yielded last without a
-    predecessor.
+    Each element appears at most once (first section occurrence wins), under
+    the name ``aliases`` collapses it to where there is one (see
+    :func:`_repeat_aliases`).
     """
+    aliases = aliases or {}
     seen: set = set()
     for section in machine.sections.values():
         prev_name: Optional[str] = None
         prev_elem = None
         for name in section.order:
-            if name in seen:
-                continue
             elem = machine.elements.get(name)
             if elem is None:
                 continue
-            seen.add(name)
-            yield name, elem, prev_name, prev_elem
-            prev_name = name
+            out_name = aliases.get(name, name)
+            if out_name not in seen:
+                seen.add(out_name)
+                yield out_name, elem, prev_name, prev_elem
+            prev_name = out_name
             prev_elem = elem
     for name, elem in machine.elements.items():
-        if name not in seen and elem is not None:
+        if name not in seen and name not in aliases and elem is not None:
             yield name, elem, None, None
 
 
 def export_machine_sections(
-    path: str, machine: MachineModel, filename: str = "_sections.yaml"
+    path: str,
+    machine: MachineModel,
+    filename: str = "_sections.yaml",
+    aliases: Optional[dict] = None,
 ) -> None:
     """Write the section orders out beside the exported elements.
 
     Sequential placement keeps the geometry in the section order rather than on
     the elements, so an export in ``"sequential"`` mode is only reloadable
-    alongside the orders that produced it -- including the numbering a repeated
-    element was split into. The other position modes write the
-    geometry onto the elements themselves and do not depend on this.
+    alongside the orders that produced it.
 
-    The ``_`` prefix keep the file out of the element list when the
+    *aliases* (from :func:`_repeat_aliases`) puts a repeated name back where the
+    loader numbered it.
+
+    The ``_`` prefix keeps the file out of the element list when the
     export directory is loaded back.
     """
     os.makedirs(path, exist_ok=True)
+    aliases = aliases or {}
     sections = {
-        name: {"elements": list(section.order), "type": section.section_type}
+        name: {
+            "elements": [aliases.get(n, n) for n in section.order],
+            "type": section.section_type,
+        }
         for name, section in machine.sections.items()
     }
     with open(os.path.join(path, filename), "w") as handle:
@@ -657,13 +708,17 @@ def export_machine_combined_file(
         template_root = machine.element_list
     namespace = _template_namespace(template_root) if collapse_inheritance else None
 
+    aliases = _repeat_aliases(machine, position_mode)
+
     embedded_schemas = {}
     embedded_templates: dict = {}
     combined_yaml = {}
-    for name, elem, prev_name, prev_elem in _iter_section_order(machine):
+    for name, elem, prev_name, prev_elem in _iter_section_order(machine, aliases):
         dump = export_as_yaml(
             None, elem, position_mode, prev_name=prev_name, prev_ele=prev_elem
         )
+        if name != elem.name:  # a collapsed repeat, written under the original name
+            dump["name"] = name
         if collapse_schema:
             controls = dump.get("controls")
             if isinstance(controls, dict) and controls.get("schema"):
@@ -720,7 +775,7 @@ def export_machine_combined_file(
         yaml.dump(combined_yaml, yaml_file)
 
     if position_mode == "sequential" and write_sections:
-        export_machine_sections(path, machine)
+        export_machine_sections(path, machine, aliases=aliases)
 
 
 def export_machine(
@@ -789,12 +844,13 @@ def export_machine(
     ):
         template_root = machine.element_list
     namespace = _template_namespace(template_root) if collapse_inheritance else None
+    aliases = _repeat_aliases(machine, position_mode)
     copied_schemas = set()
     copied_templates = {name: None for name in machine.elements}
-    for name, elem, prev_name, prev_elem in _iter_section_order(machine):
+    for name, elem, prev_name, prev_elem in _iter_section_order(machine, aliases):
         directory = os.path.join(path, elem.subdirectory)
         os.makedirs(directory, exist_ok=True)
-        filename = os.path.join(directory, elem.name + ".yaml")
+        filename = os.path.join(directory, name + ".yaml")
         if overwrite or not os.path.isfile(filename):
             if verbose:
                 _log.debug("Exporting element '%s' to file '%s'", name, filename)
@@ -810,6 +866,8 @@ def export_machine(
                 template_root=template_root,
                 namespace=namespace,
             )
+            if name != elem.name:  # a collapsed repeat, written under the original name
+                dump["name"] = name
             with open(filename, "w") as yaml_file:
                 yaml.dump(dump, yaml_file)
             if collapse_schema and copy_schemas:
@@ -817,7 +875,7 @@ def export_machine(
             if collapse_inheritance and copy_templates:
                 _copy_templates(dump, namespace, path, copied_templates)
     if position_mode == "sequential" and write_sections:
-        export_machine_sections(path, machine)
+        export_machine_sections(path, machine, aliases=aliases)
 
 
 def export_elements(

@@ -282,8 +282,10 @@ def demo_export(machine: LAURA) -> None:
   says where the rest comes from. Five lines of source went out as eight.
 
   Sequential mode moves the geometry off the elements and into the order, so
-  the order has to travel with them; that is what _sections.yaml is for, and
-  it holds the numbered names:
+  the order has to travel with them; that is what _sections.yaml is for. The
+  numbering the load put on the repeated drift comes back off on the way out,
+  so what it holds is the order as it was written -- one INJ_DRIFT_SHORT
+  element, named three times:
 """)
         with open(Path(destination) / "_sections.yaml") as handle:
             sections = yaml.safe_load(handle)

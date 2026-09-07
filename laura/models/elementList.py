@@ -7,7 +7,14 @@ from typing import Any, Dict, List, Literal, Optional, Union
 from warnings import warn
 
 import numpy as np
-from pydantic import BaseModel, Field, PositiveInt, ValidationInfo, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    PositiveInt,
+    PrivateAttr,
+    ValidationInfo,
+    field_validator,
+)
 from yaml import safe_load
 
 from ..utils.naming import number_repeated_names
@@ -251,6 +258,11 @@ class SectionLattice(BaseLatticeModel):
     # TODO should we put this back in?
 
     _basename: str = "elements"
+
+    _repeat_origins: Dict[str, str] = PrivateAttr(default_factory=dict)
+    """``{numbered name: original name}`` for the copies
+    :meth:`number_repeated_elements` made, so an exporter can write the
+    repetition back out as it was authored rather than as it was expanded."""
 
     @field_validator("section_type", mode="before")
     @classmethod
@@ -510,7 +522,7 @@ class SectionLattice(BaseLatticeModel):
         ``D1.2``, ...).
 
         Returns ``{new name: original name}`` for the copies made
-        so the caller can retire originals nothing refers to any more.
+        so the caller can retire originals nothing refers to any more. 
         """
         numbered = number_repeated_names(self.order)
         if numbered == self.order:
@@ -528,6 +540,7 @@ class SectionLattice(BaseLatticeModel):
             self.elements.elements[new] = clone
             renamed[new] = old
         self.order = numbered
+        self._repeat_origins = renamed
         return renamed
 
     def _resolve_sequential_placement(self, element_registry: dict) -> bool:

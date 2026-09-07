@@ -12,8 +12,11 @@ import warnings
 
 import numpy as np
 import pytest
+import yaml
 from pydantic import ValidationError
 
+from laura import LAURA
+from laura.Exporters.YAML import export_machine_combined_file
 from laura.models.element import Dipole, Drift, Marker, Quadrupole
 from laura.models.elementList import MachineModel
 from laura.models.physical import PhysicalElement
@@ -280,6 +283,104 @@ class TestRepeatedNames:
         m, messages = caught([quad("Q1"), drift("D1", 0.5), quad("Q2")])
         assert m.sections["S"].order == ["Q1", "D1", "Q2"]
         assert messages == []
+
+
+# ---------------------------------------------------------------------------
+# and the numbering comes back off again on the way out
+# ---------------------------------------------------------------------------
+
+
+class TestRepeatsCollapseOnExport:
+    """The expansion is an artefact of holding one position per name, so a
+    sequential export -- which writes no positions at all -- puts the repeated
+    name back.  Otherwise the file that comes out is not the one anyone wrote.
+    """
+
+    ORDER = ["Q1", "D", "Q2", "D", "Q3", "D"]
+
+    def _fodo(self):
+        return caught(
+            [quad("Q1"), drift("D", 0.5), quad("Q2"), quad("Q3")], order=self.ORDER
+        )[0]
+
+    def _export(self, m, destination, **kwargs):
+        with warnings.catch_warnings(record=True) as records:
+            warnings.simplefilter("always")
+            export_machine_combined_file(
+                str(destination), m, position_mode="sequential", **kwargs
+            )
+        doc = yaml.safe_load((destination / "summary.yaml").open())
+        sections = yaml.safe_load((destination / "_sections.yaml").open())
+        return doc, sections["sections"]["S"]["elements"], [
+            str(r.message) for r in records
+        ]
+
+    def test_the_order_is_written_as_it_was_authored(self, tmp_path):
+        _, order, _ = self._export(self._fodo(), tmp_path)
+        assert order == self.ORDER
+
+    def test_the_repeated_element_is_written_once(self, tmp_path):
+        doc, _, _ = self._export(self._fodo(), tmp_path)
+        assert [name for name in doc if name.startswith("D")] == ["D"]
+        assert doc["D"]["name"] == "D"
+
+    def test_it_reloads_to_the_same_machine(self, tmp_path):
+        """The repeated name expands again on the way in, so the compact file
+        and the expanded one describe the same lattice."""
+        m = self._fodo()
+        self._export(m, tmp_path)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            reloaded = LAURA(
+                element_list=str(tmp_path / "summary.yaml"),
+                section=str(tmp_path / "_sections.yaml"),
+            )
+        assert s_values(reloaded, ["D.1", "D.2", "D.3"]) == pytest.approx(
+            s_values(m, ["D.1", "D.2", "D.3"])
+        )
+
+    def test_a_copy_changed_since_load_keeps_the_whole_group_expanded(self, tmp_path):
+        """Fidelity over compactness: the copies no longer mean the same thing,
+        so writing one of them three times would be a lie."""
+        m = self._fodo()
+        m.elements["D.2"].physical.length = 0.25
+        doc, order, messages = self._export(m, tmp_path)
+        assert order == ["Q1", "D.1", "Q2", "D.2", "Q3", "D.3"]
+        assert {"D.1", "D.2", "D.3"} <= set(doc)
+        assert any("no longer match each other" in message for message in messages)
+
+    def test_the_other_position_modes_keep_the_numbering(self, tmp_path):
+        """There the position is on the element, and the copies differ by it."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            export_machine_combined_file(
+                str(tmp_path), self._fodo(), position_mode="s"
+            )
+        doc = yaml.safe_load((tmp_path / "summary.yaml").open())
+        assert {"D.1", "D.2", "D.3"} <= set(doc)
+
+    def test_a_name_still_used_elsewhere_is_not_collapsed_onto(self, tmp_path):
+        """``D`` survives as a real element of section B, so B's placement of it
+        must not be overwritten by A's first copy."""
+        elements = [quad("Q1"), drift("D", 0.5), quad("Q2")]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            m = MachineModel(
+                elements={e.name: e for e in elements},
+                section={
+                    "sections": {
+                        "A": {"elements": ["Q1", "D", "Q2", "D"]},
+                        "B": {"elements": ["D"]},
+                    }
+                },
+            )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            export_machine_combined_file(
+                str(tmp_path), m, position_mode="sequential"
+            )
+        order = yaml.safe_load((tmp_path / "_sections.yaml").open())
+        assert order["sections"]["A"]["elements"] == ["Q1", "D.1", "Q2", "D.2"]
 
 
 # ---------------------------------------------------------------------------

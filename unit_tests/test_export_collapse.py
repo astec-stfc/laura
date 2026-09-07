@@ -182,7 +182,11 @@ class TestSequentialRoundTrip:
             assert "s" not in physical, name
             assert "middle" not in physical, name
 
-    def test_repeats_are_numbered_in_the_exported_sections(self, sequential_source, tmp_path):
+    def test_repeats_are_written_back_as_one_repeated_name(
+        self, sequential_source, tmp_path
+    ):
+        """The numbering exists to hold one position per name, and sequential
+        mode writes no positions, so the exported order is the authored one."""
         machine, _, _ = sequential_source
         dest = tmp_path / "combined"
         export_machine_combined_file(str(dest), machine, position_mode="sequential")
@@ -190,8 +194,12 @@ class TestSequentialRoundTrip:
         with open(dest / "_sections.yaml") as handle:
             sections = yaml.safe_load(handle)
         assert sections["sections"]["INJ"]["elements"] == [
-            "GUN", "D1.1", "Q1", "D1.2", "Q2",
+            "GUN", "D1", "Q1", "D1", "Q2",
         ]
+
+        with open(dest / "summary.yaml") as handle:
+            written = yaml.safe_load(handle)
+        assert [name for name in written if name.startswith("D1")] == ["D1"]
 
     def test_sections_are_not_written_in_other_modes(self, sequential_source, tmp_path):
         machine, _, _ = sequential_source

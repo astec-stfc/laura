@@ -122,7 +122,7 @@ coordinates. Three options invert the loader's expansions:
    * - Option
      - Effect
    * - ``position_mode="sequential"``
-     - Drops the position of every element that abuts its predecessor, and writes the section orders to ``_sections.yaml`` (``write_sections=False`` suppresses that file). An element that does not abut keeps an explicit ``s`` at its entrance, and a warning says so.
+     - Drops the position of every element that abuts its predecessor, and writes the section orders to ``_sections.yaml`` (``write_sections=False`` suppresses that file). An element that does not abut keeps an explicit ``s`` at its entrance, and a warning says so. A name the load split into numbered copies (``D1.1``, ``D1.2``, ...) is written back as one element listed twice, so the order reads as it was authored; a group whose copies have since been changed, or whose bare name is still an element in its own right, stays numbered and warns.
    * - ``collapse_inheritance=True``
      - Restores ``inherits_from`` and removes every key the parent already supplies, comparing against the parent as the loader would have merged it. ``template_root`` says where to look for the parents (default: the machine's own element directory); with ``copy_templates=True`` each parent used, and its own ancestors, is written into the export root as ``_<name>.yaml`` so the tree reloads on its own.
    * - ``collapse_schema=True``

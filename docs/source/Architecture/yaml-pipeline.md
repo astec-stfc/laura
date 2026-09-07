@@ -360,9 +360,19 @@ position would close it.
 The geometry now lives in the section order, so the export is not reloadable
 without it. `export_machine` and `export_machine_combined_file` therefore write
 `_sections.yaml` alongside the elements in this mode (`write_sections=False` to
-suppress it), holding the orders *after* the repeated-name split, so `D1` listed
-three times comes back out as `[D1.1, D1.2, D1.3]` matching the elements beside
-it. The `_` prefix keeps a directory-mode reload from reading it as an element.
+suppress it). The `_` prefix keeps a directory-mode reload from reading it as an
+element.
+
+The repeated-name split is undone on the way out, by `_repeat_aliases`: `D1`
+listed three times was expanded into `D1.1`, `D1.2`, `D1.3` on load only to give
+each occurrence somewhere to hold its own position, and this mode writes no
+positions, so it comes back out as one `D1` element listed three times — the
+order as it was authored, reloading to the same placements. A group stays
+expanded, with a warning, if one of the copies has been changed since load (the
+copies no longer mean the same thing) or if the bare name is still an element in
+its own right (another section's placement of it would be overwritten). Nothing
+happens in the other position modes, where the copies differ by exactly the
+position they were made to hold.
 
 ### `collapse_inheritance=True`
 
