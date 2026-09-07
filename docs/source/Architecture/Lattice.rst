@@ -153,7 +153,11 @@ before anything else looks at coordinates:
    position anchors the line and accumulation resumes from its exit; a warning is raised in
    case of disagreements.
 3. **Ordinary resolution runs.** ``resolve_positions`` then sees a section that is uniformly
-   ``s``-coordinate and needs no knowledge of the ordering at all.
+   ``s``-coordinate and needs no knowledge of the ordering at all. It rewrites ``s`` to the
+   arc length at each element's **middle** and sets ``s_point: "middle"`` to match, so a
+   resolved element's ``s``/``s_point`` pair always agrees with itself -- an important
+   invariant for anything reading an exported file by the schema's own meaning rather than
+   through LAURA.
 
 Drifts in a sequential section are written by hand and are ordinary elements, which is the
 mirror image of ``createDrifts()``: one derives positions from an explicit drift, the other
@@ -202,7 +206,9 @@ A **negative** count reverses the entry before repeating it:
 This reverses the order only. The result is a different lattice built
 from the same definitions. True path reversal flips the sign of every
 magnetic element's effect in the beam frame (traversing an element backwards is equivalent
-to traversing it forwards with the opposite-sign particle) and is not modelled.
+to traversing it forwards with the opposite-sign particle). That transform exists as
+:ref:`element-reversal`, but it is deliberately *not* applied here: a negative ``repeat``
+changes the order and nothing else.
 
 The authored list is kept on the section, so a ``position_mode="sequential"`` export writes
 the ``repeat`` count and the nested line back out, defining them alongside the elements.
@@ -231,6 +237,38 @@ Important methods include:
 * ``get_all_elements(element_type, element_model, element_class)``: Returns filtered lists of element names.
 * ``elements_between(start, end, element_type, element_model, element_class)``: Returns elements within a specified range along the beam path.
 * ``_get_all_elements()``: Returns all elements in the layout in order.
+* ``arc_lengths(direction=None)``: Arc length of each element's entrance *along this beam path*; see :ref:`path-arc-lengths`.
+
+.. _path-arc-lengths:
+
+Arc length along a beam path
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An element carries one ``s``, resolved in its own section's frame. That is where it
+belongs -- the magnet is installed once -- but it is not the whole story for a beam path:
+
+* A :ref:`sequentially-placed <sequential-placement>` section starts at its own ``s = 0``.
+  Placement runs per section: two sequential sections in one layout both begin at the origin.
+* A section a path traverses backwards measures its arc length from the far end.
+
+:py:meth:`arc_lengths <laura.models.elementList.MachineLayout.arc_lengths>` is the view that
+resolves both, walking the layout's sections in order with a running offset:
+
+.. code-block:: python
+
+    layout.arc_lengths()                          # chained, all forwards
+    layout.arc_lengths(direction={"ARC": -1})     # ARC traversed backwards
+
+A section whose elements state absolute positions already has a meaningful ``s`` and is not
+shifted; only sequentially-placed sections take an offset. Naming a section the layout does
+not contain raises :py:class:`LatticeError <laura.models.exceptions.LatticeError>` rather
+than being ignored.
+
+Nothing is mutated, so the same section reports different arc lengths to different beam
+paths. Note this is the arc length only: changing where a section sits in the line is not
+the same as reversing the traversal of its elements, which flips the sign of every normal
+multipole's effect in the beam frame -- see :ref:`element-reversal` for that transform, which
+this view does not apply.
 
 .. note::
 

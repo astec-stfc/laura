@@ -311,9 +311,11 @@ class TestRepeatsCollapseOnExport:
             )
         doc = yaml.safe_load((destination / "summary.yaml").open())
         sections = yaml.safe_load((destination / "_sections.yaml").open())
-        return doc, sections["sections"]["S"]["elements"], [
-            str(r.message) for r in records
-        ]
+        return (
+            doc,
+            sections["sections"]["S"]["elements"],
+            [str(r.message) for r in records],
+        )
 
     def test_the_order_is_written_as_it_was_authored(self, tmp_path):
         _, order, _ = self._export(self._fodo(), tmp_path)
@@ -353,9 +355,7 @@ class TestRepeatsCollapseOnExport:
         """There the position is on the element, and the copies differ by it."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            export_machine_combined_file(
-                str(tmp_path), self._fodo(), position_mode="s"
-            )
+            export_machine_combined_file(str(tmp_path), self._fodo(), position_mode="s")
         doc = yaml.safe_load((tmp_path / "summary.yaml").open())
         assert {"D.1", "D.2", "D.3"} <= set(doc)
 
@@ -376,11 +376,88 @@ class TestRepeatsCollapseOnExport:
             )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            export_machine_combined_file(
-                str(tmp_path), m, position_mode="sequential"
-            )
+            export_machine_combined_file(str(tmp_path), m, position_mode="sequential")
         order = yaml.safe_load((tmp_path / "_sections.yaml").open())
         assert order["sections"]["A"]["elements"] == ["Q1", "D.1", "Q2", "D.2"]
+
+
+# ---------------------------------------------------------------------------
+# s and s_point must agree with each other
+# ---------------------------------------------------------------------------
+
+
+class TestSPointMatchesS:
+    """Placement writes ``s`` at the element's *middle*, so ``s_point`` must say so.
+
+    It used to keep whatever was written on input, giving resolved elements a
+    self-contradicting pair (``s=0.5, s_point="end", length=1.0``). LAURA read
+    ``s`` back as the middle regardless, so its own round trip was unharmed --
+    but the exporter wrote the pair out, and anything reading the file by the
+    schema's documented meaning placed the element half a length upstream.
+    """
+
+    @pytest.mark.parametrize(
+        "elements",
+        [
+            pytest.param(
+                [quad("Q1", 0.1), drift("D1", 0.5), quad("Q2", 0.1)], id="seq"
+            ),
+            pytest.param(
+                [quad("Q1", 0.1, s=1.0, s_point="end"), quad("Q2", 0.1, s=2.0)],
+                id="stated-s",
+            ),
+            pytest.param(
+                [
+                    quad("Q1", 0.1, middle=[0, 0, 1.0]),
+                    quad("Q2", 0.1, middle=[0, 0, 2.0]),
+                ],
+                id="global",
+            ),
+        ],
+    )
+    def test_a_resolved_element_reports_its_middle(self, elements):
+        m = machine(elements)
+        for element in m.elements.values():
+            phys = element.physical
+            assert phys.s_point == "middle"
+            assert phys.s == pytest.approx(phys.middle.z)
+
+    def test_an_s_export_no_longer_contradicts_itself(self, tmp_path):
+        m = machine([quad("Q1", 0.1), drift("D1", 0.5), quad("Q2", 0.1)])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            export_machine_combined_file(str(tmp_path), m, position_mode="s")
+        written = yaml.safe_load((tmp_path / "summary.yaml").read_text())
+        for name, doc in written.items():
+            physical = doc["physical"]
+            # "middle" is the default, so a correct export need not say it
+            assert physical.get("s_point", "middle") == "middle"
+            assert physical["s"] == pytest.approx(m.elements[name].physical.middle.z)
+
+    def test_a_file_written_the_old_way_still_loads_the_same(self, tmp_path):
+        # s at the middle but labelled "end" -- what LAURA used to emit
+        source = tmp_path / "old.yaml"
+        source.write_text(
+            yaml.dump(
+                {
+                    "Q1": {
+                        "name": "Q1",
+                        "hardware_class": "Magnet",
+                        "hardware_type": "Quadrupole",
+                        "machine_area": "S",
+                        "physical": {"length": 1.0, "s": 0.5, "s_point": "end"},
+                    }
+                }
+            )
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            reloaded = LAURA(
+                element_list=str(source),
+                section={"sections": {"S": ["Q1"]}},
+                layout={"layouts": {"L": ["S"]}, "default_layout": "L"},
+            )
+        assert reloaded["Q1"].physical.middle.z == pytest.approx(0.5)
 
 
 # ---------------------------------------------------------------------------

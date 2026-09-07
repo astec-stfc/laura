@@ -326,6 +326,10 @@ class SectionLattice(BaseLatticeModel):
 
     _basename: str = "elements"
 
+    _placed_sequentially: bool = PrivateAttr(default=False)
+    """True if this section's positions were derived from ``order`` plus lengths
+    rather than stated on the elements.  See :meth:`MachineLayout.arc_lengths`."""
+
     _authored_order: Optional[List[Any]] = PrivateAttr(default=None)
     """The section's element list as written, before
     :func:`expand_section_order` flattened its ``repeat`` counts and nested
@@ -853,7 +857,7 @@ class SectionLattice(BaseLatticeModel):
                 [phys.rotation_matrix, phys.rotation_matrix, phys.end_rotation_matrix]
             )
 
-            # Assign s (bypasses sync since _trajectory not yet set)
+            phys.s_point = "middle"
             phys.s = s_elem_mid
 
             current_s = s_elem_end
@@ -1075,6 +1079,77 @@ class MachineLayout(BaseLatticeModel):
 
     def __getitem__(self, item: str) -> int:
         return self.sections[item]
+
+    def _section_extent(self, section: "SectionLattice") -> float:
+        """Arc length from the section's own origin to its last element's exit."""
+        extent = 0.0
+        for name in section.order:
+            elem = section.elements.elements.get(name)
+            phys = getattr(elem, "physical", None)
+            if phys is None or phys.s is None:
+                continue
+            extent = max(extent, _s_start_of(phys) + (phys.length or 0.0))
+        return extent
+
+    def arc_lengths(
+        self, direction: Optional[Dict[str, int]] = None
+    ) -> Dict[str, float]:
+        """Arc length of each element's *entrance* along this beam path.
+
+        An element carries one ``s``, resolved in its own section's frame:
+
+        * A **sequentially-placed** section (see
+          :meth:`SectionLattice._resolve_sequential_placement`) starts at its
+          own ``s = 0``, because placement runs per section and a section may
+          appear in several layouts with different predecessors. They are
+          chained, giving each one the offset its position in this path.
+          A section whose elements state absolute positions already
+          has a meaningful ``s`` and is not shifted.
+        * A section this path traverses **backwards** measures its arc length
+          from the far end.  Pass ``direction={"SECTION": -1}``.
+
+        Nothing is mutated, and this is the arc length only.
+
+        Parameters
+        ----------
+        direction
+            ``{section name: -1}`` for sections this path runs backwards
+            through.  Anything not named runs forwards.
+
+        Returns
+        -------
+        Dict[str, float]
+            ``{element name: arc length of its entrance}``, in path order.  An
+            element used by two sections of one path is reported at its first
+            occurrence, matching the exporter's convention.
+        """
+        direction = direction or {}
+        unknown = set(direction) - set(self.sections)
+        if unknown:
+            raise LatticeError(
+                f"Layout '{self.name}' has no section(s) "
+                f"{', '.join(sorted(unknown))} to give a direction to. "
+                f"Its sections are: {', '.join(self.sections)}."
+            )
+        lengths: Dict[str, float] = {}
+        cursor = 0.0
+        for section_name, section in self.sections.items():
+            extent = self._section_extent(section)
+            offset = cursor if section._placed_sequentially else 0.0
+            backwards = direction.get(section_name, 1) < 0
+            for name in section.order:
+                if name in lengths:
+                    continue
+                elem = section.elements.elements.get(name)
+                phys = getattr(elem, "physical", None)
+                if phys is None or phys.s is None:
+                    continue
+                entrance = _s_start_of(phys)
+                if backwards:
+                    entrance = extent - entrance - (phys.length or 0.0)
+                lengths[name] = offset + entrance
+            cursor = offset + extent
+        return lengths
 
     def _get_all_elements(self) -> List[baseElement]:
         """
@@ -1781,7 +1856,9 @@ class MachineModel(ModelBase):
         """Resolve all positioning modes (reference_placement, s, global) for every section."""
         self._number_sequential_repeats()
         for section in self.sections.values():
-            section._resolve_sequential_placement(self.elements)
+            section._placed_sequentially = section._resolve_sequential_placement(
+                self.elements
+            )
             section.resolve_positions(self.elements)
 
     def _number_sequential_repeats(self) -> None:

@@ -1128,3 +1128,56 @@ lattice container (see :ref:`functional-definitions`) or directly with
 
 Resolved/computation accessors such as ``KnL`` are unaffected by this flag — they
 always return numbers.
+
+.. _element-reversal:
+
+Reversed traversal
+------------------
+
+:py:func:`reverse_element <laura.models.reversal.reverse_element>` returns a deep copy of an
+element as a beam traversing it **backwards** sees it. The original is never touched.
+
+.. code-block:: python
+
+    from laura.models.reversal import reverse_element
+
+    backwards = reverse_element(quad)   # quad.magnetic.k1l unchanged
+
+``m dv/dt = qv x B`` is not invariant under ``t -> -t`` --- reversing the velocity reverses
+the force but not the acceleration --- so **traversing an element backwards is equivalent to
+traversing it forwards with the opposite-sign particle**. The everyday consequence is that
+counter-rotating beams of the same charge need opposite dipole polarity.
+
+The reversed frame is a rotation by :math:`\pi` about the horizontal axis
+(``x' = x``, ``y' = -y``, ``s' = -s``). That is a *proper* rotation, so ``B`` transforms as an
+ordinary vector and, writing ``B_y + i B_x = b_n (x + i y)^n``, the substitution gives at
+every order:
+
+* **normal multipole coefficients negate** --- a quadrupole focusing horizontally for a
+  forward beam focuses vertically for a counter-propagating one, which is why a shared
+  interaction-region quadrupole gives the two beams mirrored optics;
+* **skew coefficients are unchanged** --- a vertical corrector is a skew dipole, and its lab
+  deflection *and* the frame's ``y`` both flip.
+
+Also applied: the solenoid longitudinal field negates, ``entrance_edge_angle`` and
+``exit_edge_angle`` swap, and ``magnetic.tilt`` negates (it is a roll about the beam axis,
+and the beam axis has flipped). Reversing twice restores the original exactly.
+
+What is refused
+~~~~~~~~~~~~~~~
+
+Anything whose reversal is not a sign flip raises
+:py:class:`ElementNotReversible <laura.models.reversal.ElementNotReversible>`, listing every
+reason rather than the first, because a silently half-reversed element is worse than none:
+RF cavities, field maps and wakefields, and symbolic strengths.
+:py:func:`reversal_obstacles <laura.models.reversal.reversal_obstacles>` reports the same
+list without reversing, so a whole line can be checked before any of it is committed to.
+``strict=False`` warns and reverses what it can, for a caller that has decided a partial
+reversal is acceptable. A measured misalignment is not transformed and warns.
+
+.. note::
+
+   This is the physics half of path reversal. The geometry half is
+   :ref:`path-arc-lengths`. **Neither is yet wired into export** --- no exporter calls
+   ``reverse_element``, and no layout file can currently declare a section reversed. Both
+   pieces exist and are tested; connecting them is separate work.

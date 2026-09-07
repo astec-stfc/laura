@@ -367,7 +367,9 @@ Three rules, all chosen so nothing has to be guessed:
   traversed backwards: `m dv/dt = qv × B` is not invariant under `t → −t`, so a
   reversed traversal is equivalent to a forward one with the opposite-sign
   particle, and every normal multipole's effect changes sign in the beam frame.
-  That is a separate feature and is not modelled.
+  That transform is `laura.models.reversal.reverse_element`, and it is
+  deliberately not applied here: a negative `repeat` changes the order and
+  nothing else.
 
 The authored list is kept on the section as `_authored_order` — the same bargain
 as `inherits_from` and `_repeat_origins` — so the exporter can write the compact
