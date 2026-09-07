@@ -187,9 +187,7 @@ class MachineLayoutTranslator(MachineLayout):
             b = beam[section.name] if isinstance(beam, Dict) and section.name in beam.keys() else None
             lattices.update(
                 {
-                    sanitize_string(section.name): SectionLatticeTranslator.from_section(
-                        section
-                    ).to_madx(beam=b)
+                    sanitize_string(section.name): self._section_translator(section).to_madx()
                 }
             )
         return lattices

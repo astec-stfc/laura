@@ -611,7 +611,7 @@ class SectionLatticeTranslator(SectionLattice):
         from ocelot.cpbd.transformations.second_order import SecondTM
         from ocelot.cpbd.transformations.kick import KickTM
         from ocelot.cpbd.transformations.runge_kutta import RungeKuttaTM
-        from ocelot.cpbd.elements import Octupole, Undulator, Marker, Drift
+        from ocelot.cpbd.elements import Octupole, Undulator, Drift
         self._check_elements_supported("ocelot")
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
@@ -626,11 +626,7 @@ class SectionLatticeTranslator(SectionLattice):
         for d in elem_dict.values():
             obj = d.to_ocelot()
             objs = list(obj) if isinstance(obj, (list, tuple)) else [obj]
-            # e.g. a Combined_Corrector split into an Hcor + Vcor pair.
             elements.extend(objs)
-            # Some finite-length elements (e.g. collimators) map to zero-length
-            # Ocelot elements (Aperture takes no length).
-            # Pad the difference with a drift so the total length is preserved.
             oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
             gap = d.physical.length - oce_len
             if gap > 1e-9:
@@ -687,11 +683,6 @@ class SectionLatticeTranslator(SectionLattice):
         lattice = rft.Lattice()
         for d in elem_dict.values():
             elem = d.to_rftrack(P_Q=P_Q)
-            # A handful of builders (e.g. build_tw_fieldmap) return a *list*
-            # of objects to flatten as siblings rather than one object -- see
-            # BaseElementTranslator.to_rftrack's docstring for why (avoids
-            # nesting a Lattice inside a Lattice inside a Volume, which
-            # verified breaks Volume.autophase() for the inner elements).
             for e in (elem if isinstance(elem, list) else [elem]):
                 if sc_nsteps > 0:
                     e.set_sc_nsteps(sc_nsteps)
@@ -925,7 +916,7 @@ class SectionLatticeTranslator(SectionLattice):
             simulation=DiagnosticSimulationElement(
                 output_filename="end_screen.csrtrack"
             ),
-            physical=lastelem.physical,
+            physical=lastelem.physical.model_copy(update={"middle": lastelem.physical.end}),
         )
         csrtrackstr += lastscreen.to_csrtrack(n=counter["screen"])
         csrtrackstr += "}\n"
