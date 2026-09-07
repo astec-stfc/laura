@@ -1,26 +1,9 @@
 """Exact chord geometry for ``PhysicalElement.start`` / ``.end`` on a bend.
 
-These pin the relations analytically rather than against captured numbers,
-which is the point: the previous formula was a half-chord approximation, and
-the only test covering it asserted an exported lattice length that had been
-recorded *from that same wrong formula*.  A number captured from the code
-under test cannot contradict it.
-
-The geometry.  An element of arc length ``L`` bending through ``theta`` has
+An element of arc length ``L`` bending through ``theta`` has
 radius ``rho = L / theta``.  Measuring from the arc's entry, the point at
 angle ``phi`` sits at ``(rho(1 - cos phi), 0, rho sin phi)``.  The element's
-``middle`` is the point at ``theta/2`` -- the *arc* midpoint, not the chord
-midpoint -- so:
-
-* ``middle -> start`` and ``middle -> end`` each subtend ``theta/2`` at the
-  centre of curvature, giving a chord of ``2 rho sin(theta/4)``;
-* ``start -> end`` subtends the full ``theta``, giving ``2 rho sin(theta/2)``.
-
-Note which of those actually discriminates.  The old formula placed start and
-end symmetrically about ``middle`` along the full chord, so it got
-``start -> end`` exactly right and both halves wrong -- it is the
-``middle ->`` distances that catch it, and the error grows with angle
-(~1.4 mm per metre of arc at 0.3 rad, ~5.6 mm at 0.6 rad).
+``middle`` is the arc midpoint at ``theta/2``.
 """
 
 import numpy as np
