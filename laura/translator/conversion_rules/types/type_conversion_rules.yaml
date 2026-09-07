@@ -3,6 +3,7 @@ elegant:
   Quadrupole: quad
   Sextupole: ksext
   Octupole: koct
+  Decapole: mult
   Beam_Position_Monitor: watch
   Beam_Arrival_Monitor: moni
   Bunch_Length_Monitor: moni
@@ -35,6 +36,9 @@ elegant:
   TwissMatch: twiss
   Plasma: drift
   Photon_Monitor: moni
+  CrabCavity: rfdf
+  MatrixTransform: ematrix
+  BeamBeam: beambeam
 genesis:
   Dipole: drift
   Quadrupole: quadrupole
@@ -74,24 +78,27 @@ genesis:
   Plasma: drift
   TwissMatch: drift
   Laser: drift
+  CrabCavity: drift
   Photon_Monitor: marker
 opal:
   Dipole: rbend
   Quadrupole: quadrupole
   Sextupole: sextupole
+  Octupole: octupole
+  Decapole: multipole
   Beam_Position_Monitor: monitor
   Beam_Arrival_Monitor: monitor
   Bunch_Length_Monitor: monitor
   Screen: monitor
-  RCollimator: monitor
-  Collimator: monitor
+  RCollimator: rcollimator
+  Collimator: ecollimator
   Monitor: monitor
   Solenoid: solenoid
   Wall_Current_Monitor: monitor
   Integrated_Current_Transformer: monitor
   Faraday_Cup_Monitor: monitor
   RFCavity: rfcavity
-  RFDeflectingCavity: rfcavity
+  RFDeflectingCavity: drift
   Wakefield: drift
   Horizontal_Corrector: hkicker
   Vertical_Corrector: vkicker
@@ -101,6 +108,7 @@ opal:
   Laser: drift
   Aperture: monitor
   Marker: monitor
+  CrabCavity: drift
   Photon_Monitor: monitor
   Shutter: drift
 madx:
@@ -142,6 +150,14 @@ madx:
   APContour: marker
   Watch_Point: monitor
   FEL_Modulator: drift
+  MatrixTransform: matrix
+  CrabCavity: crabcavity
+  ElectrostaticSeparator: elseparator
+  Horizontal_AC_Dipole: hacdipole
+  Vertical_AC_Dipole: vacdipole
+  Wire: wire
+  BeamBeam: beambeam
+  RFMultipole: rfmultipole
 name:
   dia-bpm: beam_position_monitor
   dia-bam: beam_arrival_monitor

@@ -135,7 +135,13 @@ class RFCavityTranslator(BaseElementTranslator):
         self.start_write()
         wholestring = ""
         etype = self._convertType_Elegant(self.hardware_type)
-        if not self._wakefield_active():
+        if self.hardware_type == "RFCavity" and (
+            self.simulation.wakefield_definition is None
+            or self.simulation.wakefield_definition == ""
+        ):
+            # Only the plain accelerating cavity falls back to the wakefield-less
+            # RFCA; deflecting/crab cavities always use their own mapped etype
+            # (RFDF), which has no separate wakefield variant.
             etype = "rfca"
             # if self.simulation.field_definition is not None:
             # etype = "rftmez0"
@@ -143,12 +149,13 @@ class RFCavityTranslator(BaseElementTranslator):
             #     field_file_name = self.generate_field_file_name(
             #     self.simulation.field_definition, code="elegant"
             # )
-        else:
+        elif self.simulation.wakefield_definition not in (None, ""):
             wakefield_file_name = self.generate_field_file_name(
                 self.simulation.wakefield_definition, code="elegant"
             )
             self.set_wakefield_column_names(wakefield_file_name)
         string = self.name + ": " + etype
+        keys = []
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (
                 not key == "name"
@@ -165,7 +172,8 @@ class RFCavityTranslator(BaseElementTranslator):
                     if etype == "rftmez0" and key == "freq":
                         key = "frequency"
                     functional = self.is_functional(value)
-                    if self.hardware_type in ["RFCavity", "RFDeflectingCavity"]:
+
+                    if self.hardware_type in ["RFCavity", "RFDeflectingCavity", "CrabCavity"]:
                         if key == "phase":
                             if etype == "rftmez0":
                                 # If using rftmez0 or similar
@@ -213,15 +221,17 @@ class RFCavityTranslator(BaseElementTranslator):
                         )
                     value = 1 if value is True else value
                     value = 0 if value is False else value
-                    # print("elegant cavity", key, value)
-                    tmpstring = ", " + key + " = " + str(value)
-                    # if len(string + tmpstring) > 156:
-                    #     wholestring += string + ",&\n"
-                    #     print(wholestring)
-                    #     string = ""
-                    #     string += tmpstring[2::]
-                    # else:
-                    string += tmpstring
+                    if key not in keys:
+                        # print("elegant cavity", key, value)
+                        tmpstring = ", " + key + " = " + str(value)
+                        # if len(string + tmpstring) > 156:
+                        #     wholestring += string + ",&\n"
+                        #     print(wholestring)
+                        #     string = ""
+                        #     string += tmpstring[2::]
+                        # else:
+                        string += tmpstring
+                    keys.append(key)
         wholestring += string + ";\n"
         return wholestring
 
@@ -479,6 +489,10 @@ class RFCavityTranslator(BaseElementTranslator):
         ``lag = (90 - phase) / 360`` -- the same +90 degree convention used for
         ELEGANT, expressed as a fraction of 360 degrees rather than degrees.
 
+        A travelling-wave cavity (``cavity.structure_Type == "TravellingWave"``)
+        is written as a MAD-X ``TWCAVITY`` rather than the standing-wave
+        ``RFCAVITY``.
+
         Parameters
         ----------
         at: float, optional
@@ -492,6 +506,8 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convertType_Madx(self.hardware_type)
+        if self.structure_type == "TravellingWave" and etype == "rfcavity":
+            etype = "twcavity"
         string = sanitize_string(self.name) + ": " + etype
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (

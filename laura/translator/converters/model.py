@@ -25,13 +25,25 @@ class MachineModelTranslator(MachineModel):
                 "master_lattice": machine.model_copy().master_lattice,
                 "functional_definitions": machine.functional_definitions,
                 "resolve_functional": machine.resolve_functional,
+                "revolution_frequency": machine.revolution_frequency,
             }
         )
+
+    def _layout_translator(self, layout) -> MachineLayoutTranslator:
+        """
+        Build a :class:`MachineLayoutTranslator` for ``layout``, falling back
+        to this machine's own ``revolution_frequency`` if the layout does not
+        define its own.
+        """
+        translator = MachineLayoutTranslator.from_layout(layout)
+        if translator.revolution_frequency is None:
+            translator.revolution_frequency = self.revolution_frequency
+        return translator
 
     def to_astra(self) -> Dict[str, Dict[str, str]]:
         model = {}
         for name, latt in self.lattices.items():
-            model.update({name: MachineLayoutTranslator.from_layout(latt).to_astra()})
+            model.update({name: self._layout_translator(latt).to_astra()})
         return model
 
     def to_rftrack(self, P_Q: float = float("nan"), save: bool = False) -> Dict[str, Dict[str, object]]:
@@ -124,7 +136,7 @@ class MachineModelTranslator(MachineModel):
         model = {}
         for name, latt in self.lattices.items():
             model.update(
-                {name: MachineLayoutTranslator.from_layout(latt).to_ocelot(save=save)}
+                {name: self._layout_translator(latt).to_ocelot(save=save)}
             )
         return model
 
@@ -132,7 +144,7 @@ class MachineModelTranslator(MachineModel):
         model = {}
         for name, latt in self.lattices.items():
             model.update(
-                {name: MachineLayoutTranslator.from_layout(latt).to_cheetah(save=save)}
+                {name: self._layout_translator(latt).to_cheetah(save=save)}
             )
         return model
 
@@ -143,7 +155,7 @@ class MachineModelTranslator(MachineModel):
         for name, latt in self.lattices.items():
             model.update(
                 {
-                    name: MachineLayoutTranslator.from_layout(latt).to_xsuite(
+                    name: self._layout_translator(latt).to_xsuite(
                         beam_length=beam_length,
                         env=env,
                         particle_ref=particle_ref,
@@ -156,6 +168,5 @@ class MachineModelTranslator(MachineModel):
     def to_madx(self, beam: Dict[str, Dict[str, Dict[str, Any]]]) -> Dict[str, Dict[str, str]]:
         model = {}
         for name, latt in self.lattices.items():
-            b = beam[name] if name in beam else None
-            model.update({sanitize_string(name): MachineLayoutTranslator.from_layout(latt).to_madx(beam=b)})
+            model.update({sanitize_string(name): self._layout_translator(latt).to_madx()})
         return model

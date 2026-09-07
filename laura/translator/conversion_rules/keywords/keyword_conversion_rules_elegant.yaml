@@ -58,6 +58,10 @@ rfdeflectingcavity:
   frequency: frequency
   field_amplitude: voltage
   n_cells: n_kicks
+crabcavity:
+  frequency: frequency
+  field_amplitude: voltage
+  n_cells: n_kicks
 rftmez0:
   field_amplitude: ez_peak
 solenoid:

@@ -10,25 +10,25 @@ import tempfile
 import pytest
 
 from laura import LAURA
+from laura.Exporters.YAML import export_machine
 from laura.laura import add_bool, flatten
+from laura.models.diagnostic import Screen_Diagnostic
 from laura.models.element import (
+    Beam_Position_Monitor,
+    Combined_Corrector,
+    Dipole,
+    Faraday_Cup_Monitor,
+    Horizontal_Corrector,
     Marker,
     Quadrupole,
-    Dipole,
-    Sextupole,
-    Solenoid,
-    Horizontal_Corrector,
-    Vertical_Corrector,
-    Combined_Corrector,
-    Beam_Position_Monitor,
-    Screen,
     RFCavity,
-    Faraday_Cup_Monitor,
+    Screen,
+    Sextupole,
     Shutter,
+    Solenoid,
     Valve,
+    Vertical_Corrector,
 )
-from laura.models.diagnostic import Screen_Diagnostic
-from laura.Exporters.YAML import export_machine
 
 
 class TestModuleHelpers:
@@ -44,25 +44,28 @@ class TestModuleHelpers:
 
 
 class TestResolveLatticePackage:
-    def _stub_lattice(self, with_data_files=False):
-        m1 = Marker(name="M1", machine_area="S", physical={"middle": {"x": 0, "y": 0, "z": 0}})
+    def _stub_lattice(self, data_files=None):
+        m1 = Marker(
+            name="M1", machine_area="S", physical={"middle": {"x": 0, "y": 0, "z": 0}}
+        )
 
         class LatticeStub:
             layout = {"default_layout": "l1", "layouts": {"l1": ["S"]}}
             section = {"sections": {"S": ["M1"]}}
             element_list = [m1]
 
-        if with_data_files:
-            LatticeStub.data_files = "/some/dir"
+        if data_files is not None:
+            LatticeStub.data_files = data_files
         return LatticeStub()
 
     def test_lattice_kwarg_expands_fields(self):
         lm = LAURA(lattice=self._stub_lattice())
         assert "M1" in lm.elements
 
-    def test_lattice_kwarg_sets_master_lattice_from_data_files(self):
-        lm = LAURA(lattice=self._stub_lattice(with_data_files=True))
-        assert lm.master_lattice == "/some/dir"
+    def test_lattice_kwarg_sets_master_lattice_from_data_files(self, tmp_path):
+        pkg = tmp_path / "pkg"
+        lm = LAURA(lattice=self._stub_lattice(data_files=str(pkg / "lattice.yaml")))
+        assert lm.master_lattice == str(pkg)
 
     def test_invalid_lattice_object_raises(self):
         class NotALattice:
@@ -72,8 +75,6 @@ class TestResolveLatticePackage:
             LAURA(lattice=NotALattice())
 
     def test_non_dict_input_passes_through(self):
-        # model_validate() may be called with an existing model instance rather
-        # than a dict; _resolve_lattice_package must pass it through unchanged.
         lm = LAURA(lattice=self._stub_lattice())
         revalidated = LAURA.model_validate(lm)
         assert "M1" in revalidated.elements
@@ -87,7 +88,10 @@ class TestValidateElementListPathResolution:
         assert LAURA.validate_element_list("schema/YAML").endswith("YAML")
 
     def test_unresolvable_string_passed_through(self):
-        assert LAURA.validate_element_list("/definitely/does/not/exist") == "/definitely/does/not/exist"
+        assert (
+            LAURA.validate_element_list("/definitely/does/not/exist")
+            == "/definitely/does/not/exist"
+        )
 
     def test_non_string_passed_through(self):
         assert LAURA.validate_element_list(["a", "b"]) == ["a", "b"]
@@ -103,7 +107,9 @@ class TestElementListLoading:
             )
 
     def test_master_lattice_relative_directory_resolves(self):
-        m = Marker(name="M1", machine_area="SEC", physical={"middle": {"x": 0, "y": 0, "z": 0}})
+        m = Marker(
+            name="M1", machine_area="SEC", physical={"middle": {"x": 0, "y": 0, "z": 0}}
+        )
         with tempfile.TemporaryDirectory() as tmpdir:
             lattice_dir = os.path.join(tmpdir, "lattice")
             fake_machine = LAURA(
@@ -122,7 +128,9 @@ class TestElementListLoading:
             assert "M1" in reloaded.elements
 
     def test_eager_mode_loads_elements_immediately(self):
-        m = Marker(name="M1", machine_area="SEC", physical={"middle": {"x": 0, "y": 0, "z": 0}})
+        m = Marker(
+            name="M1", machine_area="SEC", physical={"middle": {"x": 0, "y": 0, "z": 0}}
+        )
         with tempfile.TemporaryDirectory() as tmpdir:
             lattice_dir = os.path.join(tmpdir, "lattice")
             fake_machine = LAURA(
@@ -145,51 +153,109 @@ class TestElementListLoading:
 # Rich fixture exercising the remaining get_*/all_* accessor methods
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def full_machine():
     elems = [
-        Marker(name="START", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 0}}),
+        Marker(
+            name="START",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 0}},
+        ),
         Quadrupole(
-            name="Q1", machine_area="S1", magnetic={"length": 0.3, "k1l": -1.0},
+            name="Q1",
+            machine_area="S1",
+            magnetic={"length": 0.3, "k1l": -1.0},
             physical={"length": 0.3, "middle": {"x": 0, "y": 0, "z": 0.5}},
         ),
         Dipole(
-            name="D1", machine_area="S1", magnetic={"length": 0.5, "angle": 0.0},
+            name="D1",
+            machine_area="S1",
+            magnetic={"length": 0.5, "angle": 0.0},
             physical={"length": 0.5, "middle": {"x": 0, "y": 0, "z": 1.0}},
         ),
         Sextupole(
-            name="SX1", machine_area="S1", magnetic={"length": 0.1, "k2l": 5.0},
+            name="SX1",
+            machine_area="S1",
+            magnetic={"length": 0.1, "k2l": 5.0},
             physical={"length": 0.1, "middle": {"x": 0, "y": 0, "z": 1.5}},
         ),
         Solenoid(
-            name="SOL1", machine_area="S1", magnetic={"length": 0.2},
+            name="SOL1",
+            machine_area="S1",
+            magnetic={"length": 0.2},
             physical={"length": 0.2, "middle": {"x": 0, "y": 0, "z": 2.0}},
         ),
-        Horizontal_Corrector(name="HC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 2.5}}),
-        Vertical_Corrector(name="VC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 3.0}}),
-        Combined_Corrector(name="CC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 3.5}}),
-        Beam_Position_Monitor(name="BPM1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 4.0}}),
+        Horizontal_Corrector(
+            name="HC1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 2.5}},
+        ),
+        Vertical_Corrector(
+            name="VC1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 3.0}},
+        ),
+        Combined_Corrector(
+            name="CC1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 3.5}},
+        ),
+        Beam_Position_Monitor(
+            name="BPM1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 4.0}},
+        ),
         Screen(
-            name="SCR1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 4.5}},
+            name="SCR1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 4.5}},
             diagnostic=Screen_Diagnostic(camera_name="CAM1"),
         ),
-        RFCavity(name="RFC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 5.0}}),
-        Faraday_Cup_Monitor(name="FCM1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 5.5}}),
-        Shutter(name="SH1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.0}}),
-        Valve(name="VA1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.5}}),
-        Combined_Corrector(
-            name="CC2", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.8}},
-            Horizontal_Corrector="CC2_H", Vertical_Corrector="CC2_V",
+        RFCavity(
+            name="RFC1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 5.0}},
+        ),
+        Faraday_Cup_Monitor(
+            name="FCM1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 5.5}},
+        ),
+        Shutter(
+            name="SH1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 6.0}},
+        ),
+        Valve(
+            name="VA1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 6.5}},
         ),
         Combined_Corrector(
-            name="CC3", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.9}},
+            name="CC2",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 6.8}},
+            Horizontal_Corrector="CC2_H",
+            Vertical_Corrector="CC2_V",
+        ),
+        Combined_Corrector(
+            name="CC3",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 6.9}},
             Horizontal_Corrector="CC3_H",
         ),
         Combined_Corrector(
-            name="CC4", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.95}},
+            name="CC4",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 6.95}},
             Vertical_Corrector="CC4_V",
         ),
-        Marker(name="END", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 7.0}}),
+        Marker(
+            name="END",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 7.0}},
+        ),
     ]
     sections = {"sections": {"S1": [e.name for e in elems]}}
     layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1"]}}
@@ -316,10 +382,6 @@ class TestRFAndVacuumGetters:
         assert "VA1" in full_machine.all_vacuum_components
 
     def test_get_shutters_returns_list(self, full_machine):
-        # Shutter's hardware_class is "Shutter", not "Vacuum" -- get_shutters()
-        # filters on element_class="vacuum", so no current element type matches.
-        # Exercised here for coverage of the accessor itself, not as a claim
-        # about which elements it returns.
         assert isinstance(full_machine.get_shutters(), list)
 
     def test_all_shutters_returns_set(self, full_machine):

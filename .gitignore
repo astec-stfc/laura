@@ -7,7 +7,7 @@ Basefiles/
 to_CATAP/
 RFTrack/
 .claude/
-
+examples/output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -179,3 +179,19 @@ PAdantic/Importers/~$CLARA Magnet Table v6.xlsx
 summary.yaml
 profile_output.txt
 *.lock
+.pytest_cache/
+.ruff_caache/
+
+# AI
+ANALYSIS.md
+REFACTORING_PLAN.md
+CLAUDE.md
+.agents/
+.claude/
+.codex/
+.mex/
+Planning/
+.codegraph/
+node_modules/
+package.json
+package-lock.json

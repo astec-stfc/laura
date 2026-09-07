@@ -24,12 +24,13 @@ from laura.models.elementList import (
 from . import magnetic_orders
 from .. import keyword_conversion_rules_xsuite as keyword_conversion_rules
 from ...utils.functions import introspect_model_defaults
-from ...conversion_rules.codes import xsuite_conversion
 from warnings import warn
 
-type_conversion_rules_xsuite_reversed = (
-    xsuite_conversion.xsuite_conversion_rules_reverse
-)
+xsuite_unsupported = [
+    "Laser",
+    "Wakefield",
+    "ActivePlasmaLens",
+]
 
 
 class XsuiteLatticeConverter(BaseModel):
@@ -188,6 +189,11 @@ class XsuiteLatticeConverter(BaseModel):
         return elem_pos
 
     def create_element_dictionary(self):
+        from ...conversion_rules.codes import xsuite_conversion
+
+        type_conversion_rules_xsuite_reversed = (
+            xsuite_conversion.xsuite_conversion_rules_reverse
+        )
         s = self.line.survey()._data
         elems = {k: v for k, v in zip(s["name"], self.line.elements)}
         survey = {

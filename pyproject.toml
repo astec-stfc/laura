@@ -174,3 +174,6 @@ markers = [
 filterwarnings = [
     "ignore:Pydantic serializer warnings:UserWarning",
 ]
+
+[tool.ruff.lint]
+ignore = ["I001"]

@@ -57,6 +57,20 @@ classes:
         in_subset:
           - rf_properties
 
+  CrabCavity:
+    is_a: RFCavity
+    description: Transverse-deflecting crab cavity for crossing-angle compensation.
+    class_uri: laura:CrabCavity
+    slot_usage:
+      hardware_type:
+        equals_string: CrabCavity
+    attributes:
+      cavity:
+        range: RFDeflectingCavityElement
+        description: Crab-cavity RF structure parameters.
+        in_subset:
+          - rf_properties
+
   Wakefield:
     is_a: PhysicalAcceleratorElement
     description: "Passive wakefield structure (dielectric, corrugated, etc.)."

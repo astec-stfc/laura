@@ -953,6 +953,51 @@ simultaneously. Both fields may be defined functionally (see :ref:`functional-pa
    :py:class:`Combined_Corrector <laura.models.element.Combined_Corrector>`'s own kick strength always
    comes from its own ``magnetic.horizontal_kick``/``magnetic.vertical_kick``.
 
+.. _specialised-elements:
+
+Specialised and Collider Elements
+==================================
+
+A handful of element types cover physics not represented by any of the classes above. These are all
+primarily modelled on the equivalent MAD-X element :cite:`MADX` (see :ref:`madx-translator`); most have
+no equivalent in ELEGANT, and some have an Xsuite equivalent that is noted below.
+
+* :py:class:`MatrixTransform <laura.models.element.MatrixTransform>` -- an explicit, arbitrary transfer
+  matrix (0th/1st/2nd order: ``c_matrix``, ``r_matrix``, ``t_matrix`` on
+  :py:class:`MatrixTransformSimulationElement <laura.models.simulation.MatrixTransformSimulationElement>`),
+  for inserting a black-box transformation when no physical element model fits. Maps to MAD-X's ``MATRIX``,
+  ELEGANT's ``EMATRIX``, and Xsuite's ``SecondOrderTaylorMap``.
+* :py:class:`CrabCavity <laura.models.element.CrabCavity>` -- a dedicated crab-cavity/transverse-deflecting
+  RF element, extending :py:class:`RFCavity <laura.models.element.RFCavity>` (same ``cavity``/``simulation``
+  models). Maps to MAD-X's ``CRABCAVITY``, ELEGANT's ``RFDF`` (shared with
+  :py:class:`RFDeflectingCavity <laura.models.element.RFDeflectingCavity>`), and Xsuite's ``CrabCavity``.
+* :py:class:`ElectrostaticSeparator <laura.models.element.ElectrostaticSeparator>` -- a static-field
+  electrode pair providing a transverse deflection (MAD-X ``ELSEPARATOR``). No ELEGANT or Xsuite
+  equivalent exists, so this element only translates to MAD-X.
+* :py:class:`Horizontal_AC_Dipole <laura.models.element.Horizontal_AC_Dipole>` /
+  :py:class:`Vertical_AC_Dipole <laura.models.element.Vertical_AC_Dipole>` -- an RF-driven exciter used
+  for AC-dipole tune and optics measurements (MAD-X ``HACDIPOLE``/``VACDIPOLE``, Xsuite ``ACDipole``).
+
+  .. note::
+
+     Xsuite's ``ACDipole.freq`` is a tune-like quantity (units of :math:`2\\pi` per turn), not an absolute
+     frequency, whereas this element's ``simulation.frequency`` is in Hz. Converting between the two
+     requires the ring's revolution frequency -- see :ref:`revolution-frequency`.
+
+* :py:class:`Wire <laura.models.element.Wire>` -- a current-carrying compensating wire, used for
+  long-range beam-beam compensation (MAD-X ``WIRE``, Xsuite ``Wire``).
+* :py:class:`BeamBeam <laura.models.element.BeamBeam>` -- a weak-strong kick representing the
+  electromagnetic field of an opposing (colliding) bunch (MAD-X ``BEAMBEAM``, ELEGANT ``BEAMBEAM``, and
+  Xsuite's ``BeamBeamBiGaussian2D`` via the ``xfields`` package -- a required dependency of ``xsuite``,
+  so no extra install is needed). The opposing bunch's per-particle charge is stored as
+  ``simulation.charge`` in elementary-charge units (matching MAD-X's and Xsuite's convention); ELEGANT's
+  ``CHARGE`` (total charge in Coulombs) is derived from it (``n_particles * charge * e``). Only the
+  thin, single-slice weak-strong model (``BeamBeamBiGaussian2D``) is used for Xsuite; the finite
+  bunch-length ``BeamBeamBiGaussian3D`` model needs per-slice longitudinal configuration this element
+  does not currently represent.
+* :py:class:`RFMultipole <laura.models.element.RFMultipole>` -- a zero-length multipole kick whose
+  strength oscillates at an RF frequency, up to 5th order (MAD-X ``RFMULTIPOLE``, Xsuite ``RFMultipole``).
+
 .. _functional-parameters:
 
 Functional Parameters

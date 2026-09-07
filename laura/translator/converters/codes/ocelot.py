@@ -4,6 +4,7 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict
 from typing import Any, Dict, TYPE_CHECKING
 from scipy.spatial.transform import Rotation
+import yaml
 try:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
     _OCELOT_AVAILABLE = True
@@ -14,13 +15,15 @@ except ImportError:
 if TYPE_CHECKING:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice  # type: ignore[no-redef]
 import laura.models.element as LAURA_elements
-from . import magnetic_orders
+from . import magnetic_orders, ocelot_unsupported
 from .. import keyword_conversion_rules_ocelot as keyword_conversion_rules
 from ...utils.functions import introspect_model_defaults
-from ...conversion_rules.codes import ocelot_conversion
 from warnings import warn
 
-type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+try:
+    _FastLoader = yaml.CSafeLoader
+except AttributeError:
+    _FastLoader = yaml.SafeLoader
 
 
 class OcelotLatticeImporter(BaseModel):
@@ -45,6 +48,9 @@ class OcelotLatticeImporter(BaseModel):
         return self.lattice_to_cartesian_with_rotation(self.magnetic_lattice.sequence)
 
     def create_element_dictionary(self):
+        from ...conversion_rules.codes import ocelot_conversion
+
+        type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
         elements = self.magnetic_lattice_to_elements()
         self.laura_elements = {}
         strip_chars = "'>"
