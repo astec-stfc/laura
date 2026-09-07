@@ -17,6 +17,7 @@ URI: [laura:ApertureShapeEnum](https://w3id.org/laura/ApertureShapeEnum)
 | circular | None |  |
 | rectangular | None |  |
 | elliptical | None |  |
+| planar | None |  |
 
 
 
@@ -67,6 +68,8 @@ permissible_values:
     text: rectangular
   elliptical:
     text: elliptical
+  planar:
+    text: planar
 
 ```
 </details>

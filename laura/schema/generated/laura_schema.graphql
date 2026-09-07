@@ -5,6 +5,7 @@ enum ApertureShapeEnum
     circular
     rectangular
     elliptical
+    planar
   }
 
 enum BendingPlaneEnum
@@ -1643,4 +1644,5 @@ type WallCurrentMonitor
     diagnostic: ChargeDiagnosticElement
     hardwareType: String
   }
+
 

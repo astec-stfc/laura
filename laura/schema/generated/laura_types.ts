@@ -117,6 +117,8 @@ export enum ApertureShapeEnum {
     circular = "circular",
     rectangular = "rectangular",
     elliptical = "elliptical",
+    planar = "planar",
+    scraper = "scraper",
 };
 /**
 * Bending plane enum.
@@ -1696,7 +1698,7 @@ export interface CombinedCorrector extends Dipole {
 
 
 /**
- * Solenoid integrated axial field components ``S0L``–``S12L`` [T.m].
+ * Solenoid integrated axial field components ``S0L``û``S12L`` [T.m].
  */
 export interface SolenoidFields {
     /** Integrated solenoid field, order 0 [T.m]. */

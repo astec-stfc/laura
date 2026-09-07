@@ -92,6 +92,12 @@ def _run_gen_pydantic(schema_path: str) -> str:
         # description (en dashes, Greek letters, the ohm sign) comes back as
         # mojibake and is written into _generated.py that way.
         encoding="utf-8",
+        # gen-pydantic's own stderr/stdout isn't guaranteed to be valid UTF-8
+        # (e.g. cp1252 en-dashes from a dependency's warning text). Without
+        # this, a bad byte crashes the background reader thread, which
+        # silently empties the captured output instead of raising here --
+        # surfacing as a confusing `NoneType` error much further downstream.
+        errors="replace",
     )
     if result.returncode != 0:
         sys.stderr.write(result.stderr)

@@ -299,6 +299,8 @@ class ApertureShapeEnum(str, Enum):
     circular = "circular"
     rectangular = "rectangular"
     elliptical = "elliptical"
+    planar = "planar"
+    scraper = "scraper"
 
 
 class BendingPlaneEnum(str, Enum):
@@ -2377,7 +2379,7 @@ class _CorrectorMagnetBase(ConfiguredBaseModel):
 
 class _SolenoidFieldsBase(ConfiguredBaseModel):
     """
-    Solenoid integrated axial field components ``S0L``–``S12L`` [T.m].
+    Solenoid integrated axial field components ``S0L``�``S12L`` [T.m].
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:SolenoidFields',
          'from_schema': 'https://w3id.org/laura/schema/magnetic'})
