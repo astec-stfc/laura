@@ -123,8 +123,8 @@ attributes:
     name: step_max
     description: Maximum step size for mirror adjustment.
     from_schema: https://w3id.org/laura/schema/laser_plasma
-    rank: 1000
     domain_of:
+    - MirrorControlsInformation
     - LaserMirrorElement
     range: double
   sense:
@@ -168,9 +168,9 @@ attributes:
     name: step_max
     description: Maximum step size for mirror adjustment.
     from_schema: https://w3id.org/laura/schema/laser_plasma
-    rank: 1000
     owner: LaserMirrorElement
     domain_of:
+    - MirrorControlsInformation
     - LaserMirrorElement
     range: double
   sense:

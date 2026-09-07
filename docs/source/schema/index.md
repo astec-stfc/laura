@@ -79,6 +79,9 @@ Name: laura_schema
 | [CameraSensor](CameraSensor.md) | Camera sensor hardware configuration |
 | [ChannelNames](ChannelNames.md) | Names for LLRF channels 1 |
 | [ControlsInformation](ControlsInformation.md) | Collection of process-variable definitions for an element's control interface |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[MirrorControlsInformation](MirrorControlsInformation.md) | Control interface of a steerable laser mirror |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ScreenControlsInformation](ScreenControlsInformation.md) | Control interface of a screen, which also drives an actuator between named po... |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ShutterControlsInformation](ShutterControlsInformation.md) | Control interface of a beam or laser shutter |
 | [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |
 | [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field, expressed as horizontal and vertical kicks rather t... |
 | [DegaussableElement](DegaussableElement.md) | Degaussing (demagnetisation cycle) parameters for magnets that require a fiel... |
@@ -94,7 +97,7 @@ Name: laura_schema
 | [ElementPositionError](ElementPositionError.md) | Alignment position and rotation errors for a physically-located element |
 | [ElementSurvey](ElementSurvey.md) | Survey-measured position and rotation of an element |
 | [FieldIntegral](FieldIntegral.md) | Polynomial fit of integrated field strength as a function of magnet current |
-| [FunctionalDefinition](FunctionalDefinition.md) | One named constant a lattice makes available to its elements, e |
+| [FunctionalDefinition](FunctionalDefinition.md) | One named constant a lattice makes available to its elements |
 | [LaserElement](LaserElement.md) | Laser-beam parameters (wavelength, pulse energy, profile, etc |
 | [LaserEnergyMeterElement](LaserEnergyMeterElement.md) | Laser energy-meter sub-model (no additional fields) |
 | [LaserHalfWavePlateElement](LaserHalfWavePlateElement.md) | Half-wave plate sub-model (no additional fields) |
@@ -216,6 +219,7 @@ Name: laura_schema
 | [data_count](data_count.md) | Number of one-record trace entries |
 | [data_size](data_size.md) | Number of points in a trace |
 | [datum](datum.md) | Datum reference position |
+| [default_step](default_step.md) | Adjustment made by a step that does not say how far |
 | [degauss](degauss.md) | Degaussing-cycle parameters |
 | [deltaL](deltaL.md) | Longitudinal step-size override for thick-lens integration [m] |
 | [density](density.md) | Plasma (electron) number density [m^-^3] |
@@ -229,6 +233,7 @@ Name: laura_schema
 | [dimensional_parameter](dimensional_parameter.md) | Dimensional parameter setting the transverse scale (MAD-X ``cnll``) |
 | [disable](disable.md) | Disable command/value |
 | [down](down.md) | Down sense value |
+| [down_sense](down_sense.md) | Sign relating a downward move to the actuator's direction |
 | [downstream](downstream.md) | Names of elements this one feeds; the inverse of ``upstream`` |
 | [drawings](drawings.md) | Engineering-drawing identifiers or URIs |
 | [dt_bunch](dt_bunch.md) | Time-step control for bunch evolution (or 'auto') |
@@ -294,6 +299,7 @@ Name: laura_schema
 | [I0](I0.md) | Current offset [A] |
 | [I_max](I_max.md) | Current at which saturation begins [A] |
 | [identifier](identifier.md) | Protocol-specific PV name (e |
+| [identifier_pattern](identifier_pattern.md) | What ``{name}`` in that file was substituted with, where it was not the eleme... |
 | [initial_position](initial_position.md) | Initial longitudinal position of the laser pulse [m] |
 | [inputs](inputs.md) | Signal types this element consumes (e |
 | [integrated_strength](integrated_strength.md) | Integrated lens strength (MAD-X ``knll``) |
@@ -323,6 +329,7 @@ Name: laura_schema
 | [layout_type](layout_type.md) | What this layout carries |
 | [layouts](layouts.md) | All named beamline layouts |
 | [left](left.md) | Left sense value |
+| [left_sense](left_sense.md) | Sign relating a leftward move to the actuator's direction |
 | [length](length.md) | Effective length along the beam axis [m] |
 | [lights](lights.md) | Lighting configuration |
 | [linear_saturation_coefficients](linear_saturation_coefficients.md) | Bi-linear saturation calibration |
@@ -354,6 +361,7 @@ Name: laura_schema
 | [mode_denominator](mode_denominator.md) | Mode fraction denominator |
 | [mode_numerator](mode_numerator.md) | Mode fraction numerator |
 | [modulator](modulator.md) | Modulator parameters |
+| [movement_type](movement_type.md) | How the screen is moved, e |
 | [multipoles](multipoles.md) | Integrated multipole field components |
 | [n_cells](n_cells.md) | Number of cells |
 | [n_kicks](n_kicks.md) | Number of integration kicks |
@@ -425,6 +433,7 @@ Name: laura_schema
 | [reference_placement](reference_placement.md) | Place this element relative to another element's frame instead of using absol... |
 | [revolution_frequency](revolution_frequency.md) | The ring's revolution frequency [Hz], if this section is part of a closed rin... |
 | [right](right.md) | Right sense value |
+| [right_sense](right_sense.md) | Sign relating a rightward move to the actuator's direction |
 | [rotation](rotation.md) | Angular misalignment error [rad] |
 | [s](s.md) | Arc-length position [m] along the design trajectory (s=0 at the global origin... |
 | [S0L](S0L.md) | Integrated solenoid field, order 0 [T |
@@ -450,6 +459,7 @@ Name: laura_schema
 | [scale_field_hy](scale_field_hy.md) | y-component of the horizontal direction vector |
 | [scale_field_hz](scale_field_hz.md) | z-component of the horizontal direction vector |
 | [scale_kick](scale_kick.md) | Factor by which to scale wake kicks |
+| [schema](schema.md) | The shared controls schema file ``variables`` was expanded from, if any |
 | [screen_name](screen_name.md) | Name of the screen element to which this camera is attached |
 | [section_type](section_type.md) | What this section carries |
 | [sections](sections.md) | The sections making up this layout, keyed by name |
@@ -461,6 +471,7 @@ Name: laura_schema
 | [shape](shape.md) | Cross-sectional aperture shape |
 | [shunt_impedance](shunt_impedance.md) | Shunt impedance [M?/m] |
 | [shutter](shutter.md) | Shutter interlock configuration |
+| [shutter_type](shutter_type.md) | What the shutter blocks, e |
 | [simulation](simulation.md) | Simulation / tracking attributes |
 | [skew](skew.md) | Integrated skew (rotated) multipole strength [T |
 | [smooth](smooth.md) | Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smoot... |
@@ -471,7 +482,7 @@ Name: laura_schema
 | [sr_enable](sr_enable.md) | Enable synchrotron-radiation energy loss |
 | [start](start.md) | Start time |
 | [states](states.md) | Mapping of state name to underlying control-system value, for ``control_type:... |
-| [step_max](step_max.md) | Maximum step size for mirror adjustment |
+| [step_max](step_max.md) | Largest adjustment a single step may make |
 | [steps](steps.md) | Number of degauss steps per half-cycle |
 | [strength](strength.md) | Deflection parameter K |
 | [structure_type](structure_type.md) | RF structure type (e |
@@ -494,6 +505,7 @@ Name: laura_schema
 | [type](type.md) | BPM type (e |
 | [units](units.md) | Physical units string (e |
 | [up](up.md) | Up sense value |
+| [up_sense](up_sense.md) | Sign relating an upward move to the actuator's direction |
 | [update](update.md) | Signal generating this variable's value over time, as ``{function: <import pa... |
 | [upstream](upstream.md) | Names of elements feeding this one, whose ``outputs`` supply its ``inputs`` |
 | [use_maximum_values](use_maximum_values.md) | If True, use maximum mask radius constraints |

@@ -16,7 +16,7 @@ URI: [laura:value](https://w3id.org/laura/value)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |  no  |
-| [FunctionalDefinition](FunctionalDefinition.md) | One named constant a lattice makes available to its elements, e |  no  |
+| [FunctionalDefinition](FunctionalDefinition.md) | One named constant a lattice makes available to its elements |  no  |
 
 
 

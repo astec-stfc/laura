@@ -243,6 +243,7 @@ attributes:
     owner: Sextupole_Magnet
     domain_of:
     - Multipole
+    - LinearSaturationFit
     - MagneticElement
     - Corrector_Magnet
     - Solenoid_Magnet

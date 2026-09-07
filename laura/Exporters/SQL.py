@@ -28,6 +28,7 @@ Public API::
 from __future__ import annotations
 
 import importlib.util
+from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -38,12 +39,6 @@ if TYPE_CHECKING:
 # sqlalchemy remains an optional dependency).
 _ORM_PATH = Path(__file__).parent.parent / "schema" / "generated" / "laura_orm.py"
 
-# Valid hardware_class values from the schema enum.
-_VALID_HARDWARE_CLASSES = {
-    "Magnet", "Diagnostic", "RF", "Vacuum", "Laser", "Plasma",
-    "Feedback", "Marker", "Aperture", "Stage", "Lighting", "Shutter",
-    "Wakefield", "TwissMatch", "Drift", "Generic", "Monitor",
-}
 
 
 # ---------------------------------------------------------------------------
@@ -98,9 +93,20 @@ def _make_session_factory(db_url: str, orm: Any):
     return engine, sessionmaker(bind=engine)
 
 
+@lru_cache(maxsize=1)
+def _valid_hardware_classes() -> frozenset:
+    """The ``HardwareClassEnum`` members, read off the generated ORM column.
+
+    Read rather than listed: the hand-kept copy this replaced was four values
+    behind the schema, so every Valve and laser element was silently written as
+    ``Generic``.
+    """
+    return frozenset(_load_orm().AcceleratorElement.hardware_class.type.enums)
+
+
 def _coerce_hardware_class(value: Optional[str]) -> str:
     """Return *value* if it is a valid schema enum member, otherwise ``'Generic'``."""
-    if value and str(value) in _VALID_HARDWARE_CLASSES:
+    if value and str(value) in _valid_hardware_classes():
         return str(value)
     return "Generic"
 
@@ -119,56 +125,163 @@ def _functional_definition_rows(lattice: Any, orm: Any) -> List[Any]:
     ]
 
 
-def _export_position(pos, orm, session) -> Optional[Any]:
-    """Persist a Position sub-model and return the ORM row, or ``None``."""
-    if pos is None:
+def _float(value: Any) -> Optional[float]:
+    """*value* as a float, or ``None`` if it is absent or not a number."""
+    if value is None:
         return None
     try:
-        row = orm.Position(x=float(pos.x), y=float(pos.y), z=float(pos.z))
-    except (AttributeError, TypeError):
-        return None
-    session.add(row)
-    return row
-
-
-def _export_rotation(rot, orm, session) -> Optional[Any]:
-    """Persist a Rotation sub-model and return the ORM row, or ``None``."""
-    if rot is None:
-        return None
-    try:
-        row = orm.Rotation(
-            phi=float(rot.phi), psi=float(rot.psi), theta=float(rot.theta)
-        )
-    except (AttributeError, TypeError):
-        return None
-    session.add(row)
-    return row
-
-
-def _export_physical(elem: Any, orm: Any, session: Any) -> Optional[Any]:
-    """Persist the ``physical`` sub-model of *elem* if present.
-
-    Returns the ``PhysicalElement`` ORM row, or ``None`` if the element has no
-    physical placement data.
-    """
-    phys = getattr(elem, "physical", None)
-    if phys is None:
-        return None
-
-    length = getattr(phys, "length", None)
-    try:
-        length = float(length) if length is not None else None
+        return float(value)
     except (TypeError, ValueError):
-        length = None
+        return None
 
-    phys_row = orm.PhysicalElement(
-        length=length,
-        middle=_export_position(getattr(phys, "middle", None), orm, session),
-        datum=_export_position(getattr(phys, "datum", None), orm, session),
-        rotation=_export_rotation(getattr(phys, "rotation", None), orm, session),
+
+def _coerce_column(value: Any, column: Any) -> Any:
+    """*value* as something the SQLAlchemy *column* will accept, or ``None``.
+
+    Pydantic is looser than the generated DDL in both directions: a slot the
+    schema calls a double may hold an int, and an enum-ranged slot may hold a
+    string the enum does not list.  A value that cannot be made to fit is
+    dropped rather than raised on -- one odd field must not cost the whole
+    element.
+    """
+    if value is None or isinstance(value, (list, tuple, dict, set)):
+        return None
+
+    enum_values = getattr(column.type, "enums", None)
+    if enum_values is not None:
+        return str(value) if str(value) in enum_values else None
+
+    try:
+        py = column.type.python_type
+    except NotImplementedError:
+        return value
+    if py is bool:
+        return bool(value)
+    if py is float:
+        return _float(value)
+    if py is int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+    if py is str:
+        return value if isinstance(value, str) else str(value)
+    return value if isinstance(value, py) else None
+
+
+def _slot_value(value: Any, slot: str) -> Any:
+    """The field of *value* that LinkML calls *slot*.
+
+    Usually the attribute of the same name, but a Pydantic model may have had to
+    rename a field and keep the slot name as its alias: ``ControlsInformation``
+    stores ``schema`` as ``schema_`` because ``BaseModel.schema`` is a method,
+    and a plain ``getattr`` would return that method rather than the value.
+    """
+    fields = getattr(type(value), "model_fields", None)
+    if fields is not None and slot not in fields:
+        for name, info in fields.items():
+            if info.alias == slot:
+                return getattr(value, name, None)
+        return None
+    return getattr(value, slot, None)
+
+
+def _key_slot(mapper: Any) -> Optional[str]:
+    """The slot a keyed-inlined map's key belongs in.
+
+    LinkML's ``key: true``, which the ORM no longer records once the primary key
+    has had to become a surrogate ``id`` -- a keyed class reachable from more
+    than one slot cannot use its key as the primary key.  Every keyed class in
+    this schema calls that slot ``name``; the fallback is for one that does not.
+    """
+    if "name" in mapper.columns:
+        return "name"
+    return next(
+        (c.key for c in mapper.columns if c.key != "id" and not c.foreign_keys),
+        None,
     )
-    session.add(phys_row)
-    return phys_row
+
+
+def _export_submodel(value: Any, orm_cls: Any) -> Optional[Any]:
+    """*value*, a Pydantic sub-model, as an unattached row of *orm_cls*.
+
+    Driven off the mapper rather than written out slot by slot.  There are ~140
+    element classes and most retarget ``magnetic`` and ``simulation`` at their
+    own table (``Quadrupole.magnetic`` is a ``QuadrupoleMagnet``, not a
+    ``MagneticElement``), so the explicit alternative is several hundred cases
+    that go stale the moment the schema changes.  Both sides name their fields
+    after the same LinkML slots, so matching on name is exact, not a heuristic.
+
+    Nothing here calls ``session.add``: every row it builds is reachable from
+    the element through a relationship, and SQLAlchemy's default save-update
+    cascade persists it when the element is added.  Adding it as well would make
+    ``merge()`` insert the original and its merged copy both.
+    """
+    if value is None:
+        return None
+
+    from sqlalchemy import inspect as sqla_inspect
+
+    mapper = sqla_inspect(orm_cls)
+    row = orm_cls(
+        **{
+            col.key: coerced
+            # ``id`` is the surrogate key and every other FK column belongs to a
+            # relationship handled below, so neither comes from the sub-model.
+            for col in mapper.columns
+            if col.key != "id" and not col.foreign_keys
+            for coerced in [_coerce_column(_slot_value(value, col.key), col)]
+            if coerced is not None
+        }
+    )
+    _attach_related(value, row, mapper)
+    return row
+
+
+def _attach_related(value: Any, row: Any, mapper: Any) -> None:
+    """Fill *row*'s relationships from the matching fields of *value*."""
+    for rel in mapper.relationships:
+        # Element cross-references, not owned sub-models: they point at rows
+        # this function has no way to reach.  export_machine wires them up
+        # once every element exists.
+        if rel.key in ("upstream", "downstream"):
+            continue
+
+        target = rel.mapper.class_
+        if not rel.uselist:
+            nested = _export_submodel(_slot_value(value, rel.key), target)
+            if nested is not None:
+                setattr(row, rel.key, nested)
+            continue
+
+        # gen-sqla backs a multivalued scalar slot with a junction class and an
+        # association proxy over it, so the field to read is the proxy's name.
+        field = rel.key[:-4] if rel.key.endswith("_rel") else rel.key
+        items = _slot_value(value, field)
+        if not items:
+            continue
+        if rel.key.endswith("_rel"):
+            setattr(row, field, [str(item) for item in items])
+        elif isinstance(items, dict):
+            # A keyed inlined map -- the key is a slot on the target class.
+            key_slot = _key_slot(rel.mapper)
+            setattr(
+                row,
+                rel.key,
+                [
+                    _set_key(_export_submodel(item, target), key_slot, key)
+                    for key, item in items.items()
+                ],
+            )
+        else:
+            setattr(row, rel.key, [_export_submodel(i, target) for i in items])
+
+
+def _set_key(row: Optional[Any], key_slot: str, key: Any) -> Optional[Any]:
+    """Put a mapping's key back on the row it names, e.g. ControlVariable.name."""
+    if row is not None:
+        setattr(row, key_slot, str(key))
+    return row
 
 
 # ---------------------------------------------------------------------------
@@ -198,6 +311,8 @@ def export_machine(
     int
         The auto-generated ``MachineModel.id`` that identifies this snapshot.
     """
+    from sqlalchemy import inspect as sqla_inspect
+
     orm = _load_orm()
     _, Session = _make_session_factory(db_url, orm)
 
@@ -208,7 +323,7 @@ def export_machine(
         # text primary-key columns.
         elem_rows: Dict[str, Any] = {}
         for name, elem in machine.elements.items():
-            row = orm.AcceleratorElement(
+            common = dict(
                 name=name,
                 hardware_type=getattr(elem, "hardware_type", None),
                 hardware_class=_coerce_hardware_class(
@@ -223,8 +338,38 @@ def export_machine(
                     else None
                 ),
             )
-            merged = session.merge(row)
-            elem_rows[name] = merged
+            # MachineModel_elements and SectionLattice_elements are foreign keys
+            # into AcceleratorElement.name, so every element needs a row there
+            # whatever its type.
+            elem_rows[name] = session.merge(orm.AcceleratorElement(**common))
+
+            # ...and a second row in its own table.  gen-sqla emits *concrete*
+            # inheritance -- each per-type table restates the base columns and
+            # stands alone, so a Quadrupole row is not also an AcceleratorElement
+            # row and cannot go in those junctions.  It is written as well, not
+            # instead, because it is the only place geometry fits: ``physical``
+            # is first declared on PhysicalAcceleratorElement.
+            cls = getattr(orm, elem.linkml_class_name(), None)
+            if cls is None or cls is orm.AcceleratorElement:
+                continue
+            typed = cls(**common)
+            # Everything the element composes -- physical, magnetic, electrical,
+            # simulation, manufacturer, degauss, controls, reference -- whichever
+            # of them this class actually declares.
+            _attach_related(elem, typed, sqla_inspect(cls))
+            session.merge(typed)
+
+        # ── Element cross-references ──────────────────────────────────────────
+        # Deferred to here: an element may name a neighbour declared after it.
+        for name, elem in machine.elements.items():
+            for slot in ("upstream", "downstream"):
+                linked = [
+                    elem_rows[str(other)]
+                    for other in getattr(elem, slot, None) or []
+                    if str(other) in elem_rows
+                ]
+                if linked:
+                    setattr(elem_rows[name], slot, linked)
 
         # ── Sections ──────────────────────────────────────────────────────────
         # Use get-or-create: if the SectionLattice already exists (re-export to

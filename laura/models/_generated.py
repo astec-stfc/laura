@@ -649,6 +649,64 @@ class _ControlsInformationBase(ConfiguredBaseModel):
 
     variables: dict[str, _ControlVariableBase] = Field(default_factory=dict, description="""Named control variables keyed by logical name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlsInformation']} })
     """Named control variables keyed by logical name."""
+    identifier_pattern: Optional[str] = Field(default=None, description="""What ``{name}`` in that file was substituted with, where it was not the element's own name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlsInformation']} })
+    """What ``{name}`` in that file was substituted with, where it was not the element's own name."""
+
+
+class _ScreenControlsInformationBase(_ControlsInformationBase):
+    """
+    Control interface of a screen, which also drives an actuator between named positions.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ScreenControlsInformation',
+         'from_schema': 'https://w3id.org/laura/schema/controls'})
+
+    movement_type: str = Field(default="Unknown", description="""How the screen is moved, e.g. ``VMOTOR``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ScreenControlsInformation'], 'ifabsent': 'string(Unknown)'} })
+    """How the screen is moved, e.g. ``VMOTOR``."""
+    variables: dict[str, _ControlVariableBase] = Field(default_factory=dict, description="""Named control variables keyed by logical name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlsInformation']} })
+    """Named control variables keyed by logical name."""
+    identifier_pattern: Optional[str] = Field(default=None, description="""What ``{name}`` in that file was substituted with, where it was not the element's own name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlsInformation']} })
+    """What ``{name}`` in that file was substituted with, where it was not the element's own name."""
+
+
+class _MirrorControlsInformationBase(_ControlsInformationBase):
+    """
+    Control interface of a steerable laser mirror.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MirrorControlsInformation',
+         'from_schema': 'https://w3id.org/laura/schema/controls'})
+
+    step_max: float = Field(default=0.05, description="""Largest adjustment a single step may make.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MirrorControlsInformation', 'LaserMirrorElement'],
+         'ifabsent': 'float(0.05)'} })
+    """Largest adjustment a single step may make."""
+    default_step: float = Field(default=0.005, description="""Adjustment made by a step that does not say how far.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MirrorControlsInformation'], 'ifabsent': 'float(0.005)'} })
+    """Adjustment made by a step that does not say how far."""
+    right_sense: int = Field(default=-1, description="""Sign relating a rightward move to the actuator's direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MirrorControlsInformation'], 'ifabsent': 'int(-1)'} })
+    """Sign relating a rightward move to the actuator's direction."""
+    up_sense: int = Field(default=-1, description="""Sign relating an upward move to the actuator's direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MirrorControlsInformation'], 'ifabsent': 'int(-1)'} })
+    """Sign relating an upward move to the actuator's direction."""
+    left_sense: int = Field(default=1, description="""Sign relating a leftward move to the actuator's direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MirrorControlsInformation'], 'ifabsent': 'int(1)'} })
+    """Sign relating a leftward move to the actuator's direction."""
+    down_sense: int = Field(default=1, description="""Sign relating a downward move to the actuator's direction.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MirrorControlsInformation'], 'ifabsent': 'int(1)'} })
+    """Sign relating a downward move to the actuator's direction."""
+    variables: dict[str, _ControlVariableBase] = Field(default_factory=dict, description="""Named control variables keyed by logical name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlsInformation']} })
+    """Named control variables keyed by logical name."""
+    identifier_pattern: Optional[str] = Field(default=None, description="""What ``{name}`` in that file was substituted with, where it was not the element's own name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlsInformation']} })
+    """What ``{name}`` in that file was substituted with, where it was not the element's own name."""
+
+
+class _ShutterControlsInformationBase(_ControlsInformationBase):
+    """
+    Control interface of a beam or laser shutter.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:ShutterControlsInformation',
+         'from_schema': 'https://w3id.org/laura/schema/controls'})
+
+    shutter_type: str = Field(default="Unknown", description="""What the shutter blocks, e.g. ``BEAM`` or ``LASER``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ShutterControlsInformation'], 'ifabsent': 'string(Unknown)'} })
+    """What the shutter blocks, e.g. ``BEAM`` or ``LASER``."""
+    variables: dict[str, _ControlVariableBase] = Field(default_factory=dict, description="""Named control variables keyed by logical name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlsInformation']} })
+    """Named control variables keyed by logical name."""
+    identifier_pattern: Optional[str] = Field(default=None, description="""What ``{name}`` in that file was substituted with, where it was not the element's own name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlsInformation']} })
+    """What ``{name}`` in that file was substituted with, where it was not the element's own name."""
 
 
 class _ShutterElementBase(ConfiguredBaseModel):
@@ -712,7 +770,7 @@ class _ApertureElementBase(ConfiguredBaseModel):
 
 class _FunctionalDefinitionBase(ConfiguredBaseModel):
     """
-    One named constant a lattice makes available to its elements, e.g. ``quad1_k1l: -2``.  A class rather than a bare map because LinkML has no free-form mapping type; the same keyed-inlined pattern as ControlVariable.
+    One named constant a lattice makes available to its elements.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:FunctionalDefinition',
          'from_schema': 'https://w3id.org/laura/schema/machine'})
@@ -742,12 +800,12 @@ class _SectionLatticeBase(ConfiguredBaseModel):
     """Unique section name."""
     master_lattice: Optional[str] = Field(default=None, description="""Name of the master lattice this section belongs to.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
     """Name of the master lattice this section belongs to."""
-    elements: list[str] = Field(default_factory=list, description="""The elements in this section, keyed by name.  References into MachineModel.elements rather than inlining them -- the Python ElementList holds the same objects, not copies.  The Python model's ``order`` has no slot here: no LinkML multivalued collection is ordered, so the sequence would not survive any export.  Recover it from each element's physical.s.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
-    """The elements in this section, keyed by name.  References into MachineModel.elements rather than inlining them -- the Python ElementList holds the same objects, not copies.  The Python model's ``order`` has no slot here: no LinkML multivalued collection is ordered, so the sequence would not survive any export.  Recover it from each element's physical.s."""
+    elements: list[str] = Field(default_factory=list, description="""The elements in this section, keyed by name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
+    """The elements in this section, keyed by name."""
     section_type: Optional[LatticeTypeEnum] = Field(default=LatticeTypeEnum.beam, description="""What this section carries.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice'], 'ifabsent': 'string(beam)'} })
     """What this section carries."""
-    functional_definitions: Optional[dict[str, Union[float, _FunctionalDefinitionBase]]] = Field(default=None, description="""Named constants this section's elements may refer to, keyed by name. The Python model also accepts a path to a YAML file holding the mapping, but resolves it at construction, so only the resolved mapping is ever exported.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
-    """Named constants this section's elements may refer to, keyed by name. The Python model also accepts a path to a YAML file holding the mapping, but resolves it at construction, so only the resolved mapping is ever exported."""
+    functional_definitions: Optional[dict[str, Union[float, _FunctionalDefinitionBase]]] = Field(default=None, description="""Named constants this section's elements may refer to, keyed by name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
+    """Named constants this section's elements may refer to, keyed by name."""
     revolution_frequency: Optional[float] = Field(default=None, description="""The ring's revolution frequency [Hz], if this section is part of a closed ring.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
     """The ring's revolution frequency [Hz], if this section is part of a closed ring."""
 
@@ -1440,6 +1498,7 @@ class _MultipoleBase(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/laura/schema/magnetic'})
 
     order: int = Field(default=0, description="""Multipole order (0 = dipole, 1 = quadrupole, ?).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
+                       'LinearSaturationFit',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
@@ -1529,6 +1588,7 @@ class _MagneticElementBase(ConfiguredBaseModel):
          'in_subset': ['magnetic_properties']})
 
     order: int = Field(default=-1, description="""Principal multipole order (0 = dipole, 1 = quad, ?).""", ge=-1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
+                       'LinearSaturationFit',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
@@ -1679,10 +1739,11 @@ class _RFCavityElementBase(ConfiguredBaseModel):
     mode_denominator: Optional[int] = Field(default=None, description="""Mode fraction denominator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
     """Mode fraction denominator."""
     structure_type: str = Field(default="StandingWave", description="""RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave).""", validation_alias=AliasChoices('structure_type', 'structure_Type'), json_schema_extra = { "linkml_meta": {'aliases': ['structure_Type'],
-         'domain_of': ['RFCavityElement'],
+         'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
          'ifabsent': 'string(StandingWave)'} })
     """RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave)."""
-    attenuation_constant: float = Field(default=0, description="""Attenuation constant ? of a travelling-wave structure [Np/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement'], 'ifabsent': 'float(0)'} })
+    attenuation_constant: float = Field(default=0, description="""Attenuation constant ? of a travelling-wave structure [Np/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0)'} })
     """Attenuation constant ? of a travelling-wave structure [Np/m]."""
     power_calibration: list[float] = Field(default_factory=list, description="""Calibration constant relating measured power to cavity gradient.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement']} })
     """Calibration constant relating measured power to cavity gradient."""
@@ -1774,6 +1835,13 @@ class _RFDeflectingCavityElementBase(ConfiguredBaseModel):
     """Mode fraction numerator."""
     mode_denominator: Optional[int] = Field(default=None, description="""Mode fraction denominator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement']} })
     """Mode fraction denominator."""
+    structure_type: str = Field(default="StandingWave", description="""RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave).""", validation_alias=AliasChoices('structure_type', 'structure_Type'), json_schema_extra = { "linkml_meta": {'aliases': ['structure_Type'],
+         'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+         'ifabsent': 'string(StandingWave)'} })
+    """RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave)."""
+    attenuation_constant: float = Field(default=0, description="""Attenuation constant of a travelling-wave structure [Np/m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavityElement', 'RFDeflectingCavityElement'],
+         'ifabsent': 'float(0)'} })
+    """Attenuation constant of a travelling-wave structure [Np/m]."""
 
 
 class _PIDElementBase(ConfiguredBaseModel):
@@ -2272,7 +2340,7 @@ class _LaserMirrorElementBase(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserMirrorElement',
          'from_schema': 'https://w3id.org/laura/schema/laser_plasma'})
 
-    step_max: Optional[float] = Field(default=None, description="""Maximum step size for mirror adjustment.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserMirrorElement']} })
+    step_max: Optional[float] = Field(default=None, description="""Maximum step size for mirror adjustment.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MirrorControlsInformation', 'LaserMirrorElement']} })
     """Maximum step size for mirror adjustment."""
     sense: Optional[_LaserMirrorSenseBase] = Field(default=None, description="""Mirror sense/interlock configuration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LaserMirrorElement']} })
     """Mirror sense/interlock configuration."""
@@ -2399,6 +2467,7 @@ class _DipoleMagnetBase(_MagneticElementBase):
                                   'name': 'order'}}})
 
     order: int = Field(default=0, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=0, ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
+                       'LinearSaturationFit',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
@@ -2475,6 +2544,7 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
                                   'name': 'order'}}})
 
     order: int = Field(default=1, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=1, ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
+                       'LinearSaturationFit',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
@@ -2554,6 +2624,7 @@ class _SextupoleMagnetBase(_MagneticElementBase):
                                   'name': 'order'}}})
 
     order: int = Field(default=2, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=2, ge=2, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
+                       'LinearSaturationFit',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
@@ -2635,6 +2706,7 @@ class _OctupoleMagnetBase(_MagneticElementBase):
                                   'name': 'order'}}})
 
     order: int = Field(default=3, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=3, ge=3, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
+                       'LinearSaturationFit',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
@@ -2722,6 +2794,7 @@ class _CorrectorMagnetBase(ConfiguredBaseModel):
          'ifabsent': 'float(0.0)'} })
     """Magnetic length [m]."""
     order: int = Field(default=0, description="""Multipole order (0, a dipole field).""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
+                       'LinearSaturationFit',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
@@ -2789,6 +2862,7 @@ class _SolenoidMagnetBase(ConfiguredBaseModel):
          'ifabsent': 'float(0.0)'} })
     """Magnetic length [m]."""
     order: int = Field(default=0, description="""Principal solenoid multipole order.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
+                       'LinearSaturationFit',
                        'MagneticElement',
                        'Corrector_Magnet',
                        'Solenoid_Magnet'],
@@ -3496,7 +3570,9 @@ class _LaserMirrorBase(_StandardElementBase):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LaserMirror',
          'from_schema': 'https://w3id.org/laura/schema/laser_plasma',
          'in_subset': ['laser_properties'],
-         'slot_usage': {'hardware_type': {'equals_string': 'LaserMirror',
+         'slot_usage': {'controls': {'name': 'controls',
+                                     'range': 'MirrorControlsInformation'},
+                        'hardware_type': {'equals_string': 'LaserMirror',
                                           'name': 'hardware_type'}}})
 
     laser: Optional[_LaserMirrorElementBase] = Field(default=None, description="""Mirror steering parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Laser',
@@ -3512,7 +3588,7 @@ class _LaserMirrorBase(_StandardElementBase):
     """Power-supply electrical limits."""
     manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
     """Manufacturer and serial-number data."""
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    controls: Optional[_MirrorControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
@@ -4374,7 +4450,9 @@ class _ShutterBase(_PhysicalAcceleratorElementBase):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Shutter',
          'from_schema': 'https://w3id.org/laura/schema/elements',
-         'slot_usage': {'hardware_type': {'equals_string': 'Shutter',
+         'slot_usage': {'controls': {'name': 'controls',
+                                     'range': 'ShutterControlsInformation'},
+                        'hardware_type': {'equals_string': 'Shutter',
                                           'name': 'hardware_type'}}})
 
     shutter: Optional[_ShutterElementBase] = Field(default=None, description="""Shutter interlock configuration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Shutter']} })
@@ -4388,7 +4466,7 @@ class _ShutterBase(_PhysicalAcceleratorElementBase):
     """Power-supply electrical limits."""
     manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
     """Manufacturer and serial-number data."""
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    controls: Optional[_ShutterControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
@@ -5313,7 +5391,9 @@ class _ScreenBase(_DiagnosticBase):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Screen',
          'from_schema': 'https://w3id.org/laura/schema/diagnostics',
-         'slot_usage': {'hardware_type': {'equals_string': 'Screen',
+         'slot_usage': {'controls': {'name': 'controls',
+                                     'range': 'ScreenControlsInformation'},
+                        'hardware_type': {'equals_string': 'Screen',
                                           'name': 'hardware_type'}}})
 
     diagnostic: Optional[_ScreenDiagnosticElementBase] = Field(default=None, description="""Instrument-specific diagnostic parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Diagnostic',
@@ -5335,7 +5415,7 @@ class _ScreenBase(_DiagnosticBase):
     """Power-supply electrical limits."""
     manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
     """Manufacturer and serial-number data."""
-    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    controls: Optional[_ScreenControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Control-system process-variable definitions."""
     reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Links to design drawings and files."""
@@ -6372,6 +6452,9 @@ _ReferencePlacementBase.model_rebuild()
 _PhysicalElementBase.model_rebuild()
 _ControlVariableBase.model_rebuild()
 _ControlsInformationBase.model_rebuild()
+_ScreenControlsInformationBase.model_rebuild()
+_MirrorControlsInformationBase.model_rebuild()
+_ShutterControlsInformationBase.model_rebuild()
 _ShutterElementBase.model_rebuild()
 _ValveElementBase.model_rebuild()
 _LightingElementBase.model_rebuild()

@@ -213,6 +213,19 @@ classes:
       - shunt_impedance
       - mode_numerator
       - mode_denominator
+    attributes:
+      structure_type:
+        range: string
+        description: >-
+          RF structure type (e.g., ``SW`` standing-wave, ``TW``
+          travelling-wave).
+        ifabsent: string(StandingWave)
+        aliases:
+          - structure_Type
+      attenuation_constant:
+        range: double
+        description: Attenuation constant of a travelling-wave structure [Np/m].
+        ifabsent: float(0)
 
   PIDElement:
     description: PID feedback-controller parameters.

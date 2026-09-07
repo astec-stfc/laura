@@ -194,3 +194,73 @@ classes:
         inlined_as_list: false
         range: ControlVariable
         description: Named control variables keyed by logical name.
+      schema:
+        range: string
+        description: >-
+          The shared controls schema file ``variables`` was expanded from, if
+          any.  Kept only as a record of where they came from: the expansion
+          happens while the element YAML is read, so ``variables`` is always
+          already resolved by the time anything sees this class.
+      identifier_pattern:
+        range: string
+        description: >-
+          What ``{name}`` in that file was substituted with, where it was not
+          the element's own name.
+
+  ScreenControlsInformation:
+    is_a: ControlsInformation
+    description: >-
+      Control interface of a screen, which also drives an actuator between
+      named positions.
+    class_uri: laura:ScreenControlsInformation
+    attributes:
+      movement_type:
+        range: string
+        ifabsent: string(Unknown)
+        description: How the screen is moved, e.g. ``VMOTOR``.
+    # ``devices``, ``horizontal_devices`` and ``vertical_devices`` -- the named
+    # actuator positions -- are deliberately absent.  LinkML unifies attributes
+    # that share a name into one slot, and ``ScreenDiagnosticElement.devices``
+    # already owns that name with a different range; modelling these would
+    # change what that long-standing slot means.  They are left unexported, as
+    # ``ControlVariable.states`` is.
+
+  MirrorControlsInformation:
+    is_a: ControlsInformation
+    description: Control interface of a steerable laser mirror.
+    class_uri: laura:MirrorControlsInformation
+    attributes:
+      step_max:
+        range: double
+        ifabsent: float(0.05)
+        description: Largest adjustment a single step may make.
+      default_step:
+        range: double
+        ifabsent: float(0.005)
+        description: Adjustment made by a step that does not say how far.
+      right_sense:
+        range: integer
+        ifabsent: int(-1)
+        description: Sign relating a rightward move to the actuator's direction.
+      up_sense:
+        range: integer
+        ifabsent: int(-1)
+        description: Sign relating an upward move to the actuator's direction.
+      left_sense:
+        range: integer
+        ifabsent: int(1)
+        description: Sign relating a leftward move to the actuator's direction.
+      down_sense:
+        range: integer
+        ifabsent: int(1)
+        description: Sign relating a downward move to the actuator's direction.
+
+  ShutterControlsInformation:
+    is_a: ControlsInformation
+    description: Control interface of a beam or laser shutter.
+    class_uri: laura:ShutterControlsInformation
+    attributes:
+      shutter_type:
+        range: string
+        ifabsent: string(Unknown)
+        description: What the shutter blocks, e.g. ``BEAM`` or ``LASER``.

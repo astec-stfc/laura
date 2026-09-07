@@ -583,6 +583,21 @@ _PYDANTIC_EXCLUDED_SLOTS: dict[str, frozenset[str]] = {
     "_DipoleMagnetBase": frozenset({"angle"}),
     "_QuadrupoleMagnetBase": frozenset({"angle"}),
     "_ControlVariableBase": frozenset({"name"}),
+    # ``order`` is not a fit coefficient -- MagneticElement sets it afterwards,
+    # and laura.models.magnetic declares it ``exclude=True`` so it stays out of
+    # a dump.  It has to be declared there rather than here because
+    # ``from_string`` zips a coefficient list against ``model_fields``, and a
+    # base-class field would come first and shift every coefficient by one.
+    "_LinearSaturationFitBase": frozenset({"order"}),
+    # ``schema`` shadows ``BaseModel.schema``, so laura.models.control declares
+    # it as ``schema_`` with ``alias="schema"``.  Two fields for one slot would
+    # be emitted twice on dump and could not be read back, so the generated base
+    # leaves it to the hand-written subclass.  The other artefacts -- SQL, RDF,
+    # SHACL, OWL -- all carry it under the schema's own name.
+    "_ControlsInformationBase": frozenset({"schema"}),
+    "_ScreenControlsInformationBase": frozenset({"schema"}),
+    "_MirrorControlsInformationBase": frozenset({"schema"}),
+    "_ShutterControlsInformationBase": frozenset({"schema"}),
 }
 
 

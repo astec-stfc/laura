@@ -30,8 +30,8 @@ URI: [laura:Screen](https://w3id.org/laura/Screen)
     
         
         
-        Screen --> "0..1" ControlsInformation : controls
-        click ControlsInformation href "../ControlsInformation/"
+        Screen --> "0..1" ScreenControlsInformation : controls
+        click ScreenControlsInformation href "../ScreenControlsInformation/"
     
 
         
@@ -200,7 +200,7 @@ URI: [laura:Screen](https://w3id.org/laura/Screen)
 | [simulation](simulation.md) | 0..1 <br/> [DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
-| [controls](controls.md) | 0..1 <br/> [ControlsInformation](ControlsInformation.md) | Control-system process-variable definitions | [StandardElement](StandardElement.md) |
+| [controls](controls.md) | 0..1 <br/> [ScreenControlsInformation](ScreenControlsInformation.md) | Control-system process-variable definitions | [StandardElement](StandardElement.md) |
 | [reference](reference.md) | 0..1 <br/> [ReferenceElement](ReferenceElement.md) | Links to design drawings and files | [StandardElement](StandardElement.md) |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique element name within the machine | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_class](hardware_class.md) | 1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
@@ -271,6 +271,9 @@ slot_usage:
   hardware_type:
     name: hardware_type
     equals_string: Screen
+  controls:
+    name: controls
+    range: ScreenControlsInformation
 attributes:
   diagnostic:
     name: diagnostic
@@ -305,6 +308,9 @@ slot_usage:
   hardware_type:
     name: hardware_type
     equals_string: Screen
+  controls:
+    name: controls
+    range: ScreenControlsInformation
 attributes:
   diagnostic:
     name: diagnostic
@@ -369,7 +375,7 @@ attributes:
     owner: Screen
     domain_of:
     - StandardElement
-    range: ControlsInformation
+    range: ScreenControlsInformation
   reference:
     name: reference
     description: Links to design drawings and files.

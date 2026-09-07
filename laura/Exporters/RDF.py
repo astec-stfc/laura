@@ -233,11 +233,15 @@ def build_rdf_graph(
                 if target is not None:
                     g.add((elem_uri, LAURA[slot], target))
 
-        variables = getattr(getattr(elem, "controls", None), "variables", None)
+        controls = getattr(elem, "controls", None)
+        variables = getattr(controls, "variables", None)
         if variables:
             controls_uri = URIRef(f"{elem_uri}/controls")
             g.add((elem_uri, LAURA["controls"], controls_uri))
-            g.add((controls_uri, RDF.type, LAURA["ControlsInformation"]))
+            # By its own class, not the base one: a Screen's ``controls`` slot is
+            # ranged at ScreenControlsInformation, and SHACL's sh:class reads
+            # rdf:type off the data graph, where nothing says the two are related.
+            g.add((controls_uri, RDF.type, LAURA[type(controls).__name__]))
 
             for var_name, variable in variables.items():
                 var_uri = URIRef(f"{controls_uri}/{var_name}")

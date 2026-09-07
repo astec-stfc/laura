@@ -33,6 +33,8 @@ URI: [laura:LinearSaturationFit](https://w3id.org/laura/LinearSaturationFit)
         
       LinearSaturationFit : m
         
+      LinearSaturationFit : order
+        
       
 ```
 
@@ -52,6 +54,7 @@ URI: [laura:LinearSaturationFit](https://w3id.org/laura/LinearSaturationFit)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
+| [order](order.md) | 0..1 <br/> [Integer](Integer.md) | Multipole order the fit applies to (0 = dipole, 1 = quadrupole,  | direct |
 | [m](m.md) | 0..1 <br/> [Double](Double.md) | Linear slope of the unsaturated region | direct |
 | [I_max](I_max.md) | 0..1 <br/> [Double](Double.md) | Current at which saturation begins [A] | direct |
 | [f](f.md) | 0..1 <br/> [Double](Double.md) | Saturation fraction (slope ratio below/above I_max) | direct |
@@ -125,6 +128,19 @@ description: Bi-linear saturation model mapping magnet current to integrated fie
   strength (K-value conversion).
 from_schema: https://w3id.org/laura/schema
 attributes:
+  order:
+    name: order
+    description: Multipole order the fit applies to (0 = dipole, 1 = quadrupole, ...).
+    from_schema: https://w3id.org/laura/schema/magnetic
+    ifabsent: int(1)
+    domain_of:
+    - Multipole
+    - LinearSaturationFit
+    - MagneticElement
+    - Corrector_Magnet
+    - Solenoid_Magnet
+    range: integer
+    minimum_value: 0
   m:
     name: m
     description: Linear slope of the unsaturated region.
@@ -208,6 +224,20 @@ description: Bi-linear saturation model mapping magnet current to integrated fie
   strength (K-value conversion).
 from_schema: https://w3id.org/laura/schema
 attributes:
+  order:
+    name: order
+    description: Multipole order the fit applies to (0 = dipole, 1 = quadrupole, ...).
+    from_schema: https://w3id.org/laura/schema/magnetic
+    ifabsent: int(1)
+    owner: LinearSaturationFit
+    domain_of:
+    - Multipole
+    - LinearSaturationFit
+    - MagneticElement
+    - Corrector_Magnet
+    - Solenoid_Magnet
+    range: integer
+    minimum_value: 0
   m:
     name: m
     description: Linear slope of the unsaturated region.

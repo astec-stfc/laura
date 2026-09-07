@@ -35,7 +35,7 @@ URI: [laura:controls](https://w3id.org/laura/controls)
 | [Stage](Stage.md) | Motorised positioning stage |  no  |
 | [VacuumGauge](VacuumGauge.md) | Vacuum-pressure gauge |  no  |
 | [Laser](Laser.md) | Laser system element (full laser setup including beam parameters) |  no  |
-| [Shutter](Shutter.md) | Beam or laser shutter with interlock logic |  no  |
+| [Shutter](Shutter.md) | Beam or laser shutter with interlock logic |  yes  |
 | [Valve](Valve.md) | Vacuum gate valve |  no  |
 | [Marker](Marker.md) | Virtual survey marker -- a zero-length reference point used for alignment |  no  |
 | [Aperture](Aperture.md) | Mechanical aperture restriction in the beam pipe |  no  |
@@ -58,7 +58,7 @@ URI: [laura:controls](https://w3id.org/laura/controls)
 | [BeamArrivalMonitor](BeamArrivalMonitor.md) | Beam-arrival-time monitor (BAM) |  no  |
 | [BunchLengthMonitor](BunchLengthMonitor.md) | Bunch-length monitor (BLM / CDR detector) |  no  |
 | [Camera](Camera.md) | Camera-based beam-profile monitor |  no  |
-| [Screen](Screen.md) | Scintillator or OTR screen with an associated camera |  no  |
+| [Screen](Screen.md) | Scintillator or OTR screen with an associated camera |  yes  |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | Base class for charge-measurement diagnostics |  no  |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | Wall-current monitor (WCM) for non-destructive charge measurement |  no  |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | Faraday cup for destructive charge measurement |  no  |
@@ -67,7 +67,7 @@ URI: [laura:controls](https://w3id.org/laura/controls)
 | [Plasma](Plasma.md) | Laser-driven plasma-accelerator stage |  no  |
 | [LaserEnergyMeter](LaserEnergyMeter.md) | Laser pulse-energy diagnostic (photodiode / pyroelectric) |  no  |
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | Half-wave plate for laser polarisation rotation |  no  |
-| [LaserMirror](LaserMirror.md) | Laser steering or focusing mirror |  no  |
+| [LaserMirror](LaserMirror.md) | Laser steering or focusing mirror |  yes  |
 | [LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |  no  |
 | [Dipole](Dipole.md) |  |  no  |
 | [Quadrupole](Quadrupole.md) |  |  no  |

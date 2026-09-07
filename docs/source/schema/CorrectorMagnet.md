@@ -137,6 +137,7 @@ attributes:
     ifabsent: int(0)
     domain_of:
     - Multipole
+    - LinearSaturationFit
     - MagneticElement
     - Corrector_Magnet
     - Solenoid_Magnet
@@ -206,6 +207,7 @@ attributes:
     owner: Corrector_Magnet
     domain_of:
     - Multipole
+    - LinearSaturationFit
     - MagneticElement
     - Corrector_Magnet
     - Solenoid_Magnet

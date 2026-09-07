@@ -30,8 +30,8 @@ URI: [laura:LaserMirror](https://w3id.org/laura/LaserMirror)
     
         
         
-        LaserMirror --> "0..1" ControlsInformation : controls
-        click ControlsInformation href "../ControlsInformation/"
+        LaserMirror --> "0..1" MirrorControlsInformation : controls
+        click MirrorControlsInformation href "../MirrorControlsInformation/"
     
 
         
@@ -185,7 +185,7 @@ URI: [laura:LaserMirror](https://w3id.org/laura/LaserMirror)
 | [simulation](simulation.md) | 0..1 <br/> [SimulationElement](SimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
-| [controls](controls.md) | 0..1 <br/> [ControlsInformation](ControlsInformation.md) | Control-system process-variable definitions | [StandardElement](StandardElement.md) |
+| [controls](controls.md) | 0..1 <br/> [MirrorControlsInformation](MirrorControlsInformation.md) | Control-system process-variable definitions | [StandardElement](StandardElement.md) |
 | [reference](reference.md) | 0..1 <br/> [ReferenceElement](ReferenceElement.md) | Links to design drawings and files | [StandardElement](StandardElement.md) |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique element name within the machine | [AcceleratorElement](AcceleratorElement.md) |
 | [hardware_class](hardware_class.md) | 1 <br/> [HardwareClassEnum](HardwareClassEnum.md) | Functional category (e | [AcceleratorElement](AcceleratorElement.md) |
@@ -264,6 +264,9 @@ slot_usage:
   hardware_type:
     name: hardware_type
     equals_string: LaserMirror
+  controls:
+    name: controls
+    range: MirrorControlsInformation
 attributes:
   laser:
     name: laser
@@ -296,6 +299,9 @@ slot_usage:
   hardware_type:
     name: hardware_type
     equals_string: LaserMirror
+  controls:
+    name: controls
+    range: MirrorControlsInformation
 attributes:
   laser:
     name: laser
@@ -345,7 +351,7 @@ attributes:
     owner: LaserMirror
     domain_of:
     - StandardElement
-    range: ControlsInformation
+    range: MirrorControlsInformation
   reference:
     name: reference
     description: Links to design drawings and files.

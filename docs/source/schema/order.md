@@ -16,6 +16,7 @@ URI: [laura:order](https://w3id.org/laura/order)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [Multipole](Multipole.md) | Individual multipole field component, characterised by order and integrated n... |  no  |
+| [LinearSaturationFit](LinearSaturationFit.md) | Bi-linear saturation model mapping magnet current to integrated field strengt... |  no  |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
 | [DipoleMagnet](DipoleMagnet.md) |  |  yes  |
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  yes  |
@@ -36,7 +37,7 @@ URI: [laura:order](https://w3id.org/laura/order)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [Multipole](Multipole.md), [MagneticElement](MagneticElement.md), [CorrectorMagnet](CorrectorMagnet.md), [SolenoidMagnet](SolenoidMagnet.md) |
+| Domain Of | [Multipole](Multipole.md), [LinearSaturationFit](LinearSaturationFit.md), [MagneticElement](MagneticElement.md), [CorrectorMagnet](CorrectorMagnet.md), [SolenoidMagnet](SolenoidMagnet.md) |
 
 ### Cardinality and Requirements
 
@@ -76,6 +77,7 @@ URI: [laura:order](https://w3id.org/laura/order)
 name: order
 domain_of:
 - Multipole
+- LinearSaturationFit
 - MagneticElement
 - Corrector_Magnet
 - Solenoid_Magnet

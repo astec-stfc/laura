@@ -180,6 +180,8 @@ classes:
     slot_usage:
       hardware_type:
         equals_string: Shutter
+      controls:
+        range: ShutterControlsInformation
     attributes:
       shutter:
         range: ShutterElement

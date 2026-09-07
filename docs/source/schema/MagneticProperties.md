@@ -359,7 +359,19 @@ URI: [MagneticProperties](MagneticProperties.md)
 
 
 
+
+
+
+
+
+
+
         
+
+
+
+
+
 
 
 

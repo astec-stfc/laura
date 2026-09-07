@@ -1,10 +1,5 @@
 # Slot: attenuation_constant 
 
-
-_Attenuation constant ? of a travelling-wave structure [Np/m]._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -21,6 +16,7 @@ URI: [laura:attenuation_constant](https://w3id.org/laura/attenuation_constant)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [RFCavityElement](RFCavityElement.md) | RF cavity accelerating-structure parameters |  no  |
+| [RFDeflectingCavityElement](RFDeflectingCavityElement.md) | Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for... |  no  |
 
 
 
@@ -33,21 +29,13 @@ URI: [laura:attenuation_constant](https://w3id.org/laura/attenuation_constant)
 
 | Property | Value |
 | --- | --- |
-| Range | [Double](Double.md) |
-| Domain Of | [RFCavityElement](RFCavityElement.md) |
+| Range | [String](String.md) |
+| Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| If Absent | `float(0)` |
-| Owner | [RFCavityElement](RFCavityElement.md) |
-
-
 
 
 
@@ -61,13 +49,6 @@ URI: [laura:attenuation_constant](https://w3id.org/laura/attenuation_constant)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -87,14 +68,10 @@ URI: [laura:attenuation_constant](https://w3id.org/laura/attenuation_constant)
 <details>
 ```yaml
 name: attenuation_constant
-description: Attenuation constant ? of a travelling-wave structure [Np/m].
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-ifabsent: float(0)
-owner: RFCavityElement
 domain_of:
 - RFCavityElement
-range: double
+- RFDeflectingCavityElement
+range: string
 
 ```
 </details></div>

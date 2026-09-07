@@ -184,3 +184,24 @@ class TestElementSubclassNestedDefaults:
         rfd = RFDeflectingCavity(name="RFD1", machine_area="MA")
         assert rfd.cavity is not None
         assert rfd.simulation is not None
+
+    @pytest.mark.parametrize("cls", ["RFDeflectingCavity", "CrabCavity"])
+    def test_deflecting_cavity_narrows_its_cavity_type(self, cls):
+        """Both narrow ``cavity`` past what RFCavity declares.
+
+        CrabCavity could not be constructed at all before ``_ensure_nested_default``
+        took the class from the field: RFCavity's model_post_init runs first and
+        set an RFCavityElement, which the narrowed field then rejected.
+        """
+        from laura.models import element as E
+        from laura.models.RF import RFDeflectingCavityElement
+
+        instance = getattr(E, cls)(name="X1", machine_area="MA")
+        assert isinstance(instance.cavity, RFDeflectingCavityElement)
+
+    def test_deflecting_cavity_accepts_the_structure_type_alias(self):
+        """Lattice YAML spells it ``structure_Type``; CLARA's TDC relies on it."""
+        rfd = RFDeflectingCavity(
+            name="RFD1", machine_area="MA", cavity={"structure_Type": "StandingWave"}
+        )
+        assert rfd.cavity.structure_type == "StandingWave"

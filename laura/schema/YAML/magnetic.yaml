@@ -138,6 +138,12 @@ classes:
       field strength (K-value conversion).
     class_uri: laura:LinearSaturationFit
     attributes:
+      order:
+        range: integer
+        ifabsent: int(1)
+        description: >-
+          Multipole order the fit applies to (0 = dipole, 1 = quadrupole, ...).
+        minimum_value: 0
       m:
         range: double
         description: Linear slope of the unsaturated region.

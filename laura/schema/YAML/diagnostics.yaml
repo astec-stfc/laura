@@ -104,6 +104,8 @@ classes:
     slot_usage:
       hardware_type:
         equals_string: Screen
+      controls:
+        range: ScreenControlsInformation
     attributes:
       diagnostic:
         range: ScreenDiagnosticElement

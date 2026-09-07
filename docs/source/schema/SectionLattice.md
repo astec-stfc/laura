@@ -167,11 +167,7 @@ attributes:
     range: string
   elements:
     name: elements
-    description: 'The elements in this section, keyed by name.  References into MachineModel.elements
-      rather than inlining them -- the Python ElementList holds the same objects,
-      not copies.  The Python model''s ``order`` has no slot here: no LinkML multivalued
-      collection is ordered, so the sequence would not survive any export.  Recover
-      it from each element''s physical.s.'
+    description: The elements in this section, keyed by name.
     from_schema: https://w3id.org/laura/schema/machine
     rank: 1000
     domain_of:
@@ -191,8 +187,6 @@ attributes:
   functional_definitions:
     name: functional_definitions
     description: Named constants this section's elements may refer to, keyed by name.
-      The Python model also accepts a path to a YAML file holding the mapping, but
-      resolves it at construction, so only the resolved mapping is ever exported.
     from_schema: https://w3id.org/laura/schema/machine
     rank: 1000
     domain_of:
@@ -251,11 +245,7 @@ attributes:
     range: string
   elements:
     name: elements
-    description: 'The elements in this section, keyed by name.  References into MachineModel.elements
-      rather than inlining them -- the Python ElementList holds the same objects,
-      not copies.  The Python model''s ``order`` has no slot here: no LinkML multivalued
-      collection is ordered, so the sequence would not survive any export.  Recover
-      it from each element''s physical.s.'
+    description: The elements in this section, keyed by name.
     from_schema: https://w3id.org/laura/schema/machine
     rank: 1000
     owner: SectionLattice
@@ -277,8 +267,6 @@ attributes:
   functional_definitions:
     name: functional_definitions
     description: Named constants this section's elements may refer to, keyed by name.
-      The Python model also accepts a path to a YAML file holding the mapping, but
-      resolves it at construction, so only the resolved mapping is ever exported.
     from_schema: https://w3id.org/laura/schema/machine
     rank: 1000
     owner: SectionLattice

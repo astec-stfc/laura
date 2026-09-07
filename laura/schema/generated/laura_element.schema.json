@@ -2968,6 +2968,20 @@
       "additionalProperties": false,
       "description": "Collection of process-variable definitions for an element's control interface.",
       "properties": {
+        "identifier_pattern": {
+          "description": "What ``{name}`` in that file was substituted with, where it was not the element's own name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "schema": {
+          "description": "The shared controls schema file ``variables`` was expanded from, if any.  Kept only as a record of where they came from: the expansion happens while the element YAML is read, so ``variables`` is always already resolved by the time anything sees this class.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "variables": {
           "additionalProperties": {
             "anyOf": [
@@ -4856,7 +4870,7 @@
     },
     "FunctionalDefinition": {
       "additionalProperties": false,
-      "description": "One named constant a lattice makes available to its elements, e.g. ``quad1_k1l: -2``.  A class rather than a bare map because LinkML has no free-form mapping type; the same keyed-inlined pattern as ControlVariable.",
+      "description": "One named constant a lattice makes available to its elements.",
       "properties": {
         "name": {
           "description": "The name elements refer to this definition by.",
@@ -4876,7 +4890,7 @@
     },
     "FunctionalDefinition__identifier_optional": {
       "additionalProperties": false,
-      "description": "One named constant a lattice makes available to its elements, e.g. ``quad1_k1l: -2``.  A class rather than a bare map because LinkML has no free-form mapping type; the same keyed-inlined pattern as ControlVariable.",
+      "description": "One named constant a lattice makes available to its elements.",
       "properties": {
         "name": {
           "description": "The name elements refer to this definition by.",
@@ -6396,7 +6410,7 @@
         "controls": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ControlsInformation"
+              "$ref": "#/$defs/MirrorControlsInformation"
             },
             {
               "type": "null"
@@ -6886,6 +6900,14 @@
           "description": "Linear slope of the unsaturated region.",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "order": {
+          "description": "Multipole order the fit applies to (0 = dipole, 1 = quadrupole, ...).",
+          "minimum": 0,
+          "type": [
+            "integer",
             "null"
           ]
         }
@@ -8229,6 +8251,87 @@
         "number",
         "string"
       ]
+    },
+    "MirrorControlsInformation": {
+      "additionalProperties": false,
+      "description": "Control interface of a steerable laser mirror.",
+      "properties": {
+        "default_step": {
+          "description": "Adjustment made by a step that does not say how far.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "down_sense": {
+          "description": "Sign relating a downward move to the actuator's direction.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "identifier_pattern": {
+          "description": "What ``{name}`` in that file was substituted with, where it was not the element's own name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "left_sense": {
+          "description": "Sign relating a leftward move to the actuator's direction.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "right_sense": {
+          "description": "Sign relating a rightward move to the actuator's direction.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "schema": {
+          "description": "The shared controls schema file ``variables`` was expanded from, if any.  Kept only as a record of where they came from: the expansion happens while the element YAML is read, so ``variables`` is always already resolved by the time anything sees this class.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "step_max": {
+          "description": "Largest adjustment a single step may make.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "up_sense": {
+          "description": "Sign relating an upward move to the actuator's direction.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "variables": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ControlVariable__identifier_optional"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Named control variables keyed by logical name.",
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "title": "MirrorControlsInformation",
+      "type": "object"
     },
     "Multipole": {
       "additionalProperties": false,
@@ -11404,6 +11507,13 @@
       "additionalProperties": false,
       "description": "Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for streak-mode operation.",
       "properties": {
+        "attenuation_constant": {
+          "description": "Attenuation constant of a travelling-wave structure [Np/m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "cell_length": {
           "description": "Length of a single cell [m].",
           "minimum": 0.0,
@@ -11492,6 +11602,13 @@
           "description": "Shunt impedance [M?/m].",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "structure_type": {
+          "description": "RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave).",
+          "type": [
+            "string",
             "null"
           ]
         }
@@ -12466,7 +12583,7 @@
         "controls": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ControlsInformation"
+              "$ref": "#/$defs/ScreenControlsInformation"
             },
             {
               "type": "null"
@@ -12632,6 +12749,52 @@
       "title": "Screen",
       "type": "object"
     },
+    "ScreenControlsInformation": {
+      "additionalProperties": false,
+      "description": "Control interface of a screen, which also drives an actuator between named positions.",
+      "properties": {
+        "identifier_pattern": {
+          "description": "What ``{name}`` in that file was substituted with, where it was not the element's own name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "movement_type": {
+          "description": "How the screen is moved, e.g. ``VMOTOR``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "schema": {
+          "description": "The shared controls schema file ``variables`` was expanded from, if any.  Kept only as a record of where they came from: the expansion happens while the element YAML is read, so ``variables`` is always already resolved by the time anything sees this class.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variables": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ControlVariable__identifier_optional"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Named control variables keyed by logical name.",
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "title": "ScreenControlsInformation",
+      "type": "object"
+    },
     "ScreenDiagnosticElement": {
       "additionalProperties": false,
       "description": "Scintillator or OTR screen diagnostic data.",
@@ -12676,7 +12839,7 @@
       "description": "A contiguous beamline section: an ordered run of elements.",
       "properties": {
         "elements": {
-          "description": "The elements in this section, keyed by name.  References into MachineModel.elements rather than inlining them -- the Python ElementList holds the same objects, not copies.  The Python model's ``order`` has no slot here: no LinkML multivalued collection is ordered, so the sequence would not survive any export.  Recover it from each element's physical.s.",
+          "description": "The elements in this section, keyed by name.",
           "items": {
             "type": "string"
           },
@@ -12697,7 +12860,7 @@
               }
             ]
           },
-          "description": "Named constants this section's elements may refer to, keyed by name. The Python model also accepts a path to a YAML file holding the mapping, but resolves it at construction, so only the resolved mapping is ever exported.",
+          "description": "Named constants this section's elements may refer to, keyed by name.",
           "type": [
             "object",
             "null"
@@ -13129,7 +13292,7 @@
         "controls": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ControlsInformation"
+              "$ref": "#/$defs/ShutterControlsInformation"
             },
             {
               "type": "null"
@@ -13293,6 +13456,52 @@
         "hardware_class"
       ],
       "title": "Shutter",
+      "type": "object"
+    },
+    "ShutterControlsInformation": {
+      "additionalProperties": false,
+      "description": "Control interface of a beam or laser shutter.",
+      "properties": {
+        "identifier_pattern": {
+          "description": "What ``{name}`` in that file was substituted with, where it was not the element's own name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "schema": {
+          "description": "The shared controls schema file ``variables`` was expanded from, if any.  Kept only as a record of where they came from: the expansion happens while the element YAML is read, so ``variables`` is always already resolved by the time anything sees this class.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shutter_type": {
+          "description": "What the shutter blocks, e.g. ``BEAM`` or ``LASER``.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variables": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ControlVariable__identifier_optional"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Named control variables keyed by logical name.",
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "title": "ShutterControlsInformation",
       "type": "object"
     },
     "ShutterElement": {

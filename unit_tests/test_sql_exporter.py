@@ -213,8 +213,8 @@ class TestSQLInternalHelpers:
 
     def test_all_schema_enum_members_valid(self):
         coerce = self._get_coerce()
-        from laura.Exporters.SQL import _VALID_HARDWARE_CLASSES
-        for cls in _VALID_HARDWARE_CLASSES:
+        from laura.Exporters.SQL import _valid_hardware_classes
+        for cls in _valid_hardware_classes():
             assert coerce(cls) == cls
 
     def test_invalid_string_returns_generic(self):
@@ -294,6 +294,64 @@ def multi_section_machine():
         "layouts": {"full": ["A01", "B01"], "half": ["A01"]},
     }
     return LAURA(element_list=[m1, q1, m2, d1], layout=layouts, section=sections)
+
+
+class TestTypedElementRows:
+    """The per-type tables, and the geometry that only fits in them."""
+
+    def test_typed_row_carries_geometry(self, small_machine):
+        """A Quadrupole lands in the Quadrupole table with its physical sub-model.
+
+        gen-sqla emits concrete inheritance, so the typed row is a second row
+        alongside the AcceleratorElement one rather than the same row seen
+        through a subclass -- the junctions need the base row, and ``physical``
+        is first declared on PhysicalAcceleratorElement, so geometry needs the
+        typed one.  Both must be written.
+        """
+        export_machine, _, _ = _import_sql()
+        orm = _load_orm_module()
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_url = f"sqlite:///{Path(tmpdir) / 'geom.db'}"
+            export_machine(small_machine, db_url=db_url)
+
+            with sessionmaker(bind=create_engine(db_url))() as session:
+                assert session.get(orm.AcceleratorElement, "Q1") is not None
+                q = session.get(orm.Quadrupole, "Q1")
+                assert q.hardware_type == "Quadrupole"
+                assert q.physical.length == pytest.approx(0.3)
+                assert q.physical.s_point == "middle"
+                assert q.physical.middle.z == pytest.approx(1.0)
+                # Defaulted by PhysicalElement.model_post_init, not by us.
+                assert q.physical.rotation is not None
+                assert q.physical.error.position is not None
+                assert q.physical.survey.rotation is not None
+
+    def test_re_export_does_not_duplicate_typed_rows(self, small_machine):
+        """merge() keyed on the text primary key, so a second export overwrites.
+
+        The sub-models have no natural key -- they are reached only through the
+        element -- so nothing stops a second export leaving a full orphaned copy
+        of every one of them behind.  What stops it is the composition cascade
+        laura/schema/generate_orm.py adds; this is the check that it still does.
+        """
+        export_machine, _, _ = _import_sql()
+        orm = _load_orm_module()
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_url = f"sqlite:///{Path(tmpdir) / 'twice.db'}"
+            export_machine(small_machine, db_url=db_url)
+            export_machine(small_machine, db_url=db_url)
+
+            with sessionmaker(bind=create_engine(db_url))() as session:
+                assert session.query(orm.Quadrupole).count() == 1
+                assert session.query(orm.AcceleratorElement).count() == 3
+                assert session.query(orm.PhysicalElement).count() == 3
+                assert session.query(orm.QuadrupoleMagnet).count() == 1
 
 
 class TestLatticeMetadata:
@@ -453,121 +511,183 @@ class TestSQLExporterEdgeCases:
 
 
 # ---------------------------------------------------------------------------
-# Direct unit tests for the un-integrated physical helpers
-# (_export_position, _export_rotation, _export_physical)
-# These helpers are defined but not yet called by export_machine.
+# The mapper-driven sub-model exporter
 # ---------------------------------------------------------------------------
 
-def _get_sql_helpers():
-    """Import SQL helpers; skip if sqlalchemy not installed."""
+def _get_export_submodel():
+    """Import _export_submodel; skip if sqlalchemy not installed."""
     pytest.importorskip("sqlalchemy")
-    from laura.Exporters.SQL import (
-        _load_orm,
-        _make_session_factory,
-        _export_position,
-        _export_rotation,
-        _export_physical,
-    )
-    return _load_orm, _make_session_factory, _export_position, _export_rotation, _export_physical
+    from laura.Exporters.SQL import _export_submodel
+
+    return _export_submodel
 
 
-def _make_orm_session(orm):
-    """Create a fresh in-memory SQLite session backed by the generated ORM."""
-    _, Session = orm  # unpack tuple only if already called — helper handles both
-    from laura.Exporters.SQL import _make_session_factory
-    _, Session = _make_session_factory("sqlite:///:memory:", orm)
-    return Session()
+class TestExportSubmodel:
+    """Direct unit tests for the generic sub-model exporter.
 
-
-class TestSQLExportPhysicalHelpers:
-    """Direct unit tests for _export_position, _export_rotation, _export_physical."""
+    One function replaced the per-class helpers this file used to test, because
+    ~140 element classes each retarget ``magnetic``/``simulation`` at their own
+    table and writing that out by hand is several hundred cases that go stale.
+    """
 
     @pytest.fixture(autouse=True)
     def _setup(self):
-        _load_orm, _make_session_factory, self._ep, self._er, self._eph = _get_sql_helpers()
-        from laura.Exporters.SQL import _load_orm as lorm, _make_session_factory as msf
-        self.orm = lorm()
-        _, Session = msf("sqlite:///:memory:", self.orm)
-        self.session = Session()
+        # No session: it builds unattached rows and lets the save-update cascade
+        # persist them via the element that owns them.
+        self._export = _get_export_submodel()
+        self.orm = _load_orm_module()
 
-    def teardown_method(self):
-        self.session.close()
+    def test_none_returns_none(self):
+        assert self._export(None, self.orm.Position) is None
 
-    def test_export_position_none_returns_none(self):
-        assert self._ep(None, self.orm, self.session) is None
-
-    def test_export_position_valid_object(self):
+    def test_scalars_are_copied_by_slot_name(self):
         from laura.models.physical import Position
-        pos = Position(x=1.0, y=2.0, z=3.0)
-        result = self._ep(pos, self.orm, self.session)
-        assert result is not None
-        assert float(result.x) == pytest.approx(1.0)
-        assert float(result.y) == pytest.approx(2.0)
-        assert float(result.z) == pytest.approx(3.0)
 
-    def test_export_position_bad_object_returns_none(self):
-        class BadPos:
-            x = "not_a_number"
-            y = "not_a_number"
-            z = "not_a_number"
-        # float() on a string raises ValueError; but the except catches AttributeError/TypeError
-        # If Position-like object has string coords, orm.Position constructor may raise TypeError
-        # The fallback returns None
-        bad = type("BadPos", (), {"x": object(), "y": object(), "z": object()})()
-        result = self._ep(bad, self.orm, self.session)
-        # Either returns a row (if ORM accepts it) or returns None (TypeError caught)
-        # We verify no exception is raised
-        assert result is None or result is not None  # must not raise
+        row = self._export(Position(x=1.0, y=2.0, z=3.0), self.orm.Position)
+        assert (row.x, row.y, row.z) == pytest.approx((1.0, 2.0, 3.0))
 
-    def test_export_position_missing_attrs_returns_none(self):
-        class NoXYZ:
-            pass
-        result = self._ep(NoXYZ(), self.orm, self.session)
-        assert result is None
+    def test_absent_fields_are_left_unset(self):
+        """A source object with none of the slots still yields an empty row."""
 
-    def test_export_rotation_none_returns_none(self):
-        assert self._er(None, self.orm, self.session) is None
+        row = self._export(type("NoXYZ", (), {})(), self.orm.Position)
+        assert row is not None
+        assert row.x is None
 
-    def test_export_rotation_valid_object(self):
-        from laura.models.physical import Rotation
-        rot = Rotation(phi=0.1, psi=0.2, theta=0.3)
-        result = self._er(rot, self.orm, self.session)
-        assert result is not None
-        assert float(result.theta) == pytest.approx(0.3)
+    def test_unusable_value_is_dropped_not_raised(self):
+        """One odd field must not cost the whole element."""
+        bad = type("BadPos", (), {"x": object(), "y": "nope", "z": 3})()
+        row = self._export(bad, self.orm.Position)
+        assert row.x is None
+        assert row.y is None
+        assert row.z == pytest.approx(3.0)
 
-    def test_export_rotation_missing_attrs_returns_none(self):
-        class NoAngles:
-            pass
-        result = self._er(NoAngles(), self.orm, self.session)
-        assert result is None
-
-    def test_export_physical_no_physical_returns_none(self):
-        """_export_physical returns None when element has no physical attribute."""
-        # Use a plain Python object with physical=None
-        class NoPhysElem:
-            physical = None
-        result = self._eph(NoPhysElem(), self.orm, self.session)
-        assert result is None
-
-    def test_export_physical_with_physical_returns_row(self):
+    def test_nested_submodels_recurse(self):
         q = Quadrupole(
             name="QPH",
             magnetic={"length": 0.3},
             physical={"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
         )
-        result = self._eph(q, self.orm, self.session)
-        assert result is not None
-        assert float(result.length) == pytest.approx(0.3)
+        row = self._export(q.physical, self.orm.PhysicalElement)
+        assert row.length == pytest.approx(0.3)
+        assert row.middle.z == pytest.approx(1.0)
 
-    def test_export_physical_non_numeric_length_uses_none(self):
+    def test_out_of_range_enum_value_is_dropped(self):
+        """gen-sqla emits real Enum columns, which raise on an unlisted value."""
+        q = Quadrupole(name="QBAD", magnetic={"length": 0.3})
+        object.__setattr__(q.magnetic, "plane", "Diagonal")
+        object.__setattr__(q.magnetic, "length", "not_a_number")
+        row = self._export(q.magnetic, self.orm.QuadrupoleMagnet)
+        assert row.plane is None
+        assert row.length is None
+
+    def test_keyed_map_puts_the_key_back_on_the_row(self):
+        """ControlsInformation.variables is a name -> ControlVariable mapping."""
         q = Quadrupole(
-            name="QBAD",
+            name="QCTL",
             magnetic={"length": 0.3},
-            physical={"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
+            controls={
+                "variables": {
+                    "SETI": {"identifier": "Q:SETI", "protocol": "EPICS"},
+                }
+            },
         )
-        # Monkey-patch physical.length to a non-numeric string
-        object.__setattr__(q.physical, "length", "not_a_number")
-        result = self._eph(q, self.orm, self.session)
-        # The ValueError path sets length=None but still creates the row
-        assert result is not None
-        assert result.length is None
+        row = self._export(q.controls, self.orm.ControlsInformation)
+        assert [(v.name, v.identifier) for v in row.variables] == [
+            ("SETI", "Q:SETI")
+        ]
+
+
+class TestSubmodelsReachTheDatabase:
+    """End-to-end: the composed sub-models, not just identity and geometry."""
+
+    def test_magnetic_and_controls_are_written(self, small_machine):
+        export_machine, _, _ = _import_sql()
+        orm = _load_orm_module()
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+
+        small_machine.elements["Q1"].controls = {
+            "variables": {"SETI": {"identifier": "S01-Q1:SETI", "protocol": "EPICS"}}
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_url = f"sqlite:///{Path(tmpdir) / 'sub.db'}"
+            export_machine(small_machine, db_url=db_url)
+
+            with sessionmaker(bind=create_engine(db_url))() as session:
+                q = session.get(orm.Quadrupole, "Q1")
+                # Quadrupole.magnetic targets QuadrupoleMagnet, not the base
+                # MagneticElement -- the reason this is mapper-driven.
+                assert type(q.magnetic).__name__ == "QuadrupoleMagnet"
+                assert q.magnetic.length == pytest.approx(0.3)
+                assert [v.identifier for v in q.controls.variables] == [
+                    "S01-Q1:SETI"
+                ]
+
+    def test_upstream_and_downstream_are_linked(self):
+        """Written in a second pass: an element may name one declared later."""
+        export_machine, _, _ = _import_sql()
+        orm = _load_orm_module()
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+
+        machine = LAURA(
+            element_list=[
+                Quadrupole(name="QA", machine_area="S01", downstream=["QB"]),
+                Quadrupole(name="QB", machine_area="S01", upstream=["QA"]),
+            ],
+            layout={"default_layout": "l", "layouts": {"l": ["S01"]}},
+            section={"sections": {"S01": ["QA", "QB"]}},
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_url = f"sqlite:///{Path(tmpdir) / 'links.db'}"
+            export_machine(machine, db_url=db_url)
+
+            with sessionmaker(bind=create_engine(db_url))() as session:
+                qa = session.get(orm.AcceleratorElement, "QA")
+                qb = session.get(orm.AcceleratorElement, "QB")
+                assert [e.name for e in qa.downstream] == ["QB"]
+                assert [e.name for e in qb.upstream] == ["QA"]
+
+    def test_per_type_controls_row_is_written(self):
+        """A Screen's controls go in ScreenControlsInformation, with its extras.
+
+        The per-type controls classes mirror the per-type ``magnetic`` ones, so
+        this is the same claim as ``QuadrupoleMagnet`` above -- but they were
+        added later and the ``slot_usage`` that ranges them is easy to lose in a
+        schema edit.
+        """
+        from laura.models.element import Screen
+
+        export_machine, _, _ = _import_sql()
+        orm = _load_orm_module()
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+
+        machine = LAURA(
+            element_list=[
+                Screen(
+                    name="SCR",
+                    machine_area="S01",
+                    controls={
+                        "variables": {},
+                        "movement_type": "VMOTOR",
+                        "schema": "screen.yaml",
+                    },
+                )
+            ],
+            layout={"default_layout": "l", "layouts": {"l": ["S01"]}},
+            section={"sections": {"S01": ["SCR"]}},
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_url = f"sqlite:///{Path(tmpdir) / 'screen.db'}"
+            export_machine(machine, db_url=db_url)
+
+            with sessionmaker(bind=create_engine(db_url))() as session:
+                controls = session.get(orm.Screen, "SCR").controls
+                assert type(controls).__name__ == "ScreenControlsInformation"
+                assert controls.movement_type == "VMOTOR"
+                # Read through the ``schema_`` field alias, not getattr.
+                assert controls.schema == "screen.yaml"

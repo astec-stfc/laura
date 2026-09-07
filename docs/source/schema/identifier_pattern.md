@@ -1,7 +1,7 @@
-# Slot: variables 
+# Slot: identifier_pattern 
 
 
-_Named control variables keyed by logical name._
+_What ``{name}`` in that file was substituted with, where it was not the element's own name._
 
 
 
@@ -9,7 +9,7 @@ _Named control variables keyed by logical name._
 
 
 
-URI: [laura:variables](https://w3id.org/laura/variables)
+URI: [laura:identifier_pattern](https://w3id.org/laura/identifier_pattern)
 <!-- no inheritance hierarchy -->
 
 
@@ -36,14 +36,13 @@ URI: [laura:variables](https://w3id.org/laura/variables)
 
 | Property | Value |
 | --- | --- |
-| Range | [ControlVariable](ControlVariable.md) |
+| Range | [String](String.md) |
 | Domain Of | [ControlsInformation](ControlsInformation.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-| Multivalued | Yes |
 ### Slot Characteristics
 
 | Property | Value |
@@ -79,8 +78,8 @@ URI: [laura:variables](https://w3id.org/laura/variables)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:variables |
-| native | laura:variables |
+| self | laura:identifier_pattern |
+| native | laura:identifier_pattern |
 
 
 
@@ -89,17 +88,15 @@ URI: [laura:variables](https://w3id.org/laura/variables)
 
 <details>
 ```yaml
-name: variables
-description: Named control variables keyed by logical name.
+name: identifier_pattern
+description: What ``{name}`` in that file was substituted with, where it was not the
+  element's own name.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ControlsInformation
 domain_of:
 - ControlsInformation
-range: ControlVariable
-multivalued: true
-inlined: true
-inlined_as_list: false
+range: string
 
 ```
 </details></div>

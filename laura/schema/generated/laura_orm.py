@@ -57,12 +57,12 @@ class ReferenceElement(Base):
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     
     
-    drawings_rel = relationship( "ReferenceElementDrawings" )
+    drawings_rel = relationship( "ReferenceElementDrawings", cascade="all, delete-orphan" )
     drawings = association_proxy("drawings_rel", "drawings",
                                   creator=lambda x_: ReferenceElementDrawings(drawings=x_))
     
     
-    design_files_rel = relationship( "ReferenceElementDesignFiles" )
+    design_files_rel = relationship( "ReferenceElementDesignFiles", cascade="all, delete-orphan" )
     design_files = association_proxy("design_files_rel", "design_files",
                                   creator=lambda x_: ReferenceElementDesignFiles(design_files=x_))
     
@@ -90,17 +90,17 @@ class AcceleratorElement(Base):
     subelement = Column(Text())
     
     
-    alias_rel = relationship( "AcceleratorElementAlias" )
+    alias_rel = relationship( "AcceleratorElementAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: AcceleratorElementAlias(alias=x_))
     
     
-    inputs_rel = relationship( "AcceleratorElementInputs" )
+    inputs_rel = relationship( "AcceleratorElementInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: AcceleratorElementInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "AcceleratorElementOutputs" )
+    outputs_rel = relationship( "AcceleratorElementOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: AcceleratorElementOutputs(outputs=x_))
     
@@ -179,9 +179,9 @@ class ElementPositionError(Base):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     position_id = Column(Integer(), ForeignKey('Position.id'))
-    position = relationship("Position", uselist=False, foreign_keys=[position_id])
+    position = relationship("Position", uselist=False, foreign_keys=[position_id], cascade="all, delete-orphan", single_parent=True)
     rotation_id = Column(Integer(), ForeignKey('Rotation.id'))
-    rotation = relationship("Rotation", uselist=False, foreign_keys=[rotation_id])
+    rotation = relationship("Rotation", uselist=False, foreign_keys=[rotation_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -200,9 +200,9 @@ class ElementSurvey(Base):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     position_id = Column(Integer(), ForeignKey('Position.id'))
-    position = relationship("Position", uselist=False, foreign_keys=[position_id])
+    position = relationship("Position", uselist=False, foreign_keys=[position_id], cascade="all, delete-orphan", single_parent=True)
     rotation_id = Column(Integer(), ForeignKey('Rotation.id'))
-    rotation = relationship("Rotation", uselist=False, foreign_keys=[rotation_id])
+    rotation = relationship("Rotation", uselist=False, foreign_keys=[rotation_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -224,9 +224,9 @@ class ReferencePlacement(Base):
     point = Column(Text())
     s_offset = Column(Float())
     offset_id = Column(Integer(), ForeignKey('Position.id'))
-    offset = relationship("Position", uselist=False, foreign_keys=[offset_id])
+    offset = relationship("Position", uselist=False, foreign_keys=[offset_id], cascade="all, delete-orphan", single_parent=True)
     world_offset_id = Column(Integer(), ForeignKey('Position.id'))
-    world_offset = relationship("Position", uselist=False, foreign_keys=[world_offset_id])
+    world_offset = relationship("Position", uselist=False, foreign_keys=[world_offset_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -249,19 +249,19 @@ class PhysicalElement(Base):
     s = Column(Float())
     s_point = Column(Text())
     middle_id = Column(Integer(), ForeignKey('Position.id'))
-    middle = relationship("Position", uselist=False, foreign_keys=[middle_id])
+    middle = relationship("Position", uselist=False, foreign_keys=[middle_id], cascade="all, delete-orphan", single_parent=True)
     datum_id = Column(Integer(), ForeignKey('Position.id'))
-    datum = relationship("Position", uselist=False, foreign_keys=[datum_id])
+    datum = relationship("Position", uselist=False, foreign_keys=[datum_id], cascade="all, delete-orphan", single_parent=True)
     rotation_id = Column(Integer(), ForeignKey('Rotation.id'))
-    rotation = relationship("Rotation", uselist=False, foreign_keys=[rotation_id])
+    rotation = relationship("Rotation", uselist=False, foreign_keys=[rotation_id], cascade="all, delete-orphan", single_parent=True)
     global_rotation_id = Column(Integer(), ForeignKey('Rotation.id'))
-    global_rotation = relationship("Rotation", uselist=False, foreign_keys=[global_rotation_id])
+    global_rotation = relationship("Rotation", uselist=False, foreign_keys=[global_rotation_id], cascade="all, delete-orphan", single_parent=True)
     error_id = Column(Integer(), ForeignKey('ElementPositionError.id'))
-    error = relationship("ElementPositionError", uselist=False, foreign_keys=[error_id])
+    error = relationship("ElementPositionError", uselist=False, foreign_keys=[error_id], cascade="all, delete-orphan", single_parent=True)
     survey_id = Column(Integer(), ForeignKey('ElementSurvey.id'))
-    survey = relationship("ElementSurvey", uselist=False, foreign_keys=[survey_id])
+    survey = relationship("ElementSurvey", uselist=False, foreign_keys=[survey_id], cascade="all, delete-orphan", single_parent=True)
     reference_placement_id = Column(Integer(), ForeignKey('ReferencePlacement.id'))
-    reference_placement = relationship("ReferencePlacement", uselist=False, foreign_keys=[reference_placement_id])
+    reference_placement = relationship("ReferencePlacement", uselist=False, foreign_keys=[reference_placement_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -278,7 +278,8 @@ class ControlVariable(Base):
     """
     __tablename__ = 'ControlVariable'
 
-    name = Column(Text(), primary_key=True, nullable=False )
+    id = Column(Integer(), primary_key=True, autoincrement=True)
+    name = Column(Text(), nullable=False )
     identifier = Column(Text())
     dtype = Column(Text())
     protocol = Column(Text())
@@ -296,11 +297,14 @@ class ControlVariable(Base):
     dynamics = Column(Text())
     auto_buffer = Column(Boolean())
     buffer_size = Column(Integer())
-    ControlsInformation_id = Column(Integer(), ForeignKey('ControlsInformation.id'), primary_key=True)
+    ControlsInformation_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    ScreenControlsInformation_id = Column(Integer(), ForeignKey('ScreenControlsInformation.id'))
+    MirrorControlsInformation_id = Column(Integer(), ForeignKey('MirrorControlsInformation.id'))
+    ShutterControlsInformation_id = Column(Integer(), ForeignKey('ShutterControlsInformation.id'))
     
 
     def __repr__(self):
-        return f"ControlVariable(name={self.name},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},states={self.states},readback={self.readback},setpoint={self.setpoint},update={self.update},dynamics={self.dynamics},auto_buffer={self.auto_buffer},buffer_size={self.buffer_size},ControlsInformation_id={self.ControlsInformation_id},)"
+        return f"ControlVariable(name={self.name},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},states={self.states},readback={self.readback},setpoint={self.setpoint},update={self.update},dynamics={self.dynamics},auto_buffer={self.auto_buffer},buffer_size={self.buffer_size},ControlsInformation_id={self.ControlsInformation_id},ScreenControlsInformation_id={self.ScreenControlsInformation_id},MirrorControlsInformation_id={self.MirrorControlsInformation_id},ShutterControlsInformation_id={self.ShutterControlsInformation_id},)"
 
 
 
@@ -314,14 +318,16 @@ class ControlsInformation(Base):
     __tablename__ = 'ControlsInformation'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    schema = Column(Text())
+    identifier_pattern = Column(Text())
     
     
     # One-To-Many: OneToAnyMapping(source_class='ControlsInformation', source_slot='variables', mapping_type=None, target_class='ControlVariable', target_slot='ControlsInformation_id', join_class=None, uses_join_table=None, multivalued=False)
-    variables = relationship( "ControlVariable", foreign_keys="[ControlVariable.ControlsInformation_id]")
+    variables = relationship( "ControlVariable", foreign_keys="[ControlVariable.ControlsInformation_id]", cascade="all, delete-orphan")
     
 
     def __repr__(self):
-        return f"ControlsInformation(id={self.id},)"
+        return f"ControlsInformation(id={self.id},schema={self.schema},identifier_pattern={self.identifier_pattern},)"
 
 
 
@@ -337,7 +343,7 @@ class ShutterElement(Base):
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     
     
-    interlocks_rel = relationship( "ShutterElementInterlocks" )
+    interlocks_rel = relationship( "ShutterElementInterlocks", cascade="all, delete-orphan" )
     interlocks = association_proxy("interlocks_rel", "interlocks",
                                   creator=lambda x_: ShutterElementInterlocks(interlocks=x_))
     
@@ -410,7 +416,7 @@ class ApertureElement(Base):
 
 class FunctionalDefinition(Base):
     """
-    One named constant a lattice makes available to its elements, e.g. ``quad1_k1l: -2``.  A class rather than a bare map because LinkML has no free-form mapping type; the same keyed-inlined pattern as ControlVariable.
+    One named constant a lattice makes available to its elements.
     """
     __tablename__ = 'FunctionalDefinition'
 
@@ -446,7 +452,7 @@ class SectionLattice(Base):
     
     
     # One-To-Many: OneToAnyMapping(source_class='SectionLattice', source_slot='functional_definitions', mapping_type=None, target_class='FunctionalDefinition', target_slot='SectionLattice_name', join_class=None, uses_join_table=None, multivalued=False)
-    functional_definitions = relationship( "FunctionalDefinition", foreign_keys="[FunctionalDefinition.SectionLattice_name]")
+    functional_definitions = relationship( "FunctionalDefinition", foreign_keys="[FunctionalDefinition.SectionLattice_name]", cascade="all, delete-orphan")
     
 
     def __repr__(self):
@@ -474,7 +480,7 @@ class MachineLayout(Base):
     
     
     # One-To-Many: OneToAnyMapping(source_class='MachineLayout', source_slot='functional_definitions', mapping_type=None, target_class='FunctionalDefinition', target_slot='MachineLayout_name', join_class=None, uses_join_table=None, multivalued=False)
-    functional_definitions = relationship( "FunctionalDefinition", foreign_keys="[FunctionalDefinition.MachineLayout_name]")
+    functional_definitions = relationship( "FunctionalDefinition", foreign_keys="[FunctionalDefinition.MachineLayout_name]", cascade="all, delete-orphan")
     
 
     def __repr__(self):
@@ -582,15 +588,15 @@ class Multipoles(Base):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     K0L_id = Column(Integer(), ForeignKey('Multipole.id'))
-    K0L = relationship("Multipole", uselist=False, foreign_keys=[K0L_id])
+    K0L = relationship("Multipole", uselist=False, foreign_keys=[K0L_id], cascade="all, delete-orphan", single_parent=True)
     K1L_id = Column(Integer(), ForeignKey('Multipole.id'))
-    K1L = relationship("Multipole", uselist=False, foreign_keys=[K1L_id])
+    K1L = relationship("Multipole", uselist=False, foreign_keys=[K1L_id], cascade="all, delete-orphan", single_parent=True)
     K2L_id = Column(Integer(), ForeignKey('Multipole.id'))
-    K2L = relationship("Multipole", uselist=False, foreign_keys=[K2L_id])
+    K2L = relationship("Multipole", uselist=False, foreign_keys=[K2L_id], cascade="all, delete-orphan", single_parent=True)
     K3L_id = Column(Integer(), ForeignKey('Multipole.id'))
-    K3L = relationship("Multipole", uselist=False, foreign_keys=[K3L_id])
+    K3L = relationship("Multipole", uselist=False, foreign_keys=[K3L_id], cascade="all, delete-orphan", single_parent=True)
     K4L_id = Column(Integer(), ForeignKey('Multipole.id'))
-    K4L = relationship("Multipole", uselist=False, foreign_keys=[K4L_id])
+    K4L = relationship("Multipole", uselist=False, foreign_keys=[K4L_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -610,7 +616,7 @@ class FieldIntegral(Base):
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     
     
-    coefficients_rel = relationship( "FieldIntegralCoefficients" )
+    coefficients_rel = relationship( "FieldIntegralCoefficients", cascade="all, delete-orphan" )
     coefficients = association_proxy("coefficients_rel", "coefficients",
                                   creator=lambda x_: FieldIntegralCoefficients(coefficients=x_))
     
@@ -630,6 +636,7 @@ class LinearSaturationFit(Base):
     __tablename__ = 'LinearSaturationFit'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    order = Column(Integer())
     m = Column(Float())
     I_max = Column(Float())
     f = Column(Float())
@@ -640,7 +647,7 @@ class LinearSaturationFit(Base):
     
 
     def __repr__(self):
-        return f"LinearSaturationFit(id={self.id},m={self.m},I_max={self.I_max},f={self.f},a={self.a},I0={self.I0},d={self.d},L={self.L},)"
+        return f"LinearSaturationFit(id={self.id},order={self.order},m={self.m},I_max={self.I_max},f={self.f},a={self.a},I0={self.I0},d={self.d},L={self.L},)"
 
 
 
@@ -670,15 +677,15 @@ class MagneticElement(Base):
     gradient = Column(Float())
     angle = Column(Float())
     multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id])
+    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id], cascade="all, delete-orphan", single_parent=True)
     systematic_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id])
+    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id], cascade="all, delete-orphan", single_parent=True)
     random_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id])
+    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id], cascade="all, delete-orphan", single_parent=True)
     field_integral_coefficients_id = Column(Integer(), ForeignKey('FieldIntegral.id'))
-    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id])
+    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     linear_saturation_coefficients_id = Column(Integer(), ForeignKey('LinearSaturationFit.id'))
-    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id])
+    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -700,7 +707,7 @@ class DegaussableElement(Base):
     steps = Column(Integer())
     
     
-    values_rel = relationship( "DegaussableElementValues" )
+    values_rel = relationship( "DegaussableElementValues", cascade="all, delete-orphan" )
     values = association_proxy("values_rel", "values",
                                   creator=lambda x_: DegaussableElementValues(values=x_))
     
@@ -735,12 +742,12 @@ class RFCavityElement(Base):
     attenuation_constant = Column(Float())
     
     
-    power_calibration_rel = relationship( "RFCavityElementPowerCalibration" )
+    power_calibration_rel = relationship( "RFCavityElementPowerCalibration", cascade="all, delete-orphan" )
     power_calibration = association_proxy("power_calibration_rel", "power_calibration",
                                   creator=lambda x_: RFCavityElementPowerCalibration(power_calibration=x_))
     
     
-    gradient_calibration_rel = relationship( "RFCavityElementGradientCalibration" )
+    gradient_calibration_rel = relationship( "RFCavityElementGradientCalibration", cascade="all, delete-orphan" )
     gradient_calibration = association_proxy("gradient_calibration_rel", "gradient_calibration",
                                   creator=lambda x_: RFCavityElementGradientCalibration(gradient_calibration=x_))
     
@@ -791,10 +798,12 @@ class RFDeflectingCavityElement(Base):
     shunt_impedance = Column(Float())
     mode_numerator = Column(Float())
     mode_denominator = Column(Integer())
+    structure_type = Column(Text())
+    attenuation_constant = Column(Float())
     
 
     def __repr__(self):
-        return f"RFDeflectingCavityElement(id={self.id},cell_length={self.cell_length},coupling_cell_length={self.coupling_cell_length},crest={self.crest},design_gamma={self.design_gamma},design_power={self.design_power},frequency={self.frequency},n_cells={self.n_cells},phase={self.phase},shunt_impedance={self.shunt_impedance},mode_numerator={self.mode_numerator},mode_denominator={self.mode_denominator},)"
+        return f"RFDeflectingCavityElement(id={self.id},cell_length={self.cell_length},coupling_cell_length={self.coupling_cell_length},crest={self.crest},design_gamma={self.design_gamma},design_power={self.design_power},frequency={self.frequency},n_cells={self.n_cells},phase={self.phase},shunt_impedance={self.shunt_impedance},mode_numerator={self.mode_numerator},mode_denominator={self.mode_denominator},structure_type={self.structure_type},attenuation_constant={self.attenuation_constant},)"
 
 
 
@@ -816,9 +825,9 @@ class PIDElement(Base):
     enable = Column(Text())
     disable = Column(Text())
     phase_range_id = Column(Integer(), ForeignKey('PIDPhaseRange.id'))
-    phase_range = relationship("PIDPhaseRange", uselist=False, foreign_keys=[phase_range_id])
+    phase_range = relationship("PIDPhaseRange", uselist=False, foreign_keys=[phase_range_id], cascade="all, delete-orphan", single_parent=True)
     phase_weight_range_id = Column(Integer(), ForeignKey('PIDWeightRange.id'))
-    phase_weight_range = relationship("PIDWeightRange", uselist=False, foreign_keys=[phase_weight_range_id])
+    phase_weight_range = relationship("PIDWeightRange", uselist=False, foreign_keys=[phase_weight_range_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -921,15 +930,15 @@ class LLRFTimings(Base):
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     klystron_forward_id = Column(Integer(), ForeignKey('LLRFTiming.id'))
-    klystron_forward = relationship("LLRFTiming", uselist=False, foreign_keys=[klystron_forward_id])
+    klystron_forward = relationship("LLRFTiming", uselist=False, foreign_keys=[klystron_forward_id], cascade="all, delete-orphan", single_parent=True)
     klystron_reverse_id = Column(Integer(), ForeignKey('LLRFTiming.id'))
-    klystron_reverse = relationship("LLRFTiming", uselist=False, foreign_keys=[klystron_reverse_id])
+    klystron_reverse = relationship("LLRFTiming", uselist=False, foreign_keys=[klystron_reverse_id], cascade="all, delete-orphan", single_parent=True)
     cavity_forward_id = Column(Integer(), ForeignKey('LLRFTiming.id'))
-    cavity_forward = relationship("LLRFTiming", uselist=False, foreign_keys=[cavity_forward_id])
+    cavity_forward = relationship("LLRFTiming", uselist=False, foreign_keys=[cavity_forward_id], cascade="all, delete-orphan", single_parent=True)
     cavity_reverse_id = Column(Integer(), ForeignKey('LLRFTiming.id'))
-    cavity_reverse = relationship("LLRFTiming", uselist=False, foreign_keys=[cavity_reverse_id])
+    cavity_reverse = relationship("LLRFTiming", uselist=False, foreign_keys=[cavity_reverse_id], cascade="all, delete-orphan", single_parent=True)
     cavity_probe_id = Column(Integer(), ForeignKey('LLRFTiming.id'))
-    cavity_probe = relationship("LLRFTiming", uselist=False, foreign_keys=[cavity_probe_id])
+    cavity_probe = relationship("LLRFTiming", uselist=False, foreign_keys=[cavity_probe_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -950,11 +959,11 @@ class LowLevelRFElement(Base):
     max_amplitude = Column(Float())
     crest_phase = Column(Float())
     trace_id = Column(Integer(), ForeignKey('Trace.id'))
-    trace = relationship("Trace", uselist=False, foreign_keys=[trace_id])
+    trace = relationship("Trace", uselist=False, foreign_keys=[trace_id], cascade="all, delete-orphan", single_parent=True)
     channel_names_id = Column(Integer(), ForeignKey('ChannelNames.id'))
-    channel_names = relationship("ChannelNames", uselist=False, foreign_keys=[channel_names_id])
+    channel_names = relationship("ChannelNames", uselist=False, foreign_keys=[channel_names_id], cascade="all, delete-orphan", single_parent=True)
     timings_id = Column(Integer(), ForeignKey('LLRFTimings.id'))
-    timings = relationship("LLRFTimings", uselist=False, foreign_keys=[timings_id])
+    timings = relationship("LLRFTimings", uselist=False, foreign_keys=[timings_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -1088,17 +1097,17 @@ class CameraMask(Base):
     use_maximum_values = Column(Boolean())
     
     
-    middle_rel = relationship( "CameraMaskMiddle" )
+    middle_rel = relationship( "CameraMaskMiddle", cascade="all, delete-orphan" )
     middle = association_proxy("middle_rel", "middle",
                                   creator=lambda x_: CameraMaskMiddle(middle=x_))
     
     
-    radius_rel = relationship( "CameraMaskRadius" )
+    radius_rel = relationship( "CameraMaskRadius", cascade="all, delete-orphan" )
     radius = association_proxy("radius_rel", "radius",
                                   creator=lambda x_: CameraMaskRadius(radius=x_))
     
     
-    maximum_rel = relationship( "CameraMaskMaximum" )
+    maximum_rel = relationship( "CameraMaskMaximum", cascade="all, delete-orphan" )
     maximum = association_proxy("maximum_rel", "maximum",
                                   creator=lambda x_: CameraMaskMaximum(maximum=x_))
     
@@ -1128,27 +1137,27 @@ class CameraSensor(Base):
     bit_depth = Column(Integer())
     
     
-    middle_rel = relationship( "CameraSensorMiddle" )
+    middle_rel = relationship( "CameraSensorMiddle", cascade="all, delete-orphan" )
     middle = association_proxy("middle_rel", "middle",
                                   creator=lambda x_: CameraSensorMiddle(middle=x_))
     
     
-    minimum_rel = relationship( "CameraSensorMinimum" )
+    minimum_rel = relationship( "CameraSensorMinimum", cascade="all, delete-orphan" )
     minimum = association_proxy("minimum_rel", "minimum",
                                   creator=lambda x_: CameraSensorMinimum(minimum=x_))
     
     
-    maximum_rel = relationship( "CameraSensorMaximum" )
+    maximum_rel = relationship( "CameraSensorMaximum", cascade="all, delete-orphan" )
     maximum = association_proxy("maximum_rel", "maximum",
                                   creator=lambda x_: CameraSensorMaximum(maximum=x_))
     
     
-    operating_middle_rel = relationship( "CameraSensorOperatingMiddle" )
+    operating_middle_rel = relationship( "CameraSensorOperatingMiddle", cascade="all, delete-orphan" )
     operating_middle = association_proxy("operating_middle_rel", "operating_middle",
                                   creator=lambda x_: CameraSensorOperatingMiddle(operating_middle=x_))
     
     
-    mechanical_middle_rel = relationship( "CameraSensorMechanicalMiddle" )
+    mechanical_middle_rel = relationship( "CameraSensorMechanicalMiddle", cascade="all, delete-orphan" )
     mechanical_middle = association_proxy("mechanical_middle_rel", "mechanical_middle",
                                   creator=lambda x_: CameraSensorMechanicalMiddle(mechanical_middle=x_))
     
@@ -1172,7 +1181,7 @@ class LaserMirrorElement(Base):
     vertical_channel = Column(Integer())
     horizontal_channel = Column(Integer())
     sense_id = Column(Integer(), ForeignKey('LaserMirrorSense.id'))
-    sense = relationship("LaserMirrorSense", uselist=False, foreign_keys=[sense_id])
+    sense = relationship("LaserMirrorSense", uselist=False, foreign_keys=[sense_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -1354,15 +1363,15 @@ class SolenoidMagnet(Base):
     order = Column(Integer())
     settle_time = Column(Float())
     fields_id = Column(Integer(), ForeignKey('SolenoidFields.id'))
-    fields = relationship("SolenoidFields", uselist=False, foreign_keys=[fields_id])
+    fields = relationship("SolenoidFields", uselist=False, foreign_keys=[fields_id], cascade="all, delete-orphan", single_parent=True)
     systematic_fields_id = Column(Integer(), ForeignKey('SolenoidFields.id'))
-    systematic_fields = relationship("SolenoidFields", uselist=False, foreign_keys=[systematic_fields_id])
+    systematic_fields = relationship("SolenoidFields", uselist=False, foreign_keys=[systematic_fields_id], cascade="all, delete-orphan", single_parent=True)
     random_fields_id = Column(Integer(), ForeignKey('SolenoidFields.id'))
-    random_fields = relationship("SolenoidFields", uselist=False, foreign_keys=[random_fields_id])
+    random_fields = relationship("SolenoidFields", uselist=False, foreign_keys=[random_fields_id], cascade="all, delete-orphan", single_parent=True)
     field_integral_coefficients_id = Column(Integer(), ForeignKey('FieldIntegral.id'))
-    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id])
+    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     linear_saturation_coefficients_id = Column(Integer(), ForeignKey('LinearSaturationFit.id'))
-    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id])
+    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -7302,28 +7311,28 @@ class StandardElement(AcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "StandardElementAlias" )
+    alias_rel = relationship( "StandardElementAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: StandardElementAlias(alias=x_))
     
     
-    inputs_rel = relationship( "StandardElementInputs" )
+    inputs_rel = relationship( "StandardElementInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: StandardElementInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "StandardElementOutputs" )
+    outputs_rel = relationship( "StandardElementOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: StandardElementOutputs(outputs=x_))
     
@@ -7338,6 +7347,98 @@ class StandardElement(AcceleratorElement):
 
     def __repr__(self):
         return f"StandardElement(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class ScreenControlsInformation(ControlsInformation):
+    """
+    Control interface of a screen, which also drives an actuator between named positions.
+    """
+    __tablename__ = 'ScreenControlsInformation'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    movement_type = Column(Text())
+    schema = Column(Text())
+    identifier_pattern = Column(Text())
+    
+    
+    # One-To-Many: OneToAnyMapping(source_class='ScreenControlsInformation', source_slot='variables', mapping_type=None, target_class='ControlVariable', target_slot='ScreenControlsInformation_id', join_class=None, uses_join_table=None, multivalued=False)
+    variables = relationship( "ControlVariable", foreign_keys="[ControlVariable.ScreenControlsInformation_id]", cascade="all, delete-orphan")
+    
+
+    def __repr__(self):
+        return f"ScreenControlsInformation(id={self.id},movement_type={self.movement_type},schema={self.schema},identifier_pattern={self.identifier_pattern},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class MirrorControlsInformation(ControlsInformation):
+    """
+    Control interface of a steerable laser mirror.
+    """
+    __tablename__ = 'MirrorControlsInformation'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    step_max = Column(Float())
+    default_step = Column(Float())
+    right_sense = Column(Integer())
+    up_sense = Column(Integer())
+    left_sense = Column(Integer())
+    down_sense = Column(Integer())
+    schema = Column(Text())
+    identifier_pattern = Column(Text())
+    
+    
+    # One-To-Many: OneToAnyMapping(source_class='MirrorControlsInformation', source_slot='variables', mapping_type=None, target_class='ControlVariable', target_slot='MirrorControlsInformation_id', join_class=None, uses_join_table=None, multivalued=False)
+    variables = relationship( "ControlVariable", foreign_keys="[ControlVariable.MirrorControlsInformation_id]", cascade="all, delete-orphan")
+    
+
+    def __repr__(self):
+        return f"MirrorControlsInformation(id={self.id},step_max={self.step_max},default_step={self.default_step},right_sense={self.right_sense},up_sense={self.up_sense},left_sense={self.left_sense},down_sense={self.down_sense},schema={self.schema},identifier_pattern={self.identifier_pattern},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class ShutterControlsInformation(ControlsInformation):
+    """
+    Control interface of a beam or laser shutter.
+    """
+    __tablename__ = 'ShutterControlsInformation'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    shutter_type = Column(Text())
+    schema = Column(Text())
+    identifier_pattern = Column(Text())
+    
+    
+    # One-To-Many: OneToAnyMapping(source_class='ShutterControlsInformation', source_slot='variables', mapping_type=None, target_class='ControlVariable', target_slot='ShutterControlsInformation_id', join_class=None, uses_join_table=None, multivalued=False)
+    variables = relationship( "ControlVariable", foreign_keys="[ControlVariable.ShutterControlsInformation_id]", cascade="all, delete-orphan")
+    
+
+    def __repr__(self):
+        return f"ShutterControlsInformation(id={self.id},shutter_type={self.shutter_type},schema={self.schema},identifier_pattern={self.identifier_pattern},)"
 
 
 
@@ -7644,11 +7745,11 @@ class MatrixTransformSimulationElement(SimulationElement):
     field_reference_position = Column(Text())
     scale_field = Column(Float())
     c_matrix_id = Column(Integer(), ForeignKey('MatrixValue.id'))
-    c_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[c_matrix_id])
+    c_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[c_matrix_id], cascade="all, delete-orphan", single_parent=True)
     r_matrix_id = Column(Integer(), ForeignKey('MatrixValue.id'))
-    r_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[r_matrix_id])
+    r_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[r_matrix_id], cascade="all, delete-orphan", single_parent=True)
     t_matrix_id = Column(Integer(), ForeignKey('MatrixValue.id'))
-    t_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[t_matrix_id])
+    t_matrix = relationship("MatrixValue", uselist=False, foreign_keys=[t_matrix_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -7711,7 +7812,7 @@ class ACDipoleSimulationElement(SimulationElement):
     scale_field = Column(Float())
     
     
-    ramp_rel = relationship( "ACDipoleSimulationElementRamp" )
+    ramp_rel = relationship( "ACDipoleSimulationElementRamp", cascade="all, delete-orphan" )
     ramp = association_proxy("ramp_rel", "ramp",
                                   creator=lambda x_: ACDipoleSimulationElementRamp(ramp=x_))
     
@@ -7811,22 +7912,22 @@ class RFMultipoleSimulationElement(SimulationElement):
     scale_field = Column(Float())
     
     
-    knl_rel = relationship( "RFMultipoleSimulationElementKnl" )
+    knl_rel = relationship( "RFMultipoleSimulationElementKnl", cascade="all, delete-orphan" )
     knl = association_proxy("knl_rel", "knl",
                                   creator=lambda x_: RFMultipoleSimulationElementKnl(knl=x_))
     
     
-    ksl_rel = relationship( "RFMultipoleSimulationElementKsl" )
+    ksl_rel = relationship( "RFMultipoleSimulationElementKsl", cascade="all, delete-orphan" )
     ksl = association_proxy("ksl_rel", "ksl",
                                   creator=lambda x_: RFMultipoleSimulationElementKsl(ksl=x_))
     
     
-    pnl_rel = relationship( "RFMultipoleSimulationElementPnl" )
+    pnl_rel = relationship( "RFMultipoleSimulationElementPnl", cascade="all, delete-orphan" )
     pnl = association_proxy("pnl_rel", "pnl",
                                   creator=lambda x_: RFMultipoleSimulationElementPnl(pnl=x_))
     
     
-    psl_rel = relationship( "RFMultipoleSimulationElementPsl" )
+    psl_rel = relationship( "RFMultipoleSimulationElementPsl", cascade="all, delete-orphan" )
     psl = association_proxy("psl_rel", "psl",
                                   creator=lambda x_: RFMultipoleSimulationElementPsl(psl=x_))
     
@@ -7973,7 +8074,7 @@ class ScreenDiagnosticElement(DiagnosticElement):
     camera_name = Column(Text())
     
     
-    devices_rel = relationship( "ScreenDiagnosticElementDevices" )
+    devices_rel = relationship( "ScreenDiagnosticElementDevices", cascade="all, delete-orphan" )
     devices = association_proxy("devices_rel", "devices",
                                   creator=lambda x_: ScreenDiagnosticElementDevices(devices=x_))
     
@@ -8030,13 +8131,13 @@ class CameraDiagnosticElement(DiagnosticElement):
     screen_name = Column(Text())
     has_led = Column(Boolean())
     pixel_results_indices_id = Column(Integer(), ForeignKey('CameraPixelResultsIndices.id'))
-    pixel_results_indices = relationship("CameraPixelResultsIndices", uselist=False, foreign_keys=[pixel_results_indices_id])
+    pixel_results_indices = relationship("CameraPixelResultsIndices", uselist=False, foreign_keys=[pixel_results_indices_id], cascade="all, delete-orphan", single_parent=True)
     pixel_results_names_id = Column(Integer(), ForeignKey('CameraPixelResultsNames.id'))
-    pixel_results_names = relationship("CameraPixelResultsNames", uselist=False, foreign_keys=[pixel_results_names_id])
+    pixel_results_names = relationship("CameraPixelResultsNames", uselist=False, foreign_keys=[pixel_results_names_id], cascade="all, delete-orphan", single_parent=True)
     mask_id = Column(Integer(), ForeignKey('CameraMask.id'))
-    mask = relationship("CameraMask", uselist=False, foreign_keys=[mask_id])
+    mask = relationship("CameraMask", uselist=False, foreign_keys=[mask_id], cascade="all, delete-orphan", single_parent=True)
     sensor_id = Column(Integer(), ForeignKey('CameraSensor.id'))
-    sensor = relationship("CameraSensor", uselist=False, foreign_keys=[sensor_id])
+    sensor = relationship("CameraSensor", uselist=False, foreign_keys=[sensor_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -8075,15 +8176,15 @@ class DipoleMagnet(MagneticElement):
     gradient = Column(Float())
     angle = Column(Float())
     multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id])
+    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id], cascade="all, delete-orphan", single_parent=True)
     systematic_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id])
+    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id], cascade="all, delete-orphan", single_parent=True)
     random_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id])
+    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id], cascade="all, delete-orphan", single_parent=True)
     field_integral_coefficients_id = Column(Integer(), ForeignKey('FieldIntegral.id'))
-    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id])
+    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     linear_saturation_coefficients_id = Column(Integer(), ForeignKey('LinearSaturationFit.id'))
-    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id])
+    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -8122,15 +8223,15 @@ class QuadrupoleMagnet(MagneticElement):
     gradient = Column(Float())
     angle = Column(Float())
     multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id])
+    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id], cascade="all, delete-orphan", single_parent=True)
     systematic_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id])
+    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id], cascade="all, delete-orphan", single_parent=True)
     random_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id])
+    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id], cascade="all, delete-orphan", single_parent=True)
     field_integral_coefficients_id = Column(Integer(), ForeignKey('FieldIntegral.id'))
-    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id])
+    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     linear_saturation_coefficients_id = Column(Integer(), ForeignKey('LinearSaturationFit.id'))
-    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id])
+    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -8169,15 +8270,15 @@ class SextupoleMagnet(MagneticElement):
     gradient = Column(Float())
     angle = Column(Float())
     multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id])
+    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id], cascade="all, delete-orphan", single_parent=True)
     systematic_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id])
+    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id], cascade="all, delete-orphan", single_parent=True)
     random_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id])
+    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id], cascade="all, delete-orphan", single_parent=True)
     field_integral_coefficients_id = Column(Integer(), ForeignKey('FieldIntegral.id'))
-    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id])
+    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     linear_saturation_coefficients_id = Column(Integer(), ForeignKey('LinearSaturationFit.id'))
-    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id])
+    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -8216,15 +8317,15 @@ class OctupoleMagnet(MagneticElement):
     gradient = Column(Float())
     angle = Column(Float())
     multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id])
+    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id], cascade="all, delete-orphan", single_parent=True)
     systematic_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id])
+    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id], cascade="all, delete-orphan", single_parent=True)
     random_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
-    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id])
+    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id], cascade="all, delete-orphan", single_parent=True)
     field_integral_coefficients_id = Column(Integer(), ForeignKey('FieldIntegral.id'))
-    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id])
+    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     linear_saturation_coefficients_id = Column(Integer(), ForeignKey('LinearSaturationFit.id'))
-    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id])
+    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id], cascade="all, delete-orphan", single_parent=True)
     
 
     def __repr__(self):
@@ -8254,28 +8355,28 @@ class Element(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "ElementAlias" )
+    alias_rel = relationship( "ElementAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ElementAlias(alias=x_))
     
     
-    inputs_rel = relationship( "ElementInputs" )
+    inputs_rel = relationship( "ElementInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: ElementInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "ElementOutputs" )
+    outputs_rel = relationship( "ElementOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: ElementOutputs(outputs=x_))
     
@@ -8315,30 +8416,30 @@ class Lighting(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     lights_id = Column(Integer(), ForeignKey('LightingElement.id'))
-    lights = relationship("LightingElement", uselist=False, foreign_keys=[lights_id])
+    lights = relationship("LightingElement", uselist=False, foreign_keys=[lights_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "LightingAlias" )
+    alias_rel = relationship( "LightingAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LightingAlias(alias=x_))
     
     
-    inputs_rel = relationship( "LightingInputs" )
+    inputs_rel = relationship( "LightingInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: LightingInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "LightingOutputs" )
+    outputs_rel = relationship( "LightingOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: LightingOutputs(outputs=x_))
     
@@ -8378,28 +8479,28 @@ class PowerSupply(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "PowerSupplyAlias" )
+    alias_rel = relationship( "PowerSupplyAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: PowerSupplyAlias(alias=x_))
     
     
-    inputs_rel = relationship( "PowerSupplyInputs" )
+    inputs_rel = relationship( "PowerSupplyInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: PowerSupplyInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "PowerSupplyOutputs" )
+    outputs_rel = relationship( "PowerSupplyOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: PowerSupplyOutputs(outputs=x_))
     
@@ -8439,30 +8540,30 @@ class LowLevelRF(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     llrf_id = Column(Integer(), ForeignKey('LowLevelRFElement.id'))
-    llrf = relationship("LowLevelRFElement", uselist=False, foreign_keys=[llrf_id])
+    llrf = relationship("LowLevelRFElement", uselist=False, foreign_keys=[llrf_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "LowLevelRFAlias" )
+    alias_rel = relationship( "LowLevelRFAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LowLevelRFAlias(alias=x_))
     
     
-    inputs_rel = relationship( "LowLevelRFInputs" )
+    inputs_rel = relationship( "LowLevelRFInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: LowLevelRFInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "LowLevelRFOutputs" )
+    outputs_rel = relationship( "LowLevelRFOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: LowLevelRFOutputs(outputs=x_))
     
@@ -8502,30 +8603,30 @@ class RFModulator(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     modulator_id = Column(Integer(), ForeignKey('RFModulatorElement.id'))
-    modulator = relationship("RFModulatorElement", uselist=False, foreign_keys=[modulator_id])
+    modulator = relationship("RFModulatorElement", uselist=False, foreign_keys=[modulator_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "RFModulatorAlias" )
+    alias_rel = relationship( "RFModulatorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: RFModulatorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "RFModulatorInputs" )
+    inputs_rel = relationship( "RFModulatorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: RFModulatorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "RFModulatorOutputs" )
+    outputs_rel = relationship( "RFModulatorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: RFModulatorOutputs(outputs=x_))
     
@@ -8565,30 +8666,30 @@ class RFProtection(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     protection_id = Column(Integer(), ForeignKey('RFProtectionElement.id'))
-    protection = relationship("RFProtectionElement", uselist=False, foreign_keys=[protection_id])
+    protection = relationship("RFProtectionElement", uselist=False, foreign_keys=[protection_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "RFProtectionAlias" )
+    alias_rel = relationship( "RFProtectionAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: RFProtectionAlias(alias=x_))
     
     
-    inputs_rel = relationship( "RFProtectionInputs" )
+    inputs_rel = relationship( "RFProtectionInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: RFProtectionInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "RFProtectionOutputs" )
+    outputs_rel = relationship( "RFProtectionOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: RFProtectionOutputs(outputs=x_))
     
@@ -8628,30 +8729,30 @@ class RFHeartbeat(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     heartbeat_id = Column(Integer(), ForeignKey('RFHeartbeatElement.id'))
-    heartbeat = relationship("RFHeartbeatElement", uselist=False, foreign_keys=[heartbeat_id])
+    heartbeat = relationship("RFHeartbeatElement", uselist=False, foreign_keys=[heartbeat_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "RFHeartbeatAlias" )
+    alias_rel = relationship( "RFHeartbeatAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: RFHeartbeatAlias(alias=x_))
     
     
-    inputs_rel = relationship( "RFHeartbeatInputs" )
+    inputs_rel = relationship( "RFHeartbeatInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: RFHeartbeatInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "RFHeartbeatOutputs" )
+    outputs_rel = relationship( "RFHeartbeatOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: RFHeartbeatOutputs(outputs=x_))
     
@@ -8691,30 +8792,30 @@ class PID(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     pid_id = Column(Integer(), ForeignKey('PIDElement.id'))
-    pid = relationship("PIDElement", uselist=False, foreign_keys=[pid_id])
+    pid = relationship("PIDElement", uselist=False, foreign_keys=[pid_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "PIDAlias" )
+    alias_rel = relationship( "PIDAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: PIDAlias(alias=x_))
     
     
-    inputs_rel = relationship( "PIDInputs" )
+    inputs_rel = relationship( "PIDInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: PIDInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "PIDOutputs" )
+    outputs_rel = relationship( "PIDOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: PIDOutputs(outputs=x_))
     
@@ -8754,30 +8855,30 @@ class LaserEnergyMeter(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     laser_id = Column(Integer(), ForeignKey('LaserEnergyMeterElement.id'))
-    laser = relationship("LaserEnergyMeterElement", uselist=False, foreign_keys=[laser_id])
+    laser = relationship("LaserEnergyMeterElement", uselist=False, foreign_keys=[laser_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "LaserEnergyMeterAlias" )
+    alias_rel = relationship( "LaserEnergyMeterAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LaserEnergyMeterAlias(alias=x_))
     
     
-    inputs_rel = relationship( "LaserEnergyMeterInputs" )
+    inputs_rel = relationship( "LaserEnergyMeterInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: LaserEnergyMeterInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "LaserEnergyMeterOutputs" )
+    outputs_rel = relationship( "LaserEnergyMeterOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: LaserEnergyMeterOutputs(outputs=x_))
     
@@ -8817,30 +8918,30 @@ class LaserHalfWavePlate(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     laser_id = Column(Integer(), ForeignKey('LaserHalfWavePlateElement.id'))
-    laser = relationship("LaserHalfWavePlateElement", uselist=False, foreign_keys=[laser_id])
+    laser = relationship("LaserHalfWavePlateElement", uselist=False, foreign_keys=[laser_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "LaserHalfWavePlateAlias" )
+    alias_rel = relationship( "LaserHalfWavePlateAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LaserHalfWavePlateAlias(alias=x_))
     
     
-    inputs_rel = relationship( "LaserHalfWavePlateInputs" )
+    inputs_rel = relationship( "LaserHalfWavePlateInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: LaserHalfWavePlateInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "LaserHalfWavePlateOutputs" )
+    outputs_rel = relationship( "LaserHalfWavePlateOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: LaserHalfWavePlateOutputs(outputs=x_))
     
@@ -8880,30 +8981,30 @@ class LaserMirror(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     laser_id = Column(Integer(), ForeignKey('LaserMirrorElement.id'))
-    laser = relationship("LaserMirrorElement", uselist=False, foreign_keys=[laser_id])
+    laser = relationship("LaserMirrorElement", uselist=False, foreign_keys=[laser_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
-    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
+    controls_id = Column(Integer(), ForeignKey('MirrorControlsInformation.id'))
+    controls = relationship("MirrorControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "LaserMirrorAlias" )
+    alias_rel = relationship( "LaserMirrorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LaserMirrorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "LaserMirrorInputs" )
+    inputs_rel = relationship( "LaserMirrorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: LaserMirrorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "LaserMirrorOutputs" )
+    outputs_rel = relationship( "LaserMirrorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: LaserMirrorOutputs(outputs=x_))
     
@@ -8945,28 +9046,28 @@ class LaserAttenuator(StandardElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "LaserAttenuatorAlias" )
+    alias_rel = relationship( "LaserAttenuatorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LaserAttenuatorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "LaserAttenuatorInputs" )
+    inputs_rel = relationship( "LaserAttenuatorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: LaserAttenuatorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "LaserAttenuatorOutputs" )
+    outputs_rel = relationship( "LaserAttenuatorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: LaserAttenuatorOutputs(outputs=x_))
     
@@ -9006,30 +9107,30 @@ class PhysicalAcceleratorElement(Element):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "PhysicalAcceleratorElementAlias" )
+    alias_rel = relationship( "PhysicalAcceleratorElementAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: PhysicalAcceleratorElementAlias(alias=x_))
     
     
-    inputs_rel = relationship( "PhysicalAcceleratorElementInputs" )
+    inputs_rel = relationship( "PhysicalAcceleratorElementInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: PhysicalAcceleratorElementInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "PhysicalAcceleratorElementOutputs" )
+    outputs_rel = relationship( "PhysicalAcceleratorElementOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: PhysicalAcceleratorElementOutputs(outputs=x_))
     
@@ -9069,30 +9170,30 @@ class TwissMatch(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('TwissMatchSimulationElement.id'))
-    simulation = relationship("TwissMatchSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("TwissMatchSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "TwissMatchAlias" )
+    alias_rel = relationship( "TwissMatchAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: TwissMatchAlias(alias=x_))
     
     
-    inputs_rel = relationship( "TwissMatchInputs" )
+    inputs_rel = relationship( "TwissMatchInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: TwissMatchInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "TwissMatchOutputs" )
+    outputs_rel = relationship( "TwissMatchOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: TwissMatchOutputs(outputs=x_))
     
@@ -9132,30 +9233,30 @@ class MatrixTransform(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MatrixTransformSimulationElement.id'))
-    simulation = relationship("MatrixTransformSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MatrixTransformSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "MatrixTransformAlias" )
+    alias_rel = relationship( "MatrixTransformAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: MatrixTransformAlias(alias=x_))
     
     
-    inputs_rel = relationship( "MatrixTransformInputs" )
+    inputs_rel = relationship( "MatrixTransformInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: MatrixTransformInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "MatrixTransformOutputs" )
+    outputs_rel = relationship( "MatrixTransformOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: MatrixTransformOutputs(outputs=x_))
     
@@ -9195,30 +9296,30 @@ class ElectrostaticSeparator(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('ElectrostaticSeparatorSimulationElement.id'))
-    simulation = relationship("ElectrostaticSeparatorSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("ElectrostaticSeparatorSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "ElectrostaticSeparatorAlias" )
+    alias_rel = relationship( "ElectrostaticSeparatorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ElectrostaticSeparatorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "ElectrostaticSeparatorInputs" )
+    inputs_rel = relationship( "ElectrostaticSeparatorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: ElectrostaticSeparatorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "ElectrostaticSeparatorOutputs" )
+    outputs_rel = relationship( "ElectrostaticSeparatorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: ElectrostaticSeparatorOutputs(outputs=x_))
     
@@ -9258,30 +9359,30 @@ class ACDipole(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('ACDipoleSimulationElement.id'))
-    simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "ACDipoleAlias" )
+    alias_rel = relationship( "ACDipoleAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ACDipoleAlias(alias=x_))
     
     
-    inputs_rel = relationship( "ACDipoleInputs" )
+    inputs_rel = relationship( "ACDipoleInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: ACDipoleInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "ACDipoleOutputs" )
+    outputs_rel = relationship( "ACDipoleOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: ACDipoleOutputs(outputs=x_))
     
@@ -9321,30 +9422,30 @@ class Wire(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('WireSimulationElement.id'))
-    simulation = relationship("WireSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("WireSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "WireAlias" )
+    alias_rel = relationship( "WireAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: WireAlias(alias=x_))
     
     
-    inputs_rel = relationship( "WireInputs" )
+    inputs_rel = relationship( "WireInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: WireInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "WireOutputs" )
+    outputs_rel = relationship( "WireOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: WireOutputs(outputs=x_))
     
@@ -9384,30 +9485,30 @@ class BeamBeam(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('BeamBeamSimulationElement.id'))
-    simulation = relationship("BeamBeamSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("BeamBeamSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "BeamBeamAlias" )
+    alias_rel = relationship( "BeamBeamAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: BeamBeamAlias(alias=x_))
     
     
-    inputs_rel = relationship( "BeamBeamInputs" )
+    inputs_rel = relationship( "BeamBeamInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: BeamBeamInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "BeamBeamOutputs" )
+    outputs_rel = relationship( "BeamBeamOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: BeamBeamOutputs(outputs=x_))
     
@@ -9447,30 +9548,30 @@ class RFMultipole(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('RFMultipoleSimulationElement.id'))
-    simulation = relationship("RFMultipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("RFMultipoleSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "RFMultipoleAlias" )
+    alias_rel = relationship( "RFMultipoleAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: RFMultipoleAlias(alias=x_))
     
     
-    inputs_rel = relationship( "RFMultipoleInputs" )
+    inputs_rel = relationship( "RFMultipoleInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: RFMultipoleInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "RFMultipoleOutputs" )
+    outputs_rel = relationship( "RFMultipoleOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: RFMultipoleOutputs(outputs=x_))
     
@@ -9510,30 +9611,30 @@ class Stage(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "StageAlias" )
+    alias_rel = relationship( "StageAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: StageAlias(alias=x_))
     
     
-    inputs_rel = relationship( "StageInputs" )
+    inputs_rel = relationship( "StageInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: StageInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "StageOutputs" )
+    outputs_rel = relationship( "StageOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: StageOutputs(outputs=x_))
     
@@ -9573,30 +9674,30 @@ class VacuumGauge(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "VacuumGaugeAlias" )
+    alias_rel = relationship( "VacuumGaugeAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: VacuumGaugeAlias(alias=x_))
     
     
-    inputs_rel = relationship( "VacuumGaugeInputs" )
+    inputs_rel = relationship( "VacuumGaugeInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: VacuumGaugeInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "VacuumGaugeOutputs" )
+    outputs_rel = relationship( "VacuumGaugeOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: VacuumGaugeOutputs(outputs=x_))
     
@@ -9636,32 +9737,32 @@ class Laser(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     laser_id = Column(Integer(), ForeignKey('LaserElement.id'))
-    laser = relationship("LaserElement", uselist=False, foreign_keys=[laser_id])
+    laser = relationship("LaserElement", uselist=False, foreign_keys=[laser_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "LaserAlias" )
+    alias_rel = relationship( "LaserAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: LaserAlias(alias=x_))
     
     
-    inputs_rel = relationship( "LaserInputs" )
+    inputs_rel = relationship( "LaserInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: LaserInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "LaserOutputs" )
+    outputs_rel = relationship( "LaserOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: LaserOutputs(outputs=x_))
     
@@ -9701,32 +9802,32 @@ class Shutter(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     shutter_id = Column(Integer(), ForeignKey('ShutterElement.id'))
-    shutter = relationship("ShutterElement", uselist=False, foreign_keys=[shutter_id])
+    shutter = relationship("ShutterElement", uselist=False, foreign_keys=[shutter_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
-    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
+    controls_id = Column(Integer(), ForeignKey('ShutterControlsInformation.id'))
+    controls = relationship("ShutterControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "ShutterAlias" )
+    alias_rel = relationship( "ShutterAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ShutterAlias(alias=x_))
     
     
-    inputs_rel = relationship( "ShutterInputs" )
+    inputs_rel = relationship( "ShutterInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: ShutterInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "ShutterOutputs" )
+    outputs_rel = relationship( "ShutterOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: ShutterOutputs(outputs=x_))
     
@@ -9766,32 +9867,32 @@ class Valve(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     valve_id = Column(Integer(), ForeignKey('ValveElement.id'))
-    valve = relationship("ValveElement", uselist=False, foreign_keys=[valve_id])
+    valve = relationship("ValveElement", uselist=False, foreign_keys=[valve_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "ValveAlias" )
+    alias_rel = relationship( "ValveAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ValveAlias(alias=x_))
     
     
-    inputs_rel = relationship( "ValveInputs" )
+    inputs_rel = relationship( "ValveInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: ValveInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "ValveOutputs" )
+    outputs_rel = relationship( "ValveOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: ValveOutputs(outputs=x_))
     
@@ -9831,30 +9932,30 @@ class Marker(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "MarkerAlias" )
+    alias_rel = relationship( "MarkerAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: MarkerAlias(alias=x_))
     
     
-    inputs_rel = relationship( "MarkerInputs" )
+    inputs_rel = relationship( "MarkerInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: MarkerInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "MarkerOutputs" )
+    outputs_rel = relationship( "MarkerOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: MarkerOutputs(outputs=x_))
     
@@ -9894,32 +9995,32 @@ class Aperture(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
-    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "ApertureAlias" )
+    alias_rel = relationship( "ApertureAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ApertureAlias(alias=x_))
     
     
-    inputs_rel = relationship( "ApertureInputs" )
+    inputs_rel = relationship( "ApertureInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: ApertureInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "ApertureOutputs" )
+    outputs_rel = relationship( "ApertureOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: ApertureOutputs(outputs=x_))
     
@@ -9959,30 +10060,30 @@ class Drift(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DriftSimulationElement.id'))
-    simulation = relationship("DriftSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DriftSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "DriftAlias" )
+    alias_rel = relationship( "DriftAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: DriftAlias(alias=x_))
     
     
-    inputs_rel = relationship( "DriftInputs" )
+    inputs_rel = relationship( "DriftInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: DriftInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "DriftOutputs" )
+    outputs_rel = relationship( "DriftOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: DriftOutputs(outputs=x_))
     
@@ -10022,34 +10123,34 @@ class Magnet(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('MagneticElement.id'))
-    magnetic = relationship("MagneticElement", uselist=False, foreign_keys=[magnetic_id])
+    magnetic = relationship("MagneticElement", uselist=False, foreign_keys=[magnetic_id], cascade="all, delete-orphan", single_parent=True)
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "MagnetAlias" )
+    alias_rel = relationship( "MagnetAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: MagnetAlias(alias=x_))
     
     
-    inputs_rel = relationship( "MagnetInputs" )
+    inputs_rel = relationship( "MagnetInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: MagnetInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "MagnetOutputs" )
+    outputs_rel = relationship( "MagnetOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: MagnetOutputs(outputs=x_))
     
@@ -10089,32 +10190,32 @@ class RFCavity(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     cavity_id = Column(Integer(), ForeignKey('RFCavityElement.id'))
-    cavity = relationship("RFCavityElement", uselist=False, foreign_keys=[cavity_id])
+    cavity = relationship("RFCavityElement", uselist=False, foreign_keys=[cavity_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
-    simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "RFCavityAlias" )
+    alias_rel = relationship( "RFCavityAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: RFCavityAlias(alias=x_))
     
     
-    inputs_rel = relationship( "RFCavityInputs" )
+    inputs_rel = relationship( "RFCavityInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: RFCavityInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "RFCavityOutputs" )
+    outputs_rel = relationship( "RFCavityOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: RFCavityOutputs(outputs=x_))
     
@@ -10154,32 +10255,32 @@ class Wakefield(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     cavity_id = Column(Integer(), ForeignKey('WakefieldElement.id'))
-    cavity = relationship("WakefieldElement", uselist=False, foreign_keys=[cavity_id])
+    cavity = relationship("WakefieldElement", uselist=False, foreign_keys=[cavity_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('WakefieldSimulationElement.id'))
-    simulation = relationship("WakefieldSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("WakefieldSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "WakefieldAlias" )
+    alias_rel = relationship( "WakefieldAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: WakefieldAlias(alias=x_))
     
     
-    inputs_rel = relationship( "WakefieldInputs" )
+    inputs_rel = relationship( "WakefieldInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: WakefieldInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "WakefieldOutputs" )
+    outputs_rel = relationship( "WakefieldOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: WakefieldOutputs(outputs=x_))
     
@@ -10219,32 +10320,32 @@ class Diagnostic(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('DiagnosticElement.id'))
-    diagnostic = relationship("DiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic = relationship("DiagnosticElement", uselist=False, foreign_keys=[diagnostic_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "DiagnosticAlias" )
+    alias_rel = relationship( "DiagnosticAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: DiagnosticAlias(alias=x_))
     
     
-    inputs_rel = relationship( "DiagnosticInputs" )
+    inputs_rel = relationship( "DiagnosticInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: DiagnosticInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "DiagnosticOutputs" )
+    outputs_rel = relationship( "DiagnosticOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: DiagnosticOutputs(outputs=x_))
     
@@ -10284,34 +10385,34 @@ class Plasma(PhysicalAcceleratorElement):
     virtual_name = Column(Text())
     subelement = Column(Text())
     plasma_id = Column(Integer(), ForeignKey('PlasmaElement.id'))
-    plasma = relationship("PlasmaElement", uselist=False, foreign_keys=[plasma_id])
+    plasma = relationship("PlasmaElement", uselist=False, foreign_keys=[plasma_id], cascade="all, delete-orphan", single_parent=True)
     laser_id = Column(Integer(), ForeignKey('LaserElement.id'))
-    laser = relationship("LaserElement", uselist=False, foreign_keys=[laser_id])
+    laser = relationship("LaserElement", uselist=False, foreign_keys=[laser_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('PlasmaSimulationElement.id'))
-    simulation = relationship("PlasmaSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("PlasmaSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "PlasmaAlias" )
+    alias_rel = relationship( "PlasmaAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: PlasmaAlias(alias=x_))
     
     
-    inputs_rel = relationship( "PlasmaInputs" )
+    inputs_rel = relationship( "PlasmaInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: PlasmaInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "PlasmaOutputs" )
+    outputs_rel = relationship( "PlasmaOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: PlasmaOutputs(outputs=x_))
     
@@ -10351,30 +10452,30 @@ class HorizontalACDipole(ACDipole):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('ACDipoleSimulationElement.id'))
-    simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "HorizontalACDipoleAlias" )
+    alias_rel = relationship( "HorizontalACDipoleAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: HorizontalACDipoleAlias(alias=x_))
     
     
-    inputs_rel = relationship( "HorizontalACDipoleInputs" )
+    inputs_rel = relationship( "HorizontalACDipoleInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: HorizontalACDipoleInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "HorizontalACDipoleOutputs" )
+    outputs_rel = relationship( "HorizontalACDipoleOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: HorizontalACDipoleOutputs(outputs=x_))
     
@@ -10414,30 +10515,30 @@ class VerticalACDipole(ACDipole):
     virtual_name = Column(Text())
     subelement = Column(Text())
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('ACDipoleSimulationElement.id'))
-    simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("ACDipoleSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "VerticalACDipoleAlias" )
+    alias_rel = relationship( "VerticalACDipoleAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: VerticalACDipoleAlias(alias=x_))
     
     
-    inputs_rel = relationship( "VerticalACDipoleInputs" )
+    inputs_rel = relationship( "VerticalACDipoleInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: VerticalACDipoleInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "VerticalACDipoleOutputs" )
+    outputs_rel = relationship( "VerticalACDipoleOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: VerticalACDipoleOutputs(outputs=x_))
     
@@ -10477,32 +10578,32 @@ class Collimator(Aperture):
     virtual_name = Column(Text())
     subelement = Column(Text())
     aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
-    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('SimulationElement.id'))
-    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("SimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "CollimatorAlias" )
+    alias_rel = relationship( "CollimatorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: CollimatorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "CollimatorInputs" )
+    inputs_rel = relationship( "CollimatorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: CollimatorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "CollimatorOutputs" )
+    outputs_rel = relationship( "CollimatorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: CollimatorOutputs(outputs=x_))
     
@@ -10542,32 +10643,32 @@ class RFDeflectingCavity(RFCavity):
     virtual_name = Column(Text())
     subelement = Column(Text())
     cavity_id = Column(Integer(), ForeignKey('RFDeflectingCavityElement.id'))
-    cavity = relationship("RFDeflectingCavityElement", uselist=False, foreign_keys=[cavity_id])
+    cavity = relationship("RFDeflectingCavityElement", uselist=False, foreign_keys=[cavity_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
-    simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "RFDeflectingCavityAlias" )
+    alias_rel = relationship( "RFDeflectingCavityAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: RFDeflectingCavityAlias(alias=x_))
     
     
-    inputs_rel = relationship( "RFDeflectingCavityInputs" )
+    inputs_rel = relationship( "RFDeflectingCavityInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: RFDeflectingCavityInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "RFDeflectingCavityOutputs" )
+    outputs_rel = relationship( "RFDeflectingCavityOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: RFDeflectingCavityOutputs(outputs=x_))
     
@@ -10607,32 +10708,32 @@ class CrabCavity(RFCavity):
     virtual_name = Column(Text())
     subelement = Column(Text())
     cavity_id = Column(Integer(), ForeignKey('RFDeflectingCavityElement.id'))
-    cavity = relationship("RFDeflectingCavityElement", uselist=False, foreign_keys=[cavity_id])
+    cavity = relationship("RFDeflectingCavityElement", uselist=False, foreign_keys=[cavity_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('RFCavitySimulationElement.id'))
-    simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("RFCavitySimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "CrabCavityAlias" )
+    alias_rel = relationship( "CrabCavityAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: CrabCavityAlias(alias=x_))
     
     
-    inputs_rel = relationship( "CrabCavityInputs" )
+    inputs_rel = relationship( "CrabCavityInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: CrabCavityInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "CrabCavityOutputs" )
+    outputs_rel = relationship( "CrabCavityOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: CrabCavityOutputs(outputs=x_))
     
@@ -10672,32 +10773,32 @@ class BeamPositionMonitor(Diagnostic):
     virtual_name = Column(Text())
     subelement = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('BPMDiagnosticElement.id'))
-    diagnostic = relationship("BPMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic = relationship("BPMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "BeamPositionMonitorAlias" )
+    alias_rel = relationship( "BeamPositionMonitorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: BeamPositionMonitorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "BeamPositionMonitorInputs" )
+    inputs_rel = relationship( "BeamPositionMonitorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: BeamPositionMonitorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "BeamPositionMonitorOutputs" )
+    outputs_rel = relationship( "BeamPositionMonitorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: BeamPositionMonitorOutputs(outputs=x_))
     
@@ -10737,32 +10838,32 @@ class BeamArrivalMonitor(Diagnostic):
     virtual_name = Column(Text())
     subelement = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('BAMDiagnosticElement.id'))
-    diagnostic = relationship("BAMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic = relationship("BAMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "BeamArrivalMonitorAlias" )
+    alias_rel = relationship( "BeamArrivalMonitorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: BeamArrivalMonitorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "BeamArrivalMonitorInputs" )
+    inputs_rel = relationship( "BeamArrivalMonitorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: BeamArrivalMonitorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "BeamArrivalMonitorOutputs" )
+    outputs_rel = relationship( "BeamArrivalMonitorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: BeamArrivalMonitorOutputs(outputs=x_))
     
@@ -10802,32 +10903,32 @@ class BunchLengthMonitor(Diagnostic):
     virtual_name = Column(Text())
     subelement = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('BLMDiagnosticElement.id'))
-    diagnostic = relationship("BLMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic = relationship("BLMDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "BunchLengthMonitorAlias" )
+    alias_rel = relationship( "BunchLengthMonitorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: BunchLengthMonitorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "BunchLengthMonitorInputs" )
+    inputs_rel = relationship( "BunchLengthMonitorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: BunchLengthMonitorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "BunchLengthMonitorOutputs" )
+    outputs_rel = relationship( "BunchLengthMonitorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: BunchLengthMonitorOutputs(outputs=x_))
     
@@ -10867,32 +10968,32 @@ class Camera(Diagnostic):
     virtual_name = Column(Text())
     subelement = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('CameraDiagnosticElement.id'))
-    diagnostic = relationship("CameraDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic = relationship("CameraDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "CameraAlias" )
+    alias_rel = relationship( "CameraAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: CameraAlias(alias=x_))
     
     
-    inputs_rel = relationship( "CameraInputs" )
+    inputs_rel = relationship( "CameraInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: CameraInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "CameraOutputs" )
+    outputs_rel = relationship( "CameraOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: CameraOutputs(outputs=x_))
     
@@ -10932,32 +11033,32 @@ class Screen(Diagnostic):
     virtual_name = Column(Text())
     subelement = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('ScreenDiagnosticElement.id'))
-    diagnostic = relationship("ScreenDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic = relationship("ScreenDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
-    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
+    controls_id = Column(Integer(), ForeignKey('ScreenControlsInformation.id'))
+    controls = relationship("ScreenControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "ScreenAlias" )
+    alias_rel = relationship( "ScreenAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ScreenAlias(alias=x_))
     
     
-    inputs_rel = relationship( "ScreenInputs" )
+    inputs_rel = relationship( "ScreenInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: ScreenInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "ScreenOutputs" )
+    outputs_rel = relationship( "ScreenOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: ScreenOutputs(outputs=x_))
     
@@ -10997,32 +11098,32 @@ class ChargeDiagnostic(Diagnostic):
     virtual_name = Column(Text())
     subelement = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('ChargeDiagnosticElement.id'))
-    diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "ChargeDiagnosticAlias" )
+    alias_rel = relationship( "ChargeDiagnosticAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: ChargeDiagnosticAlias(alias=x_))
     
     
-    inputs_rel = relationship( "ChargeDiagnosticInputs" )
+    inputs_rel = relationship( "ChargeDiagnosticInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: ChargeDiagnosticInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "ChargeDiagnosticOutputs" )
+    outputs_rel = relationship( "ChargeDiagnosticOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: ChargeDiagnosticOutputs(outputs=x_))
     
@@ -11062,32 +11163,32 @@ class PhotonMonitor(Diagnostic):
     virtual_name = Column(Text())
     subelement = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('PhotonIntensityMonitorDiagnostic.id'))
-    diagnostic = relationship("PhotonIntensityMonitorDiagnostic", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic = relationship("PhotonIntensityMonitorDiagnostic", uselist=False, foreign_keys=[diagnostic_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "PhotonMonitorAlias" )
+    alias_rel = relationship( "PhotonMonitorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: PhotonMonitorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "PhotonMonitorInputs" )
+    inputs_rel = relationship( "PhotonMonitorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: PhotonMonitorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "PhotonMonitorOutputs" )
+    outputs_rel = relationship( "PhotonMonitorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: PhotonMonitorOutputs(outputs=x_))
     
@@ -11127,34 +11228,34 @@ class Dipole(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('Dipole_Magnet.id'))
-    magnetic = relationship("DipoleMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic = relationship("DipoleMagnet", uselist=False, foreign_keys=[magnetic_id], cascade="all, delete-orphan", single_parent=True)
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "DipoleAlias" )
+    alias_rel = relationship( "DipoleAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: DipoleAlias(alias=x_))
     
     
-    inputs_rel = relationship( "DipoleInputs" )
+    inputs_rel = relationship( "DipoleInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: DipoleInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "DipoleOutputs" )
+    outputs_rel = relationship( "DipoleOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: DipoleOutputs(outputs=x_))
     
@@ -11194,34 +11295,34 @@ class Quadrupole(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('Quadrupole_Magnet.id'))
-    magnetic = relationship("QuadrupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic = relationship("QuadrupoleMagnet", uselist=False, foreign_keys=[magnetic_id], cascade="all, delete-orphan", single_parent=True)
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "QuadrupoleAlias" )
+    alias_rel = relationship( "QuadrupoleAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: QuadrupoleAlias(alias=x_))
     
     
-    inputs_rel = relationship( "QuadrupoleInputs" )
+    inputs_rel = relationship( "QuadrupoleInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: QuadrupoleInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "QuadrupoleOutputs" )
+    outputs_rel = relationship( "QuadrupoleOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: QuadrupoleOutputs(outputs=x_))
     
@@ -11261,34 +11362,34 @@ class Sextupole(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('Sextupole_Magnet.id'))
-    magnetic = relationship("SextupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic = relationship("SextupoleMagnet", uselist=False, foreign_keys=[magnetic_id], cascade="all, delete-orphan", single_parent=True)
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "SextupoleAlias" )
+    alias_rel = relationship( "SextupoleAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: SextupoleAlias(alias=x_))
     
     
-    inputs_rel = relationship( "SextupoleInputs" )
+    inputs_rel = relationship( "SextupoleInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: SextupoleInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "SextupoleOutputs" )
+    outputs_rel = relationship( "SextupoleOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: SextupoleOutputs(outputs=x_))
     
@@ -11328,34 +11429,34 @@ class Octupole(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('Octupole_Magnet.id'))
-    magnetic = relationship("OctupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic = relationship("OctupoleMagnet", uselist=False, foreign_keys=[magnetic_id], cascade="all, delete-orphan", single_parent=True)
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "OctupoleAlias" )
+    alias_rel = relationship( "OctupoleAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: OctupoleAlias(alias=x_))
     
     
-    inputs_rel = relationship( "OctupoleInputs" )
+    inputs_rel = relationship( "OctupoleInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: OctupoleInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "OctupoleOutputs" )
+    outputs_rel = relationship( "OctupoleOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: OctupoleOutputs(outputs=x_))
     
@@ -11395,34 +11496,34 @@ class Solenoid(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('Solenoid_Magnet.id'))
-    magnetic = relationship("SolenoidMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic = relationship("SolenoidMagnet", uselist=False, foreign_keys=[magnetic_id], cascade="all, delete-orphan", single_parent=True)
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "SolenoidAlias" )
+    alias_rel = relationship( "SolenoidAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: SolenoidAlias(alias=x_))
     
     
-    inputs_rel = relationship( "SolenoidInputs" )
+    inputs_rel = relationship( "SolenoidInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: SolenoidInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "SolenoidOutputs" )
+    outputs_rel = relationship( "SolenoidOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: SolenoidOutputs(outputs=x_))
     
@@ -11462,36 +11563,36 @@ class Wiggler(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     laser_id = Column(Integer(), ForeignKey('LaserElement.id'))
-    laser = relationship("LaserElement", uselist=False, foreign_keys=[laser_id])
+    laser = relationship("LaserElement", uselist=False, foreign_keys=[laser_id], cascade="all, delete-orphan", single_parent=True)
     magnetic_id = Column(Integer(), ForeignKey('Wiggler_Magnet.id'))
-    magnetic = relationship("WigglerMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic = relationship("WigglerMagnet", uselist=False, foreign_keys=[magnetic_id], cascade="all, delete-orphan", single_parent=True)
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "WigglerAlias" )
+    alias_rel = relationship( "WigglerAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: WigglerAlias(alias=x_))
     
     
-    inputs_rel = relationship( "WigglerInputs" )
+    inputs_rel = relationship( "WigglerInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: WigglerInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "WigglerOutputs" )
+    outputs_rel = relationship( "WigglerOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: WigglerOutputs(outputs=x_))
     
@@ -11531,34 +11632,34 @@ class NonLinearLens(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('NonLinearLens_Magnet.id'))
-    magnetic = relationship("NonLinearLensMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic = relationship("NonLinearLensMagnet", uselist=False, foreign_keys=[magnetic_id], cascade="all, delete-orphan", single_parent=True)
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "NonLinearLensAlias" )
+    alias_rel = relationship( "NonLinearLensAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: NonLinearLensAlias(alias=x_))
     
     
-    inputs_rel = relationship( "NonLinearLensInputs" )
+    inputs_rel = relationship( "NonLinearLensInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: NonLinearLensInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "NonLinearLensOutputs" )
+    outputs_rel = relationship( "NonLinearLensOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: NonLinearLensOutputs(outputs=x_))
     
@@ -11598,32 +11699,32 @@ class WallCurrentMonitor(ChargeDiagnostic):
     virtual_name = Column(Text())
     subelement = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('ChargeDiagnosticElement.id'))
-    diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "WallCurrentMonitorAlias" )
+    alias_rel = relationship( "WallCurrentMonitorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: WallCurrentMonitorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "WallCurrentMonitorInputs" )
+    inputs_rel = relationship( "WallCurrentMonitorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: WallCurrentMonitorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "WallCurrentMonitorOutputs" )
+    outputs_rel = relationship( "WallCurrentMonitorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: WallCurrentMonitorOutputs(outputs=x_))
     
@@ -11663,32 +11764,32 @@ class FaradayCupMonitor(ChargeDiagnostic):
     virtual_name = Column(Text())
     subelement = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('ChargeDiagnosticElement.id'))
-    diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "FaradayCupMonitorAlias" )
+    alias_rel = relationship( "FaradayCupMonitorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: FaradayCupMonitorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "FaradayCupMonitorInputs" )
+    inputs_rel = relationship( "FaradayCupMonitorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: FaradayCupMonitorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "FaradayCupMonitorOutputs" )
+    outputs_rel = relationship( "FaradayCupMonitorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: FaradayCupMonitorOutputs(outputs=x_))
     
@@ -11728,32 +11829,32 @@ class IntegratedCurrentTransformer(ChargeDiagnostic):
     virtual_name = Column(Text())
     subelement = Column(Text())
     diagnostic_id = Column(Integer(), ForeignKey('ChargeDiagnosticElement.id'))
-    diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    diagnostic = relationship("ChargeDiagnosticElement", uselist=False, foreign_keys=[diagnostic_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
-    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "IntegratedCurrentTransformerAlias" )
+    alias_rel = relationship( "IntegratedCurrentTransformerAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: IntegratedCurrentTransformerAlias(alias=x_))
     
     
-    inputs_rel = relationship( "IntegratedCurrentTransformerInputs" )
+    inputs_rel = relationship( "IntegratedCurrentTransformerInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: IntegratedCurrentTransformerInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "IntegratedCurrentTransformerOutputs" )
+    outputs_rel = relationship( "IntegratedCurrentTransformerOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: IntegratedCurrentTransformerOutputs(outputs=x_))
     
@@ -11793,34 +11894,34 @@ class HorizontalCorrector(Dipole):
     virtual_name = Column(Text())
     subelement = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
-    magnetic = relationship("CorrectorMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic = relationship("CorrectorMagnet", uselist=False, foreign_keys=[magnetic_id], cascade="all, delete-orphan", single_parent=True)
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "HorizontalCorrectorAlias" )
+    alias_rel = relationship( "HorizontalCorrectorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: HorizontalCorrectorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "HorizontalCorrectorInputs" )
+    inputs_rel = relationship( "HorizontalCorrectorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: HorizontalCorrectorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "HorizontalCorrectorOutputs" )
+    outputs_rel = relationship( "HorizontalCorrectorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: HorizontalCorrectorOutputs(outputs=x_))
     
@@ -11860,34 +11961,34 @@ class VerticalCorrector(Dipole):
     virtual_name = Column(Text())
     subelement = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
-    magnetic = relationship("CorrectorMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic = relationship("CorrectorMagnet", uselist=False, foreign_keys=[magnetic_id], cascade="all, delete-orphan", single_parent=True)
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "VerticalCorrectorAlias" )
+    alias_rel = relationship( "VerticalCorrectorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: VerticalCorrectorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "VerticalCorrectorInputs" )
+    inputs_rel = relationship( "VerticalCorrectorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: VerticalCorrectorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "VerticalCorrectorOutputs" )
+    outputs_rel = relationship( "VerticalCorrectorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: VerticalCorrectorOutputs(outputs=x_))
     
@@ -11929,34 +12030,34 @@ class CombinedCorrector(Dipole):
     virtual_name = Column(Text())
     subelement = Column(Text())
     magnetic_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
-    magnetic = relationship("CorrectorMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic = relationship("CorrectorMagnet", uselist=False, foreign_keys=[magnetic_id], cascade="all, delete-orphan", single_parent=True)
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
-    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
+    degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id], cascade="all, delete-orphan", single_parent=True)
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
-    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id], cascade="all, delete-orphan", single_parent=True)
     simulation_id = Column(Integer(), ForeignKey('MagnetSimulationElement.id'))
-    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    simulation = relationship("MagnetSimulationElement", uselist=False, foreign_keys=[simulation_id], cascade="all, delete-orphan", single_parent=True)
     electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
-    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id], cascade="all, delete-orphan", single_parent=True)
     manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
-    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id], cascade="all, delete-orphan", single_parent=True)
     controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
-    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id], cascade="all, delete-orphan", single_parent=True)
     reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
-    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id], cascade="all, delete-orphan", single_parent=True)
     
     
-    alias_rel = relationship( "CombinedCorrectorAlias" )
+    alias_rel = relationship( "CombinedCorrectorAlias", cascade="all, delete-orphan" )
     alias = association_proxy("alias_rel", "alias",
                                   creator=lambda x_: CombinedCorrectorAlias(alias=x_))
     
     
-    inputs_rel = relationship( "CombinedCorrectorInputs" )
+    inputs_rel = relationship( "CombinedCorrectorInputs", cascade="all, delete-orphan" )
     inputs = association_proxy("inputs_rel", "inputs",
                                   creator=lambda x_: CombinedCorrectorInputs(inputs=x_))
     
     
-    outputs_rel = relationship( "CombinedCorrectorOutputs" )
+    outputs_rel = relationship( "CombinedCorrectorOutputs", cascade="all, delete-orphan" )
     outputs = association_proxy("outputs_rel", "outputs",
                                   creator=lambda x_: CombinedCorrectorOutputs(outputs=x_))
     

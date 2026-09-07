@@ -19,6 +19,8 @@ URI: [laura:RFDeflectingCavityElement](https://w3id.org/laura/RFDeflectingCavity
  classDiagram
     class RFDeflectingCavityElement
     click RFDeflectingCavityElement href "../RFDeflectingCavityElement/"
+      RFDeflectingCavityElement : attenuation_constant
+        
       RFDeflectingCavityElement : cell_length
         
       RFDeflectingCavityElement : coupling_cell_length
@@ -40,6 +42,8 @@ URI: [laura:RFDeflectingCavityElement](https://w3id.org/laura/RFDeflectingCavity
       RFDeflectingCavityElement : phase
         
       RFDeflectingCavityElement : shunt_impedance
+        
+      RFDeflectingCavityElement : structure_type
         
       
 ```
@@ -71,6 +75,8 @@ URI: [laura:RFDeflectingCavityElement](https://w3id.org/laura/RFDeflectingCavity
 | [shunt_impedance](shunt_impedance.md) | 0..1 <br/> [Double](Double.md) | Shunt impedance [M?/m] | direct |
 | [mode_numerator](mode_numerator.md) | 0..1 <br/> [Double](Double.md) | Mode fraction numerator | direct |
 | [mode_denominator](mode_denominator.md) | 0..1 <br/> [Integer](Integer.md) | Mode fraction denominator | direct |
+| [structure_type](structure_type.md) | 0..1 <br/> [String](String.md) | RF structure type (e | direct |
+| [attenuation_constant](attenuation_constant.md) | 0..1 <br/> [Double](Double.md) | Attenuation constant of a travelling-wave structure [Np/m] | direct |
 
 
 
@@ -152,6 +158,27 @@ slots:
 - shunt_impedance
 - mode_numerator
 - mode_denominator
+attributes:
+  structure_type:
+    name: structure_type
+    description: RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave).
+    from_schema: https://w3id.org/laura/schema/rf
+    aliases:
+    - structure_Type
+    ifabsent: string(StandingWave)
+    domain_of:
+    - RFCavityElement
+    - RFDeflectingCavityElement
+    range: string
+  attenuation_constant:
+    name: attenuation_constant
+    description: Attenuation constant of a travelling-wave structure [Np/m].
+    from_schema: https://w3id.org/laura/schema/rf
+    ifabsent: float(0)
+    domain_of:
+    - RFCavityElement
+    - RFDeflectingCavityElement
+    range: double
 class_uri: laura:RFDeflectingCavityElement
 
 ```
@@ -168,6 +195,28 @@ in_subset:
 - rf_properties
 from_schema: https://w3id.org/laura/schema
 attributes:
+  structure_type:
+    name: structure_type
+    description: RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave).
+    from_schema: https://w3id.org/laura/schema/rf
+    aliases:
+    - structure_Type
+    ifabsent: string(StandingWave)
+    owner: RFDeflectingCavityElement
+    domain_of:
+    - RFCavityElement
+    - RFDeflectingCavityElement
+    range: string
+  attenuation_constant:
+    name: attenuation_constant
+    description: Attenuation constant of a travelling-wave structure [Np/m].
+    from_schema: https://w3id.org/laura/schema/rf
+    ifabsent: float(0)
+    owner: RFDeflectingCavityElement
+    domain_of:
+    - RFCavityElement
+    - RFDeflectingCavityElement
+    range: double
   cell_length:
     name: cell_length
     description: Length of a single cell [m].

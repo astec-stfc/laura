@@ -214,12 +214,13 @@ def _fix_key_slot_pk(cont: str) -> str:
     (ControlsInformation_id, name)``, so keep ``primary_key=True`` on the
     non-nullable column and the foreign key and strip it from the rest.
 
-    A keyed class that more than one class owns cannot be keyed that way at all:
-    gen-sqla puts *every* owner's foreign key in the primary key, but a row
-    belongs to exactly one owner, so the rest are NULL and the insert fails with
-    ``NOT NULL constraint failed``.  ``FunctionalDefinition`` is reachable from
-    both ``SectionLattice`` and ``MachineLayout``.  Those tables get the
-    surrogate ``id`` gen-sqla gives an unkeyed class instead.
+    A keyed class that more than one *slot* owns cannot be keyed that way at
+    all: gen-sqla puts every owning slot's foreign key in the primary key, but a
+    row belongs to exactly one of them, so the rest are NULL and the insert
+    fails with ``NOT NULL constraint failed``.  ``FunctionalDefinition``, owned
+    by a slot on two different classes, is the case here; two slots on the *same*
+    class would count too.  Those tables get the surrogate ``id`` gen-sqla gives
+    an unkeyed class instead.
 
     Junction tables legitimately have a two-column composite key and are left
     alone.
@@ -235,13 +236,7 @@ def _fix_key_slot_pk(cont: str) -> str:
         if len(pk_cols) <= 2:
             return block
 
-        owners = {
-            m.group(1)
-            for col in pk_cols
-            for m in [fk_re.search(col.group(2))]
-            if m
-        }
-        if len(owners) > 1:
+        if len([col for col in pk_cols if fk_re.search(col.group(2))]) > 1:
             for col in pk_cols:
                 block = block.replace(col.group(0), _strip_pk(col.group(0)), 1)
             return re.sub(
@@ -272,13 +267,53 @@ def _fix_key_slot_pk(cont: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Step 5: make owned one-to-many collections delete their orphans
+# ---------------------------------------------------------------------------
+
+def _fix_orphan_cascade(cont: str) -> str:
+    """Make composition relationships own their targets.
+
+    A LinkML inlined range is a composition: the sub-model belongs to exactly
+    one parent and has no life of its own.  gen-sqla emits the default cascade
+    instead, which leaves both halves of a re-export broken.
+
+    For a one-to-many, the child table's primary key *includes* the foreign key
+    back to the parent, so replacing the collection -- which is what
+    ``session.merge`` does -- makes SQLAlchemy try to orphan the old children by
+    nulling that key, and it cannot::
+
+        AssertionError: Dependency rule on column 'Shutter.name' tried to
+        blank-out primary key column 'Shutter_alias.Shutter_name'
+
+    For a many-to-one, the parent's foreign key is simply repointed at the new
+    row and the old one is left behind unreferenced, so every re-export grows
+    the database by a full copy of every sub-model.
+
+    Many-to-many (``secondary=``) is left alone: those targets are elements and
+    sections, which are shared by definition.
+    """
+    cont = re.sub(
+        r'(= relationship\(\s*"\w+"(?:, foreign_keys="\[[^"]*\]")?)(\s*\))',
+        r'\1, cascade="all, delete-orphan"\2',
+        cont,
+    )
+    # single_parent is required on the "many" side, and is exactly the claim
+    # being made: no two elements share a sub-model row.
+    return re.sub(
+        r'(= relationship\("\w+", uselist=False, foreign_keys=\[\w+\])(\))',
+        r'\1, cascade="all, delete-orphan", single_parent=True\2',
+        cont,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
 def generate(schema_path: str = "laura/schema/YAML/laura_schema.yaml") -> str:
     """Generate and return the full content of the SQLAlchemy ORM module."""
     raw = _run_gen_sqla(schema_path)
-    return _fix_key_slot_pk(_fix_self_referential_m2m(raw))
+    return _fix_orphan_cascade(_fix_key_slot_pk(_fix_self_referential_m2m(raw)))
 
 
 # ---------------------------------------------------------------------------

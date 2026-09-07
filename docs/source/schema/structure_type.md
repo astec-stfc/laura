@@ -1,10 +1,5 @@
 # Slot: structure_type 
 
-
-_RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave)._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -21,6 +16,7 @@ URI: [laura:structure_type](https://w3id.org/laura/structure_type)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [RFCavityElement](RFCavityElement.md) | RF cavity accelerating-structure parameters |  no  |
+| [RFDeflectingCavityElement](RFDeflectingCavityElement.md) | Transverse-deflecting RF cavity parameters -- a subset of RFCavityElement for... |  no  |
 
 
 
@@ -34,31 +30,18 @@ URI: [laura:structure_type](https://w3id.org/laura/structure_type)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [RFCavityElement](RFCavityElement.md) |
+| Domain Of | [RFCavityElement](RFCavityElement.md), [RFDeflectingCavityElement](RFDeflectingCavityElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| If Absent | `string(StandingWave)` |
-| Owner | [RFCavityElement](RFCavityElement.md) |
 
 
 
 
 
 
-
-
-
-## Aliases
-
-
-* structure_Type
 
 
 
@@ -66,13 +49,6 @@ URI: [laura:structure_type](https://w3id.org/laura/structure_type)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -92,15 +68,9 @@ URI: [laura:structure_type](https://w3id.org/laura/structure_type)
 <details>
 ```yaml
 name: structure_type
-description: RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave).
-from_schema: https://w3id.org/laura/schema
-aliases:
-- structure_Type
-rank: 1000
-ifabsent: string(StandingWave)
-owner: RFCavityElement
 domain_of:
 - RFCavityElement
+- RFDeflectingCavityElement
 range: string
 
 ```

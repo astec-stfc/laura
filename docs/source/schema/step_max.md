@@ -1,10 +1,5 @@
 # Slot: step_max 
 
-
-_Maximum step size for mirror adjustment._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -20,6 +15,7 @@ URI: [laura:step_max](https://w3id.org/laura/step_max)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
+| [MirrorControlsInformation](MirrorControlsInformation.md) | Control interface of a steerable laser mirror |  no  |
 | [LaserMirrorElement](LaserMirrorElement.md) | Mirror steering parameters for a laser mirror |  no  |
 
 
@@ -33,20 +29,13 @@ URI: [laura:step_max](https://w3id.org/laura/step_max)
 
 | Property | Value |
 | --- | --- |
-| Range | [Double](Double.md) |
-| Domain Of | [LaserMirrorElement](LaserMirrorElement.md) |
+| Range | [String](String.md) |
+| Domain Of | [MirrorControlsInformation](MirrorControlsInformation.md), [LaserMirrorElement](LaserMirrorElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| Owner | [LaserMirrorElement](LaserMirrorElement.md) |
-
-
 
 
 
@@ -60,13 +49,6 @@ URI: [laura:step_max](https://w3id.org/laura/step_max)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -86,13 +68,10 @@ URI: [laura:step_max](https://w3id.org/laura/step_max)
 <details>
 ```yaml
 name: step_max
-description: Maximum step size for mirror adjustment.
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-owner: LaserMirrorElement
 domain_of:
+- MirrorControlsInformation
 - LaserMirrorElement
-range: double
+range: string
 
 ```
 </details></div>

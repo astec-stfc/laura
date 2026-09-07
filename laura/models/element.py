@@ -4,9 +4,9 @@ LAURA Element Module
 The main class for representing accelerator elements in LAURA.
 """
 
-from typing import Optional, Type, List, Union, Dict, Any
+from typing import Optional, Type, List, Union, Dict, Any, get_args
 import os
-from pydantic import field_validator, Field
+from pydantic import BaseModel, field_validator, Field
 from .control import (
     ControlsInformation,
     ScreenControlsInformation,
@@ -143,9 +143,40 @@ string_with_quotes = StringWithQuotes
 flow_list = FlowList
 
 
+def _declared_model(instance: Any, attribute_name: str):
+    """The single model class *attribute_name* is annotated with, if there is one.
+
+    Unwraps the ``Optional[...]`` every one of these fields is declared as.
+    Returns ``None`` for a union of several models, which has no one default.
+    """
+    field = type(instance).model_fields.get(attribute_name)
+    if field is None:
+        return None
+    args = get_args(field.annotation) or (field.annotation,)
+    models = [
+        a for a in args if isinstance(a, type) and issubclass(a, BaseModel)
+    ]
+    return models[0] if len(models) == 1 else None
+
+
 def _ensure_nested_default(instance: Any, attribute_name: str, factory) -> None:
-    if getattr(instance, attribute_name) is None:
-        setattr(instance, attribute_name, factory())
+    """Default *attribute_name* to an instance of whatever the field is typed as.
+
+    The class comes from the annotation rather than from *factory* because a
+    subclass may narrow it -- ``RFDeflectingCavity.cavity`` is an
+    ``RFDeflectingCavityElement``, not an ``RFCavityElement`` -- and a parent's
+    ``model_post_init`` runs first, so the parent's *factory* would otherwise
+    win and then be rejected by assignment validation.  *factory* remains the
+    fallback for a field whose annotation is not one model class -- and also
+    where it is the *generated* base of *factory*, since most of these fields
+    are annotated ``Optional[_FooElementBase]`` and the hand-written
+    ``FooElement`` that refines it is the one wanted.
+    """
+    if getattr(instance, attribute_name) is not None:
+        return
+    declared = _declared_model(instance, attribute_name)
+    cls = factory if declared is None or issubclass(factory, declared) else declared
+    setattr(instance, attribute_name, cls())
 
 
 def _coerce_nested_model(value: Any, model_cls):
@@ -1199,6 +1230,12 @@ class RFDeflectingCavity(RFCavity, _RFDeflectingCavityBase):
 
     hardware_model: str = Field(default="SBand", frozen=True)
     """RF deflecting cavity hardware model."""
+
+    # Redeclared, as CrabCavity does: RFCavity is earlier in the MRO than
+    # _RFDeflectingCavityBase, so without this the field keeps the base class's
+    # RFCavityElement and contradicts both the docstring above and the schema.
+    cavity: Optional[RFDeflectingCavityElement] = None
+    """RF deflecting cavity structure parameters."""
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)

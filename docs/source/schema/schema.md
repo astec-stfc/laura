@@ -1,7 +1,7 @@
-# Slot: variables 
+# Slot: schema 
 
 
-_Named control variables keyed by logical name._
+_The shared controls schema file ``variables`` was expanded from, if any.  Kept only as a record of where they came from: the expansion happens while the element YAML is read, so ``variables`` is always already resolved by the time anything sees this class._
 
 
 
@@ -9,7 +9,7 @@ _Named control variables keyed by logical name._
 
 
 
-URI: [laura:variables](https://w3id.org/laura/variables)
+URI: [laura:schema](https://w3id.org/laura/schema)
 <!-- no inheritance hierarchy -->
 
 
@@ -36,14 +36,13 @@ URI: [laura:variables](https://w3id.org/laura/variables)
 
 | Property | Value |
 | --- | --- |
-| Range | [ControlVariable](ControlVariable.md) |
+| Range | [String](String.md) |
 | Domain Of | [ControlsInformation](ControlsInformation.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-| Multivalued | Yes |
 ### Slot Characteristics
 
 | Property | Value |
@@ -79,8 +78,8 @@ URI: [laura:variables](https://w3id.org/laura/variables)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:variables |
-| native | laura:variables |
+| self | laura:schema |
+| native | laura:schema |
 
 
 
@@ -89,17 +88,17 @@ URI: [laura:variables](https://w3id.org/laura/variables)
 
 <details>
 ```yaml
-name: variables
-description: Named control variables keyed by logical name.
+name: schema
+description: 'The shared controls schema file ``variables`` was expanded from, if
+  any.  Kept only as a record of where they came from: the expansion happens while
+  the element YAML is read, so ``variables`` is always already resolved by the time
+  anything sees this class.'
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ControlsInformation
 domain_of:
 - ControlsInformation
-range: ControlVariable
-multivalued: true
-inlined: true
-inlined_as_list: false
+range: string
 
 ```
 </details></div>

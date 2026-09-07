@@ -111,6 +111,9 @@ URI: [laura:ControlVariable](https://w3id.org/laura/ControlVariable)
 | used by | used in | type | used |
 | ---  | --- | --- | --- |
 | [ControlsInformation](ControlsInformation.md) | [variables](variables.md) | range | [ControlVariable](ControlVariable.md) |
+| [ScreenControlsInformation](ScreenControlsInformation.md) | [variables](variables.md) | range | [ControlVariable](ControlVariable.md) |
+| [MirrorControlsInformation](MirrorControlsInformation.md) | [variables](variables.md) | range | [ControlVariable](ControlVariable.md) |
+| [ShutterControlsInformation](ShutterControlsInformation.md) | [variables](variables.md) | range | [ControlVariable](ControlVariable.md) |
 
 
 

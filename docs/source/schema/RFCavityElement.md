@@ -173,6 +173,7 @@ attributes:
     ifabsent: string(StandingWave)
     domain_of:
     - RFCavityElement
+    - RFDeflectingCavityElement
     range: string
   attenuation_constant:
     name: attenuation_constant
@@ -182,6 +183,7 @@ attributes:
     ifabsent: float(0)
     domain_of:
     - RFCavityElement
+    - RFDeflectingCavityElement
     range: double
   power_calibration:
     name: power_calibration
@@ -227,6 +229,7 @@ attributes:
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
+    - RFDeflectingCavityElement
     range: string
   attenuation_constant:
     name: attenuation_constant
@@ -237,6 +240,7 @@ attributes:
     owner: RFCavityElement
     domain_of:
     - RFCavityElement
+    - RFDeflectingCavityElement
     range: double
   power_calibration:
     name: power_calibration

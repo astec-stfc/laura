@@ -367,6 +367,47 @@ export interface ControlVariable {
 export interface ControlsInformation {
     /** Named control variables keyed by logical name. */
     variables?: {[index: ControlVariableName]: ControlVariable },
+    /** The shared controls schema file ``variables`` was expanded from, if any.  Kept only as a record of where they came from: the expansion happens while the element YAML is read, so ``variables`` is always already resolved by the time anything sees this class. */
+    schema?: string,
+    /** What ``{name}`` in that file was substituted with, where it was not the element's own name. */
+    identifier_pattern?: string,
+}
+
+
+/**
+ * Control interface of a screen, which also drives an actuator between named positions.
+ */
+export interface ScreenControlsInformation extends ControlsInformation {
+    /** How the screen is moved, e.g. ``VMOTOR``. */
+    movement_type?: string,
+}
+
+
+/**
+ * Control interface of a steerable laser mirror.
+ */
+export interface MirrorControlsInformation extends ControlsInformation {
+    /** Largest adjustment a single step may make. */
+    step_max?: number,
+    /** Adjustment made by a step that does not say how far. */
+    default_step?: number,
+    /** Sign relating a rightward move to the actuator's direction. */
+    right_sense?: number,
+    /** Sign relating an upward move to the actuator's direction. */
+    up_sense?: number,
+    /** Sign relating a leftward move to the actuator's direction. */
+    left_sense?: number,
+    /** Sign relating a downward move to the actuator's direction. */
+    down_sense?: number,
+}
+
+
+/**
+ * Control interface of a beam or laser shutter.
+ */
+export interface ShutterControlsInformation extends ControlsInformation {
+    /** What the shutter blocks, e.g. ``BEAM`` or ``LASER``. */
+    shutter_type?: string,
 }
 
 
@@ -565,7 +606,7 @@ export interface PowerSupply extends StandardElement {
 
 
 /**
- * One named constant a lattice makes available to its elements, e.g. ``quad1_k1l: -2``.  A class rather than a bare map because LinkML has no free-form mapping type; the same keyed-inlined pattern as ControlVariable.
+ * One named constant a lattice makes available to its elements.
  */
 export interface FunctionalDefinition {
     /** The name elements refer to this definition by. */
@@ -583,11 +624,11 @@ export interface SectionLattice {
     name: string,
     /** Name of the master lattice this section belongs to. */
     master_lattice?: string,
-    /** The elements in this section, keyed by name.  References into MachineModel.elements rather than inlining them -- the Python ElementList holds the same objects, not copies.  The Python model's ``order`` has no slot here: no LinkML multivalued collection is ordered, so the sequence would not survive any export.  Recover it from each element's physical.s. */
+    /** The elements in this section, keyed by name. */
     elements?: AcceleratorElementName[],
     /** What this section carries. */
     section_type?: string,
-    /** Named constants this section's elements may refer to, keyed by name. The Python model also accepts a path to a YAML file holding the mapping, but resolves it at construction, so only the resolved mapping is ever exported. */
+    /** Named constants this section's elements may refer to, keyed by name. */
     functional_definitions?: {[index: FunctionalDefinitionName]: FunctionalDefinition },
     /** The ring's revolution frequency [Hz], if this section is part of a closed ring. */
     revolution_frequency?: number,
@@ -1039,6 +1080,8 @@ export interface FieldIntegral {
  * Bi-linear saturation model mapping magnet current to integrated field strength (K-value conversion).
  */
 export interface LinearSaturationFit {
+    /** Multipole order the fit applies to (0 = dipole, 1 = quadrupole, ...). */
+    order?: number,
     /** Linear slope of the unsaturated region. */
     m?: number,
     /** Current at which saturation begins [A]. */
@@ -1273,6 +1316,10 @@ export interface RFDeflectingCavityElement {
     mode_numerator?: number,
     /** Mode fraction denominator. */
     mode_denominator?: number,
+    /** RF structure type (e.g., ``SW`` standing-wave, ``TW`` travelling-wave). */
+    structure_type?: string,
+    /** Attenuation constant of a travelling-wave structure [Np/m]. */
+    attenuation_constant?: number,
 }
 
 

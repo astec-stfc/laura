@@ -40,7 +40,7 @@ URI: [laura:name](https://w3id.org/laura/name)
 | [Drift](Drift.md) | Field-free drift space between elements |  no  |
 | [Lighting](Lighting.md) | Experimental-hall lighting element |  no  |
 | [PowerSupply](PowerSupply.md) | Generic power-supply unit providing control/setpoint-driven outputs (for exam... |  no  |
-| [FunctionalDefinition](FunctionalDefinition.md) | One named constant a lattice makes available to its elements, e |  no  |
+| [FunctionalDefinition](FunctionalDefinition.md) | One named constant a lattice makes available to its elements |  no  |
 | [SectionLattice](SectionLattice.md) | A contiguous beamline section: an ordered run of elements |  no  |
 | [MachineLayout](MachineLayout.md) | A beamline layout: a contiguous sequence of sections |  no  |
 | [Magnet](Magnet.md) | Base class for all magnetic focusing and bending elements |  no  |

@@ -1,7 +1,7 @@
 # Class: FunctionalDefinition 
 
 
-_One named constant a lattice makes available to its elements, e.g. ``quad1_k1l: -2``.  A class rather than a bare map because LinkML has no free-form mapping type; the same keyed-inlined pattern as ControlVariable._
+_One named constant a lattice makes available to its elements._
 
 
 
@@ -102,9 +102,7 @@ URI: [laura:FunctionalDefinition](https://w3id.org/laura/FunctionalDefinition)
 <details>
 ```yaml
 name: FunctionalDefinition
-description: 'One named constant a lattice makes available to its elements, e.g. ``quad1_k1l:
-  -2``.  A class rather than a bare map because LinkML has no free-form mapping type;
-  the same keyed-inlined pattern as ControlVariable.'
+description: One named constant a lattice makes available to its elements.
 from_schema: https://w3id.org/laura/schema
 attributes:
   name:
@@ -139,9 +137,7 @@ class_uri: laura:FunctionalDefinition
 <details>
 ```yaml
 name: FunctionalDefinition
-description: 'One named constant a lattice makes available to its elements, e.g. ``quad1_k1l:
-  -2``.  A class rather than a bare map because LinkML has no free-form mapping type;
-  the same keyed-inlined pattern as ControlVariable.'
+description: One named constant a lattice makes available to its elements.
 from_schema: https://w3id.org/laura/schema
 attributes:
   name:

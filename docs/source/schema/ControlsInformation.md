@@ -19,6 +19,17 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
  classDiagram
     class ControlsInformation
     click ControlsInformation href "../ControlsInformation/"
+      ControlsInformation <|-- ScreenControlsInformation
+        click ScreenControlsInformation href "../ScreenControlsInformation/"
+      ControlsInformation <|-- MirrorControlsInformation
+        click MirrorControlsInformation href "../MirrorControlsInformation/"
+      ControlsInformation <|-- ShutterControlsInformation
+        click ShutterControlsInformation href "../ShutterControlsInformation/"
+      
+      ControlsInformation : identifier_pattern
+        
+      ControlsInformation : schema
+        
       ControlsInformation : variables
         
           
@@ -36,7 +47,13 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 
 
 
-<!-- no inheritance hierarchy -->
+
+## Inheritance
+* **ControlsInformation**
+    * [ScreenControlsInformation](ScreenControlsInformation.md)
+    * [MirrorControlsInformation](MirrorControlsInformation.md)
+    * [ShutterControlsInformation](ShutterControlsInformation.md)
+
 
 ## Class Properties
 
@@ -50,6 +67,8 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [variables](variables.md) | * <br/> [ControlVariable](ControlVariable.md) | Named control variables keyed by logical name | direct |
+| [schema](schema.md) | 0..1 <br/> [String](String.md) | The shared controls schema file ``variables`` was expanded from, if any | direct |
+| [identifier_pattern](identifier_pattern.md) | 0..1 <br/> [String](String.md) | What ``{name}`` in that file was substituted with, where it was not the eleme... | direct |
 
 
 
@@ -74,7 +93,6 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | [Stage](Stage.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [VacuumGauge](VacuumGauge.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Laser](Laser.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [Shutter](Shutter.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Valve](Valve.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Marker](Marker.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Aperture](Aperture.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
@@ -97,7 +115,6 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | [BeamArrivalMonitor](BeamArrivalMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [BunchLengthMonitor](BunchLengthMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Camera](Camera.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [Screen](Screen.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
@@ -106,7 +123,6 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | [Plasma](Plasma.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [LaserEnergyMeter](LaserEnergyMeter.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [LaserHalfWavePlate](LaserHalfWavePlate.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
-| [LaserMirror](LaserMirror.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [LaserAttenuator](LaserAttenuator.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Dipole](Dipole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Quadrupole](Quadrupole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
@@ -179,6 +195,26 @@ attributes:
     multivalued: true
     inlined: true
     inlined_as_list: false
+  schema:
+    name: schema
+    description: 'The shared controls schema file ``variables`` was expanded from,
+      if any.  Kept only as a record of where they came from: the expansion happens
+      while the element YAML is read, so ``variables`` is always already resolved
+      by the time anything sees this class.'
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    domain_of:
+    - ControlsInformation
+    range: string
+  identifier_pattern:
+    name: identifier_pattern
+    description: What ``{name}`` in that file was substituted with, where it was not
+      the element's own name.
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    domain_of:
+    - ControlsInformation
+    range: string
 class_uri: laura:ControlsInformation
 
 ```
@@ -204,6 +240,28 @@ attributes:
     multivalued: true
     inlined: true
     inlined_as_list: false
+  schema:
+    name: schema
+    description: 'The shared controls schema file ``variables`` was expanded from,
+      if any.  Kept only as a record of where they came from: the expansion happens
+      while the element YAML is read, so ``variables`` is always already resolved
+      by the time anything sees this class.'
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    owner: ControlsInformation
+    domain_of:
+    - ControlsInformation
+    range: string
+  identifier_pattern:
+    name: identifier_pattern
+    description: What ``{name}`` in that file was substituted with, where it was not
+      the element's own name.
+    from_schema: https://w3id.org/laura/schema/controls
+    rank: 1000
+    owner: ControlsInformation
+    domain_of:
+    - ControlsInformation
+    range: string
 class_uri: laura:ControlsInformation
 
 ```

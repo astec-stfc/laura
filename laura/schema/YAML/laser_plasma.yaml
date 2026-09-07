@@ -82,6 +82,8 @@ classes:
     slot_usage:
       hardware_type:
         equals_string: LaserMirror
+      controls:
+        range: MirrorControlsInformation
     attributes:
       laser:
         range: LaserMirrorElement
