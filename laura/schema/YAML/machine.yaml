@@ -7,15 +7,15 @@ version: "0.1.0"
 license: Apache Software License 2.0
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
 
 default_prefix: laura
 default_range: string
@@ -46,6 +46,28 @@ classes:
         range: string
         description: Ordered list of element names in this section.
 
+  LayoutPass:
+    description: >-
+      One traversal of one section by one beam path.
+    class_uri: laura:LayoutPass
+    attributes:
+      section:
+        range: string
+        required: true
+        description: Name of the section traversed on this pass.
+      direction:
+        range: integer
+        ifabsent: int(1)
+        description: >-
+          1 if this pass traverses the section forwards, -1 if backwards.
+          A property of the path, not of the section.
+      number:
+        range: integer
+        description: >-
+          Multipass occurrence number, counting from 1. Absent for
+          an ordinary single traversal and for repetition, where each
+          occurrence is a separate device with its own section.
+
   MachineLayout:
     description: >-
       An ordered list of section names defining a beamline layout
@@ -63,6 +85,13 @@ classes:
         multivalued: true
         range: string
         description: Ordered list of section names.
+      passes:
+        multivalued: true
+        range: LayoutPass
+        description: >-
+          The beam order, one entry per section traversal. Distinct from
+          sections, which is keyed by name and so cannot express a section
+          entered twice.
 
   MachineModel:
     description: >-

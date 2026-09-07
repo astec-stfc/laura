@@ -1,6 +1,7 @@
 from typing import Any, Dict, Iterator, Tuple
 
 from laura.models.elementList import MachineLayout
+from laura.models.exceptions import LatticeError
 from laura.models.reversal import reverse_section
 
 from .converter import translate_elements
@@ -30,6 +31,14 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         The source layout and its sections are untouched if there is a reversal:
         the same section can be traversed forwards by another beam path.
         """
+        if getattr(layout, "is_multipass", False):
+            raise LatticeError(
+                f"Beam path '{layout.name}' is multipass, and export writes one "
+                "section per name: the passes would collapse into a single "
+                "traversal, and a direction stated for one pass would be "
+                "applied to all of them. Export a single-pass layout until "
+                "one-child-per-occurrence lands."
+            )
         sections = dict(layout.model_copy().sections)
         for name in getattr(layout, "_direction", {}) or {}:
             section = sections.get(name)

@@ -1043,9 +1043,6 @@ class SectionLattice(BaseLatticeModel):
 
             new_mid = np.array([ref_pos.x, ref_pos.y, ref_pos.z]) + delta
 
-            # Clear reference_placement before writing middle — the model validator
-            # (validate_assignment=True) re-runs on every field write, so both
-            # fields must not be set at the same time.
             phys.reference_placement = None
             phys.middle = Position.from_list(new_mid)
 
@@ -1065,6 +1062,42 @@ class SectionLattice(BaseLatticeModel):
             phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
 
 
+class LayoutPass(BaseModel):
+    """One traversal of one section by one beam path.
+
+    A layout's ``passes`` are its beam order, one entry per occurrence.
+    ``MachineLayout.sections`` is keyed by name and so cannot say that a
+    section is entered twice, while this class can.
+
+    The two ways a section comes up twice are not the same thing (see
+    ``MachineModel._expand_layout_repeats``):
+
+    * **Repetition** -- N devices at N positions. Expansion has already given
+      each occurrence its own section (``ARC.1``, ``ARC.2``), so those arrive
+      here as ordinary passes with ``number`` unset.  Nothing about them is
+      shared.
+    * **Multipass** -- one device entered N times, declared with
+      ``multipass: N`` on the layout entry.  Those passes name the *same*
+      section and carry ``number`` 1, 2, ...  The hardware is shared.
+    """
+
+    section: str
+    """Name of the section this pass traverses."""
+
+    direction: int = 1
+    """``1`` forwards, ``-1`` backwards. A property of the path, not of the
+    section, which is why it lives here and not on :class:`SectionLattice`."""
+
+    number: int | None = None
+    """Multipass occurrence number, counting from 1. ``None`` for an ordinary
+    single traversal, and for repetition."""
+
+    def __repr__(self) -> str:
+        pass_number = "" if self.number is None else f" #{self.number}"
+        arrow = "" if self.direction == 1 else " (reversed)"
+        return f"<LayoutPass {self.section}{pass_number}{arrow}>"
+
+
 class MachineLayout(BaseLatticeModel):
     """
     A machine layout, consisting of a dictionary of lattice sections.
@@ -1073,6 +1106,12 @@ class MachineLayout(BaseLatticeModel):
 
     sections: Dict[str, SectionLattice]  # = Field(frozen=True)
     """Dictionary of :class:`~laura.models.elementList.SectionLattice`, keyed by name."""
+
+    passes: List[LayoutPass] = []
+    """The beam order, one :class:`LayoutPass` per section traversal.
+
+    Empty for a layout built without one, in which case beam order falls 
+    back to ``sections`` insertion order."""
 
     master_lattice: str | None = None
     """Directory containing lattice files. """
@@ -1118,8 +1157,14 @@ class MachineLayout(BaseLatticeModel):
         )
         set_functional_definitions(self.functional_definitions)
         set_resolve_functional(self.resolve_functional)
-        matrix = [v.elements.elements.values() for v in self.sections.values()]
-        all_elems = [item for row in matrix for item in row]
+        all_elems = []
+        for section in self._sections_in_beam_order():
+            registry = section.elements.elements
+            seen = set()
+            for name in section.order:
+                if name in registry and name not in seen:
+                    seen.add(name)
+                    all_elems.append(registry[name])
         if len(all_elems) > 0:
             # Stub dicts appear while a model is being built incrementally and
             # carry no physical block to collect.
@@ -1130,6 +1175,27 @@ class MachineLayout(BaseLatticeModel):
             ]
         else:
             self._all_elements = {}
+
+    def _sections_in_beam_order(self) -> List[SectionLattice]:
+        """The sections this path traverses, in order, one entry per pass.
+
+        ``passes`` is the authority when it is set, because it is the only
+        thing that survives a section being entered twice.
+        """
+        if not self.passes:
+            return list(self.sections.values())
+        return [
+            self.sections[entry.section]
+            for entry in self.passes
+            if entry.section in self.sections
+        ]
+
+    @property
+    def is_multipass(self) -> bool:
+        """Whether any section on this path is entered more than once.
+        True only for declared multipass.
+        """
+        return any(entry.number is not None for entry in self.passes)
 
     @property
     def names(self) -> List:
@@ -1147,8 +1213,6 @@ class MachineLayout(BaseLatticeModel):
         return str([k for k, v in self.sections.items()])
 
     def __getattr__(self, item: str):
-        # Let Pydantic resolve its own attributes (private attrs included)
-        # before falling through to the sections, as SectionLattice does.
         try:
             return super().__getattr__(item)
         except AttributeError:
@@ -1228,6 +1292,7 @@ class MachineLayout(BaseLatticeModel):
         is section-local, and in a sequentially-placed section it restarts at
         zero.  Do not remove it as dead code.
         """
+        self._refuse_if_multipass("Reporting arc lengths")
         direction = self._direction if direction is None else direction
         unknown = set(direction) - set(self.sections)
         if unknown:
@@ -1320,12 +1385,36 @@ class MachineLayout(BaseLatticeModel):
         :param str name: Name of the element to search for
         :returns: List index of the item within that beam path
         """
+        self._refuse_if_multipass("Looking an element up by name")
         try:
             # fetch the index of the element
             return self._get_all_element_names().index(name)
         except ValueError:
             message = "Element %s does not exist along the beam path" % name
             raise LatticeError(message)
+
+    def _refuse_if_multipass(self, what: str) -> None:
+        """Stop a name-keyed lookup that a multipass path would answer wrongly.
+
+        On a multipass path an element name appears once per pass, so
+        ``.index()`` silently returns the first. Occurrence addressing
+        is what makes these answerable; until it exists,
+        refusing is the only honest answer.
+        """
+        if not self.is_multipass:
+            return
+        entered = ", ".join(
+            f"{entry.section}#{entry.number}"
+            for entry in self.passes
+            if entry.number is not None
+        )
+        raise LatticeError(
+            f"{what} is ambiguous on beam path '{self.name}': it is multipass "
+            f"({entered}), so a name occurs once per pass and this would "
+            "silently answer for the first. Occurrence addressing is not "
+            "implemented yet; use the section's own order, or a single-pass "
+            "layout, until it is."
+        )
 
     @property
     def elements(self) -> List[str]:
@@ -1524,6 +1613,8 @@ class MachineModel(ModelBase):
 
     _section_definitions: Dict[str, Dict[str, Any]] = {}
     _layout_directions: Dict[str, Dict[str, int]] = {}
+    _layout_entries: Dict[str, list] = {}
+    _layout_passes: Dict[str, list] = {}
 
     _default_path: str = None
 
@@ -1592,7 +1683,7 @@ class MachineModel(ModelBase):
     @staticmethod
     def _normalise_layouts(
         layouts: Dict[str, Any],
-    ) -> tuple[Dict[str, list], Dict[str, Dict[str, int]]]:
+    ) -> tuple[Dict[str, list], Dict[str, Dict[str, int]], Dict[str, list]]:
         """Split ``{layout: [entries]}`` into section names and per-section direction.
 
         An entry is a bare section name, or a single-key mapping carrying
@@ -1605,28 +1696,56 @@ class MachineModel(ModelBase):
 
         ``direction: -1`` means this beam path traverses that section backwards.
         It says nothing about the section itself.
+
+        ``multipass: N`` says this entry is the Nth traversal of hardware an
+        earlier entry has already been through::
+
+            layouts:
+              ERL:
+                - INJECTOR
+                - LINAC: {multipass: 1}
+                - ARC
+                - LINAC: {multipass: 2}
+                - DUMP
+
+        It is the opt-in that separates the two readings of a repeated section.
+        Without it a section listed twice is repetition, N devices at N
+        positions, which is what the section level has always made of the same
+        shape and what :meth:`_expand_layout_repeats` builds.
+
+        The third return is the entry list as authored,
+        ``[(name, direction, multipass)]`` per layout, keeping one item per
+        occurrence.
         """
         areas: Dict[str, list] = {}
         directions: Dict[str, Dict[str, int]] = {}
+        occurrences: Dict[str, list] = {}
         for layout_name, entries in layouts.items():
             if not isinstance(entries, list):
                 raise TypeError(f"Layout '{layout_name}' must be a list of sections")
             names: list = []
             marked: Dict[str, int] = {}
+            listed: list = []
             for entry in entries:
                 if isinstance(entry, str):
                     names.append(entry)
+                    listed.append((entry, 1, None))
                     continue
                 if not isinstance(entry, dict) or len(entry) != 1:
                     raise TypeError(
                         f"Layout '{layout_name}' entries must be a section name, "
-                        f"optionally with a 'direction'; got {entry!r}"
+                        f"optionally with a 'direction' or a 'multipass'; "
+                        f"got {entry!r}"
                     )
                 section_name, options = next(iter(entry.items()))
-                if not isinstance(options, dict) or set(options) - {"direction"}:
+                if not isinstance(options, dict) or set(options) - {
+                    "direction",
+                    "multipass",
+                }:
                     raise TypeError(
                         f"Entry '{section_name}' in layout '{layout_name}' must be a "
-                        "section name or a section name with a 'direction'"
+                        "section name, or a section name with a 'direction' "
+                        "and/or a 'multipass'"
                     )
                 direction = options.get("direction", 1)
                 if direction not in (1, -1):
@@ -1634,13 +1753,26 @@ class MachineModel(ModelBase):
                         f"'direction' for '{section_name}' in layout "
                         f"'{layout_name}' must be 1 or -1; got {direction!r}"
                     )
+                multipass = options.get("multipass")
+                if multipass is not None and (
+                    isinstance(multipass, bool)
+                    or not isinstance(multipass, int)
+                    or multipass < 1
+                ):
+                    raise ValueError(
+                        f"'multipass' for '{section_name}' in layout "
+                        f"'{layout_name}' must be a pass number counting from "
+                        f"1; got {multipass!r}"
+                    )
                 names.append(section_name)
+                listed.append((section_name, direction, multipass))
                 if direction == -1:
                     marked[section_name] = -1
             areas[layout_name] = names
+            occurrences[layout_name] = listed
             if marked:
                 directions[layout_name] = marked
-        return areas, directions
+        return areas, directions, occurrences
 
     @staticmethod
     def _normalise_layout_metadata(
@@ -1747,8 +1879,8 @@ class MachineModel(ModelBase):
                 if os.path.exists(candidate):
                     layout_file = candidate
             config = read_yaml(layout_file)
-            self._layouts, self._layout_directions = self._normalise_layouts(
-                config.layouts
+            self._layouts, self._layout_directions, self._layout_entries = (
+                self._normalise_layouts(config.layouts)
             )
             self._layout_metadata = self._normalise_layout_metadata(
                 getattr(config, "layout_metadata", {})
@@ -1761,6 +1893,7 @@ class MachineModel(ModelBase):
         elif self.layout is None:
             self._layouts = {}
             self._layout_directions = {}
+            self._layout_entries = {}
             self._layout_metadata = {}
             self._default_path = None
             warnings.warn("No layouts specified. Lattices will be empty.")
@@ -1768,8 +1901,8 @@ class MachineModel(ModelBase):
             for key in ["layouts"]:
                 if key not in self.layout:
                     raise KeyError("layout must specify layouts")
-            self._layouts, self._layout_directions = self._normalise_layouts(
-                self.layout["layouts"]
+            self._layouts, self._layout_directions, self._layout_entries = (
+                self._normalise_layouts(self.layout["layouts"])
             )
             self._layout_metadata = self._normalise_layout_metadata(
                 self.layout.get("layout_metadata", {})
@@ -1794,6 +1927,7 @@ class MachineModel(ModelBase):
             self._section_definitions = self._normalise_section_definitions(
                 self.section["sections"]
             )
+        self._expand_layout_repeats()
         if len(self.elements) > 0:
             # Validate functional references up-front (so the error names the
             # source file), skipping lazy element stores to avoid forcing a load.
@@ -1993,6 +2127,170 @@ class MachineModel(ModelBase):
                             area
                         ].get("authored")
 
+    def _expand_layout_repeats(self) -> None:
+        """Give a section listed more than once in one layout its own copy.
+
+        A layout's entry list is the beam path, so a section named twice is
+        entered twice.  ``MachineLayout.sections`` is keyed by name and
+        ``_build_layout_objects`` fills it with a dict comprehension.
+
+        Repetition is N devices at N positions. That is what a section listed
+        twice means, and the section level already reads a line listed twice
+        exactly that way (:func:`expand_section_order`). Each occurrence
+        becomes its own section, ``ARC.1``/``ARC.2``, holding its own numbered
+        element copies.
+        """
+        self._layout_passes = {}
+        if not self._layout_entries:
+            return
+        for path, entries in self._layout_entries.items():
+            totals: Dict[str, int] = {}
+            for name, _, _ in entries:
+                totals[name] = totals.get(name, 0) + 1
+            multipass = self._declared_multipass(path, entries, totals)
+            expandable = {
+                name
+                for name, total in totals.items()
+                if total > 1
+                and name not in multipass
+                and name in self._section_definitions
+            }
+            for name in sorted(expandable):
+                self._check_repeat_is_repetition(path, name, entries)
+            seen: Dict[str, int] = {}
+            names: list = []
+            marked: Dict[str, int] = {}
+            passes: list = []
+            for name, direction, number in entries:
+                if name in expandable:
+                    index = seen.get(name, 0) + 1
+                    seen[name] = index
+                    definition = self._section_definitions[name]
+                    name = f"{name}.{index}"
+                    self._section_definitions[name] = self._copy_section_definition(
+                        definition, index
+                    )
+                    number = None
+                names.append(name)
+                if direction == -1:
+                    marked[name] = -1
+                passes.append(
+                    LayoutPass(section=name, direction=direction, number=number)
+                )
+            self._layout_passes[path] = passes
+            self._layouts[path] = list(dict.fromkeys(names))
+            if marked:
+                self._layout_directions[path] = marked
+            else:
+                self._layout_directions.pop(path, None)
+
+    def _declared_multipass(self, path: str, entries: list, totals: dict) -> set:
+        """Names the layout declares as multipass, refusing incoherent claims.
+
+        ``multipass: N`` is a claim about hardware, so it has to hold for every
+        occurrence of that section or none of them.
+        """
+        declared = set()
+        for name, total in totals.items():
+            numbers = [number for entry, _, number in entries if entry == name]
+            stated = [number for number in numbers if number is not None]
+            if not stated:
+                continue
+            if len(stated) != len(numbers):
+                raise ValueError(
+                    f"Layout '{path}' marks some occurrences of section "
+                    f"'{name}' with 'multipass' and not others. Multipass is a "
+                    "claim about the hardware -- that every occurrence is the "
+                    "same device -- so it has to be stated on all of them or "
+                    "none. Omit it entirely to get separate devices instead."
+                )
+            if total == 1:
+                raise ValueError(
+                    f"Layout '{path}' marks section '{name}' as multipass but "
+                    "enters it only once. Multipass means one device entered "
+                    "more than once; a single traversal needs no declaration."
+                )
+            if sorted(stated) != list(range(1, total + 1)):
+                raise ValueError(
+                    f"Layout '{path}' enters section '{name}' {total} times, so "
+                    f"its 'multipass' numbers must be {list(range(1, total + 1))}; "
+                    f"got {sorted(stated)}. Each pass is numbered once, counting "
+                    "from 1, in the order the beam makes them."
+                )
+            declared.add(name)
+        return declared
+
+    def _check_repeat_is_repetition(self, path: str, name: str, entries: list) -> None:
+        """Refuse the two ways a repeated section cannot mean repetition."""
+        directions = {direction for entry, direction, _ in entries if entry == name}
+        if len(directions) > 1:
+            raise ValueError(
+                f"Layout '{path}' enters section '{name}' more than once, with a "
+                "different 'direction' each time. Nobody builds two of a section "
+                "so that one of them runs backwards, so this is one section "
+                "traversed there and back -- not yet implemented"
+                "Give every occurrence the same direction if you did "
+                "mean separate devices; to mirror a line without traversing it "
+                "backwards, use a section-level 'repeat: -1'."
+            )
+        if not self._section_definition_is_sequential(self._section_definitions[name]):
+            raise ValueError(
+                f"Layout '{path}' enters section '{name}' more than once, but "
+                f"'{name}' states its own positions. A section listed twice means "
+                "two devices at two positions, which only a sequentially-placed "
+                "(drift-based) section can express."
+            )
+
+    def _section_definition_is_sequential(self, definition: Dict[str, Any]) -> bool:
+        """``SectionLattice.is_sequential`` for a section not yet built.
+
+        Same test on the same elements, just reached through the definition:
+        the sections do not exist when :meth:`_expand_layout_repeats` runs, and
+        they must not, because it decides what they will be.
+        """
+        for name in definition.get("elements", []):
+            element = self.elements.get(name)
+            physical = getattr(element, "physical", None)
+            if physical is not None and not getattr(physical, "_position_stated", True):
+                return True
+        return False
+
+    def _copy_section_definition(
+        self, definition: Dict[str, Any], occurrence: int
+    ) -> Dict[str, Any]:
+        """Copy a section definition, giving its elements their own copies too.
+
+        Occurrences must not share element objects. Placement runs per section
+        and mutates what it places.
+
+        The original definition is left in place: another layout may still name
+        it, and a section may legitimately be repeated in one path and entered
+        once in another.
+        """
+        copied = dict(definition)
+        copied.pop("authored", None)
+        copied["elements"] = [
+            self._copy_element_for_occurrence(name, occurrence)
+            for name in definition.get("elements", [])
+        ]
+        return copied
+
+    def _copy_element_for_occurrence(self, name: str, occurrence: int) -> str:
+        """Register ``name.occurrence`` as a copy of ``name``, returning its name.
+
+        Follows :meth:`SectionLattice.number_repeated_elements`: same ``.n``
+        suffix, same deep copy, and the same silence when the name resolves to
+        nothing, which is how an incrementally-built model reaches here.
+        """
+        source = self.elements.get(name)
+        if not isinstance(source, baseElement):
+            return name
+        copy_name = f"{name}.{occurrence}"
+        clone = source.model_copy(deep=True)
+        clone.name = copy_name
+        self.elements[copy_name] = clone
+        return copy_name
+
     def _build_layout_objects(self):
         """Create MachineLayout objects from already-resolved sections.
 
@@ -2011,6 +2309,11 @@ class MachineModel(ModelBase):
                         for area in areas
                         if area in self.sections
                     },
+                    passes=[
+                        entry
+                        for entry in self._layout_passes.get(path, [])
+                        if entry.section in self.sections
+                    ],
                     layout_type=layout_type,
                     master_lattice=self.master_lattice,
                     functional_definitions=self.functional_definitions,
@@ -2099,6 +2402,8 @@ class MachineModel(ModelBase):
         }
         for original in set(renamed.values()) - still_referenced:
             self.elements.pop(original, None)
+            for section in self.sections.values():
+                section.elements.elements.pop(original, None)
         warn(
             "Repeated element names in a sequentially-placed section were given "
             "one copy per occurrence: "
