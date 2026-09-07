@@ -327,6 +327,59 @@ Position is never inherited (see above), so every child of a shared template
 arrives unpositioned — which is exactly the sequential trigger. A template
 carrying `length` plus a section order is enough to define a whole lattice.
 
+## Repeated and nested lines
+
+A section's element list may repeat an entry and may splice in another section,
+so a channel of identical cells is written once:
+
+```yaml
+sections:
+  fodo_channel:
+    - fodo_cell: {repeat: 3}
+
+  fodo_cell: [drift1, quad1, drift2, quad2, drift1]
+```
+
+`expand_section_order` (`laura/models/elementList.py`) flattens this into the
+ordinary `List[str]` during `_normalise_section_definitions`, which is the one
+funnel every authored section passes through. Nothing downstream changes: the
+machine sees the fifteen-name order it would have seen had the channel been
+typed out in full, and sequential placement then splits the repeated names per
+occurrence exactly as it does for a name written twice by hand.
+
+Three rules, all chosen so nothing has to be guessed:
+
+* **An entry is a bare name, or a single-key mapping carrying options.**
+  `repeat` is the only option. Anything else is a `TypeError` naming the entry
+  and its section, rather than a silently ignored key.
+* **A name that matches another section is a nested line**; anything else is an
+  element name. Expansion runs as a second pass, once every section is known, so
+  a line may be used before it is defined. A line no layout lists never becomes
+  a section of the machine, so defining one purely to be reused costs nothing.
+* **A cycle is a `LatticeError`, and a `repeat` of zero is a `ValueError`.**
+  A cycle would otherwise be an infinite lattice; a zero count is more likely a
+  mistake than a deliberately empty entry.
+* **A negative count reverses the entry, then repeats it** — MAD-X's `-LINE`,
+  so `(cell, -cell)` is a mirror-symmetric line from one definition. This is
+  reversal of the *order* only. Every element is still entered at its own
+  entrance face, so nothing about the elements changes and the result is a
+  different lattice built from the same definitions. It is **not** the line
+  traversed backwards: `m dv/dt = qv × B` is not invariant under `t → −t`, so a
+  reversed traversal is equivalent to a forward one with the opposite-sign
+  particle, and every normal multipole's effect changes sign in the beam frame.
+  That is a separate feature and is not modelled.
+
+The authored list is kept on the section as `_authored_order` — the same bargain
+as `inherits_from` and `_repeat_origins` — so the exporter can write the compact
+form back out.
+
+One combination is refused, by machinery that predates this: a line that repeats
+a name **and** is itself listed in a layout, so that it is both a section of the
+machine and spliced into another one. Both sections then want their own
+placement of the same numbered copies, and the load fails with the mixed
+positioning error rather than picking one. Nesting a line that repeats nothing,
+or nesting a line that no layout lists, is fine.
+
 ## Writing the compact form back out
 
 Loading expands: a template is merged into its children, an order plus lengths
@@ -373,6 +426,15 @@ copies no longer mean the same thing) or if the bare name is still an element in
 its own right (another section's placement of it would be overwritten). Nothing
 happens in the other position modes, where the copies differ by exactly the
 position they were made to hold.
+
+`_authored_sections` does the same for authored repetition, and for the whole
+`_sections.yaml` at once rather than per group. The compact list replaces the
+flat one, the definition of every line it refers to is added beside it, and then
+the result is re-expanded and compared against the order the machine actually
+holds. Only if that matches is the compact map written; otherwise every section
+goes out fully expanded with a warning. Checking the finished file rather than
+each section in isolation costs one extra expansion and removes the need to
+enumerate the ways a collapse could go wrong.
 
 ### `collapse_inheritance=True`
 

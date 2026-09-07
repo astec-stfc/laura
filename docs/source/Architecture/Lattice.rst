@@ -160,6 +160,53 @@ mirror image of ``createDrifts()``: one derives positions from an explicit drift
 derives drifts from explicit positions. A resolved machine can be written back out in this
 compact form with ``position_mode="sequential"`` -- see :ref:`interfaces`.
 
+.. _repeated-lines:
+
+Repeated and nested lines
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A section's element list may repeat an entry and may splice in another section, so a lattice
+built from identical cells is written once rather than once per cell:
+
+.. code-block:: yaml
+
+    sections:
+      fodo_channel:
+        - fodo_cell: {repeat: 3}
+
+      fodo_cell: [drift1, quad1, drift2, quad2, drift1]
+
+An entry is either a bare name or a single-key mapping carrying a ``repeat`` count. A name
+that matches another section is a nested line and is expanded in place; anything else is an
+element name. A line may be referenced before it is defined, and a line that no layout lists
+-- i.e. ``fodo_cell`` above -- never becomes a section of the machine, so it costs nothing to
+define one purely to be reused.
+
+:py:func:`expand_section_order <laura.models.elementList.expand_section_order>` flattens this
+into the ordinary name list during
+:py:meth:`MachineModel <laura.models.elementList.MachineModel>` construction, so everything
+downstream. A line that includes itself is a
+:py:class:`LatticeError <laura.models.exceptions.LatticeError>` rather than an
+infinite lattice, and a ``repeat`` of zero is a ``ValueError`` rather than a silently dropped
+entry.
+
+A **negative** count reverses the entry before repeating it:
+
+.. code-block:: yaml
+
+    sections:
+      mirrored:
+        - fodo_cell                    # forwards
+        - fodo_cell: {repeat: -1}      # and back again
+
+This reverses the order only. The result is a different lattice built
+from the same definitions. True path reversal flips the sign of every
+magnetic element's effect in the beam frame (traversing an element backwards is equivalent
+to traversing it forwards with the opposite-sign particle) and is not modelled.
+
+The authored list is kept on the section, so a ``position_mode="sequential"`` export writes
+the ``repeat`` count and the nested line back out, defining them alongside the elements.
+
 .. _machine-layout:
 
 Machine Layout

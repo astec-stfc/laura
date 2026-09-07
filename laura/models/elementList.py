@@ -61,6 +61,73 @@ def normalise_lattice_type(
     return value
 
 
+def expand_section_order(
+    section_name: str,
+    entries: List[Any],
+    authored: Dict[str, List[Any]],
+    _stack: tuple = (),
+) -> List[str]:
+    """Flatten authored repetition and nested lines into a list of element names.
+
+    An entry is either a bare name, or a single-key mapping carrying options::
+
+        - drift1
+        - fodo_cell: {repeat: 3}
+
+    A name found in ``authored`` (the ``{section: element list}`` map of every
+    authored section) is a nested line and is spliced in expanded; anything
+    else is an element name.
+
+    A negative count reverses the entry before repeating it.
+    This is a reversal of the order only.
+
+    Repetition only means anything for a sequentially-placed section:
+    elsewhere the copies differ by position.
+    """
+    if section_name in _stack:
+        chain = " -> ".join(_stack + (section_name,))
+        raise LatticeError(f"Section '{section_name}' includes itself: {chain}")
+    stack = _stack + (section_name,)
+
+    expanded: List[str] = []
+    for entry in entries:
+        if isinstance(entry, str):
+            target, count = entry, 1
+        elif isinstance(entry, dict) and len(entry) == 1:
+            target, options = next(iter(entry.items()))
+            if not isinstance(options, dict) or set(options) - {"repeat"}:
+                raise TypeError(
+                    f"Entry '{target}' in section '{section_name}' must be a name "
+                    "or a name with a 'repeat' count"
+                )
+            count = options.get("repeat", 1)
+        else:
+            raise TypeError(
+                f"Section '{section_name}' entries must be an element or line name, "
+                f"optionally with a 'repeat' count; got {entry!r}"
+            )
+
+        if isinstance(count, bool) or not isinstance(count, int):
+            raise TypeError(
+                f"'repeat' for '{target}' in section '{section_name}' must be an "
+                f"integer; got {count!r}"
+            )
+        if count == 0:
+            raise ValueError(
+                f"'repeat' for '{target}' in section '{section_name}' must not be "
+                "zero. Omit the entry instead."
+            )
+
+        if target in authored:
+            one = expand_section_order(target, authored[target], authored, stack)
+        else:
+            one = [target]
+        if count < 0:
+            one = one[::-1]
+        expanded.extend(one * abs(count))
+    return expanded
+
+
 def _s_start_of(phys: "PhysicalElement") -> float:
     """Arc-length at the *entrance* of an element carrying an ``s`` value."""
     s, L, pt = phys.s, phys.length, phys.s_point
@@ -258,6 +325,11 @@ class SectionLattice(BaseLatticeModel):
     # TODO should we put this back in?
 
     _basename: str = "elements"
+
+    _authored_order: Optional[List[Any]] = PrivateAttr(default=None)
+    """The section's element list as written, before
+    :func:`expand_section_order` flattened its ``repeat`` counts and nested
+    lines — ``None`` when the authored list was already flat."""
 
     _repeat_origins: Dict[str, str] = PrivateAttr(default_factory=dict)
     """``{numbered name: original name}`` for the copies
@@ -522,7 +594,7 @@ class SectionLattice(BaseLatticeModel):
         ``D1.2``, ...).
 
         Returns ``{new name: original name}`` for the copies made
-        so the caller can retire originals nothing refers to any more. 
+        so the caller can retire originals nothing refers to any more.
         """
         numbered = number_repeated_names(self.order)
         if numbered == self.order:
@@ -1316,6 +1388,16 @@ class MachineModel(ModelBase):
                 "type": section_type,
             }
 
+        authored = {
+            name: definition["elements"]
+            for name, definition in normalised_sections.items()
+        }
+        for name, definition in normalised_sections.items():
+            expanded = expand_section_order(name, authored[name], authored)
+            if expanded != authored[name]:
+                definition["authored"] = authored[name]
+            definition["elements"] = expanded
+
         return normalised_sections
 
     @staticmethod
@@ -1632,6 +1714,7 @@ class MachineModel(ModelBase):
                     functional_definitions=self.functional_definitions,
                     resolve_functional=self.resolve_functional,
                 )
+                self.sections[area]._authored_order = section_definition.get("authored")
             return
 
         if self._layouts:
@@ -1659,6 +1742,9 @@ class MachineModel(ModelBase):
                             functional_definitions=self.functional_definitions,
                             resolve_functional=self.resolve_functional,
                         )
+                        self.sections[area]._authored_order = self._section_definitions[
+                            area
+                        ].get("authored")
 
     def _build_layout_objects(self):
         """Create MachineLayout objects from already-resolved sections.
@@ -1695,9 +1781,6 @@ class MachineModel(ModelBase):
         """Resolve all positioning modes (reference_placement, s, global) for every section."""
         self._number_sequential_repeats()
         for section in self.sections.values():
-            # Sequential (drift-based) sections are normalised to s first, so
-            # that resolve_positions sees a section that is uniformly
-            # s-coordinate and needs no knowledge of the ordering.
             section._resolve_sequential_placement(self.elements)
             section.resolve_positions(self.elements)
 

@@ -47,9 +47,13 @@ The exporter can write these featuresback out again (see :ref:`compact-yaml-outp
   file. Templates need not be valid elements on their own.
 * **Sequential placement.** An element may give no position at all and take its place from the
   section's ``order``; see :ref:`sequential-placement`.
+* **Repeated, reversed and nested lines.** A section's element list may repeat an entry
+  (``fodo_cell: {repeat: 3}``), reverse it (``{repeat: -1}``) and
+  splice in another section by name; see :ref:`repeated-lines`.
 
-Both are expanded at load time -- the loaded model always carries fully merged elements with
-resolved coordinates. :doc:`Architecture/yaml-pipeline` describes both in detail.
+All three are expanded at load time -- the loaded model always carries fully merged elements
+with resolved coordinates and one flat list of names per section.
+:doc:`Architecture/yaml-pipeline` describes them in detail.
 
 SimFrame
 ~~~~~~~~
@@ -122,7 +126,7 @@ coordinates. Three options invert the loader's expansions:
    * - Option
      - Effect
    * - ``position_mode="sequential"``
-     - Drops the position of every element that abuts its predecessor, and writes the section orders to ``_sections.yaml`` (``write_sections=False`` suppresses that file). An element that does not abut keeps an explicit ``s`` at its entrance, and a warning says so. A name the load split into numbered copies (``D1.1``, ``D1.2``, ...) is written back as one element listed twice, so the order reads as it was authored; a group whose copies have since been changed, or whose bare name is still an element in its own right, stays numbered and warns.
+     - Drops the position of every element that abuts its predecessor, and writes the section orders to ``_sections.yaml`` (``write_sections=False`` suppresses that file). An element that does not abut keeps an explicit ``s`` at its entrance, and a warning says so. A name the load split into numbered copies (``D1.1``, ``D1.2``, ...) is written back as one element listed twice, so the order reads as it was authored; a group whose copies have since been changed, or whose bare name is still an element in its own right, stays numbered and warns. Authored ``repeat`` counts and nested lines are put back into ``_sections.yaml`` too, along with the definition of every line referenced; if re-expanding them no longer reproduces the machine's own order, every section is written out fully expanded and a warning says so. Authored ``repeat`` counts and nested lines are put back into ``_sections.yaml`` too, along with the definition of every line referenced; if re-expanding them no longer reproduces the machine's own order, every section is written out fully expanded and a warning says so.
    * - ``collapse_inheritance=True``
      - Restores ``inherits_from`` and removes every key the parent already supplies, comparing against the parent as the loader would have merged it. ``template_root`` says where to look for the parents (default: the machine's own element directory); with ``copy_templates=True`` each parent used, and its own ancestors, is written into the export root as ``_<name>.yaml`` so the tree reloads on its own.
    * - ``collapse_schema=True``

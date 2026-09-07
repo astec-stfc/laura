@@ -21,7 +21,7 @@ from ..Importers.YAML_Loader import (
     resolve_inheritance,
 )
 from ..models.element import PhysicalElement
-from ..models.elementList import MachineModel
+from ..models.elementList import MachineModel, expand_section_order
 from ..models.magnetic import MagneticElement
 
 _log = logging.getLogger("laura.exporter.yaml")
@@ -523,6 +523,58 @@ def _iter_section_order(machine: MachineModel, aliases: Optional[dict] = None):
             yield name, elem, None, None
 
 
+def _add_nested_lines(entries, authored: dict, definitions: dict, out: dict) -> None:
+    """Add the line definitions an authored order refers to, recursively."""
+    for entry in entries:
+        target = entry if isinstance(entry, str) else next(iter(entry))
+        if target not in authored or target in out:
+            continue
+        out[target] = {
+            "elements": authored[target],
+            "type": definitions[target].get("type", "beam"),
+        }
+        _add_nested_lines(authored[target], authored, definitions, out)
+
+
+def _authored_sections(machine: MachineModel, flat: dict) -> dict:
+    """Put authored ``repeat`` counts and nested lines back into ``flat``;
+    the inverse of :func:`~laura.models.elementList.expand_section_order`.
+    """
+    definitions = getattr(machine, "_section_definitions", None) or {}
+    if not any("authored" in definition for definition in definitions.values()):
+        return flat
+
+    authored = {
+        name: definition.get("authored", definition["elements"])
+        for name, definition in definitions.items()
+    }
+    compact = {
+        name: {"elements": authored.get(name, entry["elements"]), "type": entry["type"]}
+        for name, entry in flat.items()
+    }
+    for name in list(compact):
+        _add_nested_lines(compact[name]["elements"], authored, definitions, compact)
+
+    written = {name: entry["elements"] for name, entry in compact.items()}
+    try:
+        mismatched = [
+            name
+            for name in flat
+            if expand_section_order(name, written[name], written)
+            != flat[name]["elements"]
+        ]
+    except Exception as error:  # a line the export can no longer resolve
+        mismatched = [str(error)]
+    if mismatched:
+        warn(
+            "The authored section repetition no longer describes the machine "
+            f"({', '.join(map(str, mismatched))}), so the section orders are "
+            "written out fully expanded."
+        )
+        return flat
+    return compact
+
+
 def export_machine_sections(
     path: str,
     machine: MachineModel,
@@ -543,7 +595,7 @@ def export_machine_sections(
     """
     os.makedirs(path, exist_ok=True)
     aliases = aliases or {}
-    sections = {
+    flat = {
         name: {
             "elements": [aliases.get(n, n) for n in section.order],
             "type": section.section_type,
@@ -551,7 +603,9 @@ def export_machine_sections(
         for name, section in machine.sections.items()
     }
     with open(os.path.join(path, filename), "w") as handle:
-        yaml.dump({"sections": sections}, handle, sort_keys=False)
+        yaml.dump(
+            {"sections": _authored_sections(machine, flat)}, handle, sort_keys=False
+        )
 
 
 def export_as_yaml(
