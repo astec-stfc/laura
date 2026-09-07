@@ -44,7 +44,7 @@ class TestModuleHelpers:
 
 
 class TestResolveLatticePackage:
-    def _stub_lattice(self, with_data_files=False):
+    def _stub_lattice(self, data_files=None):
         m1 = Marker(name="M1", machine_area="S", physical={"middle": {"x": 0, "y": 0, "z": 0}})
 
         class LatticeStub:
@@ -52,17 +52,21 @@ class TestResolveLatticePackage:
             section = {"sections": {"S": ["M1"]}}
             element_list = [m1]
 
-        if with_data_files:
-            LatticeStub.data_files = "/some/dir"
+        if data_files is not None:
+            LatticeStub.data_files = data_files
         return LatticeStub()
 
     def test_lattice_kwarg_expands_fields(self):
         lm = LAURA(lattice=self._stub_lattice())
         assert "M1" in lm.elements
 
-    def test_lattice_kwarg_sets_master_lattice_from_data_files(self):
-        lm = LAURA(lattice=self._stub_lattice(with_data_files=True))
-        assert lm.master_lattice == "/some"
+    def test_lattice_kwarg_sets_master_lattice_from_data_files(self, tmp_path):
+        # _lattice_root() runs data_files through os.path.abspath, so the
+        # literal must be absolute on this platform -- a bare "/some/dir" is
+        # drive-relative on Windows and comes back as "D:\\some".
+        pkg = tmp_path / "pkg"
+        lm = LAURA(lattice=self._stub_lattice(data_files=str(pkg / "lattice.yaml")))
+        assert lm.master_lattice == str(pkg)
 
     def test_invalid_lattice_object_raises(self):
         class NotALattice:
