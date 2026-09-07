@@ -790,7 +790,6 @@ class SectionLattice(BaseLatticeModel):
                 yaw, pitch, roll = rotation_matrix_to_euler(current_R)
                 phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
                 phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
-                phys._rotation_matrix_cache = None
 
             s_list.extend([s_elem_start + L / 2.0, s_elem_end])
             pos_list.extend([mid_pos, end_pos])
@@ -985,7 +984,6 @@ class SectionLattice(BaseLatticeModel):
             yaw, pitch, roll = rotation_matrix_to_euler(resolved_R)
             phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
             phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
-            phys._rotation_matrix_cache = None
 
 
 class MachineLayout(BaseLatticeModel):
@@ -1004,6 +1002,11 @@ class MachineLayout(BaseLatticeModel):
     """Logical lattice type of this path (beam/rf/laser)."""
 
     _basename: str = "sections"
+
+    _direction: Dict[str, int] = PrivateAttr(default_factory=dict)
+    """``{section name: -1}`` for sections this beam path traverses backwards.
+    Set from the layouts file; a section is shared, so this belongs to the path
+    rather than to the section."""
 
     @field_validator("layout_type", mode="before")
     @classmethod
@@ -1075,7 +1078,12 @@ class MachineLayout(BaseLatticeModel):
         return str([k for k, v in self.sections.items()])
 
     def __getattr__(self, item: str):
-        return getattr(self.sections, item)
+        # Let Pydantic resolve its own attributes (private attrs included)
+        # before falling through to the sections, as SectionLattice does.
+        try:
+            return super().__getattr__(item)
+        except AttributeError:
+            return getattr(self.sections, item)
 
     def __getitem__(self, item: str) -> int:
         return self.sections[item]
@@ -1123,7 +1131,7 @@ class MachineLayout(BaseLatticeModel):
             element used by two sections of one path is reported at its first
             occurrence, matching the exporter's convention.
         """
-        direction = direction or {}
+        direction = self._direction if direction is None else direction
         unknown = set(direction) - set(self.sections)
         if unknown:
             raise LatticeError(
@@ -1410,6 +1418,7 @@ class MachineModel(ModelBase):
     _layout_metadata: Dict[str, Dict[str, LatticeType]] = {}
 
     _section_definitions: Dict[str, Dict[str, Any]] = {}
+    _layout_directions: Dict[str, Dict[str, int]] = {}
 
     _default_path: str = None
 
@@ -1474,6 +1483,59 @@ class MachineModel(ModelBase):
             definition["elements"] = expanded
 
         return normalised_sections
+
+    @staticmethod
+    def _normalise_layouts(
+        layouts: Dict[str, Any],
+    ) -> tuple[Dict[str, list], Dict[str, Dict[str, int]]]:
+        """Split ``{layout: [entries]}`` into section names and per-section direction.
+
+        An entry is a bare section name, or a single-key mapping carrying
+        options -- the same shape as a section's element list::
+
+            layouts:
+              RING:
+                - ARC_A
+                - ARC_B: {direction: -1}
+
+        ``direction: -1`` means this beam path traverses that section backwards.
+        It says nothing about the section itself.
+        """
+        areas: Dict[str, list] = {}
+        directions: Dict[str, Dict[str, int]] = {}
+        for layout_name, entries in layouts.items():
+            if not isinstance(entries, list):
+                raise TypeError(f"Layout '{layout_name}' must be a list of sections")
+            names: list = []
+            marked: Dict[str, int] = {}
+            for entry in entries:
+                if isinstance(entry, str):
+                    names.append(entry)
+                    continue
+                if not isinstance(entry, dict) or len(entry) != 1:
+                    raise TypeError(
+                        f"Layout '{layout_name}' entries must be a section name, "
+                        f"optionally with a 'direction'; got {entry!r}"
+                    )
+                section_name, options = next(iter(entry.items()))
+                if not isinstance(options, dict) or set(options) - {"direction"}:
+                    raise TypeError(
+                        f"Entry '{section_name}' in layout '{layout_name}' must be a "
+                        "section name or a section name with a 'direction'"
+                    )
+                direction = options.get("direction", 1)
+                if direction not in (1, -1):
+                    raise ValueError(
+                        f"'direction' for '{section_name}' in layout "
+                        f"'{layout_name}' must be 1 or -1; got {direction!r}"
+                    )
+                names.append(section_name)
+                if direction == -1:
+                    marked[section_name] = -1
+            areas[layout_name] = names
+            if marked:
+                directions[layout_name] = marked
+        return areas, directions
 
     @staticmethod
     def _normalise_layout_metadata(
@@ -1580,7 +1642,9 @@ class MachineModel(ModelBase):
                 if os.path.exists(candidate):
                     layout_file = candidate
             config = read_yaml(layout_file)
-            self._layouts = config.layouts
+            self._layouts, self._layout_directions = self._normalise_layouts(
+                config.layouts
+            )
             self._layout_metadata = self._normalise_layout_metadata(
                 getattr(config, "layout_metadata", {})
             )
@@ -1591,6 +1655,7 @@ class MachineModel(ModelBase):
                 warn(message)
         elif self.layout is None:
             self._layouts = {}
+            self._layout_directions = {}
             self._layout_metadata = {}
             self._default_path = None
             warnings.warn("No layouts specified. Lattices will be empty.")
@@ -1598,7 +1663,9 @@ class MachineModel(ModelBase):
             for key in ["layouts"]:
                 if key not in self.layout:
                     raise KeyError("layout must specify layouts")
-            self._layouts = self.layout["layouts"]
+            self._layouts, self._layout_directions = self._normalise_layouts(
+                self.layout["layouts"]
+            )
             self._layout_metadata = self._normalise_layout_metadata(
                 self.layout.get("layout_metadata", {})
             )
@@ -1843,6 +1910,9 @@ class MachineModel(ModelBase):
                     master_lattice=self.master_lattice,
                     functional_definitions=self.functional_definitions,
                     resolve_functional=self.resolve_functional,
+                )
+                self.lattices[path]._direction = dict(
+                    self._layout_directions.get(path, {})
                 )
         if len(self.lattices) == 1 and self._default_path is None:
             self._default_path = next(iter(self.lattices))

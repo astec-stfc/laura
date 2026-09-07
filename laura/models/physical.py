@@ -558,19 +558,20 @@ class PhysicalElement(_PhysicalElementBase):
         raise ValueError("rotation should be a number or a list of floats")
 
     _rotation_matrix_cache = None
+    _rotation_matrix_key = None
 
     @property
     def rotation_matrix(self) -> np.ndarray:
-        if self._rotation_matrix_cache is not None:
-            return self._rotation_matrix_cache
-
-        # Combined rotations using utility function
+        """The element's orientation as a 3x3 matrix."""
         # Apply yaw (Y), pitch (X), roll (Z) in that order
-        yaw = self.rotation.theta + self.global_rotation.theta
-        pitch = self.rotation.phi + self.global_rotation.phi
-        roll = self.rotation.psi + self.global_rotation.psi
-
-        self._rotation_matrix_cache = euler_angles_to_rotation_matrix(yaw, pitch, roll)
+        key = (
+            self.rotation.theta + self.global_rotation.theta,
+            self.rotation.phi + self.global_rotation.phi,
+            self.rotation.psi + self.global_rotation.psi,
+        )
+        if self._rotation_matrix_cache is None or self._rotation_matrix_key != key:
+            self._rotation_matrix_cache = euler_angles_to_rotation_matrix(*key)
+            self._rotation_matrix_key = key
         return self._rotation_matrix_cache
 
     def rotated_position(self, vec: List[Union[int, float]] = [0, 0, 0]) -> np.ndarray:

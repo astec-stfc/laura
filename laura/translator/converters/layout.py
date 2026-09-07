@@ -1,6 +1,7 @@
 from typing import Any, Dict, Iterator, Tuple
 
 from laura.models.elementList import MachineLayout
+from laura.models.reversal import reverse_section
 
 from .converter import translate_elements
 from .fanout import ContainerTranslator, wrap_lattice_line
@@ -20,10 +21,27 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
 
     @classmethod
     def from_layout(cls, layout: MachineLayout) -> "MachineLayoutTranslator":
+        """Build a translator for *layout*, resolving traversal direction once.
+
+        :func:`~laura.models.reversal.reverse_section` -- reversed order,
+        reversed elements, re-placed from its own lengths. The result is an
+        ordinary section.
+
+        The source layout and its sections are untouched if there is a reversal:
+        the same section can be traversed forwards by another beam path.
+        """
+        sections = dict(layout.model_copy().sections)
+        for name in getattr(layout, "_direction", {}) or {}:
+            section = sections.get(name)
+            if section is None:
+                continue
+            sections[name] = reverse_section(
+                section, section.elements.elements, name=section.name
+            )
         return cls.model_validate(
             {
                 "name": layout.model_copy().name,
-                "sections": layout.model_copy().sections,
+                "sections": sections,
                 "master_lattice": layout.model_copy().master_lattice,
                 "functional_definitions": layout.functional_definitions,
                 "resolve_functional": layout.resolve_functional,

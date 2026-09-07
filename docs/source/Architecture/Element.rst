@@ -1175,9 +1175,37 @@ list without reversing, so a whole line can be checked before any of it is commi
 ``strict=False`` warns and reverses what it can, for a caller that has decided a partial
 reversal is acceptable. A measured misalignment is not transformed and warns.
 
+.. _path-reversal-on-export:
+
+Reversing a whole section
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:py:func:`reverse_section <laura.models.reversal.reverse_section>` applies the same
+transform to every element of a section and reverses the order. Each element's arc length
+is mirrored from its forward one (``extent - s``) rather than accumulated along the
+reversed order.
+
+A layout declares which sections it traverses backwards (see :ref:`path-arc-lengths`), and
+:py:class:`MachineLayoutTranslator <laura.translator.converters.layout.MachineLayoutTranslator>`
+substitutes the reversed section once, when the translator is built.
+
+.. code-block:: yaml
+
+    layouts:
+      L:
+        - ARC: {direction: -1}
+
+.. code-block:: text
+
+    ARC: LINE = (Q1, D1, B1, D2, Q2)      # forwards
+    ARC: LINE = (Q2, D2, B1, D1, Q1)      # direction: -1, and B1's angle is negated
+
+The source machine is never modified, so another beam path can traverse the same section
+forwards at the same time.
+
 .. note::
 
-   This is the physics half of path reversal. The geometry half is
-   :ref:`path-arc-lengths`. **Neither is yet wired into export** --- no exporter calls
-   ``reverse_element``, and no layout file can currently declare a section reversed. Both
-   pieces exist and are tested; connecting them is separate work.
+   Codes with a native per-element reversal are not yet using it --- Bmad has
+   ``orientation``, and emitting that would be more faithful than baking the transformed
+   values in. MAD-X and elegant have no such attribute, so for them the transformed values
+   are the only available answer and this is complete.

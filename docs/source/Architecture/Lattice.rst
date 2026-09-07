@@ -264,11 +264,25 @@ shifted; only sequentially-placed sections take an offset. Naming a section the 
 not contain raises :py:class:`LatticeError <laura.models.exceptions.LatticeError>` rather
 than being ignored.
 
+A layout declares which of its sections it runs backwards, and ``arc_lengths()`` then uses
+that by default (an explicit ``direction`` argument still overrides it):
+
+.. code-block:: yaml
+
+    layouts:
+      RING:
+        - ARC_A
+        - ARC_B: {direction: -1}
+
+Direction belongs to the beam path, not the section. The same section may be traversed
+forwards by one layout and backwards by another --- which is the counter-propagating-beam
+case, one installed magnet in two beam paths.
+
 Nothing is mutated, so the same section reports different arc lengths to different beam
 paths. Note this is the arc length only: changing where a section sits in the line is not
 the same as reversing the traversal of its elements, which flips the sign of every normal
 multipole's effect in the beam frame -- see :ref:`element-reversal` for that transform, which
-this view does not apply.
+this view does not apply. Export *does* apply it: see :ref:`path-reversal-on-export`.
 
 .. note::
 

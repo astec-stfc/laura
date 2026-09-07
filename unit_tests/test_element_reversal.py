@@ -300,3 +300,217 @@ class TestMisalignment:
         )
         with pytest.warns(UserWarning, match="measured misalignment"):
             reverse_element(misaligned)
+
+
+# ---------------------------------------------------------------------------
+# whole sections
+# ---------------------------------------------------------------------------
+
+
+class TestReverseSection:
+    """A reversed section is an ordinary section, so exporters need no changes.
+
+    The oracle is :meth:`test_reversing_twice_restores_the_forward_geometry`:
+    the transform and the re-placement must undo each other exactly.
+    """
+
+    LENGTHS = {"Q1": 0.1, "D1": 0.4, "B1": 1.0, "D2": 0.9, "Q2": 0.2}
+    ORDER = ["Q1", "D1", "B1", "D2", "Q2"]
+
+    @pytest.fixture
+    def machine(self):
+        from laura.models.elementList import MachineModel
+
+        elements = [
+            quad("Q1", k1l=0.5),
+            Drift(
+                name="D1",
+                hardware_class="Drift",
+                machine_area="S",
+                physical={"length": 0.4},
+            ),
+            Dipole(
+                name="B1",
+                hardware_class="Magnet",
+                machine_area="S",
+                magnetic={"magnetic_length": 1.0, "k0l": 0.3},
+                physical={"length": 1.0},
+            ),
+            Drift(
+                name="D2",
+                hardware_class="Drift",
+                machine_area="S",
+                physical={"length": 0.9},
+            ),
+            Quadrupole(
+                name="Q2",
+                hardware_class="Magnet",
+                machine_area="S",
+                magnetic={"magnetic_length": 0.2, "k1l": -0.5},
+                physical={"length": 0.2},
+            ),
+        ]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            return MachineModel(
+                elements={e.name: e for e in elements},
+                section={"sections": {"S": list(self.ORDER)}},
+                layout={"layouts": {"L": ["S"]}, "default_layout": "L"},
+            )
+
+    @pytest.fixture
+    def reversed_section(self, machine):
+        from laura.models.reversal import reverse_section
+
+        return reverse_section(machine.sections["S"], machine.elements)
+
+    def _entrance(self, section, name):
+        phys = section.elements[name].physical
+        return phys.s - phys.length / 2
+
+    def test_the_order_is_reversed(self, reversed_section):
+        assert reversed_section.order == list(reversed(self.ORDER))
+
+    def test_it_is_as_long_as_the_forward_line(self, reversed_section):
+        last = reversed_section.elements[reversed_section.order[-1]].physical
+        assert last.s + last.length / 2 == pytest.approx(sum(self.LENGTHS.values()))
+
+    def test_every_element_lands_at_its_mirrored_arc_length(
+        self, machine, reversed_section
+    ):
+        total = sum(self.LENGTHS.values())
+        for name in self.ORDER:
+            forward = machine.elements[name].physical
+            forward_exit = forward.s + forward.length / 2
+            assert self._entrance(reversed_section, name) == pytest.approx(
+                total - forward_exit
+            )
+
+    def test_the_bend_is_negated(self, machine, reversed_section):
+        assert machine.elements["B1"].magnetic.angle == pytest.approx(0.3)
+        assert reversed_section.elements["B1"].magnetic.angle == pytest.approx(-0.3)
+
+    def test_reversing_twice_restores_the_forward_geometry(
+        self, machine, reversed_section
+    ):
+        from laura.models.reversal import reverse_section
+
+        back = reverse_section(reversed_section, reversed_section.elements.elements)
+        assert back.order == self.ORDER
+        for name in self.ORDER:
+            assert self._entrance(back, name) == pytest.approx(
+                self._entrance(machine.sections["S"], name)
+            )
+        assert back.elements["B1"].magnetic.angle == pytest.approx(0.3)
+
+    def test_the_source_machine_is_untouched(self, machine, reversed_section):
+        assert machine.elements["B1"].magnetic.angle == pytest.approx(0.3)
+        assert machine.sections["S"].order == self.ORDER
+        assert machine.elements["Q1"].physical.s == pytest.approx(0.05)
+
+    def test_a_section_the_registry_cannot_satisfy(self, machine):
+        from laura.models.reversal import reverse_section
+
+        machine.sections["S"].order = self.ORDER + ["GHOST"]
+        with pytest.raises(KeyError, match="GHOST"):
+            reverse_section(machine.sections["S"], machine.elements)
+
+    def test_strict_reaches_the_elements(self, machine):
+        from laura.models.reversal import reverse_section
+
+        machine.elements["B1"].simulation.field_definition = "map.dat"
+        with pytest.raises(ElementNotReversible):
+            reverse_section(machine.sections["S"], machine.elements)
+
+    def test_a_real_gap_is_preserved(self):
+        """A section is not always drift-filled, and reversal must not close it.
+
+        Accumulating lengths along the reversed order would abut everything, so
+        a 1.2 m line holding a 1.0 m gap with no drift element in it came back
+        0.2 m long. Each element's arc length is mirrored from its forward one
+        instead.
+        """
+        from laura.models.elementList import MachineModel
+        from laura.models.reversal import reverse_section
+
+        spaced = [
+            Quadrupole(
+                name="Q1",
+                hardware_class="Magnet",
+                machine_area="S",
+                magnetic={"magnetic_length": 0.1, "k1l": 0.5},
+                physical={"length": 0.1, "s": 0.1, "s_point": "end"},
+            ),
+            Quadrupole(
+                name="Q2",
+                hardware_class="Magnet",
+                machine_area="S",
+                magnetic={"magnetic_length": 0.1, "k1l": 0.5},
+                physical={"length": 0.1, "s": 1.2, "s_point": "end"},
+            ),
+        ]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            machine = MachineModel(
+                elements={e.name: e for e in spaced},
+                section={"sections": {"S": ["Q1", "Q2"]}},
+                layout={"layouts": {"L": ["S"]}, "default_layout": "L"},
+            )
+        reversed_section = reverse_section(machine.sections["S"], machine.elements)
+
+        def entrance(section, name):
+            phys = section.elements[name].physical
+            return phys.s - phys.length / 2
+
+        assert entrance(reversed_section, "Q2") == pytest.approx(0.0)
+        assert entrance(reversed_section, "Q1") == pytest.approx(1.1)
+        gap = entrance(reversed_section, "Q1") - (
+            entrance(reversed_section, "Q2") + 0.1
+        )
+        assert gap == pytest.approx(1.0)
+
+    def test_the_layout_translator_reverses_a_marked_section(self):
+        """The one hook: substitution happens once, so no exporter changes."""
+        from laura.models.elementList import MachineModel
+        from laura.translator.converters.layout import MachineLayoutTranslator
+
+        def build(entry):
+            elements = [
+                quad("Q1", k1l=0.5),
+                Drift(
+                    name="D1",
+                    hardware_class="Drift",
+                    machine_area="S",
+                    physical={"length": 0.4},
+                ),
+                Dipole(
+                    name="B1",
+                    hardware_class="Magnet",
+                    machine_area="S",
+                    magnetic={"magnetic_length": 1.0, "k0l": 0.3},
+                    physical={"length": 1.0},
+                ),
+            ]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                machine = MachineModel(
+                    elements={e.name: e for e in elements},
+                    section={"sections": {"ARC": ["Q1", "D1", "B1"]}},
+                    layout={"layouts": {"L": [entry]}, "default_layout": "L"},
+                )
+            return machine, MachineLayoutTranslator.from_layout(machine.lattices["L"])
+
+        machine, forward = build("ARC")
+        assert forward.sections["ARC"].order == ["Q1", "D1", "B1"]
+        assert forward.sections["ARC"].elements["B1"].magnetic.angle == (
+            pytest.approx(0.3)
+        )
+
+        machine, backward = build({"ARC": {"direction": -1}})
+        assert backward.sections["ARC"].order == ["B1", "D1", "Q1"]
+        assert backward.sections["ARC"].elements["B1"].magnetic.angle == (
+            pytest.approx(-0.3)
+        )
+        # the machine's own section is untouched: another path may run it forwards
+        assert machine.sections["ARC"].order == ["Q1", "D1", "B1"]
+        assert machine.elements["B1"].magnetic.angle == pytest.approx(0.3)

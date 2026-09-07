@@ -239,3 +239,83 @@ def reverse_element(element, *, strict: bool = True):
         magnetic.tilt = -tilt
 
     return reversed_element
+
+
+_PLACEMENT_FIELDS = ("s", "reference_placement", "datum")
+"""Position fields that lattice assembly writes onto a resolved element."""
+
+_ORIENTATION_FIELDS = ("rotation", "global_rotation")
+"""Orientation fields assembly *derives* — see :func:`_forget_placement`."""
+
+
+def _forget_placement(phys, keep_s: bool = False) -> None:
+    """Return a resolved physical block to its pre-placement state.
+
+    Placement derives an element's orientation only when the author did not
+    supply one, and it decides that with ``"rotation" not in
+    phys.model_fields_set``.  A resolved orientation must be forgotten
+    rather than overwritten.
+
+    """
+    cleared = _PLACEMENT_FIELDS[1:] if keep_s else _PLACEMENT_FIELDS
+    for name in ("middle",) + cleared:
+        setattr(phys, name, None)
+    for name in ("middle",) + cleared + _ORIENTATION_FIELDS:
+        phys.model_fields_set.discard(name)
+    phys.physical_angle = 0.0
+    phys._trajectory = None
+    object.__setattr__(phys, "_position_stated", keep_s)
+
+
+def reverse_section(section, element_registry, *, strict: bool = True, name=None):
+    """A :class:`SectionLattice` as a beam traversing *section* backwards sees it.
+
+    The order is reversed, every element is passed through
+    :func:`reverse_element`, and the result is re-placed from its own lengths
+    by ordinary sequential placement.
+
+    Bend angles are negated by :func:`reverse_element`, so accumulating lengths
+    along the reversed order retraces the original path backwards.
+
+    The source section and its elements are not touched.
+    """
+    from .elementList import SectionLattice
+
+    order = list(reversed(section.order))
+
+    extent = 0.0
+    for element_name in section.order:
+        phys = getattr(element_registry.get(element_name), "physical", None)
+        if phys is not None and phys.s is not None:
+            extent = max(extent, phys.s + (phys.length or 0.0) / 2.0)
+
+    elements = {}
+    for element_name in order:
+        source = element_registry.get(element_name)
+        if source is None:
+            raise KeyError(
+                f"Section '{section.name}' lists '{element_name}', which is not "
+                "in the element registry, so it cannot be reversed."
+            )
+        element = reverse_element(source, strict=strict)
+        phys = element.physical
+        forward_middle = phys.s
+        _forget_placement(phys, keep_s=forward_middle is not None)
+        if forward_middle is not None:
+            phys.s = extent - forward_middle
+            phys.s_point = "middle"
+        elements[element_name] = element
+
+    reversed_section = SectionLattice(
+        name=name or f"{section.name}_reversed",
+        elements=list(elements.values()),
+        order=order,
+        section_type=section.section_type,
+        master_lattice=section.master_lattice,
+        functional_definitions=section.functional_definitions,
+        resolve_functional=section.resolve_functional,
+    )
+    registry = reversed_section.elements.elements
+    reversed_section._resolve_sequential_placement(registry)
+    reversed_section.resolve_positions(registry)
+    return reversed_section

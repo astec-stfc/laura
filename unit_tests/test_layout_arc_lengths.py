@@ -172,3 +172,68 @@ class TestSharedElements:
         )
         lengths = shared.lattices["L"].arc_lengths()
         assert lengths == pytest.approx({"a1": 0.0, "b1": 1.0})
+
+
+class TestLayoutDirectionSyntax:
+    """``direction: -1`` on a layout's section reference.
+
+    Direction belongs to the beam path, not the section: the same section can
+    be traversed forwards by one layout and backwards by another.
+    """
+
+    def build(self, entries):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            return MachineModel(
+                elements={
+                    e.name: e
+                    for e in (
+                        drift("a1", 1.0),
+                        drift("a2", 1.0),
+                        drift("b1", 2.0),
+                        drift("b2", 2.0),
+                    )
+                },
+                section={"sections": {"A": ["a1", "a2"], "B": ["b1", "b2"]}},
+                layout={"layouts": {"L": entries}, "default_layout": "L"},
+            )
+
+    def test_a_bare_name_is_forwards(self):
+        assert self.build(["A", "B"]).lattices["L"]._direction == {}
+
+    def test_a_marked_section_is_recorded(self):
+        machine = self.build(["A", {"B": {"direction": -1}}])
+        assert machine.lattices["L"]._direction == {"B": -1}
+
+    def test_an_explicit_positive_direction_is_forwards(self):
+        assert self.build(["A", {"B": {"direction": 1}}]).lattices["L"]._direction == {}
+
+    def test_the_sections_are_still_built(self):
+        machine = self.build(["A", {"B": {"direction": -1}}])
+        assert list(machine.lattices["L"].sections) == ["A", "B"]
+
+    def test_arc_lengths_uses_it_by_default(self):
+        machine = self.build(["A", {"B": {"direction": -1}}])
+        assert machine.lattices["L"].arc_lengths() == pytest.approx(
+            {"a1": 0.0, "a2": 1.0, "b1": 4.0, "b2": 2.0}
+        )
+
+    def test_an_explicit_argument_overrides_it(self):
+        machine = self.build(["A", {"B": {"direction": -1}}])
+        assert machine.lattices["L"].arc_lengths(direction={}) == pytest.approx(
+            {"a1": 0.0, "a2": 1.0, "b1": 2.0, "b2": 4.0}
+        )
+
+    @pytest.mark.parametrize("direction", [0, 2, -2, "backwards", None])
+    def test_a_direction_that_is_not_plus_or_minus_one(self, direction):
+        with pytest.raises(ValueError, match="must be 1 or -1"):
+            self.build(["A", {"B": {"direction": direction}}])
+
+    def test_an_unknown_option(self):
+        with pytest.raises(TypeError, match="'direction'"):
+            self.build(["A", {"B": {"reversed": True}}])
+
+    @pytest.mark.parametrize("entry", [3, None, ["B"], {"B": 1, "A": 1}])
+    def test_an_entry_that_is_neither_a_name_nor_a_name_with_options(self, entry):
+        with pytest.raises(TypeError):
+            self.build(["A", entry])
