@@ -646,7 +646,6 @@ class SectionLatticeTranslator(SectionLattice):
             oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
             gap = d.physical.length - oce_len
             if gap > 1e-9:
-                print(f"Adding drift of length {gap} for element {d.name}")
                 elements.append(OcelotDrift(eid=f"{d.name}_drift", l=gap))
 
         maglat = MagneticLattice(elements, method=method)

@@ -561,10 +561,20 @@ class DipoleTranslator(BaseElementTranslator):
     @property
     def fintx(self) -> float:
         """
-        fintx angle of the dipole.
+        fintx angle at the exit of the dipole.
+
+        """
+        return self.edge_field_integral_exit
+
+    @computed_field
+    @property
+    def edge_field_integral_exit(self) -> float:
+        """
+        edge field integral at the exit of the dipole.
 
         """
         return self.magnetic.edge_field_integral
+    
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
