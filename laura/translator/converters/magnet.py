@@ -557,6 +557,15 @@ class DipoleTranslator(BaseElementTranslator):
     def dk3(self) -> float:
         return 0.0
 
+    @computed_field
+    @property
+    def fintx(self) -> float:
+        """
+        fintx angle of the dipole.
+
+        """
+        return self.magnetic.edge_field_integral
+
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the dipole element string for ASTRA;
