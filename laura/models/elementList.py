@@ -1121,23 +1121,13 @@ class MachineLayout(BaseLatticeModel):
         matrix = [v.elements.elements.values() for v in self.sections.values()]
         all_elems = [item for row in matrix for item in row]
         if len(all_elems) > 0:
-            all_elems_reversed = reversed(all_elems)
-            last_elem = all_elems[-1]
-            if isinstance(last_elem, dict):
-                superelem = last_elem.get("name")
-                # Skip geometry correction for stub dicts
+            # Stub dicts appear while a model is being built incrementally and
+            # carry no physical block to collect.
+            if isinstance(all_elems[-1], dict):
                 return
-
-            superelem = last_elem.name
-            start_pos = last_elem.physical.start
-            all_elem_corrected = []
-            for elem in all_elems_reversed:
-                if isinstance(elem, PhysicalBaseElement):
-                    if not elem.is_subelement():
-                        superelem = elem.name
-                    all_elem_corrected += [elem]
-                    start_pos = elem.physical.start
-            self._all_elements = list(reversed(all_elem_corrected))
+            self._all_elements = [
+                elem for elem in all_elems if isinstance(elem, PhysicalBaseElement)
+            ]
         else:
             self._all_elements = {}
 
