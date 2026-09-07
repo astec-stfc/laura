@@ -187,8 +187,6 @@ autodoc_pydantic_field_doc_policy = "both"  # shows docstrings and Field descrip
 # autodoc_typehints = "none"
 
 autodoc_mock_imports = [
-    "Importers",       # legacy absolute-import path used in CATAP_Loader.py
-    "laura.models.PV",  # legacy module that no longer exists
     "IPython",          # optional dependency for SimFrame_Loader
     "ocelot",           # optional accelerator-code dependency
     "xsuite",           # optional accelerator-code dependency

@@ -1,6 +1,6 @@
 import math
 import os
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, ClassVar
 from warnings import warn
 
 import numpy as np
@@ -39,28 +39,7 @@ from ..utils.fields import field
 from ..utils.functions import checkValue, expand_substitution, sanitize_string
 
 _ASTRA_ROTATION_SIGN = {"x": -1.0, "y": -1.0, "z": 1.0}
-"""Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family.
-
-ASTRA names these for the plane and then spells out the axis -- "rotation
-angle of the quadrupole in the x-z plane, i.e. around the y-axis" -- so the
-pairing with LAURA's ``x_rot``/``y_rot``/``z_rot``, which name the plane too,
-is name for name.  The signs are not: LAURA's ``Ry`` factor turns the
-opposite way to an ordinary right-handed one, so the two transverse angles
-are negated and the roll is not.
-
-Measured against ASTRA itself rather than read off the manual, with a 0.5 m
-k=2 quadrupole at 1 GeV and a 1 m drift after it: ``Q_xrot = +0.05`` puts the
-beam at x = -0.4503 mm, ``Q_yrot = +0.05`` at y = +1.650 mm, and a
-``Q_zrot = +0.3`` with the beam entering at x = +1 mm sends it to
-y = -0.707 mm.  Bmad reproduces all three to within its differing fringe
-model (-0.4464 mm, +1.7105 mm, -0.7071 mm), and Bmad's own pairing with
-LAURA is fixed by the floor-angle matrix conversion in
-:func:`~laura.translator.utils.bmad.angles.bmad_floor_angles_to_laura`.
-
-This stays here rather than moving to ``utils/bmad`` with the rest: it is
-the ASTRA convention, and the only reason it was ever written next to the
-Bmad one is that the two were measured in the same sitting.
-"""
+"""Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family."""
 
 _BMAD_MAIN_MULTIPOLE_ORDERS = {
     "sbend": (0, 1),
@@ -70,18 +49,7 @@ _BMAD_MAIN_MULTIPOLE_ORDERS = {
     "octupole": (3,),
     "decapole": (4,),
 }
-"""Multipole orders a Bmad element definition already expresses on its own.
-
-A bend writes ``angle`` and ``k1``, a quadrupole writes ``k1``, and so on; those
-orders must not be repeated in the ``an``/``bn`` list or the field is applied
-twice.  Everything else the element carries goes through
-:meth:`BaseElementTranslator._add_bmad_multipoles`.
-
-Types absent from this table get no ``an``/``bn`` at all.  That is deliberate
-for the correctors and the combined solenoid-quadrupole, whose strengths live in
-named fields (``hkick``/``vkick``, ``ks``) rather than in a multipole of a
-matching order, so there is no safe way to tell a duplicate from an addition.
-"""
+"""Multipole orders a Bmad element definition already expresses on its own."""
 
 
 class BaseElementTranslator(PhysicalBaseElement):
@@ -475,8 +443,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                         obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
                     )
                 if key == "fringe_integral" and "fringe_integral_exit" in buffers:
-                    # As for Ocelot above: Cheetah's exit integral does not
-                    # inherit the entrance's, so write the resolved value.
                     setattr(
                         obj,
                         "fringe_integral_exit",
@@ -878,8 +844,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
-    _KEYWORD_STRIP_PREFIXES = ["", "simulation_", "cavity_", "magnetic_", "aperture_"]
-    _KEYWORD_STRIP_PREFIXES_WAKE_T = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
+    _KEYWORD_STRIP_PREFIXES: ClassVar[list] = ["", "simulation_", "cavity_", "magnetic_", "aperture_"]
+    _KEYWORD_STRIP_PREFIXES_WAKE_T: ClassVar[list] = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
 
     @staticmethod
     def _convert_type(etype: str, rules: dict, default):

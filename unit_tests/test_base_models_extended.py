@@ -63,17 +63,6 @@ class TestModelBaseEqFallback:
 
 
 class TestIgnoreExtraFieldHelpers:
-    def test_create_field_class_calls_from_catap(self):
-        class FakeFieldClass:
-            @classmethod
-            def from_CATAP(cls, fields):
-                return "built"
-
-        ie = IgnoreExtra()
-        fields = {}
-        ie._create_field_class(fields, "myfield", FakeFieldClass)
-        assert fields["myfield"] == "built"
-
     def test_create_field_collects_inputs(self):
         ie = IgnoreExtra()
         fields = {"a": 1, "b": 2}
