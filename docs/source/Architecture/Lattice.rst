@@ -284,14 +284,57 @@ the same as reversing the traversal of its elements, which flips the sign of eve
 multipole's effect in the beam frame -- see :ref:`element-reversal` for that transform, which
 this view does not apply. Export *does* apply it: see :ref:`path-reversal-on-export`.
 
+A worked example of both -- one arc, two beam paths, one of them reversed -- is
+``examples/testing/reversal_{elements,sections,layouts}.yaml``.
+
 .. note::
 
-   Building a layout chains its sections together using their elements' start and end
-   positions, so every element in a layout must have physical data -- i.e. be a
+   ``arc_lengths`` is a **query API with no internal consumer, deliberately.** Export takes
+   a different route: it substitutes a reversed section outright (see
+   :ref:`path-reversal-on-export`), so nothing in :mod:`LAURA` calls this. It is kept
+   because it is the only way to obtain a cumulative arc length that crosses section
+   boundaries -- an element's stored ``s`` is section-local, and for
+   :ref:`sequentially-placed <sequential-placement>` sections it restarts at zero in every
+   one. Do not remove it as dead code.
+
+   What it is *for* is the two cases :ref:`composition <layout-composition>` cannot write
+   back into the model: a section this path traverses **backwards**, and a section shared
+   by two layouts, whose single stored position belongs to whichever path composed it
+   first. For those, the stored ``s`` is right for some other path and this view is the
+   only correct answer.
+
+.. note::
+
+   Every element in a layout must have physical data -- i.e. be a
    :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>` subclass.
    A position-less :py:class:`Element <laura.models.element.Element>` (an LLRF module,
    a laser mirror, a lighting controller) may live in ``MachineModel.elements`` and in a
    section, but cannot take part in a beam path.
+
+.. _layout-composition:
+
+Composing section frames
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+A section resolves in its own frame, starting at the world origin pointing along
+``+z``, because a section belongs to the machine rather than to any one beam path. For a
+:ref:`sequentially-placed <sequential-placement>` section that is a problem on its own:
+such a section states no positions at all. The :py:class:`MachineModel`. It walks each layout in
+order and moves every sequentially-placed section onto the exit frame of whatever
+precedes it.
+
+Three deliberate limits:
+
+* **A section that states its positions is never moved.** A surveyed machine's
+  coordinates are already global and composing them would corrupt them. Such a section
+  still contributes at the exit, so a sequential section following one starts from
+  its end.
+* **A section shared by two layouts is composed at most once**, by the first layout that
+  reaches it. Its stored position cannot be right for two different predecessors, so a
+  second, disagreeing demand raises a warning naming both paths rather than being applied
+  silently. Use :py:meth:`arc_lengths <laura.models.elementList.MachineLayout.arc_lengths>`
+  for the other path's view.
+* **Nothing outside a layout is touched.**
 
 The layout automatically handles element ordering and can filter elements by various criteria:
 

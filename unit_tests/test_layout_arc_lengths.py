@@ -1,16 +1,4 @@
-"""Arc length along a *beam path*, as opposed to within a section.
-
-An element carries one ``s``, resolved in its own section's frame, and that is
-the right place to store it -- the magnet is installed once.  But placement runs
-per section and a sequentially-placed section starts at its own ``s = 0``,
-because the same section may sit after different predecessors in different
-layouts.  Two such sections in one layout therefore both begin at the origin.
-
-:meth:`MachineLayout.arc_lengths` is the view that resolves that: one offset per
-section, plus an optional flip for a section the path runs backwards through.
-It mutates nothing, so one section can report different arc lengths to different
-beam paths.
-"""
+"""Arc length along a *beam path*, as opposed to within a section."""
 
 import warnings
 
@@ -63,10 +51,22 @@ def absolute():
 
 
 class TestSequentialSectionsChain:
-    def test_they_both_start_at_the_origin_when_stored(self, sequential):
-        # the thing the view exists to fix: B's own frame restarts at zero
+    def test_the_stored_geometry_is_composed(self, sequential):
+        # B is placed after A rather than back at the origin. Before
+        # composition existed, b1 resolved to s = 1.0 and sat inside A.
         assert sequential.elements["a1"].physical.s == pytest.approx(0.5)
-        assert sequential.elements["b1"].physical.s == pytest.approx(1.0)
+        assert sequential.elements["b1"].physical.s == pytest.approx(3.0)
+
+    def test_the_sections_no_longer_overlap_in_space(self, sequential):
+        a_exit = max(
+            e.physical.middle.z + e.physical.length / 2
+            for e in (sequential.elements[n] for n in ("a1", "a2"))
+        )
+        b_entrance = min(
+            e.physical.middle.z - e.physical.length / 2
+            for e in (sequential.elements[n] for n in ("b1", "b2"))
+        )
+        assert b_entrance >= a_exit - 1e-9
 
     def test_the_path_chains_them(self, sequential):
         assert sequential.lattices["L"].arc_lengths() == pytest.approx(
@@ -237,3 +237,144 @@ class TestLayoutDirectionSyntax:
     def test_an_entry_that_is_neither_a_name_nor_a_name_with_options(self, entry):
         with pytest.raises(TypeError):
             self.build(["A", entry])
+
+
+class TestComposition:
+    """Chaining a layout's sequential sections into one frame.
+
+    The oracle is :meth:`test_split_and_whole_place_identically`: the same
+    lattice written as one section and as two must land in the same place,
+    including through bends, where a mis-composed frame would show up at once.
+    """
+
+    SPEC = [
+        ("A1", 0.1, 0.5),
+        ("A2", 0.4, None),
+        ("A3", 1.0, 0.3),
+        ("B1", 0.5, None),
+        ("B2", 0.2, -0.5),
+        ("B3", 0.8, -0.2),
+        ("B4", 0.3, None),
+    ]
+
+    def elements(self):
+        from laura.models.element import Dipole, Quadrupole
+
+        built = []
+        for name, length, strength in self.SPEC:
+            if strength is None:
+                built.append(drift(name, length))
+            elif name in ("A3", "B3"):
+                built.append(
+                    Dipole(
+                        name=name,
+                        hardware_class="Magnet",
+                        machine_area="S",
+                        magnetic={"magnetic_length": length, "k0l": strength},
+                        physical={"length": length},
+                    )
+                )
+            else:
+                built.append(
+                    Quadrupole(
+                        name=name,
+                        hardware_class="Magnet",
+                        machine_area="S",
+                        magnetic={"magnetic_length": length, "k1l": strength},
+                        physical={"length": length},
+                    )
+                )
+        return built
+
+    def build(self, sections, layouts):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            model = MachineModel(
+                elements={e.name: e for e in self.elements()},
+                section={"sections": sections},
+                layout={"layouts": layouts, "default_layout": list(layouts)[0]},
+            )
+        return model, [str(w.message) for w in caught]
+
+    @pytest.fixture
+    def names(self):
+        return [s[0] for s in self.SPEC]
+
+    def test_split_and_whole_place_identically(self, names):
+        whole, _ = self.build({"ALL": names}, {"L": ["ALL"]})
+        split, _ = self.build({"A": names[:3], "B": names[3:]}, {"L": ["A", "B"]})
+        for name in names:
+            one, two = whole.elements[name].physical, split.elements[name].physical
+            assert two.s == pytest.approx(one.s, abs=1e-12)
+            assert two.middle.x == pytest.approx(one.middle.x, abs=1e-12)
+            assert two.middle.z == pytest.approx(one.middle.z, abs=1e-12)
+
+    def test_the_bend_rotation_carries_across_the_join(self, names):
+        # B's elements must inherit A's exit orientation, not restart at +z
+        split, _ = self.build({"A": names[:3], "B": names[3:]}, {"L": ["A", "B"]})
+        assert split.elements["B1"].physical.rotation.theta != pytest.approx(0.0)
+
+    def test_a_stated_section_is_not_moved(self):
+        stated = [
+            drift("s1", 1.0, s=10.0, s_point="end"),
+            drift("q1", 1.0),
+        ]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            model = MachineModel(
+                elements={e.name: e for e in stated},
+                section={"sections": {"A": ["s1"], "B": ["q1"]}},
+                layout={"layouts": {"L": ["A", "B"]}, "default_layout": "L"},
+            )
+        assert model.elements["s1"].physical.s == pytest.approx(9.5)
+        # ...but a sequential section following it starts from its exit
+        assert model.elements["q1"].physical.s == pytest.approx(10.5)
+
+    def test_a_section_outside_any_layout_is_not_built_at_all(self, names):
+        # so there is nothing for composition to touch
+        model, _ = self.build({"A": names[:3], "B": names[3:]}, {"L": ["A"]})
+        assert list(model.sections) == ["A"]
+        assert model.elements["B1"].physical.s is None
+
+    def test_the_non_owning_path_still_gets_its_own_arc_lengths(self):
+        """The case `arc_lengths` exists for, and the one easiest to get wrong.
+
+        ``X`` is composed into ``L1``'s frame, so its stored ``s`` is right for
+        ``L1`` and wrong for ``L2``.  A composed section must therefore be
+        re-offset from its *section-local* coordinates when a different path
+        asks -- reporting it as stored, or adding the running offset on top of
+        the stored value, are both wrong.
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            model = MachineModel(
+                elements={
+                    e.name: e
+                    for e in (drift("P1", 1.0), drift("P2", 3.0), drift("X1", 2.0))
+                },
+                section={"sections": {"P": ["P1"], "Q": ["P2"], "X": ["X1"]}},
+                layout={
+                    "layouts": {"L1": ["P", "X"], "L2": ["Q", "X"]},
+                    "default_layout": "L1",
+                },
+            )
+        stored = model.elements["X1"].physical
+        assert stored.s - stored.length / 2 == pytest.approx(1.0)  # L1's frame
+        assert model.lattices["L1"].arc_lengths()["X1"] == pytest.approx(1.0)
+        assert model.lattices["L2"].arc_lengths()["X1"] == pytest.approx(3.0)
+
+    def test_a_shared_section_is_composed_once_and_says_so(self, names):
+        _, messages = self.build(
+            {"A": names[:3], "B": names[3:]},
+            {"L1": ["A", "B"], "L2": ["B"], "L3": ["A", "A", "B"]},
+        )
+        assert any("different" in m and "predecessors" in m for m in messages)
+
+    def test_composition_is_idempotent(self, names):
+        split, _ = self.build({"A": names[:3], "B": names[3:]}, {"L": ["A", "B"]})
+        before = {n: split.elements[n].physical.s for n in names}
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            split.resolve_positions()
+        for name in names:
+            assert split.elements[name].physical.s == pytest.approx(before[name])

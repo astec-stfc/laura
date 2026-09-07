@@ -10,6 +10,7 @@ dipole's kick survives reversal because the lab deflection *and* the frame's
 """
 
 import warnings
+from pathlib import Path
 
 import pytest
 
@@ -514,3 +515,64 @@ class TestReverseSection:
         # the machine's own section is untouched: another path may run it forwards
         assert machine.sections["ARC"].order == ["Q1", "D1", "B1"]
         assert machine.elements["B1"].magnetic.angle == pytest.approx(0.3)
+
+
+class TestTheReversalExample:
+    """``examples/testing/reversal_*.yaml``: one arc, two beams, opposite ways.
+
+    The shape of counter-rotating beams sharing interaction-region magnets --
+    one set of installed hardware, two beam paths, mirrored optics.
+    """
+
+    EXAMPLES = Path(__file__).resolve().parents[1] / "examples" / "testing"
+    FORWARD = ["QUAD_A", "DRIFT_IN", "BEND", "DRIFT_OUT", "QUAD_B"]
+
+    @pytest.fixture
+    def machine(self):
+        from laura import LAURA
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            return LAURA(
+                element_list=str(self.EXAMPLES / "reversal_elements.yaml"),
+                section=str(self.EXAMPLES / "reversal_sections.yaml"),
+                layout=str(self.EXAMPLES / "reversal_layouts.yaml"),
+            )
+
+    def test_both_beam_paths_exist_over_one_section(self, machine):
+        assert sorted(machine.lattices) == ["BEAM_1", "BEAM_2"]
+        assert (
+            machine.lattices["BEAM_1"].sections["ARC"]
+            is (machine.lattices["BEAM_2"].sections["ARC"])
+        )
+
+    def test_only_the_second_path_is_marked(self, machine):
+        assert machine.lattices["BEAM_1"]._direction == {}
+        assert machine.lattices["BEAM_2"]._direction == {"ARC": -1}
+
+    def test_the_two_paths_mirror_each_other(self, machine):
+        forward = machine.lattices["BEAM_1"].arc_lengths()
+        backward = machine.lattices["BEAM_2"].arc_lengths()
+        total = sum(machine[n].physical.length for n in self.FORWARD)
+        for name in self.FORWARD:
+            length = machine[name].physical.length
+            assert backward[name] == pytest.approx(total - forward[name] - length)
+
+    def test_the_second_path_meets_the_arc_the_other_way_round(self, machine):
+        backward = machine.lattices["BEAM_2"].arc_lengths()
+        assert sorted(backward, key=backward.get) == list(reversed(self.FORWARD))
+
+    def test_exporting_the_reversed_path_transforms_the_physics(self, machine):
+        from laura.translator.converters.layout import MachineLayoutTranslator
+
+        beam2 = MachineLayoutTranslator.from_layout(machine.lattices["BEAM_2"])
+        arc = beam2.sections["ARC"]
+        assert arc.order == list(reversed(self.FORWARD))
+        # a shared quadrupole focuses the two beams in opposite planes
+        assert arc.elements["QUAD_A"].magnetic.k1l == pytest.approx(-0.6)
+        assert arc.elements["BEND"].magnetic.angle == pytest.approx(-0.25)
+
+    def test_the_installed_hardware_is_never_modified(self, machine):
+        assert machine.sections["ARC"].order == self.FORWARD
+        assert machine["QUAD_A"].magnetic.k1l == pytest.approx(0.6)
+        assert machine["BEND"].magnetic.angle == pytest.approx(0.25)

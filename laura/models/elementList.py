@@ -326,6 +326,16 @@ class SectionLattice(BaseLatticeModel):
 
     _basename: str = "elements"
 
+    _composed_by: Optional[str] = PrivateAttr(default=None)
+    """Name of the layout whose frame this section's stored ``s`` belongs to,
+    or ``None`` while it still sits in its own.  A section can be composed for
+    only one beam path; :meth:`MachineLayout.arc_lengths` uses this."""
+
+    _composed_frame: Any = PrivateAttr(default=None)
+    """The frame :meth:`compose_onto` placed this section on, kept so that a
+    later re-resolution measures the section's leading gap from its true
+    predecessor rather than from the world origin."""
+
     _placed_sequentially: bool = PrivateAttr(default=False)
     """True if this section's positions were derived from ``order`` plus lengths
     rather than stated on the elements.  See :meth:`MachineLayout.arc_lengths`."""
@@ -811,12 +821,16 @@ class SectionLattice(BaseLatticeModel):
         middle) back onto each element's physical block, and attaches the
         trajectory as ``phys._trajectory`` for bidirectional sync.
         """
-        s_list: list[float] = [0.0]
-        pos_list: list[np.ndarray] = [np.zeros(3)]
-        rot_list: list[np.ndarray] = [np.eye(3)]
+        if self._composed_frame is not None:
+            current_s, prev_end, _ = self._composed_frame
+            prev_end = np.array(prev_end)
+        else:
+            current_s = 0.0
+            prev_end = None
 
-        current_s = 0.0
-        prev_end: Optional[np.ndarray] = None
+        s_list = [current_s]
+        pos_list = [np.zeros(3) if prev_end is None else prev_end.copy()]
+        rot_list = [np.eye(3)]
 
         elements_to_wire: list[PhysicalElement] = []
 
@@ -867,6 +881,71 @@ class SectionLattice(BaseLatticeModel):
         for phys in elements_to_wire:
             phys._trajectory = traj
         return traj
+
+    def exit_frame(self, element_registry: dict):
+        """``(arc length, position, rotation matrix)`` at this section's exit.
+
+        The frame a following section starts from. ``None`` if the section has
+        nothing placed.
+        """
+        last = None
+        for name in self.order:
+            elem = element_registry.get(name)
+            phys = getattr(elem, "physical", None)
+            if phys is not None and phys.middle is not None:
+                last = phys
+        if last is None:
+            return None
+        return (
+            last.s + (last.length or 0.0) / 2.0,
+            np.array(last.end.array),
+            last.end_rotation_matrix,
+        )
+
+    def compose_onto(self, element_registry: dict, frame) -> None:
+        """Move this section so its entrance sits at *frame*.
+
+        A section is resolved in its own frame, starting at the world origin
+        pointing along +z.
+
+        The trajectory is transformed by the same rigid motion rather than
+        rebuilt: :meth:`_build_trajectory_and_assign_s` measures ``s`` from the
+        world origin, which would discard the offset this method just applied.
+        """
+        if frame is None:
+            return
+        s_offset, origin, rotation = frame
+
+        physicals = []
+        for name in dict.fromkeys(self.order):
+            elem = element_registry.get(name)
+            phys = getattr(elem, "physical", None)
+            if phys is not None and phys.middle is not None:
+                physicals.append(phys)
+        if not physicals:
+            return
+
+        source = next(
+            (p._trajectory for p in physicals if p._trajectory is not None), None
+        )
+        for phys in physicals:
+            moved = origin + rotation @ np.array(phys.middle.array)
+            yaw, pitch, roll = rotation_matrix_to_euler(rotation @ phys.rotation_matrix)
+            phys._trajectory = None
+            phys.middle = Position.from_list(moved.tolist())
+            phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
+            phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
+            phys.s = phys.s + s_offset
+
+        if source is not None:
+            moved_traj = Trajectory(
+                source._s + s_offset,
+                (rotation @ source._pos.T).T + origin,
+                rotation @ source._rots,
+            )
+            for phys in physicals:
+                phys._trajectory = moved_traj
+        self._composed_frame = frame
 
     def resolve_positions(self, element_registry: dict) -> Optional[Trajectory]:
         """Resolve all positioning modes and build the section trajectory.
@@ -1088,16 +1167,34 @@ class MachineLayout(BaseLatticeModel):
     def __getitem__(self, item: str) -> int:
         return self.sections[item]
 
-    def _section_extent(self, section: "SectionLattice") -> float:
-        """Arc length from the section's own origin to its last element's exit."""
-        extent = 0.0
+    @staticmethod
+    def _section_origin(section: "SectionLattice") -> float:
+        """The arc length a composed section's stored values are measured from.
+
+        Zero while a section still sits in its own frame.  Subtracting it puts
+        every section back into section-local coordinates, which is the only
+        footing on which a *different* beam path can re-offset it.
+        """
+        frame = section._composed_frame
+        return frame[0] if frame is not None else 0.0
+
+    def _section_span(self, section: "SectionLattice") -> tuple[float, float]:
+        """``(first entrance, last exit)`` of a section, in section-local terms.
+
+        Returning the span rather than just the far end lets a reversed section
+        be mirrored about *itself*.
+        """
+        origin = self._section_origin(section)
+        lo, hi = None, None
         for name in section.order:
             elem = section.elements.elements.get(name)
             phys = getattr(elem, "physical", None)
             if phys is None or phys.s is None:
                 continue
-            extent = max(extent, _s_start_of(phys) + (phys.length or 0.0))
-        return extent
+            entrance = _s_start_of(phys) - origin
+            lo = entrance if lo is None else min(lo, entrance)
+            hi = max(hi or 0.0, entrance + (phys.length or 0.0))
+        return (lo or 0.0), (hi or 0.0)
 
     def arc_lengths(
         self, direction: Optional[Dict[str, int]] = None
@@ -1130,6 +1227,16 @@ class MachineLayout(BaseLatticeModel):
             ``{element name: arc length of its entrance}``, in path order.  An
             element used by two sections of one path is reported at its first
             occurrence, matching the exporter's convention.
+
+        Notes
+        -----
+        This is a query API with **no internal caller, deliberately**.  Export
+        takes a different route -- it substitutes a reversed section outright,
+        see :func:`~laura.models.reversal.reverse_section` -- so nothing in
+        LAURA calls this.  It is kept because it is the only way to obtain a
+        cumulative arc length that crosses section boundaries: a stored ``s``
+        is section-local, and in a sequentially-placed section it restarts at
+        zero.  Do not remove it as dead code.
         """
         direction = self._direction if direction is None else direction
         unknown = set(direction) - set(self.sections)
@@ -1142,8 +1249,15 @@ class MachineLayout(BaseLatticeModel):
         lengths: Dict[str, float] = {}
         cursor = 0.0
         for section_name, section in self.sections.items():
-            extent = self._section_extent(section)
-            offset = cursor if section._placed_sequentially else 0.0
+            lo, hi = self._section_span(section)
+            origin = self._section_origin(section)
+            # A section composed for *this* path already carries the right
+            # arc lengths, so report them as stored.  One still in its own
+            # frame, or composed for a different path, is re-offset onto this
+            # one from its section-local coordinates.
+            mine = section._composed_by == self.name
+            needs_offset = section._placed_sequentially and not mine
+            offset = cursor if needs_offset else origin
             backwards = direction.get(section_name, 1) < 0
             for name in section.order:
                 if name in lengths:
@@ -1152,11 +1266,12 @@ class MachineLayout(BaseLatticeModel):
                 phys = getattr(elem, "physical", None)
                 if phys is None or phys.s is None:
                     continue
-                entrance = _s_start_of(phys)
+                entrance = _s_start_of(phys) - origin
                 if backwards:
-                    entrance = extent - entrance - (phys.length or 0.0)
+                    # mirror about the section's own span
+                    entrance = lo + hi - entrance - (phys.length or 0.0)
                 lengths[name] = offset + entrance
-            cursor = offset + extent
+            cursor = offset + hi
         return lengths
 
     def _get_all_elements(self) -> List[baseElement]:
@@ -1930,6 +2045,51 @@ class MachineModel(ModelBase):
                 self.elements
             )
             section.resolve_positions(self.elements)
+        self._compose_layout_frames()
+
+    def _compose_layout_frames(self) -> None:
+        """Chain each layout's sequentially-placed sections into one frame.
+
+        A section resolves in its own frame, starting at the world origin.
+        A sequentially-placed section has no stated position at all,
+        so two of them in the same layout would both begin at
+        the origin and occupy the same space. This walks each layout in order
+        and moves every such section onto the exit frame of what precedes it.
+        Nothing outside a layout is touched
+
+        * **A section that states its positions is never moved.**  A surveyed
+          machine's coordinates are already global and composing them would
+          corrupt them; such a section still contributes its exit frame, so a
+          sequential section following one starts from its end.
+        * **A section shared by two layouts is composed at most once**, by the
+          first layout that reaches it.  Use
+          :meth:`MachineLayout.arc_lengths` for the per-path view instead.
+        """
+        if not self._layouts:
+            return
+        composed: Dict[str, str] = {}
+        for path, areas in self._layouts.items():
+            frame = None
+            for area in areas:
+                section = self.sections.get(area)
+                if section is None:
+                    continue
+                if section._placed_sequentially and frame is not None:
+                    owner = composed.get(area)
+                    if owner is None:
+                        section.compose_onto(self.elements, frame)
+                        section._composed_by = path
+                        composed[area] = path
+                    elif owner != path:
+                        warn(
+                            f"Section '{area}' is placed sequentially and appears in "
+                            f"both '{owner}' and '{path}', which give it different "
+                            f"predecessors. It is positioned for '{owner}'; use "
+                            f"{path}.arc_lengths() for its arc length along "
+                            f"'{path}'.",
+                            stacklevel=2,
+                        )
+                frame = section.exit_frame(self.elements) or frame
 
     def _number_sequential_repeats(self) -> None:
         """Split repeated names in sequential sections into numbered copies.
