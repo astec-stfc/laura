@@ -1,6 +1,5 @@
 from typing import Any, Dict, Iterator, Tuple
 
-from laura.models.control import set_attr_by_path
 from laura.models.elementList import (
     MachineLayout,
     SectionLattice,
@@ -84,18 +83,10 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
                     section, section.elements.elements, name=section.name
                 )
             registry = section.elements.elements
-            if entry.momentum is not None:
-                strengths = layout.pass_strengths(entry.number, entry.section)
-                for name, kl in strengths.items():
-                    element = registry.get(renamed.get(name, name))
-                    if element is not None and element.magnetic is not None:
-                        element.magnetic.kl = kl
-            for name, values in entry.overrides.items():
-                element = registry.get(renamed.get(name, name))
-                if element is None:
-                    continue
-                for path, value in values.items():
-                    set_attr_by_path(element, path, value)
+            for base in layout.sections[entry.section].order:
+                element = registry.get(renamed.get(base, base))
+                if element is not None:
+                    layout.apply_pass_values(element, entry, base)
             sections[section.name] = section
         return sections
 

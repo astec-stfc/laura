@@ -362,6 +362,63 @@ def test_a_reversed_pass_still_holds_one_field_magnitude():
     assert magnitudes[0] == pytest.approx(magnitudes[1])
 
 
+# --- one element, resolved for one pass ---------------------------------
+#
+# `get_element` deliberately returns the shared device for any selector --
+# both passes are one magnet. A caller that has to hand one pass its own
+# values (simba builds a line per pass) needs a copy instead.
+
+
+def test_element_on_pass_applies_that_passs_strength(erl):
+    layout = erl.lattices["ERL"]
+    assert layout.element_on_pass("LIN_Q#1").magnetic.KnL(1) == pytest.approx(1.0)
+    assert layout.element_on_pass("LIN_Q#2").magnetic.KnL(1) == pytest.approx(0.5)
+
+
+def test_element_on_pass_applies_overrides():
+    model = machine(
+        [
+            "INJECTOR",
+            {"LINAC": {"multipass": 1, "momentum": P1}},
+            "ARC",
+            {
+                "LINAC": {
+                    "multipass": 2,
+                    "momentum": P2,
+                    "overrides": {"CAV_01": {"cavity.phase": 180.0}},
+                }
+            },
+            "DUMP",
+        ]
+    )
+    layout = model.lattices["ERL"]
+    assert layout.element_on_pass("CAV_01#1").cavity.phase == pytest.approx(0.0)
+    assert layout.element_on_pass("CAV_01#2").cavity.phase == pytest.approx(180.0)
+
+
+def test_element_on_pass_names_it_as_export_would(erl):
+    assert erl.lattices["ERL"].element_on_pass("LIN_Q#2").name == "LIN_Q.2"
+
+
+def test_element_on_pass_returns_independent_copies(erl):
+    layout = erl.lattices["ERL"]
+    first, second = (layout.element_on_pass(f"LIN_Q#{n}") for n in (1, 2))
+    assert first is not second
+    first.magnetic.kl = 99.0
+    assert second.magnetic.KnL(1) == pytest.approx(0.5)
+
+
+def test_element_on_pass_leaves_the_shared_device_alone(erl):
+    erl.lattices["ERL"].element_on_pass("LIN_Q#2")
+    assert erl["LIN_Q"].magnetic.KnL(1) == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize("name", ["LIN_Q", "LIN_Q#9", "NOPE#1"])
+def test_element_on_pass_returns_none_when_it_cannot_answer(erl, name):
+    """So a caller can fall back to the shared device."""
+    assert erl.lattices["ERL"].element_on_pass(name) is None
+
+
 # --- the booster, which needs none of this ------------------------------
 
 

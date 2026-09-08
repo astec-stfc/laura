@@ -31,6 +31,7 @@ from .baseModels import (
 )
 from .element import Diagnostic, Drift, PhysicalBaseElement, baseElement
 from .exceptions import LatticeError
+from .control import set_attr_by_path
 from .magnetic import brho
 from .reversal import reverse_element
 from .physical import PhysicalElement, Position, Rotation
@@ -1389,6 +1390,74 @@ class MachineLayout(BaseLatticeModel):
             field = magnetic.get_gradient(reference.momentum)
             strengths[name] = field * magnetic.length / brho(entry.momentum)
         return strengths
+
+    def _pass_entry(self, base: str, number: int) -> "LayoutPass | None":
+        """The pass numbered ``number`` whose section contains ``base``."""
+        for entry in self.passes:
+            if entry.number != number:
+                continue
+            section = self.sections.get(entry.section)
+            if section is not None and base in section.order:
+                return entry
+        return None
+
+    def apply_pass_values(self, element, entry: "LayoutPass", base: str) -> None:
+        """Set on ``element`` the values pass ``entry`` gives ``base``, in place.
+
+        Strengths first, then the author's ``overrides``. Used by export
+        and by a caller resolving one element at a time.
+        """
+        magnetic = getattr(element, "magnetic", None)
+        if entry.momentum is not None and magnetic is not None:
+            kl = self.pass_strengths(entry.number, entry.section).get(base)
+            if kl is not None:
+                magnetic.kl = kl
+        for path, value in entry.overrides.get(base, {}).items():
+            set_attr_by_path(element, path, value)
+
+    def pass_momentum(self, name: str) -> float | None:
+        """The momentum stated for the pass ``NAME#N`` addresses, in eV/c.
+
+        ``None`` for an unqualified name, an unknown pass, or a pass that
+        states none.
+        """
+        base, number = split_occurrence(name)
+        if number is None:
+            return None
+        entry = self._pass_entry(base, number)
+        return None if entry is None else entry.momentum
+
+    def element_on_pass(self, name: str):
+        """A copy of ``NAME#N``'s element as that pass sees it, flat-named.
+
+        ``get_element`` deliberately returns the shared device for any
+        selector. This makes a copy for a single pass,
+        named as a flattened export names it (:func:`flatten_occurrence`),
+        carrying that pass's strengths and overrides.
+
+        Returns ``None`` for an unqualified name, an unknown pass, or an
+        element no pass of that number reaches, so a caller can fall back to
+        the shared device.
+
+        .. note::
+
+           Reversal is **not** applied. ``pass_strengths`` already carries the
+           sign of a backwards traversal, which belongs to the line rather
+           than the element. Use the flattened export for a reversed pass.
+        """
+        base, number = split_occurrence(name)
+        if number is None:
+            return None
+        entry = self._pass_entry(base, number)
+        if entry is None:
+            return None
+        source = self.sections[entry.section].elements.elements.get(base)
+        if source is None:
+            return None
+        element = source.model_copy(deep=True)
+        element.name = flatten_occurrence(name)
+        self.apply_pass_values(element, entry, base)
+        return element
 
     @property
     def names(self) -> List:
