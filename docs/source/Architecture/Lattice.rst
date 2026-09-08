@@ -226,6 +226,7 @@ A machine layout defines:
 
 * ``name: str``: The name of the layout/beam path.
 * ``sections: Dict[str, SectionLattice]``: Dictionary of lattice sections, keyed by section name.
+* ``passes: List[LayoutPass]``: The beam order, one entry per section traversal, carrying ``section``, ``direction``, ``number`` and ``overrides``. A name-keyed dictionary cannot say that a path enters a section twice; this can. See :ref:`multipass`.
 * ``layout_type: "beam" | "rf" | "laser"``: What kind of lattice this beam path represents (default ``"beam"``); see :ref:`lattice-types`.
 * ``master_lattice: str | None``: Directory containing lattice files.
 * ``functional_definitions: str | dict``: Optional functional definitions (a mapping or YAML file path); see :ref:`functional-definitions`.
@@ -291,17 +292,15 @@ A worked example of both -- one arc, two beam paths, one of them reversed -- is
 
    ``arc_lengths`` is a **query API with no internal consumer, deliberately.** Export takes
    a different route: it substitutes a reversed section outright (see
-   :ref:`path-reversal-on-export`), so nothing in :mod:`LAURA` calls this. It is kept
-   because it is the only way to obtain a cumulative arc length that crosses section
-   boundaries -- an element's stored ``s`` is section-local, and for
-   :ref:`sequentially-placed <sequential-placement>` sections it restarts at zero in every
-   one. Do not remove it as dead code.
+   :ref:`path-reversal-on-export`).
+   However, this is the only way to obtain a cumulative arc length that crosses section
+   boundaries; for :ref:`sequentially-placed <sequential-placement>` sections it restarts
+   at zero in every one.
 
    What it is *for* is the two cases :ref:`composition <layout-composition>` cannot write
    back into the model: a section this path traverses **backwards**, and a section shared
    by two layouts, whose single stored position belongs to whichever path composed it
-   first. For those, the stored ``s`` is right for some other path and this view is the
-   only correct answer.
+   first.
 
 .. note::
 
@@ -310,6 +309,127 @@ A worked example of both -- one arc, two beam paths, one of them reversed -- is
    A position-less :py:class:`Element <laura.models.element.Element>` (an LLRF module,
    a laser mirror, a lighting controller) may live in ``MachineModel.elements`` and in a
    section, but cannot take part in a beam path.
+
+.. _multipass:
+
+Repetition and multipass
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+A layout may list the same section more than once, and this has two possible meanings:
+
+**Repetition**
+   *N identical devices at N positions.* A FODO channel built from three cells has three
+   cells' worth of hardware.
+
+**Multipass**
+   *One device at one position, traversed N times.* A recirculating linac has one linac, and
+   the beam goes through it twice.
+
+Both are written by naming a section twice, so LAURA does not infer which was meant.
+**Repetition is the default**, because that is already what the same shape means one level
+down in a section's element list (:ref:`repeated-lines`):
+
+.. code-block:: yaml
+
+    layouts:
+      ERL:
+        - INJECTOR
+        - LINAC          # LINAC.1 -- its own cavities, at its own positions
+        - ARC
+        - LINAC          # LINAC.2 -- a second, independent linac
+        - DUMP
+
+Each occurrence is given its own section (``LINAC.1``, ``LINAC.2``) holding its own
+deep-copied, numbered elements, before any section is built. Setting one occurrence's
+gradient does not reach the other, because these really are two magnets (see
+:ref:`functional-definitions` for how to do this).
+
+Two shapes cannot be repetition: occurrences that differ in ``direction``, and a
+repeated section that states its own positions (the copies would coincide rather than chain).
+
+``multipass: N`` is the other option. It says this entry is the Nth traversal
+of hardware an earlier entry has already been through:
+
+.. code-block:: yaml
+
+    layouts:
+      ERL:
+        - INJECTOR
+        - LINAC: {multipass: 1}
+        - ARC
+        - LINAC: {multipass: 2}
+        - DUMP
+
+Both entries now name the same section and the same element objects. Because it is a claim
+about the hardware, it must be stated on *every* occurrence of that section or none of them,
+and the numbers must be exactly ``1..N`` in beam order.
+
+.. _occurrence-addressing:
+
+Addressing one pass
+~~~~~~~~~~~~~~~~~~~
+
+On a multipass path, an ambiguous name takes an occurrence selector, spelled ``NAME#N``:
+
+.. code-block:: python
+
+    layout.arc_lengths()                                   # one entry per pass
+    # {'INJ_Q': 0.0, ..., 'CAV_01#1': 1.2, ..., 'CAV_01#2': 7.1, ..., 'DMP_Q': 11.3}
+
+    layout.elements_between(start="CAV_01#2", end="DMP_Q")
+    # ['CAV_01#2', 'DRIFT_LIN.2#2', 'LIN_Q#2', ..., 'DRIFT_DUMP', 'DMP_Q']
+
+    layout.get_element("CAV_01#1") is layout.get_element("CAV_01#2")   # True
+
+The two numbering schemes compose and are orthogonal. ``DRIFT_LIN.2#2`` is the **second
+drift** of a section that lists ``DRIFT_LIN`` four times -- ordinary
+:ref:`repetition within a section order <repeated-lines>` -- on the
+**second pass** of that section. Repetition numbers the hardware; multipass numbers the
+traversals.
+
+A name the path enters once stays bare, so a single-pass
+path, a repetition path and every existing lattice are untouched.
+``get_element`` accepts a selector and ignores it -- both passes are the same device.
+``elements_between`` filters by **position** rather than by identity.
+
+.. _per-pass-overrides:
+
+What differs between passes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In an ERL the return bunch arrives half an RF period late and decelerates.
+One cavity cannot store two phases, so the second pass's value lives on the pass:
+
+.. code-block:: yaml
+
+    - LINAC:
+        multipass: 2
+        overrides:
+          CAV_01: {cavity.phase: 180.0}
+
+``overrides`` maps an element name to the attribute paths that take a different value on
+this traversal. ``overrides`` are refused on any entry not marked ``multipass``.
+Every other traversal has an element of its own to write the value on:
+a single pass has the element itself, and a repetition occurrence has its own copy.
+Overrides exist only because the passes of a multipass section are one device.
+
+.. note::
+
+   Overrides are **carried, not applied**. They are recorded on the
+   :py:class:`LayoutPass <laura.models.elementList.LayoutPass>` and leave the element
+   untouched; export applies them when it flattens a multipass path. Read
+   ``layout.passes[n].overrides`` to see what a pass declares.
+
+.. warning::
+
+   **Export of a multipass path is currently refused.**
+   :py:meth:`from_layout <laura.translator.converters.layout.MachineLayoutTranslator.from_layout>`
+   raises rather than emitting one, because it writes one child per distinct *section*: the
+   passes would collapse into a single traversal and a direction stated for one pass would be
+   applied to all of them. A path without ``multipass:`` is unaffected.
+
+A worked ERL -- one linac, two passes, the return pass 180 degrees off crest -- is
+``examples/testing/multipass_{elements,sections,layouts}.yaml``.
 
 .. _layout-composition:
 

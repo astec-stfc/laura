@@ -1108,6 +1108,14 @@ class LayoutPass(BaseModel):
     """Multipass occurrence number, counting from 1. ``None`` for an ordinary
     single traversal, and for repetition."""
 
+    overrides: Dict[str, Dict[str, Any]] = {}
+    """Element values that hold on this pass only (i.e. multipass only),
+    ``{element_name: {attribute_path: value}}``, e.g. an accelerating pass and
+    a decelerating pass through one cavity::
+
+        - LINAC: {multipass: 2, overrides: {CAV_01: {cavity.phase: 180}}}
+    """
+
     def __repr__(self) -> str:
         pass_number = "" if self.number is None else f" #{self.number}"
         arrow = "" if self.direction == 1 else " (reversed)"
@@ -1803,9 +1811,12 @@ class MachineModel(ModelBase):
         positions, which is what the section level has always made of the same
         shape and what :meth:`_expand_layout_repeats` builds.
 
+        ``overrides: {ELEMENT: {path: value}}`` states values that hold on this
+        traversal only -- see :attr:`LayoutPass.overrides`.
+
         The third return is the entry list as authored,
-        ``[(name, direction, multipass)]`` per layout, keeping one item per
-        occurrence.
+        ``[(name, direction, multipass, overrides)]`` per layout, keeping one
+        item per occurrence.
         """
         areas: Dict[str, list] = {}
         directions: Dict[str, Dict[str, int]] = {}
@@ -1819,23 +1830,24 @@ class MachineModel(ModelBase):
             for entry in entries:
                 if isinstance(entry, str):
                     names.append(entry)
-                    listed.append((entry, 1, None))
+                    listed.append((entry, 1, None, {}))
                     continue
                 if not isinstance(entry, dict) or len(entry) != 1:
                     raise TypeError(
                         f"Layout '{layout_name}' entries must be a section name, "
-                        f"optionally with a 'direction' or a 'multipass'; "
-                        f"got {entry!r}"
+                        f"optionally with a 'direction', a 'multipass' or "
+                        f"'overrides'; got {entry!r}"
                     )
                 section_name, options = next(iter(entry.items()))
                 if not isinstance(options, dict) or set(options) - {
                     "direction",
                     "multipass",
+                    "overrides",
                 }:
                     raise TypeError(
                         f"Entry '{section_name}' in layout '{layout_name}' must be a "
-                        "section name, or a section name with a 'direction' "
-                        "and/or a 'multipass'"
+                        "section name, or a section name with a 'direction', "
+                        "a 'multipass' and/or 'overrides'"
                     )
                 direction = options.get("direction", 1)
                 if direction not in (1, -1):
@@ -1854,8 +1866,11 @@ class MachineModel(ModelBase):
                         f"'{layout_name}' must be a pass number counting from "
                         f"1; got {multipass!r}"
                     )
+                overrides = MachineModel._normalise_pass_overrides(
+                    options.get("overrides"), section_name, layout_name
+                )
                 names.append(section_name)
-                listed.append((section_name, direction, multipass))
+                listed.append((section_name, direction, multipass, overrides))
                 if direction == -1:
                     marked[section_name] = -1
             areas[layout_name] = names
@@ -1863,6 +1878,36 @@ class MachineModel(ModelBase):
             if marked:
                 directions[layout_name] = marked
         return areas, directions, occurrences
+
+    @staticmethod
+    def _normalise_pass_overrides(
+        overrides: Any, section_name: str, layout_name: str
+    ) -> Dict[str, Dict[str, Any]]:
+        """Check the shape of an entry's ``overrides``, keyed by element name.
+        ``{ELEMENT: {attribute.path: value}}``. Checks are done by
+        :meth:`_check_pass_overrides`.
+        """
+        where = f"'{section_name}' in layout '{layout_name}'"
+        if overrides is None:
+            return {}
+        if not isinstance(overrides, dict):
+            raise TypeError(
+                f"'overrides' for {where} must map an element name to the "
+                f"values it takes on this pass, e.g. "
+                f"{{CAV_01: {{cavity.phase: 180}}}}; got {overrides!r}"
+            )
+        normalised: Dict[str, Dict[str, Any]] = {}
+        for element_name, values in overrides.items():
+            if not isinstance(values, dict) or not all(
+                isinstance(path, str) for path in values
+            ):
+                raise TypeError(
+                    f"'overrides' for {where} must give element "
+                    f"'{element_name}' a mapping of attribute path to value, "
+                    f"e.g. {{cavity.phase: 180}}; got {values!r}"
+                )
+            normalised[str(element_name)] = dict(values)
+        return normalised
 
     @staticmethod
     def _normalise_layout_metadata(
@@ -2235,9 +2280,10 @@ class MachineModel(ModelBase):
             return
         for path, entries in self._layout_entries.items():
             totals: Dict[str, int] = {}
-            for name, _, _ in entries:
+            for name, *_ in entries:
                 totals[name] = totals.get(name, 0) + 1
             multipass = self._declared_multipass(path, entries, totals)
+            self._check_overrides_are_multipass(path, entries, multipass)
             expandable = {
                 name
                 for name, total in totals.items()
@@ -2251,7 +2297,7 @@ class MachineModel(ModelBase):
             names: list = []
             marked: Dict[str, int] = {}
             passes: list = []
-            for name, direction, number in entries:
+            for name, direction, number, overrides in entries:
                 if name in expandable:
                     index = seen.get(name, 0) + 1
                     seen[name] = index
@@ -2265,7 +2311,12 @@ class MachineModel(ModelBase):
                 if direction == -1:
                     marked[name] = -1
                 passes.append(
-                    LayoutPass(section=name, direction=direction, number=number)
+                    LayoutPass(
+                        section=name,
+                        direction=direction,
+                        number=number,
+                        overrides=overrides,
+                    )
                 )
             self._layout_passes[path] = passes
             self._layouts[path] = list(dict.fromkeys(names))
@@ -2282,7 +2333,7 @@ class MachineModel(ModelBase):
         """
         declared = set()
         for name, total in totals.items():
-            numbers = [number for entry, _, number in entries if entry == name]
+            numbers = [number for entry, _, number, _ in entries if entry == name]
             stated = [number for number in numbers if number is not None]
             if not stated:
                 continue
@@ -2310,9 +2361,26 @@ class MachineModel(ModelBase):
             declared.add(name)
         return declared
 
+    @staticmethod
+    def _check_overrides_are_multipass(
+        path: str, entries: list, multipass: set
+    ) -> None:
+        """Refuse ``overrides`` anywhere the pass is not the thing that varies."""
+        for name, _, _, overrides in entries:
+            if overrides and name not in multipass:
+                raise ValueError(
+                    f"Layout '{path}' gives section '{name}' per-pass "
+                    f"'overrides' but does not mark it 'multipass'. Overrides "
+                    "say what differs between passes of one shared device; a "
+                    "section entered once, or entered twice as two separate "
+                    "devices, has an element of its own to carry the value. "
+                    "Set the value on the element, or declare 'multipass' on "
+                    "every occurrence if they really are one device."
+                )
+
     def _check_repeat_is_repetition(self, path: str, name: str, entries: list) -> None:
         """Refuse the two ways a repeated section cannot mean repetition."""
-        directions = {direction for entry, direction, _ in entries if entry == name}
+        directions = {direction for entry, direction, _, _ in entries if entry == name}
         if len(directions) > 1:
             raise ValueError(
                 f"Layout '{path}' enters section '{name}' more than once, with a "
@@ -2381,6 +2449,39 @@ class MachineModel(ModelBase):
         self.elements[copy_name] = clone
         return copy_name
 
+    def _check_pass_overrides(self, path: str) -> None:
+        """Check every ``overrides`` target names a real element and attribute.
+
+        Runs from :meth:`_build_layout_objects`.
+        """
+        for entry in self._layout_passes.get(path, []):
+            section = self.sections.get(entry.section)
+            if section is None:
+                continue
+            for element_name, values in entry.overrides.items():
+                if element_name not in section.order:
+                    raise ValueError(
+                        f"Layout '{path}' overrides '{element_name}' on pass "
+                        f"{entry.number} of section '{entry.section}', but "
+                        f"'{entry.section}' contains no such element. It "
+                        f"contains: {sorted(set(section.order))}"
+                    )
+                element = self.elements.get(element_name)
+                if element is None:
+                    continue
+                for attribute_path in values:
+                    obj = element
+                    try:
+                        for attribute in attribute_path.split("."):
+                            obj = getattr(obj, attribute)
+                    except AttributeError as missing:
+                        raise ValueError(
+                            f"Layout '{path}' overrides "
+                            f"'{attribute_path}' on '{element_name}', but a "
+                            f"{type(element).__name__} has no such attribute: "
+                            f"{missing}"
+                        ) from missing
+
     def _build_layout_objects(self):
         """Create MachineLayout objects from already-resolved sections.
 
@@ -2391,6 +2492,7 @@ class MachineModel(ModelBase):
             return
         for path, areas in self._layouts.items():
             if path not in self.lattices:
+                self._check_pass_overrides(path)
                 layout_type = self._layout_metadata.get(path, {}).get("type", "beam")
                 self.lattices[path] = MachineLayout(
                     name=path,
