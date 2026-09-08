@@ -360,3 +360,70 @@ class TestLegacyModulePaths:
 
         with pytest.raises(ModuleNotFoundError):
             importlib.import_module("laura.models.NotARealModule")
+
+
+class TestLauraDoesNotUseItsOwnLegacyNames:
+    """
+    The aliases exist for *downstream* callers. laura calling them itself is a
+    bug: a legacy module path warns on every import, and a legacy method name
+    only fails when that branch is finally exercised (an unexercised
+    `self._write_CSRTrack_quadrupole` call survived a merge undetected).
+    """
+
+    def test_no_module_imports_a_legacy_path(self):
+        import importlib
+        import pkgutil
+        import warnings
+
+        import laura
+
+        offenders = []
+        for mod in pkgutil.walk_packages(laura.__path__, "laura."):
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", FutureWarning)
+                try:
+                    importlib.import_module(mod.name)
+                except Exception:
+                    continue  # optional simulation-code dependency
+            offenders += [
+                f"{w.filename}:{w.lineno}: {w.message}"
+                for w in caught
+                if issubclass(w.category, FutureWarning)
+            ]
+        assert not offenders, "laura imports its own legacy paths:\n" + "\n".join(offenders)
+
+    def test_no_source_file_calls_a_legacy_method(self):
+        import importlib
+        import pathlib
+        import re
+
+        from laura._compat import DeprecatedMethodAliases
+
+        for mod in ("aperture", "cavity", "diagnostic", "drift", "laser",
+                    "magnet", "plasma", "twiss", "wake"):
+            importlib.import_module(f"laura.translator.converters.{mod}")
+
+        def _subclasses(cls):
+            for sub in cls.__subclasses__():
+                yield sub
+                yield from _subclasses(sub)
+
+        legacy = set()
+        for cls in [DeprecatedMethodAliases, *_subclasses(DeprecatedMethodAliases)]:
+            legacy |= set(vars(cls).get("_DEPRECATED_METHOD_ALIASES", {}))
+        assert legacy, "no method aliases registered"
+
+        import laura
+
+        pattern = re.compile(r"self\.(" + "|".join(sorted(map(re.escape, legacy))) + r")\b")
+        root = pathlib.Path(laura.__path__[0])
+        offenders = []
+        for path in sorted(root.rglob("*.py")):
+            for i, line in enumerate(path.read_text().splitlines(), 1):
+                for match in pattern.finditer(line):
+                    offenders.append(f"{path.relative_to(root)}:{i}: self.{match.group(1)}")
+        assert not offenders, (
+            "laura calls its own renamed methods (these resolve via __getattr__ "
+            "only if the alias target exists, and warn every call):\n"
+            + "\n".join(offenders)
+        )

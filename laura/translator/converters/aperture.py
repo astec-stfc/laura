@@ -1,10 +1,57 @@
 from laura.models.simulation import ApertureElement
 from .base import BaseElementTranslator
-from ..converters import elements_elegant
+from ..converters import elements_elegant, elements_madx
+from ..utils.functions import sanitize_string
 
 
 class ApertureTranslator(BaseElementTranslator):
     aperture: ApertureElement
+
+    def to_madx(self, at: float = None) -> str:
+        """
+        Generates a string representation of the object's properties in the MAD-X
+        format.
+
+        An elliptical or circular aperture (``aperture.shape in ["elliptical",
+        "circular"]``) is written as a MAD-X ``ECOLLIMATOR`` rather than the
+        default ``RCOLLIMATOR``.
+
+        Parameters
+        ----------
+        at: float, optional
+            S-position at which to place the element inside a MAD-X ``SEQUENCE``;
+            see :meth:`~laura.translator.converters.base.BaseElementTranslator.to_madx`.
+
+        Returns
+        -------
+        str
+            String representation of the element for MAD-X
+        """
+        self.start_write()
+        etype = self._convert_type_madx(self.hardware_type)
+        if self.aperture.shape in ["elliptical", "circular"] and etype == "rcollimator":
+            etype = "ecollimator"
+        string = sanitize_string(self.name) + ": " + etype
+        keys = []
+        for key, value in self.full_dump(resolve=self._resolve_functional).items():
+            if (
+                not key == "name"
+                and not key == "type"
+                and not key == "commandtype"
+                and self._convert_keyword_madx(key) in elements_madx[etype]
+            ):
+                if value is not None:
+                    key = self._convert_keyword_madx(key)
+                    deferred = not self._resolve_functional and self.is_functional(value)
+                    value = 1 if value is True else value
+                    value = 0 if value is False else value
+                    if key not in keys:
+                        op = ":=" if deferred else "="
+                        string += f", {key} {op} {value}"
+                    keys.append(key)
+        if at is not None:
+            string += f", at = {at}"
+        return string + ";\n"
 
     def _write_astra_common(self, dic: dict) -> dict:
         """

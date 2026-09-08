@@ -57,7 +57,7 @@ def type_checked(cls):
     """
     original = cls.__dict__.get("__post_init__")
 
-    def __post_init__(self, *args, **kwargs): # noqa N807
+    def __post_init__(self, *args, **kwargs): # noqa: N807
         check_field_types(self)
         if original is not None:
             original(self, *args, **kwargs)

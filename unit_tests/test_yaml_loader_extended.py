@@ -5,9 +5,9 @@ Covers:
 - LazyElementDict (lazy load, metadata, iteration, containment)
 - LazyAdapterDict (type-adapter caching)
 - validate_element_dict / _get_json_schema
-- read_YAML_Element_File with validate=True
-- read_YAML_Combined_File with validate=True
-- read_YAML_Element_Files (multi-file)
+- read_yaml_element_file with validate=True
+- read_yaml_combined_file with validate=True
+- read_yaml_element_files (multi-file)
 """
 
 import os
@@ -360,11 +360,11 @@ class TestValidateElementDict:
 
 
 # ---------------------------------------------------------------------------
-# read_YAML_Element_File with validate=True
+# read_yaml_element_file with validate=True
 # ---------------------------------------------------------------------------
 
 class TestReadYAMLElementFileWithValidation:
-    """read_YAML_Element_File(validate=True) validates before Pydantic parsing."""
+    """read_yaml_element_file(validate=True) validates before Pydantic parsing."""
 
     def test_real_element_file_passes_with_validate_true(self, tmp_path):
         """validate=True on a concrete element file does not raise.
@@ -397,11 +397,11 @@ class TestReadYAMLElementFileWithValidation:
 
 
 # ---------------------------------------------------------------------------
-# read_YAML_Combined_File with validate=True
+# read_yaml_combined_file with validate=True
 # ---------------------------------------------------------------------------
 
 class TestReadYAMLCombinedFileWithValidation:
-    """read_YAML_Combined_File(validate=True) validates each element dict."""
+    """read_yaml_combined_file(validate=True) validates each element dict."""
 
     def test_real_combined_file_passes_with_validate_true(self, tmp_path):
         """validate=True on a combined file with concrete elements does not raise.
@@ -449,11 +449,11 @@ class TestReadYAMLCombinedFileWithValidation:
 
 
 # ---------------------------------------------------------------------------
-# read_YAML_Element_Files (multi-file)
+# read_yaml_element_files (multi-file)
 # ---------------------------------------------------------------------------
 
 class TestReadYAMLElementFiles:
-    """read_YAML_Element_Files reads multiple YAML files and returns raw dicts."""
+    """read_yaml_element_files reads multiple YAML files and returns raw dicts."""
 
     def test_returns_tuple_of_dicts_and_filenames(self, tmp_path):
         q = _make_quad("QF", "SEC")

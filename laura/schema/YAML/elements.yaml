@@ -68,6 +68,81 @@ classes:
       simulation:
         range: TwissMatchSimulationElement
 
+  MatrixTransform:
+    is_a: PhysicalAcceleratorElement
+    description: Transfer-map element with zero-, first-, and second-order coefficients.
+    class_uri: laura:MatrixTransform
+    slot_usage:
+      hardware_type:
+        equals_string: MatrixTransform
+      simulation:
+        range: MatrixTransformSimulationElement
+
+  ElectrostaticSeparator:
+    is_a: PhysicalAcceleratorElement
+    description: Static electrostatic transverse-deflection element.
+    class_uri: laura:ElectrostaticSeparator
+    slot_usage:
+      hardware_type:
+        equals_string: ElectrostaticSeparator
+      simulation:
+        range: ElectrostaticSeparatorSimulationElement
+
+  ACDipole:
+    is_a: PhysicalAcceleratorElement
+    abstract: true
+    description: Base class for horizontal and vertical AC-dipole tune exciters.
+    class_uri: laura:ACDipole
+    slot_usage:
+      simulation:
+        range: ACDipoleSimulationElement
+
+  Horizontal_AC_Dipole:
+    is_a: ACDipole
+    description: Horizontally deflecting AC-dipole tune exciter.
+    class_uri: laura:Horizontal_AC_Dipole
+    slot_usage:
+      hardware_type:
+        equals_string: Horizontal_AC_Dipole
+
+  Vertical_AC_Dipole:
+    is_a: ACDipole
+    description: Vertically deflecting AC-dipole tune exciter.
+    class_uri: laura:Vertical_AC_Dipole
+    slot_usage:
+      hardware_type:
+        equals_string: Vertical_AC_Dipole
+
+  Wire:
+    is_a: PhysicalAcceleratorElement
+    description: Current-carrying wire for long-range beam-beam compensation.
+    class_uri: laura:Wire
+    slot_usage:
+      hardware_type:
+        equals_string: Wire
+      simulation:
+        range: WireSimulationElement
+
+  BeamBeam:
+    is_a: PhysicalAcceleratorElement
+    description: Weak-strong beam-beam interaction element.
+    class_uri: laura:BeamBeam
+    slot_usage:
+      hardware_type:
+        equals_string: BeamBeam
+      simulation:
+        range: BeamBeamSimulationElement
+
+  RFMultipole:
+    is_a: PhysicalAcceleratorElement
+    description: Thin RF-driven multipole kick.
+    class_uri: laura:RFMultipole
+    slot_usage:
+      hardware_type:
+        equals_string: RFMultipole
+      simulation:
+        range: RFMultipoleSimulationElement
+
   Stage:
     is_a: PhysicalAcceleratorElement
     description: Motorised positioning stage.

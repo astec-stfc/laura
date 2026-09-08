@@ -26,12 +26,13 @@ from laura.models.element_list import (
 from . import magnetic_orders
 from .. import keyword_conversion_rules_xsuite as keyword_conversion_rules
 from ...utils.functions import introspect_model_defaults
-from ...conversion_rules.codes import xsuite_conversion
 from warnings import warn
 
-type_conversion_rules_xsuite_reversed = (
-    xsuite_conversion.xsuite_conversion_rules_reverse
-)
+xsuite_unsupported = [
+    "Laser",
+    "Wakefield",
+    "ActivePlasmaLens",
+]
 
 
 class XsuiteLatticeConverter(BaseModel):
@@ -72,7 +73,7 @@ class XsuiteLatticeConverter(BaseModel):
         return r
 
     @staticmethod
-    def Ry(angle): # noqa N806
+    def Ry(angle): # noqa: N806
         """Rotation matrix about local y axis."""
         c, s = np.cos(angle), np.sin(angle)
         return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
@@ -86,7 +87,7 @@ class XsuiteLatticeConverter(BaseModel):
         axis = axis / np.linalg.norm(axis)
         c = np.cos(angle)
         s = np.sin(angle)
-        C = 1 - c # noqa N806
+        C = 1 - c # noqa: N806
         x, y, z = axis
 
         return np.array(
@@ -97,7 +98,7 @@ class XsuiteLatticeConverter(BaseModel):
             ]
         )
 
-    def compute_element_center(self, P0, R0, L, theta=0.0, tilt=0.0): # noqa N806
+    def compute_element_center(self, p0, r0, length, theta=0.0, tilt=0.0):
         """
         tilt = rotation around local z axis (radians)
         theta = bending angle
@@ -105,9 +106,9 @@ class XsuiteLatticeConverter(BaseModel):
 
         # ---- midpoint in canonical x-z bending plane ----
         if abs(theta) < 1e-12:
-            local_mid = np.array([0.0, 0.0, L / 2])
+            local_mid = np.array([0.0, 0.0, length / 2])
         else:
-            r_bend = L / theta
+            r_bend = length / theta
             phi = theta / 2
             local_mid = np.array([r_bend * (1 - np.cos(phi)), 0.0, r_bend * np.sin(phi)])
 
@@ -117,7 +118,7 @@ class XsuiteLatticeConverter(BaseModel):
             local_mid = r_tilt @ local_mid
 
         # ---- global midpoint ----
-        p_center = P0 + R0 @ local_mid
+        p_center = p0 + r0 @ local_mid
 
         # ---- orientation at midpoint ----
         if abs(theta) < 1e-12:
@@ -130,7 +131,7 @@ class XsuiteLatticeConverter(BaseModel):
 
             r_center_local = self.rotation_about_axis(bend_axis, theta / 2)
 
-        r_center = R0 @ r_center_local
+        r_center = r0 @ r_center_local
 
         return p_center, r_center
 
@@ -190,6 +191,11 @@ class XsuiteLatticeConverter(BaseModel):
         return elem_pos
 
     def create_element_dictionary(self):
+        from ...conversion_rules.codes import xsuite_conversion
+
+        type_conversion_rules_xsuite_reversed = (
+            xsuite_conversion.xsuite_conversion_rules_reverse
+        )
         s = self.line.survey()._data
         elems = {k: v for k, v in zip(s["name"], self.line.elements)}
         survey = {

@@ -5,14 +5,25 @@ import numpy as np
 from ...utils.classes import get_grid_size
 from ...utils.functions import chop
 
+gpt_unsupported = [
+    "Octupole",
+    "Decapole",
+    "TwissMatch",
+    "Plasma",
+    "Laser",
+    "Wiggler",
+    "MatrixTransform",
+    "ActivePlasmaLens",
+    "CrabCavity",
+]
 
-def orthonormalize(M): # noqa N806
+def orthonormalize(matrix):
     """
     Enforce orthonormal rotation matrix using Gram-Schmidt.
     """
 
-    x = M[:, 0]
-    y = M[:, 1]
+    x = matrix[:, 0]
+    y = matrix[:, 1]
 
     x = x / np.linalg.norm(x)
 
@@ -24,17 +35,17 @@ def orthonormalize(M): # noqa N806
     return np.column_stack((x, y, z))
 
 
-def Rx(a): # noqa N806
+def Rx(a): # noqa: N806
     c, s = np.cos(a), np.sin(a)
     return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
 
 
-def Ry(a): # noqa N806
+def Ry(a): # noqa: N806
     c, s = np.cos(a), np.sin(a)
     return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
 
 
-def Rz(a): # noqa N806
+def Rz(a): # noqa: N806
     c, s = np.cos(a), np.sin(a)
     return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
 
@@ -47,22 +58,22 @@ def euler_to_matrix(psi, phi, theta):
     return Rz(theta) @ Ry(phi) @ Rx(psi)
 
 
-def matrix_to_euler(M): # noqa N806
+def matrix_to_euler(matrix):
     """
     Inverse of:
     M = Rz(theta) @ Ry(phi) @ Rx(psi)
     Returns psi, phi, theta
     """
 
-    phi = np.arcsin(-M[2, 0])
+    phi = np.arcsin(-matrix[2, 0])
 
     if abs(np.cos(phi)) > 1e-12:
-        psi = np.arctan2(M[2, 1], M[2, 2])
-        theta = np.arctan2(M[1, 0], M[0, 0])
+        psi = np.arctan2(matrix[2, 1], matrix[2, 2])
+        theta = np.arctan2(matrix[1, 0], matrix[0, 0])
     else:
         # Gimbal lock fallback
         psi = 0.0
-        theta = np.arctan2(-M[0, 1], M[1, 1])
+        theta = np.arctan2(-matrix[0, 1], matrix[1, 1])
 
     return psi, phi, theta
 

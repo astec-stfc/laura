@@ -43,12 +43,32 @@ from ._generated import (
     _PhysicalAcceleratorElementBase,
     _PIDBase,
     _PlasmaBase,
+    _PhotonMonitorBase,
     _QuadrupoleBase,
     _RFCavityBase,
+    _CrabCavityBase,
+    _WakefieldBase,
     _RFDeflectingCavityBase,
     _RFHeartbeatBase,
     _RFModulatorBase,
     _RFProtectionBase,
+    _RFHeartbeatBase,
+    _ShutterBase,
+    _ValveBase,
+    _MarkerBase,
+    _ApertureBase,
+    _CollimatorBase,
+    _DriftBase,
+    _MatrixTransformBase,
+    _ElectrostaticSeparatorBase,
+    _ACDipoleBase,
+    _HorizontalACDipoleBase,
+    _VerticalACDipoleBase,
+    _WireBase,
+    _BeamBeamBase,
+    _RFMultipoleBase,
+    _DipoleBase,
+    _QuadrupoleBase,
     _ScreenBase,
     _SextupoleBase,
     _ShutterBase,
@@ -118,10 +138,17 @@ from .simulation import (
     DiagnosticSimulationElement,
     DriftSimulationElement,
     MagnetSimulationElement,
+    DiagnosticSimulationElement,
+    MatrixTransformSimulationElement,
     PlasmaSimulationElement,
     RFCavitySimulationElement,
     SimulationElement,
     TwissMatchSimulationElement,
+    ElectrostaticSeparatorSimulationElement,
+    ACDipoleSimulationElement,
+    WireSimulationElement,
+    BeamBeamSimulationElement,
+    RFMultipoleSimulationElement,
     WakefieldSimulationElement,
 )
 
@@ -255,7 +282,7 @@ class BaseElement(
 class Element(BaseElement, _ElementBase):
     """
     Standard class for representing elements.
-    Inherits from `baseElement` which wraps schema base `_AcceleratorElementBase`.
+    Inherits from `BaseElement` which wraps schema base `_AcceleratorElementBase`.
     Adds StandardElement fields: simulation, electrical, manufacturer, controls, reference.
 
     Attributes:
@@ -577,6 +604,29 @@ class TwissMatch(PhysicalBaseElement, _TwissMatchBase):
         super().model_post_init(__context)
         _ensure_nested_default(self, "simulation", TwissMatchSimulationElement)
 
+class MatrixTransform(PhysicalBaseElement, _MatrixTransformBase):
+    """
+    Matrix transform element. Applies an instantaneous matrix kick to the beam, up to 2nd order.
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.MatrixSimulationElement`): The simulation attributes of the matrix element.
+    """
+
+    hardware_type: str = Field(default="MatrixTransform", frozen=True)
+    """Twiss match hardware type."""
+
+    hardware_class: str = Field(default="Simulation", frozen=True)
+    """Twiss match hardware class."""
+
+    simulation: Optional[MatrixTransformSimulationElement] = None
+    """Simulation attributes of the matrix element."""
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        _ensure_nested_default(self, "simulation", MatrixTransformSimulationElement)
+
 
 class Diagnostic(PhysicalBaseElement, _DiagnosticBase):
     """
@@ -671,7 +721,7 @@ class BunchLengthMonitor(Diagnostic, _BunchLengthMonitorBase):
         _ensure_nested_default(self, "diagnostic", BunchLengthMonitorDiagnostic)
 
 
-class PhotonMonitor(Diagnostic):
+class PhotonMonitor(Diagnostic, _PhotonMonitorBase):
     """
     Photon monitor element.
 
@@ -1148,6 +1198,32 @@ class RFDeflectingCavity(RFCavity, _RFDeflectingCavityBase):
         _ensure_nested_default(self, "cavity", RFDeflectingCavityElement)
         _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
 
+class CrabCavity(RFCavity, _CrabCavityBase):
+    """
+    Crab Cavity element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the crab cavity.
+        hardware_model (str): The specific hardware model of the crab cavity.
+        cavity (:class:`~laura.models.RF.RFDeflectingCavityElement`): The RF cavity attributes of the element.
+        simulation: (:class:`~laura.models.simulation.RFCavitySimulationElement`): The simulation
+        attributes of the crab cavity.
+    """
+
+    hardware_type: str = Field(default="CrabCavity", frozen=True)
+    """Crab cavity hardware type."""
+
+    hardware_model: str = Field(default="SBand", frozen=True)
+    """Crab cavity hardware model."""
+
+    cavity: Optional[RFDeflectingCavityElement] = None
+    """Crab-cavity RF structure parameters."""
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        _ensure_nested_default(self, "cavity", RFDeflectingCavityElement)
+        _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
+
 
 class RFModulator(Element, _RFModulatorBase):
     """
@@ -1350,6 +1426,162 @@ class Drift(PhysicalBaseElement, _DriftBase):
         _ensure_nested_default(self, "simulation", DriftSimulationElement)
 
 
+class ElectrostaticSeparator(PhysicalBaseElement, _ElectrostaticSeparatorBase):
+    """
+    Electrostatic separator element: a static-field electrode pair providing a
+    transverse deflection (see the MAD-X ``ELSEPARATOR`` element; no equivalent
+    exists in ELEGANT or Xsuite).
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.ElectrostaticSeparatorSimulationElement`):
+        The simulation attributes of the separator.
+    """
+
+    hardware_type: str = Field(default="ElectrostaticSeparator", frozen=True)
+    """Electrostatic separator hardware type."""
+
+    hardware_class: str = Field(default="Generic", frozen=True)
+    """Electrostatic separator hardware class."""
+
+    simulation: Optional[ElectrostaticSeparatorSimulationElement] = None
+    """Electrostatic-separator simulation attributes."""
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        _ensure_nested_default(self, "simulation", ElectrostaticSeparatorSimulationElement)
+
+
+class ACDipole(PhysicalBaseElement, _ACDipoleBase):
+    """
+    Base class for AC dipole / tune-exciter elements: a thin, RF-driven kicker
+    used for AC-dipole tune and optics measurements (see the MAD-X
+    ``HACDIPOLE``/``VACDIPOLE`` elements and the Xsuite ``ACDipole`` element).
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.ACDipoleSimulationElement`):
+        The simulation attributes of the exciter.
+    """
+
+    hardware_class: str = Field(default="Magnet", frozen=True)
+    """AC dipole hardware class."""
+
+    simulation: Optional[ACDipoleSimulationElement] = None
+    """AC-dipole simulation attributes."""
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        _ensure_nested_default(self, "simulation", ACDipoleSimulationElement)
+
+
+class HorizontalACDipole(ACDipole, _HorizontalACDipoleBase):
+    """
+    Horizontal AC dipole / tune-exciter element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+    """
+
+    hardware_type: str = Field(default="Horizontal_AC_Dipole", frozen=True)
+    """Horizontal AC dipole hardware type."""
+
+
+class VerticalACDipole(ACDipole, _VerticalACDipoleBase):
+    """
+    Vertical AC dipole / tune-exciter element.
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+    """
+
+    hardware_type: str = Field(default="Vertical_AC_Dipole", frozen=True)
+    """Vertical AC dipole hardware type."""
+
+
+class Wire(PhysicalBaseElement, _WireBase):
+    """
+    Compensating wire element: a current-carrying wire used for long-range
+    beam-beam compensation (see the MAD-X ``WIRE`` element and the Xsuite
+    ``Wire`` element).
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.WireSimulationElement`):
+        The simulation attributes of the wire.
+    """
+
+    hardware_type: str = Field(default="Wire", frozen=True)
+    """Wire hardware type."""
+
+    hardware_class: str = Field(default="Diagnostic", frozen=True)
+    """Wire hardware class."""
+
+    simulation: Optional[WireSimulationElement] = None
+    """Wire simulation attributes."""
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        _ensure_nested_default(self, "simulation", WireSimulationElement)
+
+
+class BeamBeam(PhysicalBaseElement, _BeamBeamBase):
+    """
+    Beam-beam interaction element: a weak-strong kick representing the
+    electromagnetic field of an opposing (colliding) bunch (see the MAD-X
+    ``BEAMBEAM`` element).
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.BeamBeamSimulationElement`):
+        The simulation attributes of the interaction.
+    """
+
+    hardware_type: str = Field(default="BeamBeam", frozen=True)
+    """Beam-beam hardware type."""
+
+    hardware_class: str = Field(default="Simulation", frozen=True)
+    """Beam-beam hardware class."""
+
+    simulation: Optional[BeamBeamSimulationElement] = None
+    """Beam-beam simulation attributes."""
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        _ensure_nested_default(self, "simulation", BeamBeamSimulationElement)
+
+
+class RFMultipole(PhysicalBaseElement, _RFMultipoleBase):
+    """
+    Thin RF multipole element: a zero-length multipole kick whose strength
+    oscillates at an RF frequency, up to 5th order (see the MAD-X
+    ``RFMULTIPOLE`` element and the Xsuite ``RFMultipole`` element).
+
+    Attributes:
+        hardware_type (str): The hardware type of the element.
+        hardware_class (str): The hardware class of the element.
+        simulation (:class:`~laura.models.simulation.RFMultipoleSimulationElement`):
+        The simulation attributes of the multipole.
+    """
+
+    hardware_type: str = Field(default="RFMultipole", frozen=True)
+    """RF multipole hardware type."""
+
+    hardware_class: str = Field(default="RF", frozen=True)
+    """RF multipole hardware class."""
+
+    simulation: Optional[RFMultipoleSimulationElement] = None
+    """RF-multipole simulation attributes."""
+
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        _ensure_nested_default(self, "simulation", RFMultipoleSimulationElement)
+
+
 ELEMENT_REGISTRY: dict[str, type] = {
     _field.default: _cls
     for _cls in list(vars().values())
@@ -1372,10 +1604,12 @@ __getattr__ = deprecated_aliases(
         "Bunch_Length_Monitor": "BunchLengthMonitor",
         "Combined_Corrector": "CombinedCorrector",
         "Faraday_Cup_Monitor": "FaradayCupMonitor",
+        "Horizontal_AC_Dipole": "HorizontalACDipole",
         "Horizontal_Corrector": "HorizontalCorrector",
         "Integrated_Current_Transformer": "IntegratedCurrentTransformer",
         "Low_Level_RF": "LowLevelRF",
         "Photon_Monitor": "PhotonMonitor",
+        "Vertical_AC_Dipole": "VerticalACDipole",
         "Vertical_Corrector": "VerticalCorrector",
         "Wall_Current_Monitor": "WallCurrentMonitor",
         "baseElement": "BaseElement",

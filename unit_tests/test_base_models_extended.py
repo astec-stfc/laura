@@ -19,17 +19,11 @@ from laura.models._generated import _MagneticElementBase
 
 class TestFunctionalAnnotationsBendAngle:
     def test_flat_functional_marker_short_circuits(self):
-        # Dipole_Magnet's hand-written override sets a flat {"functional": True,
-        # "reserved_contains": "angle"} json_schema_extra directly, hitting the
-        # early-return branch rather than the in_subset-derived one below.
         field_info = DipoleMagnet.model_fields["entrance_edge_angle"]
         meta = functional_annotations(field_info)
         assert meta == {"functional": True, "reserved_contains": "angle"}
 
     def test_bend_angle_marker_derived_from_in_subset(self):
-        # The LinkML-generated base instead expresses this via subset
-        # membership (in_subset: [functional_parameters, bend_angle_reference]),
-        # exercising the subset-parsing branch of functional_annotations.
         field_info = _MagneticElementBase.model_fields["entrance_edge_angle"]
         meta = functional_annotations(field_info)
         assert meta == {"functional": True, "reserved_contains": "angle"}
@@ -69,17 +63,6 @@ class TestModelBaseEqFallback:
 
 
 class TestIgnoreExtraFieldHelpers:
-    def test_create_field_class_calls_from_catap(self):
-        class FakeFieldClass:
-            @classmethod
-            def from_CATAP(cls, fields):
-                return "built"
-
-        ie = IgnoreExtra()
-        fields = {}
-        ie._create_field_class(fields, "myfield", FakeFieldClass)
-        assert fields["myfield"] == "built"
-
     def test_create_field_collects_inputs(self):
         ie = IgnoreExtra()
         fields = {"a": 1, "b": 2}

@@ -24,12 +24,12 @@ from pydantic import (
     model_validator,
 )
 from typing import Literal, List
-from . import astra  # noqa E402
-from . import gdf  # noqa E402
-from . import hdf5  # noqa E402
-from . import sdds  # noqa E402
-from . import opal  # noqa E402
-from . import rftrack  # noqa E402
+from . import astra  # noqa: E402
+from . import gdf  # noqa: E402
+from . import hdf5  # noqa: E402
+from . import sdds  # noqa: E402
+from . import opal  # noqa: E402
+from . import rftrack  # noqa: E402
 
 allowed_fields = [
     "1DElectroStatic",
@@ -139,10 +139,10 @@ class FieldMap(BaseModel):
     read: bool = False
     """Flag indicating whether the field file has been read."""
 
-    length: int | None = None
+    length: int | float | np.float64 | None = None
     """Length of the field, if applicable."""
 
-    frequency: float | np.int64 | None = None
+    frequency: float | np.int64 | np.float64 | None = None
     """Frequency of the field, if applicable."""
 
     radius: float | None = (
@@ -150,7 +150,7 @@ class FieldMap(BaseModel):
     )
     """Radius of the field, if applicable, defaults TO 10cm in write_opal_field_file."""
 
-    fourier: int = 100
+    fourier: int | np.int64 = 100
     """Number of Fourier modes for the field, default is 100."""
 
     cavity_type: cavitytype | None = None

@@ -123,19 +123,19 @@ class TestLinearSaturationFitCurrentToKBranches:
         # Cubic-root branch; just exercise it without asserting a particular value.
         lsf.k_to_current(result["K"], momentum=1e9)
 
-    def test_kl_to_current_from_dict_with_KL_key(self):
+    def test_kl_to_current_from_dict_with_kl_key(self):
         lsf = LinearSaturationFit(m=0.01, I_max=100.0, f=0.9, a=0.001, I0=0.0, d=0.0, L=0.3)
         result = lsf.current_to_k(50.0, momentum=1e9)
         current = lsf.kl_to_current({"KL": result["KL"]}, momentum=1e9)
         assert current == pytest.approx(50.0, rel=0.01)
 
-    def test_kl_to_current_from_dict_with_K_key(self):
+    def test_kl_to_current_from_dict_with_k_key(self):
         lsf = LinearSaturationFit(m=0.01, I_max=100.0, f=0.9, a=0.001, I0=0.0, d=0.0, L=0.3)
         result = lsf.current_to_k(50.0, momentum=1e9)
         current = lsf.kl_to_current({"K": result["K"]}, momentum=1e9)
         assert current == pytest.approx(50.0, rel=0.01)
 
-    def test_k_to_current_from_dict_with_KL_key(self):
+    def test_k_to_current_from_dict_with_kl_key(self):
         lsf = LinearSaturationFit(m=0.01, I_max=100.0, f=0.9, a=0.001, I0=0.0, d=0.0, L=0.3)
         result = lsf.current_to_k(50.0, momentum=1e9)
         current = lsf.k_to_current({"KL": result["KL"]}, momentum=1e9)

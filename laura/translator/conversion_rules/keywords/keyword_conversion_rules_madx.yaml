@@ -38,3 +38,7 @@ rfdeflectingcavity:
   frequency: freq
   field_amplitude: volt
   phase: lag
+crabcavity:
+  frequency: freq
+  field_amplitude: volt
+  phase: lag

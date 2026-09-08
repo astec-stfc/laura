@@ -204,7 +204,7 @@ def export_machine(
         The auto-generated ``MachineModel.id`` that identifies this snapshot.
     """
     orm = _load_orm()
-    _, Session = _make_session_factory(db_url, orm) # noqa N806
+    _, Session = _make_session_factory(db_url, orm) # noqa: N806
 
     with Session() as session:
         # ── Elements ──────────────────────────────────────────────────────────
@@ -304,7 +304,7 @@ def load_machine_elements(
         If no ``MachineModel`` with the given *machine_id* exists.
     """
     orm = _load_orm()
-    _, Session = _make_session_factory(db_url, orm) # noqa N806
+    _, Session = _make_session_factory(db_url, orm) # noqa: N806
 
     with Session() as session:
         mm = session.get(orm.MachineModel, machine_id)
@@ -349,7 +349,7 @@ def load_machine_sections(
         If no ``MachineModel`` with the given *machine_id* exists.
     """
     orm = _load_orm()
-    _, Session = _make_session_factory(db_url, orm) # noqa N806
+    _, Session = _make_session_factory(db_url, orm) # noqa: N806
 
     with Session() as session:
         mm = session.get(orm.MachineModel, machine_id)

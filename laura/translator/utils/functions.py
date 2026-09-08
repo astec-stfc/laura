@@ -3,10 +3,12 @@ import os
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
+from typing import Any, Dict, Type, get_args, get_origin, Union, Literal
+
+from laura.models.element import Magnet
 from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.models.base_models import IgnoreExtra
 from laura.translator.utils.fields import FieldMap
-from typing import Any, Dict, Type
 
 
 def elegant_functional_definitions(definitions: Dict | None = None) -> str:
@@ -150,15 +152,15 @@ def chop(expr, delta=1e-8):
         return [chop(x, delta) for x in expr]
 
 
-def get_field_default(field: FieldInfo) -> Any:
+def get_field_default(fiel: FieldInfo) -> Any:
     """Get the default value or instance from a field definition."""
-    if callable(field.default_factory):
+    if callable(fiel.default_factory):
         try:
-            return field.default_factory()
+            return fiel.default_factory()
         except Exception:
             return "FACTORY_ERROR"
-    if field.default is not None:
-        return field.default
+    if fiel.default is not None:
+        return fiel.default
     return None
 
 
@@ -171,8 +173,8 @@ def introspect_model_defaults(
     """Recursively introspect a Pydantic model class, extracting default values (including nested)."""
     result = {}
 
-    for field_name, field in model_cls.model_fields.items():
-        default_value = get_field_default(field)
+    for field_name, fiel in model_cls.model_fields.items():
+        default_value = get_field_default(fiel)
 
         # If the default value is a BaseModel (e.g., from default_factory), recurse
         if isinstance(default_value, BaseModel):
@@ -199,7 +201,7 @@ def introspect_model_defaults(
     return result
 
 
-def isevaluable(self, s):
+def isevaluable(s):
     try:
         eval(s)
         return True
@@ -223,7 +225,7 @@ def expand_substitution(
         regex = re.compile(r"\$(.*?)\$")
         s = re.search(regex, param)
         if s:
-            if isevaluable(self, s.group(1)) is True:
+            if isevaluable(s.group(1)):
                 replaced_str = str(eval(re.sub(regex, str(eval(s.group(1))), param)))
             else:
                 replaced_str = re.sub(regex, s.group(1), param)

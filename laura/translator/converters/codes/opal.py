@@ -3,6 +3,17 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, List, Any, Literal
 from ...utils.classes import get_grid_size
 
+opal_unsupported = [
+    "Laser",
+    "Plasma",
+    "Decapole",
+    "RFDeflectingCavity",
+    "Plasma",
+    "TwissMatch",
+    "MatrixTransform",
+    "ActivePlasmaLens",
+    "CrabCavity",
+]
 
 class OpalHeader(DeprecatedMethodAliases, BaseModel):
     """

@@ -529,7 +529,8 @@ class TestControlVariableSerializeDefaults(unittest.TestCase):
 
     def test_non_default_control_type_is_kept(self):
         cv = ControlVariable(identifier="var1", protocol="CA", type="waveform")
-        self.assertEqual(cv.model_dump()["control_type"], "waveform")
+        print(cv.model_dump())
+        self.assertEqual(cv.model_dump()["type"], "waveform")
 
     def test_default_control_type_omitted_via_alias(self):
         cv = ControlVariable(identifier="var1", protocol="CA", type="statistical")

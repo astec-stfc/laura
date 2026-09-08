@@ -82,8 +82,8 @@ class TestLinearSaturationFit:
 
     def test_k_to_current(self, lsf):
         k_result = lsf.current_to_k(50.0, momentum=1e9)
-        K = k_result["K"]
-        current = lsf.k_to_current(K, momentum=1e9)
+        k = k_result["K"]
+        current = lsf.k_to_current(k, momentum=1e9)
         assert current == pytest.approx(50.0, rel=0.01)
 
     def test_from_string(self):

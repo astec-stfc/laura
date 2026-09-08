@@ -23,18 +23,18 @@ magnet_table = pandas.read_excel(
 ).fillna(0)
 
 
-def create_degauss_values(maxI): # noqa N806
-    if maxI < 10.0:
-        maxI = 10.0 # noqa N806
+def create_degauss_values(max_current): # noqa: N806
+    if max_current < 10.0:
+        max_current = 10.0 # noqa: N806
     return [
-        round(ceil(maxI) / 10.0 * v, 2)
+        round(ceil(max_current) / 10.0 * v, 2)
         for v in [9.98, -9.98, 6.0, -6.0, 4.0, -4.0, 2.0, -2.0, 1.0, -1.0, 0.0]
     ]
 
 
-def add_magnet_table_parameters(n, e, magnetPV): # noqa N806
+def add_magnet_table_parameters(n, e, magnet_pv): # noqa: N806
     try:
-        mag_pv_split = magnetPV.split("-")
+        mag_pv_split = magnet_pv.split("-")
         magnet = (
             mag_pv_split[0].replace("EBT", "CLA"),
             mag_pv_split[1].replace("HRG1", "GUN"),

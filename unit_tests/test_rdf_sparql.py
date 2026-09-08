@@ -86,27 +86,27 @@ class TestBuildRdfGraph:
         from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
-        LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
+        laura_ns = rdflib.Namespace("https://w3id.org/laura/")
         quad_uri = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
         types = list(g.objects(quad_uri, rdflib.RDF.type))
-        assert LAURA_NS["Quadrupole"] in types
+        assert laura_ns["Quadrupole"] in types
 
     def test_name_triple(self, small_machine):
         from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
-        LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
+        laura_ns = rdflib.Namespace("https://w3id.org/laura/")
         quad_uri = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
-        names = list(g.objects(quad_uri, LAURA_NS["name"]))
+        names = list(g.objects(quad_uri, laura_ns["name"]))
         assert rdflib.Literal("Q1") in names
 
     def test_physical_length_triple(self, small_machine):
         from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
-        LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
+        laura_ns = rdflib.Namespace("https://w3id.org/laura/")
         quad_uri = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
-        lengths = list(g.objects(quad_uri, LAURA_NS["length"]))
+        lengths = list(g.objects(quad_uri, laura_ns["length"]))
         assert len(lengths) == 1
         assert abs(float(lengths[0]) - 0.3) < 1e-9
 
@@ -114,10 +114,10 @@ class TestBuildRdfGraph:
         from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
-        LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
+        laura_ns = rdflib.Namespace("https://w3id.org/laura/")
         quad_uri = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
-        xs = list(g.objects(quad_uri, LAURA_NS["position_x"]))
-        zs = list(g.objects(quad_uri, LAURA_NS["position_z"]))
+        xs = list(g.objects(quad_uri, laura_ns["position_x"]))
+        zs = list(g.objects(quad_uri, laura_ns["position_z"]))
         assert len(xs) == 1
         assert abs(float(xs[0]) - 1.0) < 1e-9
         assert len(zs) == 1
@@ -127,9 +127,9 @@ class TestBuildRdfGraph:
         from laura.exporters.rdf_exporter import build_rdf_graph
 
         g = build_rdf_graph(small_machine, machine_name="test")
-        LAURA_NS = rdflib.Namespace("https://w3id.org/laura/")
+        laura_ns = rdflib.Namespace("https://w3id.org/laura/")
         quad_uri = rdflib.URIRef("https://w3id.org/laura/test/SEC/Q1")
-        areas = list(g.objects(quad_uri, LAURA_NS["machine_area"]))
+        areas = list(g.objects(quad_uri, laura_ns["machine_area"]))
         assert rdflib.Literal("SEC") in areas
 
 

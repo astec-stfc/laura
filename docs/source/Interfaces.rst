@@ -45,13 +45,6 @@ SimFrame
 :py:mod:`laura.importers.simframe_loader` converts lattices written for the ASTeC SimFrame
 framework into :mod:`LAURA` elements.
 
-.. warning::
-
-   :py:mod:`laura.importers.catap_loader`, :py:mod:`laura.importers.my_safe_loader` and
-   :py:mod:`laura.exporters.export_catap_yaml` still use pre-package absolute imports
-   (``from Importers... import``) and a ``laura.models.PV`` module that no longer exists.
-   They cannot currently be imported, and are mocked out when this documentation is built.
-
 .. _exporters:
 
 Exporters
@@ -136,12 +129,6 @@ Requires ``pip install "laura-accelerator[sql]"``.
 
     elements = load_machine_elements("sqlite:///machine.db", machine_id)
     sections = load_machine_sections("sqlite:///machine.db", machine_id)
-
-CATAP
-~~~~~
-
-:py:mod:`laura.exporters.catap_exporter` writes elements in the format used by the CATAP control-system
-abstraction layer, via ``export_machine(path, machine)`` or ``export_machine_dict(machine)``.
 
 .. _sparql-queries:
 

@@ -6,6 +6,12 @@ import laura.models.element as laura_elements
 from laura.models.element_list import SectionLattice, MachineLayout, ElementList
 from ...utils.elegant.sdds_classes_aps import SddsFloor, SddsParams
 
+elegant_unsupported = [
+    "Plasma",
+    "Decapole",
+    "ActivePlasmaLens",
+    "CrabCavity",
+]
 
 class ElegantLatticeImporter(BaseModel):
     params_file: str

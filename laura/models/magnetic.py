@@ -282,7 +282,7 @@ class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
         else:
             return {"gradient": gradient, "int_strength": int_strength}
 
-    def kl_to_current(self, KL: float | dict, momentum: float) -> float: # noqa N806
+    def kl_to_current(self, KL: float | dict, momentum: float) -> float: # noqa: N806
         """
         Convert the normalized strength (K value) of the magnetic field to the corresponding current.
 
@@ -302,13 +302,13 @@ class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
         m, i_max, f, a, i0, d, l = list(self.coefficients)
         if isinstance(KL, dict):
             if "KL" in KL:
-                KL = KL["KL"] # noqa N806
+                KL = KL["KL"] # noqa: N806
             elif "K" in KL:
-                KL = KL["K"] * l / 1000  # noqa N806
+                KL = KL["K"] * l / 1000  # noqa: N806
         k = KL / (l / 1000) if l != 0 else 0.0
         return self.k_to_current(k, momentum)
 
-    def k_to_current(self, K: float | dict, momentum: float) -> float: # noqa N806
+    def k_to_current(self, K: float | dict, momentum: float) -> float: # noqa: N806
         """
         Convert the normalized strength (K value) of the magnetic field to the corresponding current.
         This method calculates the current required to produce a given normalized strength (K value)
@@ -327,12 +327,12 @@ class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
         m, i_max, f, a, i0, d, l = list(self.coefficients)
         if isinstance(K, dict):
             if "K" in K:
-                K = K["K"]  # noqa N806
+                K = K["K"]  # noqa: N806
             elif "KL" in K:
-                K = K["KL"] / (l / 1000) if l != 0 else 0.0  # noqa N806
+                K = K["KL"] / (l / 1000) if l != 0 else 0.0  # noqa: N806
             else:
                 raise ValueError(f"K value not found in the dictionary {K}")
-        # Inverse of currentToK scale: order-0 uses 1e9, order-1+ uses 1e6
+        # Inverse of current_to_k scale: order-0 uses 1e9, order-1+ uses 1e6
         scale = 1e9 if self.order == 0 else 1e6
         int_strength = scale * K * l * momentum / speed_of_light
         int_strength *= 1e-3  # L is in mm, convert K·L_m back to int_strength units
@@ -593,16 +593,16 @@ class DipoleMagnet(MagneticElement):
         output_dict.update({"degrees": output_dict["KL"] * 360 / (2.0 * np.pi)})
         return output_dict
 
-    def k_to_current(self, K, momentum): # noqa N806
-        """Reverse the /1000 scaling applied by currentToK."""
+    def k_to_current(self, K, momentum): # noqa: N806
+        """Reverse the /1000 scaling applied by current_to_k."""
         if isinstance(K, dict):
             k = {k: v * 1000 for k, v in K.items() if isinstance(v, (int, float))}
         else:
             k = K * 1000
         return self.linear_saturation_coefficients.k_to_current(k, momentum)
 
-    def kl_to_current(self, KL, momentum): # noqa N806
-        """Reverse the /1000 scaling applied by currentToK."""
+    def kl_to_current(self, KL, momentum): # noqa: N806
+        """Reverse the /1000 scaling applied by current_to_k."""
         if isinstance(KL, dict):
             kl = {k: v * 1000 for k, v in KL.items() if isinstance(v, (int, float))}
         else:
@@ -729,7 +729,7 @@ class SolenoidFields(solenoid_fields_data, _SolenoidFieldsBase):
     def normal(self, order: int) -> Union[int, float, str]:
         """The solenoid field of a given order as stored (a number, or the name
         of a functional definition); resolved on demand via
-        :attr:`Solenoid_Magnet.field_amplitude`."""
+        :attr:`SolenoidMagnet.field_amplitude`."""
         return getattr(self, "S" + str(order) + "L")
 
     def __eq__(self, other: Any) -> bool:
@@ -827,7 +827,7 @@ class NonLinearLensMagnet(_NonLinearLensMagnetBase, IgnoreExtra):
     .. _PAC2011 article: https://proceedings.jacow.org/PAC2011/papers/wep070.pdf
     """
 
-    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
+    # See the comment on SolenoidMagnet.model_config -- same reasoning.
     model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
@@ -862,7 +862,7 @@ class CorrectorMagnet(_CorrectorMagnetBase, IgnoreExtra):
     both simultaneously.
     """
 
-    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
+    # See the comment on SolenoidMagnet.model_config -- same reasoning.
     model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
@@ -892,7 +892,7 @@ class WigglerMagnet(_WigglerMagnetBase, IgnoreExtra):
     Undulator magnet.
     """
 
-    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
+    # See the comment on SolenoidMagnet.model_config -- same reasoning.
     model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")

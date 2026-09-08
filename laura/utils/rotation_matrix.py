@@ -122,7 +122,7 @@ def element_start_position(
     )
 
 
-def rotation_matrix_to_euler(R: np.ndarray) -> tuple: # noqa N803
+def rotation_matrix_to_euler(R: np.ndarray) -> tuple: # noqa: N803
     """
     Extract (yaw, pitch, roll) Euler angles from a 3x3 rotation matrix.
 

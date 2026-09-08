@@ -9,24 +9,8 @@ laura.exporters package
 Submodules
 ----------
 
-laura.exporters.catap_exporter module
--------------------------------------
-
-.. automodule:: laura.exporters.catap_exporter
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-laura.exporters.export\_catap\_yaml module
-------------------------------------------
-
-.. automodule:: laura.exporters.export_catap_yaml
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 laura.exporters.rdf_exporter module
------------------------------------
+--------------------------
 
 .. automodule:: laura.exporters.rdf_exporter
    :members:
