@@ -1,11 +1,16 @@
-from pydantic import BaseModel, model_serializer, ConfigDict
-from typing import TypeVar, Any, Type, List, Union, Dict, ClassVar
+from typing import Any, ClassVar, Dict, List, Type, TypeVar, Union
+
 import numpy as np
+from pydantic import BaseModel, ConfigDict, model_serializer
 from pydantic_core.core_schema import SerializationInfo
 
 from ..utils.dict_utils import (
-    StringWithQuotes as string_with_quotes,
     FlowList as flow_list,
+)
+from ..utils.dict_utils import (
+    StringWithQuotes as string_with_quotes,
+)
+from ..utils.dict_utils import (
     numpy_scalar_to_python,
 )
 
