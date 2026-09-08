@@ -304,6 +304,11 @@ class IgnoreExtra(ModelBase, FunctionalMixin):
     # functional parameters present resolved numbers instead.
     resolve_functional: ClassVar[bool] = False
 
+    def _create_field(
+        self, fields: dict, fieldname: str, fieldinputs: List[str]
+    ) -> None:
+        fields[fieldname] = [fields[x] for x in fieldinputs]
+
     def update(self, **kwargs):
         cls = self.__class__
         [
