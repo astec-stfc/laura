@@ -59,6 +59,25 @@ def split_occurrence(name: str) -> tuple[str, int | None]:
     return base, int(number)
 
 
+def flatten_occurrence(name: str, number: int | None = None) -> str:
+    """``NAME#N`` -> the ``NAME.N`` a flattened export writes for that pass.
+
+    ``#N`` addresses a traversal; ``.N`` names the copy export makes of it.
+
+    The pass number goes before any within-section repeat index, so a
+    section listing ``DRIFT`` twice gives ``DRIFT.2#1`` -> ``DRIFT.1.2``:
+    occurrence first, then the repeat.
+    """
+    base, occurrence = split_occurrence(name)
+    occurrence = number if occurrence is None else occurrence
+    if occurrence is None:
+        return base
+    stem, _, tail = base.rpartition(".")
+    if stem and tail.isdigit():
+        return f"{stem}.{occurrence}.{tail}"
+    return f"{base}.{occurrence}"
+
+
 def normalise_lattice_type(
     lattice_type: str | None,
     *,

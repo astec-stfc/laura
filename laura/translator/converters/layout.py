@@ -1,7 +1,11 @@
 from typing import Any, Dict, Iterator, Tuple
 
 from laura.models.control import set_attr_by_path
-from laura.models.elementList import MachineLayout, SectionLattice
+from laura.models.elementList import (
+    MachineLayout,
+    SectionLattice,
+    flatten_occurrence,
+)
 from laura.models.reversal import reverse_section
 
 from .converter import translate_elements
@@ -106,14 +110,10 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         if number is None:
             return {}
 
-        def renamed(name: str) -> str:
-            base, _, tail = name.rpartition(".")
-            if base and tail.isdigit():
-                return f"{base}.{number}.{tail}"
-            return f"{name}.{number}"
-
-        names = {name: renamed(name) for name in section.order}
-        names[section.name] = f"{section.name}.{number}"
+        names = {
+            name: flatten_occurrence(name, number) for name in section.order
+        }
+        names[section.name] = flatten_occurrence(section.name, number)
         return names
 
     @staticmethod
