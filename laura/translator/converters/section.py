@@ -833,7 +833,12 @@ class SectionLatticeTranslator(SectionLattice):
         return full_segment
 
     def to_xsuite(
-        self, beam_length: int, env: Any = None, particle_ref: Any = None, save=True
+        self,
+        beam_length: int,
+        env: Any = None,
+        particle_ref: Any = None,
+        save=True,
+        turns: int = 1,
     ) -> "Line":
         """
         Create an Xsuite-compatible lattice line object based on the lattice information.
@@ -848,6 +853,8 @@ class SectionLatticeTranslator(SectionLattice):
             xtrack Particles object
         save: bool
             Flag to indicate whether to save the `Line` to JSON.
+        turns: int
+            How many turns the line will be tracked for.
 
         Returns
         -------
@@ -891,6 +898,8 @@ class SectionLatticeTranslator(SectionLattice):
                     name, component, properties = element.to_xsuite(
                         beam_length=beam_length
                     )
+                if turns > 1 and "stop_at_turn" in properties:
+                    properties["stop_at_turn"] = int(turns)
                 if any(_is_symbolic(v) for v in properties.values()):
                     env.new(element.name, component, **properties)
                     line.append(element.name)
