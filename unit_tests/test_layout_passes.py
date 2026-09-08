@@ -95,11 +95,13 @@ class TestPassesAreTheBeamOrder:
         ]
 
     def test_the_element_list_follows_the_passes(self, erl):
+        # Qualified because a multipass name is not an address: see
+        # test_layout_occurrences.py.
         assert erl.lattices["ERL"].elements == [
             "INJ_Q",
-            "LIN_C",
+            "LIN_C#1",
             "ARC_B",
-            "LIN_C",
+            "LIN_C#2",
             "DMP_Q",
         ]
 
@@ -155,7 +157,7 @@ class TestRefusesIncoherentMultipass:
         # Multipass is a claim about hardware, so it holds for every occurrence
         # or none: a section cannot be two devices on one pass and one on the
         # next.
-        with pytest.raises(ValueError, match="on all of them or none"):
+        with pytest.raises(ValueError, match="marks some occurrences"):
             machine(["INJECTOR", {"LINAC": {"multipass": 1}}, "ARC", "LINAC"])
 
     def test_a_section_entered_once_cannot_be_multipass(self):
@@ -203,22 +205,10 @@ class TestRefusesIncoherentMultipass:
             machine(["INJECTOR", {"LINAC": {"nonsense": 1}}])
 
 
-class TestNameKeyedLookupsRefuseRatherThanGuess:
-    def test_arc_lengths_refuses(self, erl):
-        # It returns Dict[str, float] and skips a name it has already seen, so
-        # it would report one pass and drop the rest.
-        with pytest.raises(LatticeError, match="multipass"):
-            erl.lattices["ERL"].arc_lengths()
-
-    def test_elements_between_refuses(self, erl):
-        # This is the call simba builds every lattice line from, so answering
-        # for the first pass would produce a malformed line, silently.
-        with pytest.raises(LatticeError, match="multipass"):
-            erl.elements_between(start="INJ_Q", end="DMP_Q", path="ERL")
-
-    def test_the_refusal_names_the_passes(self, erl):
-        with pytest.raises(LatticeError, match=r"LINAC#1, LINAC#2"):
-            erl.lattices["ERL"].arc_lengths()
+class TestNameKeyedLookups:
+    """Occurrence addressing is what makes these answerable: see
+    ``test_layout_occurrences.py``.  Here only that the path is answerable
+    at all, and where it still is not."""
 
     def test_getting_the_element_still_works(self, erl):
         assert erl.get_element("LIN_C").name == "LIN_C"

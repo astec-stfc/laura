@@ -157,7 +157,9 @@ class TestDirectionFollowsTheOccurrence:
 
 class TestRefusesWhatCannotBeRepetition:
     def test_occurrences_with_different_directions_are_refused(self):
-        with pytest.raises(ValueError, match="multipass"):
+        # Anchored on the condition, not the explanation: the prose half of
+        # these messages gets trimmed, the claim does not.
+        with pytest.raises(ValueError, match="different 'direction' each time"):
             machine(
                 {"CELL": ["Q1", "D1"]},
                 ["CELL", {"CELL": {"direction": -1}}],
@@ -171,7 +173,7 @@ class TestRefusesWhatCannotBeRepetition:
             )
 
     def test_a_positioned_section_cannot_be_repeated(self):
-        with pytest.raises(ValueError, match="on top of each other"):
+        with pytest.raises(ValueError, match="states its own positions"):
             MachineModel(
                 elements={"QP": quad("QP", 0.2, s=1.0)},
                 section={"sections": {"POS": ["QP"]}},

@@ -689,7 +689,7 @@ class _SectionLatticeBase(ConfiguredBaseModel):
 
 class _LayoutPassBase(ConfiguredBaseModel):
     """
-    One traversal of one section by one beam path. A layout's passes are its beam order, one entry per occurrence, so a section entered more than once has more than one pass.
+    One traversal of one section by one beam path.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:LayoutPass',
          'from_schema': 'https://w3id.org/laura/schema/machine'})
@@ -698,8 +698,8 @@ class _LayoutPassBase(ConfiguredBaseModel):
     """Name of the section traversed on this pass."""
     direction: int = Field(default=1, description="""1 if this pass traverses the section forwards, -1 if backwards. A property of the path, not of the section.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LayoutPass'], 'ifabsent': 'int(1)'} })
     """1 if this pass traverses the section forwards, -1 if backwards. A property of the path, not of the section."""
-    number: Optional[int] = Field(default=None, description="""Multipass occurrence number, counting from 1, when this pass re-enters hardware an earlier pass already traversed. Absent for an ordinary single traversal and for repetition, where each occurrence is a separate device with its own section.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LayoutPass']} })
-    """Multipass occurrence number, counting from 1, when this pass re-enters hardware an earlier pass already traversed. Absent for an ordinary single traversal and for repetition, where each occurrence is a separate device with its own section."""
+    number: Optional[int] = Field(default=None, description="""Multipass occurrence number, counting from 1. Absent for an ordinary single traversal and for repetition, where each occurrence is a separate device with its own section.""", json_schema_extra = { "linkml_meta": {'domain_of': ['LayoutPass']} })
+    """Multipass occurrence number, counting from 1. Absent for an ordinary single traversal and for repetition, where each occurrence is a separate device with its own section."""
 
 
 class _MachineLayoutBase(ConfiguredBaseModel):

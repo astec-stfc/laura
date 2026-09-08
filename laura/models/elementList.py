@@ -40,6 +40,22 @@ _log = logging.getLogger("laura.model")
 LatticeType = Literal["beam", "rf", "laser"]
 ALLOWED_LATTICE_TYPES = {"beam", "rf", "laser"}
 
+OCCURRENCE_SEPARATOR = "#"
+"""Selects one traversal of an element on a multipass path, PALS spelling:
+``LIN_C#2`` is the second time the beam enters ``LIN_C``."""
+
+
+def split_occurrence(name: str) -> tuple[str, int | None]:
+    """``"LIN_C#2"`` -> ``("LIN_C", 2)``; anything else -> ``(name, None)``.
+
+    Only a positive integer counts as a selector, so an element whose name
+    happens to contain a ``#`` is left alone.
+    """
+    base, separator, number = name.rpartition(OCCURRENCE_SEPARATOR)
+    if not separator or not base or not number.isdigit() or int(number) < 1:
+        return name, None
+    return base, int(number)
+
 
 def normalise_lattice_type(
     lattice_type: str | None,
@@ -1157,14 +1173,7 @@ class MachineLayout(BaseLatticeModel):
         )
         set_functional_definitions(self.functional_definitions)
         set_resolve_functional(self.resolve_functional)
-        all_elems = []
-        for section in self._sections_in_beam_order():
-            registry = section.elements.elements
-            seen = set()
-            for name in section.order:
-                if name in registry and name not in seen:
-                    seen.add(name)
-                    all_elems.append(registry[name])
+        all_elems = [elem for _, elem in self._beam_walk()]
         if len(all_elems) > 0:
             # Stub dicts appear while a model is being built incrementally and
             # carry no physical block to collect.
@@ -1184,11 +1193,73 @@ class MachineLayout(BaseLatticeModel):
         """
         if not self.passes:
             return list(self.sections.values())
-        return [
-            self.sections[entry.section]
-            for entry in self.passes
-            if entry.section in self.sections
-        ]
+        return [self.sections[entry.section] for entry in self._passes_in_beam_order()]
+
+    def _passes_in_beam_order(self) -> List[LayoutPass]:
+        """:attr:`passes`, minus any naming a section this layout does not hold.
+        Index-for-index with :meth:`_sections_in_beam_order`.
+        """
+        return [entry for entry in self.passes if entry.section in self.sections]
+
+    def _beam_walk(self) -> List[tuple[int, baseElement]]:
+        """``(traversal number, element)`` in beam order.
+
+        A multipass section yields its elements once per pass, and they are the
+        same objects both times.
+        """
+        walk = []
+        for traversal, section in enumerate(self._sections_in_beam_order()):
+            registry = section.elements.elements
+            seen = set()
+            for name in section.order:
+                if name in registry and name not in seen:
+                    seen.add(name)
+                    walk.append((traversal, registry[name]))
+        return walk
+
+    @staticmethod
+    def _qualify(names: List[str], multipass: bool) -> List[str]:
+        """Number the occurrences of a repeated name, ``NAME#1``, ``NAME#2``.
+
+        Follows :func:`~laura.utils.naming.number_repeated_names`: a name that
+        occurs once is left bare, so only what is actually ambiguous grows a
+        suffix. Off entirely unless the path is multipass.
+        """
+        if not multipass:
+            return list(names)
+        totals: Dict[str, int] = {}
+        for name in names:
+            totals[name] = totals.get(name, 0) + 1
+        seen: Dict[str, int] = {}
+        keys = []
+        for name in names:
+            seen[name] = seen.get(name, 0) + 1
+            keys.append(
+                f"{name}{OCCURRENCE_SEPARATOR}{seen[name]}"
+                if totals[name] > 1
+                else name
+            )
+        return keys
+
+    def _occurrence_keys(self) -> List[str]:
+        """:attr:`elements`, with each pass of a multipass element addressable."""
+        return self._qualify(self._get_all_element_names(), self.is_multipass)
+
+    def _traversal_direction(
+        self, traversal: int, override: Optional[Dict[str, int]]
+    ) -> int:
+        """Whether traversal *n* runs forwards (1) or backwards (-1).
+
+        Direction is a property of the pass, not of the section.
+        """
+        sections = self._sections_in_beam_order()
+        name = sections[traversal].name if traversal < len(sections) else None
+        if override is not None:
+            return override.get(name, 1)
+        entries = self._passes_in_beam_order()
+        if entries:
+            return entries[traversal].direction
+        return self._direction.get(name, 1)
 
     @property
     def is_multipass(self) -> bool:
@@ -1280,52 +1351,45 @@ class MachineLayout(BaseLatticeModel):
         Dict[str, float]
             ``{element name: arc length of its entrance}``, in path order.  An
             element used by two sections of one path is reported at its first
-            occurrence, matching the exporter's convention.
-
-        Notes
-        -----
-        This is a query API with **no internal caller, deliberately**.  Export
-        takes a different route -- it substitutes a reversed section outright,
-        see :func:`~laura.models.reversal.reverse_section` -- so nothing in
-        LAURA calls this.  It is kept because it is the only way to obtain a
-        cumulative arc length that crosses section boundaries: a stored ``s``
-        is section-local, and in a sequentially-placed section it restarts at
-        zero.  Do not remove it as dead code.
+            occurrence, matching the exporter's convention.  A **multipass**
+            path reports one entry per pass instead, keyed ``NAME#1``,
+            ``NAME#2``: the device is one, but its arc lengths are not.
         """
-        self._refuse_if_multipass("Reporting arc lengths")
-        direction = self._direction if direction is None else direction
-        unknown = set(direction) - set(self.sections)
+        unknown = set(direction or self._direction) - set(self.sections)
         if unknown:
             raise LatticeError(
                 f"Layout '{self.name}' has no section(s) "
                 f"{', '.join(sorted(unknown))} to give a direction to. "
                 f"Its sections are: {', '.join(self.sections)}."
             )
+        multipass = self.is_multipass
+        keys = iter(
+            self._qualify([elem.name for _, elem in self._beam_walk()], multipass)
+        )
         lengths: Dict[str, float] = {}
         cursor = 0.0
-        for section_name, section in self.sections.items():
+        for traversal, section in enumerate(self._sections_in_beam_order()):
             lo, hi = self._section_span(section)
             origin = self._section_origin(section)
-            # A section composed for *this* path already carries the right
-            # arc lengths, so report them as stored.  One still in its own
-            # frame, or composed for a different path, is re-offset onto this
-            # one from its section-local coordinates.
-            mine = section._composed_by == self.name
+            mine = section._composed_by == self.name and not multipass
             needs_offset = section._placed_sequentially and not mine
             offset = cursor if needs_offset else origin
-            backwards = direction.get(section_name, 1) < 0
+            backwards = self._traversal_direction(traversal, direction) < 0
+            registry = section.elements.elements
+            seen = set()
             for name in section.order:
-                if name in lengths:
+                if name not in registry or name in seen:
                     continue
-                elem = section.elements.elements.get(name)
-                phys = getattr(elem, "physical", None)
-                if phys is None or phys.s is None:
+                seen.add(name)
+                key = next(keys)
+                phys = getattr(registry[name], "physical", None)
+                if phys is None or phys.s is None or key in lengths:
                     continue
                 entrance = _s_start_of(phys) - origin
                 if backwards:
                     # mirror about the section's own span
                     entrance = lo + hi - entrance - (phys.length or 0.0)
-                lengths[name] = offset + entrance
+                lengths[key] = offset + entrance
             cursor = offset + hi
         return lengths
 
@@ -1359,12 +1423,18 @@ class MachineLayout(BaseLatticeModel):
         """
         Return the LatticeElement object corresponding to a given machine element
 
+        An occurrence selector is accepted and ignored: ``LIN_C#2`` is the same
+        device as ``LIN_C#1``, which is the whole point of multipass.  Use
+        :meth:`arc_lengths` or :meth:`elements_between` for what differs
+        between the passes.
+
         :param str name: Name of the element to look up
         :returns: :class:`~laura.models.element.baseElement` instance for that element
         """
-        if name in self._get_all_element_names():
-            index = self._get_all_element_names().index(name)
-            return self._get_all_elements()[index]
+        names = self._get_all_element_names()
+        base = name if name in names else split_occurrence(name)[0]
+        if base in names:
+            return self._get_all_elements()[names.index(base)]
         else:
             message = "Element %s does not exist along the beam path" % name
             raise LatticeError(message)
@@ -1382,69 +1452,88 @@ class MachineLayout(BaseLatticeModel):
         """
         Look up the index of an element in a given lattice
 
+        ``NAME#N`` selects the Nth traversal of ``NAME`` along this path.
+        Without a selector a name the path enters more than once is refused
+        rather than answered for the first pass.
+
         :param str name: Name of the element to search for
         :returns: List index of the item within that beam path
         """
-        self._refuse_if_multipass("Looking an element up by name")
-        try:
-            # fetch the index of the element
-            return self._get_all_element_names().index(name)
-        except ValueError:
+        names = self._get_all_element_names()
+        base, number = split_occurrence(name)
+        if name in names:  # a name that happens to contain a '#'
+            base, number = name, None
+        positions = [index for index, found in enumerate(names) if found == base]
+        if not positions:
             message = "Element %s does not exist along the beam path" % name
             raise LatticeError(message)
+        if number is not None:
+            if number > len(positions):
+                raise LatticeError(
+                    f"Beam path '{self.name}' enters '{base}' {len(positions)} "
+                    f"time(s), so there is no {base}{OCCURRENCE_SEPARATOR}{number}."
+                )
+            return positions[number - 1]
+        if len(positions) > 1 and self.is_multipass:
+            self._refuse_ambiguous(base, len(positions))
+        return positions[0]
 
-    def _refuse_if_multipass(self, what: str) -> None:
-        """Stop a name-keyed lookup that a multipass path would answer wrongly.
+    def _refuse_ambiguous(self, name: str, occurrences: int) -> None:
+        """Stop a bare name that a multipass path would answer wrongly.
 
-        On a multipass path an element name appears once per pass, so
-        ``.index()`` silently returns the first. Occurrence addressing
-        is what makes these answerable; until it exists,
-        refusing is the only honest answer.
+        The element is entered once per pass, so ``.index()`` silently returns
+        the first. The caller has to say which pass it means.
         """
-        if not self.is_multipass:
-            return
-        entered = ", ".join(
-            f"{entry.section}#{entry.number}"
-            for entry in self.passes
-            if entry.number is not None
+        choices = ", ".join(
+            f"{name}{OCCURRENCE_SEPARATOR}{n}" for n in range(1, occurrences + 1)
         )
         raise LatticeError(
-            f"{what} is ambiguous on beam path '{self.name}': it is multipass "
-            f"({entered}), so a name occurs once per pass and this would "
-            "silently answer for the first. Occurrence addressing is not "
-            "implemented yet; use the section's own order, or a single-pass "
-            "layout, until it is."
+            f"Beam path '{self.name}' enters '{name}' {occurrences} times, so "
+            f"the name alone does not say where. Ask for one of: {choices}."
         )
 
     @property
     def elements(self) -> List[str]:
         """
-        List of all element names.
+        List of all element names, in beam order.
 
         Returns
         -------
         List[str]
-            List of all element names.
+            List of all element names.  Multipass occurrences are qualified,
+            ``NAME#1``/``NAME#2``, so that every name here is one
+            :meth:`get_element` and :meth:`elements_between` accept back.
         """
-        return self._get_all_element_names()
+        return self._occurrence_keys()
 
     def _filter_element_list(self, result, filt, attrib):
-        if isinstance(filt, (str, list)):
-            # make list of valid types
-            if isinstance(filt, str):
-                filter_list = [filt.lower()]
-            elif isinstance(filt, list):
-                filter_list = [_type.lower() for _type in filt]
-            # apply search criteria
-            return [
-                ele
-                for ele in result
-                if (
-                    hasattr(ele, attrib)
-                    and self._match_field_or_alias(ele, attrib, filter_list)
-                )
-            ]
-        return result
+        return [
+            result[i]
+            for i in self._filter_indices(result, range(len(result)), filt, attrib)
+        ]
+
+    def _filter_indices(self, elements, indices, filt, attrib):
+        """:meth:`_filter_element_list` over positions rather than objects.
+
+        Two passes of a multipass element are the same object, so a caller that
+        needs to keep them apart has to carry the position.
+        """
+        if not isinstance(filt, (str, list)):
+            return list(indices)
+        # make list of valid types
+        if isinstance(filt, str):
+            filter_list = [filt.lower()]
+        else:
+            filter_list = [_type.lower() for _type in filt]
+        # apply search criteria
+        return [
+            i
+            for i in indices
+            if (
+                hasattr(elements[i], attrib)
+                and self._match_field_or_alias(elements[i], attrib, filter_list)
+            )
+        ]
 
     @staticmethod
     def _match_field_or_alias(ele, attrib, filter_list):
@@ -1523,19 +1612,16 @@ class MachineLayout(BaseLatticeModel):
         Returns
         -------
         List[str]
-            Filtered names of elements.
+            Filtered names of elements.  On a multipass path a name entered
+            more than once is returned as ``NAME#1``, ``NAME#2``, which is also
+            what ``start`` and ``end`` accept.
         """
-        # replace blank start and/or end point
-        element_names = self._get_all_element_names()
-        if start is None:
-            start = element_names[0]
-        if end is None:
-            end = element_names[-1]
+        elements = self._get_all_elements()
+        keys = self._occurrence_keys()
 
-        # truncate the list between the start and end elements
-        first = self._lookup_index(start)
-        last = self._lookup_index(end) + 1
-        result = self._get_all_elements()[first:last]
+        first = 0 if start is None else self._lookup_index(start)
+        last = len(elements) if end is None else self._lookup_index(end) + 1
+        indices = list(range(first, last))
 
         filtered_section_types = self._normalise_type_filter(
             section_type,
@@ -1552,17 +1638,21 @@ class MachineLayout(BaseLatticeModel):
                 for name, section in self.sections.items()
                 if section.section_type in filtered_section_types
             }
-            result = [
-                ele
-                for ele in result
-                if element_to_section.get(ele.name) in allowed_sections
+            indices = [
+                i
+                for i in indices
+                if element_to_section.get(elements[i].name) in allowed_sections
             ]
 
-        result = self._filter_element_list(result, element_type, "hardware_type")
-        result = self._filter_element_list(result, element_model, "hardware_model")
-        result = self._filter_element_list(result, element_class, "hardware_class")
+        indices = self._filter_indices(elements, indices, element_type, "hardware_type")
+        indices = self._filter_indices(
+            elements, indices, element_model, "hardware_model"
+        )
+        indices = self._filter_indices(
+            elements, indices, element_class, "hardware_class"
+        )
 
-        return self._get_element_names(result)
+        return [keys[i] for i in indices]
 
 
 class MachineModel(ModelBase):
@@ -2228,7 +2318,7 @@ class MachineModel(ModelBase):
                 f"Layout '{path}' enters section '{name}' more than once, with a "
                 "different 'direction' each time. Nobody builds two of a section "
                 "so that one of them runs backwards, so this is one section "
-                "traversed there and back -- not yet implemented"
+                "traversed there and back -- not yet implemented. "
                 "Give every occurrence the same direction if you did "
                 "mean separate devices; to mirror a line without traversing it "
                 "backwards, use a section-level 'repeat: -1'."
@@ -2433,11 +2523,15 @@ class MachineModel(ModelBase):
         """
         Return the LatticeElement object corresponding to a given machine element
 
+        An occurrence selector is accepted and ignored: the passes of a
+        multipass element are one device.
+
         :param str name: Name of the element to look up
         :returns: LatticeElement instance for that element
         """
-        if name in self.elements:
-            return self.elements[name]
+        base = name if name in self.elements else split_occurrence(name)[0]
+        if base in self.elements:
+            return self.elements[base]
         else:
             message = (
                 "Element %s does not exist anywhere in the accelerator lattice" % name
@@ -2555,9 +2649,11 @@ class MachineModel(ModelBase):
         elif path not in self.lattices:
             raise Exception('"path" = %s is not defined' % path)
 
+        # a blank start or end is left blank rather than resolved to a name:
+        # the first and last elements of a multipass path may be entered twice,
+        # and a bare name there would be refused as ambiguous
         if end is None:
             path_obj = self.lattices[path]
-            end = path_obj.elements[-1]
         else:
             end_obj = self.get_element(end)
             beam_path = (
@@ -2566,10 +2662,6 @@ class MachineModel(ModelBase):
                 else path
             )
             path_obj = self.lattices[beam_path]
-
-        # find the start of the search area
-        if start is None:
-            start = path_obj.elements[0]
 
         # return a list of elements along this beam path
         elements = path_obj.elements_between(
