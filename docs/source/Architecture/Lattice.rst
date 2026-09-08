@@ -106,7 +106,8 @@ Key methods and properties include:
 * ``createDrifts()``: Automatically inserts drift spaces between elements based on their physical positions. Drifts are named ``{section_name}_drift_{n}``.
 * ``get_s_values(as_dict, at_entrance, starting_s)``: Calculates the cumulative S-position values for elements along the beamline. This operates on the section *with drifts inserted*, so the returned sequence has no gaps.
 * ``get_resolved_s_values(...)``: As ``get_s_values``, but reading the ``s`` values already assigned by ``resolve_positions`` rather than re-accumulating lengths.
-* ``resolve_positions(element_registry)``: Resolves all three :ref:`positioning modes <positioning-modes>` -- ``reference_placement``, ``s``, and global ``middle`` -- into a consistent set of global coordinates, and builds the section's :py:class:`Trajectory <laura.models.trajectory.Trajectory>`. Called automatically when a :ref:`machine-model` is assembled.
+* ``resolve_positions(element_registry)``: Resolves the :ref:`positioning modes <positioning-modes>` -- ``reference_placement``, ``s``, and global ``middle`` -- into a consistent set of global coordinates, and builds the section's :py:class:`Trajectory <laura.models.trajectory.Trajectory>`. Called automatically when a :ref:`machine-model` is assembled.
+* ``is_sequential(element_registry)``: True if any element in the section is awaiting a position, which is the trigger for :ref:`sequential-placement`. Sequential sections are normalised to ``s`` *before* ``resolve_positions`` runs, so it never sees them.
 
 Example usage:
 
@@ -120,6 +121,97 @@ Example usage:
         elements=element_list
     )
     s_positions = section.get_s_values(as_dict=True, at_entrance=True)
+
+.. _sequential-placement:
+
+Sequential (drift-based) placement
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A section whose elements carry no position at all is placed by its ``order``: the lengths are
+accumulated along the line. This is the fourth of the
+:ref:`positioning modes <positioning-modes>`, and the only one that lives on the
+section rather than on the element.
+
+.. code-block:: yaml
+
+    sections:
+      INJ:
+        elements: [GUN, D1, Q1, D1, Q2] # lengths alone place these
+
+Resolution happens on the :py:class:`MachineModel <laura.models.elementList.MachineModel>`,
+before anything else looks at coordinates:
+
+1. **Repeated names are split.** Every section is checked with
+   :py:meth:`is_sequential <laura.models.elementList.SectionLattice.is_sequential>`; in those
+   that are, a name appearing more than once in ``order`` gets one copy per occurrence
+   (``D1.1``, ``D1.2``, ...), because the model stores one placement per name. The original
+   bare name is retired only if no other section still refers to it, and a warning lists the
+   renames. The split is undone on the way out again by a ``position_mode="sequential"``
+   export, which writes the repeated name as it was authored -- see :ref:`interfaces`.
+2. **The section is normalised to** ``s``. Each unpositioned element receives
+   ``s_point: "end"`` and the running total of the lengths. An element that states a
+   position anchors the line and accumulation resumes from its exit; a warning is raised in
+   case of disagreements.
+3. **Ordinary resolution runs.** ``resolve_positions`` then sees a section that is uniformly
+   ``s``-coordinate and needs no knowledge of the ordering at all. It rewrites ``s`` to the
+   arc length at each element's **middle** and sets ``s_point: "middle"`` to match, so a
+   resolved element's ``s``/``s_point`` pair always agrees with itself -- an important
+   invariant for anything reading an exported file by the schema's own meaning rather than
+   through LAURA.
+
+Drifts in a sequential section are written by hand and are ordinary elements, which is the
+mirror image of ``createDrifts()``: one derives positions from an explicit drift, the other
+derives drifts from explicit positions. A resolved machine can be written back out in this
+compact form with ``position_mode="sequential"`` -- see :ref:`interfaces`.
+
+.. _repeated-lines:
+
+Repeated and nested lines
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A section's element list may repeat an entry and may splice in another section, so a lattice
+built from identical cells is written once rather than once per cell:
+
+.. code-block:: yaml
+
+    sections:
+      fodo_channel:
+        - fodo_cell: {repeat: 3}
+
+      fodo_cell: [drift1, quad1, drift2, quad2, drift1]
+
+An entry is either a bare name or a single-key mapping carrying a ``repeat`` count. A name
+that matches another section is a nested line and is expanded in place; anything else is an
+element name. A line may be referenced before it is defined, and a line that no layout lists
+-- i.e. ``fodo_cell`` above -- never becomes a section of the machine, so it costs nothing to
+define one purely to be reused.
+
+:py:func:`expand_section_order <laura.models.elementList.expand_section_order>` flattens this
+into the ordinary name list during
+:py:meth:`MachineModel <laura.models.elementList.MachineModel>` construction, so everything
+downstream. A line that includes itself is a
+:py:class:`LatticeError <laura.models.exceptions.LatticeError>` rather than an
+infinite lattice, and a ``repeat`` of zero is a ``ValueError`` rather than a silently dropped
+entry.
+
+A **negative** count reverses the entry before repeating it:
+
+.. code-block:: yaml
+
+    sections:
+      mirrored:
+        - fodo_cell                    # forwards
+        - fodo_cell: {repeat: -1}      # and back again
+
+This reverses the order only. The result is a different lattice built
+from the same definitions. True path reversal flips the sign of every
+magnetic element's effect in the beam frame (traversing an element backwards is equivalent
+to traversing it forwards with the opposite-sign particle). That transform exists as
+:ref:`element-reversal`, but it is deliberately *not* applied here: a negative ``repeat``
+changes the order and nothing else.
+
+The authored list is kept on the section, so a ``position_mode="sequential"`` export writes
+the ``repeat`` count and the nested line back out, defining them alongside the elements.
 
 .. _machine-layout:
 
@@ -145,15 +237,104 @@ Important methods include:
 * ``get_all_elements(element_type, element_model, element_class)``: Returns filtered lists of element names.
 * ``elements_between(start, end, element_type, element_model, element_class)``: Returns elements within a specified range along the beam path.
 * ``_get_all_elements()``: Returns all elements in the layout in order.
+* ``arc_lengths(direction=None)``: Arc length of each element's entrance *along this beam path*; see :ref:`path-arc-lengths`.
+
+.. _path-arc-lengths:
+
+Arc length along a beam path
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An element carries one ``s``, resolved in its own section's frame. That is where it
+belongs -- the magnet is installed once -- but it is not the whole story for a beam path:
+
+* A :ref:`sequentially-placed <sequential-placement>` section starts at its own ``s = 0``.
+  Placement runs per section: two sequential sections in one layout both begin at the origin.
+* A section a path traverses backwards measures its arc length from the far end.
+
+:py:meth:`arc_lengths <laura.models.elementList.MachineLayout.arc_lengths>` is the view that
+resolves both, walking the layout's sections in order with a running offset:
+
+.. code-block:: python
+
+    layout.arc_lengths()                          # chained, all forwards
+    layout.arc_lengths(direction={"ARC": -1})     # ARC traversed backwards
+
+A section whose elements state absolute positions already has a meaningful ``s`` and is not
+shifted; only sequentially-placed sections take an offset. Naming a section the layout does
+not contain raises :py:class:`LatticeError <laura.models.exceptions.LatticeError>` rather
+than being ignored.
+
+A layout declares which of its sections it runs backwards, and ``arc_lengths()`` then uses
+that by default (an explicit ``direction`` argument still overrides it):
+
+.. code-block:: yaml
+
+    layouts:
+      RING:
+        - ARC_A
+        - ARC_B: {direction: -1}
+
+Direction belongs to the beam path, not the section. The same section may be traversed
+forwards by one layout and backwards by another --- which is the counter-propagating-beam
+case, one installed magnet in two beam paths.
+
+Nothing is mutated, so the same section reports different arc lengths to different beam
+paths. Note this is the arc length only: changing where a section sits in the line is not
+the same as reversing the traversal of its elements, which flips the sign of every normal
+multipole's effect in the beam frame -- see :ref:`element-reversal` for that transform, which
+this view does not apply. Export *does* apply it: see :ref:`path-reversal-on-export`.
+
+A worked example of both -- one arc, two beam paths, one of them reversed -- is
+``examples/testing/reversal_{elements,sections,layouts}.yaml``.
 
 .. note::
 
-   Building a layout chains its sections together using their elements' start and end
-   positions, so every element in a layout must have physical data -- i.e. be a
+   ``arc_lengths`` is a **query API with no internal consumer, deliberately.** Export takes
+   a different route: it substitutes a reversed section outright (see
+   :ref:`path-reversal-on-export`), so nothing in :mod:`LAURA` calls this. It is kept
+   because it is the only way to obtain a cumulative arc length that crosses section
+   boundaries -- an element's stored ``s`` is section-local, and for
+   :ref:`sequentially-placed <sequential-placement>` sections it restarts at zero in every
+   one. Do not remove it as dead code.
+
+   What it is *for* is the two cases :ref:`composition <layout-composition>` cannot write
+   back into the model: a section this path traverses **backwards**, and a section shared
+   by two layouts, whose single stored position belongs to whichever path composed it
+   first. For those, the stored ``s`` is right for some other path and this view is the
+   only correct answer.
+
+.. note::
+
+   Every element in a layout must have physical data -- i.e. be a
    :py:class:`PhysicalBaseElement <laura.models.element.PhysicalBaseElement>` subclass.
    A position-less :py:class:`Element <laura.models.element.Element>` (an LLRF module,
    a laser mirror, a lighting controller) may live in ``MachineModel.elements`` and in a
    section, but cannot take part in a beam path.
+
+.. _layout-composition:
+
+Composing section frames
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+A section resolves in its own frame, starting at the world origin pointing along
+``+z``, because a section belongs to the machine rather than to any one beam path. For a
+:ref:`sequentially-placed <sequential-placement>` section that is a problem on its own:
+such a section states no positions at all. The :py:class:`MachineModel`. It walks each layout in
+order and moves every sequentially-placed section onto the exit frame of whatever
+precedes it.
+
+Three deliberate limits:
+
+* **A section that states its positions is never moved.** A surveyed machine's
+  coordinates are already global and composing them would corrupt them. Such a section
+  still contributes at the exit, so a sequential section following one starts from
+  its end.
+* **A section shared by two layouts is composed at most once**, by the first layout that
+  reaches it. Its stored position cannot be right for two different predecessors, so a
+  second, disagreeing demand raises a warning naming both paths rather than being applied
+  silently. Use :py:meth:`arc_lengths <laura.models.elementList.MachineLayout.arc_lengths>`
+  for the other path's view.
+* **Nothing outside a layout is touched.**
 
 The layout automatically handles element ordering and can filter elements by various criteria:
 

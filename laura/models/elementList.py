@@ -1,25 +1,39 @@
 import logging
+import math
 import os
-import numpy as np
-from typing import List, Dict, Any, Union, Literal, Optional
-from pydantic import field_validator, BaseModel, ValidationInfo, Field, PositiveInt
+import warnings
+from functools import cmp_to_key
+from typing import Any, Dict, List, Literal, Optional, Union
 from warnings import warn
+
+import numpy as np
+from pydantic import (
+    BaseModel,
+    Field,
+    PositiveInt,
+    PrivateAttr,
+    ValidationInfo,
+    field_validator,
+)
 from yaml import safe_load
+
+from ..utils.naming import number_repeated_names
+from ..utils.rotation_matrix import (
+    euler_angles_to_rotation_matrix,
+    rotation_matrix_to_euler,
+)
 from ._functions import read_yaml
-from .element import baseElement, Drift, PhysicalBaseElement, Diagnostic
-from .physical import PhysicalElement, Position, Rotation
-from .trajectory import Trajectory
-from ..utils.rotation_matrix import euler_angles_to_rotation_matrix, rotation_matrix_to_euler
 from .baseModels import (
     ModelBase,
     set_functional_definitions,
     set_resolve_functional,
     validate_functional_references,
 )
+from .element import Diagnostic, Drift, PhysicalBaseElement, baseElement
 from .exceptions import LatticeError
-import warnings
-
+from .physical import PhysicalElement, Position, Rotation
 from .simulation import DriftSimulationElement
+from .trajectory import Trajectory
 
 _log = logging.getLogger("laura.model")
 
@@ -45,6 +59,83 @@ def normalise_lattice_type(
         raise ValueError(f"{context} type must be one of: {allowed}")
 
     return value
+
+
+def expand_section_order(
+    section_name: str,
+    entries: List[Any],
+    authored: Dict[str, List[Any]],
+    _stack: tuple = (),
+) -> List[str]:
+    """Flatten authored repetition and nested lines into a list of element names.
+
+    An entry is either a bare name, or a single-key mapping carrying options::
+
+        - drift1
+        - fodo_cell: {repeat: 3}
+
+    A name found in ``authored`` (the ``{section: element list}`` map of every
+    authored section) is a nested line and is spliced in expanded; anything
+    else is an element name.
+
+    A negative count reverses the entry before repeating it.
+    This is a reversal of the order only.
+
+    Repetition only means anything for a sequentially-placed section:
+    elsewhere the copies differ by position.
+    """
+    if section_name in _stack:
+        chain = " -> ".join(_stack + (section_name,))
+        raise LatticeError(f"Section '{section_name}' includes itself: {chain}")
+    stack = _stack + (section_name,)
+
+    expanded: List[str] = []
+    for entry in entries:
+        if isinstance(entry, str):
+            target, count = entry, 1
+        elif isinstance(entry, dict) and len(entry) == 1:
+            target, options = next(iter(entry.items()))
+            if not isinstance(options, dict) or set(options) - {"repeat"}:
+                raise TypeError(
+                    f"Entry '{target}' in section '{section_name}' must be a name "
+                    "or a name with a 'repeat' count"
+                )
+            count = options.get("repeat", 1)
+        else:
+            raise TypeError(
+                f"Section '{section_name}' entries must be an element or line name, "
+                f"optionally with a 'repeat' count; got {entry!r}"
+            )
+
+        if isinstance(count, bool) or not isinstance(count, int):
+            raise TypeError(
+                f"'repeat' for '{target}' in section '{section_name}' must be an "
+                f"integer; got {count!r}"
+            )
+        if count == 0:
+            raise ValueError(
+                f"'repeat' for '{target}' in section '{section_name}' must not be "
+                "zero. Omit the entry instead."
+            )
+
+        if target in authored:
+            one = expand_section_order(target, authored[target], authored, stack)
+        else:
+            one = [target]
+        if count < 0:
+            one = one[::-1]
+        expanded.extend(one * abs(count))
+    return expanded
+
+
+def _s_start_of(phys: "PhysicalElement") -> float:
+    """Arc-length at the *entrance* of an element carrying an ``s`` value."""
+    s, L, pt = phys.s, phys.length, phys.s_point
+    if pt == "middle":
+        return s - L / 2.0
+    if pt == "end":
+        return s - L
+    return s  # 'start'
 
 
 def load_functional_definitions(
@@ -104,7 +195,7 @@ def dot(a, b) -> float:
 def chunks(li, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(li), n):
-        yield li[i: i + n]
+        yield li[i : i + n]
 
 
 class BaseLatticeModel(ModelBase):
@@ -158,35 +249,6 @@ class BaseLatticeModel(ModelBase):
                 self._functional_source,
             )
 
-    # def __add__(self, other: dict) -> dict:
-    #     copy = getattr(self, self._basename).copy()
-    #     copy.extend(other)
-    #     return copy
-
-    # def __radd__(self, other: dict) -> dict:
-    #     copy = other.copy()
-    #     copy.extend(getattr(self, self._basename))
-    #     return copy
-
-    # def __sub__(self, other):
-    #     copy = getattr(self, self._basename).copy()
-    #     if other in copy:
-    #         del copy[other]
-    #     return copy
-
-    # def append(self, other: Any) -> None:
-    #     if not isinstance(other, list):
-    #         other = [other]
-    #     super().__init__(name=self.name, elements=self + other)
-    #     setattr(self, self._basename, self + other)
-
-    # def remove(self, other: Any) -> None:
-    #     if other in getattr(self, self._basename):
-    #         copy = getattr(self, self._basename).copy()
-    #         copy.remove(other)
-    #         super().__init__(name=self.name, elements=copy)
-    #         getattr(self, self._basename).remove(other)
-
     def __str__(self):
         return str({k: v.names() for k, v in getattr(self, self._basename).items()})
 
@@ -202,14 +264,21 @@ class ElementList(ModelBase):
     elements: Dict[str, Union[baseElement, dict, None]]
 
     def __str__(self):
-        return str([e["name"] if isinstance(e, dict) else e.name for e in self.elements.values()])
+        return str(
+            [
+                e["name"] if isinstance(e, dict) else e.name
+                for e in self.elements.values()
+            ]
+        )
 
     def __getitem__(self, item: str) -> int:
         return self.elements[item]
 
     @property
     def names(self) -> list:
-        return [e["name"] if isinstance(e, dict) else e.name for e in self.elements.values()]
+        return [
+            e["name"] if isinstance(e, dict) else e.name for e in self.elements.values()
+        ]
 
     def index(self, element: Union[str, baseElement]):
         if isinstance(element, str):
@@ -257,6 +326,30 @@ class SectionLattice(BaseLatticeModel):
 
     _basename: str = "elements"
 
+    _composed_by: Optional[str] = PrivateAttr(default=None)
+    """Name of the layout whose frame this section's stored ``s`` belongs to,
+    or ``None`` while it still sits in its own.  A section can be composed for
+    only one beam path; :meth:`MachineLayout.arc_lengths` uses this."""
+
+    _composed_frame: Any = PrivateAttr(default=None)
+    """The frame :meth:`compose_onto` placed this section on, kept so that a
+    later re-resolution measures the section's leading gap from its true
+    predecessor rather than from the world origin."""
+
+    _placed_sequentially: bool = PrivateAttr(default=False)
+    """True if this section's positions were derived from ``order`` plus lengths
+    rather than stated on the elements.  See :meth:`MachineLayout.arc_lengths`."""
+
+    _authored_order: Optional[List[Any]] = PrivateAttr(default=None)
+    """The section's element list as written, before
+    :func:`expand_section_order` flattened its ``repeat`` counts and nested
+    lines — ``None`` when the authored list was already flat."""
+
+    _repeat_origins: Dict[str, str] = PrivateAttr(default_factory=dict)
+    """``{numbered name: original name}`` for the copies
+    :meth:`number_repeated_elements` made, so an exporter can write the
+    repetition back out as it was authored rather than as it was expanded."""
+
     @field_validator("section_type", mode="before")
     @classmethod
     def validate_section_type(cls, value: str | None) -> LatticeType:
@@ -265,7 +358,9 @@ class SectionLattice(BaseLatticeModel):
     @field_validator("elements", mode="before")
     @classmethod
     def validate_elements(
-        cls, elements: Union[List[Union[baseElement, dict]], ElementList], info: ValidationInfo
+        cls,
+        elements: Union[List[Union[baseElement, dict]], ElementList],
+        info: ValidationInfo,
     ) -> ElementList:
         if isinstance(elements, list):
             elemdict = {}
@@ -284,16 +379,6 @@ class SectionLattice(BaseLatticeModel):
                 }
             )
         return elements
-
-    #
-    # @model_serializer(mode="plain")
-    # def serialize(self) -> dict:
-    #     data = self.__dict__.copy()
-    #     data['elements'] = {"elements": {}}
-    #     data['elements']["elements"] = {
-    #         k: v.model_dump() for k, v in self.elements.elements.items()
-    #     }
-    #     return data
 
     @property
     def names(self) -> List:
@@ -346,21 +431,6 @@ class SectionLattice(BaseLatticeModel):
 
         elements = self._get_all_elements()
 
-        # if any([x != y for x, y in zip(elements[0].physical.start.model_dump(), [0, 0, 0])]):
-        #     machine_area = elements[0].machine_area
-        #     self.order.insert(0, "initial_marker")
-        #     self.elements.elements.update(
-        #         {
-        #             "initial_marker": PhysicalBaseElement(
-        #                 name="initial_marker",
-        #                 hardware_class="Marker",
-        #                 hardware_type="Marker",
-        #                 machine_area=machine_area,
-        #             )
-        #         }
-        #     )
-        #     elements = self._get_all_elements()
-
         for elem in elements:
             if not elem.subelement:
                 originalelements[elem.name] = elem
@@ -389,7 +459,9 @@ class SectionLattice(BaseLatticeModel):
                     length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
                     vector = dot((d[1] - d[0]), [0, 0, 1])
                 except Exception as exc:
-                    _log.error("Drift calculation error near element '%s': %s", e[0], exc)
+                    _log.error(
+                        "Drift calculation error near element '%s': %s", e[0], exc
+                    )
                     _log.debug("Position data: %s", d)
                     raise exc
                 if round(length, 16) > 0:
@@ -508,6 +580,105 @@ class SectionLattice(BaseLatticeModel):
 
     # ── s-coordinate support ───────────────────────────────────────────────────
 
+    def _ordered_physicals(self, element_registry: dict) -> List[tuple]:
+        """``(name, physical)`` pairs for the section, in ``order``."""
+        pairs = []
+        for name in self.order:
+            elem = element_registry.get(name)
+            if elem is None or not hasattr(elem, "physical") or elem.physical is None:
+                continue
+            pairs.append((name, elem.physical))
+        return pairs
+
+    def is_sequential(self, element_registry: dict) -> bool:
+        """True if any element in this section is awaiting a position.
+        This is the trigger for drift-based placement.
+        """
+        return any(
+            not getattr(phys, "_position_stated", True)
+            for _, phys in self._ordered_physicals(element_registry)
+        )
+
+    def number_repeated_elements(self, element_registry: dict) -> Dict[str, str]:
+        """Give each occurrence of a repeated name in ``order`` its own element.
+
+        A drift-based lattice reuses names freely, but a
+        :class:`MachineModel` stores one placement per name.  Each
+        occurrence therefore gets its own copy under a numbered name (``D1.1``,
+        ``D1.2``, ...).
+
+        Returns ``{new name: original name}`` for the copies made
+        so the caller can retire originals nothing refers to any more.
+        """
+        numbered = number_repeated_names(self.order)
+        if numbered == self.order:
+            return {}
+        renamed: Dict[str, str] = {}
+        for old, new in zip(self.order, numbered):
+            if new == old:
+                continue
+            source = element_registry.get(old)
+            if source is None:
+                continue
+            clone = source.model_copy(deep=True)
+            clone.name = new
+            element_registry[new] = clone
+            self.elements.elements[new] = clone
+            renamed[new] = old
+        self.order = numbered
+        self._repeat_origins = renamed
+        return renamed
+
+    def _resolve_sequential_placement(self, element_registry: dict) -> bool:
+        """Place unpositioned elements by accumulating lengths along ``order``.
+
+        This is drift-based (sequential) placement, hand-written ``Drift``
+        elements included, no ``s`` or xyz written on any of them.
+        The section is normalised to ``s``.
+
+        An element that states a position (with ``s``) anchors the line: accumulation
+        resumes from its exit.
+
+        Returns ``True`` if this section was sequential and has been normalised.
+        """
+        if not self.is_sequential(element_registry):
+            return False
+        pairs = self._ordered_physicals(element_registry)
+
+        current_s = 0.0
+        anchored = False
+        for name, phys in pairs:
+            length = phys.length
+
+            if getattr(phys, "_position_stated", True):
+                if phys.reference_placement is not None:
+                    continue
+                if phys.s is None:
+                    continue
+                stated_start = _s_start_of(phys)
+                if anchored and not math.isclose(
+                    stated_start, current_s, rel_tol=1e-9, abs_tol=1e-9
+                ):
+                    warn(
+                        f"Section '{self.name}': element '{name}' states s="
+                        f"{stated_start:.6g} at its entrance, but the elements before "
+                        f"it accumulate to {current_s:.6g}.  The stated value wins and "
+                        "re-anchors the rest of the line.",
+                        stacklevel=2,
+                    )
+                current_s = stated_start + length
+                anchored = True
+                continue
+
+            current_s += length
+            phys.s_point = "end"
+            phys.s = current_s
+            object.__setattr__(phys, "_position_stated", True)
+            phys.middle = None
+            anchored = True
+
+        return True
+
     def _detect_coordinate_system(self, element_registry: dict) -> str:
         """Return ``'s'``, ``'global'``, or ``'reference'`` for this section.
 
@@ -536,7 +707,10 @@ class SectionLattice(BaseLatticeModel):
         if has_s_pending and has_global:
             raise ValueError(
                 f"Section '{self.name}': cannot mix s-coordinate and global-coordinate "
-                "positioning.  All positioned elements must use the same system."
+                "positioning.  All positioned elements must use the same system.  "
+                "A sequentially-placed (drift-based) line reaches here already "
+                "normalised to s, so anchor it with 's' rather than with "
+                "'middle'/'position'/'centre'."
             )
         return "s" if has_s_pending else ("global" if has_global else "reference")
 
@@ -563,15 +737,15 @@ class SectionLattice(BaseLatticeModel):
             return None
 
         def _s_start(elem: object) -> float:
-            phys = elem.physical
-            s, L, pt = phys.s, phys.length, phys.s_point
-            if pt == "middle":
-                return s - L / 2.0
-            if pt == "end":
-                return s - L
-            return s  # 'start'
+            return _s_start_of(elem.physical)
 
-        s_elems_sorted = sorted(s_elems, key=_s_start)
+        def _compare_s_start(a: object, b: object) -> int:
+            sa, sb = _s_start(a), _s_start(b)
+            if math.isclose(sa, sb, rel_tol=1e-9, abs_tol=1e-9):
+                return 0
+            return -1 if sa < sb else 1
+
+        s_elems_sorted = sorted(s_elems, key=cmp_to_key(_compare_s_start))
 
         current_s = 0.0
         current_pos = np.zeros(3)
@@ -606,8 +780,12 @@ class SectionLattice(BaseLatticeModel):
                 # Arc in the bend plane using LAURA's Ry(-angle) convention.
                 rho = L / angle
                 half = angle / 2.0
-                local_mid = np.array([rho * (1.0 - np.cos(half)), 0.0, rho * np.sin(half)])
-                local_end = np.array([rho * (1.0 - np.cos(angle)), 0.0, rho * np.sin(angle)])
+                local_mid = np.array(
+                    [rho * (1.0 - np.cos(half)), 0.0, rho * np.sin(half)]
+                )
+                local_end = np.array(
+                    [rho * (1.0 - np.cos(angle)), 0.0, rho * np.sin(angle)]
+                )
                 mid_pos = current_pos + current_R @ local_mid
                 end_pos = current_pos + current_R @ local_end
                 ct, st = np.cos(angle), np.sin(angle)
@@ -622,7 +800,6 @@ class SectionLattice(BaseLatticeModel):
                 yaw, pitch, roll = rotation_matrix_to_euler(current_R)
                 phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
                 phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
-                phys._rotation_matrix_cache = None
 
             s_list.extend([s_elem_start + L / 2.0, s_elem_end])
             pos_list.extend([mid_pos, end_pos])
@@ -634,7 +811,9 @@ class SectionLattice(BaseLatticeModel):
 
         return Trajectory(np.array(s_list), np.array(pos_list), np.array(rot_list))
 
-    def _build_trajectory_and_assign_s(self, element_registry: dict) -> Optional[Trajectory]:
+    def _build_trajectory_and_assign_s(
+        self, element_registry: dict
+    ) -> Optional[Trajectory]:
         """Build a :class:`~laura.models.trajectory.Trajectory` from all resolved elements.
 
         Walks elements in section order, traces the arc-length through start /
@@ -642,12 +821,16 @@ class SectionLattice(BaseLatticeModel):
         middle) back onto each element's physical block, and attaches the
         trajectory as ``phys._trajectory`` for bidirectional sync.
         """
-        s_list: list[float] = [0.0]
-        pos_list: list[np.ndarray] = [np.zeros(3)]
-        rot_list: list[np.ndarray] = [np.eye(3)]
+        if self._composed_frame is not None:
+            current_s, prev_end, _ = self._composed_frame
+            prev_end = np.array(prev_end)
+        else:
+            current_s = 0.0
+            prev_end = None
 
-        current_s = 0.0
-        prev_end: Optional[np.ndarray] = None
+        s_list = [current_s]
+        pos_list = [np.zeros(3) if prev_end is None else prev_end.copy()]
+        rot_list = [np.eye(3)]
 
         elements_to_wire: list[PhysicalElement] = []
 
@@ -664,7 +847,11 @@ class SectionLattice(BaseLatticeModel):
             except RuntimeError:
                 continue
 
-            gap = float(np.linalg.norm(start_arr - prev_end)) if prev_end is not None else float(np.linalg.norm(start_arr))
+            gap = (
+                float(np.linalg.norm(start_arr - prev_end))
+                if prev_end is not None
+                else float(np.linalg.norm(start_arr))
+            )
             s_elem_start = current_s + gap
 
             mid_arr = np.array([phys.middle.x, phys.middle.y, phys.middle.z])
@@ -679,9 +866,11 @@ class SectionLattice(BaseLatticeModel):
 
             s_list.extend([s_elem_start, s_elem_mid, s_elem_end])
             pos_list.extend([start_arr, mid_arr, end_arr])
-            rot_list.extend([phys.rotation_matrix, phys.rotation_matrix, phys.end_rotation_matrix])
+            rot_list.extend(
+                [phys.rotation_matrix, phys.rotation_matrix, phys.end_rotation_matrix]
+            )
 
-            # Assign s (bypasses sync since _trajectory not yet set)
+            phys.s_point = "middle"
             phys.s = s_elem_mid
 
             current_s = s_elem_end
@@ -692,6 +881,71 @@ class SectionLattice(BaseLatticeModel):
         for phys in elements_to_wire:
             phys._trajectory = traj
         return traj
+
+    def exit_frame(self, element_registry: dict):
+        """``(arc length, position, rotation matrix)`` at this section's exit.
+
+        The frame a following section starts from. ``None`` if the section has
+        nothing placed.
+        """
+        last = None
+        for name in self.order:
+            elem = element_registry.get(name)
+            phys = getattr(elem, "physical", None)
+            if phys is not None and phys.middle is not None:
+                last = phys
+        if last is None:
+            return None
+        return (
+            last.s + (last.length or 0.0) / 2.0,
+            np.array(last.end.array),
+            last.end_rotation_matrix,
+        )
+
+    def compose_onto(self, element_registry: dict, frame) -> None:
+        """Move this section so its entrance sits at *frame*.
+
+        A section is resolved in its own frame, starting at the world origin
+        pointing along +z.
+
+        The trajectory is transformed by the same rigid motion rather than
+        rebuilt: :meth:`_build_trajectory_and_assign_s` measures ``s`` from the
+        world origin, which would discard the offset this method just applied.
+        """
+        if frame is None:
+            return
+        s_offset, origin, rotation = frame
+
+        physicals = []
+        for name in dict.fromkeys(self.order):
+            elem = element_registry.get(name)
+            phys = getattr(elem, "physical", None)
+            if phys is not None and phys.middle is not None:
+                physicals.append(phys)
+        if not physicals:
+            return
+
+        source = next(
+            (p._trajectory for p in physicals if p._trajectory is not None), None
+        )
+        for phys in physicals:
+            moved = origin + rotation @ np.array(phys.middle.array)
+            yaw, pitch, roll = rotation_matrix_to_euler(rotation @ phys.rotation_matrix)
+            phys._trajectory = None
+            phys.middle = Position.from_list(moved.tolist())
+            phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
+            phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
+            phys.s = phys.s + s_offset
+
+        if source is not None:
+            moved_traj = Trajectory(
+                source._s + s_offset,
+                (rotation @ source._pos.T).T + origin,
+                rotation @ source._rots,
+            )
+            for phys in physicals:
+                phys._trajectory = moved_traj
+        self._composed_frame = frame
 
     def resolve_positions(self, element_registry: dict) -> Optional[Trajectory]:
         """Resolve all positioning modes and build the section trajectory.
@@ -740,8 +994,6 @@ class SectionLattice(BaseLatticeModel):
             elements that might be referenced.  Typically ``MachineModel.elements``.
         """
         for name in self.order:
-            # Always operate on the registry object so mutations are visible
-            # to the caller — section.elements may hold Pydantic-copied instances.
             elem = element_registry.get(name)
             if elem is None or not hasattr(elem, "physical"):
                 continue
@@ -770,7 +1022,7 @@ class SectionLattice(BaseLatticeModel):
                 ref_R = ref_phys.end_rotation_matrix
             elif rp.point == "start":
                 ref_pos = ref_phys.start
-                ref_R = ref_phys.rotation_matrix   # entry frame = element rotation
+                ref_R = ref_phys.rotation_matrix  # entry frame = element rotation
             else:  # "middle"
                 ref_pos = ref_phys.middle
                 ref_R = ref_phys.rotation_matrix
@@ -780,7 +1032,9 @@ class SectionLattice(BaseLatticeModel):
                 off = np.array([rp.offset.x, rp.offset.y, rp.offset.z])
                 delta = ref_R @ off
             elif rp.world_offset is not None:
-                delta = np.array([rp.world_offset.x, rp.world_offset.y, rp.world_offset.z])
+                delta = np.array(
+                    [rp.world_offset.x, rp.world_offset.y, rp.world_offset.z]
+                )
             elif rp.s_offset is not None:
                 # s_offset is a scalar along the local beam direction (z-axis of ref frame)
                 delta = ref_R @ np.array([0.0, 0.0, rp.s_offset])
@@ -809,7 +1063,6 @@ class SectionLattice(BaseLatticeModel):
             yaw, pitch, roll = rotation_matrix_to_euler(resolved_R)
             phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
             phys.global_rotation = Rotation(theta=0.0, phi=0.0, psi=0.0)
-            phys._rotation_matrix_cache = None
 
 
 class MachineLayout(BaseLatticeModel):
@@ -828,6 +1081,11 @@ class MachineLayout(BaseLatticeModel):
     """Logical lattice type of this path (beam/rf/laser)."""
 
     _basename: str = "sections"
+
+    _direction: Dict[str, int] = PrivateAttr(default_factory=dict)
+    """``{section name: -1}`` for sections this beam path traverses backwards.
+    Set from the layouts file; a section is shared, so this belongs to the path
+    rather than to the section."""
 
     @field_validator("layout_type", mode="before")
     @classmethod
@@ -848,8 +1106,7 @@ class MachineLayout(BaseLatticeModel):
 
         if isinstance(lattice_type, list):
             return {
-                normalise_lattice_type(value, context=context)
-                for value in lattice_type
+                normalise_lattice_type(value, context=context) for value in lattice_type
             }
 
         raise TypeError(f"{context} filter must be a str or list[str]")
@@ -864,23 +1121,13 @@ class MachineLayout(BaseLatticeModel):
         matrix = [v.elements.elements.values() for v in self.sections.values()]
         all_elems = [item for row in matrix for item in row]
         if len(all_elems) > 0:
-            all_elems_reversed = reversed(all_elems)
-            last_elem = all_elems[-1]
-            if isinstance(last_elem, dict):
-                superelem = last_elem.get("name")
-                # Skip geometry correction for stub dicts
+            # Stub dicts appear while a model is being built incrementally and
+            # carry no physical block to collect.
+            if isinstance(all_elems[-1], dict):
                 return
-
-            superelem = last_elem.name
-            start_pos = last_elem.physical.start
-            all_elem_corrected = []
-            for elem in all_elems_reversed:
-                if isinstance(elem, PhysicalBaseElement):
-                    if not elem.is_subelement():
-                        superelem = elem.name
-                    all_elem_corrected += [elem]
-                    start_pos = elem.physical.start
-            self._all_elements = list(reversed(all_elem_corrected))
+            self._all_elements = [
+                elem for elem in all_elems if isinstance(elem, PhysicalBaseElement)
+            ]
         else:
             self._all_elements = {}
 
@@ -900,10 +1147,122 @@ class MachineLayout(BaseLatticeModel):
         return str([k for k, v in self.sections.items()])
 
     def __getattr__(self, item: str):
-        return getattr(self.sections, item)
+        # Let Pydantic resolve its own attributes (private attrs included)
+        # before falling through to the sections, as SectionLattice does.
+        try:
+            return super().__getattr__(item)
+        except AttributeError:
+            return getattr(self.sections, item)
 
     def __getitem__(self, item: str) -> int:
         return self.sections[item]
+
+    @staticmethod
+    def _section_origin(section: "SectionLattice") -> float:
+        """The arc length a composed section's stored values are measured from.
+
+        Zero while a section still sits in its own frame.  Subtracting it puts
+        every section back into section-local coordinates, which is the only
+        footing on which a *different* beam path can re-offset it.
+        """
+        frame = section._composed_frame
+        return frame[0] if frame is not None else 0.0
+
+    def _section_span(self, section: "SectionLattice") -> tuple[float, float]:
+        """``(first entrance, last exit)`` of a section, in section-local terms.
+
+        Returning the span rather than just the far end lets a reversed section
+        be mirrored about *itself*.
+        """
+        origin = self._section_origin(section)
+        lo, hi = None, None
+        for name in section.order:
+            elem = section.elements.elements.get(name)
+            phys = getattr(elem, "physical", None)
+            if phys is None or phys.s is None:
+                continue
+            entrance = _s_start_of(phys) - origin
+            lo = entrance if lo is None else min(lo, entrance)
+            hi = max(hi or 0.0, entrance + (phys.length or 0.0))
+        return (lo or 0.0), (hi or 0.0)
+
+    def arc_lengths(
+        self, direction: Optional[Dict[str, int]] = None
+    ) -> Dict[str, float]:
+        """Arc length of each element's *entrance* along this beam path.
+
+        An element carries one ``s``, resolved in its own section's frame:
+
+        * A **sequentially-placed** section (see
+          :meth:`SectionLattice._resolve_sequential_placement`) starts at its
+          own ``s = 0``, because placement runs per section and a section may
+          appear in several layouts with different predecessors. They are
+          chained, giving each one the offset its position in this path.
+          A section whose elements state absolute positions already
+          has a meaningful ``s`` and is not shifted.
+        * A section this path traverses **backwards** measures its arc length
+          from the far end.  Pass ``direction={"SECTION": -1}``.
+
+        Nothing is mutated, and this is the arc length only.
+
+        Parameters
+        ----------
+        direction
+            ``{section name: -1}`` for sections this path runs backwards
+            through.  Anything not named runs forwards.
+
+        Returns
+        -------
+        Dict[str, float]
+            ``{element name: arc length of its entrance}``, in path order.  An
+            element used by two sections of one path is reported at its first
+            occurrence, matching the exporter's convention.
+
+        Notes
+        -----
+        This is a query API with **no internal caller, deliberately**.  Export
+        takes a different route -- it substitutes a reversed section outright,
+        see :func:`~laura.models.reversal.reverse_section` -- so nothing in
+        LAURA calls this.  It is kept because it is the only way to obtain a
+        cumulative arc length that crosses section boundaries: a stored ``s``
+        is section-local, and in a sequentially-placed section it restarts at
+        zero.  Do not remove it as dead code.
+        """
+        direction = self._direction if direction is None else direction
+        unknown = set(direction) - set(self.sections)
+        if unknown:
+            raise LatticeError(
+                f"Layout '{self.name}' has no section(s) "
+                f"{', '.join(sorted(unknown))} to give a direction to. "
+                f"Its sections are: {', '.join(self.sections)}."
+            )
+        lengths: Dict[str, float] = {}
+        cursor = 0.0
+        for section_name, section in self.sections.items():
+            lo, hi = self._section_span(section)
+            origin = self._section_origin(section)
+            # A section composed for *this* path already carries the right
+            # arc lengths, so report them as stored.  One still in its own
+            # frame, or composed for a different path, is re-offset onto this
+            # one from its section-local coordinates.
+            mine = section._composed_by == self.name
+            needs_offset = section._placed_sequentially and not mine
+            offset = cursor if needs_offset else origin
+            backwards = direction.get(section_name, 1) < 0
+            for name in section.order:
+                if name in lengths:
+                    continue
+                elem = section.elements.elements.get(name)
+                phys = getattr(elem, "physical", None)
+                if phys is None or phys.s is None:
+                    continue
+                entrance = _s_start_of(phys) - origin
+                if backwards:
+                    # mirror about the section's own span
+                    entrance = lo + hi - entrance - (phys.length or 0.0)
+                lengths[name] = offset + entrance
+            cursor = offset + hi
+        return lengths
 
     def _get_all_elements(self) -> List[baseElement]:
         """
@@ -925,7 +1284,11 @@ class MachineLayout(BaseLatticeModel):
         List[str]
             Names of all elements.
         """
-        return [e.name for e in self._get_all_elements() if isinstance(e, PhysicalBaseElement)]
+        return [
+            e.name
+            for e in self._get_all_elements()
+            if isinstance(e, PhysicalBaseElement)
+        ]
 
     def get_element(self, name: str) -> baseElement:
         """
@@ -1160,6 +1523,7 @@ class MachineModel(ModelBase):
     _layout_metadata: Dict[str, Dict[str, LatticeType]] = {}
 
     _section_definitions: Dict[str, Dict[str, Any]] = {}
+    _layout_directions: Dict[str, Dict[str, int]] = {}
 
     _default_path: str = None
 
@@ -1177,14 +1541,15 @@ class MachineModel(ModelBase):
 
         if isinstance(lattice_type, list):
             return {
-                normalise_lattice_type(value, context=context)
-                for value in lattice_type
+                normalise_lattice_type(value, context=context) for value in lattice_type
             }
 
         raise TypeError(f"{context} filter must be a str or list[str]")
 
     @staticmethod
-    def _normalise_section_definitions(sections: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def _normalise_section_definitions(
+        sections: Dict[str, Any],
+    ) -> Dict[str, Dict[str, Any]]:
         normalised_sections = {}
 
         for section_name, section_data in sections.items():
@@ -1202,9 +1567,7 @@ class MachineModel(ModelBase):
                     context=f"section '{section_name}'",
                 )
             else:
-                raise TypeError(
-                    f"Section '{section_name}' must be a list or dict"
-                )
+                raise TypeError(f"Section '{section_name}' must be a list or dict")
 
             if not isinstance(elements, list):
                 raise TypeError(f"Section '{section_name}' elements must be a list")
@@ -1214,7 +1577,70 @@ class MachineModel(ModelBase):
                 "type": section_type,
             }
 
+        authored = {
+            name: definition["elements"]
+            for name, definition in normalised_sections.items()
+        }
+        for name, definition in normalised_sections.items():
+            expanded = expand_section_order(name, authored[name], authored)
+            if expanded != authored[name]:
+                definition["authored"] = authored[name]
+            definition["elements"] = expanded
+
         return normalised_sections
+
+    @staticmethod
+    def _normalise_layouts(
+        layouts: Dict[str, Any],
+    ) -> tuple[Dict[str, list], Dict[str, Dict[str, int]]]:
+        """Split ``{layout: [entries]}`` into section names and per-section direction.
+
+        An entry is a bare section name, or a single-key mapping carrying
+        options -- the same shape as a section's element list::
+
+            layouts:
+              RING:
+                - ARC_A
+                - ARC_B: {direction: -1}
+
+        ``direction: -1`` means this beam path traverses that section backwards.
+        It says nothing about the section itself.
+        """
+        areas: Dict[str, list] = {}
+        directions: Dict[str, Dict[str, int]] = {}
+        for layout_name, entries in layouts.items():
+            if not isinstance(entries, list):
+                raise TypeError(f"Layout '{layout_name}' must be a list of sections")
+            names: list = []
+            marked: Dict[str, int] = {}
+            for entry in entries:
+                if isinstance(entry, str):
+                    names.append(entry)
+                    continue
+                if not isinstance(entry, dict) or len(entry) != 1:
+                    raise TypeError(
+                        f"Layout '{layout_name}' entries must be a section name, "
+                        f"optionally with a 'direction'; got {entry!r}"
+                    )
+                section_name, options = next(iter(entry.items()))
+                if not isinstance(options, dict) or set(options) - {"direction"}:
+                    raise TypeError(
+                        f"Entry '{section_name}' in layout '{layout_name}' must be a "
+                        "section name or a section name with a 'direction'"
+                    )
+                direction = options.get("direction", 1)
+                if direction not in (1, -1):
+                    raise ValueError(
+                        f"'direction' for '{section_name}' in layout "
+                        f"'{layout_name}' must be 1 or -1; got {direction!r}"
+                    )
+                names.append(section_name)
+                if direction == -1:
+                    marked[section_name] = -1
+            areas[layout_name] = names
+            if marked:
+                directions[layout_name] = marked
+        return areas, directions
 
     @staticmethod
     def _normalise_layout_metadata(
@@ -1272,12 +1698,6 @@ class MachineModel(ModelBase):
             ):
                 return os.path.abspath(os.path.dirname(__file__) + "/../" + v)
             else:
-                # Not resolvable relative to the cwd or the laura package;
-                # defer to model_post_init, which resolves the path relative
-                # to master_lattice (the environment-independent anchor the
-                # framework always supplies). Raising here would break any
-                # environment where laura is not installed beside the lattice
-                # files (e.g. laura in site-packages during testing).
                 return v
         elif isinstance(v, dict):
             if "layouts" not in v:
@@ -1297,12 +1717,6 @@ class MachineModel(ModelBase):
             ):
                 return os.path.abspath(os.path.dirname(__file__) + "/../" + v)
             else:
-                # Not resolvable relative to the cwd or the laura package;
-                # defer to model_post_init, which resolves the path relative
-                # to master_lattice (the environment-independent anchor the
-                # framework always supplies). Raising here would break any
-                # environment where laura is not installed beside the lattice
-                # files (e.g. laura in site-packages during testing).
                 return v
         elif isinstance(v, dict):
             if "sections" not in v:
@@ -1333,7 +1747,9 @@ class MachineModel(ModelBase):
                 if os.path.exists(candidate):
                     layout_file = candidate
             config = read_yaml(layout_file)
-            self._layouts = config.layouts
+            self._layouts, self._layout_directions = self._normalise_layouts(
+                config.layouts
+            )
             self._layout_metadata = self._normalise_layout_metadata(
                 getattr(config, "layout_metadata", {})
             )
@@ -1344,6 +1760,7 @@ class MachineModel(ModelBase):
                 warn(message)
         elif self.layout is None:
             self._layouts = {}
+            self._layout_directions = {}
             self._layout_metadata = {}
             self._default_path = None
             warnings.warn("No layouts specified. Lattices will be empty.")
@@ -1351,7 +1768,9 @@ class MachineModel(ModelBase):
             for key in ["layouts"]:
                 if key not in self.layout:
                     raise KeyError("layout must specify layouts")
-            self._layouts = self.layout["layouts"]
+            self._layouts, self._layout_directions = self._normalise_layouts(
+                self.layout["layouts"]
+            )
             self._layout_metadata = self._normalise_layout_metadata(
                 self.layout.get("layout_metadata", {})
             )
@@ -1385,12 +1804,12 @@ class MachineModel(ModelBase):
                     self._functional_source,
                 )
             if self.section:
-                self._build_layouts(self.elements)   # creates SectionLattice only
+                self._build_layouts(self.elements)  # creates SectionLattice only
             else:
                 self._build_sections_from_elements(self.elements)
-            self._resolve_all_positions()             # resolve before MachineLayout
+            self._resolve_all_positions()  # resolve before MachineLayout
             if self.section:
-                self._build_layout_objects()          # MachineLayout after positions ready
+                self._build_layout_objects()  # MachineLayout after positions ready
 
     def __add__(self, other) -> dict:
         copy = self.elements.copy()
@@ -1488,10 +1907,7 @@ class MachineModel(ModelBase):
             if area in self.sections:
                 continue
 
-            order = [
-                e["name"] if isinstance(e, dict) else e.name
-                for e in new_elements
-            ]
+            order = [e["name"] if isinstance(e, dict) else e.name for e in new_elements]
 
             self.sections[area] = SectionLattice(
                 name=area,
@@ -1530,12 +1946,12 @@ class MachineModel(ModelBase):
                     area,
                     section_definition,
                 )
-                new_elements = [
-                    by_name[name]
-                    for name in elem_names
-                    if name in by_name
-                ]
-                _log.debug("Section %s elements=(%s)", area, [elem.name for elem in new_elements])
+                new_elements = [by_name[name] for name in elem_names if name in by_name]
+                _log.debug(
+                    "Section %s elements=(%s)",
+                    area,
+                    [elem.name for elem in new_elements],
+                )
                 self.sections[area] = SectionLattice(
                     name=area,
                     elements=new_elements,
@@ -1545,6 +1961,7 @@ class MachineModel(ModelBase):
                     functional_definitions=self.functional_definitions,
                     resolve_functional=self.resolve_functional,
                 )
+                self.sections[area]._authored_order = section_definition.get("authored")
             return
 
         if self._layouts:
@@ -1556,11 +1973,13 @@ class MachineModel(ModelBase):
                             self._section_definitions[area],
                         )
                         new_elements = [
-                            by_name[name]
-                            for name in elem_names
-                            if name in by_name
+                            by_name[name] for name in elem_names if name in by_name
                         ]
-                        _log.debug("Section %s elements=(%s)", area, [elem.name for elem in new_elements])
+                        _log.debug(
+                            "Section %s elements=(%s)",
+                            area,
+                            [elem.name for elem in new_elements],
+                        )
                         self.sections[area] = SectionLattice(
                             name=area,
                             elements=new_elements,
@@ -1570,6 +1989,9 @@ class MachineModel(ModelBase):
                             functional_definitions=self.functional_definitions,
                             resolve_functional=self.resolve_functional,
                         )
+                        self.sections[area]._authored_order = self._section_definitions[
+                            area
+                        ].get("authored")
 
     def _build_layout_objects(self):
         """Create MachineLayout objects from already-resolved sections.
@@ -1594,6 +2016,9 @@ class MachineModel(ModelBase):
                     functional_definitions=self.functional_definitions,
                     resolve_functional=self.resolve_functional,
                 )
+                self.lattices[path]._direction = dict(
+                    self._layout_directions.get(path, {})
+                )
         if len(self.lattices) == 1 and self._default_path is None:
             self._default_path = next(iter(self.lattices))
 
@@ -1604,8 +2029,82 @@ class MachineModel(ModelBase):
 
     def _resolve_all_positions(self) -> None:
         """Resolve all positioning modes (reference_placement, s, global) for every section."""
+        self._number_sequential_repeats()
         for section in self.sections.values():
+            section._placed_sequentially = section._resolve_sequential_placement(
+                self.elements
+            )
             section.resolve_positions(self.elements)
+        self._compose_layout_frames()
+
+    def _compose_layout_frames(self) -> None:
+        """Chain each layout's sequentially-placed sections into one frame.
+
+        A section resolves in its own frame, starting at the world origin.
+        A sequentially-placed section has no stated position at all,
+        so two of them in the same layout would both begin at
+        the origin and occupy the same space. This walks each layout in order
+        and moves every such section onto the exit frame of what precedes it.
+        Nothing outside a layout is touched
+
+        * **A section that states its positions is never moved.**  A surveyed
+          machine's coordinates are already global and composing them would
+          corrupt them; such a section still contributes its exit frame, so a
+          sequential section following one starts from its end.
+        * **A section shared by two layouts is composed at most once**, by the
+          first layout that reaches it.  Use
+          :meth:`MachineLayout.arc_lengths` for the per-path view instead.
+        """
+        if not self._layouts:
+            return
+        composed: Dict[str, str] = {}
+        for path, areas in self._layouts.items():
+            frame = None
+            for area in areas:
+                section = self.sections.get(area)
+                if section is None:
+                    continue
+                if section._placed_sequentially and frame is not None:
+                    owner = composed.get(area)
+                    if owner is None:
+                        section.compose_onto(self.elements, frame)
+                        section._composed_by = path
+                        composed[area] = path
+                    elif owner != path:
+                        warn(
+                            f"Section '{area}' is placed sequentially and appears in "
+                            f"both '{owner}' and '{path}', which give it different "
+                            f"predecessors. It is positioned for '{owner}'; use "
+                            f"{path}.arc_lengths() for its arc length along "
+                            f"'{path}'.",
+                            stacklevel=2,
+                        )
+                frame = section.exit_frame(self.elements) or frame
+
+    def _number_sequential_repeats(self) -> None:
+        """Split repeated names in sequential sections into numbered copies.
+
+        Done here rather than inside the section because retiring the original
+        bare name is only safe with every section's order in view: another
+        section may still be using it.
+        """
+        renamed: Dict[str, str] = {}
+        for section in self.sections.values():
+            if section.is_sequential(self.elements):
+                renamed.update(section.number_repeated_elements(self.elements))
+        if not renamed:
+            return
+        still_referenced = {
+            name for section in self.sections.values() for name in section.order
+        }
+        for original in set(renamed.values()) - still_referenced:
+            self.elements.pop(original, None)
+        warn(
+            "Repeated element names in a sequentially-placed section were given "
+            "one copy per occurrence: "
+            + ", ".join(f"{new} (from {old})" for new, old in sorted(renamed.items())),
+            stacklevel=2,
+        )
 
     def resolve_reference_placements(self) -> None:
         """(Re-)resolve all reference_placement and s-coordinate specs.

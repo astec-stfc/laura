@@ -947,25 +947,6 @@ class DipoleTranslator(BaseElementTranslator):
         wholestring += f', FMAPFN = "1DPROFILE1-DEFAULT";\n'
         return wholestring
 
-    #
-    # @computed_field
-    # @property
-    # def entrance_edge_angle(self) -> float:
-    #     if self.magnetic.entrance_edge_angle == "angle":
-    #         return self.magnetic.angle
-    #     elif self.magnetic.entrance_edge_angle == "angle/2":
-    #         return self.magnetic.angle / 2.0
-    #     return self.magnetic.entrance_edge_angle
-    #
-    # @computed_field
-    # @property
-    # def exit_edge_angle(self) -> float:
-    #     if self.magnetic.exit_edge_angle == "angle":
-    #         return self.magnetic.angle
-    #     elif self.magnetic.exit_edge_angle == "angle/2":
-    #         return self.magnetic.angle / 2.0
-    #     return self.magnetic.exit_edge_angle
-
 
 class SolenoidTranslator(BaseElementTranslator):
     """

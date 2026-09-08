@@ -1,0 +1,49 @@
+# FODO channel — three identical cells, written once.
+#
+# The companion to ``repeats_sections.yaml``. This is the LAURA transcription
+# of ``pals/examples/fodo.pals.yaml``, and it uses both compact-authoring
+# features at once:
+#
+#   * ``quad2`` inherits ``quad1`` and flips its strength (element
+#     inheritance — see ``inheritance_elements.yaml``).
+#   * ``fodo_cell`` is written once and repeated three times by the section
+#     file, and ``drift1`` appears twice inside the cell.
+#
+# Not one element states a position: the section order and these lengths place
+# the whole channel. Four element definitions and two short lines describe
+# fifteen placements.
+
+drift1:
+  name: drift1
+  hardware_class: Drift
+  hardware_type: Drift
+  machine_area: FODO
+  physical:
+    length: 0.25
+
+drift2:
+  name: drift2
+  hardware_class: Drift
+  hardware_type: Drift
+  machine_area: FODO
+  physical:
+    length: 0.5
+
+quad1:
+  name: quad1
+  hardware_class: Magnet
+  hardware_type: Quadrupole
+  machine_area: FODO
+  physical:
+    length: 1.0
+  magnetic:
+    length: 1.0
+    magnet_type: quadrupole
+    k1l: 1.0
+
+# Same magnet, opposite sign. Type, length and everything else come from quad1.
+quad2:
+  name: quad2
+  inherits_from: quad1
+  magnetic:
+    k1l: -1.0

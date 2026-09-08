@@ -268,7 +268,12 @@ class TestMadxSection:
         madx.beam(particle="electron", energy=1.0)
         madx.use(sequence="S1")
         tw = madx.twiss(betx=1, bety=1)
-        assert tw["s"][-1] == pytest.approx(2.7513000197245434)
+        # Depends on PhysicalElement.start/end, so it moves whenever the bend
+        # chord geometry does.  The previous value here (2.7513000197245434)
+        # was captured against a half-chord approximation that under-read every
+        # bend; see test_physical_bend_geometry.py for the exact relation this
+        # length now rests on.
+        assert tw["s"][-1] == pytest.approx(2.751570601951526)
 
     def test_resolved_mode_bakes_numbers_no_header(self):
         pytest.importorskip("cpymad")

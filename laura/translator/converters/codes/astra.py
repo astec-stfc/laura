@@ -260,10 +260,6 @@ class astra_output(astra_header):
         self.exclude.extend(
             ["screens", "section", "end_element", "start_element"]
         )  # , "starting_offset"])
-        # self.zstart = list(self.section.elements.elements.values())[0].physical.start.z
-        # self.zstop = list(self.section.elements.elements.values())[-1].physical.end.z
-        # self.zemit = int((self.zstop - self.zstart) / 0.01)
-        # self.screens = [e for e in self.section.elements.elements.values() if e.hardware_class == "Diagnostic"]
 
     def write_ASTRA(self) -> str:
         """

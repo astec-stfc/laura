@@ -443,14 +443,6 @@ class ControlsInformation(_ControlsInformationBase):
                 ctx.update({param: getattr(element, param)})
         return ctx
 
-    # @staticmethod
-    # def build_context(element):
-    #     return {
-    #         **{k: v.value for k, v in element.controls.variables.items()},
-    #         "magnetic": element.magnetic,
-    #         "physical": element.physical,
-    #     }
-
     def apply(self, element):
         ctx = self.build_context(element)
 

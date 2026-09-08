@@ -1,7 +1,6 @@
-import warnings
 import numpy as np
+
 from .pmd_units import unit
-import re
 
 try:
     np.warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
@@ -31,8 +30,6 @@ PREFIX_FACTOR = {
     "zetta-": 1e21,
     "yotta-": 1e24,
 }
-# Inverse
-PREFIX = dict((v, k) for k, v in PREFIX_FACTOR.items())
 
 SHORT_PREFIX_FACTOR = {
     "y": 1e-24,
@@ -60,7 +57,7 @@ SHORT_PREFIX_FACTOR = {
 # Inverse
 SHORT_PREFIX = dict((v, k) for k, v in SHORT_PREFIX_FACTOR.items())
 
-RF_BANDS: {
+RF_BANDS = {
     "HF": [3e6, 3e7],
     "VHF": [3e7, 3e8],
     "UHF": [3e8, 1e9],
@@ -101,30 +98,6 @@ def nice_scale_prefix(scale):
     if f in SHORT_PREFIX:
         return f, SHORT_PREFIX[f]
     return 1, ""
-
-
-def nice_array(a):
-    """
-    Returns a scaled array, the scaling, and a unit prefix
-
-    Example:
-        nice_array( np.array([2e-10, 3e-10]) )
-    Returns:
-        (array([200., 300.]), 1e-12, 'p')
-
-    """
-
-    if np.isscalar(a):
-        x = a
-    elif len(a) == 1:
-        x = a[0]
-    else:
-        a = np.array(a)
-        x = np.ptp(a)
-
-    fac, prefix = nice_scale_prefix(x)
-
-    return a / fac, fac, prefix
 
 
 def unit_power(string, power_factor=1):
@@ -189,7 +162,7 @@ def unit_fraction(string):
                     substrings.append(substring)
                 substring = ""
                 if individe and inbracket:
-                    substrings = nom
+                    substrings = num
                 else:
                     substrings = denom
             else:
@@ -354,19 +327,6 @@ class UnitValue(np.ndarray):
         Otherwise numpy's view-casting and new-from-template mechanisms would break our class.
         """
         self.units = getattr(obj, "units", "")
-
-    # def __array_wrap__(self, obj, context=None):
-    #     result = obj.view(type(self))
-    #     # try:
-    #     #     print(context[0].__name__)
-    #     # except:
-    #     #     print(context)
-    #     if context is not None:
-    #         if context[0].__name__ == 'sqrt':
-    #             result.units = unit_to_the_power(obj.units, 0.5)
-    #         if context[0].__name__ == 'square':
-    #             result.units = unit_to_the_power(obj.units, 2)
-    #     return result
 
     def __array_ufunc__(
         self, ufunc, method, *inputs, **kwargs
