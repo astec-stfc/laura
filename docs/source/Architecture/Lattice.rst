@@ -226,7 +226,7 @@ A machine layout defines:
 
 * ``name: str``: The name of the layout/beam path.
 * ``sections: Dict[str, SectionLattice]``: Dictionary of lattice sections, keyed by section name.
-* ``passes: List[LayoutPass]``: The beam order, one entry per section traversal, carrying ``section``, ``direction``, ``number`` and ``overrides``. A name-keyed dictionary cannot say that a path enters a section twice; this can. See :ref:`multipass`.
+* ``passes: List[LayoutPass]``: The beam order, one entry per section traversal, carrying ``section``, ``direction``, ``number``, ``momentum`` and ``overrides``. A name-keyed dictionary cannot say that a path enters a section twice; this can. See :ref:`multipass`.
 * ``layout_type: "beam" | "rf" | "laser"``: What kind of lattice this beam path represents (default ``"beam"``); see :ref:`lattice-types`.
 * ``master_lattice: str | None``: Directory containing lattice files.
 * ``functional_definitions: str | dict``: Optional functional definitions (a mapping or YAML file path); see :ref:`functional-definitions`.
@@ -239,6 +239,7 @@ Important methods include:
 * ``elements_between(start, end, element_type, element_model, element_class)``: Returns elements within a specified range along the beam path.
 * ``_get_all_elements()``: Returns all elements in the layout in order.
 * ``arc_lengths(direction=None)``: Arc length of each element's entrance *along this beam path*; see :ref:`path-arc-lengths`.
+* ``pass_strengths(number)``: Integrated multipole strengths as one pass of a :ref:`multipass <multipass>` section sees them; see :ref:`per-pass-strengths`.
 
 .. _path-arc-lengths:
 
@@ -428,8 +429,88 @@ Overrides exist only because the passes of a multipass section are one device.
    passes would collapse into a single traversal and a direction stated for one pass would be
    applied to all of them. A path without ``multipass:`` is unaffected.
 
-A worked ERL -- one linac, two passes, the return pass 180 degrees off crest -- is
-``examples/testing/multipass_{elements,sections,layouts}.yaml``.
+.. _per-pass-strengths:
+
+Per-pass strengths
+~~~~~~~~~~~~~~~~~~
+
+For :ref:`multipass` configurations, state the beam's reference momentum on each pass, in eV/c, and
+:py:meth:`pass_strengths <laura.models.elementList.MachineLayout.pass_strengths>` resolves it:
+
+.. code-block:: yaml
+
+    - LINAC: {multipass: 1, momentum: 100.0e+6}
+    - ARC
+    - LINAC: {multipass: 2, momentum: 200.0e+6}
+
+.. code-block:: python
+
+    layout.pass_strengths(1)     # {'LIN_Q': 0.5}    the stored value
+    layout.pass_strengths(2)     # {'LIN_Q': 0.25}   half, at twice the energy
+
+One magnet at one current holds one **field**, so that is what is resolved and held fixed:
+
+.. code-block:: text
+
+    field  = get_gradient(momentum of pass 1)
+    KnL(N) = field * length / Brho(momentum of pass N)
+
+:py:meth:`get_gradient <laura.models.magnetic.MagneticElement.get_gradient>` returns an
+authored :py:attr:`gradient <laura.models.magnetic.MagneticElement.gradient>` untouched and
+otherwise derives the field from the stored strength, so **stating a field and stating a
+strength are one path, not two**. Substituting the second case gives
+``KnL(N) = KnL(1) * Brho(1) / Brho(N)``, which is why pass 1 is the reference: it is simply
+the pass the stored value describes. At order 0 the same expression is the dipole's own
+:py:meth:`field_strength <laura.models.magnetic.Dipole_Magnet.field_strength>`.
+
+Authoring a ``gradient`` is the more direct statement for a multipass magnet, since it is the
+quantity that does not vary -- but it is not a separate mechanism, and a lattice that stores
+strengths needs no rewriting to get the same answer.
+
+A momentum is refused on any entry not marked ``multipass``, and on only some passes of a
+multipass section: scaling is a ratio between two passes, so a pass without a momentum leaves
+the others nothing to scale against.
+
+.. note::
+
+   One momentum per pass is a **reference value, not a profile**. A bunch really does
+   accelerate through a linac, so a quadrupole near its exit sees a different energy from one
+   near its entrance; state the momentum that makes that section's optics meaningful.
+   Sections entered once are unaffected either way.
+
+More than one section can be multipass, and in a **multi-turn** ERL more than one is: such a
+machine accelerates and decelerates through the same linac several times, returning through
+the same arc at a different energy on every turn. The arc is then shared hardware exactly as
+the linac is, and needs its own per-pass momenta:
+
+.. code-block:: yaml
+
+    - LINAC: {multipass: 1, momentum: 100.0e+6}
+    - ARC:   {multipass: 1, momentum: 100.0e+6}
+    - LINAC: {multipass: 2, momentum: 200.0e+6}
+    - ARC:   {multipass: 2, momentum: 200.0e+6}
+    - LINAC: {multipass: 3, momentum: 100.0e+6}
+
+Each section is numbered and referenced independently -- ``ARC`` pass 2 scales against ``ARC``
+pass 1, never against the linac's. A pass number then no longer identifies a traversal on its
+own, so name the section too:
+
+.. code-block:: python
+
+    layout.pass_strengths(2, "ARC")      # {'ARC_B': 0.5}
+    layout.pass_strengths(2)             # LatticeError: enters ['ARC', 'LINAC'] on pass 2
+    layout.pass_strengths(3)             # fine -- only LINAC makes a third pass
+
+The bare form is refused rather than answered for whichever section happens to come first,
+which is :ref:`the same rule <occurrence-addressing>` a bare element name follows on a
+multipass path.
+
+A section entered **once** needs no momentum at all, however many times its neighbours are
+entered: it has one energy and its stored strength is already right for it. That is why the
+single-turn ERL example below gives momenta to its linac but not to its arc.
+
+A worked ERL -- one linac, two passes, the return pass 180 degrees off crest and at twice the
+momentum -- is ``examples/testing/multipass_{elements,sections,layouts}.yaml``.
 
 .. _layout-composition:
 

@@ -61,6 +61,15 @@ def _is_set(value: Any) -> bool:
     return abs(value) > 0
 
 
+def brho(momentum: float) -> float:
+    """Magnetic rigidity ``B*rho`` [T.m] for a beam momentum in **eV/c**.
+
+    Anything converting between a stored strength and a real field goes
+    through here.
+    """
+    return 3.3356 * momentum / 1e9
+
+
 class Multipole(_MultipoleBase, FunctionalMixin):
     """
     Single order magnetic multipole model.
@@ -525,15 +534,14 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
         Get the magnetic field gradient for the multipole.
 
         Args:
-            momentum (float): The momentum of the particle beam (in MeV/c).
+            momentum (float): The momentum of the particle beam (in eV/c).
 
         Returns:
             float: The magnetic field gradient.
         """
         if self.gradient is not None:
             return self.gradient
-        Brho = 3.3356 * momentum / (1e9)
-        return self.KnL(self.order) * Brho / self.length
+        return self.KnL(self.order) * brho(momentum) / self.length
 
     def currentToK(self, *args, **kwargs):
         return self.linear_saturation_coefficients.currentToK(*args, **kwargs)
@@ -634,7 +642,12 @@ class Dipole_Magnet(MagneticElement):
 
     def field_strength(self, momentum: float) -> float:
         """
-        Get the dipole magnetic field strength.
+        Get the dipole magnetic field strength, ``B = Brho / rho`` [T].
+
+        This is the dipole's counterpart to
+        :meth:`MagneticElement.get_gradient`, and reads the same way: with
+        ``rho = length / angle`` and ``K0L = angle``, ``Brho / rho`` is
+        ``K0L * Brho / length`` -- one relation, whatever the order.
 
         Args:
             momentum (float): The momentum of the particle beam (in eV/c).
@@ -642,8 +655,9 @@ class Dipole_Magnet(MagneticElement):
         Returns:
             float: The dipole magnetic field strength.
         """
-        Brho = 3.3356 * momentum / (1e9)
-        return self.rho * Brho / self.length
+        if self.gradient is not None:
+            return self.gradient
+        return brho(momentum) / self.rho if self.rho else 0.0
 
 
 class Quadrupole_Magnet(MagneticElement):

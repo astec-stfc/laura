@@ -84,6 +84,67 @@
 # Note the return pass is NOT ``direction: -1``. The bunch comes back round
 # the arc and through the linac the same way it went in; what makes it
 # decelerate is the phase, not the direction of travel.
+#
+# ------------------------------------------------------------------------
+# Strengths, which the passes also disagree about
+# ------------------------------------------------------------------------
+# ``momentum`` is the beam's reference momentum on that pass, in eV/c. It is
+# needed because LAURA stores *normalised* strengths: ``k = qG/p``, so a
+# stored ``k1l`` means one field at one energy only. LIN_Q is one quadrupole
+# at one current -- what it holds across the passes is its **field** -- so its
+# ``k`` is necessarily different on a 100 MeV/c pass and a 200 MeV/c one.
+#
+#     layout.pass_strengths(1)   # {'LIN_Q': 0.5}   the stored value
+#     layout.pass_strengths(2)   # {'LIN_Q': 0.25}  half, at twice the energy
+#
+# One magnet at one current holds one field, so that is what gets resolved
+# and held fixed:
+#
+#     field  = get_gradient(momentum of pass 1)
+#     KnL(N) = field * length / Brho(momentum of pass N)
+#
+# ``get_gradient`` returns an authored ``gradient`` untouched and otherwise
+# derives the field from the stored strength, so stating a field and stating
+# a strength are one path, not two. Substituting the second gives
+# ``KnL(N) = KnL(1)*Brho(1)/Brho(N)``, which is why pass 1 is the reference:
+# it is simply the pass the stored ``k1l`` describes.
+#
+# Stating a ``gradient`` on the magnet is the more direct thing to author for
+# shared hardware, since it is the quantity that does not vary -- but it is
+# not a different mechanism, and this file gets the same answer storing k1l.
+#
+# A **booster** is the mirror image of this and needs none of it: its magnets
+# ramp so that B and p rise together, holding k constant, which is exactly
+# what LAURA already stores. Same hardware, different energy, opposite answer.
+#
+# One momentum per pass is a reference value, not a profile. The beam really
+# accelerates *through* the linac, so a quadrupole near its exit sees a
+# different energy from one near its entrance; state the momentum that makes
+# the section's optics meaningful.
+#
+# ARC gets no momentum here, and needs none: this is a *single-turn* ERL, so
+# the beam goes round the arc exactly once, at one energy, and the arc's
+# stored strengths are already right for it. Being next to a multipass section
+# changes nothing -- what matters is how many times the beam enters *this*
+# section.
+#
+# A MULTI-TURN ERL is the case where that stops being true. Accelerate twice
+# and decelerate twice and the beam returns through the same arc at a
+# different energy every turn, so the arc is shared hardware exactly as the
+# linac is:
+#
+#   - LINAC: {multipass: 1, momentum: 100.0e+6}
+#   - ARC:   {multipass: 1, momentum: 100.0e+6}
+#   - LINAC: {multipass: 2, momentum: 200.0e+6}
+#   - ARC:   {multipass: 2, momentum: 200.0e+6}
+#   - LINAC: {multipass: 3, momentum: 100.0e+6}
+#
+# Each section is numbered and referenced independently: ARC pass 2 scales
+# against ARC pass 1, never against the linac's. Once two sections both have a
+# pass 2, the number alone no longer says which traversal you mean, so name
+# the section: ``pass_strengths(2, "ARC")``. The bare form is refused rather
+# than answered for whichever section came first -- the same rule a bare
+# element name follows on a multipass path.
 
 default_layout: ERL
 
@@ -91,16 +152,19 @@ layouts:
   ERL:
     - INJECTOR
 
-    # Pass 1: accelerating, on crest.
+    # Pass 1: accelerating, on crest, 100 MeV/c.
     - LINAC:
         multipass: 1
+        momentum: 100.0e6
 
     # Recirculation: entered once, so nothing here is multipass.
     - ARC
 
-    # Pass 2: the same two cavities, half an RF period later.
+    # Pass 2: the same two cavities, half an RF period later, and the same
+    # quadrupole at twice the energy -- so half the normalised strength.
     - LINAC:
         multipass: 2
+        momentum: 200.0e6
         overrides:
           CAV_01: {cavity.phase: 180.0}
           CAV_02: {cavity.phase: 180.0}

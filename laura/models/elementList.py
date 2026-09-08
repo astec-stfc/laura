@@ -31,6 +31,7 @@ from .baseModels import (
 )
 from .element import Diagnostic, Drift, PhysicalBaseElement, baseElement
 from .exceptions import LatticeError
+from .magnetic import brho
 from .physical import PhysicalElement, Position, Rotation
 from .simulation import DriftSimulationElement
 from .trajectory import Trajectory
@@ -1108,6 +1109,14 @@ class LayoutPass(BaseModel):
     """Multipass occurrence number, counting from 1. ``None`` for an ordinary
     single traversal, and for repetition."""
 
+    momentum: float | None = None
+    """Beam reference momentum on this pass, in eV/c (multipass only).
+
+    Pass 1 is the reference: the stored value is what the magnet does there,
+    and :meth:`MachineLayout.pass_strengths` scales pass N by
+    ``Brho(1)/Brho(N)``. Stated on every pass of a section or none.
+    """
+
     overrides: Dict[str, Dict[str, Any]] = {}
     """Element values that hold on this pass only (i.e. multipass only),
     ``{element_name: {attribute_path: value}}``, e.g. an accelerating pass and
@@ -1275,6 +1284,89 @@ class MachineLayout(BaseLatticeModel):
         True only for declared multipass.
         """
         return any(entry.number is not None for entry in self.passes)
+
+    def pass_strengths(self, number: int, section: str = None) -> Dict[str, float]:
+        """Integrated multipole strengths as pass ``number`` sees them.
+
+        One magnet at one current holds one **field**, so the field is
+        resolved once and normalised per pass (with pass 1 as reference)::
+
+            field  = get_gradient(momentum of pass 1)
+            KnL(N) = field * length / Brho(momentum of pass N)
+
+        Returns ``{element_name: KnL}`` for the magnetic elements of the
+        section that pass traverses, in beam order.
+
+        ``section`` names which one when more than one is multipass -- for a
+        multi-turn ERL, both ``LINAC`` and ``ARC`` both have a pass 2.
+
+        Raises
+        ------
+        LatticeError
+            If this path is not multipass, if ``number`` is not one of its
+            passes, if ``number`` names a pass of more than one section and
+            no ``section`` was given, or if the passes carry no ``momentum``.
+        """
+        if not self.is_multipass:
+            raise LatticeError(
+                f"Beam path '{self.name}' is not multipass, so it has no "
+                "per-pass strengths: every element is entered once and its "
+                "stored strength is the answer."
+            )
+        passes = [
+            entry
+            for entry in self.passes
+            if entry.number == number
+            and (section is None or entry.section == section)
+        ]
+        if not passes:
+            available = sorted(
+                {
+                    (entry.section, entry.number)
+                    for entry in self.passes
+                    if entry.number is not None
+                    and (section is None or entry.section == section)
+                }
+            )
+            raise LatticeError(
+                f"Beam path '{self.name}' has no pass {number}"
+                + ("" if section is None else f" of section '{section}'")
+                + f"; it makes {available}."
+            )
+        if len(passes) > 1:
+            raise LatticeError(
+                f"Beam path '{self.name}' enters "
+                f"{sorted(entry.section for entry in passes)} on pass "
+                f"{number}. Name the section as well, e.g. "
+                f"pass_strengths({number}, "
+                f"'{sorted(entry.section for entry in passes)[0]}')."
+            )
+        entry = passes[0]
+        reference = next(
+            (
+                other
+                for other in self.passes
+                if other.section == entry.section and other.number == 1
+            ),
+            None,
+        )
+        if entry.momentum is None or reference is None or reference.momentum is None:
+            raise LatticeError(
+                f"Pass {number} of '{entry.section}' on beam path "
+                f"'{self.name}' states no 'momentum', so its strengths cannot "
+                "be resolved."
+            )
+
+        section = self.sections.get(entry.section)
+        strengths: Dict[str, float] = {}
+        for name in [] if section is None else section.order:
+            element = section.elements.elements.get(name)
+            magnetic = getattr(element, "magnetic", None)
+            if magnetic is None or not getattr(magnetic, "length", 0):
+                continue
+            field = magnetic.get_gradient(reference.momentum)
+            strengths[name] = field * magnetic.length / brho(entry.momentum)
+        return strengths
 
     @property
     def names(self) -> List:
@@ -1830,7 +1922,7 @@ class MachineModel(ModelBase):
             for entry in entries:
                 if isinstance(entry, str):
                     names.append(entry)
-                    listed.append((entry, 1, None, {}))
+                    listed.append((entry, 1, None, None, {}))
                     continue
                 if not isinstance(entry, dict) or len(entry) != 1:
                     raise TypeError(
@@ -1842,12 +1934,13 @@ class MachineModel(ModelBase):
                 if not isinstance(options, dict) or set(options) - {
                     "direction",
                     "multipass",
+                    "momentum",
                     "overrides",
                 }:
                     raise TypeError(
                         f"Entry '{section_name}' in layout '{layout_name}' must be a "
                         "section name, or a section name with a 'direction', "
-                        "a 'multipass' and/or 'overrides'"
+                        "a 'multipass', a 'momentum' and/or 'overrides'"
                     )
                 direction = options.get("direction", 1)
                 if direction not in (1, -1):
@@ -1866,11 +1959,27 @@ class MachineModel(ModelBase):
                         f"'{layout_name}' must be a pass number counting from "
                         f"1; got {multipass!r}"
                     )
+                momentum = options.get("momentum")
+                if momentum is not None:
+                    try:
+                        if isinstance(momentum, bool):
+                            raise TypeError
+                        momentum = float(momentum)
+                    except (TypeError, ValueError):
+                        momentum = None
+                    if momentum is None or momentum <= 0:
+                        raise ValueError(
+                            f"'momentum' for '{section_name}' in layout "
+                            f"'{layout_name}' not a positive beam momentum "
+                            f"in eV/c; got {options['momentum']!r}"
+                        )
                 overrides = MachineModel._normalise_pass_overrides(
                     options.get("overrides"), section_name, layout_name
                 )
                 names.append(section_name)
-                listed.append((section_name, direction, multipass, overrides))
+                listed.append(
+                    (section_name, direction, multipass, momentum, overrides)
+                )
                 if direction == -1:
                     marked[section_name] = -1
             areas[layout_name] = names
@@ -2284,6 +2393,7 @@ class MachineModel(ModelBase):
                 totals[name] = totals.get(name, 0) + 1
             multipass = self._declared_multipass(path, entries, totals)
             self._check_overrides_are_multipass(path, entries, multipass)
+            self._check_pass_momenta(path, entries, multipass)
             expandable = {
                 name
                 for name, total in totals.items()
@@ -2297,7 +2407,7 @@ class MachineModel(ModelBase):
             names: list = []
             marked: Dict[str, int] = {}
             passes: list = []
-            for name, direction, number, overrides in entries:
+            for name, direction, number, momentum, overrides in entries:
                 if name in expandable:
                     index = seen.get(name, 0) + 1
                     seen[name] = index
@@ -2315,6 +2425,7 @@ class MachineModel(ModelBase):
                         section=name,
                         direction=direction,
                         number=number,
+                        momentum=momentum,
                         overrides=overrides,
                     )
                 )
@@ -2333,7 +2444,7 @@ class MachineModel(ModelBase):
         """
         declared = set()
         for name, total in totals.items():
-            numbers = [number for entry, _, number, _ in entries if entry == name]
+            numbers = [number for entry, _, number, _, _ in entries if entry == name]
             stated = [number for number in numbers if number is not None]
             if not stated:
                 continue
@@ -2341,9 +2452,8 @@ class MachineModel(ModelBase):
                 raise ValueError(
                     f"Layout '{path}' marks some occurrences of section "
                     f"'{name}' with 'multipass' and not others. Multipass is a "
-                    "claim about the hardware -- that every occurrence is the "
-                    "same device -- so it has to be stated on all of them or "
-                    "none. Omit it entirely to get separate devices instead."
+                    "claim about the hardware so it has to be stated on all sections "
+                    "or none. Omit it entirely to get separate devices instead."
                 )
             if total == 1:
                 raise ValueError(
@@ -2366,29 +2476,52 @@ class MachineModel(ModelBase):
         path: str, entries: list, multipass: set
     ) -> None:
         """Refuse ``overrides`` anywhere the pass is not the thing that varies."""
-        for name, _, _, overrides in entries:
+        for name, _, _, _, overrides in entries:
             if overrides and name not in multipass:
                 raise ValueError(
                     f"Layout '{path}' gives section '{name}' per-pass "
                     f"'overrides' but does not mark it 'multipass'. Overrides "
-                    "say what differs between passes of one shared device; a "
-                    "section entered once, or entered twice as two separate "
-                    "devices, has an element of its own to carry the value. "
+                    "say what differs between passes of one shared device. "
                     "Set the value on the element, or declare 'multipass' on "
                     "every occurrence if they really are one device."
                 )
 
+    @staticmethod
+    def _check_pass_momenta(path: str, entries: list, multipass: set) -> None:
+        """Refuse a per-pass ``momentum`` that cannot mean anything, i.e. if
+        the section is not multipass. Momenta must be provided for every pass.
+        """
+        for name in {entry for entry, *_ in entries}:
+            stated = [
+                momentum
+                for entry, _, _, momentum, _ in entries
+                if entry == name and momentum is not None
+            ]
+            if not stated:
+                continue
+            if name not in multipass:
+                raise ValueError(
+                    f"Layout '{path}' gives section '{name}' a per-pass "
+                    f"'momentum' but does not mark it 'multipass'."
+                )
+            total = sum(1 for entry, *_ in entries if entry == name)
+            if len(stated) != total:
+                raise ValueError(
+                    f"Layout '{path}' states a 'momentum' on {len(stated)} of "
+                    f"the {total} passes of section '{name}'. State the "
+                    "momentum on every pass, or on none."
+                )
+
     def _check_repeat_is_repetition(self, path: str, name: str, entries: list) -> None:
         """Refuse the two ways a repeated section cannot mean repetition."""
-        directions = {direction for entry, direction, _, _ in entries if entry == name}
+        directions = {
+            direction for entry, direction, _, _, _ in entries if entry == name
+        }
         if len(directions) > 1:
             raise ValueError(
                 f"Layout '{path}' enters section '{name}' more than once, with a "
-                "different 'direction' each time. Nobody builds two of a section "
-                "so that one of them runs backwards, so this is one section "
-                "traversed there and back -- not yet implemented. "
-                "Give every occurrence the same direction if you did "
-                "mean separate devices; to mirror a line without traversing it "
+                "different 'direction' each time. "
+                "To mirror a line without traversing it "
                 "backwards, use a section-level 'repeat: -1'."
             )
         if not self._section_definition_is_sequential(self._section_definitions[name]):
