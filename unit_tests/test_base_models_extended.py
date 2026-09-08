@@ -8,6 +8,7 @@ from pydantic import PrivateAttr
 
 from laura.models.baseModels import (
     ModelBase,
+    IgnoreExtra,
     NumpyVectorModel,
     functional_annotations,
     functional_references,
