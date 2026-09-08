@@ -21,8 +21,8 @@ Substituting ``x = x'``, ``y = -y'`` and the component signs above gives
 ``B_y' + i B_x' = -b_n (x' + i y')^n`` --- and for a skew term ``i a_n``, the
 same substitution gives ``+i a_n``.  So, at **every** order:
 
-* **normal coefficients negate**
-* **skew coefficients are unchanged**
+* normal coefficients negate
+* skew coefficients are unchanged
 
 What is refused
 ---------------
@@ -75,6 +75,44 @@ def _is_symbolic(value: Any) -> bool:
     return isinstance(value, str)
 
 
+_STANDING_WAVE = {"standingwave", "sw", "standing"}
+_TRAVELLING_WAVE = {"travellingwave", "travelingwave", "tw", "travelling", "traveling"}
+
+
+def _cavity_reversal_obstacles(element, cavity) -> List[str]:
+    """Why a cavity element cannot be traversed backwards, if it cannot.
+
+    A symmetric standing-wave accelerating cavity can, but other cavities
+    are refused due to directionality.
+    """
+    reasons: List[str] = []
+
+    if getattr(element, "hardware_type", None) != "RFCavity":
+        reasons.append(
+            f"it is a {getattr(element, 'hardware_type', 'cavity-like')} "
+            "rather than a plain accelerating cavity"
+        )
+        return reasons
+
+    if getattr(cavity, "attenuation_constant", 0):
+        reasons.append(
+            "its power attenuates along its length (attenuation_constant = "
+            f"{cavity.attenuation_constant})"
+        )
+
+    structure = str(getattr(cavity, "structure_type", "") or "")
+    key = structure.replace("-", "").replace("_", "").replace(" ", "").lower()
+    if key in _TRAVELLING_WAVE:
+        reasons.append(
+            "it is a travelling-wave structure"
+        )
+    elif key not in _STANDING_WAVE:
+        reasons.append(
+            f"its structure_type is {structure!r}, which is not recognised"
+        )
+    return reasons
+
+
 def reversal_obstacles(element) -> List[str]:
     """Every reason ``element`` cannot be reversed by a sign flip, in order.
 
@@ -83,23 +121,19 @@ def reversal_obstacles(element) -> List[str]:
     """
     reasons: List[str] = []
 
-    if getattr(element, "cavity", None) is not None:
-        reasons.append(
-            "it is an RF cavity, whose zero-phase convention and energy-gain "
-            "sign under reversal are a convention decision"
-        )
+    cavity = getattr(element, "cavity", None)
+    if cavity is not None:
+        reasons.extend(_cavity_reversal_obstacles(element, cavity))
 
     simulation = getattr(element, "simulation", None)
     if simulation is not None:
         if getattr(simulation, "field_definition", None):
             reasons.append(
-                "it carries a field map, which would have to be resampled "
-                "backwards rather than negated"
+                "it carries a field map"
             )
         if getattr(simulation, "wakefield_definition", None):
             reasons.append(
-                "it carries wakefield data, which is causal and does not "
-                "reverse by a sign flip"
+                "it carries wakefield data"
             )
 
     magnetic = getattr(element, "magnetic", None)

@@ -21,6 +21,7 @@ from laura.models.element import (
     Marker,
     Quadrupole,
     RFCavity,
+    RFDeflectingCavity,
     Sextupole,
     Solenoid,
 )
@@ -48,6 +49,16 @@ def dipole(name="B", **magnetic):
         machine_area="S",
         magnetic={"magnetic_length": 1.0, "k0l": 0.3, **magnetic},
         physical={"length": 1.0},
+    )
+
+
+def cavity(name="C", **cavity_fields):
+    return RFCavity(
+        name=name,
+        hardware_class="RF",
+        machine_area="S",
+        physical={"length": 0.1},
+        cavity={"frequency": 1.3e9, "phase": 0.0, **cavity_fields},
     )
 
 
@@ -198,15 +209,30 @@ class TestDirectionlessElementsPassStraightThrough:
 
 
 class TestWhatIsRefused:
-    def test_an_rf_cavity(self):
-        cavity = RFCavity(
-            name="C",
-            hardware_class="RF",
+    def test_a_travelling_wave_cavity(self):
+        """A backwards beam counter-propagates with the RF wave."""
+        with pytest.raises(ElementNotReversible, match="counter-propagates"):
+            reverse_element(cavity(structure_type="TW"))
+
+    def test_an_attenuating_cavity(self):
+        """Power decaying along the structure makes it directional."""
+        with pytest.raises(ElementNotReversible, match="attenuates"):
+            reverse_element(cavity(attenuation_constant=0.5))
+
+    def test_an_unrecognised_structure_type(self):
+        """Symmetry cannot be assumed from a spelling nobody knows."""
+        with pytest.raises(ElementNotReversible, match="neither a recognised"):
+            reverse_element(cavity(structure_type="helical"))
+
+    def test_a_deflecting_cavity(self):
+        """Its kick would flip sign -- a different question, not yet decided."""
+        deflector = RFDeflectingCavity(
+            name="TDC",
             machine_area="S",
             physical={"length": 0.1},
         )
-        with pytest.raises(ElementNotReversible, match="zero-phase convention"):
-            reverse_element(cavity)
+        with pytest.raises(ElementNotReversible, match="RFDeflectingCavity"):
+            reverse_element(deflector)
 
     def test_a_field_map(self):
         mapped = quad()
@@ -241,24 +267,51 @@ class TestWhatIsRefused:
         assert len(raised.value.reasons) == 2
 
     def test_the_element_is_named(self):
-        cavity = RFCavity(
-            name="CLA-L01-CAV",
-            hardware_class="RF",
-            machine_area="S",
-            physical={"length": 0.1},
-        )
         with pytest.raises(ElementNotReversible, match="CLA-L01-CAV"):
-            reverse_element(cavity)
+            reverse_element(cavity(name="CLA-L01-CAV", structure_type="TW"))
 
     def test_obstacles_can_be_checked_without_reversing(self):
-        cavity = RFCavity(
-            name="C",
-            hardware_class="RF",
-            machine_area="S",
-            physical={"length": 0.1},
-        )
-        assert reversal_obstacles(cavity)
+        assert reversal_obstacles(cavity(structure_type="TW"))
         assert reversal_obstacles(quad()) == []
+
+
+class TestASymmetricCavityIsReversible:
+    """Decided 2026-09-08: a symmetric standing-wave cavity reverses as a
+    no-op, and the per-pass phase stays authored (a layout ``overrides``
+    entry) rather than being derived as a 180-degree flip here. A real
+    recirculator's return phase is set by path length and the LLRF, so
+    deriving it would assert a timing relationship the hardware does not
+    guarantee -- and would silently fight an authored value.
+
+    This is what lets an ERL's return leg through the linac be expressed at
+    all: reversal of a cavity used to be refused outright.
+    """
+
+    def test_a_standing_wave_cavity_has_no_obstacles(self):
+        assert reversal_obstacles(cavity()) == []
+
+    @pytest.mark.parametrize(
+        "spelling", ["StandingWave", "SW", "sw", "standing-wave", "Standing Wave"]
+    )
+    def test_the_usual_spellings_are_recognised(self, spelling):
+        assert reversal_obstacles(cavity(structure_type=spelling)) == []
+
+    def test_reversing_it_changes_nothing_about_it(self):
+        """It is geometrically the same from either end."""
+        forward = cavity(phase=30.0)
+        backward = reverse_element(forward)
+        assert backward.cavity.phase == pytest.approx(30.0)
+        assert backward.cavity.frequency == forward.cavity.frequency
+        assert backward.physical.length == pytest.approx(forward.physical.length)
+
+    def test_the_phase_is_not_flipped(self):
+        """The decision, stated as a test: 180 degrees is authored, not derived."""
+        assert reverse_element(cavity(phase=0.0)).cavity.phase == pytest.approx(0.0)
+
+    def test_the_source_is_untouched(self):
+        forward = cavity(phase=30.0)
+        reverse_element(forward)
+        assert forward.cavity.phase == pytest.approx(30.0)
 
 
 class TestNonStrict:

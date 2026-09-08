@@ -1169,11 +1169,33 @@ What is refused
 Anything whose reversal is not a sign flip raises
 :py:class:`ElementNotReversible <laura.models.reversal.ElementNotReversible>`, listing every
 reason rather than the first, because a silently half-reversed element is worse than none:
-RF cavities, field maps and wakefields, and symbolic strengths.
+field maps and wakefields, symbolic strengths, and the directional RF structures below.
 :py:func:`reversal_obstacles <laura.models.reversal.reversal_obstacles>` reports the same
 list without reversing, so a whole line can be checked before any of it is committed to.
 ``strict=False`` warns and reverses what it can, for a caller that has decided a partial
 reversal is acceptable. A measured misalignment is not transformed and warns.
+
+.. _cavity-reversal:
+
+RF cavities
+~~~~~~~~~~~
+
+A symmetric standing-wave accelerating cavity is reversible, and reversing it changes
+nothing about it: it is geometrically the same from either end, so only its place in the
+order moves. Only the phase changes between traversals, which can be overridden per pass
+(see :ref:`per-pass-overrides`).
+
+Three RF cases are still refused:
+
+* a travelling-wave structure, because a backwards beam counter-propagates with the RF
+  wave instead of riding it;
+* any structure with a non-zero ``attenuation_constant``, whose gradient profile would have to
+  be mirrored rather than negated;
+* a ``structure_type`` matching neither a recognised standing-wave nor travelling-wave
+  spelling, since symmetry cannot be assumed from an unknown one.
+
+Deflecting and crab cavities are also refused: their kick is transverse and would flip sign,
+which is a separate decision that has not been made.
 
 .. _path-reversal-on-export:
 

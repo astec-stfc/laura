@@ -32,6 +32,7 @@ from .baseModels import (
 from .element import Diagnostic, Drift, PhysicalBaseElement, baseElement
 from .exceptions import LatticeError
 from .magnetic import brho
+from .reversal import reverse_element
 from .physical import PhysicalElement, Position, Rotation
 from .simulation import DriftSimulationElement
 from .trajectory import Trajectory
@@ -1364,6 +1365,8 @@ class MachineLayout(BaseLatticeModel):
             magnetic = getattr(element, "magnetic", None)
             if magnetic is None or not getattr(magnetic, "length", 0):
                 continue
+            if entry.direction == -1:
+                magnetic = reverse_element(element).magnetic
             field = magnetic.get_gradient(reference.momentum)
             strengths[name] = field * magnetic.length / brho(entry.momentum)
         return strengths

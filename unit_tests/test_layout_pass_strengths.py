@@ -278,7 +278,7 @@ def multi_turn():
 
 def test_an_ambiguous_pass_number_is_refused(multi_turn):
     """Answering for whichever section came first is the failure to avoid."""
-    with pytest.raises(LatticeError, match="does not say which"):
+    with pytest.raises(LatticeError, match="Name the section as well"):
         multi_turn.pass_strengths(2)
 
 
@@ -314,6 +314,52 @@ def test_a_number_unambiguous_on_its_own_still_needs_no_section(multi_turn):
 def test_a_pass_number_that_section_does_not_make_is_refused(multi_turn):
     with pytest.raises(LatticeError, match="no pass 3 of section 'ARC'"):
         multi_turn.pass_strengths(3, "ARC")
+
+
+# --- a reversed pass ----------------------------------------------------
+#
+# Traversing an element backwards is equivalent to traversing it forwards
+# with the opposite-sign particle, so every normal multipole's effect changes
+# sign in the beam frame. `pass_strengths` reports what a pass *sees*, so a
+# reversed pass has to carry that -- and it uses `reverse_element` to do it
+# rather than restating the rule.
+
+
+def reversed_second_pass(momentum=P1):
+    return machine(
+        [
+            "INJECTOR",
+            {"LINAC": {"multipass": 1, "momentum": P1}},
+            "ARC",
+            {"LINAC": {"multipass": 2, "momentum": momentum, "direction": -1}},
+            "DUMP",
+        ]
+    ).lattices["ERL"]
+
+
+def test_a_reversed_pass_flips_a_normal_multipole():
+    assert reversed_second_pass().pass_strengths(2) == {"LIN_Q": pytest.approx(-1.0)}
+
+
+def test_a_forward_pass_at_the_same_momentum_does_not():
+    """Isolates the sign from the scaling: same energy, opposite direction."""
+    assert reversed_second_pass().pass_strengths(1) == {"LIN_Q": pytest.approx(1.0)}
+
+
+def test_reversal_and_rigidity_scaling_compose():
+    assert reversed_second_pass(P2).pass_strengths(2) == {
+        "LIN_Q": pytest.approx(-0.5)
+    }
+
+
+def test_a_reversed_pass_still_holds_one_field_magnitude():
+    """The magnet has not changed; only the frame the beam reads it in has."""
+    layout = reversed_second_pass(P2)
+    magnitudes = [
+        abs(layout.pass_strengths(n)["LIN_Q"]) * brho(p) / 0.4
+        for n, p in ((1, P1), (2, P2))
+    ]
+    assert magnitudes[0] == pytest.approx(magnitudes[1])
 
 
 # --- the booster, which needs none of this ------------------------------

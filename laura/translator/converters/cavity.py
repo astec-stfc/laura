@@ -37,7 +37,7 @@ class RFCavityTranslator(BaseElementTranslator):
     @computed_field
     @property
     def structure_type(self) -> str:
-        return self.cavity.structure_type
+        return getattr(self.cavity, "structure_type", "StandingWave")
 
     @property
     def phase(self) -> float:
@@ -139,9 +139,6 @@ class RFCavityTranslator(BaseElementTranslator):
             self.simulation.wakefield_definition is None
             or self.simulation.wakefield_definition == ""
         ):
-            # Only the plain accelerating cavity falls back to the wakefield-less
-            # RFCA; deflecting/crab cavities always use their own mapped etype
-            # (RFDF), which has no separate wakefield variant.
             etype = "rfca"
         elif self.simulation.wakefield_definition not in (None, ""):
             wakefield_file_name = self.generate_field_file_name(
@@ -317,13 +314,8 @@ class RFCavityTranslator(BaseElementTranslator):
                     setattr(
                         obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
                     )
-        # Cheetah selects between two cavity transfer maps via `cavity_type`.
-        # Its "traveling_wave" branch is a pure travelling-wave map (edge
-        # focusing plus adiabatic damping, no ponderomotive/RF focusing),
-        # whereas ELEGANT (body_focus_model=SRS), Ocelot (CavityAtom) and the
-        # MAD-X backend (rsmatrix) all apply *standing-wave*
-        # Rosenzweig-Serafini focusing even to travelling-wave structures.
-        # Pinned to "standing_wave" so Cheetah stays consistent with them.
+        # Pinned to "standing_wave" so Cheetah stays consistent with ocelot/elegant
+        # .
         if hasattr(obj, "cavity_type"):
             obj.cavity_type = "standing_wave"
         return obj
