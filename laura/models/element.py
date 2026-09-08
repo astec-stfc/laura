@@ -1136,6 +1136,7 @@ class RFCavity(PhysicalBaseElement, _RFCavityBase):
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "cavity", type(self)._cavity_model)
+        _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
 
 
 class Wakefield(PhysicalBaseElement, _WakefieldBase):

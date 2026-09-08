@@ -218,6 +218,18 @@ class TestNameKeyedLookups:
         assert model.lattices["ERL"].arc_lengths()
         assert model.elements_between(start="INJ_Q", end="DMP_Q", path="ERL")
 
-    def test_export_refuses_a_multipass_path(self, erl):
-        with pytest.raises(LatticeError, match="multipass"):
-            MachineLayoutTranslator.from_layout(erl.lattices["ERL"])
+    def test_export_writes_one_section_per_pass(self, erl):
+        """It used to refuse outright; Tier-1 flatten replaced that.
+
+        The passes are the same section, so export has to give each one a
+        distinct name before a name-keyed ``sections`` dict can hold both.
+        Covered properly in ``test_layout_export_flatten.py``.
+        """
+        translator = MachineLayoutTranslator.from_layout(erl.lattices["ERL"])
+        assert list(translator.sections) == [
+            "INJECTOR",
+            "LINAC.1",
+            "ARC",
+            "LINAC.2",
+            "DUMP",
+        ]

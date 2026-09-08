@@ -211,7 +211,7 @@ class TestDirectionlessElementsPassStraightThrough:
 class TestWhatIsRefused:
     def test_a_travelling_wave_cavity(self):
         """A backwards beam counter-propagates with the RF wave."""
-        with pytest.raises(ElementNotReversible, match="counter-propagates"):
+        with pytest.raises(ElementNotReversible, match="travelling-wave structure"):
             reverse_element(cavity(structure_type="TW"))
 
     def test_an_attenuating_cavity(self):
@@ -221,7 +221,7 @@ class TestWhatIsRefused:
 
     def test_an_unrecognised_structure_type(self):
         """Symmetry cannot be assumed from a spelling nobody knows."""
-        with pytest.raises(ElementNotReversible, match="neither a recognised"):
+        with pytest.raises(ElementNotReversible, match="not recognised"):
             reverse_element(cavity(structure_type="helical"))
 
     def test_a_deflecting_cavity(self):
@@ -237,13 +237,13 @@ class TestWhatIsRefused:
     def test_a_field_map(self):
         mapped = quad()
         mapped.simulation.field_definition = "quad_map.dat"
-        with pytest.raises(ElementNotReversible, match="resampled"):
+        with pytest.raises(ElementNotReversible, match="carries a field map"):
             reverse_element(mapped)
 
     def test_wakefield_data(self):
         waked = quad()
         waked.simulation.wakefield_definition = "wake.dat"
-        with pytest.raises(ElementNotReversible, match="causal"):
+        with pytest.raises(ElementNotReversible, match="carries wakefield data"):
             reverse_element(waked)
 
     def test_a_symbolic_strength(self):

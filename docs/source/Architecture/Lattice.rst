@@ -416,18 +416,46 @@ Overrides exist only because the passes of a multipass section are one device.
 
 .. note::
 
-   Overrides are **carried, not applied**. They are recorded on the
-   :py:class:`LayoutPass <laura.models.elementList.LayoutPass>` and leave the element
-   untouched; export applies them when it flattens a multipass path. Read
-   ``layout.passes[n].overrides`` to see what a pass declares.
+   Overrides never touch the model. They are recorded on the
+   :py:class:`LayoutPass <laura.models.elementList.LayoutPass>` and the element keeps its
+   stored value, because the passes share one device; they are applied to the per-pass copies
+   :ref:`export <multipass-export>` makes. Read ``layout.passes[n].overrides`` to see what a
+   pass declares.
 
-.. warning::
+.. _multipass-export:
 
-   **Export of a multipass path is currently refused.**
-   :py:meth:`from_layout <laura.translator.converters.layout.MachineLayoutTranslator.from_layout>`
-   raises rather than emitting one, because it writes one child per distinct *section*: the
-   passes would collapse into a single traversal and a direction stated for one pass would be
-   applied to all of them. A path without ``multipass:`` is unaffected.
+Exporting a multipass path
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``sections`` is name-keyed and every backend iterates it, so a path that enters one section
+twice has to become a set of distinct sections before any backend sees it.
+:py:meth:`from_layout <laura.translator.converters.layout.MachineLayoutTranslator.from_layout>`
+flattens it: one exported section per traversal, each a copy suffixed ``.N`` on the
+section and on every element in it, carrying the values that pass sees -- reversal first, then
+the resolved :ref:`per-pass strengths <per-pass-strengths>`, then the
+:ref:`overrides <per-pass-overrides>` last, so an explicit statement wins over anything
+derived.
+
+.. code-block:: text
+
+    INJECTOR: LINE = (INJ_Q, ...)
+    LINAC.1:  LINE = (CAV_01.1, LIN_Q.1, ...)     k1 = 2.5    phase = 0
+    ARC:      LINE = (ARC_B, ...)
+    LINAC.2:  LINE = (CAV_01.2, LIN_Q.2, ...)     k1 = 1.25   phase = 180
+
+``.N`` rather than the ``#N`` that *addresses* a pass, in order to be compatible with banned
+strings in various simulation codes.
+
+A flattened multipass path and the repetition reading of the
+same file emit byte-identical section and element names. The pass number
+is inserted before any within-section repeat index to keep it so.
+
+.. note::
+
+   Bmad can hold multipass natively, with real
+   lord/slave elements sharing attributes and per-slave ``E_TOT`` and ``phi0_multipass``; that
+   is a separate item, as is round-tripping multipass back in through Bmad, whose lord
+   elements never reach ``lat_list``.
 
 .. _per-pass-strengths:
 
