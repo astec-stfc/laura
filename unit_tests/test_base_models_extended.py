@@ -67,6 +67,14 @@ class TestModelBaseEqFallback:
         assert hash(a) == id(a)
 
 
+class TestIgnoreExtraFieldHelpers:
+    def test_create_field_collects_inputs(self):
+        ie = IgnoreExtra()
+        fields = {"a": 1, "b": 2}
+        ie._create_field(fields, "combined", ["a", "b"])
+        assert fields["combined"] == [1, 2]
+
+
 class _Vec3(NumpyVectorModel):
     x: float = 0.0
     y: float = 0.0
