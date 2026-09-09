@@ -24,26 +24,23 @@ from laura.models.magnetic import (
 
 
 class TestFieldIntegralCoercion:
-    def test_from_dict(self):
-        me = MagneticElement(field_integral_coefficients={"coefficients": [1, 2, 3]})
+    @pytest.mark.parametrize(
+        "authored",
+        [[1, 2, 3], "1,2,3", {"coefficients": [1, 2, 3]}],
+        ids=["list", "csv", "dict"],
+    )
+    def test_every_authored_form_gives_the_same_coefficients(self, authored):
+        me = MagneticElement(field_integral_coefficients=authored)
         assert me.field_integral_coefficients.coefficients == [1.0, 2.0, 3.0]
+        assert list(iter(me.field_integral_coefficients)) == [1.0, 2.0, 3.0]
 
-    def test_from_existing_instance(self):
+    def test_an_instance_is_kept_rather_than_rebuilt(self):
         fi = FieldIntegral(coefficients=[1, 2])
-        me = MagneticElement(field_integral_coefficients=fi)
-        assert me.field_integral_coefficients is fi
+        assert MagneticElement(field_integral_coefficients=fi).field_integral_coefficients is fi
 
     def test_none_passthrough(self):
         me = MagneticElement(field_integral_coefficients=None)
         assert me.field_integral_coefficients is None
-
-    def test_from_string(self):
-        me = MagneticElement(field_integral_coefficients="1,2,3")
-        assert list(iter(me.field_integral_coefficients)) == [1.0, 2.0, 3.0]
-
-    def test_from_list(self):
-        me = MagneticElement(field_integral_coefficients=[1, 2, 3])
-        assert me.field_integral_coefficients.coefficients == [1.0, 2.0, 3.0]
 
     def test_invalid_type_raises(self):
         with pytest.raises(ValueError):
@@ -253,21 +250,21 @@ class TestDipoleMagnetSettersAndConversions:
         assert isinstance(current, (float, complex, np.floating, np.complexfloating))
 
 
-class TestQuadrupoleOctupoleSetters:
-    def test_quadrupole_k1l_setter(self):
-        qm = Quadrupole_Magnet(length=1.0)
-        qm.k1l = 3.3
-        assert qm.k1l == pytest.approx(3.3)
-
-    def test_sextupole_k2l_setter(self):
-        sm = Sextupole_Magnet(length=1.0)
-        sm.k2l = 5.5
-        assert sm.k2l == pytest.approx(5.5)
-
-    def test_octupole_k3l_setter(self):
-        om = Octupole_Magnet(length=1.0)
-        om.k3l = 4.4
-        assert om.k3l == pytest.approx(4.4)
+@pytest.mark.parametrize(
+    "cls, attribute",
+    [
+        (Quadrupole_Magnet, "k1l"),
+        (Sextupole_Magnet, "k2l"),
+        (Octupole_Magnet, "k3l"),
+    ],
+    ids=lambda v: getattr(v, "__name__", v),
+)
+def test_the_order_specific_strength_setter_round_trips(cls, attribute):
+    """Each subclass exposes its own order as a named property over the shared
+    multipole store; the setter has to reach the right order, not just any."""
+    magnet = cls(length=1.0)
+    setattr(magnet, attribute, 3.3)
+    assert getattr(magnet, attribute) == pytest.approx(3.3)
 
 
 class TestSolenoidFieldsDunders:

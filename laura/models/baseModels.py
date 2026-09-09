@@ -1,11 +1,16 @@
-from pydantic import BaseModel, model_serializer, ConfigDict
-from typing import TypeVar, Any, Type, List, Union, Dict, ClassVar
+from typing import Any, ClassVar, Dict, List, Type, TypeVar, Union
+
 import numpy as np
+from pydantic import BaseModel, ConfigDict, model_serializer
 from pydantic_core.core_schema import SerializationInfo
 
 from ..utils.dict_utils import (
-    StringWithQuotes as string_with_quotes,
     FlowList as flow_list,
+)
+from ..utils.dict_utils import (
+    StringWithQuotes as string_with_quotes,
+)
+from ..utils.dict_utils import (
     numpy_scalar_to_python,
 )
 
@@ -298,11 +303,6 @@ class IgnoreExtra(ModelBase, FunctionalMixin):
     # when True, the "configured value" accessors and the codes that support
     # functional parameters present resolved numbers instead.
     resolve_functional: ClassVar[bool] = False
-
-    def _create_field_class(
-        self, fields: dict, fieldname: str, fieldclass: List[str]
-    ) -> None:
-        fields[fieldname] = fieldclass.from_CATAP(fields)
 
     def _create_field(
         self, fields: dict, fieldname: str, fieldinputs: List[str]

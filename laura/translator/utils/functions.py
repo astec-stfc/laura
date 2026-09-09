@@ -5,6 +5,8 @@ from collections import Counter as OccurrenceCounter
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
+
+from laura.models.element import Magnet
 from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.models.baseModels import IgnoreExtra
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, get_args, get_origin

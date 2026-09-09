@@ -418,36 +418,33 @@ class MagnetTranslator(BaseElementTranslator):
         else:
             return ""
 
-    def _write_CSRTrack(self, n: int) -> str:
+    def _write_CSRTrack_quadrupole(self, n: int) -> str:
         """
-        Writes the screen element string for CSRTrack.
+        Writes the quadrupole element string for CSRTrack.
 
         Parameters
         ----------
         n: int
-            Screen index
+            Quad index
 
         Returns
         -------
         str
             String representation of the element for CSRTrack
         """
-        z = self.physical.middle.z
-        s_comment = (
-            f"! quad{n} s={self.physical.s:.6f}\n"
-            if self.physical.s is not None
-            else ""
-        )
+        z1 = self.physical.start.z
+        z2 = self.physical.end.z
+        s_comment = f"! quad{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
         return (
             s_comment
             + """quadrupole{\nposition{rho="""
-            + str(z)
+            + str(z1)
             + """, psi=0.0, marker=quad"""
             + str(n)
             + """a}\nproperties{strength="""
             + str(self.magnetic.KnL(1))
             + """, alpha=0, horizontal_offset=0,vertical_offset=0}\nposition{rho="""
-            + str(z + self.physical.length)
+            + str(z2)
             + """, psi=0.0, marker=quad"""
             + str(n)
             + """b}\n}\n"""
@@ -1036,25 +1033,6 @@ class DipoleTranslator(BaseElementTranslator):
         wholestring += f', FMAPFN = "1DPROFILE1-DEFAULT";\n'
         return wholestring
 
-    #
-    # @computed_field
-    # @property
-    # def entrance_edge_angle(self) -> float:
-    #     if self.magnetic.entrance_edge_angle == "angle":
-    #         return self.magnetic.angle
-    #     elif self.magnetic.entrance_edge_angle == "angle/2":
-    #         return self.magnetic.angle / 2.0
-    #     return self.magnetic.entrance_edge_angle
-    #
-    # @computed_field
-    # @property
-    # def exit_edge_angle(self) -> float:
-    #     if self.magnetic.exit_edge_angle == "angle":
-    #         return self.magnetic.angle
-    #     elif self.magnetic.exit_edge_angle == "angle/2":
-    #         return self.magnetic.angle / 2.0
-    #     return self.magnetic.exit_edge_angle
-
 
 class SolenoidTranslator(BaseElementTranslator):
     """
@@ -1085,6 +1063,7 @@ class SolenoidTranslator(BaseElementTranslator):
         self.start_write()
         parameters = self._bmad_parameters()
         strength = self.magnetic.ks
+        # `ks` and not `bs_field` -- see the note in `SolenoidTranslator`.
         if self.magnetic.length:
             parameters["ks"] = (
                 f"{strength} / {self.magnetic.length}"

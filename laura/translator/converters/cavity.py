@@ -70,7 +70,7 @@ class RFCavityTranslator(BaseElementTranslator):
     @computed_field
     @property
     def structure_type(self) -> str:
-        return self.cavity.structure_type
+        return getattr(self.cavity, "structure_type", "StandingWave")
 
     @property
     def phase(self) -> float:
@@ -298,15 +298,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
-                        # print("elegant cavity", key, value)
-                        tmpstring = ", " + key + " = " + str(value)
-                        # if len(string + tmpstring) > 156:
-                        #     wholestring += string + ",&\n"
-                        #     print(wholestring)
-                        #     string = ""
-                        #     string += tmpstring[2::]
-                        # else:
-                        string += tmpstring
+                        string += ", " + key + " = " + str(value)
                     keys.append(key)
         wholestring += string + ";\n"
         return wholestring
@@ -408,6 +400,8 @@ class RFCavityTranslator(BaseElementTranslator):
                     setattr(
                         obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
                     )
+        # Pinned to "standing_wave" so Cheetah stays consistent with ocelot/elegant
+        # .
         if hasattr(obj, "cavity_type"):
             obj.cavity_type = "standing_wave"
         self._cheetah_float64(obj)

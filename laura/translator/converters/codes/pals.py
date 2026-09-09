@@ -46,20 +46,13 @@ from ...utils.pals import (
     parse_pals_file,
 )
 
-#: Parsed but never turned into a LAURA element. Drifts are regenerated from
-#: resolved arc-length gaps by ``SectionLattice.createDrifts()``; ``Placeholder``
-#: is the ``branch_end`` sentinel every expanded branch carries. ``BeginningEle``
-#: is a branch's reference state, read into the section rather than placed as an
-#: element, and is handled by :meth:`PalsLatticeImporter._beginning_twiss` --
-#: it is the one kind that can still yield an element, from its ``TwissP``.
+#: Parsed but never turned into a LAURA element.
 _SILENTLY_SKIPPED_KINDS = ("Drift", "Placeholder")
 
 #: PALS kinds LAURA has no representation for at all.
 _UNSUPPORTED_KINDS = ("Converter", "Feedback", "Girder", "UnionEle")
 
-#: Kinds that survive import in a reduced form, and what is lost. A kind
-#: resolved by :func:`pals_kind_to_laura_type` to something other than its
-#: natural type belongs here or the loss goes unannounced.
+#: Kinds that survive import in a reduced form, and what is lost.
 _LOSSY_CONVERSIONS = {
     "Fork": "the branch it forks to; the fork point is kept as a Marker",
     "Patch": "its coordinate transform; LAURA has no patch element",
@@ -105,6 +98,11 @@ _CAVITY_TYPES = {
     "STANDING_WAVE": "StandingWave",
     "TRAVELING_WAVE": "TravellingWave",
 }
+
+#: Accelerating mode as a fraction of 2*pi, by ``structure_type``.
+#: These are just assumptions...
+_CAVITY_MODES = {"TravellingWave": (2, 3)}
+_DEFAULT_CAVITY_MODE = (1, 1)
 
 pals_unsupported = [
     "ChargeDiagnostic",
@@ -277,10 +275,6 @@ def _multipoles(
 
     converted: Dict[str, Any] = {"multipoles": multipoles} if multipoles else {}
 
-    # PALS tilts each order of the field separately and LAURA holds one tilt for
-    # the whole magnet, so a single tilt -- which is what a rotated magnet has,
-    # and all a magnet written out of LAURA can have -- comes across as that
-    # one. Several different ones do not.
     tilted = sorted(
         key for key in group if key.startswith("tilt") and _number(group[key])
     )
@@ -374,9 +368,6 @@ def _bend(element: PalsElement) -> Dict[str, Any]:
     if angle is not None:
         multipoles["K0L"] = {"normal": angle, "order": 0}
 
-    # e1/e2 are radians in PALS, and every LAURA importer hands a native
-    # radian edge angle to these fields unconverted, so do the same here
-    # rather than being the one code that disagrees.
     geometry = str(bend.get("ref_geometry", "ARC")).upper()
     for pals_key, laura_key in (
         ("e1", "entrance_edge_angle"),
@@ -384,12 +375,6 @@ def _bend(element: PalsElement) -> Dict[str, Any]:
     ):
         value = _number(bend.get(pals_key))
         if value is None:
-            # Expansion normally fills e1/e2 in from the rectangular pair, but
-            # the sector angle is recoverable if it did not. The offset between
-            # the two depends on which end the reference frame is fixed to:
-            # half the bend angle under ARC/CHORD, the whole angle at the free
-            # end under ENTRANCE_COORDS/EXIT_COORDS, and nothing at the fixed
-            # one (BendP docs, e1/e2).
             rectangular = _number(bend.get(f"{pals_key}_rect"))
             if rectangular is not None and angle is not None:
                 if geometry in ("ARC", "CHORD"):
@@ -419,10 +404,6 @@ def _bend(element: PalsElement) -> Dict[str, Any]:
         product = _number(bend.get(pals_key))
         if not product:
             continue
-        # PALS states one number where LAURA holds two: `edgeN_int` *is* the
-        # `fint * hgap` product (BendP docs), and nothing in the document says
-        # how it divides. Only the product enters the edge kick, so it is
-        # preserved exactly by pinning the half gap to 1 m.
         magnetic[fint_key] = product
         magnetic[gap_key] = 2.0
         warn(
@@ -453,11 +434,7 @@ def _body_shift(element: PalsElement) -> Dict[str, Any]:
 
     The three rotations are named for the axis they turn about, and LAURA's are
     not, so the mapping is composed from two measured conversions rather than
-    read off the names: PALSParserPy's ``to_bmad`` writes ``x_rot`` as Bmad
-    ``y_pitch`` *negated*, ``y_rot`` as ``x_pitch``, and ``z_rot`` as ``tilt``;
-    LAURA's Bmad importer then takes ``phi = -y_pitch``, ``theta = -x_pitch``
-    and ``psi = roll``. Composing gives ``phi = x_rot``, ``theta = -y_rot``,
-    ``psi = z_rot``.
+    read off the names.
     """
     shift = element.group("BodyShiftP")
     if not shift:
@@ -500,9 +477,6 @@ def _aperture(element: PalsElement) -> Dict[str, Any]:
             if low is not None and high is not None:
                 width = high - low
             elif low is not None or high is not None:
-                # A limit on one side only, which PALS allows and LAURA's single
-                # full width cannot express. Mirroring the limit keeps the stated
-                # side right and is the least surprising of the wrong answers.
                 one_sided.append(axis)
                 width = 2.0 * abs(low if low is not None else high)
         if width:
@@ -542,14 +516,11 @@ def _aperture(element: PalsElement) -> Dict[str, Any]:
     return {"aperture": sizes}
 
 
-def _cell_length(frequency: float, cavity: Dict[str, Any]) -> float:
-    """The length of one cell, from the cavity's frequency and its mode.
+def _cell_length(frequency: float, mode: tuple[int, int]) -> float:
+    """The length of one cell: the ``mode`` fraction of a wavelength, halved.
 
-    PALS states a cavity's frequency but never its mode, so this is an
-    assumption about the mode and nothing more: a travelling-wave structure is
-    read as 2*pi/3 (`lambda/3`, the S-band linac standard) and everything else
-    as pi (`lambda/2`). The `structure_type` discriminator is the same one the
-    field amplitude needs just below. Taking `lambda/2` for *every* cavity,
+    ``mode`` is the assumption in :data:`_CAVITY_MODES` -- 2*pi/3 gives
+    `lambda/3` and pi gives `lambda/2`. Taking `lambda/2` for *every* cavity,
     which is what this did before, makes a travelling-wave cell half as long
     again as it should be.
 
@@ -560,8 +531,8 @@ def _cell_length(frequency: float, cavity: Dict[str, Any]) -> float:
     told from a defaulted one; and `length/num_cells` under-reads a real cavity,
     whose physical length also holds couplers and end cells.
     """
-    order = 3.0 if cavity.get("structure_type") == "TravellingWave" else 2.0
-    return speed_of_light / (order * frequency)
+    numerator, denominator = mode
+    return numerator * speed_of_light / (2 * denominator * frequency)
 
 
 def _cavity(element: PalsElement) -> Dict[str, Dict[str, Any]]:
@@ -585,24 +556,17 @@ def _cavity(element: PalsElement) -> Dict[str, Dict[str, Any]]:
         # LAURA spells the travelling-wave case with two Ls throughout.
         cavity["structure_type"] = _CAVITY_TYPES.get(cavity_type, "StandingWave")
 
+    mode = _CAVITY_MODES.get(cavity.get("structure_type"), _DEFAULT_CAVITY_MODE)
     if frequency:
         cavity["frequency"] = frequency
-        cavity["cell_length"] = _cell_length(frequency, cavity)
+        cavity["cell_length"] = _cell_length(frequency, mode)
+    if cavity.get("structure_type") == "TravellingWave":
+        cavity["mode_numerator"], cavity["mode_denominator"] = mode
     cavity["n_cells"] = n_cells
     phase = _number(rf.get("phase"))
     if phase is not None:
-        # PALS states phase in rad/2pi (turns) and the reference translator
-        # copies it straight to Bmad's phi0; LAURA's Bmad importer reads a
-        # phi0 as -360*phi0 degrees, so the same negation applies here.
         cavity["phase"] = -360.0 * phase
 
-    # A LAURA field amplitude is a voltage for a standing-wave cavity but a
-    # gradient for a travelling-wave one, which is the same split PALS makes.
-    # Which of the pair to read is decided by the structure type and not by
-    # which one the document states: the parser's bookkeeper derives the other
-    # (`voltage = gradient * L_active`), so both are nearly always present, and
-    # reading the voltage of a travelling-wave cavity scales the amplitude by
-    # the active length every time the lattice is read.
     voltage = _number(rf.get("voltage"))
     gradient = _number(rf.get("gradient"))
     if cavity.get("structure_type") == "TravellingWave":
@@ -684,18 +648,12 @@ class PalsLatticeImporter(BaseModel):
                 )
             self.document = parse_pals_file(self.source_file)
             for problem in self.document.errors:
-                # Expansion reports an ERROR without necessarily giving up on
-                # the document -- bta.pals.yaml raises 21 and still expands --
-                # so these are surfaced, not raised.
                 warn(f"PALS expansion problem: {problem}")
         return self.document
 
     def _lattice(self):
         document = self._document()
         if not document.lattices:
-            # Only the lattice named by `use` is expanded, so a document with
-            # none is either a fragment meant to be loaded by another file or a
-            # complete one that forgot to say which lattice to use.
             raise ValueError(
                 f"No expanded lattice in {document.source}. A PALS document only "
                 "expands the lattice its `use` names; import the file that "
@@ -753,10 +711,6 @@ class PalsLatticeImporter(BaseModel):
                 energy = _number(group.get("pc_ref"))
             if energy is not None:
                 reference["reference_energy"] = energy
-        # `periodic` asks whether periodic optics are appropriate, which is the
-        # same linac-vs-ring distinction LAURA's geometry enum draws, though
-        # PALS is explicit that it does not assert the ends join. PALS documents
-        # its default as false, so a branch that is silent is an open one.
         reference["geometry"] = "closed" if branch.attributes.get("periodic") else "open"
         return reference
 
@@ -819,9 +773,6 @@ class PalsLatticeImporter(BaseModel):
 
         length = element.length
         if length < 0.0:
-            # PALS does not forbid a negative length (an expression can produce
-            # one), LAURA's physical model does. Keeping the exit face and
-            # zeroing the length leaves everything downstream where PALS put it.
             warn(
                 f"PALS element {numbered_name!r} has a negative length "
                 f"({length}); LAURA cannot hold one, so it was imported as a "
@@ -832,8 +783,6 @@ class PalsLatticeImporter(BaseModel):
             "name": numbered_name,
             "hardware_type": hardware_type,
             "machine_area": self.machine_area,
-            # PALS `s_position` is the element's upstream face; LAURA's
-            # importers all hand `physical.s` the exit position.
             "physical": {
                 "s": element.s_end,
                 "s_point": "end",
@@ -848,9 +797,6 @@ class PalsLatticeImporter(BaseModel):
         if kind == "Bend":
             magnetic = _bend(element)
         elif kind == "Solenoid":
-            # S0L holds the normalised strength here, as it does coming from
-            # MAD-X (`ks`), Xsuite (`ks`) and Ocelot (`k`), which is also what
-            # keeps a solenoid consistent with the normalised multipoles above.
             solenoid = element.group("SolenoidP")
             strength = _number(solenoid.get("Ksol"))
             if strength is None:

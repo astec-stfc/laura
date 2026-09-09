@@ -8,6 +8,7 @@ from laura.translator.converters.codes.elegant import (
     _expand_line_member,
 )
 from laura.translator.converters.model import MachineModelTranslator
+from laura.translator.converters.section import SectionLatticeTranslator
 from laura.translator.utils.elegant.sdds_classes_APS import SDDS_Params
 import laura.models.element as LAURA_elements
 from laura.models.element import Marker
@@ -123,7 +124,7 @@ def test_twiss_element_imports_beta_alpha_eta_and_from_beam(tmp_path):
 
 
 def test_machine_formatter_does_not_prefix_element_with_comma():
-    assert MachineModelTranslator.format_string(None, "M: mark;\n") == "M: mark;\n"
+    assert SectionLatticeTranslator.format_string(None, "M: mark;\n") == "M: mark;\n"
 
 
 def test_create_machine_model_uses_top_level_lines_and_minimum_section_length(

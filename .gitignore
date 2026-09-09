@@ -174,13 +174,25 @@ cython_debug/
 #vscode
 ./vscode
 PAdantic/Importers/~$CLARA Magnet Table v6.xlsx
+docs/source/Architecture/yaml-pipeline.md
 
 # Generated exporter / profiler output
 summary.yaml
 profile_output.txt
 *.lock
+.pytest_cache/
+.ruff_caache/
 
-# AI stuff
+# AI
+ANALYSIS.md
+REFACTORING_PLAN.md
 CLAUDE.md
+.agents/
+.claude/
+.codex/
 .mex/
-AGENTS.md
+Planning/
+.codegraph/
+node_modules/
+package.json
+package-lock.json

@@ -1,5 +1,5 @@
 """Additional tests for laura.models.element covering branches not exercised by
-unit_tests/models/test_element.py or unit_tests/test_element_attrs.py: baseElement
+unit_tests/test_element_attrs.py: baseElement
 validator/helper branches, PhysicalBaseElement/Magnet angle properties, and the
 model_post_init nested-default wiring of the many element subclasses that aren't
 otherwise constructed anywhere in the suite."""

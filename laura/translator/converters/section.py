@@ -25,6 +25,7 @@ from ..utils.bmad import (
     bmad_leading_drift,
     bmad_patch,
     bmad_safe_names,
+    BmadBody,
 )
 from ..utils.fields import field
 from ..utils.functions import (
@@ -205,6 +206,97 @@ class SectionLatticeTranslator(SectionLattice):
         str
             A Bmad-compatible lattice file.
         """
+        geometry = getattr(self.geometry, "value", self.geometry) or "open"
+        body = self._bmad_body(geometry)
+        header = self.bmad_header(
+            geometry,
+            particle=particle,
+            space_charge_n_bin=space_charge_n_bin,
+            reference_energy=self.reference_energy,
+            initial_twiss=initial_twiss if initial_twiss is not None else body.origin,
+            beginning=body.beginning,
+        )
+        return (
+            f"{header}{body.definitions}\n{body.line}"
+            f"{body.superpositions}use, {body.name}\n"
+        )
+
+    def bmad_header(
+        self,
+        geometry: str,
+        *,
+        particle: str | None = None,
+        space_charge_n_bin: int | None = None,
+        reference_energy: float | None = None,
+        initial_twiss: TwissMatchSimulationElement | None = None,
+        beginning: str = "",
+    ) -> str:
+        """
+        The file-level statements a Bmad lattice opens with.
+
+        One file holds several lines
+        (:meth:`~laura.translator.converters.layout.MachineLayoutTranslator.to_bmad_multipass`)
+        but only ever one header.
+
+        Parameters
+        ----------
+        geometry: str
+            ``open`` or ``closed``.
+        particle: str | None
+            Written only if given.
+        space_charge_n_bin: int | None
+            Optional positive number of Bmad space-charge bins.
+        reference_energy: float | None
+            Written as ``beginning[e_tot]``.
+        initial_twiss: TwissMatchSimulationElement | None
+            Written as ``beginning[beta_a]`` and friends.
+        beginning: str
+            The floor-position datum from :meth:`_bmad_body`.
+        """
+        header = bmad_functional_definitions(self.functional_definitions)
+        if particle:
+            header += f"parameter[particle] = {particle}\n"
+        enabled = "T" if self.csr_enable or self.lsc_enable else "F"
+        header += f"bmad_com[csr_and_space_charge_on] = {enabled}\n"
+        if space_charge_n_bin is not None:
+            if space_charge_n_bin < 1:
+                raise ValueError("space_charge_n_bin must be positive")
+            header += f"space_charge_com[n_bin] = {space_charge_n_bin}\n"
+        header += f"parameter[geometry] = {geometry}\n"
+        if reference_energy is not None:
+            header += f"beginning[e_tot] = {reference_energy}\n"
+        header += beginning
+        if initial_twiss is not None:
+            for attribute, value in (
+                ("beta_a", initial_twiss.beta_x),
+                ("alpha_a", initial_twiss.alpha_x),
+                ("beta_b", initial_twiss.beta_y),
+                ("alpha_b", initial_twiss.alpha_y),
+            ):
+                header += f"beginning[{attribute}] = {value}\n"
+            for attribute, value in (
+                ("eta_x", initial_twiss.eta_x),
+                ("etap_x", initial_twiss.eta_xp),
+                ("eta_y", initial_twiss.eta_y),
+                ("etap_y", initial_twiss.eta_yp),
+            ):
+                if value:
+                    header += f"beginning[{attribute}] = {value}\n"
+        return header
+
+    def _bmad_body(self, geometry: str, *, multipass: bool = False) -> BmadBody:
+        """
+        This section's Bmad element definitions and its one ``line``, split from
+        the header so a parent can put several sections in one file.
+
+        Parameters
+        ----------
+        geometry: str
+            ``open`` or ``closed``, handed to every element that reads it.
+        multipass: bool
+            Write ``line[multipass]``, so Bmad makes a lord and one slave per
+            traversal rather than repeating the elements.
+        """
         self._check_elements_supported("bmad")
         all_elements = list(self.elements.elements.values())
         ordered_elements = self._get_all_elements()
@@ -212,14 +304,14 @@ class SectionLatticeTranslator(SectionLattice):
         has_origin = bool(
             ordered_elements and ordered_elements[0].hardware_type == "TwissMatch"
         )
+        origin = None
         if has_origin:
             seed = ordered_elements[0]
             ordered_elements = ordered_elements[1:]
             all_elements = [
                 element for element in all_elements if element.name != seed.name
             ]
-            if initial_twiss is None:
-                initial_twiss = seed.simulation
+            origin = seed.simulation
 
         by_name = {element.name: element for element in all_elements}
         s_bounds = _s_bounds
@@ -310,26 +402,12 @@ class SectionLatticeTranslator(SectionLattice):
         def rename(item: str) -> str:
             return renames.get(item, item)
 
-        header = bmad_functional_definitions(self.functional_definitions)
-        if particle:
-            header += f"parameter[particle] = {particle}\n"
-        enabled = "T" if self.csr_enable or self.lsc_enable else "F"
-        header += f"bmad_com[csr_and_space_charge_on] = {enabled}\n"
-        if space_charge_n_bin is not None:
-            if space_charge_n_bin < 1:
-                raise ValueError("space_charge_n_bin must be positive")
-            header += f"space_charge_com[n_bin] = {space_charge_n_bin}\n"
-        geometry = getattr(self.geometry, "value", self.geometry) or "open"
-        header += f"parameter[geometry] = {geometry}\n"
-        if self.reference_energy is not None:
-            header += f"beginning[e_tot] = {self.reference_energy}\n"
         lead = max(s_bounds(backbone[0])[0], 0.0) if has_origin else 0.0
         lead_definition, lead_name = bmad_leading_drift(
             sanitize_string(self.name), lead
         )
         if lead_name is None:
             lead = 0.0
-        header += bmad_beginning_datum(backbone[0], lead)
         definitions = lead_definition + patch_definitions
         for element_name, translator in elements.items():
             if element_name in renames:
@@ -342,22 +420,6 @@ class SectionLatticeTranslator(SectionLattice):
                 if hasattr(translator, "bmad_geometry"):
                     translator.bmad_geometry = geometry
                 definitions += translator.to_bmad()
-        if initial_twiss is not None:
-            for attribute, value in (
-                ("beta_a", initial_twiss.beta_x),
-                ("alpha_a", initial_twiss.alpha_x),
-                ("beta_b", initial_twiss.beta_y),
-                ("alpha_b", initial_twiss.alpha_y),
-            ):
-                header += f"beginning[{attribute}] = {value}\n"
-            for attribute, value in (
-                ("eta_x", initial_twiss.eta_x),
-                ("etap_x", initial_twiss.eta_xp),
-                ("eta_y", initial_twiss.eta_y),
-                ("etap_y", initial_twiss.eta_yp),
-            ):
-                if value:
-                    header += f"beginning[{attribute}] = {value}\n"
         name = sanitize_string(rename(self.name))
         member_names = [sanitize_string(rename(item)) for item in ordered_members]
         if lead_name is not None:
@@ -381,9 +443,15 @@ class SectionLatticeTranslator(SectionLattice):
                 f"superimpose, element = {sanitize_string(rename(element.name))}, "
                 f"offset = {offset:.16g}, ele_origin = beginning\n"
             )
-        return (
-            f"{header}{definitions}\n{name}: line = ({members})\n"
-            f"{superpositions}use, {name}\n"
+        keyword = "line[multipass]" if multipass else "line"
+        return BmadBody(
+            definitions=definitions,
+            line=f"{name}: {keyword} = ({members})\n",
+            superpositions=superpositions,
+            beginning=bmad_beginning_datum(backbone[0], lead),
+            origin=origin,
+            name=name,
+            renames=renames,
         )
 
     def _pals_beamline(self, particle: str | None = None) -> PalsBeamLine:
@@ -591,10 +659,6 @@ class SectionLatticeTranslator(SectionLattice):
                         + e.hardware_type.upper().replace("RF", "").replace("FIELD", "")
                         in headers
                     )
-                    # if not e.hardware_class == "Diagnostic" and not cond:
-                    #     warn(
-                    #         f"Element of type {e.hardware_type} not supported for ASTRA"
-                    #     )
         for k, v in element_headers.items():
             astrastr += k + "\n"
             astrastr += v + "\n"
@@ -796,7 +860,7 @@ class SectionLatticeTranslator(SectionLattice):
         fulltext += "ENDTRACK;\n\n Quit;\n"
         return fulltext
 
-    def format_string(seld, string: str):
+    def format_string(self, string: str):
         fulltext = ""
         for s in string.strip().split(", "):
             if len((fulltext + s).splitlines()[-1]) > 60:
@@ -993,7 +1057,8 @@ class SectionLatticeTranslator(SectionLattice):
         MagneticLattice
             An Ocelot `MagneticLattice` object.
         """
-        from ocelot.cpbd.elements import Drift, Marker, Octupole, Undulator
+        from ocelot.cpbd.elements import Marker, Octupole, Undulator
+        from ocelot.cpbd.elements import Drift as OceDrift
         from ocelot.cpbd.magnetic_lattice import MagneticLattice
         from ocelot.cpbd.transformations.kick import KickTM
         from ocelot.cpbd.transformations.runge_kutta import RungeKuttaTM
@@ -1017,7 +1082,7 @@ class SectionLatticeTranslator(SectionLattice):
             oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
             gap = d.physical.length - oce_len
             if gap > 1e-9:
-                elements.append(Drift(l=gap, eid=f"{d.name}_len"))
+                elements.append(OceDrift(l=gap, eid=f"{d.name}_len"))
 
         maglat = MagneticLattice(elements, method=method)
         if save:
@@ -1199,7 +1264,12 @@ class SectionLatticeTranslator(SectionLattice):
         return full_segment
 
     def to_xsuite(
-        self, beam_length: int, env: Any = None, particle_ref: Any = None, save=True
+        self,
+        beam_length: int,
+        env: Any = None,
+        particle_ref: Any = None,
+        save=True,
+        turns: int = 1,
     ) -> "Line":
         """
         Create an Xsuite-compatible lattice line object based on the lattice information.
@@ -1214,6 +1284,8 @@ class SectionLatticeTranslator(SectionLattice):
             xtrack Particles object
         save: bool
             Flag to indicate whether to save the `Line` to JSON.
+        turns: int
+            How many turns the line will be tracked for.
 
         Returns
         -------
@@ -1258,6 +1330,8 @@ class SectionLatticeTranslator(SectionLattice):
                     name, component, properties = element.to_xsuite(
                         beam_length=beam_length
                     )
+                if turns > 1 and "stop_at_turn" in properties:
+                    properties["stop_at_turn"] = int(turns)
                 if any(_is_symbolic(v) for v in properties.values()):
                     env.new(element.name, component, **properties)
                     line.append(element.name)
@@ -1312,7 +1386,9 @@ class SectionLatticeTranslator(SectionLattice):
             simulation=DiagnosticSimulationElement(
                 output_filename="end_screen.csrtrack"
             ),
-            physical=lastelem.physical,
+            physical=lastelem.physical.model_copy(
+                update={"middle": lastelem.physical.end}
+            ),
         )
         csrtrackstr += lastscreen.to_csrtrack(n=counter["screen"])
         csrtrackstr += "}\n"

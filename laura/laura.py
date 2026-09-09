@@ -4,29 +4,37 @@ LAURA Main Module
 The main class for handling a full particle accelerator lattice.
 """
 
+import glob
 import logging
 import os
-import glob
 import types
-from math import copysign
 from itertools import chain
-from typing import List, Dict, Any
-from pydantic import field_validator, model_validator
+from math import copysign
+from typing import Any, Dict, List
+
+from pydantic import PrivateAttr, field_validator, model_validator
 from yaml.constructor import Constructor
 
 _log = logging.getLogger("laura.machine")
 
-from .models.physical import PhysicalElement, Position
-from .models.elementList import MachineModel, baseElement, dot, chunks
-from .models.element import Drift
+import time
+
+import numpy as np
+
 from .Importers.YAML_Loader import (
+    ElementLoadError,
+    LazyElementDict,
+    RawFileNamespace,
+    collect_template_filenames,
+    collect_unique_by_name,
+    collect_unique_filenames,
     read_YAML_Combined_File,
     read_YAML_Element_File,
-    LazyElementDict,
-    fast_get_element_metadata,
 )
-import numpy as np
-import time
+from .models.element import Drift
+from .models.elementList import MachineModel, baseElement, chunks, dot
+from .models.physical import PhysicalElement, Position
+
 
 def flatten(xss):
     """Flatten a list of lists."""
@@ -35,6 +43,24 @@ def flatten(xss):
 
 def add_bool(self, node):
     return self.construct_scalar(node)
+
+
+def _lattice_root(lattice: Any) -> str | None:
+    """
+    Return the top-level directory of a machine lattice package.
+
+    Looks for ``master_lattice``; if this is not set, look for absolute file paths.
+    """
+    root = getattr(lattice, "master_lattice", None)
+    if root is None:
+        filename = getattr(lattice, "__file__", None)
+        if filename:
+            root = os.path.dirname(os.path.abspath(filename))
+    if root is None:
+        data_files = getattr(lattice, "data_files", None)
+        if data_files:
+            root = os.path.dirname(os.path.abspath(data_files))
+    return root
 
 
 Constructor.add_constructor("tag:yaml.org,2002:bool", add_bool)
@@ -57,6 +83,21 @@ class LAURA(MachineModel):
     eager_mode: bool = False
     """Whether to load all elements into memory immediately (True) or use lazy loading (False, default)"""
 
+    strict: bool = False
+    """Whether an element that fails to load raises
+    :class:`~laura.Importers.YAML_Loader.ElementLoadError` (True) or is skipped
+    (False, default). Errors can be inspected via :attr:`load_errors`."""
+
+    _load_errors: List[ElementLoadError] = PrivateAttr(default_factory=list)
+
+    @property
+    def load_errors(self) -> List[ElementLoadError]:
+        """
+        Elements the files describe that are not in this machine, as
+        :class:`~laura.Importers.YAML_Loader.ElementLoadError` records.
+        """
+        return self._load_errors
+
     @model_validator(mode="before")
     @classmethod
     def _resolve_lattice_package(cls, data: Any) -> Any:
@@ -76,14 +117,17 @@ class LAURA(MachineModel):
             data.setdefault("layout", lattice.layout)
             data.setdefault("section", lattice.section)
             data.setdefault("element_list", lattice.element_list)
-            if hasattr(lattice, "data_files") and "master_lattice" not in data:
-                data["master_lattice"] = lattice.data_files
+            if "master_lattice" not in data:
+                root = _lattice_root(lattice)
+                if root is not None:
+                    data["master_lattice"] = root
         else:
             raise ValueError(
                 "lattice must be a module (e.g. laura_lattices.CLARA) or an object "
                 "with 'layout', 'section', and 'element_list' attributes"
             )
         return data
+
     """List of top-level keys to exclude when reading YAML files"""
 
     @field_validator("element_list", mode="before")
@@ -105,7 +149,11 @@ class LAURA(MachineModel):
 
     def model_post_init(self, __context):
         el_list = self.element_list
-        if isinstance(el_list, str) and not os.path.exists(el_list) and self.master_lattice:
+        if (
+            isinstance(el_list, str)
+            and not os.path.exists(el_list)
+            and self.master_lattice
+        ):
             candidate = os.path.join(self.master_lattice, el_list)
             if os.path.exists(candidate):
                 el_list = candidate
@@ -122,28 +170,59 @@ class LAURA(MachineModel):
 
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
-                elems = read_YAML_Combined_File(el_list)
-                values = {y.name: y for y in elems if hasattr(y, 'name')}
+                elems = read_YAML_Combined_File(
+                    el_list, strict=self.strict, errors=self._load_errors
+                )
+                values = collect_unique_by_name(
+                    ((y.name, el_list, y) for y in elems if hasattr(y, "name")),
+                    errors=self._load_errors,
+                    strict=self.strict,
+                )
                 self.elements.update(values)
             elif os.path.isdir(el_list):
                 files = glob.glob(
                     os.path.abspath(el_list + "/**/*.yaml"), recursive=True
                 )
-                filenames = {}
-                for fn in files:
-                    meta = fast_get_element_metadata(fn)
-                    filenames[meta["name"]] = fn
+                auxiliary = [f for f in files if os.path.basename(f).startswith("_")]
+                files = [f for f in files if not os.path.basename(f).startswith("_")]
+                filenames = collect_unique_filenames(
+                    files, errors=self._load_errors, strict=self.strict
+                )
+                templates = collect_template_filenames(auxiliary)
                 # Create lazy dict instead of loading all!
                 if not self.eager_mode:
-                    self.elements = LazyElementDict(filenames, exclude_keys=self.exclude_keys)
+                    self.elements = LazyElementDict(
+                        filenames,
+                        exclude_keys=self.exclude_keys,
+                        strict=self.strict,
+                        errors=self._load_errors,
+                        templates=templates,
+                    )
                 else:
-                    elems = [read_YAML_Element_File(fn, exclude_keys=self.exclude_keys) for fn in files]
-                    self.elements.update({y.name: y for y in elems if isinstance(y, baseElement)})
+                    namespace = RawFileNamespace({**templates, **filenames})
+                    memo: Dict = {}
+                    elems = [
+                        read_YAML_Element_File(
+                            fn,
+                            exclude_keys=self.exclude_keys,
+                            strict=self.strict,
+                            errors=self._load_errors,
+                            namespace=namespace,
+                            memo=memo,
+                        )
+                        for fn in files
+                    ]
+                    self.elements.update(
+                        {y.name: y for y in elems if isinstance(y, baseElement)}
+                    )
         elif el_list:
-            values = {y.name: y for y in el_list if hasattr(y, 'name')}
+            values = collect_unique_by_name(
+                ((y.name, None, y) for y in el_list if hasattr(y, "name")),
+                errors=self._load_errors,
+                strict=self.strict,
+            )
             self.elements.update(values)
 
-        # Call super after populating elements so _build_layouts can work
         super().model_post_init(__context)
 
     def createDrifts(
@@ -189,7 +268,9 @@ class LAURA(MachineModel):
                     length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
                     vector = dot((d[1] - d[0]), [0, 0, 1])
                 except Exception as exc:
-                    _log.error("Drift calculation error near element '%s': %s", e[0], exc)
+                    _log.error(
+                        "Drift calculation error near element '%s': %s", e[0], exc
+                    )
                     _log.debug("Position data: %s", d)
                     raise exc
                 if round(length, 6) > 0:

@@ -23,6 +23,7 @@ from laura.models.element import (  # noqa: E402
     ElectrostaticSeparator,
     Marker,
     MatrixTransform,
+    Octupole,
     Quadrupole,
     RFCavity,
     RFDeflectingCavity,
@@ -38,7 +39,11 @@ from laura.models.elementList import (  # noqa: E402
     MachineModel,
     SectionLattice,
 )
-from laura.models.physical import PhysicalElement, Position  # noqa: E402
+from laura.models.physical import (  # noqa: E402
+    PhysicalElement,
+    Position,
+    Rotation,
+)
 from laura.models.simulation import TwissMatchSimulationElement  # noqa: E402
 from laura.translator.converters import (  # noqa: E402
     elements_Bmad,
@@ -48,7 +53,10 @@ from laura.translator.converters.codes import bmad_unsupported  # noqa: E402
 from laura.translator.converters.converter import translate_elements  # noqa: E402
 from laura.translator.converters.layout import MachineLayoutTranslator  # noqa: E402
 from laura.translator.converters.model import MachineModelTranslator  # noqa: E402
-from laura.translator.converters.section import SectionLatticeTranslator  # noqa: E402
+from laura.translator.converters.section import (  # noqa: E402
+    SectionLatticeTranslator,
+)
+from laura.translator.utils.bmad import bmad_survey_frame  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -1062,3 +1070,212 @@ def test_bmad_bend_writes_fintx_only_when_the_exit_face_differs():
     assert "hgap = 0" in bend
     assert "fintx = 0.45" in bend
     assert "hgapx = 0.015" in bend
+
+
+def test_bmad_writes_the_multipole_content_the_main_attributes_cannot_hold():
+    """A Bmad element definition carries one component of one order -- ``k3`` on
+    an octupole -- so a magnet with a skew component of that same order, or with
+    any content at another order, used to lose it silently.
+    """
+    octupole = Octupole(
+        name="OCT-1",
+        machine_area="S",
+        magnetic={
+            "magnetic_length": 0.5,
+            "order": 3,
+            "multipoles": {"K3L": {"order": 3, "normal": 7.5, "skew": 1.0}},
+        },
+    )
+    text = _bmad(octupole)
+    # k3 = KnL / length; a3 = Ks3L / 3!, integrated and unscaled by the length.
+    assert "k3 = 15.0" in text
+    assert "a3 = 0.16666666666666666" in text
+    assert "scale_multipoles = F" in text
+
+    # An off-order term is dropped just as silently, and lands in `bn`.
+    quadrupole = Quadrupole(
+        name="Q-1",
+        machine_area="S",
+        magnetic={
+            "magnetic_length": 0.5,
+            "order": 1,
+            "multipoles": {
+                "K1L": {"order": 1, "normal": 2.0, "skew": 0.4},
+                "K2L": {"order": 2, "normal": 0.9},
+            },
+        },
+    )
+    text = _bmad(quadrupole)
+    assert "k1 = 4.0" in text
+    assert "a1 = 0.4" in text
+    assert "b2 = 0.45" in text
+    assert "scale_multipoles = F" in text
+
+    # A plain magnet with nothing to add exports exactly as it did before.
+    plain = Quadrupole(
+        name="Q-2",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.5, "k1l": 1.0},
+    )
+    text = _bmad(plain)
+    assert "k1 = 2.0" in text
+    assert "scale_multipoles" not in text
+    assert ", a1 =" not in text
+    assert ", b1 =" not in text
+
+
+def _rolled_bend_section(order):
+    """A section carrying a bend whose plane is rolled out of the horizontal."""
+    elements = {
+        "Q-1": Quadrupole(
+            name="Q-1",
+            machine_area="S",
+            magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+            physical=PhysicalElement(length=0.5, s=0.5, s_point="end"),
+        ),
+        "B-1": Dipole(
+            name="B-1",
+            machine_area="S",
+            magnetic={"magnetic_length": 2.0, "angle": 0.05, "tilt": 0.1},
+            physical=PhysicalElement(length=2.0, s=2.5, s_point="end"),
+        ),
+        "Q-2": Quadrupole(
+            name="Q-2",
+            machine_area="S",
+            magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+            physical=PhysicalElement(length=0.5, s=3.0, s_point="end"),
+        ),
+    }
+    chosen = [elements[name] for name in order]
+    section = SectionLattice(
+        name="S-1", order=list(order), elements=chosen, geometry="open"
+    )
+    section.resolve_positions({element.name: element for element in chosen})
+    return section
+
+
+def test_bmad_rolled_bend_closes_its_own_roll_without_patches():
+    """``ref_tilt`` is self-closing: Bmad rolls the reference frame at the bend's
+    entrance and un-rolls it at the exit.
+    """
+    text = SectionLatticeTranslator.from_section(
+        _rolled_bend_section(["Q-1", "B-1", "Q-2"])
+    ).to_bmad()
+    assert "ref_tilt = 0.1" in text
+    assert "patch" not in text
+    assert "S_1: line = (Q_1, B_1, Q_2)" in text
+
+    # The same bend at the end of the line: no half-applied roll left behind.
+    trailing = SectionLatticeTranslator.from_section(
+        _rolled_bend_section(["Q-1", "B-1"])
+    ).to_bmad()
+    assert "ref_tilt = 0.1" in trailing
+    assert "patch" not in trailing
+    assert "S_1: line = (Q_1, B_1)" in trailing
+
+
+def test_bmad_survey_frame_neutralises_only_a_roll_that_is_really_there():
+    """``ref_tilt`` is self-closing, so Tao's floor record cannot report it and
+    the importer folds it into ``global_rotation`` to keep LAURA's frame
+    faithful. It has to come back out here, or a patch gets written to close a
+    gap Bmad's own survey will not leave.
+    """
+    psi, angle = 0.1, 0.05
+    common = {"magnetic_length": 2.0, "angle": angle, "tilt": psi}
+    floor_placed = Dipole(
+        name="B-F",
+        machine_area="S",
+        magnetic=common,
+        physical=PhysicalElement(
+            length=2.0,
+            middle=Position(z=1.0),
+            global_rotation=Rotation(theta=0.0, phi=0.0, psi=psi),
+        ),
+    )
+    arc_placed = Dipole(
+        name="B-S",
+        machine_area="S",
+        magnetic=common,
+        physical=PhysicalElement(length=2.0, s=2.0, s_point="end"),
+    )
+
+    def _rz(a):
+        return np.array(
+            [[np.cos(a), -np.sin(a), 0], [np.sin(a), np.cos(a), 0], [0, 0, 1]]
+        )
+
+    ry_neg = np.array(
+        [
+            [np.cos(angle), 0, np.sin(angle)],
+            [0, 1, 0],
+            [-np.sin(angle), 0, np.cos(angle)],
+        ]
+    )
+
+    assert not np.allclose(
+        floor_placed.physical.rotation_matrix, arc_placed.physical.rotation_matrix
+    )
+    assert np.allclose(
+        bmad_survey_frame(floor_placed, "start"), bmad_survey_frame(arc_placed, "start")
+    )
+    assert np.allclose(bmad_survey_frame(arc_placed, "start"), np.eye(3))
+
+    assert np.allclose(
+        bmad_survey_frame(floor_placed, "end"), _rz(psi) @ ry_neg @ _rz(-psi)
+    )
+    assert np.allclose(bmad_survey_frame(arc_placed, "end"), ry_neg)
+
+
+def test_bmad_skew_magnet_writes_its_strength_into_bmads_skew_slot():
+    """``magnetic.skew`` says the magnet is rolled to produce a skew field, and
+    ``KnL()`` reads the skew slot when it is set -- so the strength landed in
+    ``k1``, which Bmad reads as *normal*, turning a skew quadrupole into an
+    upright one of the same strength.
+
+    Bmad's own skew slot is ``a1``, so that is where it goes, and ``k1`` is left
+    holding the element's real normal component.
+    """
+    skew = Quadrupole(
+        name="Q-S",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.5, "order": 1, "kl": 0.15, "skew": True},
+    )
+    text = _bmad(skew)
+    # a1 is integrated (1! = 1), so it is KsL itself and not KsL / length.
+    assert "a1 = 0.15" in text
+    assert "k1 = 0.0" in text
+    assert "scale_multipoles = F" in text
+
+    # The upright magnet of the same strength is unchanged, and is not the same
+    # lattice element -- which is the whole point.
+    upright = Quadrupole(
+        name="Q-N",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.5, "order": 1, "kl": 0.15},
+    )
+    text = _bmad(upright)
+    assert "k1 = 0.3" in text
+    assert ", a1 =" not in text
+    assert "scale_multipoles" not in text
+
+    # Higher orders carry the 1/n! that `kN` does not.
+    skew_octupole = Octupole(
+        name="O-S",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.5, "order": 3, "kl": 1.0, "skew": True},
+    )
+    text = _bmad(skew_octupole)
+    assert "a3 = 0.16666666666666666" in text
+    assert "k3 = 0.0" in text
+
+    # A bend is the exception: its order-0 attribute is `angle`, the reference
+    # bending, and Bmad rolls a bend plane with `ref_tilt` rather than a dipole
+    # multipole -- so there is nowhere to move it to and `angle` keeps it.
+    skew_bend = Dipole(
+        name="B-S",
+        machine_area="S",
+        magnetic={"magnetic_length": 2.0, "angle": 0.05, "skew": True},
+    )
+    text = _bmad(skew_bend)
+    assert "angle = 0.05" in text
+    assert ", a0 =" not in text

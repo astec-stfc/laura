@@ -30,8 +30,6 @@ PREFIX_FACTOR = {
     "zetta-": 1e21,
     "yotta-": 1e24,
 }
-# Inverse
-PREFIX = dict((v, k) for k, v in PREFIX_FACTOR.items())
 
 SHORT_PREFIX_FACTOR = {
     "y": 1e-24,
@@ -100,30 +98,6 @@ def nice_scale_prefix(scale):
     if f in SHORT_PREFIX:
         return f, SHORT_PREFIX[f]
     return 1, ""
-
-
-def nice_array(a):
-    """
-    Returns a scaled array, the scaling, and a unit prefix
-
-    Example:
-        nice_array( np.array([2e-10, 3e-10]) )
-    Returns:
-        (array([200., 300.]), 1e-12, 'p')
-
-    """
-
-    if np.isscalar(a):
-        x = a
-    elif len(a) == 1:
-        x = a[0]
-    else:
-        a = np.array(a)
-        x = np.ptp(a)
-
-    fac, prefix = nice_scale_prefix(x)
-
-    return a / fac, fac, prefix
 
 
 def unit_power(string, power_factor=1):

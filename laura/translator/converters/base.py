@@ -1,9 +1,10 @@
+import math
 import os
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, ClassVar
 from warnings import warn
 
 import numpy as np
-from pydantic import Field, computed_field
+from pydantic import Field, PrivateAttr, computed_field
 
 from laura.models.baseModels import IgnoreExtra
 from laura.models.element import PhysicalBaseElement
@@ -41,6 +42,16 @@ from ..utils.pals import pals_element_body
 _ASTRA_ROTATION_SIGN = {"x": -1.0, "y": -1.0, "z": 1.0}
 """Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family."""
 
+_BMAD_MAIN_MULTIPOLE_ORDERS = {
+    "sbend": (0, 1),
+    "rbend": (0, 1),
+    "quadrupole": (1,),
+    "sextupole": (2,),
+    "octupole": (3,),
+    "decapole": (4,),
+}
+"""Multipole orders a Bmad element definition already expresses on its own."""
+
 
 class BaseElementTranslator(PhysicalBaseElement):
     """
@@ -65,6 +76,10 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     directory: str = "./"
     """Directory to which lattice/element files will be written."""
+
+    _bmad_written: Dict[str, Any] = PrivateAttr(default_factory=dict)
+    """Attributes the last :meth:`to_bmad` actually wrote; see
+    :meth:`bmad_attributes`."""
 
     ccs: gpt_ccs | None = None
     """Co-ordinate system for GPT elements."""
@@ -433,8 +448,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                         obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
                     )
                 if key == "fringe_integral" and "fringe_integral_exit" in buffers:
-                    # As for Ocelot above: Cheetah's exit integral does not
-                    # inherit the entrance's, so write the resolved value.
                     setattr(
                         obj,
                         "fringe_integral_exit",
@@ -836,8 +849,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
-    _KEYWORD_STRIP_PREFIXES = ["", "simulation_", "cavity_", "magnetic_", "aperture_"]
-    _KEYWORD_STRIP_PREFIXES_WAKE_T = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
+    _KEYWORD_STRIP_PREFIXES: ClassVar[list] = ["", "simulation_", "cavity_", "magnetic_", "aperture_"]
+    _KEYWORD_STRIP_PREFIXES_WAKE_T: ClassVar[list] = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
 
     @staticmethod
     def _convert_type(etype: str, rules: dict, default):
@@ -1296,7 +1309,53 @@ class BaseElementTranslator(PhysicalBaseElement):
             if exit_hgap != parameters["hgap"] or exit_fint != parameters["fint"]:
                 parameters["hgapx"] = exit_hgap
                 parameters["fintx"] = exit_fint
+        self._add_bmad_multipoles(parameters, etype)
         return parameters
+
+    def _add_bmad_multipoles(self, parameters: Dict[str, Any], etype: str) -> None:
+        """
+        Write the multipole content that Bmad's main attributes cannot hold.
+        """
+        main_orders = _BMAD_MAIN_MULTIPOLE_ORDERS.get(etype)
+        if main_orders is None:
+            return
+        magnetic = getattr(self, "magnetic", None)
+        multipoles = getattr(magnetic, "multipoles", None) if magnetic else None
+        if multipoles is None:
+            return
+        skewed = bool(getattr(magnetic, "skew", False))
+        length = getattr(magnetic, "length", 0) or 0
+
+        def _resolved(raw, divisor=1):
+            """A stored strength as Bmad wants it, symbolic form preserved."""
+            if not self._resolve_functional and self.is_functional(raw):
+                return raw if divisor == 1 else f"{raw} / {divisor}"
+            value = self.resolve(raw)
+            return value / divisor if divisor != 1 else value
+
+        moved = set()
+        if skewed:
+            for order in main_orders:
+                if f"k{order}" in parameters:
+                    parameters[f"k{order}"] = _resolved(
+                        multipoles.normal(order), length or 1
+                    )
+                    moved.add(order)
+
+        extra: Dict[str, Any] = {}
+        for order in range(5):
+            carried = "skew" if (skewed and order not in moved) else "normal"
+            scale = math.factorial(order)
+            for component, prefix in (("normal", "b"), ("skew", "a")):
+                if order in main_orders and component == carried:
+                    continue
+                value = _resolved(getattr(multipoles, component)(order), scale)
+                if not value:
+                    continue
+                extra[f"{prefix}{order}"] = value
+        if extra:
+            parameters.update(extra)
+            parameters["scale_multipoles"] = False
 
     def _bmad_common_parameters(self) -> Dict[str, Any]:
         """Return common Bmad attributes represented by this element."""
@@ -1334,6 +1393,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         else:
             parameters = self._bmad_common_parameters() | parameters
         parameters.update(bmad_misalignment(self, etype, parameters))
+        self._bmad_written = dict(parameters)
 
         def render(key, value):
             if value is True:
@@ -1359,6 +1419,13 @@ class BaseElementTranslator(PhysicalBaseElement):
             String representation of the element for Bmad
         """
         return self._format_bmad()
+
+    def bmad_attributes(self) -> Dict[str, Any]:
+        """
+        The attributes the last :meth:`to_bmad` call wrote, so that two exports
+        of one element can be compared on the values that reached the file.
+        """
+        return dict((self.__pydantic_private__ or {}).get("_bmad_written", {}))
 
     def to_pals(self) -> Dict[str, Any]:
         """

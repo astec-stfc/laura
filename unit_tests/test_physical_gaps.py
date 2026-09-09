@@ -62,83 +62,43 @@ class TestRotationJsonAndDunders:
         assert r > Rotation(phi=0.0, psi=0.0, theta=0.0)
 
 
+@pytest.mark.parametrize(
+    "model, field",
+    [
+        (PhysicalElement, "middle"),
+        (PhysicalElement, "datum"),
+        (PhysicalElement, "rotation"),
+        (ElementError, "position"),
+        (ElementError, "rotation"),
+    ],
+)
 class TestCoercionHelperErrorPaths:
-    """Exercise the ValueError branches of the module-level _coerce_* helpers
-    via the public models that call them."""
+    """The ValueError branches of the module-level _coerce_* helpers, through the
+    public models that call them. Every vector-valued field shares the helpers, so
+    the cases are the field's, not the model's."""
 
-    def test_position_from_bad_length_list_raises(self):
-        with pytest.raises(ValueError, match="middle should be"):
-            PhysicalElement(middle=[1])
+    @pytest.mark.parametrize("bad", [[1], object()], ids=["short_list", "wrong_type"])
+    def test_rejects_anything_that_is_not_three_numbers(self, model, field, bad):
+        with pytest.raises(ValueError, match=f"{field} should be a number or a list"):
+            model(**{field: bad})
 
-    def test_position_from_bad_dict_keys_raises(self):
-        with pytest.raises(ValueError, match="dictionary must include"):
-            PhysicalElement(middle={"bad": 1})
+    def test_rejects_a_dict_without_the_component_keys(self, model, field):
+        with pytest.raises(ValueError, match=f"setting {field} as dictionary must"):
+            model(**{field: {"bad": 1}})
 
-    def test_position_from_unsupported_type_raises(self):
-        with pytest.raises(ValueError, match="middle should be"):
-            PhysicalElement(middle=object())
 
-    def test_datum_from_bad_length_list_raises(self):
-        with pytest.raises(ValueError, match="datum should be"):
-            PhysicalElement(datum=[1])
+class TestCoercionHelperAcceptedForms:
+    def test_list_and_dict_both_build_the_same_position(self):
+        assert (
+            PhysicalElement(datum=[1, 2, 3]).datum
+            == PhysicalElement(datum={"x": 1.0, "y": 2.0, "z": 3.0}).datum
+            == Position(x=1, y=2, z=3)
+        )
 
-    def test_datum_from_list(self):
-        pe = PhysicalElement(datum=[1, 2, 3])
-        assert pe.datum == Position(x=1, y=2, z=3)
-
-    def test_datum_from_dict(self):
-        pe = PhysicalElement(datum={"x": 1.0, "y": 2.0, "z": 3.0})
-        assert pe.datum == Position(x=1, y=2, z=3)
-
-    def test_datum_from_bad_dict_keys_raises(self):
-        with pytest.raises(ValueError, match="dictionary must include"):
-            PhysicalElement(datum={"bad": 1})
-
-    def test_datum_from_unsupported_type_raises(self):
-        with pytest.raises(ValueError, match="datum should be"):
-            PhysicalElement(datum=object())
-
-    def test_rotation_from_bad_length_list_raises(self):
-        with pytest.raises(ValueError, match="rotation should be"):
-            PhysicalElement(rotation=[1])
-
-    def test_rotation_from_unsupported_type_raises(self):
-        with pytest.raises(ValueError, match="rotation should be"):
-            PhysicalElement(rotation=object())
-
-    def test_element_error_position_bad_length_list_raises(self):
-        with pytest.raises(ValueError, match="position should be"):
-            ElementError(position=[1])
-
-    def test_element_error_position_bad_dict_raises(self):
-        with pytest.raises(ValueError, match="dictionary must include"):
-            ElementError(position={"bad": 1})
-
-    def test_element_error_position_unsupported_type_raises(self):
-        with pytest.raises(ValueError, match="position should be"):
-            ElementError(position=object())
-
-    def test_element_error_rotation_bad_length_list_raises(self):
-        with pytest.raises(ValueError, match="rotation should be"):
-            ElementError(rotation=[1])
-
-    def test_element_error_rotation_unsupported_type_raises(self):
-        with pytest.raises(ValueError, match="rotation should be"):
-            ElementError(rotation=object())
-
-    def test_element_error_rotation_bad_dict_raises(self):
-        with pytest.raises(ValueError, match="dictionary must include"):
-            ElementError(rotation={"bad": 1})
-
-    def test_element_error_position_instance_passthrough(self):
-        pos = Position(x=1, y=2, z=3)
-        ee = ElementError(position=pos)
-        assert ee.position is pos
-
-    def test_element_error_rotation_instance_passthrough(self):
-        rot = Rotation(phi=0.1, psi=0.2, theta=0.3)
-        ee = ElementError(rotation=rot)
-        assert ee.rotation is rot
+    def test_an_instance_is_kept_rather_than_rebuilt(self):
+        pos, rot = Position(x=1, y=2, z=3), Rotation(phi=0.1, psi=0.2, theta=0.3)
+        error = ElementError(position=pos, rotation=rot)
+        assert error.position is pos and error.rotation is rot
 
     def test_element_error_str_nonzero(self):
         ee = ElementError(position=[1, 2, 3])

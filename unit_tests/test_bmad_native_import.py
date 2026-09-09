@@ -12,8 +12,12 @@ pytest.importorskip("pytao")
 from laura.translator.converters.codes import magnetic_orders
 from laura.translator.converters.codes.bmad import BmadLatticeImporter
 
+# ACC_ROOT_DIR is Bmad's own name for this and pytao already reads it, so an
+# environment set up to run Tao at all needs nothing further here.
 BMAD_DIST = Path(
-    os.environ.get("BMAD_DIST", Path.home() / "Documents" / "bmad_dist")
+    os.environ.get("BMAD_DIST")
+    or os.environ.get("ACC_ROOT_DIR")
+    or Path.home() / "Documents" / "bmad-ecosystem"
 ).expanduser()
 LIBTAO = Path(
     os.environ.get("LAURA_LIBTAO", BMAD_DIST / "production" / "lib" / "libtao.so")
@@ -76,8 +80,11 @@ def test_documentation_lattice_matches_tao_s_positions(
                     )
                     assert element.magnetic.KnL(order) == pytest.approx(expected)
                 elif native_type == "Solenoid":
+                    # `KS`, Bmad's normalised strength, and not the tesla-valued
+                    # `BS_FIELD`: LAURA's S0L is the integrated *normalised*
+                    # strength, so the two differ by the rigidity.
                     assert element.magnetic.ks == pytest.approx(
-                        parameters["BS_FIELD"] * length
+                        parameters["KS"] * length
                     )
                 elif native_type in ("Lcavity", "RFCavity"):
                     assert element.cavity.frequency == pytest.approx(
@@ -223,9 +230,13 @@ def test_native_taylor_and_sol_quad_import(tmp_path):
     sq_index = importer.names_numbered[1][branch].index("SQ")
     assert sq.hardware_type == "CombinedSolenoidQuadrupole"
     assert sq.magnetic.KnL(1) == pytest.approx(0.6)
+    # `KS` and not `BS_FIELD` -- see the note in the parity loop above. The
+    # lattice states `ks = 0.4` over 2 m, so the integrated strength is 0.8;
+    # `BS_FIELD` is that times the rigidity, which at p0c = 10 MeV is ~0.0267.
     assert sq.magnetic.ks == pytest.approx(
-        importer.params[1][branch][sq_index]["BS_FIELD"] * 2
+        importer.params[1][branch][sq_index]["KS"] * 2
     )
+    assert sq.magnetic.ks == pytest.approx(0.8)
 
 
 def test_beginning_ele_imports_as_twiss_match(tmp_path):
@@ -841,9 +852,9 @@ def test_bmad_misalignments_survive_the_round_trip(tmp_path):
 
     for name in ("Q1", "B1", "S1", "C1", "M1"):
         for key in attributes:
-            assert after[name][key] == pytest.approx(
-                before[name][key]
-            ), f"{name}[{key}]"
+            assert after[name][key] == pytest.approx(before[name][key]), (
+                f"{name}[{key}]"
+            )
     # The bend's roll stays its own attribute, separate from the design plane.
     assert after["B1"]["ROLL"] == pytest.approx(0.033)
     assert after["B1"]["REF_TILT"] == pytest.approx(0.0)
@@ -913,9 +924,9 @@ def test_bmad_collimator_apertures_survive_the_round_trip(tmp_path):
 
     for name in ("R1", "E1"):
         for key in limits:
-            assert after[name][key] == pytest.approx(
-                before[name][key]
-            ), f"{name}[{key}]"
+            assert after[name][key] == pytest.approx(before[name][key]), (
+                f"{name}[{key}]"
+            )
     # Not merely self-consistent: these are the numbers the source file states.
     assert after["R1"]["X1_LIMIT"] == pytest.approx(0.01)
     assert after["R1"]["Y1_LIMIT"] == pytest.approx(0.02)
@@ -1273,3 +1284,162 @@ def test_bmad_split_bend_keeps_its_exit_fringe_field(tmp_path):
     assert whole.exit_gap is None
     assert whole.exit_fringe_integral == pytest.approx(0.45)
     assert whole.exit_half_gap == pytest.approx(0.015)
+
+
+SKEW_LATTICE = (
+    "beginning[e_tot] = 1e9\n"
+    "beginning[beta_a] = 10\n"
+    "beginning[beta_b] = 10\n"
+    "parameter[geometry] = open\n"
+    "parameter[particle] = electron\n"
+    "qn: quadrupole, l = 0.5, k1 = 4.0\n"
+    "qs: quadrupole, l = 0.5, a1 = 0.15, scale_multipoles = F\n"
+    "qm: quadrupole, l = 0.5, k1 = 4.0, a1 = 0.4, b2 = 0.45, scale_multipoles = F\n"
+    "oct: octupole, l = 0.5, k3 = 15.0, a3 = 0.16666666666666666,"
+    " scale_multipoles = F\n"
+    "bn: sbend, l = 2.0, angle = 0.05, a1 = 0.02, scale_multipoles = F\n"
+    "lat: line = (qn, qs, qm, oct, bn)\n"
+    "use, lat\n"
+)
+
+
+def test_native_an_bn_multipoles_import_onto_ordinary_magnets(tmp_path):
+    """``an``/``bn`` hold the multipole content a Bmad element definition cannot:
+    the skew counterpart of ``kN``, and any order other than the element's own.
+
+    Tao reports them with a ``1/n!``, which comes back out here, and it leaves
+    the main ``k1``/``k3`` out of the table altogether -- so the two add rather
+    than double up.
+    """
+    lattice = tmp_path / "skew.bmad"
+    lattice.write_text(SKEW_LATTICE)
+    importer = BmadLatticeImporter(lattice_file=str(lattice), libtao=str(LIBTAO))
+    branch = next(iter(importer.names_numbered[1]))
+    elements = importer.create_laura_element_dictionary(1)[branch]
+
+    def poles(name, order):
+        multipole = getattr(elements[name].magnetic.multipoles, f"K{order}L")
+        return multipole.normal, multipole.skew
+
+    # An upright magnet is untouched by any of this.
+    assert poles("QN", 1) == (pytest.approx(2.0), 0.0)
+    assert elements["QN"].magnetic.skew is False
+
+    # `a1` and no `k1`: a magnet whose own order is pure skew. That is what
+    # `magnetic.skew` means, and `KnL()` keys on it -- without the flag the
+    # strength would read back as zero.
+    assert poles("QS", 1) == (0.0, pytest.approx(0.15))
+    assert elements["QS"].magnetic.skew is True
+    assert elements["QS"].magnetic.KnL(1) == pytest.approx(0.15)
+
+    # Both components of the same order, which `k1` alone cannot express.
+    assert poles("QM", 1) == (pytest.approx(2.0), pytest.approx(0.4))
+    assert poles("QM", 2) == (pytest.approx(0.9), 0.0)
+    assert elements["QM"].magnetic.skew is False
+
+    # a3 = Ks3L / 3!, so the factorial goes back in.
+    assert poles("OCT", 3) == (pytest.approx(7.5), pytest.approx(1.0))
+
+    # A bend carrying a skew quadrupole component, alongside its own bending.
+    assert poles("BN", 0) == (pytest.approx(0.05), 0.0)
+    assert poles("BN", 1) == (0.0, pytest.approx(0.02))
+
+
+def test_native_skew_multipoles_survive_a_round_trip_through_tao(tmp_path):
+    """The proof that reading and writing agree: re-parse LAURA's own export in
+    Tao and compare it with the original, element by element.
+
+    Both the multipole tables and the 6x6 transfer matrices have to match --
+    the tables show the coefficients landed in the right slots, the matrices
+    show they mean the same thing to the tracking code.
+    """
+    from laura.translator.converters.model import MachineModelTranslator
+
+    source = tmp_path / "skew.bmad"
+    source.write_text(SKEW_LATTICE)
+    model = BmadLatticeImporter(
+        lattice_file=str(source), libtao=str(LIBTAO)
+    ).create_machine_model(min_section_length=1)
+    exported = tmp_path / "skew_round_trip.bmad"
+    exported.write_text(
+        "\n".join(
+            text
+            for lattice in MachineModelTranslator.from_machine(model).to_bmad().values()
+            for text in lattice.values()
+        )
+    )
+
+    from pytao import Tao
+
+    original = Tao(lattice_file=str(source), noplot=True, so_lib=str(LIBTAO))
+    round_tripped = Tao(lattice_file=str(exported), noplot=True, so_lib=str(LIBTAO))
+
+    def table(tao, name):
+        return {
+            row["index"]: (row["An"], row["Bn"])
+            for row in tao.ele_multipoles(name)["data"]
+        }
+
+    def mat6(tao, name):
+        matrix = tao.ele_mat6(name)
+        return np.array([matrix[str(row)] for row in range(1, 7)])
+
+    for name in ("QN", "QS", "QM", "OCT", "BN"):
+        before, after = table(original, name), table(round_tripped, name)
+        assert before.keys() == after.keys(), name
+        for order in before:
+            assert after[order] == pytest.approx(before[order]), (name, order)
+        assert mat6(round_tripped, name) == pytest.approx(mat6(original, name)), name
+
+    assert round_tripped.lat_list("*", "ele.s")[-1] == pytest.approx(
+        original.lat_list("*", "ele.s")[-1]
+    )
+
+
+ROLLED_BEND_LATTICE = (
+    "beginning[e_tot] = 1e9\n"
+    "beginning[beta_a] = 10\n"
+    "beginning[beta_b] = 10\n"
+    "parameter[geometry] = open\n"
+    "parameter[particle] = electron\n"
+    "b1: sbend, l = 1.0, angle = 0.05, ref_tilt = 0.1\n"
+    "q2: quadrupole, l = 0.2, k1 = 1.0\n"
+    "d: drift, l = 0.5\n"
+    "lat: line = (b1, d, q2)\n"
+    "use, lat\n"
+)
+
+
+@pytest.mark.parametrize("position_mode", ["floor", "s"])
+def test_native_rolled_bend_exports_as_ref_tilt_without_patches(
+    tmp_path, position_mode
+):
+    """A rolled bend needs ``ref_tilt`` and nothing else, however it was placed.
+
+    ``ref_tilt`` is self-closing, so a ``patch`` pair around the bend applies
+    the roll a second time -- and the pair comes out unbalanced, because
+    patches are only written between consecutive backbone pairs, so a bend at
+    either end of the line loses its half.
+
+    Both placement modes are exercised because only one of them used to be
+    wrong, and it is not the one a Bmad round trip reaches by default. Floor
+    placement puts the roll into ``global_rotation`` itself
+    (``_floor_to_physical``, ``psi + roll``); arc-length placement -- where any
+    ``s``-positioned source lands -- zeroes ``global_rotation`` and never looks
+    at ``magnetic.tilt``, so there is no roll in the frame to take back out.
+    """
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    lattice = tmp_path / "rolled.bmad"
+    lattice.write_text(ROLLED_BEND_LATTICE)
+    model = BmadLatticeImporter(
+        lattice_file=str(lattice),
+        libtao=str(LIBTAO),
+        position_mode=position_mode,
+    ).create_machine_model(min_section_length=1)
+    section = next(iter(model.sections.values()))
+
+    written = SectionLatticeTranslator.from_section(section).to_bmad()
+
+    assert "ref_tilt = 0.1" in written
+    assert "patch" not in written.lower()

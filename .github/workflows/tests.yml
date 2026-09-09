@@ -12,10 +12,11 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.12"]
 
     steps:
@@ -28,20 +29,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      # The conversion backends (xsuite, ocelot, ...) are deliberately not
-      # installed: no test imports them at module level, so this keeps CI to
-      # ~1 minute. Install .[conversion] here if that ever stops being true.
       - name: Install
-        run: pip install -e ".[full]"
+        run: pip install -e ".[full,test]"
 
+      # -m "" overrides the `not slow` deselection in pyproject's addopts. Without
+      # it CI inherits the local default and test_sql_exporter.py runs nowhere.
       - name: Run tests
-        run: pytest unit_tests -v
+        run: pytest unit_tests -v -m ""
 
-  # laura is consumed by astec-stfc/simba, which imports laura internals
-  # directly (Modules/Fields re-exports laura.translator.utils.fields, and
-  # Codes/RFTrack imports laura.translator.conversion_rules). Those imports are
-  # not covered by laura's own suite, so a rename here shows up as a red simba
-  # build days later. This job moves that discovery to the laura PR.
   downstream-simba:
     runs-on: ubuntu-latest
     steps:

@@ -396,6 +396,13 @@ class PhysicalElement(_PhysicalElementBase):
 
     def model_post_init(self, __context) -> None:
         object.__setattr__(
+            self,
+            "_position_stated",
+            self.reference_placement is not None
+            or self.middle is not None
+            or self.s is not None,
+        )
+        object.__setattr__(
             self, "_explicit_angle", "physical_angle" in self.model_fields_set
         )
         # Skip the middle default when another positioning mode handles placement.
@@ -557,39 +564,20 @@ class PhysicalElement(_PhysicalElementBase):
         raise ValueError("rotation should be a number or a list of floats")
 
     _rotation_matrix_cache = None
+    _rotation_matrix_key = None
 
     @property
     def rotation_matrix(self) -> np.ndarray:
-        """The element's orientation in the global frame.
-
-        .. warning::
-
-           ``rotation`` and ``global_rotation`` are combined by **adding** the
-           Euler angles, which is not the same operation as composing the two
-           rotations unless one of them is zero or both turn about the same
-           axis.  A 30 degree global yaw with a 50 mrad local pitch, for
-           instance, gives a matrix that differs from
-           ``euler_angles_to_rotation_matrix(global) @
-           euler_angles_to_rotation_matrix(local)`` by about 0.025 in its
-           entries.
-
-           This is latent, not live: nothing sets both today.  Floor-coordinate
-           placement fills ``global_rotation`` and leaves ``rotation`` zero, and
-           the trajectory builder does the reverse, so every angle pair actually
-           reached has one term equal to zero and the sum is exact.  Fixing it
-           means choosing which of the two is the inner rotation, which is a
-           convention decision rather than a bug fix, and no test pins it.
-        """
-        if self._rotation_matrix_cache is not None:
-            return self._rotation_matrix_cache
-
-        # Combined rotations using utility function
+        """The element's orientation as a 3x3 matrix."""
         # Apply yaw (Y), pitch (X), roll (Z) in that order
-        yaw = self.rotation.theta + self.global_rotation.theta
-        pitch = self.rotation.phi + self.global_rotation.phi
-        roll = self.rotation.psi + self.global_rotation.psi
-
-        self._rotation_matrix_cache = euler_angles_to_rotation_matrix(yaw, pitch, roll)
+        key = (
+            self.rotation.theta + self.global_rotation.theta,
+            self.rotation.phi + self.global_rotation.phi,
+            self.rotation.psi + self.global_rotation.psi,
+        )
+        if self._rotation_matrix_cache is None or self._rotation_matrix_key != key:
+            self._rotation_matrix_cache = euler_angles_to_rotation_matrix(*key)
+            self._rotation_matrix_key = key
         return self._rotation_matrix_cache
 
     def rotated_position(self, vec: List[Union[int, float]] = [0, 0, 0]) -> np.ndarray:

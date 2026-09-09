@@ -28,6 +28,7 @@ from .misalignment import (
     BMAD_NO_MISALIGNMENT,
     bmad_misalignment,
 )
+from .section import BmadBody
 
 __all__ = [
     "BMAD_MISALIGNMENT",
@@ -48,4 +49,5 @@ __all__ = [
     "BMAD_SR_WAKE_SAMPLES",
     "bmad_sr_wake_function",
     "sample_bmad_sr_wake",
+    "BmadBody"
 ]

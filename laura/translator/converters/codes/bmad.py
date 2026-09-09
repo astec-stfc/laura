@@ -65,6 +65,51 @@ _PATCH_TRANSFORM_TOLERANCE = 1e-12
 
 _ORDER_TYPES = {0: "Dipole", 1: "Quadrupole", 2: "Sextupole", 3: "Octupole"}
 
+_MULTIPASS_SLAVE_NAME = re.compile(r"^(?P<base>.+)\\(?P<number>\d+)$")
+
+_MULTIPASS_OVERRIDES = {"PHI0_MULTIPASS": ("cavity.phase", lambda value: -360.0 * value)}
+"""Bmad attributes a multipass slave holds on its own, and the LAURA override
+they come back as. The inverse of
+:data:`~laura.translator.converters.layout.bmad_per_pass_attributes`."""
+
+
+def _layout_entries(
+    layout: MachineLayout, sections: List[str], renamed: Dict[str, str]
+) -> List[Any]:
+    """The layout's beam order as :class:`MachineModel` wants it written.
+
+    A section entered once is its bare name; a multipass section carries
+    ``multipass`` and whatever that pass overrides, which is the only form
+    :class:`~laura.models.elementList.LayoutPass` can be rebuilt from.
+    """
+    if not any(entry.number for entry in layout.passes):
+        return sections
+    entries: List[Any] = []
+    for entry in layout.passes:
+        name = renamed.get(entry.section)
+        if name is None:
+            continue
+        if entry.number is None:
+            entries.append(name)
+            continue
+        settings: Dict[str, Any] = {"multipass": entry.number}
+        if entry.overrides:
+            settings["overrides"] = entry.overrides
+        entries.append({name: settings})
+    return entries
+
+
+def _multipass_slave(name: str, parameters: Dict[str, Any]) -> Optional[tuple]:
+    """``(hardware name, pass number)`` if this is a Bmad multipass slave.
+
+    Bmad calls the Nth visit to a multipass element ``NAME\\N``. The name on its
+    own is not proof, so the status Tao reports has to agree.
+    """
+    if parameters.get("slave_status") != "Multipass_Slave":
+        return None
+    match = _MULTIPASS_SLAVE_NAME.match(name)
+    return (match["base"], int(match["number"])) if match else None
+
 
 def _switch_dict() -> Dict[str, str]:
     """Bmad element key -> LAURA hardware type."""
@@ -193,6 +238,31 @@ def _aperture(parameters: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
             ),
         }
     }
+
+
+def _an_bn_multipoles(parameters: Dict[str, Any]) -> Dict[int, Dict[str, float]]:
+    """The ``an``/``bn`` content of an ordinary magnet, as integrated strengths.
+
+    Bmad's ``an``/``bn`` are defined with a ``1/n!``, so the factorial goes back
+    in here -- the same scaling the multipole-element branch applies, and the
+    inverse of what :meth:`BaseElementTranslator._add_bmad_multipoles` writes.
+
+    The ``An``/``Bn`` columns are the right ones to read. Tao has already folded
+    ``scale_multipoles`` into them, so a lattice that leaves it at Bmad's default
+    ``T`` reports the effective strength rather than the written coefficient. The
+    ``(w/Tilt)`` columns are deliberately *not* used: they rotate the components
+    by the element's ``tilt``, which LAURA stores separately and re-applies on
+    export, so reading those would apply the roll twice.
+    """
+    components: Dict[int, Dict[str, float]] = {}
+    for row in (parameters.get("_MULTIPOLES") or {}).get("data", []):
+        order = int(row["index"])
+        scale = math.factorial(order)
+        normal = (row.get("Bn") or 0.0) * scale
+        skew = (row.get("An") or 0.0) * scale
+        if normal or skew:
+            components[order] = {"normal": normal, "skew": skew}
+    return components
 
 
 def _native_keyword(hardware_type: str, laura_field: str) -> str:
@@ -507,6 +577,11 @@ class BmadLatticeImporter(BaseModel):
 
     deferred_parameters: Dict[str, Dict[str, str]] = {}
 
+    multipass_passes: Dict[int, Dict[str, List[Dict[str, Any]]]] = {}
+    """Beam order for a branch :meth:`_split_multipass` had to break up, as
+    :class:`~laura.models.elementList.LayoutPass` keyword arguments. Empty for
+    a branch with no Bmad multipass in it, which is one section and one pass."""
+
     _generated_tao_init: Any = PrivateAttr(default=None)
 
     @model_validator(mode="after")
@@ -635,7 +710,13 @@ class BmadLatticeImporter(BaseModel):
                     elif etype == "Taylor":
                         attributes["_TAYLOR"] = tao.ele_taylor(element_id)
                         attributes["_SPIN_TAYLOR"] = tao.ele_spin_taylor(element_id)
-                    elif etype in _MULTIPOLE_TYPES:
+                    elif etype in _MULTIPOLE_TYPES or etype in magnetic_orders:
+                        # For the multipole keys this table *is* the element. For
+                        # an ordinary magnet it holds only the `an`/`bn` content,
+                        # which the element definition cannot carry -- Tao leaves
+                        # the main `k1`/`k3` out of it, so there is nothing to
+                        # double-count, and a magnet with no `an`/`bn` reports an
+                        # empty table rather than an error.
                         attributes["_MULTIPOLES"] = tao.ele_multipoles(element_id)
                     elif etype == "AC_Kicker":
                         attributes["_AC_KICKER"] = _ac_kicker_data(tao, element_id)
@@ -956,9 +1037,43 @@ class BmadLatticeImporter(BaseModel):
                     ) or parameters.get("TILT")
                     if tilt:
                         kl["tilt"] = tilt
+                    magnetic = {"order": order, "length": length, **kl}
+                    poles = magnetic["multipoles"]
+                    for extra_order, components in _an_bn_multipoles(
+                        parameters
+                    ).items():
+                        pole = poles.setdefault(
+                            f"K{extra_order}L", {"order": extra_order}
+                        )
+                        for component, value in components.items():
+                            # `an`/`bn` are *additional* to the element's own
+                            # strength, so they add rather than replace. A
+                            # symbolic main strength has no number to add to, so
+                            # it wins and the extra term is dropped with a
+                            # warning rather than silently stringified.
+                            standing = pole.get(component) or 0.0
+                            if isinstance(standing, str):
+                                warn(
+                                    f"Bmad {etype} {nam!r} has both a functional "
+                                    f"K{extra_order} and a fixed "
+                                    f"{'a' if component == 'skew' else 'b'}"
+                                    f"{extra_order} = {value}; LAURA holds one "
+                                    "value per component, so the functional "
+                                    "definition was kept and the fixed term "
+                                    "dropped."
+                                )
+                                continue
+                            pole[component] = standing + value
+                    main = poles.get(f"K{order}L", {})
+                    if main.get("skew") and not main.get("normal"):
+                        # A magnet whose own order is pure skew -- `a1` and no
+                        # `k1`. `magnetic.skew` is how LAURA says that, and it
+                        # is what `KnL()` keys on, so without it the strength
+                        # would read back as zero.
+                        magnetic["skew"] = True
                     elem_data = {
                         "hardware_type": hardware_type,
-                        "magnetic": {"order": order, "length": length, **kl},
+                        "magnetic": magnetic,
                     }
                 elif etype in _CAVITY_TYPES:
                     hardware_type = mapped_type
@@ -1373,7 +1488,129 @@ class BmadLatticeImporter(BaseModel):
                     elem.physical.middle = parent.physical.middle
                     elem.physical.rotation = parent.physical.rotation
                     elem.physical.global_rotation = parent.physical.global_rotation
-        return {branch: seclat}
+        sections = self._split_multipass(universe, branch, seclat)
+        return sections if sections else {branch: seclat}
+
+    def _multipass_numbers(self, universe: int, branch: str) -> Dict[str, tuple]:
+        """``{element name: (hardware name, pass number)}`` for this branch's
+        multipass slaves, keyed as :attr:`laura_elems` keys them."""
+        numbered = self.names_numbered[universe][branch]
+        names = self.names[universe][branch]
+        params = self.params[universe][branch]
+        found = {}
+        for index, key in enumerate(numbered):
+            slave = _multipass_slave(names[index], params[index])
+            if slave is not None:
+                found[key] = slave
+        return found
+
+    def _split_multipass(
+        self, universe: int, branch: str, section: SectionLattice
+    ) -> Dict[str, SectionLattice]:
+        """One section per multipass traversal, or ``{}`` if the branch has none.
+
+        Bmad's multipass unit is a *line*, LAURA's is a *section*, and
+        ``lat_list`` gives back neither -- only a flat run of elements with the
+        slaves called ``NAME\\N``. So the line is recovered as the run of
+        consecutive slaves sharing a pass number, and the free elements between
+        two of those runs become ordinary sections. Pass 1 supplies the
+        hardware, under its unnumbered name; the later passes are read for what
+        they change and then dropped, since they are the same device.
+
+        Two *different* multipass lines with nothing between them come back as
+        one section. That is coarser than the original but not wrong: the same
+        run recurs on every pass, so it still round-trips.
+        """
+        slaves = self._multipass_numbers(universe, branch)
+        if not slaves:
+            return {}
+
+        groups: List[tuple] = []
+        for name in section.order:
+            number = slaves[name][1] if name in slaves else None
+            if groups and groups[-1][0] == number:
+                groups[-1][1].append(name)
+            else:
+                groups.append((number, [name]))
+
+        elements = section.elements.elements
+        children = {}
+        for name, element in elements.items():
+            if element.is_subelement():
+                children.setdefault(element.subelement, []).append(name)
+
+        sections: Dict[str, SectionLattice] = {}
+        passes: List[Dict[str, Any]] = []
+        by_hardware: Dict[tuple, str] = {}
+        for number, members in groups:
+            hardware = tuple(slaves.get(name, (name,))[0] for name in members)
+            existing = by_hardware.get(hardware)
+            if existing is not None:
+                passes.append(
+                    {
+                        "section": existing,
+                        "number": number,
+                        "overrides": self._multipass_overrides(
+                            universe, branch, members, slaves
+                        ),
+                    }
+                )
+                continue
+            name = f"{branch}_{len(sections) + 1}"
+            order = []
+            members_and_children = {}
+            for member, base in zip(members, hardware):
+                element = elements[member]
+                element.name = base
+                order.append(base)
+                members_and_children[base] = element
+                for child in children.get(member, []):
+                    members_and_children[elements[child].name] = elements[child]
+            sections[name] = SectionLattice(
+                order=order,
+                elements=ElementList(elements=members_and_children),
+                name=name,
+                functional_definitions=self.functional_definitions,
+                geometry=section.geometry,
+                reference_energy=section.reference_energy,
+            )
+            by_hardware[hardware] = name
+            passes.append({"section": name, "number": number, "overrides": {}})
+
+        self.multipass_passes.setdefault(universe, {})[branch] = passes
+        return sections
+
+    def _multipass_overrides(
+        self, universe: int, branch: str, members: List[str], slaves: Dict[str, tuple]
+    ) -> Dict[str, Dict[str, Any]]:
+        """What this pass changes relative to pass 1.
+
+        Only the attributes Bmad lets a slave hold on its own can differ, and
+        those are the ones :data:`_MULTIPASS_OVERRIDES` names. Reference energy
+        is deliberately *not* read back as ``momentum``: Bmad keeps strength on
+        the multipass lord, so both passes really do share one ``k1``, and
+        stating a per-pass momentum would make LAURA scale it on the way out.
+        """
+        numbered = self.names_numbered[universe][branch]
+        params = self.params[universe][branch]
+        first = {
+            slaves[key][0]: params[index]
+            for index, key in enumerate(numbered)
+            if key in slaves and slaves[key][1] == 1
+        }
+        overrides: Dict[str, Dict[str, Any]] = {}
+        for member in members:
+            hardware = slaves[member][0]
+            reference = first.get(hardware)
+            if reference is None:
+                continue
+            parameters = params[numbered.index(member)]
+            for attribute, (path, convert) in _MULTIPASS_OVERRIDES.items():
+                value = parameters.get(attribute)
+                if value is None or value == reference.get(attribute):
+                    continue
+                overrides.setdefault(hardware, {})[path] = convert(value)
+        return overrides
 
     def _restore_arc_length(
         self, universe: int, branch: str, elems: Dict[str, Element]
@@ -1396,11 +1633,18 @@ class BmadLatticeImporter(BaseModel):
 
     def create_layout(self, universe: int, name: Optional[str] = None) -> MachineLayout:
         layout = {}
+        passes = []
         for branch in list(self.names_numbered[universe].keys()):
-            layout.update(self.create_section(universe, branch))
+            sections = self.create_section(universe, branch)
+            layout.update(sections)
+            passes.extend(
+                self.multipass_passes.get(universe, {}).get(branch)
+                or [{"section": section} for section in sections]
+            )
         return MachineLayout(
             name=name or str(universe),
             sections=layout,
+            passes=passes,
             functional_definitions=self.functional_definitions,
             particle=self._particle(universe),
         )
@@ -1460,6 +1704,7 @@ class BmadLatticeImporter(BaseModel):
                 layout_name = f"{layout_name}_{universe}"
             layout = self.create_layout(universe, name=layout_name)
             layout_sections = []
+            renamed = {}
             for source_name, section in layout.sections.items():
                 if len(section.order) < min_section_length:
                     skipped_sections.append(f"{layout_name}/{source_name}")
@@ -1467,6 +1712,7 @@ class BmadLatticeImporter(BaseModel):
                 section_name = source_name
                 if section_name in section_definitions:
                     section_name = f"{layout_name}_{section_name}"
+                renamed[source_name] = section_name
                 merge_layout_elements(
                     elements,
                     section_definitions,
@@ -1481,7 +1727,9 @@ class BmadLatticeImporter(BaseModel):
                 )
                 layout_sections.append(section_name)
             if layout_sections:
-                layout_definitions[layout_name] = layout_sections
+                layout_definitions[layout_name] = _layout_entries(
+                    layout, layout_sections, renamed
+                )
                 layout_particles[layout_name] = layout.particle
 
         if skipped_sections:

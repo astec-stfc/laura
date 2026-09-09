@@ -31,8 +31,6 @@ pytestmark = pytest.mark.skipif(
 def elements():
     importer = PalsLatticeImporter(source_file=_LATTICE)
     with pytest.warns(UserWarning):
-        # The fixture's bend states its edge-field integrals as the fint*hgap
-        # product, which LAURA cannot hold as such; see test_bend below.
         return importer.create_laura_element_dictionary()
 
 

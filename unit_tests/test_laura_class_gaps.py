@@ -44,7 +44,7 @@ class TestModuleHelpers:
 
 
 class TestResolveLatticePackage:
-    def _stub_lattice(self, with_data_files=False):
+    def _stub_lattice(self, data_files=None):
         m1 = Marker(name="M1", machine_area="S", physical={"middle": {"x": 0, "y": 0, "z": 0}})
 
         class LatticeStub:
@@ -52,17 +52,21 @@ class TestResolveLatticePackage:
             section = {"sections": {"S": ["M1"]}}
             element_list = [m1]
 
-        if with_data_files:
-            LatticeStub.data_files = "/some/dir"
+        if data_files is not None:
+            LatticeStub.data_files = data_files
         return LatticeStub()
 
     def test_lattice_kwarg_expands_fields(self):
         lm = LAURA(lattice=self._stub_lattice())
         assert "M1" in lm.elements
 
-    def test_lattice_kwarg_sets_master_lattice_from_data_files(self):
-        lm = LAURA(lattice=self._stub_lattice(with_data_files=True))
-        assert lm.master_lattice == "/some/dir"
+    def test_lattice_kwarg_sets_master_lattice_from_data_files(self, tmp_path):
+        # _lattice_root() runs data_files through os.path.abspath, so the
+        # literal must be absolute on this platform -- a bare "/some/dir" is
+        # drive-relative on Windows and comes back as "D:\\some".
+        pkg = tmp_path / "pkg"
+        lm = LAURA(lattice=self._stub_lattice(data_files=str(pkg / "lattice.yaml")))
+        assert lm.master_lattice == str(pkg)
 
     def test_invalid_lattice_object_raises(self):
         class NotALattice:
@@ -201,43 +205,9 @@ class TestCorrectorGetters:
         assert "VC1" in correctors
         assert "CC1" in correctors
 
-    def test_get_horizontal_correctors(self, full_machine):
-        assert "HC1" in full_machine.get_horizontal_correctors()
-
-    def test_get_vertical_correctors(self, full_machine):
-        assert "VC1" in full_machine.get_vertical_correctors()
-
     def test_get_lattice_correctors(self, full_machine):
         lattice_correctors = full_machine.get_lattice_correctors()
         assert "CC1" in lattice_correctors
-
-    def test_get_combined_correctors(self, full_machine):
-        assert "CC1" in full_machine.get_combined_correctors()
-
-    def test_get_separate_magnets(self, full_machine):
-        separated = full_machine.get_separate_magnets()
-        assert "Q1" in separated
-
-    def test_all_correctors(self, full_machine):
-        assert "HC1" in full_machine.all_correctors
-
-    def test_all_horizontal_correctors(self, full_machine):
-        assert "HC1" in full_machine.all_horizontal_correctors
-
-    def test_all_vertical_correctors(self, full_machine):
-        assert "VC1" in full_machine.all_vertical_correctors
-
-    def test_all_combined_correctors(self, full_machine):
-        assert "CC1" in full_machine.all_combined_correctors
-
-    def test_all_separate_magnets(self, full_machine):
-        assert "Q1" in full_machine.all_separate_magnets
-
-    def test_all_sextupoles(self, full_machine):
-        assert "SX1" in full_machine.all_sextupoles
-
-    def test_all_solenoids(self, full_machine):
-        assert "SOL1" in full_machine.all_solenoids
 
     def test_combined_corrector_with_both_sub_correctors_splits(self, full_machine):
         correctors = full_machine.get_correctors()
@@ -270,9 +240,6 @@ class TestDriftLength:
 
 
 class TestDiagnosticAndCameraGetters:
-    def test_get_charge_diagnostics(self, full_machine):
-        assert "FCM1" in full_machine.get_charge_diagnostics()
-
     def test_get_position_diagnostics(self, full_machine):
         pos_diag = full_machine.get_position_diagnostics()
         assert "BPM1" in pos_diag
@@ -285,34 +252,39 @@ class TestDiagnosticAndCameraGetters:
         result = full_machine.get_screens_and_cameras()
         assert result["SCR1"].camera_name == "CAM1"
 
-    def test_all_charge_diagnostics(self, full_machine):
-        assert "FCM1" in full_machine.all_charge_diagnostics
-
-    def test_all_position_diagnostics(self, full_machine):
-        assert "BPM1" in full_machine.all_position_diagnostics
-
-    def test_all_cameras(self, full_machine):
-        assert "CAM1" in full_machine.all_cameras
-
     def test_all_screens_and_cameras(self, full_machine):
         result = full_machine.all_screens_and_cameras
         assert result["SCR1"] == "CAM1"
 
 
+@pytest.mark.parametrize(
+    "category, member",
+    [
+        ("correctors", "HC1"),
+        ("horizontal_correctors", "HC1"),
+        ("vertical_correctors", "VC1"),
+        ("combined_correctors", "CC1"),
+        ("separate_magnets", "Q1"),
+        ("sextupoles", "SX1"),
+        ("solenoids", "SOL1"),
+        ("charge_diagnostics", "FCM1"),
+        ("position_diagnostics", "BPM1"),
+        ("cameras", "CAM1"),
+        ("rf_cavities", "RFC1"),
+        ("vacuum_components", "VA1"),
+    ],
+)
+def test_get_and_all_find_the_same_elements(full_machine, category, member):
+    """``get_X()`` walks the layouts, ``all_X`` is the set over the element list.
+    Correctors are the interesting case: ``get_correctors`` splits a combined
+    corrector into its ``_H``/``_V`` halves and ``all_correctors`` does not, so
+    the two agree on membership without agreeing on contents."""
+    got = getattr(full_machine, f"get_{category}")()
+    assert member in got
+    assert member in getattr(full_machine, f"all_{category}")
+
+
 class TestRFAndVacuumGetters:
-    def test_get_rf_cavities(self, full_machine):
-        assert "RFC1" in full_machine.get_rf_cavities()
-
-    def test_all_rf_cavities(self, full_machine):
-        assert "RFC1" in full_machine.all_rf_cavities
-
-    def test_get_vacuum_components(self, full_machine):
-        vacuum = full_machine.get_vacuum_components()
-        assert "VA1" in vacuum
-
-    def test_all_vacuum_components(self, full_machine):
-        assert "VA1" in full_machine.all_vacuum_components
-
     def test_get_shutters_returns_list(self, full_machine):
         assert isinstance(full_machine.get_shutters(), list)
 

@@ -4,7 +4,7 @@ LAURA Element Module
 The main class for representing accelerator elements in LAURA.
 """
 
-from typing import Optional, List, Union, Dict, Any
+from typing import ClassVar, Optional, Type, List, Union, Dict, Any
 import os
 from pydantic import field_validator, Field
 from .control import (
@@ -1133,9 +1133,16 @@ class RFCavity(PhysicalBaseElement, _RFCavityBase):
     simulation: Optional[RFCavitySimulationElement] = None
     """RF cavity simulation attributes."""
 
+    cavity: Optional[RFCavityElement] = None
+    """RF cavity structure parameters."""
+
+    _cavity_model: ClassVar[type] = RFCavityElement
+    """Which model fills an empty ``cavity``."""
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        _ensure_nested_default(self, "cavity", RFCavityElement)
+        _ensure_nested_default(self, "cavity", type(self)._cavity_model)
+        _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
 
 
 class Wakefield(PhysicalBaseElement, _WakefieldBase):
@@ -1158,6 +1165,9 @@ class Wakefield(PhysicalBaseElement, _WakefieldBase):
 
     hardware_model: str = Field(default="Dielectric", frozen=True)
     """Wakefield hardware model."""
+
+    cavity: Optional[WakefieldElement] = None
+    """Wakefield structure parameters."""
 
     simulation: Optional[WakefieldSimulationElement] = None
     """Wakefield simulation attributes."""
@@ -1186,9 +1196,13 @@ class RFDeflectingCavity(RFCavity, _RFDeflectingCavityBase):
     hardware_model: str = Field(default="SBand", frozen=True)
     """RF deflecting cavity hardware model."""
 
+    cavity: Optional[RFDeflectingCavityElement] = None
+    """Deflecting-cavity RF structure parameters."""
+
+    _cavity_model: ClassVar[type] = RFDeflectingCavityElement
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        _ensure_nested_default(self, "cavity", RFDeflectingCavityElement)
         _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
 
 
@@ -1214,9 +1228,10 @@ class CrabCavity(RFCavity, _CrabCavityBase):
     cavity: Optional[RFDeflectingCavityElement] = None
     """Crab-cavity RF structure parameters."""
 
+    _cavity_model: ClassVar[type] = RFDeflectingCavityElement
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        _ensure_nested_default(self, "cavity", RFDeflectingCavityElement)
         _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
 
 

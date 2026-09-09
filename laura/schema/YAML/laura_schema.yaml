@@ -9,15 +9,15 @@ version: "0.1.0"
 license: Apache Software License 2.0
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
 
 default_prefix: laura
 default_range: string
@@ -125,17 +125,17 @@ enums:
   LaserPolarizationEnum:
     description: Polarization state of a laser beam.
     permissible_values:
-      linear:     {}
-      circular:   {}
-      elliptical: {}
+      linear: { }
+      circular: { }
+      elliptical: { }
 
   LaserProfileTypeEnum:
     description: Transverse intensity profile model for a laser beam.
     permissible_values:
-      gaussian:           {}
-      laguerre-gaussian:  {}
-      flattened-gaussian: {}
-      file:               {}
+      gaussian: { }
+      laguerre-gaussian: { }
+      flattened-gaussian: { }
+      file: { }
 
 # --- Reusable Slots ----------------------------------------------------------
 
@@ -401,9 +401,9 @@ classes:
         range: string
         description: Design-file paths or URIs.
 
-# ===============================================================================
-# Element class hierarchy
-# ===============================================================================
+  # ===============================================================================
+  # Element class hierarchy
+  # ===============================================================================
 
   # -- Root base element ------------------------------------------------------
 
@@ -461,6 +461,17 @@ classes:
         description: >-
           If set, this element is a logical sub-component of the named
           parent element.
+      inherits_from:
+        range: string
+        description: >-
+          If set, this element's definition is merged on top of the named
+          element's at load time, so it need only state what differs.
+          Populated from ``inherit`` in YAML (see
+          ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``,
+          which is a physical part-of relationship rather than a
+          definitional one.
+        aliases:
+          - inherit
       inputs:
         range: IOTypeEnum
         description: >-
