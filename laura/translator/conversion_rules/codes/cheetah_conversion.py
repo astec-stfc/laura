@@ -64,9 +64,9 @@ cheetah_conversion_rules = {
     "Wakefield": Drift,
     "Laser": Drift,
     "Plasma": Drift,
-    "Wiggler": Undulator,
+    "TwissMatch": Drift,
     "Diagnostic": Screen,
-    "Photon_Monitor": Screen,
-    "TwissMatch": Marker,
     "MatrixTransform": CustomTransferMap,
+    "Photon_Monitor": Screen,
+    "Wiggler": Undulator,
 }

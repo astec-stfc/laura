@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Dict, List, Any, Literal
 
 csrtrack_unsupported = [
-    "TwissMatch"
+    "TwissMatch",
     "MatrixTransform",
     "Laser",
     "Plasma",
@@ -155,9 +155,6 @@ class csrtrack_tracker(csrtrack_element):
     Class for defining the CSRTrack tracker.
     """
 
-    # end_time_marker is excluded by the base class's `exclude`, but the
-    # tracker block requires it - CSRTrack errors with "end time is
-    # undefined" without it.
     exclude: List[str] = [
         e for e in csrtrack_element.model_fields["exclude"].default
         if e != "end_time_marker"

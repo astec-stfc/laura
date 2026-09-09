@@ -21,9 +21,22 @@ URI: [laura:SectionLattice](https://w3id.org/laura/SectionLattice)
     click SectionLattice href "../SectionLattice/"
       SectionLattice : elements
         
+      SectionLattice : geometry
+        
+          
+    
+        
+        
+        SectionLattice --> "0..1" LatticeGeometryEnum : geometry
+        click LatticeGeometryEnum href "../LatticeGeometryEnum/"
+    
+
+        
       SectionLattice : master_lattice
         
       SectionLattice : name
+        
+      SectionLattice : reference_energy
         
       
 ```
@@ -46,6 +59,8 @@ URI: [laura:SectionLattice](https://w3id.org/laura/SectionLattice)
 | ---  | --- | --- | --- |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique section name | direct |
 | [master_lattice](master_lattice.md) | 0..1 <br/> [String](String.md) | Name of the master lattice this section belongs to | direct |
+| [geometry](geometry.md) | 0..1 <br/> [LatticeGeometryEnum](LatticeGeometryEnum.md) | Whether the reference orbit closes on itself | direct |
+| [reference_energy](reference_energy.md) | 0..1 <br/> [Float](Float.md) | Reference total energy of the design particle [eV] | direct |
 | [elements](elements.md) | * <br/> [String](String.md) | Ordered list of element names in this section | direct |
 
 
@@ -126,6 +141,28 @@ attributes:
     - SectionLattice
     - MachineLayout
     range: string
+  geometry:
+    name: geometry
+    description: Whether the reference orbit closes on itself. Per-section rather
+      than per-machine because a forked branch may differ from its parent.
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    domain_of:
+    - SectionLattice
+    range: LatticeGeometryEnum
+    required: false
+  reference_energy:
+    name: reference_energy
+    description: Reference total energy of the design particle [eV].
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    domain_of:
+    - SectionLattice
+    range: float
+    required: false
+    minimum_value: 0.0
+    unit:
+      ucum_code: eV
   elements:
     name: elements
     description: Ordered list of element names in this section.
@@ -171,6 +208,30 @@ attributes:
     - SectionLattice
     - MachineLayout
     range: string
+  geometry:
+    name: geometry
+    description: Whether the reference orbit closes on itself. Per-section rather
+      than per-machine because a forked branch may differ from its parent.
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    owner: SectionLattice
+    domain_of:
+    - SectionLattice
+    range: LatticeGeometryEnum
+    required: false
+  reference_energy:
+    name: reference_energy
+    description: Reference total energy of the design particle [eV].
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    owner: SectionLattice
+    domain_of:
+    - SectionLattice
+    range: float
+    required: false
+    minimum_value: 0.0
+    unit:
+      ucum_code: eV
   elements:
     name: elements
     description: Ordered list of element names in this section.

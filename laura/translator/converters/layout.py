@@ -53,6 +53,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
                 "functional_definitions": layout.functional_definitions,
                 "resolve_functional": layout.resolve_functional,
                 "revolution_frequency": layout.revolution_frequency,
+                "particle": layout.particle,
             }
         )
 

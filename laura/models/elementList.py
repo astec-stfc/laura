@@ -9,11 +9,12 @@ from warnings import warn
 import numpy as np
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     PositiveInt,
     PrivateAttr,
-    ValidationInfo,
     field_validator,
+    model_validator,
 )
 from yaml import safe_load
 
@@ -23,6 +24,12 @@ from ..utils.rotation_matrix import (
     rotation_matrix_to_euler,
 )
 from ._functions import read_yaml
+from ._generated import (
+    LatticeGeometryEnum,
+    _MachineLayoutBase,
+    _MachineModelBase,
+    _SectionLatticeBase,
+)
 from .baseModels import (
     ModelBase,
     set_functional_definitions,
@@ -345,7 +352,7 @@ class ElementList(ModelBase):
         return list(self.elements.values())
 
 
-class SectionLattice(BaseLatticeModel):
+class SectionLattice(BaseLatticeModel, _SectionLatticeBase):
     """
     A section of a lattice, consisting of a list of elements and their order along the beam path.
     """
@@ -358,6 +365,12 @@ class SectionLattice(BaseLatticeModel):
 
     section_type: LatticeType = "beam"
     """Logical lattice type of this section (beam/rf/laser)."""
+
+    geometry: LatticeGeometryEnum | None = None
+    """Whether the reference orbit closes on itself (``open``/``closed``)."""
+
+    reference_energy: float | None = None
+    """Reference total energy of the design particle [eV], if known."""
 
     # other_elements: ElementList = ElementList(elements={})
     # TODO should we put this back in?
@@ -393,30 +406,28 @@ class SectionLattice(BaseLatticeModel):
     def validate_section_type(cls, value: str | None) -> LatticeType:
         return normalise_lattice_type(value, context="section")
 
-    @field_validator("elements", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def validate_elements(
-        cls,
-        elements: Union[List[Union[baseElement, dict]], ElementList],
-        info: ValidationInfo,
-    ) -> ElementList:
-        if isinstance(elements, list):
-            elemdict = {}
-            for e in elements:
-                if isinstance(e, dict):
-                    nm = e.get("name")
-                else:
-                    nm = e.name
-                if nm:
-                    elemdict[nm] = e
-
-            # print([e for e in info.data['order'] if e not in elemdict.keys()])
-            return ElementList(
+    def validate_elements(cls, data: Any) -> Any:
+        """
+        Turn a list of elements into an ``ElementList`` keyed and ordered by
+        ``order``, dropping any element ``order`` does not mention.
+        """
+        if not isinstance(data, dict) or not isinstance(data.get("elements"), list):
+            return data
+        elemdict = {}
+        for e in data["elements"]:
+            nm = e.get("name") if isinstance(e, dict) else getattr(e, "name", None)
+            if nm:
+                elemdict[nm] = e
+        return {
+            **data,
+            "elements": ElementList(
                 elements={
-                    e: elemdict[e] for e in info.data["order"] if e in elemdict.keys()
+                    e: elemdict[e] for e in (data.get("order") or []) if e in elemdict
                 }
-            )
-        return elements
+            ),
+        }
 
     @property
     def names(self) -> List:
@@ -460,8 +471,9 @@ class SectionLattice(BaseLatticeModel):
         csr_enable: bool = True,
         lsc_enable: bool = True,
         lsc_bins: PositiveInt = 20,
+        keep_diagnostic_length: bool = False,
     ):
-        """Insert drifts into a sequence of 'elements'"""
+        """Insert drifts into a sequence of 'elements'."""
         positions = []
         originalelements = dict()
         elementno = 0
@@ -471,9 +483,13 @@ class SectionLattice(BaseLatticeModel):
 
         for elem in elements:
             if not elem.subelement:
+                if isinstance(elem, Diagnostic) and not keep_diagnostic_length:
+                    elem = elem.model_copy(
+                        update={
+                            "physical": elem.physical.model_copy(update={"length": 0.0})
+                        }
+                    )
                 originalelements[elem.name] = elem
-                if isinstance(elem, Diagnostic):
-                    elem.physical.length = 0
                 start = elem.physical.start.array
                 end = elem.physical.end.array
                 try:
@@ -502,7 +518,7 @@ class SectionLattice(BaseLatticeModel):
                     )
                     _log.debug("Position data: %s", d)
                     raise exc
-                if round(length, 16) > 0:
+                if length > 1e-12:
                     elementno += 1
                     name = self.name + "_drift_" + str(elementno)
                     x, y, z = [(a + b) / 2.0 for a, b in zip(d[0], d[1])]
@@ -1086,11 +1102,8 @@ class SectionLattice(BaseLatticeModel):
 
             # Determine resolved rotation matrix
             if "rotation" not in phys.model_fields_set:
-                # No user-specified rotation: inherit reference frame orientation
                 resolved_R = ref_R
             else:
-                # User-specified rotation is treated as an additional LOCAL rotation
-                # on top of the reference frame: R_world = ref_R @ R_user_local
                 ur = phys.rotation
                 R_user = euler_angles_to_rotation_matrix(ur.theta, ur.phi, ur.psi)
                 resolved_R = ref_R @ R_user
@@ -1152,7 +1165,7 @@ class LayoutPass(BaseModel):
         return f"<LayoutPass {self.section}{pass_number}{arrow}>"
 
 
-class MachineLayout(BaseLatticeModel):
+class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
     """
     A machine layout, consisting of a dictionary of lattice sections.
     This class could represent a full beam path, for example.
@@ -1172,6 +1185,10 @@ class MachineLayout(BaseLatticeModel):
 
     layout_type: LatticeType = "beam"
     """Logical lattice type of this path (beam/rf/laser)."""
+
+    particle: str | None = None
+    """Design particle species for this layout, overriding the machine-wide
+    value."""
 
     _basename: str = "sections"
 
@@ -1846,13 +1863,15 @@ class MachineLayout(BaseLatticeModel):
         return [keys[i] for i in indices]
 
 
-class MachineModel(ModelBase):
+class MachineModel(ModelBase, _MachineModelBase):
     """
     The full model of the accelerator. It describes all :class:`~laura.models.elementList.MachineLayout` and
     :class:`~laura.models.elementList.SectionLattice` that particles can follow.
     These layouts and sections are also defined as Dict[str, list] and Dict[str, list], and the full dictionary
     containing all elements is also accessible.
     """
+
+    model_config = ConfigDict(validate_assignment=False)
 
     layout: str | Dict | None = None
     """Dictionary containing layout names and the names of the sections of which they are composed."""
@@ -1873,6 +1892,9 @@ class MachineModel(ModelBase):
 
     master_lattice: str | None = None
     """Directory containing lattice YAML files."""
+
+    particle: str | None = None
+    """Machine-wide design particle species, overridable per layout."""
 
     functional_definitions: Union[str, Dict[str, Union[int, float]]] = {}
     """Mapping of functional-parameter names to their numeric values, or a path
@@ -2156,7 +2178,9 @@ class MachineModel(ModelBase):
 
     @field_validator("layout", mode="before")
     @classmethod
-    def validate_layout(cls, v: str | dict) -> str | dict:
+    def validate_layout(cls, v: str | dict | None) -> str | dict | None:
+        if v is None:
+            return v
         if isinstance(v, str):
             if os.path.isfile(v):
                 return v
@@ -2264,8 +2288,6 @@ class MachineModel(ModelBase):
             )
         self._expand_layout_repeats()
         if len(self.elements) > 0:
-            # Validate functional references up-front (so the error names the
-            # source file), skipping lazy element stores to avoid forcing a load.
             if not hasattr(self.elements, "get_metadata"):
                 validate_functional_references(
                     [e for e in self.elements.values() if isinstance(e, baseElement)],
@@ -2273,12 +2295,12 @@ class MachineModel(ModelBase):
                     self._functional_source,
                 )
             if self.section:
-                self._build_layouts(self.elements)  # creates SectionLattice only
+                self._build_layouts(self.elements)
             else:
                 self._build_sections_from_elements(self.elements)
-            self._resolve_all_positions()  # resolve before MachineLayout
+            self._resolve_all_positions()
             if self.section:
-                self._build_layout_objects()  # MachineLayout after positions ready
+                self._build_layout_objects()
 
     def __add__(self, other) -> dict:
         copy = self.elements.copy()
@@ -2399,8 +2421,6 @@ class MachineModel(ModelBase):
     def _build_layouts(self, elements):
         """Build sections (and layout objects when no full-layout definitions exist)."""
         self._build_sections_phase(elements)
-        # Layout objects (MachineLayout) require resolved positions so they are
-        # deferred to _build_layout_objects(), called after _resolve_all_positions().
 
     def _build_sections_phase(self, elements):
         """Create all SectionLattice objects without yet creating MachineLayout objects."""
@@ -2975,9 +2995,6 @@ class MachineModel(ModelBase):
         elif path not in self.lattices:
             raise Exception('"path" = %s is not defined' % path)
 
-        # a blank start or end is left blank rather than resolved to a name:
-        # the first and last elements of a multipass path may be entered twice,
-        # and a bare name there would be refused as ambiguous
         if end is None:
             path_obj = self.lattices[path]
         else:

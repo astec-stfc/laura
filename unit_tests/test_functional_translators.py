@@ -17,12 +17,19 @@ from laura.models.baseModels import (  # noqa: E402
     set_functional_definitions,
     set_resolve_functional,
 )
-from laura.models.element import Quadrupole, RFCavity, NonLinearLens  # noqa: E402
+from laura.models.element import (  # noqa: E402
+    Quadrupole,
+    RFCavity,
+    RFDeflectingCavity,
+    Screen,
+    NonLinearLens,
+)
 from laura.translator.converters.magnet import (  # noqa: E402
     MagnetTranslator,
     NonLinearLensTranslator,
 )
 from laura.translator.converters.cavity import RFCavityTranslator  # noqa: E402
+from laura.translator.converters.converter import translate_elements  # noqa: E402
 from laura.translator.utils.functions import (  # noqa: E402
     elegant_functional_definitions,
 )
@@ -105,6 +112,34 @@ class TestElegantSymbolic:
         out = _cavity(1e6, phase="cav1_phase").to_elegant()
         assert 'phase = "90 cav1_phase -"' in out
 
+    def test_deflecting_cavity_keeps_type_and_quotes_voltage(self):
+        set_functional_definitions({"V_HERFX": 1e6})
+        cavity = RFDeflectingCavity(
+            name="HERFX",
+            machine_area="L04",
+            simulation={"field_amplitude": "V_HERFX"},
+        )
+        out = RFCavityTranslator.model_validate(cavity.model_dump()).to_elegant()
+        assert out.startswith("HERFX: rftm110")
+        assert 'voltage = "V_HERFX"' in out
+
+    def test_cavity_emits_n_kicks_once(self):
+        cavity = RFCavity(
+            name="C1",
+            machine_area="L04",
+            cavity={"n_cells": 7},
+            simulation={"n_kicks": 25},
+        )
+        out = RFCavityTranslator.model_validate(cavity.model_dump()).to_elegant()
+        assert out.count("n_kicks =") == 1
+        assert "n_kicks = 25" in out
+
+    def test_screen_exports_as_watch(self):
+        screen = Screen(name="SCR", machine_area="L04")
+        out = translate_elements([screen])["SCR"].to_elegant()
+        assert out.startswith("SCR: watch")
+        assert 'filename = "./SCR.SDDS"' in out
+
     def test_header_lists_all_definitions(self):
         set_functional_definitions({"a": 1, "b": 2.5})
         header = elegant_functional_definitions()
@@ -115,7 +150,6 @@ class TestElegantSymbolic:
         assert elegant_functional_definitions() == ""
 
     def test_resolution_mode_bakes_in_numbers(self):
-        # With resolution mode on, ELEGANT gets resolved numbers and no rpn store
         set_functional_definitions({"quad1_k1l": -2.0})
         set_resolve_functional(True)
         out = _quad("quad1_k1l").to_elegant()
@@ -185,10 +219,13 @@ class TestDipole:
         assert 'e1 = "e1v"' in dt.to_elegant()
 
     def test_reserved_angle_edge_resolves(self):
-        # "angle/2" references the bend angle and always resolves numerically
+        # "angle/2" references the bend angle, so it follows the bend angle:
+        # symbolic RPN in symbolic mode, a baked-in number in resolution mode
         set_functional_definitions({"bend1": 0.1})
         dt = self._dipole(k0l="bend1", exit_edge_angle="angle/2")
         assert 'e2 = "bend1 2 /"' in dt.to_elegant()
+        set_resolve_functional(True)
+        assert "e2 = 0.05" in dt.to_elegant()
 
 
 class TestXsuite:
@@ -247,6 +284,28 @@ class TestXsuite:
         # not a live reference: changing the (unused) var leaves k1 unchanged
         line.vars["kq"] = 0.9
         assert line["Q1"].k1 == pytest.approx(0.3 / 0.5)
+
+    def test_exported_elements_keep_their_length(self):
+        """Regression test for a real bug found doing a full MAD-X -> ELEGANT
+        -> Ocelot -> Xsuite -> MAD-X round trip on a real LEIR lattice:
+        keyword_conversion_rules_Xsuite.yaml's `general` section mapped
+        LAURA's `length` to the native keyword `l` -- correct for MAD-X/
+        ELEGANT, but xtrack classes use `length`, not `l` ('l' is not even
+        an attribute on them). `BaseElementTranslator.to_xsuite()`'s generic
+        dispatch only writes a property when the converted keyword names a
+        real attribute on the target xtrack class, so `length` silently
+        never made it into `properties` for any element relying on the
+        generic path (every magnet not overriding to_xsuite itself) --
+        `component(**properties)` then fell back to xtrack's own default of
+        0. Every thick element built this way was silently zero-length
+        after export, which only surfaced 4 hops later as a MAD-X `SEQUENCE`
+        with `l = 0.0` and hundreds of real elements placed past its
+        declared length -- a fatal MAD-X error, nothing pointing back to the
+        actual cause."""
+        line = self._line(self._magnets(), {"kq": 0.3, "bend1": 0.1, "Vcav": 5e6})
+        assert line["Q1"].length == pytest.approx(0.5)
+        assert line["D1"].length == pytest.approx(0.5)
+        assert line["C1"].length == pytest.approx(1.0)
 
 
 class TestSolenoid:

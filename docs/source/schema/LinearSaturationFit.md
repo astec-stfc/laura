@@ -74,6 +74,7 @@ URI: [laura:LinearSaturationFit](https://w3id.org/laura/LinearSaturationFit)
 | [SextupoleMagnet](SextupoleMagnet.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
 | [OctupoleMagnet](OctupoleMagnet.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
 | [SolenoidMagnet](SolenoidMagnet.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
+| [CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md) | [linear_saturation_coefficients](linear_saturation_coefficients.md) | range | [LinearSaturationFit](LinearSaturationFit.md) |
 
 
 

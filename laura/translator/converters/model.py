@@ -30,6 +30,7 @@ class MachineModelTranslator(ContainerTranslator, MachineModel):
                 "functional_definitions": machine.functional_definitions,
                 "resolve_functional": machine.resolve_functional,
                 "revolution_frequency": machine.revolution_frequency,
+                "particle": machine.particle,
             }
         )
 

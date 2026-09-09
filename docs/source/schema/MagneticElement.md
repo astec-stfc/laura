@@ -27,6 +27,8 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
         click SextupoleMagnet href "../SextupoleMagnet/"
       MagneticElement <|-- OctupoleMagnet
         click OctupoleMagnet href "../OctupoleMagnet/"
+      MagneticElement <|-- CombinedSolenoidQuadrupoleMagnet
+        click CombinedSolenoidQuadrupoleMagnet href "../CombinedSolenoidQuadrupoleMagnet/"
       
       MagneticElement : angle
         
@@ -37,6 +39,10 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
       MagneticElement : entrance_edge_angle
         
       MagneticElement : exit_edge_angle
+        
+      MagneticElement : exit_edge_field_integral
+        
+      MagneticElement : exit_gap
         
       MagneticElement : field_integral_coefficients
         
@@ -135,6 +141,7 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
     * [QuadrupoleMagnet](QuadrupoleMagnet.md)
     * [SextupoleMagnet](SextupoleMagnet.md)
     * [OctupoleMagnet](OctupoleMagnet.md)
+    * [CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md)
 
 
 ## Class Properties
@@ -164,7 +171,9 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 | [plane](plane.md) | 0..1 <br/> [BendingPlaneEnum](BendingPlaneEnum.md) | Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combin... | direct |
 | [width](width.md) | 0..1 <br/> [Float](Float.md) | Physical width of the magnet in the bending plane [m] | direct |
 | [tilt](tilt.md) | 0..1 <br/> [Float](Float.md) | Global tilt about the beam axis [rad] | direct |
-| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless) | direct |
+| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless) at the entrance face, an... | direct |
+| [exit_edge_field_integral](exit_edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral at the exit face | direct |
+| [exit_gap](exit_gap.md) | 0..1 <br/> [Float](Float.md) | Full gap between pole faces at the exit face [m] | direct |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | 0..1 <br/> [Float](Float.md) | Coefficient controlling the fringe-field roll-off rate | direct |
 | [gradient](gradient.md) | 0..1 <br/> [Float](Float.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) | direct |
 | [angle](angle.md) | 0..1 <br/> [Float](Float.md) | Integrated bending angle [rad] | direct |
@@ -397,9 +406,9 @@ attributes:
     name: width
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.2)
     domain_of:
+    - BeamBeamSimulationElement
     - MagneticElement
     range: float
     unit:
@@ -408,9 +417,9 @@ attributes:
     name: tilt
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.0)
     domain_of:
+    - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
     range: float
@@ -418,13 +427,41 @@ attributes:
       ucum_code: rad
   edge_field_integral:
     name: edge_field_integral
-    description: Enge fringe-field integral parameter (dimensionless).
+    description: Enge fringe-field integral parameter (dimensionless) at the entrance
+      face, and at both faces unless ``exit_edge_field_integral`` says otherwise.
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.5)
     domain_of:
     - MagnetSimulationElement
     - MagneticElement
     range: float
+  exit_edge_field_integral:
+    name: exit_edge_field_integral
+    description: 'Enge fringe-field integral at the exit face. Absent means the exit
+      face matches the entrance, which is what a lattice quoting a single integral
+      means and what Bmad''s own ``fintx`` default does, so files that set only ``edge_field_integral``
+      are unaffected. Set it only when the faces genuinely differ: a bend split by
+      superposition carries the entrance fringe on its first piece and the exit fringe
+      on its last, and collapsing the two both invents a fringe mid-magnet and drops
+      the real one. The fringe integral enters only the vertical edge kick, so getting
+      this wrong is invisible to every horizontal check.'
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    domain_of:
+    - MagneticElement
+    range: float
+  exit_gap:
+    name: exit_gap
+    description: Full gap between pole faces at the exit face [m]. Absent means the
+      same as ``gap``. See ``exit_edge_field_integral``.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    domain_of:
+    - MagneticElement
+    range: float
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.
@@ -652,10 +689,10 @@ attributes:
     name: width
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.2)
     owner: MagneticElement
     domain_of:
+    - BeamBeamSimulationElement
     - MagneticElement
     range: float
     unit:
@@ -664,10 +701,10 @@ attributes:
     name: tilt
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.0)
     owner: MagneticElement
     domain_of:
+    - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
     range: float
@@ -675,7 +712,8 @@ attributes:
       ucum_code: rad
   edge_field_integral:
     name: edge_field_integral
-    description: Enge fringe-field integral parameter (dimensionless).
+    description: Enge fringe-field integral parameter (dimensionless) at the entrance
+      face, and at both faces unless ``exit_edge_field_integral`` says otherwise.
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.5)
     owner: MagneticElement
@@ -683,6 +721,35 @@ attributes:
     - MagnetSimulationElement
     - MagneticElement
     range: float
+  exit_edge_field_integral:
+    name: exit_edge_field_integral
+    description: 'Enge fringe-field integral at the exit face. Absent means the exit
+      face matches the entrance, which is what a lattice quoting a single integral
+      means and what Bmad''s own ``fintx`` default does, so files that set only ``edge_field_integral``
+      are unaffected. Set it only when the faces genuinely differ: a bend split by
+      superposition carries the entrance fringe on its first piece and the exit fringe
+      on its last, and collapsing the two both invents a fringe mid-magnet and drops
+      the real one. The fringe integral enters only the vertical edge kick, so getting
+      this wrong is invisible to every horizontal check.'
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: MagneticElement
+    domain_of:
+    - MagneticElement
+    range: float
+  exit_gap:
+    name: exit_gap
+    description: Full gap between pole faces at the exit face [m]. Absent means the
+      same as ``gap``. See ``exit_edge_field_integral``.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: MagneticElement
+    domain_of:
+    - MagneticElement
+    range: float
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.

@@ -73,6 +73,41 @@ class ContainerTranslator:
             save=save,
         )
 
+    def to_bmad(
+        self,
+        particle: str | None = None,
+        *,
+        space_charge_n_bin: int | None = None,
+        initial_twiss: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        """
+        Create one standalone Bmad lattice per section, keyed by
+        :func:`~laura.translator.utils.functions.sanitize_string` of the child
+        name.
+
+        Parameters
+        ----------
+        particle: str | None
+            Used only where the container does not name a particle itself.
+        space_charge_n_bin: int | None
+            Optional positive number of Bmad space-charge bins.
+        initial_twiss: dict, optional
+            Keyed by child name, one level of nesting per container level: a
+            layout takes ``{section_name: TwissMatchSimulationElement}``, a
+            model takes ``{layout_name: {section_name: ...}}``.
+        """
+        return self._fan_out(
+            "to_bmad",
+            key=sanitize_string,
+            child_kwargs=lambda name: {
+                "initial_twiss": (
+                    initial_twiss.get(name) if isinstance(initial_twiss, dict) else None
+                )
+            },
+            particle=self.particle or particle,
+            space_charge_n_bin=space_charge_n_bin,
+        )
+
     def to_rftrack(
         self, P_Q: float = float("nan"), save: bool = False
     ) -> Dict[str, Any]:

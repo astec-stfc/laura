@@ -183,6 +183,16 @@ class TestSimulationModels:
         assert ae.horizontal_size == pytest.approx(0.03)
         assert ae.shape == "elliptical"
 
+    def test_twiss_match_defaults_to_identity(self):
+        twiss = TwissMatchSimulationElement()
+
+        np.testing.assert_array_equal(twiss.r_matrix, np.eye(6))
+        assert "r_matrix" in repr(twiss)
+
+    def test_twiss_match_rejects_non_positive_beta(self):
+        with pytest.raises(ValueError, match="greater than zero"):
+            TwissMatchSimulationElement(beta_x=0)
+
 
 # ---------------------------------------------------------------------------
 # Electrical

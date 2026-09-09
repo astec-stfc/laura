@@ -1,11 +1,12 @@
 from copy import deepcopy
 from typing import Union
 
-from pydantic import computed_field
+from pydantic import computed_field, model_validator
 from warnings import warn
 from .base import BaseElementTranslator
 from laura.models.magnetic import (
     MagneticElement,
+    CombinedSolenoidQuadrupole_Magnet,
     Solenoid_Magnet,
     Dipole_Magnet,
     Wiggler_Magnet,
@@ -40,6 +41,18 @@ class MagnetTranslator(BaseElementTranslator):
 
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def preserve_combined_solenoid_quadrupole(cls, data):
+        if (
+            isinstance(data, dict)
+            and data.get("hardware_type") == "CombinedSolenoidQuadrupole"
+            and isinstance(data.get("magnetic"), dict)
+        ):
+            data = dict(data)
+            data["magnetic"] = CombinedSolenoidQuadrupole_Magnet(**data["magnetic"])
+        return data
 
     @computed_field
     @property
@@ -188,6 +201,70 @@ class MagnetTranslator(BaseElementTranslator):
         """
         return 0.0
 
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad magnet element.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        if self.hardware_type != "CombinedSolenoidQuadrupole":
+            parameters = self._bmad_parameters()
+            if self.hardware_type == "Quadrupole":
+                self._add_bmad_magnetic_field(
+                    parameters,
+                    field_scale=self.magnetic.gradient,
+                    kind="a" if self.magnetic.skew else "b",
+                    n=2,
+                    strength_key="k1",
+                )
+            return self._format_bmad(parameters=parameters)
+        parameters = self._bmad_parameters()
+        strength = self.magnetic.ks
+        # `ks` and not `bs_field`: LAURA's is the integrated *normalised*
+        # strength, so dividing the length out gives Bmad's normalised `ks`
+        # [1/m]. `bs_field` is tesla, and the two differ by the rigidity.
+        parameters["ks"] = (
+            f"{strength} / {self.magnetic.length}"
+            if (
+                not self._resolve_functional
+                and self.is_functional(strength)
+                and self.magnetic.length
+            )
+            else self.resolve(strength) / self.magnetic.length
+            if self.magnetic.length
+            else self.resolve(strength)
+        )
+        return self._format_bmad(parameters=parameters)
+
+    def _add_bmad_magnetic_field(
+        self,
+        parameters: dict,
+        *,
+        field_scale,
+        kind: str,
+        n: int,
+        strength_key: str,
+    ) -> None:
+        definition = getattr(self.simulation, "field_definition", None)
+        if not isinstance(definition, field):
+            return
+        filename = self.generate_field_file_name(
+            definition,
+            code="bmad",
+            field_scale=field_scale,
+            kind=kind,
+            n=n,
+            verbose=getattr(self, "verbose", True),
+        )
+        if filename:
+            parameters.pop(strength_key, None)
+            parameters["field_calc"] = "fieldmap"
+            parameters["gen_gradients"] = f"call::{filename}"
+
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the quadrupole element string for ASTRA;
@@ -271,7 +348,7 @@ class MagnetTranslator(BaseElementTranslator):
                 [
                     "Q_xrot",
                     {
-                        "value": -1 * self.x_rot + self.dx_rot,
+                        "value": self._astra_rotation("x"),
                         "default": None,
                         "type": "not_zero",
                     },
@@ -279,7 +356,7 @@ class MagnetTranslator(BaseElementTranslator):
                 [
                     "Q_yrot",
                     {
-                        "value": -1 * self.y_rot + self.dy_rot,
+                        "value": self._astra_rotation("y"),
                         "default": None,
                         "type": "not_zero",
                     },
@@ -287,7 +364,7 @@ class MagnetTranslator(BaseElementTranslator):
                 [
                     "Q_zrot",
                     {
-                        "value": -1 * self.z_rot + self.dz_rot,
+                        "value": self._astra_rotation("z"),
                         "default": None,
                         "type": "not_zero",
                     },
@@ -617,7 +694,7 @@ class DipoleTranslator(BaseElementTranslator):
                     ["D3", {"type": "array", "value": [corners[2][0], corners[2][2]]}],
                     ["D4", {"type": "array", "value": [corners[1][0], corners[1][2]]}],
                     ["D2", {"type": "array", "value": [corners[0][0], corners[0][2]]}],
-                    ["D_zrot", {"value": self.z_rot + self.dz_rot, "default": 0}],
+                    ["D_zrot", {"value": self._astra_rotation("z"), "default": 0}],
                 ]
             )
             if field_strength > 0 or not abs(self.magnetic.rho) > 0:
@@ -965,6 +1042,37 @@ class SolenoidTranslator(BaseElementTranslator):
     def ks(self) -> Union[float, str]:
         return self.magnetic.ks
 
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad solenoid element.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        parameters = self._bmad_parameters()
+        strength = self.magnetic.ks
+        # `ks` and not `bs_field` -- see the note in `SolenoidTranslator`.
+        if self.magnetic.length:
+            parameters["ks"] = (
+                f"{strength} / {self.magnetic.length}"
+                if not self._resolve_functional and self.is_functional(strength)
+                else self.resolve(strength) / self.magnetic.length
+            )
+        else:
+            parameters["ks"] = self.resolve(strength)
+        MagnetTranslator._add_bmad_magnetic_field(
+            self,
+            parameters,
+            field_scale=parameters["ks"],
+            kind="bs",
+            n=0,
+            strength_key="ks",
+        )
+        return self._format_bmad(parameters=parameters)
+
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the quadrupole element string for ASTRA.
@@ -1027,8 +1135,8 @@ class SolenoidTranslator(BaseElementTranslator):
                     ["S_smooth", {"value": self.simulation.smooth, "default": 10}],
                     ["S_xoff", {"value": field_ref_pos[0] + self.dx, "default": 0}],
                     ["S_yoff", {"value": field_ref_pos[1] + self.dy, "default": 0}],
-                    ["S_xrot", {"value": self.x_rot + self.dx_rot, "default": 0}],
-                    ["S_yrot", {"value": self.y_rot + self.dy_rot, "default": 0}],
+                    ["S_xrot", {"value": self._astra_rotation("x"), "default": 0}],
+                    ["S_yrot", {"value": self._astra_rotation("y"), "default": 0}],
                 ]
             ),
             n,

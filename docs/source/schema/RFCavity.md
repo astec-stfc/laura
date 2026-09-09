@@ -25,9 +25,22 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
 
       RFCavity <|-- RFDeflectingCavity
         click RFDeflectingCavity href "../RFDeflectingCavity/"
+      RFCavity <|-- CrabCavity
+        click CrabCavity href "../CrabCavity/"
       
 
       RFCavity : alias
+        
+      RFCavity : aperture
+        
+          
+    
+        
+        
+        RFCavity --> "0..1" ApertureElement : aperture
+        click ApertureElement href "../ApertureElement/"
+    
+
         
       RFCavity : cavity
         
@@ -187,6 +200,7 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
             * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
                 * **RFCavity**
                     * [RFDeflectingCavity](RFDeflectingCavity.md)
+                    * [CrabCavity](CrabCavity.md)
 
 
 ## Class Properties
@@ -202,6 +216,7 @@ URI: [laura:RFCavity](https://w3id.org/laura/RFCavity)
 | ---  | --- | --- | --- |
 | [cavity](cavity.md) | 0..1 <br/> [RFCavityElement](RFCavityElement.md) | RF structure parameters | direct |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
+| [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -290,6 +305,7 @@ attributes:
     domain_of:
     - RFCavity
     - RFDeflectingCavity
+    - CrabCavity
     - Wakefield
     range: RFCavityElement
 class_uri: laura:RFCavity
@@ -324,6 +340,7 @@ attributes:
     domain_of:
     - RFCavity
     - RFDeflectingCavity
+    - CrabCavity
     - Wakefield
     range: RFCavityElement
   physical:
@@ -337,6 +354,17 @@ attributes:
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
+  aperture:
+    name: aperture
+    description: Aperture of the element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: RFCavity
+    domain_of:
+    - PhysicalAcceleratorElement
+    - Aperture
+    range: ApertureElement
+    required: false
   simulation:
     name: simulation
     description: Simulation / tracking attributes.

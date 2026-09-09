@@ -1,5 +1,10 @@
 # Slot: smooth 
 
+
+_Smoothing control for field or wake interpolation._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -15,9 +20,20 @@ URI: [laura:smooth](https://w3id.org/laura/smooth)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  no  |
-| [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  no  |
-| [WakefieldSimulationElement](WakefieldSimulationElement.md) | Simulation attributes for passive wakefield structures |  no  |
+| [SimulationElement](SimulationElement.md) | Base simulation attributes: field-map files, reference positions, and optiona... |  no  |
+| [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  yes  |
+| [RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |  yes  |
+| [WakefieldSimulationElement](WakefieldSimulationElement.md) | Simulation attributes for passive wakefield structures |  yes  |
+| [DriftSimulationElement](DriftSimulationElement.md) | Simulation attributes for field-free drift sections |  no  |
+| [DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation attributes for beam-diagnostic elements |  no  |
+| [PlasmaSimulationElement](PlasmaSimulationElement.md) | Simulation attributes for plasma-accelerator stages |  no  |
+| [TwissMatchSimulationElement](TwissMatchSimulationElement.md) | Simulation attributes for Twiss-matching points |  no  |
+| [MatrixTransformSimulationElement](MatrixTransformSimulationElement.md) | Zero- through third-order transfer-map coefficients for a matrix transform el... |  no  |
+| [ElectrostaticSeparatorSimulationElement](ElectrostaticSeparatorSimulationElement.md) | Simulation attributes for a static electrostatic separator |  no  |
+| [ACDipoleSimulationElement](ACDipoleSimulationElement.md) | Simulation attributes for an AC dipole / tune exciter |  no  |
+| [WireSimulationElement](WireSimulationElement.md) | Simulation attributes for a compensating wire |  no  |
+| [BeamBeamSimulationElement](BeamBeamSimulationElement.md) | Simulation attributes for a weak-strong beam-beam interaction |  no  |
+| [RFMultipoleSimulationElement](RFMultipoleSimulationElement.md) | Simulation attributes for a thin RF multipole kick |  no  |
 
 
 
@@ -30,13 +46,23 @@ URI: [laura:smooth](https://w3id.org/laura/smooth)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
-| Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md), [RFCavitySimulationElement](RFCavitySimulationElement.md), [WakefieldSimulationElement](WakefieldSimulationElement.md) |
+| Range | [Float](Float.md)&nbsp;or&nbsp;<br />[Integer](Integer.md) |
+| Domain Of | [SimulationElement](SimulationElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+<details>
+<summary>Expressions & Logic</summary>
+#### Any Of
+
+Value must satisfy at least one of:
+- AnonymousSlotExpression({'range': 'integer'})
+- AnonymousSlotExpression({'range': 'float'})
+
+</details>
+
 
 
 
@@ -50,6 +76,13 @@ URI: [laura:smooth](https://w3id.org/laura/smooth)
 ## Identifier and Mapping Information
 
 
+
+
+
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
 
 
 
@@ -69,11 +102,15 @@ URI: [laura:smooth](https://w3id.org/laura/smooth)
 <details>
 ```yaml
 name: smooth
+description: Smoothing control for field or wake interpolation.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
 domain_of:
-- MagnetSimulationElement
-- RFCavitySimulationElement
-- WakefieldSimulationElement
-range: string
+- SimulationElement
+range: float
+any_of:
+- range: integer
+- range: float
 
 ```
 </details></div>

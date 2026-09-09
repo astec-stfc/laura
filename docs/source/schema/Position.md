@@ -1,45 +1,79 @@
-# Slot: position 
+# Class: Position 
+
+
+_Cartesian position in the global accelerator coordinate system. All components are in metres._
+
+
 
 <div data-search-exclude markdown="1">
 
 
 
-URI: [laura:position](https://w3id.org/laura/position)
+URI: [laura:Position](https://w3id.org/laura/Position)
+
+
+
+
+
+```mermaid
+ classDiagram
+    class Position
+    click Position href "../Position/"
+      Position : x
+        
+      Position : y
+        
+      Position : z
+        
+      
+```
+
+
+
+
 <!-- no inheritance hierarchy -->
 
-
-
-
-
-## Applicable Classes
-
-| Name | Description | Modifies Slot |
-| --- | --- | --- |
-| [ElementPositionError](ElementPositionError.md) | Alignment position and rotation errors for a physically-located element |  no  |
-| [ElementSurvey](ElementSurvey.md) | Survey-measured position and rotation of an element |  no  |
-
-
-
-
-
-
-## Properties
-
-### Type and Range
+## Class Properties
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
-| Domain Of | [ElementPositionError](ElementPositionError.md), [ElementSurvey](ElementSurvey.md) |
-
-### Cardinality and Requirements
-
-| Property | Value |
-| --- | --- |
+| Class URI | [laura:Position](https://w3id.org/laura/Position) |
 
 
+## Slots
+
+| Name | Cardinality and Range | Description | Inheritance |
+| ---  | --- | --- | --- |
+| [x](x.md) | 0..1 <br/> [Float](Float.md) | Horizontal component [m] | direct |
+| [y](y.md) | 0..1 <br/> [Float](Float.md) | Vertical component [m] | direct |
+| [z](z.md) | 0..1 <br/> [Float](Float.md) | Longitudinal (beam-direction) component [m] | direct |
 
 
+
+
+
+## Usages
+
+| used by | used in | type | used |
+| ---  | --- | --- | --- |
+| [ElementPositionError](ElementPositionError.md) | [position](position.md) | range | [Position](Position.md) |
+| [ElementSurvey](ElementSurvey.md) | [position](position.md) | range | [Position](Position.md) |
+| [ReferencePlacement](ReferencePlacement.md) | [offset](offset.md) | range | [Position](Position.md) |
+| [ReferencePlacement](ReferencePlacement.md) | [world_offset](world_offset.md) | range | [Position](Position.md) |
+| [PhysicalElement](PhysicalElement.md) | [middle](middle.md) | range | [Position](Position.md) |
+| [PhysicalElement](PhysicalElement.md) | [datum](datum.md) | range | [Position](Position.md) |
+
+
+
+
+
+
+
+
+## In Subsets
+
+
+* [PhysicalProperties](PhysicalProperties.md)
 
 
 
@@ -52,26 +86,135 @@ URI: [laura:position](https://w3id.org/laura/position)
 
 
 
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
+
+
+
 
 ## Mappings
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:position |
-| native | laura:position |
+| self | laura:Position |
+| native | laura:Position |
+
+
 
 
 
 
 ## LinkML Source
 
+<!-- TODO: investigate https://stackoverflow.com/questions/37606292/how-to-create-tabbed-code-blocks-in-mkdocs-or-sphinx -->
+
+### Direct
+
 <details>
 ```yaml
-name: position
-domain_of:
-- ElementPositionError
-- ElementSurvey
-range: string
+name: Position
+description: Cartesian position in the global accelerator coordinate system. All components
+  are in metres.
+in_subset:
+- physical_properties
+from_schema: https://w3id.org/laura/schema
+attributes:
+  x:
+    name: x
+    description: Horizontal component [m].
+    from_schema: https://w3id.org/laura/schema/geometry
+    rank: 1000
+    ifabsent: float(0)
+    domain_of:
+    - Position
+    - CameraPixelResultsIndices
+    - CameraPixelResultsNames
+    range: float
+    unit:
+      ucum_code: m
+  y:
+    name: y
+    description: Vertical component [m].
+    from_schema: https://w3id.org/laura/schema/geometry
+    rank: 1000
+    ifabsent: float(0)
+    domain_of:
+    - Position
+    - CameraPixelResultsIndices
+    - CameraPixelResultsNames
+    range: float
+    unit:
+      ucum_code: m
+  z:
+    name: z
+    description: Longitudinal (beam-direction) component [m].
+    from_schema: https://w3id.org/laura/schema/geometry
+    rank: 1000
+    ifabsent: float(0)
+    domain_of:
+    - Position
+    range: float
+    unit:
+      ucum_code: m
+class_uri: laura:Position
+
+```
+</details>
+
+### Induced
+
+<details>
+```yaml
+name: Position
+description: Cartesian position in the global accelerator coordinate system. All components
+  are in metres.
+in_subset:
+- physical_properties
+from_schema: https://w3id.org/laura/schema
+attributes:
+  x:
+    name: x
+    description: Horizontal component [m].
+    from_schema: https://w3id.org/laura/schema/geometry
+    rank: 1000
+    ifabsent: float(0)
+    owner: Position
+    domain_of:
+    - Position
+    - CameraPixelResultsIndices
+    - CameraPixelResultsNames
+    range: float
+    unit:
+      ucum_code: m
+  y:
+    name: y
+    description: Vertical component [m].
+    from_schema: https://w3id.org/laura/schema/geometry
+    rank: 1000
+    ifabsent: float(0)
+    owner: Position
+    domain_of:
+    - Position
+    - CameraPixelResultsIndices
+    - CameraPixelResultsNames
+    range: float
+    unit:
+      ucum_code: m
+  z:
+    name: z
+    description: Longitudinal (beam-direction) component [m].
+    from_schema: https://w3id.org/laura/schema/geometry
+    rank: 1000
+    ifabsent: float(0)
+    owner: Position
+    domain_of:
+    - Position
+    range: float
+    unit:
+      ucum_code: m
+class_uri: laura:Position
 
 ```
 </details></div>

@@ -299,6 +299,24 @@ class ApertureShapeEnum(str, Enum):
     circular = "circular"
     rectangular = "rectangular"
     elliptical = "elliptical"
+    scraper = "scraper"
+    """
+    Scraper jaws rather than a fixed pipe cross-section. 
+    """
+
+
+class LatticeGeometryEnum(str, Enum):
+    """
+    Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.
+    """
+    open = "open"
+    """
+    Single-pass beamline such as a linac or transfer line. Twiss parameters propagate from a specified starting condition.
+    """
+    closed = "closed"
+    """
+    Recirculating machine such as a storage ring, for which closed orbits and periodic Twiss parameters are computed.
+    """
 
 
 class BendingPlaneEnum(str, Enum):
@@ -395,6 +413,26 @@ class HardwareClassEnum(str, Enum):
     """
     Simulation element.
     """
+    ElectrostaticSeparator = "ElectrostaticSeparator"
+    """
+    Electrostatic deflecting separator.
+    """
+    ACDipole = "ACDipole"
+    """
+    AC dipole / tune exciter.
+    """
+    Wire = "Wire"
+    """
+    Current-carrying wire for beam-beam compensation.
+    """
+    BeamBeam = "BeamBeam"
+    """
+    Weak-strong beam-beam interaction.
+    """
+    RFMultipole = "RFMultipole"
+    """
+    RF-driven multipole kick.
+    """
 
 
 class LaserPolarizationEnum(str, Enum):
@@ -443,7 +481,7 @@ class _PositionBase(ConfiguredBaseModel):
 
 class _RotationBase(ConfiguredBaseModel):
     """
-    Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi].
+    Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi]. The composition is Rz(psi) . Rx(phi) . Ry(theta), as implemented by laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each angle below names the axis that factor turns about. psi and theta were described the other way round until 2026-09-01, which is how the Bmad importer came to read x_pitch (a rotation about y) into psi.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Rotation',
          'from_schema': 'https://w3id.org/laura/schema/geometry',
@@ -453,14 +491,14 @@ class _RotationBase(ConfiguredBaseModel):
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'rad'}} })
     """Rotation about the horizontal (x) axis [rad]."""
-    psi: float = Field(default=0, description="""Rotation about the vertical (y) axis [rad].""", ge=-3.141592653589793, le=3.141592653589793, json_schema_extra = { "linkml_meta": {'domain_of': ['Rotation'],
-         'ifabsent': 'float(0)',
-         'unit': {'ucum_code': 'rad'}} })
-    """Rotation about the vertical (y) axis [rad]."""
-    theta: float = Field(default=0, description="""Rotation about the longitudinal (z) axis [rad].""", ge=-3.141592653589793, le=3.141592653589793, json_schema_extra = { "linkml_meta": {'domain_of': ['Rotation'],
+    psi: float = Field(default=0, description="""Rotation about the longitudinal (z) axis [rad].""", ge=-3.141592653589793, le=3.141592653589793, json_schema_extra = { "linkml_meta": {'domain_of': ['Rotation'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'rad'}} })
     """Rotation about the longitudinal (z) axis [rad]."""
+    theta: float = Field(default=0, description="""Rotation about the vertical (y) axis [rad].""", ge=-3.141592653589793, le=3.141592653589793, json_schema_extra = { "linkml_meta": {'domain_of': ['Rotation'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'rad'}} })
+    """Rotation about the vertical (y) axis [rad]."""
 
 
 class _ElementPositionErrorBase(ConfiguredBaseModel):
@@ -683,6 +721,10 @@ class _SectionLatticeBase(ConfiguredBaseModel):
     """Unique section name."""
     master_lattice: Optional[str] = Field(default=None, description="""Name of the master lattice this section belongs to.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
     """Name of the master lattice this section belongs to."""
+    geometry: Optional[LatticeGeometryEnum] = Field(default=None, description="""Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice']} })
+    """Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent."""
+    reference_energy: Optional[float] = Field(default=None, description="""Reference total energy of the design particle [eV].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice'], 'unit': {'ucum_code': 'eV'}} })
+    """Reference total energy of the design particle [eV]."""
     elements: list[str] = Field(default_factory=list, description="""Ordered list of element names in this section.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
     """Ordered list of element names in this section."""
 
@@ -713,6 +755,8 @@ class _MachineLayoutBase(ConfiguredBaseModel):
     """Unique layout name."""
     master_lattice: Optional[str] = Field(default=None, description="""Name of the master lattice this layout belongs to.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout']} })
     """Name of the master lattice this layout belongs to."""
+    particle: Optional[str] = Field(default=None, description="""Design particle species for this layout, overriding the machine-wide value. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
+    """Design particle species for this layout, overriding the machine-wide value. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles."""
     sections: list[str] = Field(default_factory=list, description="""Ordered list of section names.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
     """Ordered list of section names."""
     passes: list[_LayoutPassBase] = Field(default_factory=list, description="""The beam order, one entry per section traversal. Distinct from sections, which is keyed by name and so cannot express a section entered twice.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout']} })
@@ -726,6 +770,8 @@ class _MachineModelBase(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MachineModel',
          'from_schema': 'https://w3id.org/laura/schema/machine'})
 
+    particle: Optional[str] = Field(default=None, description="""Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
+    """Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles."""
     elements: list[str] = Field(default_factory=list, description="""All elements in the machine, keyed by name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
     """All elements in the machine, keyed by name."""
     sections: list[str] = Field(default_factory=list, description="""All named beamline sections.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MachineLayout', 'MachineModel']} })
@@ -736,11 +782,52 @@ class _MachineModelBase(ConfiguredBaseModel):
 
 class _SimulationElementBase(ConfiguredBaseModel):
     """
-    Base simulation attributes: field-map files and reference positions for tracking codes.
+    Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:SimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation'})
 
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -759,18 +846,28 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MagnetSimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation',
-         'slot_usage': {'field_amplitude': {'description': 'Field amplitude scaling '
+         'slot_usage': {'deltaL': {'description': 'Longitudinal step-size override for '
+                                                  'thick-lens integration [m].',
+                                   'ifabsent': 'float(0.0)',
+                                   'name': 'deltaL'},
+                        'field_amplitude': {'description': 'Field amplitude scaling '
                                                            'for magnet tracking.',
                                             'ifabsent': 'float(0.0)',
                                             'name': 'field_amplitude'},
+                        'integration_order': {'description': 'Order of the symplectic '
+                                                             'integrator.',
+                                              'ifabsent': 'int(4)',
+                                              'name': 'integration_order'},
                         'n_kicks': {'description': 'Number of integration kicks.',
                                     'ifabsent': 'int(4)',
                                     'minimum_value': 1,
-                                    'name': 'n_kicks'}}})
+                                    'name': 'n_kicks'},
+                        'smooth': {'description': 'Number of smoothing passes applied '
+                                                  'to the field map (ASTRA Q_smooth / '
+                                                  'S_smooth).',
+                                   'name': 'smooth',
+                                   'range': 'integer'}}})
 
-    n_kicks: Optional[int] = Field(default=4, description="""Number of integration kicks.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
-         'ifabsent': 'int(4)'} })
-    """Number of integration kicks."""
     field_amplitude: Optional[Union[float, str]] = Field(default=0.0, description="""Field amplitude scaling for magnet tracking.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
          'domain_of': ['MagnetSimulationElement',
                        'RFCavitySimulationElement',
@@ -781,13 +878,8 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Field amplitude scaling for magnet tracking."""
     n_slices: int = Field(default=4, description="""Number of longitudinal slices for thick-lens tracking.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(4)'} })
     """Number of longitudinal slices for thick-lens tracking."""
-    smooth: Optional[int] = Field(default=None, description="""Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
-                       'RFCavitySimulationElement',
-                       'WakefieldSimulationElement']} })
-    """Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth)."""
-    edge_field_integral: float = Field(default=0.5, description="""Fringe-field integral for edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
-         'ifabsent': 'float(0.5)'} })
-    """Fringe-field integral for edge focussing."""
+    edge_field_integral: Optional[float] = Field(default=None, description="""Per-simulation override of the magnet's fringe-field integral. Absent means \"use ``MagneticElement.edge_field_integral``\", which is what every element wants unless a study is deliberately varying the edge focussing independently of the magnet. It used to default to 0.5, and because the keyword converters strip the sub-model prefix before looking a name up, that default reached the exporters ahead of the magnet's own value and shadowed it: a magnet with ``edge_field_integral = 0.3`` exported ``fint = 0.5`` to MAD-X, ELEGANT, OPAL, Ocelot and Xsuite. Only Bmad escaped, because ``_bmad_parameters`` overwrites ``fint`` after the loop.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement']} })
+    """Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``", which is what every element wants unless a study is deliberately varying the edge focussing independently of the magnet. It used to default to 0.5, and because the keyword converters strip the sub-model prefix before looking a name up, that default reached the exporters ahead of the magnet's own value and shadowed it: a magnet with ``edge_field_integral = 0.3`` exported ``fint = 0.5`` to MAD-X, ELEGANT, OPAL, Ocelot and Xsuite. Only Bmad escaped, because ``_bmad_parameters`` overwrites ``fint`` after the loop."""
     edge1_effects: Optional[bool] = Field(default=None, description="""Enable entrance-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
     """Enable entrance-edge focussing effects."""
     edge2_effects: Optional[bool] = Field(default=None, description="""Enable exit-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
@@ -796,25 +888,60 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Enable synchrotron-radiation energy loss."""
     isr_enable: Optional[bool] = Field(default=True, description="""Enable incoherent synchrotron-radiation emittance growth.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
     """Enable incoherent synchrotron-radiation emittance growth."""
-    csr_enable: Optional[bool] = Field(default=True, description="""Enable coherent synchrotron radiation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'True'} })
-    """Enable coherent synchrotron radiation."""
     csr_bins: int = Field(default=100, description="""Number of longitudinal bins for the CSR mesh.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(100)'} })
     """Number of longitudinal bins for the CSR mesh."""
-    integration_order: int = Field(default=4, description="""Order of the symplectic integrator.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(4)'} })
-    """Order of the symplectic integrator."""
     nonlinear: Optional[bool] = Field(default=None, description="""Include higher-order (sextupole+) field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
     """Include higher-order (sextupole+) field components."""
     smoothing_half_width: int = Field(default=1, description="""Half-width of the current-profile smoothing kernel.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(1)'} })
     """Half-width of the current-profile smoothing kernel."""
     edge_order: int = Field(default=2, description="""Polynomial order of the edge-field expansion.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(2)'} })
     """Polynomial order of the edge-field expansion."""
-    deltaL: float = Field(default=0.0, description="""Longitudinal step-size override for thick-lens integration [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'],
+    smooth_points: float = Field(default=2, description="""Number of points used to smooth the field map [ASTRA].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'float(2)'} })
+    """Number of points used to smooth the field map [ASTRA]."""
+    n_kicks: Optional[int] = Field(default=4, description="""Number of integration kicks.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'int(4)'} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=4, description="""Order of the symplectic integrator.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'],
+         'domain_of': ['SimulationElement'],
+         'ifabsent': 'int(4)'} })
+    """Order of the symplectic integrator."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=0.0, description="""Longitudinal step-size override for thick-lens integration [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Longitudinal step-size override for thick-lens integration [m]."""
-    smooth_points: float = Field(default=2, description="""Number of points used to smooth the field map [ASTRA].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'float(2)'} })
-    """Number of points used to smooth the field map [ASTRA]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth)."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -839,7 +966,10 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
                                      'name': 'lsc_bins'},
                         'n_kicks': {'description': 'Number of cavity kicks to apply.',
                                     'ifabsent': 'int(0)',
-                                    'name': 'n_kicks'}}})
+                                    'name': 'n_kicks'},
+                        'smooth': {'description': 'Cavity smoothing parameter.',
+                                   'name': 'smooth',
+                                   'range': 'integer'}}})
 
     t_column: Optional[str] = Field(default=None, description="""Time column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
     """Time column in the wake file."""
@@ -851,12 +981,6 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
     """Vertical wake column in the wake file."""
     wz_column: Optional[str] = Field(default=None, description="""Longitudinal wake column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
     """Longitudinal wake column in the wake file."""
-    n_kicks: Optional[int] = Field(default=0, description="""Number of cavity kicks to apply.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'RFCavitySimulationElement'],
-         'ifabsent': 'int(0)'} })
-    """Number of cavity kicks to apply."""
-    lsc_bins: Optional[int] = Field(default=100, description="""Number of longitudinal space-charge bins.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'int(100)'} })
-    """Number of longitudinal space-charge bins."""
     change_p0: int = Field(default=1, description="""Flag indicating whether the cavity changes reference momentum.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
     """Flag indicating whether the cavity changes reference momentum."""
     end1_focus: int = Field(default=1, description="""Apply entrance focusing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
@@ -871,10 +995,6 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
     """Flag indicating current-bin interpolation."""
     smooth_current_bins: int = Field(default=1, description="""Flag indicating current-bin smoothing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement'], 'ifabsent': 'int(1)'} })
     """Flag indicating current-bin smoothing."""
-    smooth: Optional[int] = Field(default=None, description="""Cavity smoothing parameter.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
-                       'RFCavitySimulationElement',
-                       'WakefieldSimulationElement']} })
-    """Cavity smoothing parameter."""
     ez_peak: Optional[float] = Field(default=None, description="""Peak longitudinal electric field.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
     """Peak longitudinal electric field."""
     field_file_name: Optional[str] = Field(default=None, description="""Cavity field file name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement']} })
@@ -892,6 +1012,47 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
                        'RFMultipoleSimulationElement'],
          'in_subset': ['functional_parameters']} })
     """Cavity field amplitude."""
+    n_kicks: Optional[int] = Field(default=0, description="""Number of cavity kicks to apply.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'int(0)'} })
+    """Number of cavity kicks to apply."""
+    lsc_bins: Optional[int] = Field(default=100, description="""Number of longitudinal space-charge bins.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'int(100)'} })
+    """Number of longitudinal space-charge bins."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Cavity smoothing parameter.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Cavity smoothing parameter."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -909,7 +1070,12 @@ class _WakefieldSimulationElementBase(_SimulationElementBase):
     Simulation attributes for passive wakefield structures.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:WakefieldSimulationElement',
-         'from_schema': 'https://w3id.org/laura/schema/simulation'})
+         'from_schema': 'https://w3id.org/laura/schema/simulation',
+         'slot_usage': {'smooth': {'description': 'Smoothing parameter for Gaussian '
+                                                  'interpolation.',
+                                   'ifabsent': 'float(0.25)',
+                                   'name': 'smooth',
+                                   'range': 'float'}}})
 
     t_column: Optional[str] = Field(default=None, description="""Time column in the wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'WakefieldSimulationElement']} })
     """Time column in the wake file."""
@@ -949,13 +1115,50 @@ class _WakefieldSimulationElementBase(_SimulationElementBase):
     """Interpolation between equidistant and equal-charge grids."""
     interpolation_method: int = Field(default=2, description="""Interpolation method for ASTRA.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'int(2)'} })
     """Interpolation method for ASTRA."""
-    smooth: float = Field(default=0.25, description="""Smoothing parameter for Gaussian interpolation.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement',
-                       'RFCavitySimulationElement',
-                       'WakefieldSimulationElement'],
-         'ifabsent': 'float(0.25)'} })
-    """Smoothing parameter for Gaussian interpolation."""
     subbins: int = Field(default=10, description="""Sub-binning parameter.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'int(10)'} })
     """Sub-binning parameter."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=0.25, description="""Smoothing parameter for Gaussian interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.25)'} })
+    """Smoothing parameter for Gaussian interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -974,25 +1177,18 @@ class _DriftSimulationElementBase(_SimulationElementBase):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:DriftSimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation',
-         'slot_usage': {'lsc_bins': {'description': 'Number of bins for LSC '
+         'slot_usage': {'csrdz': {'description': 'Step size for CSR calculations.',
+                                  'ifabsent': 'float(0.01)',
+                                  'name': 'csrdz'},
+                        'lsc_bins': {'description': 'Number of bins for LSC '
                                                     'calculations.',
                                      'ifabsent': 'int(20)',
                                      'name': 'lsc_bins'}}})
 
-    lsc_bins: Optional[int] = Field(default=20, description="""Number of bins for LSC calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavitySimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'int(20)'} })
-    """Number of bins for LSC calculations."""
     lsc_interpolate: int = Field(default=1, description="""Flag to allow interpolation of computed LSC wake.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'int(1)'} })
     """Flag to allow interpolation of computed LSC wake."""
-    csr_enable: Optional[bool] = Field(default=True, description="""Enable CSR drift calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'DriftSimulationElement'],
-         'ifabsent': 'True'} })
-    """Enable CSR drift calculations."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Enable LSC drift calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'True'} })
-    """Enable LSC drift calculations."""
     use_stupakov: int = Field(default=1, description="""Use Stupakov formula.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'int(1)'} })
     """Use Stupakov formula."""
-    csrdz: float = Field(default=0.01, description="""Step size for CSR calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement'], 'ifabsent': 'float(0.01)'} })
-    """Step size for CSR calculations."""
     lsc_high_frequency_cutoff_start: Optional[float] = Field(default=None, description="""High-frequency cutoff start for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
     """High-frequency cutoff start for LSC."""
     lsc_high_frequency_cutoff_end: Optional[float] = Field(default=None, description="""High-frequency cutoff end for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
@@ -1001,6 +1197,48 @@ class _DriftSimulationElementBase(_SimulationElementBase):
     """Low-frequency cutoff start for LSC."""
     lsc_low_frequency_cutoff_end: Optional[float] = Field(default=None, description="""Low-frequency cutoff end for LSC.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DriftSimulationElement']} })
     """Low-frequency cutoff end for LSC."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=20, description="""Number of bins for LSC calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'int(20)'} })
+    """Number of bins for LSC calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=0.01, description="""Step size for CSR calculations.""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.01)',
+         'unit': {'ucum_code': 'm'}} })
+    """Step size for CSR calculations."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1022,6 +1260,47 @@ class _DiagnosticSimulationElementBase(_SimulationElementBase):
 
     output_filename: Optional[str] = Field(default=None, description="""Output filename for diagnostic data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['DiagnosticSimulationElement']} })
     """Output filename for diagnostic data."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1067,6 +1346,47 @@ class _PlasmaSimulationElementBase(_SimulationElementBase):
     """Interval for plasma wakefield updates."""
     plasma_pusher: str = Field(default="boris", description="""Pusher used to evolve the plasma in time.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PlasmaSimulationElement'], 'ifabsent': 'string(boris)'} })
     """Pusher used to evolve the plasma in time."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1086,13 +1406,13 @@ class _TwissMatchSimulationElementBase(_SimulationElementBase):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:TwissMatchSimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation'})
 
-    beta_x: Optional[float] = Field(default=None, description="""Horizontal beta.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
+    beta_x: float = Field(default=1.0, description="""Horizontal beta.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(1.0)'} })
     """Horizontal beta."""
-    beta_y: Optional[float] = Field(default=None, description="""Vertical beta.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
+    beta_y: float = Field(default=1.0, description="""Vertical beta.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(1.0)'} })
     """Vertical beta."""
-    alpha_x: Optional[float] = Field(default=None, description="""Horizontal alpha.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
+    alpha_x: float = Field(default=0.0, description="""Horizontal alpha.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(0.0)'} })
     """Horizontal alpha."""
-    alpha_y: Optional[float] = Field(default=None, description="""Vertical alpha.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement']} })
+    alpha_y: float = Field(default=0.0, description="""Vertical alpha.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(0.0)'} })
     """Vertical alpha."""
     eta_x: float = Field(default=0.0, description="""Horizontal dispersion.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'float(0.0)'} })
     """Horizontal dispersion."""
@@ -1104,6 +1424,47 @@ class _TwissMatchSimulationElementBase(_SimulationElementBase):
     """Vertical dispersion derivative."""
     from_beam: Optional[bool] = Field(default=True, description="""Compute transform from tracked beam properties.""", json_schema_extra = { "linkml_meta": {'domain_of': ['TwissMatchSimulationElement'], 'ifabsent': 'True'} })
     """Compute transform from tracked beam properties."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1118,7 +1479,7 @@ class _TwissMatchSimulationElementBase(_SimulationElementBase):
 
 class _MatrixTransformSimulationElementBase(_SimulationElementBase):
     """
-    Zero-, first-, and second-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
+    Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:MatrixTransformSimulationElement',
          'from_schema': 'https://w3id.org/laura/schema/simulation'})
@@ -1131,6 +1492,51 @@ class _MatrixTransformSimulationElementBase(_SimulationElementBase):
     """R-matrix (first-order transfer matrix)."""
     t_matrix: Optional[Any] = Field(default=None, description="""T-matrix (second-order transfer tensor).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MatrixTransformSimulationElement']} })
     """T-matrix (second-order transfer tensor)."""
+    u_matrix: Optional[Any] = Field(default=None, description="""U-matrix (third-order transfer tensor).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MatrixTransformSimulationElement']} })
+    """U-matrix (third-order transfer tensor)."""
+    spin_taylor: Optional[Any] = Field(default=None, description="""Sparse quaternion Taylor terms. Each term stores a quaternion component index, coefficient, and six orbital exponents.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MatrixTransformSimulationElement']} })
+    """Sparse quaternion Taylor terms. Each term stores a quaternion component index, coefficient, and six orbital exponents."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1168,6 +1574,47 @@ class _ElectrostaticSeparatorSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Rotation about the beam axis [rad]."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1224,6 +1671,47 @@ class _ACDipoleSimulationElementBase(_SimulationElementBase):
     """Phase lag [deg]."""
     ramp: list[int] = Field(default_factory=list, description="""Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ACDipoleSimulationElement']} })
     """Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1251,14 +1739,47 @@ class _WireSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Effective interaction length [m]."""
-    horizontal_offset: float = Field(default=0.0, description="""Horizontal wire offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['WireSimulationElement', 'BeamBeamSimulationElement'],
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
-    """Horizontal wire offset from the reference orbit [m]."""
-    vertical_offset: float = Field(default=0.0, description="""Vertical wire offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['WireSimulationElement', 'BeamBeamSimulationElement'],
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
-    """Vertical wire offset from the reference orbit [m]."""
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1282,14 +1803,6 @@ class _BeamBeamSimulationElementBase(_SimulationElementBase):
     """Opposing-beam particle charge in units of the elementary charge."""
     n_particles: float = Field(default=0.0, description="""Number of particles in the opposing bunch.""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement'], 'ifabsent': 'float(0.0)'} })
     """Number of particles in the opposing bunch."""
-    horizontal_offset: float = Field(default=0.0, description="""Horizontal opposing-bunch centroid offset [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['WireSimulationElement', 'BeamBeamSimulationElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    """Horizontal opposing-bunch centroid offset [m]."""
-    vertical_offset: float = Field(default=0.0, description="""Vertical opposing-bunch centroid offset [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['WireSimulationElement', 'BeamBeamSimulationElement'],
-         'ifabsent': 'float(0.0)',
-         'unit': {'ucum_code': 'm'}} })
-    """Vertical opposing-bunch centroid offset [m]."""
     horizontal_sigma: float = Field(default=0.0, description="""Horizontal RMS size of the opposing bunch [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
@@ -1302,6 +1815,47 @@ class _BeamBeamSimulationElementBase(_SimulationElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Opposing-bunch length for the 3-D weak-strong model [m]."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1362,6 +1916,47 @@ class _RFMultipoleSimulationElementBase(_SimulationElementBase):
     """Normal multipole phases [deg], dipole through decapole."""
     psl: list[float] = Field(default_factory=list, description="""Skew multipole phases [deg], dipole through decapole.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFMultipoleSimulationElement']} })
     """Skew multipole phases [deg], dipole through decapole."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration kicks."""
+    lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of bins used in longitudinal space-charge calculations."""
+    csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether coherent synchrotron radiation effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
+    """Whether longitudinal space-charge effects are enabled."""
+    tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Phase-space tracking algorithm requested from the target code."""
+    mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Method used to calculate the element's 6x6 transfer matrix."""
+    spin_tracking_method: Optional[str] = Field(default=None, description="""Spin-tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Spin-tracking algorithm requested from the target code."""
+    integration_order: Optional[int] = Field(default=None, description="""Order of the target code's integration formula.""", ge=1, validation_alias=AliasChoices('integration_order', 'integrator_order'), json_schema_extra = { "linkml_meta": {'aliases': ['integrator_order'], 'domain_of': ['SimulationElement']} })
+    """Order of the target code's integration formula."""
+    num_steps: Optional[int] = Field(default=None, description="""Number of integration steps through the element.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of integration steps through the element."""
+    deltaL: Optional[float] = Field(default=None, description="""Longitudinal integration step size [m].""", ge=0, validation_alias=AliasChoices('deltaL', 'ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal integration step size [m]."""
+    csr_method: Optional[str] = Field(default=None, description="""Coherent-synchrotron-radiation tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Coherent-synchrotron-radiation tracking method."""
+    space_charge_method: Optional[str] = Field(default=None, description="""Space-charge tracking method.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Space-charge tracking method."""
+    csrdz: Optional[float] = Field(default=None, description="""Longitudinal step size between CSR kicks [m].""", ge=0, validation_alias=AliasChoices('csrdz', 'csr_ds_step'), json_schema_extra = { "linkml_meta": {'aliases': ['csr_ds_step'],
+         'domain_of': ['SimulationElement'],
+         'unit': {'ucum_code': 'm'}} })
+    """Longitudinal step size between CSR kicks [m]."""
+    smooth: Optional[Union[float, int]] = Field(default=None, description="""Smoothing control for field or wake interpolation.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'float'}],
+         'domain_of': ['SimulationElement']} })
+    """Smoothing control for field or wake interpolation."""
+    horizontal_offset: Optional[float] = Field(default=0.0, description="""Horizontal simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Horizontal simulation offset from the reference orbit [m]."""
+    vertical_offset: Optional[float] = Field(default=0.0, description="""Vertical simulation offset from the reference orbit [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Vertical simulation offset from the reference orbit [m]."""
     field_definition: Optional[str] = Field(default=None, description="""Path to the 3-D field-map file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Path to the 3-D field-map file."""
     wakefield_definition: Optional[str] = Field(default=None, description="""Path to the wakefield impedance file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1531,9 +2126,13 @@ class _MagneticElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
-    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.5)'} })
-    """Enge fringe-field integral parameter (dimensionless)."""
+    """Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise."""
+    exit_edge_field_integral: Optional[float] = Field(default=None, description="""Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check."""
+    exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -2401,9 +3000,13 @@ class _DipoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
-    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.5)'} })
-    """Enge fringe-field integral parameter (dimensionless)."""
+    """Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise."""
+    exit_edge_field_integral: Optional[float] = Field(default=None, description="""Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check."""
+    exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -2477,9 +3080,13 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
-    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.5)'} })
-    """Enge fringe-field integral parameter (dimensionless)."""
+    """Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise."""
+    exit_edge_field_integral: Optional[float] = Field(default=None, description="""Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check."""
+    exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -2556,9 +3163,13 @@ class _SextupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
-    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.5)'} })
-    """Enge fringe-field integral parameter (dimensionless)."""
+    """Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise."""
+    exit_edge_field_integral: Optional[float] = Field(default=None, description="""Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check."""
+    exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -2637,9 +3248,13 @@ class _OctupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
-    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.5)'} })
-    """Enge fringe-field integral parameter (dimensionless)."""
+    """Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise."""
+    exit_edge_field_integral: Optional[float] = Field(default=None, description="""Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check."""
+    exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -2748,6 +3363,94 @@ class _SolenoidMagnetBase(ConfiguredBaseModel):
     """Linear-plus-saturation fit of field against current."""
     settle_time: float = Field(default=45.0, description="""Time to wait after a set before the field is stable [s].""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement', 'Solenoid_Magnet'], 'ifabsent': 'float(45.0)'} })
     """Time to wait after a set before the field is stable [s]."""
+
+
+class _CombinedSolenoidQuadrupoleMagnetBase(_MagneticElementBase):
+    """
+    Combined solenoid and quadrupole magnetic field.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CombinedSolenoidQuadrupole_Magnet',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic',
+         'slot_usage': {'order': {'equals_number': 1,
+                                  'ifabsent': 'int(1)',
+                                  'name': 'order'}}})
+
+    solenoid_fields: Optional[_SolenoidFieldsBase] = Field(default=None, description="""Nominal integrated axial solenoid field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CombinedSolenoidQuadrupole_Magnet']} })
+    """Nominal integrated axial solenoid field components."""
+    order: int = Field(default=1, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=1, ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
+                       'MagneticElement',
+                       'Corrector_Magnet',
+                       'Solenoid_Magnet'],
+         'ifabsent': 'int(1)'} })
+    """Principal multipole order (0 = dipole, 1 = quad, ?)."""
+    skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
+    """Whether the magnet is rotated 45? to produce a skew field component."""
+    length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'aliases': ['magnetic_length'],
+         'domain_of': ['PhysicalElement',
+                       'MagneticElement',
+                       'Corrector_Magnet',
+                       'Solenoid_Magnet',
+                       'Wiggler_Magnet',
+                       'NonLinearLens_Magnet'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Magnetic (effective) length [m]."""
+    multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Integrated multipole field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Integrated multipole field components."""
+    systematic_multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Systematic (design) multipole errors at the reference radius.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Systematic (design) multipole errors at the reference radius."""
+    random_multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Random multipole errors at the reference radius.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Random multipole errors at the reference radius."""
+    field_integral_coefficients: Optional[_FieldIntegralBase] = Field(default=None, description="""Polynomial calibration of integrated field vs. current.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement', 'Solenoid_Magnet']} })
+    """Polynomial calibration of integrated field vs. current."""
+    linear_saturation_coefficients: Optional[_LinearSaturationFitBase] = Field(default=None, description="""Bi-linear saturation calibration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement', 'Solenoid_Magnet']} })
+    """Bi-linear saturation calibration."""
+    settle_time: Optional[float] = Field(default=None, description="""Power-supply settle time after a change [s].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement', 'Solenoid_Magnet'],
+         'unit': {'ucum_code': 's'}} })
+    """Power-supply settle time after a change [s]."""
+    entrance_edge_angle: Optional[Union[float, str]] = Field(default=None, description="""Fringe-field entrance edge angle [rad].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
+         'domain_of': ['MagneticElement'],
+         'in_subset': ['functional_parameters', 'bend_angle_reference'],
+         'unit': {'ucum_code': 'rad'}} })
+    """Fringe-field entrance edge angle [rad]."""
+    exit_edge_angle: Optional[Union[float, str]] = Field(default=None, description="""Fringe-field exit edge angle [rad].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
+         'domain_of': ['MagneticElement'],
+         'in_subset': ['functional_parameters', 'bend_angle_reference'],
+         'unit': {'ucum_code': 'rad'}} })
+    """Fringe-field exit edge angle [rad]."""
+    gap: float = Field(default=0.032, description="""Full gap between pole faces [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+         'ifabsent': 'float(0.032)',
+         'unit': {'ucum_code': 'm'}} })
+    """Full gap between pole faces [m]."""
+    bore: float = Field(default=0.037, description="""Magnet bore radius [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+         'ifabsent': 'float(0.037)',
+         'unit': {'ucum_code': 'm'}} })
+    """Magnet bore radius [m]."""
+    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum.Horizontal, description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
+    """Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."""
+    width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement', 'MagneticElement'],
+         'ifabsent': 'float(0.2)',
+         'unit': {'ucum_code': 'm'}} })
+    """Physical width of the magnet in the bending plane [m]."""
+    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement',
+                       'MagneticElement',
+                       'Corrector_Magnet'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'rad'}} })
+    """Global tilt about the beam axis [rad]."""
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
+         'ifabsent': 'float(0.5)'} })
+    """Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise."""
+    exit_edge_field_integral: Optional[float] = Field(default=None, description="""Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check."""
+    exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``."""
+    fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
+    """Coefficient controlling the fringe-field roll-off rate."""
+    gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
+    """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
+    angle: Optional[float] = Field(default=None, description="""Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'rad'}} })
+    """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default."""
 
 
 class _WigglerMagnetBase(ConfiguredBaseModel):
@@ -3575,6 +4278,8 @@ class _PhysicalAcceleratorElementBase(_ElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -3627,6 +4332,8 @@ class _TwissMatchBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_TwissMatchSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -3681,6 +4388,8 @@ class _MatrixTransformBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MatrixTransformSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -3735,6 +4444,8 @@ class _ElectrostaticSeparatorBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_ElectrostaticSeparatorSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -3788,6 +4499,8 @@ class _ACDipoleBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_ACDipoleSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -3838,6 +4551,8 @@ class _HorizontalACDipoleBase(_ACDipoleBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_ACDipoleSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -3890,6 +4605,8 @@ class _VerticalACDipoleBase(_ACDipoleBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_ACDipoleSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -3944,6 +4661,8 @@ class _WireBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_WireSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -3998,6 +4717,8 @@ class _BeamBeamBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_BeamBeamSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4052,6 +4773,8 @@ class _RFMultipoleBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_RFMultipoleSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4104,6 +4827,8 @@ class _StageBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4156,6 +4881,8 @@ class _VacuumGaugeBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4216,6 +4943,8 @@ class _LaserBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4270,6 +4999,8 @@ class _ShutterBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4324,6 +5055,8 @@ class _ValveBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4376,6 +5109,8 @@ class _MarkerBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_SimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4425,7 +5160,7 @@ class _ApertureBase(_PhysicalAcceleratorElementBase):
          'slot_usage': {'hardware_type': {'equals_string': 'Aperture',
                                           'name': 'hardware_type'}}})
 
-    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture geometry parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture']} })
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture geometry parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
     """Aperture geometry parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
@@ -4479,7 +5214,7 @@ class _CollimatorBase(_ApertureBase):
          'slot_usage': {'hardware_type': {'equals_string': 'Collimator',
                                           'name': 'hardware_type'}}})
 
-    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture geometry parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture']} })
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture geometry parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
     """Aperture geometry parameters."""
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
@@ -4538,6 +5273,8 @@ class _DriftBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DriftSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4594,6 +5331,8 @@ class _MagnetBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4649,6 +5388,8 @@ class _RFCavityBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_RFCavitySimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4704,6 +5445,8 @@ class _RFDeflectingCavityBase(_RFCavityBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_RFCavitySimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4799,6 +5542,61 @@ class _CrabCavityBase(_RFCavityBase):
     """Names of elements this one feeds; the inverse of ``upstream``."""
 
 
+class _CrabCavityBase(_RFCavityBase):
+    """
+    Transverse-deflecting crab cavity for crossing-angle compensation.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CrabCavity',
+         'from_schema': 'https://w3id.org/laura/schema/rf',
+         'slot_usage': {'hardware_type': {'equals_string': 'CrabCavity',
+                                          'name': 'hardware_type'}}})
+
+    cavity: Optional[_RFDeflectingCavityElementBase] = Field(default=None, description="""Crab-cavity RF structure parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['RFCavity', 'RFDeflectingCavity', 'CrabCavity', 'Wakefield'],
+         'in_subset': ['rf_properties']} })
+    """Crab-cavity RF structure parameters."""
+    physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
+         'in_subset': ['physical_properties']} })
+    """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
+    simulation: Optional[_RFCavitySimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Simulation / tracking attributes."""
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Power-supply electrical limits."""
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    """Manufacturer and serial-number data."""
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Control-system process-variable definitions."""
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Links to design drawings and files."""
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    """Unique element name within the machine."""
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
+    hardware_type: Optional[Literal["CrabCavity"]] = Field(default="Generic", description="""Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'CrabCavity',
+         'ifabsent': 'string(Generic)'} })
+    """Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML."""
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    """Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``)."""
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``)."""
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    """Alternative internal name used by the control system when the physical name is inaccessible."""
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    """Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings."""
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """If set, this element is a logical sub-component of the named parent element."""
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""Signal types this element consumes (e.g. ``[current, voltage]``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Signal types this element consumes (e.g. ``[current, voltage]``)."""
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""Signal types this element produces (e.g. ``[power, phase]``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Signal types this element produces (e.g. ``[power, phase]``)."""
+    upstream: list[str] = Field(default_factory=list, description="""Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Names of elements feeding this one, whose ``outputs`` supply its ``inputs``."""
+    downstream: list[str] = Field(default_factory=list, description="""Names of elements this one feeds; the inverse of ``upstream``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Names of elements this one feeds; the inverse of ``upstream``."""
+
+
 class _WakefieldBase(_PhysicalAcceleratorElementBase):
     """
     Passive wakefield structure (dielectric, corrugated, etc.).
@@ -4815,6 +5613,8 @@ class _WakefieldBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_WakefieldSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4877,6 +5677,8 @@ class _DiagnosticBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DiagnosticSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4937,6 +5739,8 @@ class _BeamPositionMonitorBase(_DiagnosticBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DiagnosticSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -4999,6 +5803,8 @@ class _BeamArrivalMonitorBase(_DiagnosticBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DiagnosticSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5061,6 +5867,8 @@ class _BunchLengthMonitorBase(_DiagnosticBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DiagnosticSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5123,6 +5931,8 @@ class _CameraBase(_DiagnosticBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DiagnosticSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5185,6 +5995,8 @@ class _ScreenBase(_DiagnosticBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DiagnosticSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5247,6 +6059,8 @@ class _ChargeDiagnosticBase(_DiagnosticBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DiagnosticSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5309,6 +6123,8 @@ class _WallCurrentMonitorBase(_ChargeDiagnosticBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DiagnosticSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5371,6 +6187,8 @@ class _FaradayCupMonitorBase(_ChargeDiagnosticBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DiagnosticSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5433,6 +6251,8 @@ class _IntegratedCurrentTransformerBase(_ChargeDiagnosticBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DiagnosticSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5497,6 +6317,8 @@ class _PhotonMonitorBase(_DiagnosticBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_DiagnosticSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5560,6 +6382,8 @@ class _PlasmaBase(_PhysicalAcceleratorElementBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_PlasmaSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5614,6 +6438,8 @@ class _DipoleBase(_MagnetBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5668,6 +6494,8 @@ class _QuadrupoleBase(_MagnetBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5726,6 +6554,8 @@ class _SextupoleBase(_MagnetBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5784,6 +6614,8 @@ class _OctupoleBase(_MagnetBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5842,6 +6674,8 @@ class _HorizontalCorrectorBase(_DipoleBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5900,6 +6734,8 @@ class _VerticalCorrectorBase(_DipoleBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -5962,6 +6798,8 @@ class _CombinedCorrectorBase(_DipoleBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -6020,6 +6858,8 @@ class _SolenoidBase(_MagnetBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -6060,6 +6900,65 @@ class _SolenoidBase(_MagnetBase):
     """Names of elements this one feeds; the inverse of ``upstream``."""
 
 
+class _CombinedSolenoidQuadrupoleBase(_MagnetBase):
+    """
+    Magnet combining coaxial solenoid and quadrupole fields.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CombinedSolenoidQuadrupole',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic',
+         'slot_usage': {'hardware_type': {'equals_string': 'CombinedSolenoidQuadrupole',
+                                          'ifabsent': 'CombinedSolenoidQuadrupole',
+                                          'name': 'hardware_type'},
+                        'magnetic': {'name': 'magnetic',
+                                     'range': 'CombinedSolenoidQuadrupole_Magnet'}}})
+
+    magnetic: Optional[_CombinedSolenoidQuadrupoleMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
+    """Magnetic field parameters."""
+    degauss: Optional[_DegaussableElementBase] = Field(default=None, description="""Degaussing-cycle parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet']} })
+    """Degaussing-cycle parameters."""
+    physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
+         'in_subset': ['physical_properties']} })
+    """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
+    simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Simulation / tracking attributes."""
+    electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Power-supply electrical limits."""
+    manufacturer: Optional[_ManufacturerElementBase] = Field(default=None, description="""Manufacturer and serial-number data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ManufacturerElement', 'StandardElement']} })
+    """Manufacturer and serial-number data."""
+    controls: Optional[_ControlsInformationBase] = Field(default=None, description="""Control-system process-variable definitions.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Control-system process-variable definitions."""
+    reference: Optional[_ReferenceElementBase] = Field(default=None, description="""Links to design drawings and files.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
+    """Links to design drawings and files."""
+    name: str = Field(default=..., description="""Unique element name within the machine.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineLayout', 'AcceleratorElement']} })
+    """Unique element name within the machine."""
+    hardware_class: HardwareClassEnum = Field(default=..., description="""Functional category (e.g., ``Magnet``, ``Diagnostic``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Functional category (e.g., ``Magnet``, ``Diagnostic``)."""
+    hardware_type: Optional[Literal["CombinedSolenoidQuadrupole"]] = Field(default="CombinedSolenoidQuadrupole", description="""Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'],
+         'equals_string': 'CombinedSolenoidQuadrupole',
+         'ifabsent': 'CombinedSolenoidQuadrupole'} })
+    """Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML."""
+    hardware_model: str = Field(default="Generic", description="""Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string(Generic)'} })
+    """Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``)."""
+    machine_area: Optional[str] = Field(default=None, description="""Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``)."""
+    virtual_name: str = Field(default="", description="""Alternative internal name used by the control system when the physical name is inaccessible.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement'], 'ifabsent': 'string()'} })
+    """Alternative internal name used by the control system when the physical name is inaccessible."""
+    alias: list[str] = Field(default_factory=list, description="""Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.""", validation_alias=AliasChoices('alias', 'name_alias'), json_schema_extra = { "linkml_meta": {'aliases': ['name_alias'], 'domain_of': ['AcceleratorElement']} })
+    """Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings."""
+    subelement: Optional[str] = Field(default=None, description="""If set, this element is a logical sub-component of the named parent element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """If set, this element is a logical sub-component of the named parent element."""
+    inputs: list[IOTypeEnum] = Field(default_factory=list, description="""Signal types this element consumes (e.g. ``[current, voltage]``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Signal types this element consumes (e.g. ``[current, voltage]``)."""
+    outputs: list[IOTypeEnum] = Field(default_factory=list, description="""Signal types this element produces (e.g. ``[power, phase]``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Signal types this element produces (e.g. ``[power, phase]``)."""
+    upstream: list[str] = Field(default_factory=list, description="""Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Names of elements feeding this one, whose ``outputs`` supply its ``inputs``."""
+    downstream: list[str] = Field(default_factory=list, description="""Names of elements this one feeds; the inverse of ``upstream``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['AcceleratorElement']} })
+    """Names of elements this one feeds; the inverse of ``upstream``."""
+
+
 class _WigglerBase(_MagnetBase):
     """
     Wiggler / undulator insertion device.
@@ -6085,6 +6984,8 @@ class _WigglerBase(_MagnetBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -6144,6 +7045,8 @@ class _NonLinearLensBase(_MagnetBase):
     physical: Optional[_PhysicalElementBase] = Field(default=None, description="""Position, rotation, and length data.""", json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalAcceleratorElement'],
          'in_subset': ['physical_properties']} })
     """Position, rotation, and length data."""
+    aperture: Optional[_ApertureElementBase] = Field(default=None, description="""Aperture of the element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Aperture', 'PhysicalAcceleratorElement']} })
+    """Aperture of the element."""
     simulation: Optional[_MagnetSimulationElementBase] = Field(default=None, description="""Simulation / tracking attributes.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
     """Simulation / tracking attributes."""
     electrical: Optional[_ElectricalElementBase] = Field(default=None, description="""Power-supply electrical limits.""", json_schema_extra = { "linkml_meta": {'domain_of': ['StandardElement']} })
@@ -6261,6 +7164,7 @@ _OctupoleMagnetBase.model_rebuild()
 _CorrectorMagnetBase.model_rebuild()
 _SolenoidFieldsBase.model_rebuild()
 _SolenoidMagnetBase.model_rebuild()
+_CombinedSolenoidQuadrupoleMagnetBase.model_rebuild()
 _WigglerMagnetBase.model_rebuild()
 _NonLinearLensMagnetBase.model_rebuild()
 _ElectricalElementBase.model_rebuild()
@@ -6324,5 +7228,6 @@ _HorizontalCorrectorBase.model_rebuild()
 _VerticalCorrectorBase.model_rebuild()
 _CombinedCorrectorBase.model_rebuild()
 _SolenoidBase.model_rebuild()
+_CombinedSolenoidQuadrupoleBase.model_rebuild()
 _WigglerBase.model_rebuild()
 _NonLinearLensBase.model_rebuild()

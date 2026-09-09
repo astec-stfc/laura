@@ -8,19 +8,29 @@ magnetic_orders = {
     "RBend": 0,
 }
 
-ocelot_unsupported = [
-    "Cleaner",
-    "Scatter",
-    "APContour",
-    "Center",
-    "Wakefield",
+bmad_unsupported = [
+    "Horizontal_AC_Dipole",
+    "Vertical_AC_Dipole",
     "Laser",
+    "LaserAttenuator",
+    "LaserEnergyMeter",
+    "LaserHalfWavePlate",
+    "LaserMirror",
+    "Lighting",
+    "Low_Level_RF",
+    "NonLinearLens",
+    "PID",
     "Plasma",
-    "MatrixTransform",
-    "TwissMatch",
-    "Decapole",
-    "ActivePlasmaLens",
-    "CrabCavity",
+    "PowerSupply",
+    "RFHeartbeat",
+    "RFModulator",
+    "RFMultipole",
+    "RFProtection",
+    "Shutter",
+    "Stage",
+    "VacuumGauge",
+    "Valve",
+    "Wire",
 ]
 
 from .astra import astra_unsupported
@@ -29,6 +39,7 @@ from .csrtrack import csrtrack_unsupported
 from .elegant import elegant_unsupported
 from .genesis import genesis_unsupported
 from .gpt import gpt_unsupported
+from .ocelot import ocelot_unsupported
 from .opal import opal_unsupported
 from .wake_t import wake_t_unsupported
 from .xsuite import xsuite_unsupported

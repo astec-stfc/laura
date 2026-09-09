@@ -61,6 +61,7 @@ ocelot_conversion_rules = {
     "Charge": Marker,
     "Wakefield": Marker,
     "Watch_Point": Monitor,
+    "Photon_Monitor": Monitor,
     "Horizontal_Corrector": Hcor,
     "Vertical_Corrector": Vcor,
     "Combined_Corrector": Hcor,

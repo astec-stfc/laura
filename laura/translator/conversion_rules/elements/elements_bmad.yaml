@@ -1,0 +1,141 @@
+common:
+  tracking_method: string
+  mat6_calc_method: string
+  spin_tracking_method: string
+  ds_step: double
+  num_steps: integer
+  integrator_order: integer
+  csr_method: string
+  space_charge_method: string
+  csr_ds_step: double
+drift:
+  l: double
+  sr_wake: string
+sbend:
+  l: double
+  angle: double
+  k0: double
+  k1: double
+  e1: double
+  e2: double
+  hgap: double
+  fint: double
+  ref_tilt: double
+rbend:
+  l: double
+  angle: double
+  k0: double
+  k1: double
+  e1: double
+  e2: double
+  hgap: double
+  fint: double
+  ref_tilt: double
+quadrupole:
+  l: double
+  k1: double
+  tilt: double
+  field_calc: string
+  gen_gradients: string
+sextupole:
+  l: double
+  k2: double
+  tilt: double
+octupole:
+  l: double
+  k3: double
+  tilt: double
+decapole:
+  l: double
+  k4: double
+  tilt: double
+hkicker:
+  l: double
+  kick: double
+vkicker:
+  l: double
+  kick: double
+kicker:
+  l: double
+  hkick: double
+  vkick: double
+rfcavity:
+  l: double
+  phi0: double
+  rf_frequency: double
+  voltage: double
+  n_cell: integer
+  cavity_type: string
+  sr_wake: string
+lcavity:
+  l: double
+  phi0: double
+  rf_frequency: double
+  voltage: double
+  n_cell: integer
+  cavity_type: string
+  sr_wake: string
+crab_cavity:
+  l: double
+  phi0: double
+  rf_frequency: double
+  voltage: double
+  sr_wake: string
+wiggler:
+  l: double
+  b_max: double
+  l_period: double
+  n_period: integer
+solenoid:
+  l: double
+  ks: double
+  field_calc: string
+  gen_gradients: string
+sol_quad:
+  l: double
+  k1: double
+  ks: double
+elseparator:
+  l: double
+  e_field: double
+  hkick: double
+  vkick: double
+  tilt: double
+beambeam:
+  charge: double
+  n_particle: double
+  sig_x: double
+  sig_y: double
+  sig_z: double
+  x_offset: double
+  y_offset: double
+match:
+  l: double
+  beta_a1: double
+  beta_b1: double
+  alpha_a1: double
+  alpha_b1: double
+  eta_x1: double
+  eta_y1: double
+  etap_x1: double
+  etap_y1: double
+  matrix: string
+taylor:
+  l: double
+ecollimator:
+  l: double
+  x1_limit: double
+  x2_limit: double
+  y1_limit: double
+  y2_limit: double
+rcollimator:
+  l: double
+  x1_limit: double
+  x2_limit: double
+  y1_limit: double
+  y2_limit: double
+marker: {}
+monitor:
+  l: double
+instrument:
+  l: double

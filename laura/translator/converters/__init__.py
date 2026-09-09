@@ -80,6 +80,7 @@ type_conversion_rules_Elegant = LazyDict(lambda: type_conversion_rules["elegant"
 type_conversion_rules_Genesis = LazyDict(lambda: type_conversion_rules["genesis"])
 type_conversion_rules_Opal = LazyDict(lambda: type_conversion_rules["opal"])
 type_conversion_rules_Madx = LazyDict(lambda: type_conversion_rules["madx"])
+type_conversion_rules_Bmad = LazyDict(lambda: type_conversion_rules["bmad"])
 type_conversion_rules_Names = LazyDict(lambda: type_conversion_rules["name"])
 type_conversion_rules_aliases = LazyDict(lambda: type_conversion_rules["aliases"]["elegant"])
 
@@ -103,3 +104,6 @@ element_keywords = LazyDict(lambda: _load_yaml_file("../conversion_rules/element
 
 keyword_conversion_rules_madx = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_madx.yaml"))
 elements_Madx = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_madx.yaml"))
+
+keyword_conversion_rules_bmad = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_bmad.yaml"))
+elements_Bmad = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_bmad.yaml"))

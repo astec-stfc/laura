@@ -367,6 +367,9 @@ class PhysicalElement(_PhysicalElementBase):
 
     _parent: Any = PrivateAttr(default=None)
     _trajectory: Optional[Trajectory] = PrivateAttr(default=None)
+    # Whether ``physical_angle`` was supplied explicitly at construction, as
+    # opposed to being left to derive from the magnetic model.
+    _explicit_angle: bool = PrivateAttr(default=False)
 
     @model_validator(mode="after")
     def _check_placement_exclusivity(self) -> "PhysicalElement":
@@ -476,11 +479,11 @@ class PhysicalElement(_PhysicalElementBase):
     @computed_field
     @property
     def _physical_angle(self) -> float:
+        # An explicit ``physical_angle`` wins.
+        if self._explicit_angle:
+            return float(self.physical_angle)
         if self._parent is not None:
             magnetic = getattr(self._parent, "magnetic", None)
-            # Only dipoles expose an `angle`; use the resolved bend angle
-            # (KnL(0), always numeric) and degrade to 0 if a functional
-            # definition is not yet available.
             if magnetic is not None and hasattr(type(magnetic), "angle"):
                 try:
                     angle = magnetic.KnL(0)

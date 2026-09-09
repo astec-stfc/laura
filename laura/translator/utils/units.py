@@ -328,6 +328,28 @@ class UnitValue(np.ndarray):
         """
         self.units = getattr(obj, "units", "")
 
+    def __reduce__(self):
+        """Keep the units through a pickle."""
+        reconstruct, args, state = super().__reduce__()
+        return reconstruct, args, state + (self.units,)
+
+    def __setstate__(self, state):
+        self.units = state[-1]
+        super().__setstate__(state[:-1])
+
+    # def __array_wrap__(self, obj, context=None):
+    #     result = obj.view(type(self))
+    #     # try:
+    #     #     print(context[0].__name__)
+    #     # except:
+    #     #     print(context)
+    #     if context is not None:
+    #         if context[0].__name__ == 'sqrt':
+    #             result.units = unit_to_the_power(obj.units, 0.5)
+    #         if context[0].__name__ == 'square':
+    #             result.units = unit_to_the_power(obj.units, 2)
+    #     return result
+
     def __array_ufunc__(
         self, ufunc, method, *inputs, **kwargs
     ):  # this method is called whenever you use a ufunc

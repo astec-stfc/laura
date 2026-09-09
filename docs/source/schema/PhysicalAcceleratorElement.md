@@ -25,6 +25,18 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
 
       PhysicalAcceleratorElement <|-- TwissMatch
         click TwissMatch href "../TwissMatch/"
+      PhysicalAcceleratorElement <|-- MatrixTransform
+        click MatrixTransform href "../MatrixTransform/"
+      PhysicalAcceleratorElement <|-- ElectrostaticSeparator
+        click ElectrostaticSeparator href "../ElectrostaticSeparator/"
+      PhysicalAcceleratorElement <|-- ACDipole
+        click ACDipole href "../ACDipole/"
+      PhysicalAcceleratorElement <|-- Wire
+        click Wire href "../Wire/"
+      PhysicalAcceleratorElement <|-- BeamBeam
+        click BeamBeam href "../BeamBeam/"
+      PhysicalAcceleratorElement <|-- RFMultipole
+        click RFMultipole href "../RFMultipole/"
       PhysicalAcceleratorElement <|-- Stage
         click Stage href "../Stage/"
       PhysicalAcceleratorElement <|-- VacuumGauge
@@ -54,6 +66,17 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
       
 
       PhysicalAcceleratorElement : alias
+        
+      PhysicalAcceleratorElement : aperture
+        
+          
+    
+        
+        
+        PhysicalAcceleratorElement --> "0..1" ApertureElement : aperture
+        click ApertureElement href "../ApertureElement/"
+    
+
         
       PhysicalAcceleratorElement : controls
         
@@ -201,6 +224,12 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
         * [Element](Element.md)
             * **PhysicalAcceleratorElement**
                 * [TwissMatch](TwissMatch.md)
+                * [MatrixTransform](MatrixTransform.md)
+                * [ElectrostaticSeparator](ElectrostaticSeparator.md)
+                * [ACDipole](ACDipole.md)
+                * [Wire](Wire.md)
+                * [BeamBeam](BeamBeam.md)
+                * [RFMultipole](RFMultipole.md)
                 * [Stage](Stage.md)
                 * [VacuumGauge](VacuumGauge.md)
                 * [Laser](Laser.md)
@@ -228,6 +257,7 @@ URI: [laura:PhysicalAcceleratorElement](https://w3id.org/laura/PhysicalAccelerat
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | direct |
+| [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | direct |
 | [simulation](simulation.md) | 0..1 <br/> [SimulationElement](SimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -310,6 +340,16 @@ attributes:
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
+  aperture:
+    name: aperture
+    description: Aperture of the element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    domain_of:
+    - PhysicalAcceleratorElement
+    - Aperture
+    range: ApertureElement
+    required: false
 class_uri: laura:PhysicalAcceleratorElement
 
 ```
@@ -336,6 +376,17 @@ attributes:
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
+  aperture:
+    name: aperture
+    description: Aperture of the element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: PhysicalAcceleratorElement
+    domain_of:
+    - PhysicalAcceleratorElement
+    - Aperture
+    range: ApertureElement
+    required: false
   simulation:
     name: simulation
     description: Simulation / tracking attributes.

@@ -16,8 +16,12 @@ Name: laura_schema
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[StandardElement](StandardElement.md) | Accelerator element with control-system, electrical, manufacturer, simulation... |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Element](Element.md) | Concrete schema counterpart of the Python ``Element`` wrapper class |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | Accelerator element with a well-defined physical position and orientation in ... |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ACDipole](ACDipole.md) | Base class for horizontal and vertical AC-dipole tune exciters |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[HorizontalACDipole](HorizontalACDipole.md) | Horizontally deflecting AC-dipole tune exciter |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[VerticalACDipole](VerticalACDipole.md) | Vertically deflecting AC-dipole tune exciter |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Aperture](Aperture.md) | Mechanical aperture restriction in the beam pipe |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Collimator](Collimator.md) | Movable collimator jaw (extends Aperture) |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[BeamBeam](BeamBeam.md) | Weak-strong beam-beam interaction element |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Diagnostic](Diagnostic.md) | Base class for all beam-diagnostic instruments |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[BeamArrivalMonitor](BeamArrivalMonitor.md) | Beam-arrival-time monitor (BAM) |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[BeamPositionMonitor](BeamPositionMonitor.md) | Beam-position monitor (BPM) |
@@ -30,8 +34,10 @@ Name: laura_schema
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[PhotonMonitor](PhotonMonitor.md) | Photon intensity monitor |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Screen](Screen.md) | Scintillator or OTR screen with an associated camera |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Drift](Drift.md) | Field-free drift space between elements |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ElectrostaticSeparator](ElectrostaticSeparator.md) | Static electrostatic transverse-deflection element |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Laser](Laser.md) | Laser system element (full laser setup including beam parameters) |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Magnet](Magnet.md) | Base class for all magnetic focusing and bending elements |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | Magnet combining coaxial solenoid and quadrupole fields |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Dipole](Dipole.md) |  |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[CombinedCorrector](CombinedCorrector.md) | Combined horizontal/vertical steering corrector, naming the two single-plane ... |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[HorizontalCorrector](HorizontalCorrector.md) | Horizontal steering corrector |
@@ -43,15 +49,19 @@ Name: laura_schema
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Solenoid](Solenoid.md) | Solenoid focusing magnet |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Wiggler](Wiggler.md) | Wiggler / undulator insertion device |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Marker](Marker.md) | Virtual survey marker -- a zero-length reference point used for alignment |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[MatrixTransform](MatrixTransform.md) | Transfer-map element with zero-, first-, and second-order coefficients |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Plasma](Plasma.md) | Laser-driven plasma-accelerator stage |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFCavity](RFCavity.md) | Accelerating RF cavity |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[CrabCavity](CrabCavity.md) | Transverse-deflecting crab cavity for crossing-angle compensation |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFDeflectingCavity](RFDeflectingCavity.md) | Transverse-deflecting (streak) RF cavity |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFMultipole](RFMultipole.md) | Thin RF-driven multipole kick |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Shutter](Shutter.md) | Beam or laser shutter with interlock logic |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Stage](Stage.md) | Motorised positioning stage |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[TwissMatch](TwissMatch.md) | Virtual Twiss-parameter matching point -- a zero-length marker that defines t... |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[VacuumGauge](VacuumGauge.md) | Vacuum-pressure gauge |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Valve](Valve.md) | Vacuum gate valve |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Wakefield](Wakefield.md) | Passive wakefield structure (dielectric, corrugated, etc |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Wire](Wire.md) | Current-carrying wire for long-range beam-beam compensation |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[LaserAttenuator](LaserAttenuator.md) | Laser power attenuator (waveplate + polariser combination) |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[LaserEnergyMeter](LaserEnergyMeter.md) | Laser pulse-energy diagnostic (photodiode / pyroelectric) |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[LaserHalfWavePlate](LaserHalfWavePlate.md) | Half-wave plate for laser polarisation rotation |
@@ -98,11 +108,13 @@ Name: laura_schema
 | [MachineLayout](MachineLayout.md) | An ordered list of section names defining a beamline layout (a contiguous seq... |
 | [MachineModel](MachineModel.md) | Top-level container for a complete accelerator lattice: elements, sections, l... |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md) | Combined solenoid and quadrupole magnetic field |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[DipoleMagnet](DipoleMagnet.md) |  |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[QuadrupoleMagnet](QuadrupoleMagnet.md) |  |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |
 | [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number metadata |
+| [MatrixValue](MatrixValue.md) | An unconstrained serializable matrix value |
 | [Multipole](Multipole.md) | Individual multipole field component, characterised by order and integrated n... |
 | [Multipoles](Multipoles.md) | Complete set of integrated multipole strengths up to decapole order, as named... |
 | [NonLinearLensMagnet](NonLinearLensMagnet.md) | Integrable-optics non-linear lens field |
@@ -122,14 +134,20 @@ Name: laura_schema
 | [Rotation](Rotation.md) | Euler-angle rotation relative to the global coordinate system |
 | [SectionLattice](SectionLattice.md) | An ordered list of element names defining a contiguous beamline section |
 | [ShutterElement](ShutterElement.md) | Shutter interlock configuration |
-| [SimulationElement](SimulationElement.md) | Base simulation attributes: field-map files and reference positions for track... |
+| [SimulationElement](SimulationElement.md) | Base simulation attributes: field-map files, reference positions, and optiona... |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ACDipoleSimulationElement](ACDipoleSimulationElement.md) | Simulation attributes for an AC dipole / tune exciter |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[BeamBeamSimulationElement](BeamBeamSimulationElement.md) | Simulation attributes for a weak-strong beam-beam interaction |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation attributes for beam-diagnostic elements |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[DriftSimulationElement](DriftSimulationElement.md) | Simulation attributes for field-free drift sections |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[ElectrostaticSeparatorSimulationElement](ElectrostaticSeparatorSimulationElement.md) | Simulation attributes for a static electrostatic separator |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[MatrixTransformSimulationElement](MatrixTransformSimulationElement.md) | Zero- through third-order transfer-map coefficients for a matrix transform el... |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[PlasmaSimulationElement](PlasmaSimulationElement.md) | Simulation attributes for plasma-accelerator stages |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFCavitySimulationElement](RFCavitySimulationElement.md) | Simulation attributes for RF cavity elements |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[RFMultipoleSimulationElement](RFMultipoleSimulationElement.md) | Simulation attributes for a thin RF multipole kick |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[TwissMatchSimulationElement](TwissMatchSimulationElement.md) | Simulation attributes for Twiss-matching points |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[WakefieldSimulationElement](WakefieldSimulationElement.md) | Simulation attributes for passive wakefield structures |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[WireSimulationElement](WireSimulationElement.md) | Simulation attributes for a compensating wire |
 | [SolenoidMagnet](SolenoidMagnet.md) | Solenoid field model, including systematic and random field errors and the cu... |
 | [SolenoidFields](SolenoidFields.md) | Solenoid integrated axial field components ``S0L``–``S12L`` [T |
 | [Trace](Trace.md) | LLRF trace metadata |
@@ -149,7 +167,8 @@ Name: laura_schema
 | [alpha_x](alpha_x.md) | Horizontal alpha |
 | [alpha_y](alpha_y.md) | Vertical alpha |
 | [angle](angle.md) | Integrated bending angle [rad] |
-| [aperture](aperture.md) | Aperture geometry parameters |
+| [aperture](aperture.md) | Aperture of the element |
+| [apply](apply.md) | Whether to apply the transfer map |
 | [attenuation_constant](attenuation_constant.md) | Attenuation constant ? of a travelling-wave structure [Np/m] |
 | [beam_pixel_average](beam_pixel_average.md) | Average pixel value for beam detection |
 | [beta_x](beta_x.md) | Horizontal beta |
@@ -159,6 +178,7 @@ Name: laura_schema
 | [bore](bore.md) | Magnet bore radius [m] |
 | [bunch_pusher](bunch_pusher.md) | Pusher used to evolve bunch particles in time |
 | [bunched_beam](bunched_beam.md) | Use bunched beam mode |
+| [c_matrix](c_matrix.md) | C-matrix (zeroth-order transfer vector) |
 | [camera_name](camera_name.md) | Name of the associated camera element |
 | [cavity](cavity.md) | RF structure parameters |
 | [cavity_forward](cavity_forward.md) | Timing for cavity forward power |
@@ -177,6 +197,7 @@ Name: laura_schema
 | [change_momentum](change_momentum.md) | Allow wakefield to change bunch momentum |
 | [change_p0](change_p0.md) | Flag indicating whether the cavity changes reference momentum |
 | [channel_names](channel_names.md) | Channel labels |
+| [charge](charge.md) | Opposing-beam particle charge in units of the elementary charge |
 | [coefficients](coefficients.md) | Polynomial coefficients ordered from lowest to highest degree: ``FieldIntegra... |
 | [control_type](control_type.md) | Kind of quantity this variable carries |
 | [controls](controls.md) | Control-system process-variable definitions |
@@ -185,8 +206,10 @@ Name: laura_schema
 | [crest](crest.md) | On-crest phase offset providing maximum energy gain [deg] |
 | [crest_phase](crest_phase.md) | Cavity crest phase |
 | [csr_bins](csr_bins.md) | Number of longitudinal bins for the CSR mesh |
-| [csr_enable](csr_enable.md) | Enable coherent synchrotron radiation |
-| [csrdz](csrdz.md) | Step size for CSR calculations |
+| [csr_enable](csr_enable.md) | Whether coherent synchrotron radiation effects are enabled |
+| [csr_method](csr_method.md) | Coherent-synchrotron-radiation tracking method |
+| [csrdz](csrdz.md) | Longitudinal step size between CSR kicks [m] |
+| [current](current.md) | Current carried by the wire [A] |
 | [current_bins](current_bins.md) | Number of current bins |
 | [d](d.md) | Constant offset term |
 | [data_chunk_size](data_chunk_size.md) | Chunk size for one-record traces |
@@ -194,7 +217,7 @@ Name: laura_schema
 | [data_size](data_size.md) | Number of points in a trace |
 | [datum](datum.md) | Datum reference position |
 | [degauss](degauss.md) | Degaussing-cycle parameters |
-| [deltaL](deltaL.md) | Longitudinal step-size override for thick-lens integration [m] |
+| [deltaL](deltaL.md) | Longitudinal integration step size [m] |
 | [density](density.md) | Plasma (electron) number density [m^-^3] |
 | [density_profile](density_profile.md) | If True, use a user-defined profile; if False, use a flat-top model |
 | [description](description.md) | Human-readable description |
@@ -214,7 +237,7 @@ Name: laura_schema
 | [dz_fields](dz_fields.md) | Interval for plasma wakefield updates |
 | [edge1_effects](edge1_effects.md) | Enable entrance-edge focussing effects |
 | [edge2_effects](edge2_effects.md) | Enable exit-edge focussing effects |
-| [edge_field_integral](edge_field_integral.md) | Fringe-field integral for edge focussing |
+| [edge_field_integral](edge_field_integral.md) | Per-simulation override of the magnet's fringe-field integral |
 | [edge_order](edge_order.md) | Polynomial order of the edge-field expansion |
 | [electrical](electrical.md) | Power-supply electrical limits |
 | [element](element.md) | Name of the reference element |
@@ -231,6 +254,8 @@ Name: laura_schema
 | [eta_y](eta_y.md) | Vertical dispersion |
 | [eta_yp](eta_yp.md) | Vertical dispersion derivative |
 | [exit_edge_angle](exit_edge_angle.md) | Fringe-field exit edge angle [rad] |
+| [exit_edge_field_integral](exit_edge_field_integral.md) | Enge fringe-field integral at the exit face |
+| [exit_gap](exit_gap.md) | Full gap between pole faces at the exit face [m] |
 | [expression](expression.md) | Expression graph computing the value written to ``target``, as nested mapping... |
 | [ez_peak](ez_peak.md) | Peak longitudinal electric field |
 | [f](f.md) | Saturation fraction (slope ratio below/above I_max) |
@@ -250,6 +275,7 @@ Name: laura_schema
 | [fringe_field_coefficient](fringe_field_coefficient.md) | Coefficient controlling the fringe-field roll-off rate |
 | [from_beam](from_beam.md) | Compute transform from tracked beam properties |
 | [gap](gap.md) | Full gap between pole faces [m] |
+| [geometry](geometry.md) | Whether the reference orbit closes on itself |
 | [global_rotation](global_rotation.md) | Accumulated global rotation including parent-frame contributions |
 | [gradient](gradient.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) |
 | [gradient_calibration](gradient_calibration.md) | Calibration relating measured signal to gradient [MV/m per a |
@@ -262,7 +288,10 @@ Name: laura_schema
 | [helical](helical.md) | True for a helical device, False for planar |
 | [horizontal_channel](horizontal_channel.md) | Horizontal control channel index |
 | [Horizontal_Corrector](Horizontal_Corrector.md) | Name of the horizontal-plane corrector element |
+| [horizontal_field](horizontal_field.md) | Horizontal deflecting electric field [V/m] |
 | [horizontal_kick](horizontal_kick.md) | Horizontal deflection [rad] |
+| [horizontal_offset](horizontal_offset.md) | Horizontal simulation offset from the reference orbit [m] |
+| [horizontal_sigma](horizontal_sigma.md) | Horizontal RMS size of the opposing bunch [m] |
 | [horizontal_size](horizontal_size.md) | Full horizontal aperture [m] |
 | [I0](I0.md) | Current offset [A] |
 | [I_max](I_max.md) | Current at which saturation begins [A] |
@@ -270,8 +299,9 @@ Name: laura_schema
 | [initial_position](initial_position.md) | Initial longitudinal position of the laser pulse [m] |
 | [inputs](inputs.md) | Signal types this element consumes (e |
 | [integrated_strength](integrated_strength.md) | Integrated lens strength (MAD-X ``knll``) |
-| [integration_order](integration_order.md) | Order of the symplectic integrator |
-| [intensity](intensity.md) | Instrument-specific diagnostic parameters |
+| [integration_order](integration_order.md) | Order of the target code's integration formula |
+| [intensity](intensity.md) | Measured photon intensity |
+| [interaction_length](interaction_length.md) | Effective interaction length [m] |
 | [interlocks](interlocks.md) | Names of the interlocks guarding this shutter |
 | [interpolate](interpolate.md) | Interpolate points in wake file |
 | [interpolate_current_bins](interpolate_current_bins.md) | Flag indicating current-bin interpolation |
@@ -286,7 +316,9 @@ Name: laura_schema
 | [Ki](Ki.md) | Integral gain |
 | [klystron_forward](klystron_forward.md) | Timing for klystron forward power |
 | [klystron_reverse](klystron_reverse.md) | Timing for klystron reverse power |
+| [knl](knl.md) | Integrated normal multipole strengths, dipole through decapole |
 | [Kp](Kp.md) | Proportional gain |
+| [ksl](ksl.md) | Integrated skew multipole strengths, dipole through decapole |
 | [L](L.md) | Effective magnetic length [m] |
 | [laguerre_polynomial_order_p](laguerre_polynomial_order_p.md) | Radial Laguerre-Gaussian mode index p (for ``profile_type = laguerre-gaussian... |
 | [laser](laser.md) | Laser-beam parameters |
@@ -297,7 +329,7 @@ Name: laura_schema
 | [linear_saturation_coefficients](linear_saturation_coefficients.md) | Bi-linear saturation calibration |
 | [llrf](llrf.md) | LLRF parameters |
 | [lsc_bins](lsc_bins.md) | Number of bins used in longitudinal space-charge calculations |
-| [lsc_enable](lsc_enable.md) | Enable LSC drift calculations |
+| [lsc_enable](lsc_enable.md) | Whether longitudinal space-charge effects are enabled |
 | [lsc_high_frequency_cutoff_end](lsc_high_frequency_cutoff_end.md) | High-frequency cutoff end for LSC |
 | [lsc_high_frequency_cutoff_start](lsc_high_frequency_cutoff_start.md) | High-frequency cutoff start for LSC |
 | [lsc_interpolate](lsc_interpolate.md) | Flag to allow interpolation of computed LSC wake |
@@ -309,6 +341,7 @@ Name: laura_schema
 | [manufacturer](manufacturer.md) | Name of the manufacturer |
 | [mask](mask.md) | Camera analysis mask configuration |
 | [master_lattice](master_lattice.md) | Name of the master lattice this section belongs to |
+| [mat6_calc_method](mat6_calc_method.md) | Method used to calculate the element's 6x6 transfer matrix |
 | [max](max.md) | Maximum value |
 | [max_amplitude](max_amplitude.md) | Maximum allowed amplitude |
 | [max_i](max_i.md) | Maximum current [A] |
@@ -328,6 +361,7 @@ Name: laura_schema
 | [n_kicks](n_kicks.md) | Number of integration kicks |
 | [n_longitudinal](n_longitudinal.md) | Number of grid points in the longitudinal direction |
 | [n_out](n_out.md) | Number of distribution dumps during the plasma stage |
+| [n_particles](n_particles.md) | Number of particles in the opposing bunch |
 | [n_radial](n_radial.md) | Number of grid points in the radial direction |
 | [n_slices](n_slices.md) | Number of longitudinal slices for thick-lens tracking |
 | [name](name.md) | Unique element name within the machine |
@@ -335,6 +369,7 @@ Name: laura_schema
 | [nonlinear](nonlinear.md) | Include higher-order (sextupole+) field components |
 | [normal](normal.md) | Integrated normal (upright) multipole strength [T |
 | [num_periods](num_periods.md) | Number of full magnetic periods |
+| [num_steps](num_steps.md) | Number of integration steps through the element |
 | [number_of_elements](number_of_elements.md) | Number of aperture sub-elements (e |
 | [number_of_start_zeros](number_of_start_zeros.md) | Number of leading zeros in a trace |
 | [offset](offset.md) | Offset expressed in the reference element's local frame at the chosen point |
@@ -343,6 +378,7 @@ Name: laura_schema
 | [output_filename](output_filename.md) | Output filename for diagnostic data |
 | [outputs](outputs.md) | Signal types this element produces (e |
 | [parabolic_coefficient](parabolic_coefficient.md) | Parabolic coefficient for a transverse density profile |
+| [particle](particle.md) | Design particle species for this layout, overriding the machine-wide value |
 | [peak_magnetic_field](peak_magnetic_field.md) | Peak on-axis field [T] |
 | [period](period.md) | Magnetic period length [m] |
 | [phase](phase.md) | Operating phase offset [deg] |
@@ -359,6 +395,7 @@ Name: laura_schema
 | [plasma_particles_per_cell](plasma_particles_per_cell.md) | Number of plasma particles per cell |
 | [plasma_pusher](plasma_pusher.md) | Pusher used to evolve the plasma in time |
 | [plateau](plateau.md) | Flat-top plateau length [m] |
+| [pnl](pnl.md) | Normal multipole phases [deg], dipole through decapole |
 | [point](point.md) | Which point on the reference element to use as the origin frame: 'start', 'mi... |
 | [polarization](polarization.md) | Laser polarization state |
 | [position](position.md) | Positional misalignment error [m] |
@@ -369,14 +406,17 @@ Name: laura_schema
 | [prot_type](prot_type.md) | Protection system type |
 | [protection](protection.md) | RF protection parameters |
 | [protocol](protocol.md) | Control-system protocol (e |
-| [psi](psi.md) | Rotation about the vertical (y) axis [rad] |
+| [psi](psi.md) | Rotation about the longitudinal (z) axis [rad] |
+| [psl](psl.md) | Skew multipole phases [deg], dipole through decapole |
 | [pulse_duration_fwhm](pulse_duration_fwhm.md) | Pulse duration at FWHM [s] |
 | [pulse_energy](pulse_energy.md) | Laser pulse energy [J] |
 | [quadratic_roll_off_x](quadratic_roll_off_x.md) | Quadratic field roll-off in x [1/m^2] |
 | [quadratic_roll_off_y](quadratic_roll_off_y.md) | Quadratic field roll-off in y [1/m^2] |
+| [r_matrix](r_matrix.md) | R-matrix (first-order transfer matrix) |
 | [r_max](r_max.md) | Radial extent of the simulation box [m] |
 | [r_max_plasma](r_max_plasma.md) | Maximum radial extension of the plasma column |
 | [radius](radius.md) | Radius for circular apertures [m] |
+| [ramp](ramp.md) | Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp |
 | [ramp_decay_length](ramp_decay_length.md) | Exponential decay length of the density ramp [m] |
 | [ramp_down](ramp_down.md) | Exit density-ramp length [m] |
 | [ramp_up](ramp_up.md) | Entrance density-ramp length [m] |
@@ -386,6 +426,7 @@ Name: laura_schema
 | [read_tolerance](read_tolerance.md) | Read-back vs |
 | [readback](readback.md) | Name of the readback variable this set-point drives |
 | [reference](reference.md) | Links to design drawings and files |
+| [reference_energy](reference_energy.md) | Reference total energy of the design particle [eV] |
 | [reference_placement](reference_placement.md) | Place this element relative to another element's frame instead of using absol... |
 | [right](right.md) | Right sense value |
 | [rotation](rotation.md) | Angular misalignment error [rad] |
@@ -425,11 +466,15 @@ Name: laura_schema
 | [shutter](shutter.md) | Shutter interlock configuration |
 | [simulation](simulation.md) | Simulation / tracking attributes |
 | [skew](skew.md) | Integrated skew (rotated) multipole strength [T |
-| [smooth](smooth.md) | Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smoot... |
+| [smooth](smooth.md) | Smoothing control for field or wake interpolation |
 | [smooth_current_bins](smooth_current_bins.md) | Flag indicating current-bin smoothing |
 | [smooth_points](smooth_points.md) | Number of points used to smooth the field map [ASTRA] |
 | [smoothing_half_width](smoothing_half_width.md) | Half-width of the current-profile smoothing kernel |
+| [solenoid_fields](solenoid_fields.md) | Nominal integrated axial solenoid field components |
+| [space_charge_method](space_charge_method.md) | Space-charge tracking method |
 | [species](species.md) | Plasma species name (e |
+| [spin_taylor](spin_taylor.md) | Sparse quaternion Taylor terms |
+| [spin_tracking_method](spin_tracking_method.md) | Spin-tracking algorithm requested from the target code |
 | [sr_enable](sr_enable.md) | Enable synchrotron-radiation energy loss |
 | [start](start.md) | Start time |
 | [states](states.md) | Mapping of state name to underlying control-system value, for ``control_type:... |
@@ -443,16 +488,19 @@ Name: laura_schema
 | [systematic_fields](systematic_fields.md) | Systematic field errors |
 | [systematic_multipoles](systematic_multipoles.md) | Systematic (design) multipole errors at the reference radius |
 | [t_column](t_column.md) | Time column in the wake file |
+| [t_matrix](t_matrix.md) | T-matrix (second-order transfer tensor) |
 | [target](target.md) | Dotted attribute path on the owning element that ``expression`` writes to (e |
-| [theta](theta.md) | Rotation about the longitudinal (z) axis [rad] |
-| [tilt](tilt.md) | Global tilt about the beam axis [rad] |
+| [theta](theta.md) | Rotation about the vertical (y) axis [rad] |
+| [tilt](tilt.md) | Rotation about the beam axis [rad] |
 | [timings](timings.md) | Timing windows for LLRF channels |
 | [tolerance](tolerance.md) | Current tolerance band during the degauss cycle [A] |
 | [trace](trace.md) | Trace metadata |
+| [tracking_method](tracking_method.md) | Phase-space tracking algorithm requested from the target code |
 | [transverse_gradient_x](transverse_gradient_x.md) | Transverse field gradient in x [1/m] |
 | [transverse_gradient_y](transverse_gradient_y.md) | Transverse field gradient in y [1/m] |
 | [trwakefile](trwakefile.md) | Transverse wake file name |
 | [type](type.md) | BPM type (e |
+| [u_matrix](u_matrix.md) | U-matrix (third-order transfer tensor) |
 | [units](units.md) | Physical units string (e |
 | [up](up.md) | Up sense value |
 | [update](update.md) | Signal generating this variable's value over time, as ``{function: <import pa... |
@@ -465,7 +513,10 @@ Name: laura_schema
 | [variables](variables.md) | Named control variables keyed by logical name |
 | [vertical_channel](vertical_channel.md) | Vertical control channel index |
 | [Vertical_Corrector](Vertical_Corrector.md) | Name of the vertical-plane corrector element |
+| [vertical_field](vertical_field.md) | Vertical deflecting electric field [V/m] |
 | [vertical_kick](vertical_kick.md) | Vertical deflection [rad] |
+| [vertical_offset](vertical_offset.md) | Vertical simulation offset from the reference orbit [m] |
+| [vertical_sigma](vertical_sigma.md) | Vertical RMS size of the opposing bunch [m] |
 | [vertical_size](vertical_size.md) | Full vertical aperture [m] |
 | [virtual_name](virtual_name.md) | Alternative internal name used by the control system when the physical name i... |
 | [waist](waist.md) | Laser beam waist (1/e^2 radius) [m] |
@@ -474,7 +525,7 @@ Name: laura_schema
 | [wakefield_model](wakefield_model.md) | Wakefield model identifier |
 | [wakefile](wakefile.md) | Wake file name |
 | [wavelength](wavelength.md) | Laser wavelength [m] |
-| [width](width.md) | Physical width of the magnet in the bending plane [m] |
+| [width](width.md) | Opposing-bunch length for the 3-D weak-strong model [m] |
 | [world_offset](world_offset.md) | Offset already expressed in global world coordinates |
 | [wx_column](wx_column.md) | Horizontal wake column in the wake file |
 | [wy_column](wy_column.md) | Vertical wake column in the wake file |
@@ -505,6 +556,7 @@ Name: laura_schema
 | [IOTypeEnum](IOTypeEnum.md) | Input types for accelerator elements |
 | [LaserPolarizationEnum](LaserPolarizationEnum.md) | Polarization state of a laser beam |
 | [LaserProfileTypeEnum](LaserProfileTypeEnum.md) | Transverse intensity profile model for a laser beam |
+| [LatticeGeometryEnum](LatticeGeometryEnum.md) | Whether the reference orbit closes on itself |
 
 
 ## Types

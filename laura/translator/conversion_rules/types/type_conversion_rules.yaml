@@ -15,7 +15,7 @@ elegant:
   Faraday_Cup_Monitor: moni
   Diagnostic: moni
   RFCavity: rfcw
-  RFDeflectingCavity: rfdf
+  RFDeflectingCavity: rftm110
   Longitudinal_Wakefield: wake
   FEL_Modulator: lsrmdltr
   Scatter: scatter
@@ -149,6 +149,7 @@ madx:
   Scatter: marker
   APContour: marker
   Watch_Point: monitor
+  Diagnostic: monitor
   FEL_Modulator: drift
   MatrixTransform: matrix
   CrabCavity: crabcavity
@@ -158,6 +159,41 @@ madx:
   Wire: wire
   BeamBeam: beambeam
   RFMultipole: rfmultipole
+bmad:
+  Dipole: sbend
+  Quadrupole: quadrupole
+  Sextupole: sextupole
+  Octupole: octupole
+  Decapole: decapole
+  Beam_Position_Monitor: monitor
+  Diagnostic: instrument
+  Beam_Arrival_Monitor: instrument
+  Aperture: rcollimator
+  Bunch_Length_Monitor: instrument
+  Screen: instrument
+  Wall_Current_Monitor: instrument
+  Integrated_Current_Transformer: instrument
+  CrabCavity: crab_cavity
+  Faraday_Cup_Monitor: instrument
+  Photon_Monitor: instrument
+  ChargeDiagnostic: instrument
+  Camera: instrument
+  Collimator: ecollimator
+  Solenoid: solenoid
+  CombinedSolenoidQuadrupole: sol_quad
+  BeamBeam: beambeam
+  Drift: drift
+  RFCavity: lcavity
+  RFDeflectingCavity: crab_cavity
+  Horizontal_Corrector: hkicker
+  Vertical_Corrector: vkicker
+  Combined_Corrector: kicker
+  Wiggler: wiggler
+  Marker: marker
+  TwissMatch: match
+  MatrixTransform: taylor
+  ElectrostaticSeparator: elseparator
+  Wakefield: drift
 name:
   dia-bpm: beam_position_monitor
   dia-bam: beam_arrival_monitor
@@ -176,8 +212,6 @@ aliases:
     Collimator:
       - rcol
     Combined_Corrector:
-      - vkick
-      - hkick
       - kicker
     Quadrupole:
       - quad

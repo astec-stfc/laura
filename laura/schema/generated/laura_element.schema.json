@@ -1,5 +1,402 @@
 {
   "$defs": {
+    "ACDipole": {
+      "additionalProperties": false,
+      "description": "Base class for horizontal and vertical AC-dipole tune exciters.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ACDipoleSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "ACDipole",
+      "type": "object"
+    },
+    "ACDipoleSimulationElement": {
+      "additionalProperties": false,
+      "description": "Simulation attributes for an AC dipole / tune exciter.",
+      "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_amplitude": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Peak kick voltage/amplitude of the exciter.",
+          "type": "number"
+        },
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "frequency": {
+          "description": "Drive frequency [Hz].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "phase": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Phase lag [deg].",
+          "type": "number"
+        },
+        "ramp": {
+          "description": "Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp.",
+          "items": {
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "title": "ACDipoleSimulationElement",
+      "type": "object"
+    },
     "AcceleratorElement": {
       "additionalProperties": false,
       "description": "Root base class for all LAURA accelerator elements.  Every lattice element is an instance of a concrete subclass identified by ``hardware_type``.",
@@ -351,7 +748,8 @@
       "enum": [
         "circular",
         "rectangular",
-        "elliptical"
+        "elliptical",
+        "scraper"
       ],
       "title": "ApertureShapeEnum",
       "type": "string"
@@ -414,6 +812,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -584,6 +993,391 @@
       "title": "BeamArrivalMonitor",
       "type": "object"
     },
+    "BeamBeam": {
+      "additionalProperties": false,
+      "description": "Weak-strong beam-beam interaction element.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "BeamBeam",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BeamBeamSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "BeamBeam",
+      "type": "object"
+    },
+    "BeamBeamSimulationElement": {
+      "additionalProperties": false,
+      "description": "Simulation attributes for a weak-strong beam-beam interaction.",
+      "properties": {
+        "charge": {
+          "description": "Opposing-beam particle charge in units of the elementary charge.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "horizontal_sigma": {
+          "description": "Horizontal RMS size of the opposing bunch [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "n_particles": {
+          "description": "Number of particles in the opposing bunch.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "vertical_sigma": {
+          "description": "Vertical RMS size of the opposing bunch [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "width": {
+          "description": "Opposing-bunch length for the 3-D weak-strong model [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "BeamBeamSimulationElement",
+      "type": "object"
+    },
     "BeamPositionMonitor": {
       "additionalProperties": false,
       "description": "Beam-position monitor (BPM).",
@@ -597,6 +1391,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -791,6 +1596,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -973,6 +1789,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -1566,6 +2393,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -1961,6 +2799,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -2139,6 +2988,423 @@
         "hardware_class"
       ],
       "title": "CombinedCorrector",
+      "type": "object"
+    },
+    "CombinedSolenoidQuadrupole": {
+      "additionalProperties": false,
+      "description": "Magnet combining coaxial solenoid and quadrupole fields.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "degauss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DegaussableElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Degaussing-cycle parameters."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "CombinedSolenoidQuadrupole",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "magnetic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CombinedSolenoidQuadrupoleMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Magnetic field parameters."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MagnetSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "CombinedSolenoidQuadrupole",
+      "type": "object"
+    },
+    "CombinedSolenoidQuadrupoleMagnet": {
+      "additionalProperties": false,
+      "description": "Combined solenoid and quadrupole magnetic field.",
+      "properties": {
+        "angle": {
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "bore": {
+          "description": "Magnet bore radius [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral": {
+          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "entrance_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field entrance edge angle [rad].",
+          "type": "string"
+        },
+        "exit_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field exit edge angle [rad].",
+          "type": "string"
+        },
+        "exit_edge_field_integral": {
+          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_integral_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldIntegral"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Polynomial calibration of integrated field vs. current."
+        },
+        "fringe_field_coefficient": {
+          "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gap": {
+          "description": "Full gap between pole faces [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gradient": {
+          "description": "Peak field gradient [T/m] (quads) or peak field [T] (dipoles).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "length": {
+          "description": "Magnetic (effective) length [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "linear_saturation_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LinearSaturationFit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Bi-linear saturation calibration."
+        },
+        "multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Integrated multipole field components."
+        },
+        "order": {
+          "const": 1,
+          "description": "Principal multipole order (0 = dipole, 1 = quad, ?).",
+          "minimum": -1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "plane": {
+          "$ref": "#/$defs/BendingPlaneEnum",
+          "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
+        },
+        "random_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Random multipole errors at the reference radius."
+        },
+        "settle_time": {
+          "description": "Power-supply settle time after a change [s].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "skew": {
+          "description": "Whether the magnet is rotated 45? to produce a skew field component.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "solenoid_fields": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolenoidFields"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Nominal integrated axial solenoid field components."
+        },
+        "systematic_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Systematic (design) multipole errors at the reference radius."
+        },
+        "tilt": {
+          "description": "Global tilt about the beam axis [rad].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "width": {
+          "description": "Physical width of the magnet in the bending plane [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "CombinedSolenoidQuadrupoleMagnet",
       "type": "object"
     },
     "ControlTypeEnum": {
@@ -2337,6 +3603,200 @@
       "title": "CorrectorMagnet",
       "type": "object"
     },
+    "CrabCavity": {
+      "additionalProperties": false,
+      "description": "Transverse-deflecting crab cavity for crossing-angle compensation.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "cavity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RFDeflectingCavityElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Crab-cavity RF structure parameters."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "CrabCavity",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RFCavitySimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "CrabCavity",
+      "type": "object"
+    },
     "DegaussableElement": {
       "additionalProperties": false,
       "description": "Degaussing (demagnetisation cycle) parameters for magnets that require a field-reset procedure.",
@@ -2383,6 +3843,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -2562,6 +4033,36 @@
       "additionalProperties": false,
       "description": "Simulation attributes for beam-diagnostic elements.",
       "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -2576,6 +4077,57 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "output_filename": {
           "description": "Output filename for diagnostic data.",
           "type": [
@@ -2585,6 +4137,49 @@
         },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -2621,6 +4216,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -2822,7 +4428,7 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
           "type": [
             "number",
             "null"
@@ -2857,6 +4463,21 @@
           ],
           "description": "Fringe-field exit edge angle [rad].",
           "type": "string"
+        },
+        "exit_edge_field_integral": {
+          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -3001,6 +4622,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -3165,14 +4797,30 @@
       "description": "Simulation attributes for field-free drift sections.",
       "properties": {
         "csr_enable": {
-          "description": "Enable CSR drift calculations.",
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
           "type": [
             "boolean",
             "null"
           ]
         },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "csrdz": {
           "description": "Step size for CSR calculations.",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
           "type": [
             "number",
             "null"
@@ -3192,6 +4840,21 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "lsc_bins": {
           "description": "Number of bins for LSC calculations.",
           "type": [
@@ -3200,7 +4863,7 @@
           ]
         },
         "lsc_enable": {
-          "description": "Enable LSC drift calculations.",
+          "description": "Whether longitudinal space-charge effects are enabled.",
           "type": [
             "boolean",
             "null"
@@ -3241,6 +4904,28 @@
             "null"
           ]
         },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
           "type": [
@@ -3248,10 +4933,53 @@
             "null"
           ]
         },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "use_stupakov": {
           "description": "Use Stupakov formula.",
           "type": [
             "integer",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -3300,6 +5028,393 @@
         }
       },
       "title": "ElectricalElement",
+      "type": "object"
+    },
+    "ElectrostaticSeparator": {
+      "additionalProperties": false,
+      "description": "Static electrostatic transverse-deflection element.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "ElectrostaticSeparator",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectrostaticSeparatorSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "ElectrostaticSeparator",
+      "type": "object"
+    },
+    "ElectrostaticSeparatorSimulationElement": {
+      "additionalProperties": false,
+      "description": "Simulation attributes for a static electrostatic separator.",
+      "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "horizontal_field": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Horizontal deflecting electric field [V/m].",
+          "type": "number"
+        },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tilt": {
+          "description": "Rotation about the beam axis [rad].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_field": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vertical deflecting electric field [V/m].",
+          "type": "number"
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "title": "ElectrostaticSeparatorSimulationElement",
       "type": "object"
     },
     "Element": {
@@ -3536,6 +5651,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -3743,10 +5869,198 @@
         "Drift",
         "Generic",
         "Monitor",
-        "Simulation"
+        "Simulation",
+        "ElectrostaticSeparator",
+        "ACDipole",
+        "Wire",
+        "BeamBeam",
+        "RFMultipole"
       ],
       "title": "HardwareClassEnum",
       "type": "string"
+    },
+    "HorizontalACDipole": {
+      "additionalProperties": false,
+      "description": "Horizontally deflecting AC-dipole tune exciter.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Horizontal_AC_Dipole",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ACDipoleSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "HorizontalACDipole",
+      "type": "object"
     },
     "HorizontalCorrector": {
       "additionalProperties": false,
@@ -3761,6 +6075,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -3979,6 +6304,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -4247,6 +6583,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -5302,6 +7649,15 @@
       "title": "LaserProfileTypeEnum",
       "type": "string"
     },
+    "LatticeGeometryEnum": {
+      "description": "Whether the reference orbit closes on itself. Mirrors Bmad's ``parameter[geometry]``.",
+      "enum": [
+        "open",
+        "closed"
+      ],
+      "title": "LatticeGeometryEnum",
+      "type": "string"
+    },
     "Lighting": {
       "additionalProperties": false,
       "description": "Experimental-hall lighting element.",
@@ -5779,6 +8135,13 @@
           "description": "Unique layout name.",
           "type": "string"
         },
+        "particle": {
+          "description": "Design particle species for this layout, overriding the machine-wide value. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "sections": {
           "description": "Ordered list of section names.",
           "items": {
@@ -5820,6 +8183,13 @@
             "null"
           ]
         },
+        "particle": {
+          "description": "Machine-wide design particle species, overridable per layout. Free text rather than an enum because the accepted set includes arbitrary ions (e.g. ``#12C+3``) alongside the fundamental particles.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "sections": {
           "description": "All named beamline sections.",
           "items": {
@@ -5847,6 +8217,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -6039,14 +8420,30 @@
           ]
         },
         "csr_enable": {
-          "description": "Enable coherent synchrotron radiation.",
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
           "type": [
             "boolean",
             "null"
           ]
         },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "deltaL": {
           "description": "Longitudinal step-size override for thick-lens integration [m].",
+          "minimum": 0,
           "type": [
             "number",
             "null"
@@ -6067,7 +8464,7 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Fringe-field integral for edge focussing.",
+          "description": "Per-simulation override of the magnet's fringe-field integral. Absent means \"use ``MagneticElement.edge_field_integral``\", which is what every element wants unless a study is deliberately varying the edge focussing independently of the magnet. It used to default to 0.5, and because the keyword converters strip the sub-model prefix before looking a name up, that default reached the exporters ahead of the magnet's own value and shadowed it: a magnet with ``edge_field_integral = 0.3`` exported ``fint = 0.5`` to MAD-X, ELEGANT, OPAL, Ocelot and Xsuite. Only Bmad escaped, because ``_bmad_parameters`` overwrites ``fint`` after the loop.",
           "type": [
             "number",
             "null"
@@ -6109,8 +8506,16 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "integration_order": {
           "description": "Order of the symplectic integrator.",
+          "minimum": 1,
           "type": [
             "integer",
             "null"
@@ -6120,6 +8525,27 @@
           "description": "Enable incoherent synchrotron-radiation emittance growth.",
           "type": [
             "boolean",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -6146,6 +8572,14 @@
             "null"
           ]
         },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
           "type": [
@@ -6154,11 +8588,19 @@
           ]
         },
         "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).",
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": "integer"
         },
         "smooth_points": {
           "description": "Number of points used to smooth the field map [ASTRA].",
@@ -6174,10 +8616,38 @@
             "null"
           ]
         },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "sr_enable": {
           "description": "Enable synchrotron-radiation energy loss.",
           "type": [
             "boolean",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -6219,7 +8689,7 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
           "type": [
             "number",
             "null"
@@ -6254,6 +8724,21 @@
           ],
           "description": "Fringe-field exit edge angle [rad].",
           "type": "string"
+        },
+        "exit_edge_field_integral": {
+          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -6420,6 +8905,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -6578,6 +9074,430 @@
       "title": "Marker",
       "type": "object"
     },
+    "MatrixTransform": {
+      "additionalProperties": false,
+      "description": "Transfer-map element with zero-, first-, and second-order coefficients.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "MatrixTransform",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatrixTransformSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "MatrixTransform",
+      "type": "object"
+    },
+    "MatrixTransformSimulationElement": {
+      "additionalProperties": false,
+      "description": "Zero- through third-order transfer-map coefficients for a matrix transform element. Each coefficient collection accepts the dense form or the named coefficient mapping understood by the Python model.",
+      "properties": {
+        "apply": {
+          "description": "Whether to apply the transfer map.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "c_matrix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatrixValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "C-matrix (zeroth-order transfer vector)."
+        },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "r_matrix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatrixValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "R-matrix (first-order transfer matrix)."
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_taylor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatrixValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Sparse quaternion Taylor terms. Each term stores a quaternion component index, coefficient, and six orbital exponents."
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "t_matrix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatrixValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "T-matrix (second-order transfer tensor)."
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "u_matrix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MatrixValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "U-matrix (third-order transfer tensor)."
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "title": "MatrixTransformSimulationElement",
+      "type": "object"
+    },
+    "MatrixValue": {
+      "additionalProperties": true,
+      "description": "An unconstrained serializable matrix value. The handwritten matrix model validates dense arrays and named coefficient mappings into NumPy arrays.",
+      "title": "MatrixValue",
+      "type": [
+        "null",
+        "boolean",
+        "object",
+        "number",
+        "string"
+      ]
+    },
     "Multipole": {
       "additionalProperties": false,
       "description": "Individual multipole field component, characterised by order and integrated normal / skew strengths at a reference radius.",
@@ -6707,6 +9627,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -6933,6 +9864,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -7133,7 +10075,7 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
           "type": [
             "number",
             "null"
@@ -7168,6 +10110,21 @@
           ],
           "description": "Fringe-field exit edge angle [rad].",
           "type": "string"
+        },
+        "exit_edge_field_integral": {
+          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -7630,6 +10587,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -7644,7 +10612,7 @@
         "diagnostic": {
           "anyOf": [
             {
-              "$ref": "#/$defs/DiagnosticElement"
+              "$ref": "#/$defs/PhotonIntensityMonitorDiagnostic"
             },
             {
               "type": "null"
@@ -7701,17 +10669,6 @@
             "array",
             "null"
           ]
-        },
-        "intensity": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PhotonIntensityMonitorDiagnostic"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Instrument-specific diagnostic parameters."
         },
         "machine_area": {
           "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
@@ -7823,6 +10780,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -8109,6 +11077,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -8369,6 +11348,36 @@
             "null"
           ]
         },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "dt_bunch": {
           "description": "Time-step control for bunch evolution (or 'auto').",
           "type": [
@@ -8397,6 +11406,42 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "max_longitudinal_position": {
           "description": "Maximum longitudinal position [m].",
           "type": [
@@ -8408,6 +11453,13 @@
           "description": "Minimum longitudinal position [m].",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -8427,6 +11479,14 @@
         },
         "n_radial": {
           "description": "Number of grid points in the radial direction.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
           "type": [
             "integer",
             "null"
@@ -8462,6 +11522,49 @@
         },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -8696,6 +11799,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -8896,7 +12010,7 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
           "type": [
             "number",
             "null"
@@ -8931,6 +12045,21 @@
           ],
           "description": "Fringe-field exit edge angle [rad].",
           "type": "string"
+        },
+        "exit_edge_field_integral": {
+          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -9075,6 +12204,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "cavity": {
           "anyOf": [
@@ -9396,10 +12536,40 @@
             "null"
           ]
         },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "current_bins": {
           "description": "Number of current bins.",
           "type": [
             "integer",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -9457,6 +12627,21 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "interpolate_current_bins": {
           "description": "Flag indicating current-bin interpolation.",
           "type": [
@@ -9471,8 +12656,30 @@
             "null"
           ]
         },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "n_kicks": {
           "description": "Number of cavity kicks to apply.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
           "type": [
             "integer",
             "null"
@@ -9486,16 +12693,38 @@
           ]
         },
         "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Cavity smoothing parameter.",
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": "integer"
         },
         "smooth_current_bins": {
           "description": "Flag indicating current-bin smoothing.",
           "type": [
             "integer",
+            "null"
+          ]
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -9506,10 +12735,24 @@
             "null"
           ]
         },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "trwakefile": {
           "description": "Transverse wake file name.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -9589,6 +12832,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "cavity": {
           "anyOf": [
@@ -10214,6 +13468,434 @@
       "title": "RFModulatorElement",
       "type": "object"
     },
+    "RFMultipole": {
+      "additionalProperties": false,
+      "description": "Thin RF-driven multipole kick.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "RFMultipole",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RFMultipoleSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "RFMultipole",
+      "type": "object"
+    },
+    "RFMultipoleSimulationElement": {
+      "additionalProperties": false,
+      "description": "Simulation attributes for a thin RF multipole kick.",
+      "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_amplitude": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Longitudinal voltage [V].",
+          "type": "number"
+        },
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "frequency": {
+          "description": "RF frequency [Hz].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "knl": {
+          "description": "Integrated normal multipole strengths, dipole through decapole.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "ksl": {
+          "description": "Integrated skew multipole strengths, dipole through decapole.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "phase": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Overall phase lag [deg].",
+          "type": "number"
+        },
+        "pnl": {
+          "description": "Normal multipole phases [deg], dipole through decapole.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "psl": {
+          "description": "Skew multipole phases [deg], dipole through decapole.",
+          "items": {
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "title": "RFMultipoleSimulationElement",
+      "type": "object"
+    },
     "RFProtection": {
       "additionalProperties": false,
       "description": "RF protection system element.",
@@ -10482,7 +14164,7 @@
     },
     "Rotation": {
       "additionalProperties": false,
-      "description": "Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi].",
+      "description": "Euler-angle rotation relative to the global coordinate system. All angles are in radians, bounded to [-pi, pi]. The composition is Rz(psi) . Rx(phi) . Ry(theta), as implemented by laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each angle below names the axis that factor turns about. psi and theta were described the other way round until 2026-09-01, which is how the Bmad importer came to read x_pitch (a rotation about y) into psi.",
       "properties": {
         "phi": {
           "description": "Rotation about the horizontal (x) axis [rad].",
@@ -10494,7 +14176,7 @@
           ]
         },
         "psi": {
-          "description": "Rotation about the vertical (y) axis [rad].",
+          "description": "Rotation about the longitudinal (z) axis [rad].",
           "maximum": 3.141592653589793,
           "minimum": -3.141592653589793,
           "type": [
@@ -10503,7 +14185,7 @@
           ]
         },
         "theta": {
-          "description": "Rotation about the longitudinal (z) axis [rad].",
+          "description": "Rotation about the vertical (y) axis [rad].",
           "maximum": 3.141592653589793,
           "minimum": -3.141592653589793,
           "type": [
@@ -10528,6 +14210,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -10751,6 +14444,10 @@
             "null"
           ]
         },
+        "geometry": {
+          "$ref": "#/$defs/LatticeGeometryEnum",
+          "description": "Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent."
+        },
         "master_lattice": {
           "description": "Name of the master lattice this section belongs to.",
           "type": [
@@ -10761,6 +14458,14 @@
         "name": {
           "description": "Unique section name.",
           "type": "string"
+        },
+        "reference_energy": {
+          "description": "Reference total energy of the design particle [eV].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         }
       },
       "required": [
@@ -10782,6 +14487,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -10983,7 +14699,7 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless).",
+          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
           "type": [
             "number",
             "null"
@@ -11018,6 +14734,21 @@
           ],
           "description": "Fringe-field exit edge angle [rad].",
           "type": "string"
+        },
+        "exit_edge_field_integral": {
+          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "field_integral_coefficients": {
           "anyOf": [
@@ -11162,6 +14893,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -11352,8 +15094,38 @@
     },
     "SimulationElement": {
       "additionalProperties": false,
-      "description": "Base simulation attributes: field-map files and reference positions for tracking codes.",
+      "description": "Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes.",
       "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "field_definition": {
           "description": "Path to the 3-D field-map file.",
           "type": [
@@ -11368,8 +15140,102 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -11406,6 +15272,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -11786,6 +15663,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -12154,6 +16042,17 @@
             "null"
           ]
         },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
         "controls": {
           "anyOf": [
             {
@@ -12344,6 +16243,36 @@
             "null"
           ]
         },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "eta_x": {
           "description": "Horizontal dispersion.",
           "type": [
@@ -12393,8 +16322,102 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "scale_field": {
           "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
           "type": [
             "number",
             "null"
@@ -12431,6 +16454,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -12603,6 +16637,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -12779,6 +16824,189 @@
       "title": "ValveElement",
       "type": "object"
     },
+    "VerticalACDipole": {
+      "additionalProperties": false,
+      "description": "Vertically deflecting AC-dipole tune exciter.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Vertical_AC_Dipole",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ACDipoleSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "VerticalACDipole",
+      "type": "object"
+    },
     "VerticalCorrector": {
       "additionalProperties": false,
       "description": "Vertical steering corrector.",
@@ -12792,6 +17020,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -12986,6 +17225,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "cavity": {
           "anyOf": [
@@ -13213,6 +17463,36 @@
             "null"
           ]
         },
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "equal_grid": {
           "description": "Interpolation between equidistant and equal-charge grids.",
           "type": [
@@ -13241,6 +17521,21 @@
             "null"
           ]
         },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "interpolate": {
           "description": "Interpolate points in wake file.",
           "type": [
@@ -13250,6 +17545,42 @@
         },
         "interpolation_method": {
           "description": "Interpolation method for ASTRA.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
           "type": [
             "integer",
             "null"
@@ -13312,9 +17643,31 @@
           ]
         },
         "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "Smoothing parameter for Gaussian interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
           "type": [
-            "number",
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -13329,6 +17682,20 @@
           "description": "Time column in the wake file.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
             "null"
           ]
         },
@@ -13391,6 +17758,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -13574,6 +17952,17 @@
             "array",
             "null"
           ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
         },
         "controls": {
           "anyOf": [
@@ -13845,6 +18234,370 @@
         }
       },
       "title": "WigglerMagnet",
+      "type": "object"
+    },
+    "Wire": {
+      "additionalProperties": false,
+      "description": "Current-carrying wire for long-range beam-beam compensation.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "Wire",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WireSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "Wire",
+      "type": "object"
+    },
+    "WireSimulationElement": {
+      "additionalProperties": false,
+      "description": "Simulation attributes for a compensating wire.",
+      "properties": {
+        "csr_enable": {
+          "description": "Whether coherent synchrotron radiation effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "csr_method": {
+          "description": "Coherent-synchrotron-radiation tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "csrdz": {
+          "description": "Longitudinal step size between CSR kicks [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "current": {
+          "description": "Current carried by the wire [A].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "deltaL": {
+          "description": "Longitudinal integration step size [m].",
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_definition": {
+          "description": "Path to the 3-D field-map file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field_reference_position": {
+          "description": "Longitudinal origin of the field map [m].",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "horizontal_offset": {
+          "description": "Horizontal simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_order": {
+          "description": "Order of the target code's integration formula.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "interaction_length": {
+          "description": "Effective interaction length [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lsc_bins": {
+          "description": "Number of bins used in longitudinal space-charge calculations.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lsc_enable": {
+          "description": "Whether longitudinal space-charge effects are enabled.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mat6_calc_method": {
+          "description": "Method used to calculate the element's 6x6 transfer matrix.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_kicks": {
+          "description": "Number of integration kicks.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "num_steps": {
+          "description": "Number of integration steps through the element.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "scale_field": {
+          "description": "Multiplicative scale factor applied to the field map.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "smooth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Smoothing control for field or wake interpolation.",
+          "type": "number"
+        },
+        "space_charge_method": {
+          "description": "Space-charge tracking method.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spin_tracking_method": {
+          "description": "Spin-tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tracking_method": {
+          "description": "Phase-space tracking algorithm requested from the target code.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vertical_offset": {
+          "description": "Vertical simulation offset from the reference orbit [m].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "wakefield_definition": {
+          "description": "Path to the wakefield impedance file.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wakefield_enable": {
+          "description": "Whether the wakefield named by wakefield_definition is applied. Set false to track the element without its wakefield while keeping the definition itself.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "title": "WireSimulationElement",
       "type": "object"
     }
   },

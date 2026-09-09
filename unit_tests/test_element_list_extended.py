@@ -136,6 +136,67 @@ class TestSectionLattice:
         drift_names = [k for k in drifts.keys() if "drift" in k.lower()]
         assert len(drift_names) > 0
 
+    def _thick_diagnostic_section(self):
+        return SectionLattice(
+            name="S",
+            order=["Q1", "BPM", "Q2"],
+            elements=[
+                Quadrupole(
+                    name="Q1",
+                    machine_area="S",
+                    magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+                    physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
+                ),
+                Beam_Position_Monitor(
+                    name="BPM",
+                    machine_area="S",
+                    physical=PhysicalElement(length=0.3, middle=Position(z=1.15)),
+                ),
+                Quadrupole(
+                    name="Q2",
+                    machine_area="S",
+                    magnetic={"magnetic_length": 0.5, "k1l": -0.3},
+                    physical=PhysicalElement(length=0.5, middle=Position(z=2.05)),
+                ),
+            ],
+            geometry="open",
+        )
+
+    def test_create_drifts_collapses_a_diagnostic_by_default(self):
+        """Not every code can express a marker that occupies space, so the
+        default is to shrink a Diagnostic to a point and let the drifts either
+        side take up the slack.
+        """
+        section = self._thick_diagnostic_section()
+        drifts = section.createDrifts()
+
+        assert drifts["BPM"].physical.length == 0.0
+        total = sum(e.physical.length for e in drifts.values())
+        assert total == pytest.approx(2.3)
+
+    def test_create_drifts_can_keep_a_diagnostic_thick(self):
+        """Codes whose diagnostics do take a length -- Bmad's monitor and
+        instrument both do -- ask for the length to survive, or the element's
+        recorded position moves half an element-length upstream.
+        """
+        section = self._thick_diagnostic_section()
+        drifts = section.createDrifts(keep_diagnostic_length=True)
+
+        assert drifts["BPM"].physical.length == pytest.approx(0.3)
+        total = sum(e.physical.length for e in drifts.values())
+        assert total == pytest.approx(2.3)
+
+    def test_create_drifts_does_not_touch_the_section_it_was_given(self):
+        """This used to assign straight into the caller's model, so one call
+        permanently zeroed every diagnostic length in it and every later
+        export -- to any code, or back to YAML -- inherited the loss.
+        """
+        section = self._thick_diagnostic_section()
+        section.createDrifts()
+        section.createDrifts()
+
+        assert section.elements["BPM"].physical.length == pytest.approx(0.3)
+
     def test_get_s_values_list(self, section_lattice):
         s_vals = section_lattice.get_s_values()
         assert isinstance(s_vals, list)

@@ -18,23 +18,22 @@ from ..models.element import ELEMENT_REGISTRY
 
 _log = logging.getLogger("laura.loader")
 
-# Fast metadata extraction regex
-_NAME_RE = re.compile(r'^\s*name:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE)
-_AREA_RE = re.compile(
-    r'^\s*machine_area:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE
-)
-# Matches either accepted spelling of the inheritance slot, so a child's parent
-# can be found from the same 2000-char head the name and area come from -- no
-# extra I/O to know whether a lazily-loaded element inherits at all.
-_INHERIT_RE = re.compile(
-    r'^\s*inherits?(?:_from)?:\s*["\'\s]?([^"\'\s#\n]+)["\'\s]?', re.MULTILINE
-)
-# A `_`-prefixed file is an inheritable template only if it actually declares an
-# element at the top level. Controls schemas (`_schema.yaml`) are `_`-prefixed
-# too and hold a bare `variables:` mapping, so requiring an unindented `name:`
-# and a `hardware_type:` keeps them out of the element namespace.
-_TEMPLATE_NAME_RE = re.compile(r'^name:\s*["\']?([^"\'\s#\n]+)', re.MULTILINE)
+_NAME_RE = re.compile(r"^[ \t]*name:[ \t]*(.*)$", re.MULTILINE)
+_AREA_RE = re.compile(r"^[ \t]*machine_area:[ \t]*(.*)$", re.MULTILINE)
+_INHERIT_RE = re.compile(r"^[ \t]*inherits?(?:_from)?:[ \t]*(.*)$", re.MULTILINE)
+_TEMPLATE_NAME_RE = re.compile(r"^name:[ \t]*(.*)$", re.MULTILINE)
 _HARDWARE_TYPE_RE = re.compile(r"^hardware_type:", re.MULTILINE)
+_COMMENT_RE = re.compile(r"(?:(?<=\s)|^)#")
+
+def _yaml_scalar(raw: str) -> str:
+    """Unquote a plain YAML scalar and drop any trailing comment."""
+    raw = raw.strip()
+    if raw[:1] in ('"', "'"):
+        quote = raw[0]
+        end = raw.find(quote, 1)
+        return raw[1:end] if end > 0 else raw[1:]
+    return _COMMENT_RE.split(raw, maxsplit=1)[0].strip()
+
 
 COMBINED_SCHEMAS_KEY = "_schemas"
 
@@ -174,24 +173,22 @@ def fast_get_element_metadata(filename: str) -> dict:
     """Quickly extract metadata from a YAML file without full parsing."""
     metadata = {"name": None, "machine_area": None, "inherits_from": None}
     try:
-        with open(filename, "r") as f:
+        with open(filename, 'r') as f:
             # Metadata is usually in first 2000 chars
             content = f.read(2000)
             name_match = _NAME_RE.search(content)
             if name_match:
-                metadata["name"] = name_match.group(1).strip()
+                metadata["name"] = _yaml_scalar(name_match.group(1))
             area_match = _AREA_RE.search(content)
             if area_match:
-                metadata["machine_area"] = area_match.group(1).strip()
+                metadata["machine_area"] = _yaml_scalar(area_match.group(1))
             inherit_match = _INHERIT_RE.search(content)
             if inherit_match:
-                metadata["inherits_from"] = inherit_match.group(1).strip()
+                metadata["inherits_from"] = _yaml_scalar(inherit_match.group(1))
     except Exception:
         pass
     if not metadata["name"]:
-        metadata["name"] = (
-            os.path.basename(filename).replace(".yaml", "").replace(".yml", "")
-        )
+        metadata["name"] = os.path.basename(filename).replace('.yaml', '').replace('.yml', '')
     return metadata
 
 
@@ -217,7 +214,7 @@ def collect_template_filenames(files) -> dict:
         name_match = _TEMPLATE_NAME_RE.search(content)
         if not name_match or not _HARDWARE_TYPE_RE.search(content):
             continue
-        name = name_match.group(1).strip()
+        name = _yaml_scalar(name_match.group(1))
         if name in templates:
             warnings.warn(
                 f"Duplicate element template '{name}': "
@@ -1086,6 +1083,9 @@ def read_YAML_Combined_File(
         for element in elements.values():
             validate_element_dict(element)
 
+    # A combined file may embed the controls schemas its elements reference
+    # (see COMBINED_SCHEMAS_KEY / export_machine_combined_file), so it can be
+    # loaded standalone without companion `_schema.yaml` files on disk.
     schema_map = elements.pop(COMBINED_SCHEMAS_KEY, None)
     # Definitions that exist only to be inherited from. Popped before the
     # parse loop so they never become machine elements, but kept in the
@@ -1127,9 +1127,7 @@ def read_YAML_Combined_File(
     failed = len(results) - loaded
     _log.info(
         "Loaded %d/%d elements from '%s'%s",
-        loaded,
-        len(results),
-        filename,
+        loaded, len(results), filename,
         f" ({failed} failed — enable DEBUG for details)" if failed else "",
     )
     return results

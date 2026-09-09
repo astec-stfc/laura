@@ -1,3 +1,4 @@
+from itertools import combinations_with_replacement, permutations
 from .base import BaseElementTranslator
 from laura.models.simulation import MatrixTransformSimulationElement
 from torch import tensor, float64
@@ -37,6 +38,10 @@ class MatrixTransformTranslator(BaseElementTranslator):
                 string += linestr
             return fullstr, string
 
+        if self.length:
+            wholestring, string = split_lines(
+                wholestring, string, f", L = {self.length}"
+            )
         if not np.array_equal(self.simulation.c_matrix, np.zeros(6)):
             for i, val in enumerate(self.simulation.c_matrix):
                 if val != 0:
@@ -56,6 +61,51 @@ class MatrixTransformTranslator(BaseElementTranslator):
                             )
         wholestring += string + ";\n"
         return wholestring
+
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad Taylor map through third order.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        terms = [f"l = {self.length}"]
+        terms.extend(
+            f"{key} = {value}" for key, value in self._bmad_common_parameters().items()
+        )
+        for output, value in enumerate(self.simulation.c_matrix, 1):
+            if value:
+                terms.append(f"{{{output}: {value} |}}")
+        for output, row in enumerate(self.simulation.r_matrix, 1):
+            for index, value in enumerate(row, 1):
+                if value:
+                    terms.append(f"{{{output}: {value} |{index}}}")
+        for matrix, degree in (
+            (self.simulation.t_matrix, 2),
+            (self.simulation.u_matrix, 3),
+        ):
+            for output in range(6):
+                for indices in combinations_with_replacement(range(6), degree):
+                    coefficient = sum(
+                        matrix[(output, *order)]
+                        for order in set(permutations(indices))
+                    )
+                    if coefficient:
+                        suffix = "".join(str(index + 1) for index in indices)
+                        terms.append(f"{{{output + 1}: {coefficient} |{suffix}}}")
+        components = ("S1", "Sx", "Sy", "Sz")
+        for term in self.simulation.spin_taylor:
+            suffix = "".join(
+                str(index) * int(term[f"exp{index}"])
+                for index in range(1, 7)
+            )
+            terms.append(
+                f"{{{components[term['index']]}: {term['coef']} |{suffix}}}"
+            )
+        return f"{sanitize_string(self.name)}: taylor, " + ", ".join(terms) + "\n"
 
     def to_madx(self, at: float = None) -> str:
         """

@@ -1,30 +1,28 @@
-from pydantic import (
-    computed_field,
-    field_validator,
-    Field
-)
-from typing import Literal, Any, ClassVar, Union, Dict, List
-from .baseModels import IgnoreExtra, FunctionalMixin
-from ._generated import (
-    _ApertureElementBase,
-    _SimulationElementBase,
-    _MagnetSimulationElementBase,
-    _RFCavitySimulationElementBase,
-    _WakefieldSimulationElementBase,
-    _DriftSimulationElementBase,
-    _DiagnosticSimulationElementBase,
-    _PlasmaSimulationElementBase,
-    _TwissMatchSimulationElementBase,
-    _MatrixTransformSimulationElementBase,
-    _ElectrostaticSeparatorSimulationElementBase,
-    _ACDipoleSimulationElementBase,
-    _WireSimulationElementBase,
-    _BeamBeamSimulationElementBase,
-    _RFMultipoleSimulationElementBase,
-)
-from ..translator.utils.fields import field
-import numpy as np
 import re
+from typing import Any, ClassVar, Dict, List, Union
+
+import numpy as np
+from pydantic import Field, computed_field, field_validator
+
+from ..translator.utils.fields import field
+from ._generated import (
+    _ACDipoleSimulationElementBase,
+    _ApertureElementBase,
+    _BeamBeamSimulationElementBase,
+    _DiagnosticSimulationElementBase,
+    _DriftSimulationElementBase,
+    _ElectrostaticSeparatorSimulationElementBase,
+    _MagnetSimulationElementBase,
+    _MatrixTransformSimulationElementBase,
+    _PlasmaSimulationElementBase,
+    _RFCavitySimulationElementBase,
+    _RFMultipoleSimulationElementBase,
+    _SimulationElementBase,
+    _TwissMatchSimulationElementBase,
+    _WakefieldSimulationElementBase,
+    _WireSimulationElementBase,
+)
+from .baseModels import FunctionalMixin
 
 
 class ApertureElement(_ApertureElementBase):
@@ -38,10 +36,6 @@ class SimulationElement(_SimulationElementBase, FunctionalMixin):
     Simulation element model.
     """
 
-    # Everything else PR #4 declared here (field_definition, wakefield_definition,
-    # field_reference_position, scale_field) now comes from the generated schema
-    # base. wakefield_enable does not yet exist in the schema, so it stays an
-    # explicit override until it is added to laura_schema.yaml.
     wakefield_enable: bool = True
     """Flag to indicate whether the wakefield defined by
     :attr:`~wakefield_definition` is applied. Set to False to track the element
@@ -57,17 +51,11 @@ class MagnetSimulationElement(_MagnetSimulationElementBase, FunctionalMixin):
     # Schema declares `smooth` as boolean but ASTRA uses an integer smoothing count (Q_smooth / S_smooth).
     smooth: int | None = 2
 
-    # Schema types this as plain float; widened to accept the name of a
-    # functional definition, and marked so functional_references() finds it.
     field_amplitude: Union[float, str] = Field(
         default=0.0, json_schema_extra={"functional": True}
     )
     """Field amplitude for the magnet simulation. Stored verbatim: a number or a
     string naming a functional definition (resolve via ``resolved("field_amplitude")``)."""
-
-    # n_kicks, n_slices, edge_*, sr_enable, integration_order, nonlinear,
-    # smoothing_half_width, csr_*, isr_enable and deltaL were declared inline by
-    # PR #4; they now come from _MagnetSimulationElementBase.
 
 
 class DriftSimulationElement(_DriftSimulationElementBase):
@@ -75,11 +63,13 @@ class DriftSimulationElement(_DriftSimulationElementBase):
     Drift simulation element model.
     """
 
-    pass
+    wakefield_definition: str | field | None = None
+    """A wake file name, or the sampled wake itself."""
 
 
 class DiagnosticSimulationElement(_DiagnosticSimulationElementBase):
-    pass
+    wakefield_definition: str | field | None = None
+    """A wake file name, or the sampled wake itself."""
 
 
 class PlasmaSimulationElement(_PlasmaSimulationElementBase):
@@ -112,8 +102,6 @@ class RFCavitySimulationElement(_RFCavitySimulationElementBase, FunctionalMixin)
     field_definition: str | field | None = None
     wakefield_definition: str | field | None = None
 
-    # Schema types this as plain float; widened to accept the name of a
-    # functional definition, and marked so functional_references() finds it.
     field_amplitude: Union[float, str] = Field(
         default=0.0, json_schema_extra={"functional": True}
     )
@@ -132,7 +120,12 @@ class WakefieldSimulationElement(_WakefieldSimulationElementBase):
 
 
 class TwissMatchSimulationElement(_TwissMatchSimulationElementBase):
-    pass
+    @field_validator("beta_x", "beta_y")
+    @classmethod
+    def validate_beta(cls, value):
+        if value <= 0:
+            raise ValueError("Twiss beta must be greater than zero")
+        return value
 
     @computed_field
     @property
@@ -184,6 +177,12 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
     t_matrix: np.ndarray = Field(default_factory=lambda: np.zeros((6, 6, 6)))
     """T-matrix for the element (2nd order transformation matrix)."""
 
+    u_matrix: np.ndarray = Field(default_factory=lambda: np.zeros((6, 6, 6, 6)))
+    """U-matrix for the element (3rd order transformation matrix)."""
+
+    spin_taylor: List[Dict[str, Any]] = Field(default_factory=list)
+    """Sparse quaternion Taylor terms indexed as S1, Sx, Sy, and Sz (0--3)."""
+
     @field_validator("c_matrix", mode="before")
     @classmethod
     def validate_c_matrix(cls, v):
@@ -200,9 +199,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
                 idx = int(m.group(1)) - 1
 
                 if not (0 <= idx < 6):
-                    raise ValueError(
-                        f"C-matrix index out of range: {key}"
-                    )
+                    raise ValueError(f"C-matrix index out of range: {key}")
 
                 vector[idx] = float(value)
 
@@ -211,16 +208,13 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
         arr = np.asarray(v, dtype=float)
 
         if arr.shape != (6,):
-            raise ValueError(
-                f"c_matrix must have shape (6,), got {arr.shape}"
-            )
+            raise ValueError(f"c_matrix must have shape (6,), got {arr.shape}")
 
         return arr
 
     @field_validator("r_matrix", mode="before")
     @classmethod
     def validate_r_matrix(cls, v):
-        print(v)
         if isinstance(v, dict):
             matrix = np.eye(6)
 
@@ -235,9 +229,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
                 col = int(m.group(2)) - 1
 
                 if not (0 <= row < 6 and 0 <= col < 6):
-                    raise ValueError(
-                        f"R-matrix index out of range: {key}"
-                    )
+                    raise ValueError(f"R-matrix index out of range: {key}")
 
                 matrix[row, col] = float(value)
 
@@ -246,9 +238,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
         arr = np.asarray(v, dtype=float)
 
         if arr.shape != (6, 6):
-            raise ValueError(
-                f"r_matrix must have shape (6,6), got {arr.shape}"
-            )
+            raise ValueError(f"r_matrix must have shape (6,6), got {arr.shape}")
 
         return arr
 
@@ -270,9 +260,7 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
                 k = int(m.group(3)) - 1
 
                 if not all(0 <= idx < 6 for idx in (i, j, k)):
-                    raise ValueError(
-                        f"T-matrix index out of range: {key}"
-                    )
+                    raise ValueError(f"T-matrix index out of range: {key}")
 
                 tensor[i, j, k] = float(value)
 
@@ -281,11 +269,55 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
         arr = np.asarray(v, dtype=float)
 
         if arr.shape != (6, 6, 6):
-            raise ValueError(
-                f"t_matrix must have shape (6,6,6), got {arr.shape}"
-            )
+            raise ValueError(f"t_matrix must have shape (6,6,6), got {arr.shape}")
 
         return arr
+
+    @field_validator("u_matrix", mode="before")
+    @classmethod
+    def validate_u_matrix(cls, v):
+        if isinstance(v, dict):
+            tensor = np.zeros((6, 6, 6, 6))
+
+            for key, value in v.items():
+                m = re.fullmatch(r"u(\d)(\d)(\d)(\d)", key.lower())
+                if not m:
+                    raise ValueError(
+                        f"Invalid U-matrix element '{key}'. Expected e.g. u5132."
+                    )
+
+                indices = tuple(int(index) - 1 for index in m.groups())
+                if not all(0 <= index < 6 for index in indices):
+                    raise ValueError(f"U-matrix index out of range: {key}")
+
+                tensor[indices] = float(value)
+
+            return tensor
+
+        arr = np.asarray(v, dtype=float)
+        if arr.shape != (6, 6, 6, 6):
+            raise ValueError(f"u_matrix must have shape (6,6,6,6), got {arr.shape}")
+        return arr
+
+    @field_validator("spin_taylor", mode="before")
+    @classmethod
+    def validate_spin_taylor(cls, terms):
+        if terms is None:
+            return []
+        if not isinstance(terms, (list, tuple)):
+            raise ValueError("spin_taylor must be a list of terms")
+        required = {"index", "coef", *(f"exp{i}" for i in range(1, 7))}
+        for term in terms:
+            if not isinstance(term, dict):
+                raise ValueError("Each spin Taylor term must be a mapping")
+            missing = required - term.keys()
+            if missing:
+                raise ValueError(
+                    f"Spin Taylor term is missing: {', '.join(sorted(missing))}"
+                )
+            if term["index"] not in range(4):
+                raise ValueError("Spin Taylor component index must be between 0 and 3")
+        return terms
 
     @computed_field
     @property
@@ -297,7 +329,9 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
         return B
 
 
-class ElectrostaticSeparatorSimulationElement(_ElectrostaticSeparatorSimulationElementBase):
+class ElectrostaticSeparatorSimulationElement(
+    _ElectrostaticSeparatorSimulationElementBase
+):
     """
     Electrostatic separator simulation element model.
     """

@@ -1,5 +1,7 @@
+import math
 import re
 import os
+from collections import Counter as OccurrenceCounter
 import numpy as np
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
@@ -7,8 +9,116 @@ from pydantic.fields import FieldInfo
 from laura.models.element import Magnet
 from laura.utils.dict_utils import numpy_scalar_to_python
 from laura.models.baseModels import IgnoreExtra
-from typing import Any, Dict, Type, get_args, get_origin, Union, Literal
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, get_args, get_origin
 from .fields import field
+
+
+def number_repeated_names(names: list[str]) -> list[str]:
+    """Append ``.n`` only to names that occur more than once."""
+    keys = [name.lower() for name in names]
+    totals = OccurrenceCounter(keys)
+    seen = OccurrenceCounter()
+    numbered = []
+    for name, key in zip(names, keys):
+        seen[key] += 1
+        numbered.append(f"{name}.{seen[key]}" if totals[key] > 1 else name)
+    return numbered
+
+
+def same_element_placement(left: Any, right: Any) -> bool:
+    """True if two :class:`~laura.models.element.Element` objects occupy the
+    same physical placement (position, orientation, length).
+
+    Used by ``create_machine_model`` on the reverse-direction importers
+    (Bmad/Elegant/MAD-X) to decide whether a name shared across independent
+    layouts is a genuine share (e.g. a common injector line) or a name
+    collision that needs a per-layout copy.
+    """
+    a, b = left.physical, right.physical
+    if (a.middle is None) != (b.middle is None):
+        return False
+    middle_matches = a.middle is None or all(
+        math.isclose(x, y, abs_tol=1e-9) for x, y in zip(a.middle.array, b.middle.array)
+    )
+    s_matches = (a.s is None and b.s is None) or (
+        a.s is not None and b.s is not None and math.isclose(a.s, b.s, abs_tol=1e-9)
+    )
+    return (
+        middle_matches
+        and s_matches
+        and math.isclose(a.length, b.length, abs_tol=1e-12)
+        and all(
+            math.isclose(x, y, abs_tol=1e-12)
+            for x, y in zip(a.rotation_matrix.flat, b.rotation_matrix.flat)
+        )
+        and all(
+            math.isclose(x, y, abs_tol=1e-12)
+            for x, y in zip(a.end_rotation_matrix.flat, b.end_rotation_matrix.flat)
+        )
+    )
+
+
+def merge_layout_elements(
+    elements: Dict[str, Any],
+    section_definitions: Dict[str, List[str]],
+    section_name: str,
+    members: Iterable[Tuple[str, Any]],
+    order: List[str],
+    suffix: str,
+) -> None:
+    """Merge one section's elements into a cross-layout ``elements`` dict,
+    mutating both ``elements`` and ``section_definitions[section_name]``.
+
+    Shared by every reverse-direction importer's ``create_machine_model``
+    (Bmad/Elegant/MAD-X). An element already present under the same name is
+    reused as-is when it occupies the same placement
+    (:func:`same_element_placement`); otherwise it's copied under a
+    ``name__suffix`` name (numbered further on repeat collisions), because
+    :class:`~laura.models.elementList.MachineModel` stores one placement per
+    name. A subelement (``element.is_subelement()``) whose parent was
+    renamed is renamed to match and re-pointed at the parent's new name,
+    even when its own placement happens to coincide with an existing
+    element's -- this only ever applies to Bmad's Kicker H/V-corrector
+    split; it's a no-op for importers that never set ``subelement``.
+
+    Parameters
+    ----------
+    members:
+        Every element to consider for merging, in no particular order
+        (``(name, element)`` pairs) -- for Bmad this includes subelements
+        excluded from ``order``.
+    order:
+        The section's visible element order (the names that end up in
+        ``section_definitions[section_name]``, translated through any
+        rename).
+    suffix:
+        Appended (as ``name__suffix``) to a renamed copy's name -- typically
+        the layout/universe/sequence name.
+    """
+    renamed: Dict[str, str] = {}
+    for element_name, element in members:
+        existing = elements.get(element_name)
+        parent_renamed = (
+            element.subelement in renamed
+            and renamed[element.subelement] != element.subelement
+        )
+        if existing is None or (
+            same_element_placement(existing, element) and not parent_renamed
+        ):
+            output_name = element_name
+            elements.setdefault(output_name, element)
+        else:
+            output_name = f"{element_name}__{suffix}"
+            index = 2
+            while output_name in elements:
+                output_name = f"{element_name}__{suffix}_{index}"
+                index += 1
+            updates = {"name": output_name}
+            if parent_renamed:
+                updates["subelement"] = renamed[element.subelement]
+            elements[output_name] = element.model_copy(update=updates)
+        renamed[element_name] = output_name
+    section_definitions[section_name] = [renamed[name] for name in order]
 
 
 def elegant_functional_definitions(definitions: Dict | None = None) -> str:
@@ -40,7 +150,7 @@ def elegant_functional_definitions(definitions: Dict | None = None) -> str:
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
     return "".join(
-        f"% {value} sto {name}\n" for name, value in definitions.items() if value
+        f"% {value} sto {name}\n" for name, value in definitions.items()
     )
 
 
@@ -73,9 +183,14 @@ def madx_functional_definitions(definitions: Dict | None = None) -> str:
         # Resolution mode: values are baked in as numbers, so no header needed.
         return ""
     definitions = definitions or IgnoreExtra.functional_definitions
-    return "".join(
-        f"{name} = {value};\n" for name, value in definitions.items() if value
-    )
+    return "".join(f"{name} = {value};\n" for name, value in definitions.items())
+
+def bmad_functional_definitions(definitions: Dict | None = None) -> str:
+    """Build Bmad variable assignments for symbolic lattice parameters."""
+    if IgnoreExtra.resolve_functional:
+        return ""
+    definitions = definitions or IgnoreExtra.functional_definitions
+    return "".join(f"{name} = {value}\n" for name, value in definitions.items())
 
 
 def sanitize_string(string: str) -> str:
@@ -164,13 +279,35 @@ def get_field_default(fiel: FieldInfo) -> Any:
     return None
 
 
+def _unwrap_optional_basemodel(annotation: Any) -> Optional[Type[BaseModel]]:
+    """Return ``X`` if ``annotation`` is ``Optional[X]`` for a BaseModel ``X``, else ``None``."""
+    if get_origin(annotation) is Union:
+        non_none = [a for a in get_args(annotation) if a is not type(None)]
+        if len(non_none) == 1 and isinstance(non_none[0], type) and issubclass(non_none[0], BaseModel):
+            return non_none[0]
+    return None
+
+
 def introspect_model_defaults(
     model_cls: Type[BaseModel],
     flatten: bool = False,
     parent_key: str = "",
     separator: str = "_",
+    resolve_optional: bool = False,
 ) -> Dict[str, Any]:
-    """Recursively introspect a Pydantic model class, extracting default values (including nested)."""
+    """Recursively introspect a Pydantic model class, extracting default values (including nested).
+
+    Parameters
+    ----------
+    resolve_optional: bool
+        A field typed ``Optional[SomeModel]`` with no ``default_factory`` (e.g.
+        ``physical: Optional[PhysicalElement] = None``) has a class-level
+        default of ``None`` -- there is no instance to recurse into. When
+        ``False`` (the default, preserving prior behaviour) such a field's
+        entry is just ``None``. When ``True``, its declared type is unwrapped
+        and introspected directly (using ``SomeModel``'s own field defaults)
+        instead of stopping at ``None``.
+    """
     result = {}
 
     for field_name, fiel in model_cls.model_fields.items():
@@ -185,18 +322,38 @@ def introspect_model_defaults(
                     f"{parent_key}{separator}{field_name}" if parent_key else field_name
                 ),
                 separator=separator,
+                resolve_optional=resolve_optional,
             )
             if flatten:
                 result.update(nested)
             else:
                 result[field_name] = nested
-        else:
-            key = (
-                f"{parent_key}{separator}{field_name}"
-                if (flatten and parent_key)
-                else field_name
-            )
-            result[key] = default_value
+            continue
+
+        if default_value is None and resolve_optional:
+            inner_cls = _unwrap_optional_basemodel(fiel.annotation)
+            if inner_cls is not None:
+                nested = introspect_model_defaults(
+                    inner_cls,
+                    flatten=flatten,
+                    parent_key=(
+                        f"{parent_key}{separator}{field_name}" if parent_key else field_name
+                    ),
+                    separator=separator,
+                    resolve_optional=resolve_optional,
+                )
+                if flatten:
+                    result.update(nested)
+                else:
+                    result[field_name] = nested
+                continue
+
+        key = (
+            f"{parent_key}{separator}{field_name}"
+            if (flatten and parent_key)
+            else field_name
+        )
+        result[key] = default_value
 
     return result
 

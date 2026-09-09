@@ -77,19 +77,71 @@ URI: [LaserProperties](LaserProperties.md)
 
 
 
+
+
+
+
+
+
+
+
+
+
+        
+
         
 
         
 
         
 
-        
-
 
         
 
 
         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
