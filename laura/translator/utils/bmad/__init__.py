@@ -48,4 +48,5 @@ __all__ = [
     "BMAD_SR_WAKE_SAMPLES",
     "bmad_sr_wake_function",
     "sample_bmad_sr_wake",
+    "BmadBody"
 ]

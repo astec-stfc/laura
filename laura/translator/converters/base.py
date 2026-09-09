@@ -4,7 +4,7 @@ from typing import Any, Dict, Tuple, ClassVar
 from warnings import warn
 
 import numpy as np
-from pydantic import Field, computed_field
+from pydantic import Field, PrivateAttr, computed_field
 
 from laura.models.baseModels import IgnoreExtra
 from laura.models.element import PhysicalBaseElement
@@ -75,6 +75,10 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     directory: str = "./"
     """Directory to which lattice/element files will be written."""
+
+    _bmad_written: Dict[str, Any] = PrivateAttr(default_factory=dict)
+    """Attributes the last :meth:`to_bmad` actually wrote; see
+    :meth:`bmad_attributes`."""
 
     ccs: gpt_ccs | None = None
     """Co-ordinate system for GPT elements."""
@@ -1388,6 +1392,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         else:
             parameters = self._bmad_common_parameters() | parameters
         parameters.update(bmad_misalignment(self, etype, parameters))
+        self._bmad_written = dict(parameters)
 
         def render(key, value):
             if value is True:
@@ -1413,6 +1418,13 @@ class BaseElementTranslator(PhysicalBaseElement):
             String representation of the element for Bmad
         """
         return self._format_bmad()
+
+    def bmad_attributes(self) -> Dict[str, Any]:
+        """
+        The attributes the last :meth:`to_bmad` call wrote, so that two exports
+        of one element can be compared on the values that reached the file.
+        """
+        return dict((self.__pydantic_private__ or {}).get("_bmad_written", {}))
 
     def _write_ASTRA_dictionary(self, d: dict, n: int | None = 1) -> str:
         """
