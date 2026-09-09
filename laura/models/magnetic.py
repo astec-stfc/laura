@@ -1,5 +1,4 @@
 import numpy as np
-from warnings import warn
 from .constants import speed_of_light, pi
 from pydantic import (
     BaseModel,
@@ -459,59 +458,28 @@ class MagneticElement(_MagneticElementBase, FunctionalMixin):
         codes that only expose one edge-focussing keyword, e.g. ELEGANT/OPAL's
         ``fint``) against ``edge_field_integral_entrance``/``_exit`` (read by
         codes with separate entrance/exit keywords, e.g. MAD-X's ``fint``/
-        ``fintx``). All three default to 0.5, so "was it actually given" is
-        read off ``model_fields_set`` rather than compared against that
-        default -- this only fires once, at construction (a later `.edge_
-        field_integral = ...` mutation does not retroactively re-fill fields
-        already resolved here).
+        ``fintx``). All three are ``None`` unless given -- an unset value is
+        simply omitted from the written output (every ``to_*`` writer skips
+        ``None``), so the target code's own built-in default applies rather
+        than laura silently forcing a number in.
 
-        * Nothing set: all three keep their shared 0.5 default.
-        * Only edge_field_integral set: entrance and exit both mirror it.
-        * edge_field_integral plus one of entrance/exit set: the unset one
-          mirrors edge_field_integral.
-        * All three set: left exactly as given -- edge_field_integral is only
-          consulted by single-value codes, entrance/exit by dual-value codes.
-        * entrance and/or exit set but edge_field_integral itself is not:
-          warn, then fill the gaps. The unset edge mirrors the set one
-          (entrance wins if both are set), and edge_field_integral mirrors
-          that same value so single-value codes get it instead of the
-          unrelated 0.5 default.
+        * edge_field_integral_entrance/_exit, when explicitly given, are
+          always used as given -- edge_field_integral never overrides them.
+        * edge_field_integral, when given, becomes the *default* for whichever
+          of entrance/exit was not itself given.
+        * edge_field_integral itself is never inferred from entrance/exit --
+          if only entrance and/or exit are given, edge_field_integral stays
+          None (so single-value codes get nothing written for this magnet).
 
-        The backfill assignments below use ``object.__setattr__`` rather than
-        plain attribute assignment: this model has ``validate_assignment =
-        True``, so a normal ``self.x = y`` here would re-run this very
-        validator (and, seeing the field it just set now in
-        ``model_fields_set``, cascade into further re-entrant runs) --
-        harmless in outcome but multiplying both the work and this method's
-        warning several times over for one construction.
+        Uses ``object.__setattr__`` rather than plain attribute assignment:
+        this model has ``validate_assignment = True``, so a normal
+        ``self.x = y`` here would re-run this very validator re-entrantly.
         """
-        fields_set = self.model_fields_set
-        efi_set = "edge_field_integral" in fields_set
-        entrance_set = "edge_field_integral_entrance" in fields_set
-        exit_set = "edge_field_integral_exit" in fields_set
-
-        if efi_set:
-            if not entrance_set:
+        if self.edge_field_integral is not None:
+            if self.edge_field_integral_entrance is None:
                 object.__setattr__(self, "edge_field_integral_entrance", self.edge_field_integral)
-            if not exit_set:
+            if self.edge_field_integral_exit is None:
                 object.__setattr__(self, "edge_field_integral_exit", self.edge_field_integral)
-        elif entrance_set or exit_set:
-            warn(
-                f"{type(self).__name__}: edge_field_integral_entrance/_exit set "
-                "without edge_field_integral; filling in the missing edge field "
-                "integral value(s) from the one(s) given (entrance takes "
-                "priority if both are set)."
-            )
-            fallback = (
-                self.edge_field_integral_entrance
-                if entrance_set
-                else self.edge_field_integral_exit
-            )
-            if not entrance_set:
-                object.__setattr__(self, "edge_field_integral_entrance", fallback)
-            if not exit_set:
-                object.__setattr__(self, "edge_field_integral_exit", fallback)
-            object.__setattr__(self, "edge_field_integral", fallback)
         return self
 
     @field_validator("field_integral_coefficients", mode="before")

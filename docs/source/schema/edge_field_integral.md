@@ -1,7 +1,7 @@
 # Slot: edge_field_integral 
 
 
-_Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals)._
+_Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default -- rather than forcing a laura default into every output, an unset value is simply omitted from the written file so the target code's own built-in default applies. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals)._
 
 
 
@@ -48,7 +48,6 @@ URI: [laura:edge_field_integral](https://w3id.org/laura/edge_field_integral)
 
 | Property | Value |
 | --- | --- |
-| If Absent | `float(0.5)` |
 | Owner | [MagneticElement](MagneticElement.md) |
 
 
@@ -92,16 +91,18 @@ URI: [laura:edge_field_integral](https://w3id.org/laura/edge_field_integral)
 ```yaml
 name: edge_field_integral
 description: Enge fringe-field integral parameter (dimensionless), used as the single
-  combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit
-  for separate entrance/exit values; MagneticElement resolves the three together (see
-  MagneticElement.resolve_edge_field_integrals).
+  combined value by codes that only support one edge focussing keyword. Unset (None)
+  by default -- rather than forcing a laura default into every output, an unset value
+  is simply omitted from the written file so the target code's own built-in default
+  applies. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit
+  that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: float(0.5)
 owner: MagneticElement
 domain_of:
 - MagneticElement
 range: float
+required: false
 
 ```
 </details></div>

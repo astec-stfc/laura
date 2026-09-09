@@ -499,7 +499,8 @@ class BaseElementTranslator(PhysicalBaseElement):
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
                         value = self.magnetic.KnL(0) / 2
-                properties.update({key: value})
+                if value is not None:
+                    properties.update({key: value})
         return self.name, obj, properties
 
     def to_genesis(self, index: int) -> str:
@@ -751,7 +752,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             obj = Drift_WakeT()
         obj.element_name = self.name
         for key, value in self.full_dump().items():
-            if key not in ["name", "type", "commandtype"]:
+            if key not in ["name", "type", "commandtype"] and value is not None:
                 key = self._convertKeyword_WakeT(key)
                 setattr(obj, self._convertKeyword_WakeT(key), value)
         return obj

@@ -161,6 +161,77 @@ Example:
         directory="./output"
     )
 
+.. _edge-field-integrals:
+
+Dipole Edge Field Integrals
+----------------------------
+
+Fringe-field (Enge) focussing at a dipole's edges is controlled by three
+:py:class:`MagneticElement <laura.models.magnetic.MagneticElement>` fields:
+
+* ``edge_field_integral`` -- a single combined value, used by codes that only
+  expose one edge-focussing keyword (ELEGANT's and OPAL's ``fint``).
+* ``edge_field_integral_entrance`` / ``edge_field_integral_exit`` -- separate
+  entrance/exit values, used by codes that support them independently
+  (MAD-X's ``fint``/``fintx``, Ocelot, Xsuite, Cheetah).
+
+All three default to ``None``. An unset value is simply **omitted** from the
+written output rather than replaced with a LAURA-chosen number, so the target
+code's own built-in default applies instead. :py:meth:`MagneticElement.resolve_edge_field_integrals
+<laura.models.magnetic.MagneticElement.resolve_edge_field_integrals>` reconciles
+the three fields once, at construction time:
+
+* ``edge_field_integral_entrance``/``edge_field_integral_exit``, when given
+  explicitly, are always used as given -- ``edge_field_integral`` never
+  overrides them.
+* ``edge_field_integral``, when given, becomes the *default* for whichever of
+  entrance/exit was not itself given.
+* ``edge_field_integral`` is never inferred from entrance/exit -- if only
+  entrance and/or exit are given, ``edge_field_integral`` stays ``None``, so
+  single-value codes (ELEGANT, OPAL) get nothing written for that magnet.
+
+.. list-table:: Resolution examples
+   :header-rows: 1
+   :widths: 20 20 20 20 20
+
+   * - edge_field_integral
+     - entrance given
+     - exit given
+     - resolved entrance
+     - resolved exit
+   * - ``0.2``
+     - --
+     - --
+     - ``0.2``
+     - ``0.2``
+   * - ``0.2``
+     - ``0.9``
+     - --
+     - ``0.9``
+     - ``0.2``
+   * - --
+     - ``0.3``
+     - --
+     - ``0.3``
+     - ``None``
+   * - --
+     - ``0.3``
+     - ``0.7``
+     - ``0.3``
+     - ``0.7``
+   * - --
+     - --
+     - --
+     - ``None``
+     - ``None``
+
+GPT is the one exception: its fringe-field parameter (``b1``) is computed
+directly from ``edge_field_integral`` rather than written as a pass-through
+keyword (see :py:meth:`DipoleTranslator.to_gpt <laura.translator.converters.magnet.DipoleTranslator.to_gpt>`),
+so it cannot simply omit an unset value. When ``edge_field_integral`` is
+``None``, GPT's edge-focussing term is disabled outright (``b1 = 0``) rather
+than computed -- the stored model value itself is left untouched.
+
 .. _section-lattice-translator:
 
 Section Lattice Translator

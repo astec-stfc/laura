@@ -810,15 +810,25 @@ class DipoleTranslator(BaseElementTranslator):
                 tilt=self.magnetic.tilt
             )
             new_ccs = self.new_ccs(self.ccs)
-            b1 = np.round(
-                (
-                    1.0
-                    / (2 * self.magnetic.half_gap * self.magnetic.edge_field_integral)
-                    if self.magnetic.half_gap > 0
-                    else 10000
-                ),
-                2,
-            )
+            # GPT has no "leave it unset" option here (b1 is always written into
+            # the output string, unlike the keyword-based writers which simply
+            # omit a None value). When edge_field_integral was never given,
+            # disable GPT's edge-focussing term outright (b1 = 0) rather than
+            # feeding a value into the formula below -- 1/edge_field_integral
+            # diverges as edge_field_integral -> 0, so "disabled" has to be a
+            # direct b1 = 0, not a fallback constant passed through the formula.
+            if self.magnetic.edge_field_integral is None:
+                b1 = 0.0
+            else:
+                b1 = np.round(
+                    (
+                        1.0
+                        / (2 * self.magnetic.half_gap * self.magnetic.edge_field_integral)
+                        if self.magnetic.half_gap > 0
+                        else 10000
+                    ),
+                    2,
+                )
             dl = self.simulation.deltaL
             # Use the resolved edge angles (handles "angle"/"angle/2" and
             # functional definitions) rather than the raw stored values.

@@ -436,35 +436,42 @@ attributes:
     name: edge_field_integral
     description: Enge fringe-field integral parameter (dimensionless), used as the
       single combined value by codes that only support one edge focussing keyword.
-      See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit
-      values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals).
+      Unset (None) by default -- rather than forcing a laura default into every output,
+      an unset value is simply omitted from the written file so the target code's
+      own built-in default applies. If given, it also becomes the default for any
+      of edge_field_integral_entrance/edge_field_integral_exit that are themselves
+      not given (see MagneticElement.resolve_edge_field_integrals).
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    ifabsent: float(0.5)
     owner: Dipole_Magnet
     domain_of:
     - MagneticElement
     range: float
+    required: false
   edge_field_integral_entrance:
     name: edge_field_integral_entrance
-    description: Fringe-field integral for entrance-edge focussing.
+    description: Fringe-field integral for entrance-edge focussing. Unset (None) by
+      default unless edge_field_integral is given; always overrides edge_field_integral
+      when set explicitly.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    ifabsent: float(0.5)
     owner: Dipole_Magnet
     domain_of:
     - MagneticElement
     range: float
+    required: false
   edge_field_integral_exit:
     name: edge_field_integral_exit
-    description: Fringe-field integral for exit-edge focussing.
+    description: Fringe-field integral for exit-edge focussing. Unset (None) by default
+      unless edge_field_integral is given; always overrides edge_field_integral when
+      set explicitly.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    ifabsent: float(0.5)
     owner: Dipole_Magnet
     domain_of:
     - MagneticElement
     range: float
+    required: false
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.

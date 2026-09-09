@@ -1,7 +1,7 @@
 # Slot: edge_field_integral_entrance 
 
 
-_Fringe-field integral for entrance-edge focussing._
+_Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly._
 
 
 
@@ -48,7 +48,6 @@ URI: [laura:edge_field_integral_entrance](https://w3id.org/laura/edge_field_inte
 
 | Property | Value |
 | --- | --- |
-| If Absent | `float(0.5)` |
 | Owner | [MagneticElement](MagneticElement.md) |
 
 
@@ -91,14 +90,16 @@ URI: [laura:edge_field_integral_entrance](https://w3id.org/laura/edge_field_inte
 <details>
 ```yaml
 name: edge_field_integral_entrance
-description: Fringe-field integral for entrance-edge focussing.
+description: Fringe-field integral for entrance-edge focussing. Unset (None) by default
+  unless edge_field_integral is given; always overrides edge_field_integral when set
+  explicitly.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: float(0.5)
 owner: MagneticElement
 domain_of:
 - MagneticElement
 range: float
+required: false
 
 ```
 </details></div>
