@@ -4,7 +4,7 @@ LAURA Element Module
 The main class for representing accelerator elements in LAURA.
 """
 
-from typing import Optional, Type, List, Union, Dict, Any
+from typing import ClassVar, Optional, Type, List, Union, Dict, Any
 import os
 from pydantic import field_validator, Field
 from .control import (
@@ -1114,9 +1114,29 @@ class RFCavity(PhysicalBaseElement, _RFCavityBase):
     simulation: Optional[RFCavitySimulationElement] = None
     """RF cavity simulation attributes."""
 
+    cavity: Optional[RFCavityElement] = None
+    """RF cavity structure parameters.
+
+    Declared with the concrete model rather than the generated
+    ``_RFCavityElementBase`` the schema gives it, so that an authored
+    ``cavity: {...}`` mapping validates into the same class an omitted one
+    defaults to. Without this the two disagreed, and a dict-authored cavity
+    lost :class:`FunctionalMixin` -- so a symbolic phase never resolved.
+    """
+
+    _cavity_model: ClassVar[type] = RFCavityElement
+    """Which model fills an empty ``cavity``.
+
+    A subclass overrides it rather than calling
+    :func:`_ensure_nested_default` again: this runs through ``super()``
+    first, so a hardcoded class here would fill the slot before the subclass
+    could and its own call would then find it occupied and do nothing.
+    """
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        _ensure_nested_default(self, "cavity", RFCavityElement)
+        _ensure_nested_default(self, "cavity", type(self)._cavity_model)
+        _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
 
 
 class Wakefield(PhysicalBaseElement, _WakefieldBase):
@@ -1139,6 +1159,9 @@ class Wakefield(PhysicalBaseElement, _WakefieldBase):
 
     hardware_model: str = Field(default="Dielectric", frozen=True)
     """Wakefield hardware model."""
+
+    cavity: Optional[WakefieldElement] = None
+    """Wakefield structure parameters."""
 
     simulation: Optional[WakefieldSimulationElement] = None
     """Wakefield simulation attributes."""
@@ -1167,9 +1190,13 @@ class RFDeflectingCavity(RFCavity, _RFDeflectingCavityBase):
     hardware_model: str = Field(default="SBand", frozen=True)
     """RF deflecting cavity hardware model."""
 
+    cavity: Optional[RFDeflectingCavityElement] = None
+    """Deflecting-cavity RF structure parameters."""
+
+    _cavity_model: ClassVar[type] = RFDeflectingCavityElement
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        _ensure_nested_default(self, "cavity", RFDeflectingCavityElement)
         _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
 
 
@@ -1195,9 +1222,10 @@ class CrabCavity(RFCavity, _CrabCavityBase):
     cavity: Optional[RFDeflectingCavityElement] = None
     """Crab-cavity RF structure parameters."""
 
+    _cavity_model: ClassVar[type] = RFDeflectingCavityElement
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        _ensure_nested_default(self, "cavity", RFDeflectingCavityElement)
         _ensure_nested_default(self, "simulation", RFCavitySimulationElement)
 
 

@@ -1,24 +1,54 @@
-from typing import Dict, Any, TYPE_CHECKING
-from textwrap import wrap
-from laura.models.elementList import MachineLayout
+from typing import Any, Dict, Iterator, Tuple
+
+from laura.models.elementList import (
+    MachineLayout,
+    SectionLattice,
+    flatten_occurrence,
+)
+from laura.models.reversal import reverse_section
+
 from .converter import translate_elements
+from .fanout import ContainerTranslator, wrap_lattice_line
 from .section import SectionLatticeTranslator
-from ..utils.functions import elegant_functional_definitions, sanitize_string
-
-if TYPE_CHECKING:
-    from ocelot.cpbd.magnetic_lattice import MagneticLattice
-    from cheetah import Segment
 
 
-class MachineLayoutTranslator(MachineLayout):
+class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
+    """
+    Translator for a :class:`~laura.models.elementList.MachineLayout`.
+
+    Its children are its sections, so every ``to_CODE`` method inherited from
+    :class:`~laura.translator.converters.fanout.ContainerTranslator` returns
+    ``{section_name: result}``.
+    """
+
     directory: str = "."
 
     @classmethod
     def from_layout(cls, layout: MachineLayout) -> "MachineLayoutTranslator":
+        """Build a translator for *layout*, resolving traversal direction once.
+
+        :func:`~laura.models.reversal.reverse_section` -- reversed order,
+        reversed elements, re-placed from its own lengths. The result is an
+        ordinary section.
+
+        The source layout and its sections are untouched if there is a reversal:
+        the same section can be traversed forwards by another beam path.
+        """
+        if getattr(layout, "passes", None):
+            sections = cls._flattened_passes(layout)
+        else:
+            sections = dict(layout.model_copy().sections)
+            for name in getattr(layout, "_direction", {}) or {}:
+                section = sections.get(name)
+                if section is None:
+                    continue
+                sections[name] = reverse_section(
+                    section, section.elements.elements, name=section.name
+                )
         return cls.model_validate(
             {
                 "name": layout.model_copy().name,
-                "sections": layout.model_copy().sections,
+                "sections": sections,
                 "master_lattice": layout.model_copy().master_lattice,
                 "functional_definitions": layout.functional_definitions,
                 "resolve_functional": layout.resolve_functional,
@@ -26,141 +56,142 @@ class MachineLayoutTranslator(MachineLayout):
             }
         )
 
+    @staticmethod
+    def _flattened_passes(layout: MachineLayout) -> Dict[str, SectionLattice]:
+        """One section per traversal, in beam order -- multipass export.
+
+        ``sections`` is name-keyed and every consumer below iterates it, so a
+        multipass path has to become a set of distinct sections before any
+        of them sees it. Each pass gets its own deep copy, suffixed ``.N`` on
+        the section and on every element in it.
+
+        Per pass, in order: reverse if the pass is backwards, resolve the
+        strengths that pass sees, then apply the author's ``overrides`` last.
+
+        A single-pass or repetition layout arrives here with ``number`` unset
+        and comes out unchanged but for reversal.
+        """
+        sections: Dict[str, SectionLattice] = {}
+        for entry in layout.passes:
+            section = layout.sections.get(entry.section)
+            if section is None:
+                continue
+            renamed = MachineLayoutTranslator._pass_names(section, entry.number)
+            section = MachineLayoutTranslator._numbered_copy(section, renamed)
+            if entry.direction == -1:
+                section = reverse_section(
+                    section, section.elements.elements, name=section.name
+                )
+            registry = section.elements.elements
+            for base in layout.sections[entry.section].order:
+                element = registry.get(renamed.get(base, base))
+                if element is not None:
+                    layout.apply_pass_values(element, entry, base)
+            sections[section.name] = section
+        return sections
+
+    @staticmethod
+    def _pass_names(section: SectionLattice, number: int | None) -> Dict[str, str]:
+        """``{name: name for pass N}`` for a section's elements, plus itself.
+
+        The pass number is inserted before any within-section repeat index
+        rather than appended after it, so that flattened multipass and plain
+        repetition emit byte-identical names.
+        """
+        if number is None:
+            return {}
+
+        names = {
+            name: flatten_occurrence(name, number) for name in section.order
+        }
+        names[section.name] = flatten_occurrence(section.name, number)
+        return names
+
+    @staticmethod
+    def _numbered_copy(
+        section: SectionLattice, renamed: Dict[str, str]
+    ) -> SectionLattice:
+        """A deep copy of ``section`` under the names ``renamed`` gives it.
+        Positions are carried over untouched rather than re-resolved.
+
+        Deep, because the passes of a multipass section are one device and the
+        whole point of flattening is to give each traversal values of its own
+        to carry.
+        """
+        if not renamed:
+            return section.model_copy(deep=True)
+        elements = []
+        order = []
+        for name in section.order:
+            source = section.elements.elements.get(name)
+            if source is None:
+                continue
+            clone = source.model_copy(deep=True)
+            clone.name = renamed.get(name, name)
+            elements.append(clone)
+            order.append(clone.name)
+        return SectionLattice(
+            name=renamed.get(section.name, section.name),
+            elements=elements,
+            order=order,
+            section_type=section.section_type,
+            master_lattice=section.master_lattice,
+            functional_definitions=section.functional_definitions,
+            resolve_functional=section.resolve_functional,
+            revolution_frequency=section.revolution_frequency,
+        )
+
     def _section_translator(self, section) -> SectionLatticeTranslator:
         """
-        Build a :class:`SectionLatticeTranslator` for ``section``, falling back
-        to this layout's own ``revolution_frequency`` if the section does not
-        define its own.
+        Build a :class:`SectionLatticeTranslator` for ``section``, handing it
+        this layout's output ``directory`` and falling back to this layout's own
+        ``revolution_frequency`` if the section does not define its own.
         """
         translator = SectionLatticeTranslator.from_section(section)
+        translator.directory = self.directory
         if translator.revolution_frequency is None:
             translator.revolution_frequency = self.revolution_frequency
         return translator
 
-    def to_astra(self) -> Dict[str, str]:
-        lattices = {}
+    def _children(self) -> Iterator[Tuple[str, SectionLatticeTranslator]]:
         for section in self.sections.values():
-            lattices.update(
-                {
-                    section.name: self._section_translator(section).to_astra()
-                }
-            )
-        return lattices
+            yield section.name, self._section_translator(section)
 
-    def to_elegant(self, string: str = "", charge: float = None) -> str:
+    def _translate_section(self, section) -> Dict[str, Any]:
+        """
+        Drift-fill ``section`` and translate the result, returning the element
+        translators keyed by name and in beamline order.
+        """
+        return translate_elements(
+            section.createDrifts().values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+
+    def _elegant_body(self, charge: float | None = None) -> Tuple[str, str]:
+        definitions = ""
+        lines = ""
         for section in self.sections.values():
-            section_with_drifts = section.createDrifts()
-            elem_dict = translate_elements(
-                section_with_drifts.values(),
-                master_lattice=self.master_lattice,
-                directory=self.directory,
-            )
+            elem_dict = self._translate_section(section)
             if charge:
-                string += f"{section.name}_Q: CHARGE, TOTAL = {charge};\n"
-
+                definitions += f"{section.name}_Q: CHARGE, TOTAL = {charge};\n"
             for d in elem_dict.values():
-                string += d.to_elegant()
+                definitions += d.to_elegant()
 
-            lstring = f"\n{section.name}: LINE = ("
+            line = f"{section.name}: LINE = ("
             if charge:
-                lstring += f"{section.name}_Q, "
-            for elem in section_with_drifts.keys():
-                lstring += f"{elem}, "
-            lstring = f"{lstring[:-2]})" + "\n\n\n"
-        lstring = '&\n'.join(wrap(lstring, 80, break_long_words=False, break_on_hyphens=False))
-        return elegant_functional_definitions(self.functional_definitions) + string + lstring
+                line += f"{section.name}_Q, "
+            line += ", ".join(elem_dict.keys()) + ")"
+            lines += "\n" + wrap_lattice_line(line) + "\n\n\n"
+        return definitions, lines
 
-    def to_genesis(self, string: str = "") -> str:
+    def _genesis_body(self) -> str:
+        body = ""
         for section in self.sections.values():
-            section_with_drifts = section.createDrifts()
-            elem_dict = translate_elements(
-                section_with_drifts.values(),
-                master_lattice=self.master_lattice,
-                directory=self.directory,
-            )
-
+            elem_dict = self._translate_section(section)
             for i, d in enumerate(elem_dict.values()):
-                string += d.to_genesis(index=i)
+                body += d.to_genesis(index=i)
 
-            string += f"\n{section.name}: LINE = " + "{"
-            for elem in section_with_drifts.keys():
-                string += f"{elem}, "
-            string = f"{string[:-2]}" + "};\n\n\n"
-        return string
-
-    def to_ocelot(self, save=False) -> Dict[str, "MagneticLattice"]:
-        lattices = {}
-        for section in self.sections.values():
-            lattices.update(
-                {
-                    section.name: self._section_translator(section).to_ocelot(save=save)
-                }
-            )
-        return lattices
-
-    def to_rftrack(self, P_Q: float = float("nan"), save: bool = False) -> Dict[str, object]:
-        """
-        Create one RF-Track ``Lattice`` per section in this layout.
-
-        Parameters
-        ----------
-        P_Q: float
-            Beam reference momentum-over-charge [MV/c], forwarded to every
-            section's ``to_rftrack(P_Q=...)``.
-        save: bool
-            Forwarded to every section's ``to_rftrack(save=...)``; see
-            ``SectionLatticeTranslator.to_rftrack``.
-
-        Returns
-        -------
-        Dict[str, object]
-            ``{section_name: RF_Track.Lattice, ...}``
-        """
-        lattices = {}
-        for section in self.sections.values():
-            lattices.update(
-                {
-                    section.name: SectionLatticeTranslator.from_section(
-                        section
-                    ).to_rftrack(P_Q=P_Q, save=save)
-                }
-            )
-        return lattices
-
-    def to_cheetah(self, save=False) -> Dict[str, "Segment"]:
-        lattices = {}
-        for section in self.sections.values():
-            lattices.update(
-                {
-                    section.name: self._section_translator(section).to_cheetah(save=save)
-                }
-            )
-        return lattices
-
-    def to_xsuite(
-        self, beam_length: int, env: Any = None, particle_ref: Any = None, save=False
-    ) -> Dict[str, object]:
-        lattices = {}
-        for section in self.sections.values():
-            lattices.update(
-                {
-                    section.name: self._section_translator(section).to_xsuite(
-                        beam_length=beam_length,
-                        env=env,
-                        particle_ref=particle_ref,
-                        save=save,
-                    )
-                }
-            )
-        return lattices
-
-    def to_madx(self, beam: Dict[str, Dict[str, Any]] | None = None) -> Dict[str, str]:
-        lattices = {}
-        for section in self.sections.values():
-            b = beam[section.name] if isinstance(beam, Dict) and section.name in beam.keys() else None
-            lattices.update(
-                {
-                    sanitize_string(section.name): self._section_translator(section).to_madx()
-                }
-            )
-        return lattices
+            names = ", ".join(f"{i}{elem}" for i, elem in enumerate(elem_dict))
+            body += f"\n{section.name}: LINE = " + "{" + names + "};\n\n\n"
+        return body

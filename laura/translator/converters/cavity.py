@@ -37,7 +37,7 @@ class RFCavityTranslator(BaseElementTranslator):
     @computed_field
     @property
     def structure_type(self) -> str:
-        return self.cavity.structure_type
+        return getattr(self.cavity, "structure_type", "StandingWave")
 
     @property
     def phase(self) -> float:
@@ -139,16 +139,7 @@ class RFCavityTranslator(BaseElementTranslator):
             self.simulation.wakefield_definition is None
             or self.simulation.wakefield_definition == ""
         ):
-            # Only the plain accelerating cavity falls back to the wakefield-less
-            # RFCA; deflecting/crab cavities always use their own mapped etype
-            # (RFDF), which has no separate wakefield variant.
             etype = "rfca"
-            # if self.simulation.field_definition is not None:
-            # etype = "rftmez0"
-            # if ".sdds" not in self.simulation.field_definition:
-            #     field_file_name = self.generate_field_file_name(
-            #     self.simulation.field_definition, code="elegant"
-            # )
         elif self.simulation.wakefield_definition not in (None, ""):
             wakefield_file_name = self.generate_field_file_name(
                 self.simulation.wakefield_definition, code="elegant"
@@ -222,15 +213,7 @@ class RFCavityTranslator(BaseElementTranslator):
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
-                        # print("elegant cavity", key, value)
-                        tmpstring = ", " + key + " = " + str(value)
-                        # if len(string + tmpstring) > 156:
-                        #     wholestring += string + ",&\n"
-                        #     print(wholestring)
-                        #     string = ""
-                        #     string += tmpstring[2::]
-                        # else:
-                        string += tmpstring
+                        string += ", " + key + " = " + str(value)
                     keys.append(key)
         wholestring += string + ";\n"
         return wholestring
@@ -331,13 +314,8 @@ class RFCavityTranslator(BaseElementTranslator):
                     setattr(
                         obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
                     )
-        # Cheetah selects between two cavity transfer maps via `cavity_type`.
-        # Its "traveling_wave" branch is a pure travelling-wave map (edge
-        # focusing plus adiabatic damping, no ponderomotive/RF focusing),
-        # whereas ELEGANT (body_focus_model=SRS), Ocelot (CavityAtom) and the
-        # MAD-X backend (rsmatrix) all apply *standing-wave*
-        # Rosenzweig-Serafini focusing even to travelling-wave structures.
-        # Pinned to "standing_wave" so Cheetah stays consistent with them.
+        # Pinned to "standing_wave" so Cheetah stays consistent with ocelot/elegant
+        # .
         if hasattr(obj, "cavity_type"):
             obj.cavity_type = "standing_wave"
         return obj
@@ -708,17 +686,6 @@ class RFCavityTranslator(BaseElementTranslator):
                     + str(self.field_amplitude)
                     + ";\n"
                 )
-
-            # if False and self.Structure_Type == 'TravellingWave' and hasattr(self, 'attenuation_constant') and hasattr(self, 'shunt_impedance') and hasattr(self, 'design_power') and hasattr(self, 'design_gamma'):
-            #     '''
-            #     trwlinac(ECS,ao,Rs,Po,P,Go,thetao,phi,w,L)
-            #     '''
-            #     relpos, relrot = ccs.relative_position(self.middle, self.global_rotation)
-            #     power = float(self.field_amplitude) / 25e6 * float(self.design_power)
-            #     output += 'trwlinac' + '( ' + ccs.name + ', "z", '+ str(relpos[2]+self.coupling_cell_length) + ', ' + str(self.attenuation_constant / self.length) + ', ' + str(float(self.shunt_impedance) / self.length)\
-            #             + ', ' + str(float(self.design_power) / self.length) + ', ' + str(power / self.length) + ', ' + str(1000/0.511) + ', ' + str(self.crest)\
-            #             + ', '+str(self.phase)+', w'+subname+', ' + str(self.length) + ');\n'
-            # else:
             output += (
                 "map1D_TM"
                 + '("'

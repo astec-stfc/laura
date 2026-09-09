@@ -8,13 +8,13 @@ description = "A standardized lattice format for particle accelerators"
 readme = "README.md"
 dynamic = ["version"]
 authors = [
-    {name = "James Jones", email = "james.jones@stfc.ac.uk"},
+    { name = "James Jones", email = "james.jones@stfc.ac.uk" },
 ]
 maintainers = [
-    {name = "James Jones", email = "james.jones@stfc.ac.uk"},
-    {name = "Alex Brynes", email = "alexander.brynes@stfc.ac.uk"},
-    {name = "Mark Johnson", email = "mark.johnson@stfc.ac.uk"},
-    {name = "Matt King", email = "matthew.king@stfc.ac.uk"},
+    { name = "James Jones", email = "james.jones@stfc.ac.uk" },
+    { name = "Alex Brynes", email = "alexander.brynes@stfc.ac.uk" },
+    { name = "Mark Johnson", email = "mark.johnson@stfc.ac.uk" },
+    { name = "Matt King", email = "matthew.king@stfc.ac.uk" },
 ]
 
 dependencies = [
@@ -81,21 +81,12 @@ gpt = [
 # All lattice-conversion backends in one go
 # Install with: pip install "laura-accelerator[conversion]"
 conversion = [
-    "xsuite>=0.50.0; sys_platform != 'win32'",
-    "ocelot-desy>=25.06.0",
-    "cheetah-accelerator>=0.7.5",
-    "wake_t>=0.8.0",
-    "pytao>=0.5.5",
-    "cpymad>=1.16.0",
-    "easygdf",
+    "laura-accelerator[xsuite,ocelot,cheetah,wake_t,bmad,madx,gpt]",
 ]
 
 test = [
     "pytest",
     "pytest-cov",
-    # The suite guards these with pytest.importorskip, so they are not hard
-    # requirements -- but without them ~35 tests silently skip, which is worse
-    # than useless in CI.
     "rdflib>=7.0",
     "sqlalchemy>=2.0",
     "jsonschema>=4.0",
@@ -114,7 +105,6 @@ docs = [
     "sphinxcontrib-mermaid",
 ]
 
-# LinkML schema tooling — generates JSON Schema, OWL, SHACL, docs, etc.
 # Install with: pip install "laura-accelerator[schema]"
 schema = [
     "linkml>=1.8",
@@ -137,31 +127,16 @@ sql = [
 # Everything — conversion backends, docs, schema tooling, and RDF support
 # Install with: pip install "laura-accelerator[full]"
 full = [
-    "xsuite>=0.50.0; sys_platform != 'win32'",
-    "ocelot-desy>=25.06.0",
-    "cheetah-accelerator>=0.7.5",
-    "wake_t>=0.8.0",
-    "pytao>=0.5.5",
-    "cpymad>=1.16.0",
-    "easygdf",
-    "sphinx>=8",
-    "sphinx-rtd-theme",
-    "myst-nb",
-    "sphinx_autodoc_typehints>=3",
-    "sphinxcontrib-bibtex",
-    "myst-parser",
-    "sphinxcontrib-mermaid",
-    "linkml>=1.8",
-    "linkml-runtime>=1.8",
-    "jsonschema>=4.0",
-    "rdflib>=7.0",
-    "sqlalchemy>=2.0",
+    "laura-accelerator[conversion,docs,schema,rdf,sql]",
 ]
 
 [project.urls]
 Homepage = "https://github.com/astec-stfc/laura"
 Repository = "https://github.com/astec-stfc/laura.git"
 Issues = "https://github.com/astec-stfc/laura/-/issues/"
+
+[tool.setuptools.packages.find]
+include = ["laura*"]
 
 [tool.setuptools.package-data]
 "laura.schema.generated" = ["*.owl", "*.graphql", "*.json", "*.ttl", "*.ts", "*.sql"]

@@ -1,16 +1,24 @@
+from typing import Any, Dict, List, Literal, Optional, Union
+
 import numpy as np
 from pydantic import (
-    field_validator,
-    model_validator,
+    Field,
     PrivateAttr,
     computed_field,
+    field_validator,
     model_serializer,
-    Field,
+    model_validator,
 )
-from typing import List, Literal, Optional, Union, Dict, Any
 
-from ._generated import _PositionBase, _RotationBase, _ElementPositionErrorBase, _ElementSurveyBase, _PhysicalElementBase, _ReferencePlacementBase
 from ..utils.rotation_matrix import euler_angles_to_rotation_matrix
+from ._generated import (
+    _ElementPositionErrorBase,
+    _ElementSurveyBase,
+    _PhysicalElementBase,
+    _PositionBase,
+    _ReferencePlacementBase,
+    _RotationBase,
+)
 from .trajectory import Trajectory
 
 
@@ -210,7 +218,8 @@ class ElementError(_ElementPositionErrorBase):
             return v
         if isinstance(v, dict):
             return _coerce_position_mapping(
-                v, error_message="setting position as dictionary must include x, y, z as floats"
+                v,
+                error_message="setting position as dictionary must include x, y, z as floats",
             )
 
         raise ValueError("position should be a number or a list of floats")
@@ -229,7 +238,8 @@ class ElementError(_ElementPositionErrorBase):
             return v
         if isinstance(v, dict):
             return _coerce_rotation_mapping(
-                v, error_message="setting rotation as dictionary must include phi, psi, theta as floats"
+                v,
+                error_message="setting rotation as dictionary must include phi, psi, theta as floats",
             )
 
         raise ValueError("rotation should be a number or a list of floats")
@@ -319,11 +329,13 @@ class ReferencePlacement(_ReferencePlacementBase):
 
     @model_validator(mode="after")
     def _check_offset_exclusivity(self) -> "ReferencePlacement":
-        n = sum([
-            self.offset is not None,
-            self.world_offset is not None,
-            self.s_offset is not None,
-        ])
+        n = sum(
+            [
+                self.offset is not None,
+                self.world_offset is not None,
+                self.s_offset is not None,
+            ]
+        )
         if n > 1:
             raise ValueError(
                 "Specify at most one offset in reference_placement: "
@@ -380,6 +392,13 @@ class PhysicalElement(_PhysicalElementBase):
         return self
 
     def model_post_init(self, __context) -> None:
+        object.__setattr__(
+            self,
+            "_position_stated",
+            self.reference_placement is not None
+            or self.middle is not None
+            or self.s is not None,
+        )
         # Skip the middle default when another positioning mode handles placement.
         if self.reference_placement is None and self.middle is None and self.s is None:
             self.middle = Position()
@@ -474,7 +493,9 @@ class PhysicalElement(_PhysicalElementBase):
 
     @field_validator("middle", mode="before")
     @classmethod
-    def validate_middle(cls, v: Union[float, int, Dict, List, np.ndarray]) -> Optional[Position]:
+    def validate_middle(
+        cls, v: Union[float, int, Dict, List, np.ndarray]
+    ) -> Optional[Position]:
         if v is None:
             return None  # Deferred to model_post_init to respect reference_placement
         if isinstance(v, (float, int)):
@@ -488,7 +509,8 @@ class PhysicalElement(_PhysicalElementBase):
             return v
         if isinstance(v, dict):
             return _coerce_position_mapping(
-                v, error_message="setting middle as dictionary must include x, y, z as floats"
+                v,
+                error_message="setting middle as dictionary must include x, y, z as floats",
             )
         raise ValueError("middle should be a number or a list of floats")
 
@@ -508,7 +530,8 @@ class PhysicalElement(_PhysicalElementBase):
             return v
         if isinstance(v, dict):
             return _coerce_position_mapping(
-                v, error_message="setting datum as dictionary must include x, y, z as floats"
+                v,
+                error_message="setting datum as dictionary must include x, y, z as floats",
             )
         raise ValueError("datum should be a number or a list of floats")
 
@@ -528,25 +551,27 @@ class PhysicalElement(_PhysicalElementBase):
             return v
         if isinstance(v, dict):
             return _coerce_rotation_mapping(
-                v, error_message="setting rotation as dictionary must include phi, psi, theta as floats"
+                v,
+                error_message="setting rotation as dictionary must include phi, psi, theta as floats",
             )
 
         raise ValueError("rotation should be a number or a list of floats")
 
     _rotation_matrix_cache = None
+    _rotation_matrix_key = None
 
     @property
     def rotation_matrix(self) -> np.ndarray:
-        if self._rotation_matrix_cache is not None:
-            return self._rotation_matrix_cache
-        
-        # Combined rotations using utility function
+        """The element's orientation as a 3x3 matrix."""
         # Apply yaw (Y), pitch (X), roll (Z) in that order
-        yaw = self.rotation.theta + self.global_rotation.theta
-        pitch = self.rotation.phi + self.global_rotation.phi
-        roll = self.rotation.psi + self.global_rotation.psi
-
-        self._rotation_matrix_cache = euler_angles_to_rotation_matrix(yaw, pitch, roll)
+        key = (
+            self.rotation.theta + self.global_rotation.theta,
+            self.rotation.phi + self.global_rotation.phi,
+            self.rotation.psi + self.global_rotation.psi,
+        )
+        if self._rotation_matrix_cache is None or self._rotation_matrix_key != key:
+            self._rotation_matrix_cache = euler_angles_to_rotation_matrix(*key)
+            self._rotation_matrix_key = key
         return self._rotation_matrix_cache
 
     def rotated_position(self, vec: List[Union[int, float]] = [0, 0, 0]) -> np.ndarray:
@@ -598,16 +623,12 @@ class PhysicalElement(_PhysicalElementBase):
         middle = np.array(self.middle.array)
 
         if abs(self._physical_angle) > 1e-9:
-            # Bent element
-            sx = (
-                -self.length
-                * (1 - np.cos(self._physical_angle))
-                / (2 * self._physical_angle)
-            )
+            theta = self._physical_angle
+            half = theta / 2.0
+            rho = self.length / theta
+            sx = -rho * (1 - np.cos(half))
             sy = 0
-            sz = (
-                -self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
-            )
+            sz = -rho * np.sin(half)
         else:
             # Straight element
             sx, sy, sz = 0, 0, -self.length / 2.0
@@ -627,13 +648,12 @@ class PhysicalElement(_PhysicalElementBase):
         middle = np.array(self.middle.array)
 
         if abs(self._physical_angle) > 1e-9:
-            ex = (
-                self.length
-                * (1 - np.cos(self._physical_angle))
-                / (2 * self._physical_angle)
-            )
+            theta = self._physical_angle
+            half = theta / 2.0
+            rho = self.length / theta
+            ex = rho * (np.cos(half) - np.cos(theta))
             ey = 0
-            ez = self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
+            ez = rho * (np.sin(theta) - np.sin(half))
         else:
             ex, ey, ez = 0, 0, self.length / 2.0
 

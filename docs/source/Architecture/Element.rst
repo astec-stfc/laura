@@ -106,7 +106,7 @@ The full specification of an element position therefore consists of:
 * ``angle: float`` -- a simplified way of retrieving the bend angle in the X-Z plane.
 * ``error: ElementError(position=Position(x, y, z), rotation=Rotation(phi, psi, theta))`` -- see :py:class:`ElementError <laura.models.physical.ElementError>` (``ElementPositionError`` in the schema); the reference position for an error is the middle of the element.
 * ``survey: ElementSurvey(position=Position(x, y, z), rotation=Rotation(phi, psi, theta))`` -- see :py:class:`ElementSurvey <laura.models.physical.ElementSurvey>`.
-* ``reference_placement: ReferencePlacement`` and ``s: float`` -- alternatives to giving ``middle`` directly; see :ref:`positioning-modes`.
+* ``reference_placement: ReferencePlacement`` and ``s: float`` -- alternatives to giving ``middle`` directly. An element may also give no position at all, and be placed by its section's ``order``. See :ref:`positioning-modes`.
 
 **Example:** Creating elements with physical properties:
 
@@ -140,7 +140,9 @@ The full specification of an element position therefore consists of:
 Positioning modes
 ~~~~~~~~~~~~~~~~~
 
-An element's longitudinal placement can be expressed in three mutually exclusive ways.
+An element's longitudinal placement can be expressed in four ways: three that state a
+position explicitly (and mutually exclusively), and one -- sequential placement -- that
+states no position at all and lets the section's ``order`` supply it.
 Whichever is used, the lattice resolves all of them to a common set of global
 ``middle`` coordinates plus an arc-length ``s`` when a section is assembled
 (:py:meth:`SectionLattice.resolve_positions <laura.models.elementList.SectionLattice.resolve_positions>`),
@@ -199,8 +201,47 @@ may be given (or none, for zero offset):
         point: end
         s_offset: 1.0
 
+**Sequential placement** (no position given) -- the element states only its ``length``,
+and takes its place from where it sits in the section's ``order``. The line is a sequence
+of elements and drifts:
+
+.. code-block:: yaml
+
+    # elements.yaml -- no coordinates anywhere
+    GUN:
+      hardware_type: Gun
+      physical: {length: 0.25}
+    D1:
+      hardware_type: Drift
+      physical: {length: 0.5}
+    Q1:
+      hardware_type: Quadrupole
+      physical: {length: 0.1}
+
+.. code-block:: yaml
+
+    # _sections.yaml -- the order is what places them
+    sections:
+      INJ:
+        elements: [GUN, D1, Q1, D1, Q1]
+
+A section is treated as sequential as soon as *any* of its elements is awaiting a position
+(:py:meth:`SectionLattice.is_sequential <laura.models.elementList.SectionLattice.is_sequential>`);
+see :ref:`sequential-placement`. At the element level:
+
+* **A positioned element anchors the line.** Mixing is allowed here, unlike the other three
+  modes: an element that *does* state an ``s`` fixes the line at that point and accumulation
+  resumes from its exit. If the accumulated length disagrees with the stated value, the stated
+  value wins and a warning names both.
+* **A repeated name becomes several elements.** ``D1`` appearing twice in ``order`` is split
+  into ``D1.1`` and ``D1.2``, because a resolved machine stores one placement per name.  The
+  numbered names are what appear in the resolved model, and in a re-export in any mode that
+  writes positions.  A ``position_mode="sequential"`` export writes none, so it puts the
+  repetition back: one ``D1``, listed twice.
+
 Because a resolved element carries both ``middle`` and ``s``, a machine can be re-exported in
-any of the three forms regardless of how it was written; see :ref:`interfaces`.
+any of these forms regardless of how it was written -- including back into the compact
+sequential form. See :ref:`interfaces` for the ``position_mode`` argument that selects the form.
 
 .. note::
 
@@ -1087,3 +1128,106 @@ lattice container (see :ref:`functional-definitions`) or directly with
 
 Resolved/computation accessors such as ``KnL`` are unaffected by this flag — they
 always return numbers.
+
+.. _element-reversal:
+
+Reversed traversal
+------------------
+
+:py:func:`reverse_element <laura.models.reversal.reverse_element>` returns a deep copy of an
+element as a beam traversing it **backwards** sees it. The original is never touched.
+
+.. code-block:: python
+
+    from laura.models.reversal import reverse_element
+
+    backwards = reverse_element(quad)   # quad.magnetic.k1l unchanged
+
+``m dv/dt = qv x B`` is not invariant under ``t -> -t`` --- reversing the velocity reverses
+the force but not the acceleration --- so **traversing an element backwards is equivalent to
+traversing it forwards with the opposite-sign particle**. The everyday consequence is that
+counter-rotating beams of the same charge need opposite dipole polarity.
+
+The reversed frame is a rotation by :math:`\pi` about the horizontal axis
+(``x' = x``, ``y' = -y``, ``s' = -s``). That is a *proper* rotation, so ``B`` transforms as an
+ordinary vector and, writing ``B_y + i B_x = b_n (x + i y)^n``, the substitution gives at
+every order:
+
+* **normal multipole coefficients negate** --- a quadrupole focusing horizontally for a
+  forward beam focuses vertically for a counter-propagating one, which is why a shared
+  interaction-region quadrupole gives the two beams mirrored optics;
+* **skew coefficients are unchanged** --- a vertical corrector is a skew dipole, and its lab
+  deflection *and* the frame's ``y`` both flip.
+
+Also applied: the solenoid longitudinal field negates, ``entrance_edge_angle`` and
+``exit_edge_angle`` swap, and ``magnetic.tilt`` negates (it is a roll about the beam axis,
+and the beam axis has flipped). Reversing twice restores the original exactly.
+
+What is refused
+~~~~~~~~~~~~~~~
+
+Anything whose reversal is not a sign flip raises
+:py:class:`ElementNotReversible <laura.models.reversal.ElementNotReversible>`, listing every
+reason rather than the first, because a silently half-reversed element is worse than none:
+field maps and wakefields, symbolic strengths, and the directional RF structures below.
+:py:func:`reversal_obstacles <laura.models.reversal.reversal_obstacles>` reports the same
+list without reversing, so a whole line can be checked before any of it is committed to.
+``strict=False`` warns and reverses what it can, for a caller that has decided a partial
+reversal is acceptable. A measured misalignment is not transformed and warns.
+
+.. _cavity-reversal:
+
+RF cavities
+~~~~~~~~~~~
+
+A symmetric standing-wave accelerating cavity is reversible, and reversing it changes
+nothing about it: it is geometrically the same from either end, so only its place in the
+order moves. Only the phase changes between traversals, which can be overridden per pass
+(see :ref:`per-pass-overrides`).
+
+Three RF cases are still refused:
+
+* a travelling-wave structure, because a backwards beam counter-propagates with the RF
+  wave instead of riding it;
+* any structure with a non-zero ``attenuation_constant``, whose gradient profile would have to
+  be mirrored rather than negated;
+* a ``structure_type`` matching neither a recognised standing-wave nor travelling-wave
+  spelling, since symmetry cannot be assumed from an unknown one.
+
+Deflecting and crab cavities are also refused: their kick is transverse and would flip sign,
+which is a separate decision that has not been made.
+
+.. _path-reversal-on-export:
+
+Reversing a whole section
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:py:func:`reverse_section <laura.models.reversal.reverse_section>` applies the same
+transform to every element of a section and reverses the order. Each element's arc length
+is mirrored from its forward one (``extent - s``) rather than accumulated along the
+reversed order.
+
+A layout declares which sections it traverses backwards (see :ref:`path-arc-lengths`), and
+:py:class:`MachineLayoutTranslator <laura.translator.converters.layout.MachineLayoutTranslator>`
+substitutes the reversed section once, when the translator is built.
+
+.. code-block:: yaml
+
+    layouts:
+      L:
+        - ARC: {direction: -1}
+
+.. code-block:: text
+
+    ARC: LINE = (Q1, D1, B1, D2, Q2)      # forwards
+    ARC: LINE = (Q2, D2, B1, D1, Q1)      # direction: -1, and B1's angle is negated
+
+The source machine is never modified, so another beam path can traverse the same section
+forwards at the same time.
+
+.. note::
+
+   Codes with a native per-element reversal are not yet using it --- Bmad has
+   ``orientation``, and emitting that would be more faithful than baking the transformed
+   values in. MAD-X and elegant have no such attribute, so for them the transformed values
+   are the only available answer and this is complete.

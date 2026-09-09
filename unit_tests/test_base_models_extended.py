@@ -1,7 +1,7 @@
 """Tests for laura.models.baseModels helpers and base classes not already
 exercised by unit_tests/test_base_models.py: functional_annotations'
 bend-angle marker, functional_references, ModelBase's numpy-safe __eq__
-fallback, IgnoreExtra field helpers, and NumpyModel/NumpyVectorModel."""
+fallback, and NumpyModel/NumpyVectorModel."""
 
 import numpy as np
 from pydantic import PrivateAttr

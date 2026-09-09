@@ -250,10 +250,6 @@ class ApertureTranslator(BaseElementTranslator):
             ):
                 if value is not None:
                     key = self._convertKeyword_Elegant(key)
-                    # if key == "dx":
-                    #     value = self.physical.middle.x
-                    # elif key == "dy":
-                    #     value = self.physical.middle.y
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
