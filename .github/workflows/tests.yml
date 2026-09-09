@@ -32,8 +32,10 @@ jobs:
       - name: Install
         run: pip install -e ".[full,test]"
 
+      # -m "" overrides the `not slow` deselection in pyproject's addopts. Without
+      # it CI inherits the local default and test_sql_exporter.py runs nowhere.
       - name: Run tests
-        run: pytest unit_tests -v
+        run: pytest unit_tests -v -m ""
 
   downstream-simba:
     runs-on: ubuntu-latest

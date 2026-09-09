@@ -17,14 +17,6 @@ laura.Importers.Magnet\_Table module
    :undoc-members:
    :show-inheritance:
 
-laura.Importers.SimFrame\_Loader module
----------------------------------------
-
-.. automodule:: laura.Importers.SimFrame_Loader
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 laura.Importers.YAML\_Loader module
 -----------------------------------
 

@@ -55,12 +55,6 @@ All three are expanded at load time -- the loaded model always carries fully mer
 with resolved coordinates and one flat list of names per section.
 :doc:`Architecture/yaml-pipeline` describes them in detail.
 
-SimFrame
-~~~~~~~~
-
-:py:mod:`laura.Importers.SimFrame_Loader` converts lattices written for the ASTeC SimFrame
-framework into :mod:`LAURA` elements.
-
 .. _exporters:
 
 Exporters
