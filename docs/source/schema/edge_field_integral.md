@@ -1,5 +1,10 @@
 # Slot: edge_field_integral 
 
+
+_Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals)._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -15,7 +20,6 @@ URI: [laura:edge_field_integral](https://w3id.org/laura/edge_field_integral)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation attributes specific to magnets: integrator settings, fringe-field ... |  no  |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
 | [DipoleMagnet](DipoleMagnet.md) |  |  no  |
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
@@ -33,13 +37,21 @@ URI: [laura:edge_field_integral](https://w3id.org/laura/edge_field_integral)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
-| Domain Of | [MagnetSimulationElement](MagnetSimulationElement.md), [MagneticElement](MagneticElement.md) |
+| Range | [Float](Float.md) |
+| Domain Of | [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+### Slot Characteristics
+
+| Property | Value |
+| --- | --- |
+| If Absent | `float(0.5)` |
+| Owner | [MagneticElement](MagneticElement.md) |
+
+
 
 
 
@@ -53,6 +65,13 @@ URI: [laura:edge_field_integral](https://w3id.org/laura/edge_field_integral)
 ## Identifier and Mapping Information
 
 
+
+
+
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
 
 
 
@@ -72,10 +91,17 @@ URI: [laura:edge_field_integral](https://w3id.org/laura/edge_field_integral)
 <details>
 ```yaml
 name: edge_field_integral
+description: Enge fringe-field integral parameter (dimensionless), used as the single
+  combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit
+  for separate entrance/exit values; MagneticElement resolves the three together (see
+  MagneticElement.resolve_edge_field_integrals).
+from_schema: https://w3id.org/laura/schema
+rank: 1000
+ifabsent: float(0.5)
+owner: MagneticElement
 domain_of:
-- MagnetSimulationElement
 - MagneticElement
-range: string
+range: float
 
 ```
 </details></div>

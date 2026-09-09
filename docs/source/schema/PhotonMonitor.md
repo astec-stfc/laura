@@ -41,8 +41,8 @@ URI: [laura:PhotonMonitor](https://w3id.org/laura/PhotonMonitor)
     
         
         
-        PhotonMonitor --> "0..1" DiagnosticElement : diagnostic
-        click DiagnosticElement href "../DiagnosticElement/"
+        PhotonMonitor --> "0..1" PhotonIntensityMonitorDiagnostic : diagnostic
+        click PhotonIntensityMonitorDiagnostic href "../PhotonIntensityMonitorDiagnostic/"
     
 
         
@@ -91,17 +91,6 @@ URI: [laura:PhotonMonitor](https://w3id.org/laura/PhotonMonitor)
         
         PhotonMonitor --> "*" IOTypeEnum : inputs
         click IOTypeEnum href "../IOTypeEnum/"
-    
-
-        
-      PhotonMonitor : intensity
-        
-          
-    
-        
-        
-        PhotonMonitor --> "0..1" PhotonIntensityMonitorDiagnostic : intensity
-        click PhotonIntensityMonitorDiagnostic href "../PhotonIntensityMonitorDiagnostic/"
     
 
         
@@ -206,8 +195,7 @@ URI: [laura:PhotonMonitor](https://w3id.org/laura/PhotonMonitor)
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [intensity](intensity.md) | 0..1 <br/> [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md) | Instrument-specific diagnostic parameters | direct |
-| [diagnostic](diagnostic.md) | 0..1 <br/> [DiagnosticElement](DiagnosticElement.md) | Instrument-specific diagnostic parameters | [Diagnostic](Diagnostic.md) |
+| [diagnostic](diagnostic.md) | 0..1 <br/> [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md) | Instrument-specific diagnostic parameters | direct |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
@@ -287,16 +275,21 @@ slot_usage:
     name: hardware_model
     ifabsent: string(Photon_Monitor)
 attributes:
-  intensity:
-    name: intensity
+  diagnostic:
+    name: diagnostic
     description: Instrument-specific diagnostic parameters.
     in_subset:
     - diagnostic_properties
     from_schema: https://w3id.org/laura/schema/diagnostics
-    rank: 1000
     domain_of:
+    - Diagnostic
+    - BeamPositionMonitor
+    - BeamArrivalMonitor
+    - BunchLengthMonitor
+    - Camera
+    - Screen
+    - ChargeDiagnostic
     - PhotonMonitor
-    - PhotonIntensityMonitorDiagnostic
     range: PhotonIntensityMonitorDiagnostic
 class_uri: laura:PhotonMonitor
 
@@ -319,25 +312,12 @@ slot_usage:
     name: hardware_model
     ifabsent: string(Photon_Monitor)
 attributes:
-  intensity:
-    name: intensity
-    description: Instrument-specific diagnostic parameters.
-    in_subset:
-    - diagnostic_properties
-    from_schema: https://w3id.org/laura/schema/diagnostics
-    rank: 1000
-    owner: PhotonMonitor
-    domain_of:
-    - PhotonMonitor
-    - PhotonIntensityMonitorDiagnostic
-    range: PhotonIntensityMonitorDiagnostic
   diagnostic:
     name: diagnostic
     description: Instrument-specific diagnostic parameters.
     in_subset:
     - diagnostic_properties
     from_schema: https://w3id.org/laura/schema/diagnostics
-    rank: 1000
     owner: PhotonMonitor
     domain_of:
     - Diagnostic
@@ -347,7 +327,8 @@ attributes:
     - Camera
     - Screen
     - ChargeDiagnostic
-    range: DiagnosticElement
+    - PhotonMonitor
+    range: PhotonIntensityMonitorDiagnostic
   physical:
     name: physical
     description: Position, rotation, and length data.

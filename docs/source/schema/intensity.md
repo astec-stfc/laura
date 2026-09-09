@@ -1,5 +1,10 @@
 # Slot: intensity 
 
+
+_Measured photon intensity._
+
+
+
 <div data-search-exclude markdown="1">
 
 
@@ -15,7 +20,6 @@ URI: [laura:intensity](https://w3id.org/laura/intensity)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [PhotonMonitor](PhotonMonitor.md) | Photon intensity monitor |  no  |
 | [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md) | Photon intensity monitor diagnostic data |  no  |
 
 
@@ -29,13 +33,21 @@ URI: [laura:intensity](https://w3id.org/laura/intensity)
 
 | Property | Value |
 | --- | --- |
-| Range | [String](String.md) |
-| Domain Of | [PhotonMonitor](PhotonMonitor.md), [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md) |
+| Range | [Float](Float.md) |
+| Domain Of | [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+### Slot Characteristics
+
+| Property | Value |
+| --- | --- |
+| If Absent | `float(0.0)` |
+| Owner | [PhotonIntensityMonitorDiagnostic](PhotonIntensityMonitorDiagnostic.md) |
+
+
 
 
 
@@ -49,6 +61,13 @@ URI: [laura:intensity](https://w3id.org/laura/intensity)
 ## Identifier and Mapping Information
 
 
+
+
+
+### Schema Source
+
+
+* from schema: https://w3id.org/laura/schema
 
 
 
@@ -68,10 +87,14 @@ URI: [laura:intensity](https://w3id.org/laura/intensity)
 <details>
 ```yaml
 name: intensity
+description: Measured photon intensity.
+from_schema: https://w3id.org/laura/schema
+rank: 1000
+ifabsent: float(0.0)
+owner: PhotonIntensityMonitorDiagnostic
 domain_of:
-- PhotonMonitor
 - PhotonIntensityMonitorDiagnostic
-range: string
+range: float
 
 ```
 </details></div>

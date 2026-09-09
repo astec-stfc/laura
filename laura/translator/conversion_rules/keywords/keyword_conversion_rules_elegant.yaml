@@ -4,6 +4,8 @@ general:
   entrance_edge_angle: e1
   exit_edge_angle: e2
   edge_field_integral: fint
+  edge_field_integral_entrance: fint1
+  edge_field_integral_exit: fint2
   half_gap: hgap
   horizontal_size: x_max
   vertical_size: y_max

@@ -24,6 +24,14 @@ URI: [laura:simulation](https://w3id.org/laura/simulation)
 | [Element](Element.md) | Concrete schema counterpart of the Python ``Element`` wrapper class |  no  |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | Accelerator element with a well-defined physical position and orientation in ... |  no  |
 | [TwissMatch](TwissMatch.md) | Virtual Twiss-parameter matching point -- a zero-length marker that defines t... |  yes  |
+| [MatrixTransform](MatrixTransform.md) | Transfer-map element with zero-, first-, and second-order coefficients |  yes  |
+| [ElectrostaticSeparator](ElectrostaticSeparator.md) | Static electrostatic transverse-deflection element |  yes  |
+| [ACDipole](ACDipole.md) | Base class for horizontal and vertical AC-dipole tune exciters |  yes  |
+| [HorizontalACDipole](HorizontalACDipole.md) | Horizontally deflecting AC-dipole tune exciter |  no  |
+| [VerticalACDipole](VerticalACDipole.md) | Vertically deflecting AC-dipole tune exciter |  no  |
+| [Wire](Wire.md) | Current-carrying wire for long-range beam-beam compensation |  yes  |
+| [BeamBeam](BeamBeam.md) | Weak-strong beam-beam interaction element |  yes  |
+| [RFMultipole](RFMultipole.md) | Thin RF-driven multipole kick |  yes  |
 | [Stage](Stage.md) | Motorised positioning stage |  no  |
 | [VacuumGauge](VacuumGauge.md) | Vacuum-pressure gauge |  no  |
 | [Laser](Laser.md) | Laser system element (full laser setup including beam parameters) |  no  |
@@ -38,6 +46,7 @@ URI: [laura:simulation](https://w3id.org/laura/simulation)
 | [Magnet](Magnet.md) | Base class for all magnetic focusing and bending elements |  yes  |
 | [RFCavity](RFCavity.md) | Accelerating RF cavity |  yes  |
 | [RFDeflectingCavity](RFDeflectingCavity.md) | Transverse-deflecting (streak) RF cavity |  no  |
+| [CrabCavity](CrabCavity.md) | Transverse-deflecting crab cavity for crossing-angle compensation |  no  |
 | [Wakefield](Wakefield.md) | Passive wakefield structure (dielectric, corrugated, etc |  yes  |
 | [LowLevelRF](LowLevelRF.md) | Low-level RF (LLRF) controller |  no  |
 | [RFModulator](RFModulator.md) | RF modulator (klystron driver) element |  no  |

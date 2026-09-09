@@ -57,6 +57,14 @@ URI: [laura:ReferenceElement](https://w3id.org/laura/ReferenceElement)
 | [Element](Element.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [TwissMatch](TwissMatch.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [MatrixTransform](MatrixTransform.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [ElectrostaticSeparator](ElectrostaticSeparator.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [ACDipole](ACDipole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [HorizontalACDipole](HorizontalACDipole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [VerticalACDipole](VerticalACDipole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [Wire](Wire.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [BeamBeam](BeamBeam.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [RFMultipole](RFMultipole.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [Stage](Stage.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [VacuumGauge](VacuumGauge.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [Laser](Laser.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
@@ -71,6 +79,7 @@ URI: [laura:ReferenceElement](https://w3id.org/laura/ReferenceElement)
 | [Magnet](Magnet.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [RFCavity](RFCavity.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [RFDeflectingCavity](RFDeflectingCavity.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
+| [CrabCavity](CrabCavity.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [Wakefield](Wakefield.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [LowLevelRF](LowLevelRF.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |
 | [RFModulator](RFModulator.md) | [reference](reference.md) | range | [ReferenceElement](ReferenceElement.md) |

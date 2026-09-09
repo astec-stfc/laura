@@ -274,7 +274,20 @@ classes:
       edge_field_integral:
         range: float
         ifabsent: float(0.5)
-        description: Enge fringe-field integral parameter (dimensionless).
+        description: >-
+          Enge fringe-field integral parameter (dimensionless), used as the
+          single combined value by codes that only support one edge focussing
+          keyword. See edge_field_integral_entrance/edge_field_integral_exit
+          for separate entrance/exit values; MagneticElement resolves the
+          three together (see MagneticElement.resolve_edge_field_integrals).
+      edge_field_integral_entrance:
+        range: float
+        ifabsent: float(0.5)
+        description: Fringe-field integral for entrance-edge focussing.
+      edge_field_integral_exit:
+        range: float
+        ifabsent: float(0.5)
+        description: Fringe-field integral for exit-edge focussing.
       fringe_field_coefficient:
         ifabsent: float(0.0)
         range: float

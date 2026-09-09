@@ -50,6 +50,50 @@ class TestFieldIntegralCoercion:
             MagneticElement(field_integral_coefficients=5)
 
 
+class TestEdgeFieldIntegralResolution:
+    def test_none_set_keeps_shared_default(self):
+        me = MagneticElement()
+        assert (me.edge_field_integral, me.edge_field_integral_entrance, me.edge_field_integral_exit) == (0.5, 0.5, 0.5)
+
+    def test_only_edge_field_integral_set_fills_both_edges(self):
+        me = MagneticElement(edge_field_integral=0.2)
+        assert me.edge_field_integral_entrance == 0.2
+        assert me.edge_field_integral_exit == 0.2
+
+    def test_efi_and_entrance_set_fills_exit(self):
+        me = MagneticElement(edge_field_integral=0.2, edge_field_integral_entrance=0.9)
+        assert me.edge_field_integral_entrance == 0.9
+        assert me.edge_field_integral_exit == 0.2
+
+    def test_efi_and_exit_set_fills_entrance(self):
+        me = MagneticElement(edge_field_integral=0.2, edge_field_integral_exit=0.9)
+        assert me.edge_field_integral_entrance == 0.2
+        assert me.edge_field_integral_exit == 0.9
+
+    def test_all_three_set_left_untouched(self):
+        me = MagneticElement(edge_field_integral=0.2, edge_field_integral_entrance=0.3, edge_field_integral_exit=0.4)
+        assert (me.edge_field_integral, me.edge_field_integral_entrance, me.edge_field_integral_exit) == (0.2, 0.3, 0.4)
+
+    def test_only_entrance_set_warns_and_fills_exit_and_efi(self):
+        with pytest.warns(UserWarning):
+            me = MagneticElement(edge_field_integral_entrance=0.7)
+        assert me.edge_field_integral_exit == 0.7
+        assert me.edge_field_integral == 0.7
+
+    def test_only_exit_set_warns_and_fills_entrance_and_efi(self):
+        with pytest.warns(UserWarning):
+            me = MagneticElement(edge_field_integral_exit=0.7)
+        assert me.edge_field_integral_entrance == 0.7
+        assert me.edge_field_integral == 0.7
+
+    def test_entrance_and_exit_set_without_efi_warns_and_efi_takes_entrance(self):
+        with pytest.warns(UserWarning):
+            me = MagneticElement(edge_field_integral_entrance=0.3, edge_field_integral_exit=0.7)
+        assert me.edge_field_integral_entrance == 0.3
+        assert me.edge_field_integral_exit == 0.7
+        assert me.edge_field_integral == 0.3
+
+
 class TestMultipolesValidatorBranches:
     def test_none_becomes_default_multipole(self):
         mp = Multipoles(K1L=None)

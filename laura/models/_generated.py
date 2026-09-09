@@ -770,9 +770,6 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
                        'RFCavitySimulationElement',
                        'WakefieldSimulationElement']} })
     """Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth)."""
-    edge_field_integral: float = Field(default=0.5, description="""Fringe-field integral for edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
-         'ifabsent': 'float(0.5)'} })
-    """Fringe-field integral for edge focussing."""
     edge1_effects: Optional[bool] = Field(default=None, description="""Enable entrance-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
     """Enable entrance-edge focussing effects."""
     edge2_effects: Optional[bool] = Field(default=None, description="""Enable exit-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
@@ -1516,9 +1513,12 @@ class _MagneticElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
-    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
-         'ifabsent': 'float(0.5)'} })
-    """Enge fringe-field integral parameter (dimensionless)."""
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals)."""
+    edge_field_integral_entrance: float = Field(default=0.5, description="""Fringe-field integral for entrance-edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Fringe-field integral for entrance-edge focussing."""
+    edge_field_integral_exit: float = Field(default=0.5, description="""Fringe-field integral for exit-edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Fringe-field integral for exit-edge focussing."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -2386,9 +2386,12 @@ class _DipoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
-    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
-         'ifabsent': 'float(0.5)'} })
-    """Enge fringe-field integral parameter (dimensionless)."""
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals)."""
+    edge_field_integral_entrance: float = Field(default=0.5, description="""Fringe-field integral for entrance-edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Fringe-field integral for entrance-edge focussing."""
+    edge_field_integral_exit: float = Field(default=0.5, description="""Fringe-field integral for exit-edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Fringe-field integral for exit-edge focussing."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -2462,9 +2465,12 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
-    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
-         'ifabsent': 'float(0.5)'} })
-    """Enge fringe-field integral parameter (dimensionless)."""
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals)."""
+    edge_field_integral_entrance: float = Field(default=0.5, description="""Fringe-field integral for entrance-edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Fringe-field integral for entrance-edge focussing."""
+    edge_field_integral_exit: float = Field(default=0.5, description="""Fringe-field integral for exit-edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Fringe-field integral for exit-edge focussing."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -2541,9 +2547,12 @@ class _SextupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
-    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
-         'ifabsent': 'float(0.5)'} })
-    """Enge fringe-field integral parameter (dimensionless)."""
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals)."""
+    edge_field_integral_entrance: float = Field(default=0.5, description="""Fringe-field integral for entrance-edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Fringe-field integral for entrance-edge focussing."""
+    edge_field_integral_exit: float = Field(default=0.5, description="""Fringe-field integral for exit-edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Fringe-field integral for exit-edge focussing."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -2622,9 +2631,12 @@ class _OctupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
-    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement'],
-         'ifabsent': 'float(0.5)'} })
-    """Enge fringe-field integral parameter (dimensionless)."""
+    edge_field_integral: float = Field(default=0.5, description="""Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals)."""
+    edge_field_integral_entrance: float = Field(default=0.5, description="""Fringe-field integral for entrance-edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Fringe-field integral for entrance-edge focussing."""
+    edge_field_integral_exit: float = Field(default=0.5, description="""Fringe-field integral for exit-edge focussing.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.5)'} })
+    """Fringe-field integral for exit-edge focussing."""
     fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
     """Coefficient controlling the fringe-field roll-off rate."""
     gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
@@ -2667,7 +2679,7 @@ class _CorrectorMagnetBase(ConfiguredBaseModel):
 
 class _SolenoidFieldsBase(ConfiguredBaseModel):
     """
-    Solenoid integrated axial field components ``S0L``�``S12L`` [T.m].
+    Solenoid integrated axial field components ``S0L``–``S12L`` [T.m].
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:SolenoidFields',
          'from_schema': 'https://w3id.org/laura/schema/magnetic'})

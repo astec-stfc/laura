@@ -1,7 +1,7 @@
 general:
   e1: _e1
   e2: _e2
-  edge_field_integral: fringe_integral
+  edge_field_integral_entrance: fringe_integral
   edge_field_integral_exit: fringe_integral_exit
   half_gap: gap
   horizontal_size: x_max

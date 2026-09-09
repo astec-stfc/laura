@@ -3,7 +3,8 @@ general:
   length: l
   entrance_edge_angle: e1
   exit_edge_angle: e2
-  edge_field_integral: fint
+  edge_field_integral_entrance: fint
+  edge_field_integral_exit: fintx
   half_gap: hgap
   tilt_angle: tilt
   horizontal_size: xsize
@@ -11,7 +12,6 @@ general:
 dipole:
   angle: angle
   half_gap: hgap
-  edge_field_integral: fint
 quadrupole:
   dz_rot: tilt
 sextupole:

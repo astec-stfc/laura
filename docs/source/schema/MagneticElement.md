@@ -34,6 +34,10 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
         
       MagneticElement : edge_field_integral
         
+      MagneticElement : edge_field_integral_entrance
+        
+      MagneticElement : edge_field_integral_exit
+        
       MagneticElement : entrance_edge_angle
         
       MagneticElement : exit_edge_angle
@@ -164,7 +168,9 @@ URI: [laura:MagneticElement](https://w3id.org/laura/MagneticElement)
 | [plane](plane.md) | 0..1 <br/> [BendingPlaneEnum](BendingPlaneEnum.md) | Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combin... | direct |
 | [width](width.md) | 0..1 <br/> [Float](Float.md) | Physical width of the magnet in the bending plane [m] | direct |
 | [tilt](tilt.md) | 0..1 <br/> [Float](Float.md) | Global tilt about the beam axis [rad] | direct |
-| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless) | direct |
+| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless), used as the single comb... | direct |
+| [edge_field_integral_entrance](edge_field_integral_entrance.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for entrance-edge focussing | direct |
+| [edge_field_integral_exit](edge_field_integral_exit.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for exit-edge focussing | direct |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | 0..1 <br/> [Float](Float.md) | Coefficient controlling the fringe-field roll-off rate | direct |
 | [gradient](gradient.md) | 0..1 <br/> [Float](Float.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) | direct |
 | [angle](angle.md) | 0..1 <br/> [Float](Float.md) | Integrated bending angle [rad] | direct |
@@ -397,9 +403,9 @@ attributes:
     name: width
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.2)
     domain_of:
+    - BeamBeamSimulationElement
     - MagneticElement
     range: float
     unit:
@@ -408,9 +414,9 @@ attributes:
     name: tilt
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.0)
     domain_of:
+    - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
     range: float
@@ -418,11 +424,32 @@ attributes:
       ucum_code: rad
   edge_field_integral:
     name: edge_field_integral
-    description: Enge fringe-field integral parameter (dimensionless).
+    description: Enge fringe-field integral parameter (dimensionless), used as the
+      single combined value by codes that only support one edge focussing keyword.
+      See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit
+      values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals).
     from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
     ifabsent: float(0.5)
     domain_of:
-    - MagnetSimulationElement
+    - MagneticElement
+    range: float
+  edge_field_integral_entrance:
+    name: edge_field_integral_entrance
+    description: Fringe-field integral for entrance-edge focussing.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    ifabsent: float(0.5)
+    domain_of:
+    - MagneticElement
+    range: float
+  edge_field_integral_exit:
+    name: edge_field_integral_exit
+    description: Fringe-field integral for exit-edge focussing.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    ifabsent: float(0.5)
+    domain_of:
     - MagneticElement
     range: float
   fringe_field_coefficient:
@@ -652,10 +679,10 @@ attributes:
     name: width
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.2)
     owner: MagneticElement
     domain_of:
+    - BeamBeamSimulationElement
     - MagneticElement
     range: float
     unit:
@@ -664,10 +691,10 @@ attributes:
     name: tilt
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
     ifabsent: float(0.0)
     owner: MagneticElement
     domain_of:
+    - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
     range: float
@@ -675,12 +702,35 @@ attributes:
       ucum_code: rad
   edge_field_integral:
     name: edge_field_integral
-    description: Enge fringe-field integral parameter (dimensionless).
+    description: Enge fringe-field integral parameter (dimensionless), used as the
+      single combined value by codes that only support one edge focussing keyword.
+      See edge_field_integral_entrance/edge_field_integral_exit for separate entrance/exit
+      values; MagneticElement resolves the three together (see MagneticElement.resolve_edge_field_integrals).
     from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
     ifabsent: float(0.5)
     owner: MagneticElement
     domain_of:
-    - MagnetSimulationElement
+    - MagneticElement
+    range: float
+  edge_field_integral_entrance:
+    name: edge_field_integral_entrance
+    description: Fringe-field integral for entrance-edge focussing.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    ifabsent: float(0.5)
+    owner: MagneticElement
+    domain_of:
+    - MagneticElement
+    range: float
+  edge_field_integral_exit:
+    name: edge_field_integral_exit
+    description: Fringe-field integral for exit-edge focussing.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    ifabsent: float(0.5)
+    owner: MagneticElement
+    domain_of:
     - MagneticElement
     range: float
   fringe_field_coefficient:

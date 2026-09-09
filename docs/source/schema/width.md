@@ -1,10 +1,5 @@
 # Slot: width 
 
-
-_Physical width of the magnet in the bending plane [m]._
-
-
-
 <div data-search-exclude markdown="1">
 
 
@@ -20,6 +15,7 @@ URI: [laura:width](https://w3id.org/laura/width)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
+| [BeamBeamSimulationElement](BeamBeamSimulationElement.md) | Simulation attributes for a weak-strong beam-beam interaction |  no  |
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |  no  |
 | [DipoleMagnet](DipoleMagnet.md) |  |  no  |
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
@@ -37,31 +33,13 @@ URI: [laura:width](https://w3id.org/laura/width)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
-| Domain Of | [MagneticElement](MagneticElement.md) |
+| Range | [String](String.md) |
+| Domain Of | [BeamBeamSimulationElement](BeamBeamSimulationElement.md), [MagneticElement](MagneticElement.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
-### Slot Characteristics
-
-| Property | Value |
-| --- | --- |
-| If Absent | `float(0.2)` |
-| Owner | [MagneticElement](MagneticElement.md) |
-
-
-<details>
-<summary>Additional Constraints</summary>
-**Unit:**
-
-| Property | Value |
-| --- | --- |
-| ucum_code | m |
-
-</details>
-
 
 
 
@@ -75,13 +53,6 @@ URI: [laura:width](https://w3id.org/laura/width)
 ## Identifier and Mapping Information
 
 
-
-
-
-### Schema Source
-
-
-* from schema: https://w3id.org/laura/schema
 
 
 
@@ -101,16 +72,10 @@ URI: [laura:width](https://w3id.org/laura/width)
 <details>
 ```yaml
 name: width
-description: Physical width of the magnet in the bending plane [m].
-from_schema: https://w3id.org/laura/schema
-rank: 1000
-ifabsent: float(0.2)
-owner: MagneticElement
 domain_of:
+- BeamBeamSimulationElement
 - MagneticElement
-range: float
-unit:
-  ucum_code: m
+range: string
 
 ```
 </details></div>
