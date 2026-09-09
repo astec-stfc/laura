@@ -28,6 +28,7 @@ from .misalignment import (
     BMAD_NO_MISALIGNMENT,
     bmad_misalignment,
 )
+from .section import BmadBody
 
 __all__ = [
     "BMAD_MISALIGNMENT",

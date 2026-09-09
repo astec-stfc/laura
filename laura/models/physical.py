@@ -402,6 +402,9 @@ class PhysicalElement(_PhysicalElementBase):
             or self.middle is not None
             or self.s is not None,
         )
+        object.__setattr__(
+            self, "_explicit_angle", "physical_angle" in self.model_fields_set
+        )
         # Skip the middle default when another positioning mode handles placement.
         if self.reference_placement is None and self.middle is None and self.s is None:
             self.middle = Position()

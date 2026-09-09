@@ -12,8 +12,12 @@ pytest.importorskip("pytao")
 from laura.translator.converters.codes import magnetic_orders
 from laura.translator.converters.codes.bmad import BmadLatticeImporter
 
+# ACC_ROOT_DIR is Bmad's own name for this and pytao already reads it, so an
+# environment set up to run Tao at all needs nothing further here.
 BMAD_DIST = Path(
-    os.environ.get("BMAD_DIST", Path.home() / "Documents" / "bmad_dist")
+    os.environ.get("BMAD_DIST")
+    or os.environ.get("ACC_ROOT_DIR")
+    or Path.home() / "Documents" / "bmad-ecosystem"
 ).expanduser()
 LIBTAO = Path(
     os.environ.get("LAURA_LIBTAO", BMAD_DIST / "production" / "lib" / "libtao.so")
