@@ -1051,3 +1051,4 @@ class SectionLatticeTranslator(SectionLattice):
                 # except Exception as e:
                 #     print('Wake-T writeElements error:', element.name, e)
         return Beamline(beamline)
+

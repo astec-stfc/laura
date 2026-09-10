@@ -71,8 +71,8 @@ class TestRotationMatrix:
 
     def test_quarter_turn(self):
         import numpy as np
-        R = _rotation_matrix(np.pi / 2)
-        np.testing.assert_array_almost_equal(R @ [0, 0, 1], [1, 0, 0])
+        r = _rotation_matrix(np.pi / 2)
+        np.testing.assert_array_almost_equal(r @ [0, 0, 1], [1, 0, 0])
 
 
 class TestChop:

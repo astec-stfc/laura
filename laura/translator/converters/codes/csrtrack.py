@@ -209,7 +209,7 @@ class CsrTrackParticles(CsrTrackElement):
     Class for defining CSRTrack particles.
     """
 
-    exclude: List[str] = csrtrack_element.model_fields["exclude"].default + [
+    exclude: List[str] = CsrTrackElement.model_fields["exclude"].default + [
         "reference_momentum",
         "reference_point_x",
         "reference_point_y",

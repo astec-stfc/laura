@@ -184,5 +184,6 @@ class MachineModelTranslator(MachineModel):
     ) -> Dict[str, Dict[str, str]]:
         model = {}
         for name, latt in self.lattices.items():
+            b = beam[name] if name in beam else None
             model.update({sanitize_string(name): self._layout_translator(latt).to_madx(beam=b)})
         return model

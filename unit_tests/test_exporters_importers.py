@@ -1,4 +1,4 @@
-"""Tests for laura.exporters.YAML and laura.importers.YAML_Loader."""
+"""Tests for laura.exporters.yaml_exporter and laura.importers.yaml_loader."""
 
 import pytest
 import os
@@ -141,7 +141,7 @@ class TestExportMachine:
 
 
 # ---------------------------------------------------------------------------
-# Importers: interpret_YAML_Element
+# Importers: interpret_yaml_element
 # ---------------------------------------------------------------------------
 
 class TestInterpretYAMLElement:
@@ -194,7 +194,7 @@ class TestInterpretYAMLElement:
 
 
 # ---------------------------------------------------------------------------
-# Importers: read_YAML_Element_File / read_YAML_Combined_File
+# Importers: read_yaml_element_file / read_yaml_combined_file
 # ---------------------------------------------------------------------------
 
 class TestReadYAMLFiles:
@@ -314,7 +314,7 @@ class TestControlsSchema:
             "physical": {"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
             "controls": {"schema": "quad_schema.yaml", "identifier_pattern": "Q1"},
         }
-        elem = interpret_YAML_Element(data, base_dir=str(tmp_path))
+        elem = interpret_yaml_element(data, base_dir=str(tmp_path))
         assert elem.controls.variables["READI"].identifier == "Q1:READI"
         assert elem.controls.identifier_pattern == "Q1"
 
@@ -339,7 +339,7 @@ class TestControlsSchema:
             "physical": {"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
             "controls": {"schema": "quad_schema.yaml"},
         }
-        elem = interpret_YAML_Element(data, base_dir=str(tmp_path))
+        elem = interpret_yaml_element(data, base_dir=str(tmp_path))
         assert elem is not None
         assert elem.controls.variables["SETI"].identifier == "Q1:SETI"
         assert elem.controls.variables["READI"].identifier == "Q1:READI"
@@ -361,7 +361,7 @@ class TestControlsSchema:
             },
             element_file.open("w"),
         )
-        elem = read_YAML_Element_File(str(element_file))
+        elem = read_yaml_element_file(str(element_file))
         assert elem.controls.variables["SETI"].identifier == "Q1:SETI"
 
 
@@ -385,7 +385,7 @@ class TestControlsSchemaExport:
             "physical": {"length": 0.3, "middle": {"x": 0.0, "y": 0.0, "z": 1.0}},
             "controls": controls,
         }
-        return interpret_YAML_Element(data, base_dir=str(schema_dir))
+        return interpret_yaml_element(data, base_dir=str(schema_dir))
 
     def test_export_as_yaml_collapses_to_schema(self, tmp_path):
         schema_root = tmp_path / "root"
@@ -425,7 +425,7 @@ class TestControlsSchemaExport:
         dest = tmp_path / "dest"
         export_elements(str(dest), [elem], collapse_schema=True, schema_root=str(schema_root))
         assert (dest / "Magnet" / "Quadrupole" / "_schema.yaml").exists()
-        reloaded = read_YAML_Element_File(str(dest / "Magnet" / "Quadrupole" / "Q1.yaml"))
+        reloaded = read_yaml_element_file(str(dest / "Magnet" / "Quadrupole" / "Q1.yaml"))
         assert reloaded.controls.variables["SETI"].description == "Custom override"
         assert reloaded.controls.variables["READI"].identifier == "Q1:READI"
 
@@ -462,7 +462,7 @@ class TestControlsSchemaExport:
 
         # No companion schema file present -- must resolve purely from the
         # embedded `_schemas` section.
-        elems = read_YAML_Combined_File(str(combined_file))
+        elems = read_yaml_combined_file(str(combined_file))
         reloaded = next(e for e in elems if e is not None)
         assert reloaded.controls.variables["SETI"].description == "Custom override"
         assert reloaded.controls.variables["READI"].identifier == "Q1:READI"

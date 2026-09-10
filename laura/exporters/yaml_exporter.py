@@ -7,7 +7,7 @@ from typing import Union, Literal, Optional
 from ..models.element_list import MachineModel
 from ..models.element import PhysicalElement
 from ..models.magnetic import MagneticElement
-from ..Importers.YAML_Loader import (
+from ..importers.yaml_loader import (
     COMBINED_SCHEMAS_KEY,
     collapse_controls_schema,
     get_controls_schema_variables,
@@ -73,7 +73,7 @@ def _collapse_dump_controls(
     """
     If ``dump['controls']`` names a ``schema`` and that schema can be found,
     replace its fully-expanded ``variables`` with the minimal override form
-    (see :func:`laura.Importers.YAML_Loader.collapse_controls_schema`),
+    (see :func:`laura.importers.yaml_loader.collapse_controls_schema`),
     mutating ``dump`` in place. If the schema can't be located, the `variables`
     dump is already fully expanded (nothing to collapse), so the dangling
     `schema`/`identifier_pattern` reference is dropped instead of left in

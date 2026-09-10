@@ -62,7 +62,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         "_write_ASTRA_dipole": "_write_astra_dipole",
         "_write_ASTRA_quadrupole": "_write_astra_quadrupole",
         "_write_ASTRA_solenoid": "_write_astra_solenoid",
-        "_write_CSRTrack": "_write_csrtrack",
+        "_write_CSRTrack_quadrupole": "_write_csrtrack_quadrupole",
     }
 
     type_conversion_rules: Dict = {}
@@ -483,7 +483,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             if (key not in ["name", "type", "commandtype"]) and (
                 self._convert_keyword_xsuite(key) in list(obj.__dict__.keys())
             ):
-                if key in ["k1", "k2", "k3", "k4", "k5", "k6"] and not self._resolve_functional:
+                key = self._convert_keyword_xsuite(key)
+                if (
+                    key in ["k1", "k2", "k3", "k4", "k5", "k6"]
+                    and not self._resolve_functional
+                ):
                     expr = self._functional_strength_expr(int(key[1]), "xsuite")
                     if expr is not None:
                         value = expr

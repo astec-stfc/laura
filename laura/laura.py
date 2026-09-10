@@ -13,6 +13,7 @@ from math import copysign
 from typing import Any, Dict, List
 
 
+import numpy as np
 from pydantic import field_validator, model_validator
 from yaml.constructor import Constructor
 
@@ -33,7 +34,7 @@ NON_ELEMENT_FILENAMES = {"summary.yaml", "summary.yml"}
 """Files to ignore when scanning an ``element_list`` directory. ``summary.yaml`` is an
 aggregate of every element in the machine, not a single-element file, so treating it as
 one invents a bogus element -- and it cannot be recognised by content, because
-:func:`~laura.Importers.YAML_Loader.fast_get_element_metadata` reads only the first 2000
+:func:`~laura.importers.yaml_loader.fast_get_element_metadata` reads only the first 2000
 characters and most real element files declare ``name:`` after that (falling back to the
 filename), so a summary would simply be named after its file."""
 

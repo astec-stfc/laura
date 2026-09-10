@@ -135,7 +135,8 @@ class RFCavityTranslator(BaseElementTranslator):
         wholestring = ""
         etype = self._convert_type_elegant(self.hardware_type)
         if not self._wakefield_active():
-            etype = "rfca"
+            if self.hardware_type == "RFCavity":
+                etype = "rfca"
             # if self.simulation.field_definition is not None:
             # etype = "rftmez0"
             # if ".sdds" not in self.simulation.field_definition:

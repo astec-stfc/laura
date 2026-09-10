@@ -28,7 +28,7 @@ class ApertureTranslator(BaseElementTranslator):
             String representation of the element for MAD-X
         """
         self.start_write()
-        etype = self._convertType_Madx(self.hardware_type)
+        etype = self._convert_type_madx(self.hardware_type)
         if self.aperture.shape in ["elliptical", "circular"] and etype == "rcollimator":
             etype = "ecollimator"
         string = sanitize_string(self.name) + ": " + etype
@@ -38,10 +38,10 @@ class ApertureTranslator(BaseElementTranslator):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Madx(key) in elements_Madx[etype]
+                and self._convert_keyword_madx(key) in elements_madx[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Madx(key)
+                    key = self._convert_keyword_madx(key)
                     deferred = not self._resolve_functional and self.is_functional(value)
                     value = 1 if value is True else value
                     value = 0 if value is False else value

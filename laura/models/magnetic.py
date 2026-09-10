@@ -9,6 +9,7 @@ from pydantic import (
     create_model,
     NonNegativeFloat,
     computed_field,
+    model_validator,
 )
 from typing import ClassVar, Dict, Any, List, Union
 from laura._compat import DeprecatedMethodAliases
@@ -454,7 +455,7 @@ class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalM
         return v
 
     @model_validator(mode="after")
-    def resolve_edge_field_integrals(self) -> "MagneticElement":
+    def resolve_edge_field_integrals(self) -> "MagneticElement":  # noqa: N804
         """
         Reconciles ``edge_field_integral`` (the single combined value read by
         codes that only expose one edge-focussing keyword, e.g. ELEGANT/OPAL's

@@ -507,10 +507,10 @@ class CombinedCorrector(Dipole, _CombinedCorrectorBase):
     magnetic: CorrectorMagnet = Field(default_factory=CorrectorMagnet)
     """Corrector magnetic attributes."""
 
-    HorizontalCorrector: str | None = Field(default=None, frozen=True)
+    Horizontal_Corrector: str | None = Field(default=None, frozen=True)  # noqa: N815
     """Name of horizontal corrector."""
 
-    VerticalCorrector: str | None = Field(default=None, frozen=True)
+    Vertical_Corrector: str | None = Field(default=None, frozen=True)  # noqa: N815
     """Name of vertical corrector."""
 
 
@@ -1592,10 +1592,12 @@ __getattr__ = deprecated_aliases(
         "Bunch_Length_Monitor": "BunchLengthMonitor",
         "Combined_Corrector": "CombinedCorrector",
         "Faraday_Cup_Monitor": "FaradayCupMonitor",
+        "Horizontal_AC_Dipole": "HorizontalACDipole",
         "Horizontal_Corrector": "HorizontalCorrector",
         "Integrated_Current_Transformer": "IntegratedCurrentTransformer",
         "Low_Level_RF": "LowLevelRF",
         "Photon_Monitor": "PhotonMonitor",
+        "Vertical_AC_Dipole": "VerticalACDipole",
         "Vertical_Corrector": "VerticalCorrector",
         "Wall_Current_Monitor": "WallCurrentMonitor",
         "baseElement": "BaseElement",

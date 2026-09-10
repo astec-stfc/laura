@@ -217,7 +217,7 @@ class MagnetTranslator(BaseElementTranslator):
     def to_csrtrack(self, n: int = 0, **kwargs) -> str:
         """
         Writes the quadrupole element string for CSRTrack;
-        calls :func:`_write_CSRTrack_quadrupole`.
+        calls :func:`_write_csrtrack_quadrupole`.
 
         Parameters
         ----------
@@ -231,7 +231,7 @@ class MagnetTranslator(BaseElementTranslator):
         """
         self.start_write()
         if self.hardware_type.lower() == "quadrupole":
-            return self._write_CSRTrack_quadrupole(n)
+            return self._write_csrtrack_quadrupole(n)
         else:
             warn(
                 f"Element type {self.hardware_type} of {self.name} not supported by CSRTrack"
