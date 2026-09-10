@@ -8,10 +8,10 @@ from warnings import warn
 import numpy as np
 from pydantic import BaseModel, ConfigDict, PrivateAttr, model_validator
 
-import laura.models.element as LAURA_elements
-from laura.models.elementList import ElementList, MachineLayout, SectionLattice
+import laura.models.element as laura_elements
+from laura.models.element_list import ElementList, MachineLayout, SectionLattice
 
-from ....Exporters.YAML import PositionMode, export_machine_combined_file
+from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
 
 xsuite_unsupported = [
     "Laser",
@@ -20,39 +20,39 @@ xsuite_unsupported = [
 ]
 
 _TYPE_MAP = {
-    "Bend": LAURA_elements.Dipole,
-    "RBend": LAURA_elements.Dipole,
-    "DipoleEdge": LAURA_elements.Marker,
-    "Quadrupole": LAURA_elements.Quadrupole,
-    "Sextupole": LAURA_elements.Sextupole,
-    "Octupole": LAURA_elements.Octupole,
-    "Multipole": LAURA_elements.Magnet,
-    "Magnet": LAURA_elements.Magnet,
-    "Solenoid": LAURA_elements.Solenoid,
-    "UniformSolenoid": LAURA_elements.Solenoid,
-    "Cavity": LAURA_elements.RFCavity,
-    "NonLinearLens": LAURA_elements.NonLinearLens,
-    "Marker": LAURA_elements.Marker,
-    "BeamPositionMonitor": LAURA_elements.Beam_Position_Monitor,
-    "BeamProfileMonitor": LAURA_elements.Screen,
-    "BeamSizeMonitor": LAURA_elements.Screen,
-    "BeamStatsMonitor": LAURA_elements.Screen,
-    "ParticlesMonitor": LAURA_elements.Screen,
-    "LastTurnsMonitor": LAURA_elements.Screen,
-    "LimitEllipse": LAURA_elements.Collimator,
-    "LimitRect": LAURA_elements.Collimator,
-    "LimitRectEllipse": LAURA_elements.Collimator,
-    "LimitRacetrack": LAURA_elements.Collimator,
-    "LimitPolygon": LAURA_elements.Collimator,
-    "SecondOrderTaylorMap": LAURA_elements.MatrixTransform,
-    "CrabCavity": LAURA_elements.CrabCavity,
-    "Wire": LAURA_elements.Wire,
-    "RFMultipole": LAURA_elements.RFMultipole,
-    "BeamBeamBiGaussian2D": LAURA_elements.BeamBeam,
+    "Bend": laura_elements.Dipole,
+    "RBend": laura_elements.Dipole,
+    "DipoleEdge": laura_elements.Marker,
+    "Quadrupole": laura_elements.Quadrupole,
+    "Sextupole": laura_elements.Sextupole,
+    "Octupole": laura_elements.Octupole,
+    "Multipole": laura_elements.Magnet,
+    "Magnet": laura_elements.Magnet,
+    "Solenoid": laura_elements.Solenoid,
+    "UniformSolenoid": laura_elements.Solenoid,
+    "Cavity": laura_elements.RFCavity,
+    "NonLinearLens": laura_elements.NonLinearLens,
+    "Marker": laura_elements.Marker,
+    "BeamPositionMonitor": laura_elements.BeamPositionMonitor,
+    "BeamProfileMonitor": laura_elements.Screen,
+    "BeamSizeMonitor": laura_elements.Screen,
+    "BeamStatsMonitor": laura_elements.Screen,
+    "ParticlesMonitor": laura_elements.Screen,
+    "LastTurnsMonitor": laura_elements.Screen,
+    "LimitEllipse": laura_elements.Collimator,
+    "LimitRect": laura_elements.Collimator,
+    "LimitRectEllipse": laura_elements.Collimator,
+    "LimitRacetrack": laura_elements.Collimator,
+    "LimitPolygon": laura_elements.Collimator,
+    "SecondOrderTaylorMap": laura_elements.MatrixTransform,
+    "CrabCavity": laura_elements.CrabCavity,
+    "Wire": laura_elements.Wire,
+    "RFMultipole": laura_elements.RFMultipole,
+    "BeamBeamBiGaussian2D": laura_elements.BeamBeam,
 }
 _AC_DIPOLE_PLANES = {
-    "h": LAURA_elements.Horizontal_AC_Dipole,
-    "v": LAURA_elements.Vertical_AC_Dipole,
+    "h": laura_elements.HorizontalACDipole,
+    "v": laura_elements.VerticalACDipole,
 }
 # Xtrack fields holding a strength *per metre*, which LAURA stores integrated.
 _PER_METRE_FIELDS = (
@@ -68,10 +68,10 @@ _MAGNET_ORDERS = {
     "Octupole": 3,
 }
 _ORDER_TYPES = {
-    0: LAURA_elements.Dipole,
-    1: LAURA_elements.Quadrupole,
-    2: LAURA_elements.Sextupole,
-    3: LAURA_elements.Octupole,
+    0: laura_elements.Dipole,
+    1: laura_elements.Quadrupole,
+    2: laura_elements.Sextupole,
+    3: laura_elements.Octupole,
 }
 _LOSSY_CONVERSIONS = {
     "DipoleEdge": "no adjacent Bend/RBend was found, so its edge-focusing "
@@ -135,7 +135,7 @@ class XsuiteLatticeImporter(BaseModel):
     _raw_definitions: Dict[str, float] = PrivateAttr(default_factory=dict)
 
     @model_validator(mode="after")
-    def _load_source(self):
+    def _load_source(self):  # noqa: N804
         if (self.line is None) == (self.source_file is None):
             raise ValueError("Give exactly one of line or source_file.")
         if self.source_file:
@@ -185,8 +185,8 @@ class XsuiteLatticeImporter(BaseModel):
             if value
         ]
         if not orders:
-            return LAURA_elements.Magnet
-        return _ORDER_TYPES.get(max(orders), LAURA_elements.Magnet)
+            return laura_elements.Magnet
+        return _ORDER_TYPES.get(max(orders), laura_elements.Magnet)
 
     @staticmethod
     def _acdipole_type(element_name: str, native):
@@ -198,7 +198,7 @@ class XsuiteLatticeImporter(BaseModel):
                 f"Xtrack ACDipole {element_name!r} has plane {plane!r}, which is "
                 "neither 'h' nor 'v'; importing it as a horizontal AC dipole."
             )
-            laura_type = LAURA_elements.Horizontal_AC_Dipole
+            laura_type = laura_elements.HorizontalACDipole
         return laura_type
 
     def _unsliced(self, line):
@@ -438,7 +438,7 @@ class XsuiteLatticeImporter(BaseModel):
                     ),
                     "edge_entry_hgap": ("gap", "hgap", entry_edge or exit_edge),
                     "edge_exit_fint": (
-                        "exit_edge_field_integral",
+                        "edge_field_integral_exit",
                         "fint",
                         exit_edge or entry_edge,
                     ),
@@ -455,7 +455,7 @@ class XsuiteLatticeImporter(BaseModel):
                             2 * value if target in ("gap", "exit_gap") else value
                         )
                 for exit_field, entry_field in (
-                    ("exit_edge_field_integral", "edge_field_integral"),
+                    ("edge_field_integral_exit", "edge_field_integral"),
                     ("exit_gap", "gap"),
                 ):
                     if magnetic.get(exit_field) == magnetic.get(entry_field):
@@ -623,7 +623,7 @@ class XsuiteLatticeImporter(BaseModel):
                 twiss_name = (
                     getattr(self.initial_twiss, "element_name", None) or "initial_twiss"
                 )
-                self.elements[twiss_name] = LAURA_elements.TwissMatch(
+                self.elements[twiss_name] = laura_elements.TwissMatch(
                     name=twiss_name,
                     machine_area=self.machine_area,
                     physical={"s": 0.0, "s_point": "end", "length": 0.0},
@@ -673,7 +673,7 @@ class XsuiteLatticeImporter(BaseModel):
                 continue
             stored_type = stored_types.get(element_name)
             laura_type = (
-                getattr(LAURA_elements, stored_type, None) if stored_type else None
+                getattr(laura_elements, stored_type, None) if stored_type else None
             )
             if laura_type is None and native_type == "Multipole":
                 laura_type = self._multipole_type(native)

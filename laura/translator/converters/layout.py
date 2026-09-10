@@ -1,7 +1,7 @@
 from typing import Any, Dict, Iterator, List, Tuple
 from warnings import warn
 
-from laura.models.elementList import (
+from laura.models.element_list import (
     LayoutPass,
     MachineLayout,
     SectionLattice,

@@ -7,8 +7,8 @@ from warnings import warn
 import numpy as np
 from pydantic import BaseModel, PrivateAttr, model_validator
 
-import laura.models.element as LAURA_elements
-from laura.models.elementList import (
+import laura.models.element as laura_elements
+from laura.models.element_list import (
     SectionLattice,
     MachineLayout,
     MachineModel,
@@ -21,8 +21,8 @@ from ...utils.functions import (
 )
 from ...utils.madx.TFSFile import TFSFile
 from . import magnetic_orders
-from .. import type_conversion_rules_Madx, keyword_conversion_rules_madx
-from ....Exporters.YAML import export_machine_combined_file, PositionMode
+from .. import type_conversion_rules_madx, keyword_conversion_rules_madx
+from ....exporters.yaml_exporter import export_machine_combined_file, PositionMode
 
 _SILENTLY_SKIPPED_TYPES = ("drift",)
 
@@ -53,13 +53,13 @@ def _read_lattice_text(path: Path, _seen: Optional[set] = None) -> str:
 
 
 def _switch_dict() -> Dict[str, str]:
-    """MAD-X keyword -> LAURA type name, reversing ``type_conversion_rules_Madx``.
+    """MAD-X keyword -> LAURA type name, reversing ``type_conversion_rules_madx``.
 
     Several LAURA types collide on the same (coarser) MAD-X keyword -- e.g.
     ``Beam_Position_Monitor``/``Screen`` /... all export as
     ``monitor``.
     """
-    switch = {y: x for x, y in type_conversion_rules_Madx.items()}
+    switch = {y: x for x, y in type_conversion_rules_madx.items()}
     switch.update(
         {
             "monitor": "Beam_Position_Monitor",
@@ -110,7 +110,7 @@ class MadxLatticeImporter(BaseModel):
     _source_functional_definitions: Dict[str, float] = PrivateAttr(default_factory=dict)
 
     @model_validator(mode="after")
-    def _check_input(self):
+    def _check_input(self):  # noqa: N804
         if (self.twiss_file is None) == (self.source_file is None):
             raise ValueError("Give exactly one of twiss_file or source_file.")
         return self
@@ -366,7 +366,7 @@ class MadxLatticeImporter(BaseModel):
             sftype = switch_dict[elemtype]
             try:
                 model_fields = introspect_model_defaults(
-                    getattr(LAURA_elements, sftype), resolve_optional=True,
+                    getattr(laura_elements, sftype), resolve_optional=True,
                 )
             except AttributeError:
                 warn(
@@ -390,6 +390,7 @@ class MadxLatticeImporter(BaseModel):
             if sftype.lower() in keyword_conversion_rules_madx:
                 merged = keyword_conversion_rules_madx[sftype.lower()] | merged
             kwele = {y: x for x, y in merged.items()}
+            kwele["fint"] = "edge_field_integral"
 
             for param, val in row.items():
                 if param in ("name", "keyword", "s"):
@@ -508,7 +509,7 @@ class MadxLatticeImporter(BaseModel):
             else:
                 v["physical"] = physical
 
-            self.elements.update({k: getattr(LAURA_elements, vtype)(**v)})
+            self.elements.update({k: getattr(laura_elements, vtype)(**v)})
         return self.elements
 
     def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:

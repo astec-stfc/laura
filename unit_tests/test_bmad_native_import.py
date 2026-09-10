@@ -1280,7 +1280,9 @@ def test_bmad_split_bend_keeps_its_exit_fringe_field(tmp_path):
     assert exit_.exit_half_gap == pytest.approx(0.015)
 
     whole = bends["WHOLE"].magnetic
-    assert whole.exit_edge_field_integral is None
+    # FINTX was not given, so the exit face resolves to FINT; HGAPX was not
+    # given either, and the gap has no combined slot to resolve from.
+    assert whole.edge_field_integral_exit == pytest.approx(0.45)
     assert whole.exit_gap is None
     assert whole.exit_fringe_integral == pytest.approx(0.45)
     assert whole.exit_half_gap == pytest.approx(0.015)

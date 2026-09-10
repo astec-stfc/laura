@@ -21,8 +21,7 @@ try:
     _XSUITE_AVAILABLE = True
 except ImportError as _err:
     raise ImportError(
-        "xsuite is not installed. "
-        "Install with: pip install \"laura-accelerator[xsuite]\""
+        'xsuite is not installed. Install with: pip install "laura-accelerator[xsuite]"'
     ) from _err
 
 from laura.models.element import (
@@ -76,7 +75,7 @@ xsuite_conversion_rules = {
     "Monitor": Marker_xs,
     "Wall_Current_Monitor": Drift_xs,
     "Integrated_Current_Transformer": Drift_xs,
-    "Faraday_Cup": Drift_xs,
+    "Faraday_Cup_Monitor": Drift_xs,
     "RFCavity": Cavity_xs,
     "RFDeflectingCavity": Cavity_xs,
     "Aperture": Drift_xs,

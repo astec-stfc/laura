@@ -1,6 +1,6 @@
 from typing import Iterator, Tuple
 
-from laura.models.elementList import MachineModel
+from laura.models.element_list import MachineModel
 
 from .fanout import ContainerTranslator, wrap_lattice_line
 from .layout import MachineLayoutTranslator

@@ -21,19 +21,31 @@ import time
 
 import numpy as np
 
-from .Importers.YAML_Loader import (
+from .importers.yaml_loader import (
     ElementLoadError,
     LazyElementDict,
     RawFileNamespace,
     collect_template_filenames,
     collect_unique_by_name,
     collect_unique_filenames,
-    read_YAML_Combined_File,
-    read_YAML_Element_File,
+    read_yaml_combined_file,
+    read_yaml_element_file,
+    fast_get_element_metadata,
 )
-from .models.element import Drift
-from .models.elementList import MachineModel, baseElement, chunks, dot
+from ._compat import DeprecatedMethodAliases
+from .models.element import Drift, BaseElement
+from .models.element_list import MachineModel, chunks, dot
 from .models.physical import PhysicalElement, Position
+
+
+NON_ELEMENT_FILENAMES = {"summary.yaml", "summary.yml"}
+"""Files to ignore when scanning an ``element_list`` directory. ``summary.yaml`` is an
+aggregate of every element in the machine, not a single-element file, so treating it as
+one invents a bogus element -- and it cannot be recognised by content, because
+:func:`~laura.importers.yaml_loader.fast_get_element_metadata` reads only the first 2000
+characters and most real element files declare ``name:`` after that (falling back to the
+filename), so a summary would simply be named after its file."""
+
 
 
 def flatten(xss):
@@ -66,14 +78,19 @@ def _lattice_root(lattice: Any) -> str | None:
 Constructor.add_constructor("tag:yaml.org,2002:bool", add_bool)
 
 
-class LAURA(MachineModel):
+class LAURA(DeprecatedMethodAliases, MachineModel):
     """
     LAURA Main Class
 
     The main class for handling a full particle accelerator lattice.
     """
 
-    element_list: str | List[baseElement]
+    _DEPRECATED_METHOD_ALIASES = {
+        "createDrifts": "create_drifts",
+    }
+    """Legacy names which are served by a ``FutureWarning``"""
+
+    element_list: str | List[BaseElement]
     """List containing all elements in the machine model, either as a path to a YAML file/directory 
     or as a list of element objects."""
 
@@ -170,7 +187,7 @@ class LAURA(MachineModel):
 
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
-                elems = read_YAML_Combined_File(
+                elems = read_yaml_combined_file(
                     el_list, strict=self.strict, errors=self._load_errors
                 )
                 values = collect_unique_by_name(
@@ -184,7 +201,7 @@ class LAURA(MachineModel):
                     os.path.abspath(el_list + "/**/*.yaml"), recursive=True
                 )
                 auxiliary = [f for f in files if os.path.basename(f).startswith("_")]
-                files = [f for f in files if not os.path.basename(f).startswith("_")]
+                files = [f for f in files if not os.path.basename(f).startswith("_") and os.path.basename(f).lower() not in NON_ELEMENT_FILENAMES]
                 filenames = collect_unique_filenames(
                     files, errors=self._load_errors, strict=self.strict
                 )
@@ -202,7 +219,7 @@ class LAURA(MachineModel):
                     namespace = RawFileNamespace({**templates, **filenames})
                     memo: Dict = {}
                     elems = [
-                        read_YAML_Element_File(
+                        read_yaml_element_file(
                             fn,
                             exclude_keys=self.exclude_keys,
                             strict=self.strict,
@@ -213,7 +230,7 @@ class LAURA(MachineModel):
                         for fn in files
                     ]
                     self.elements.update(
-                        {y.name: y for y in elems if isinstance(y, baseElement)}
+                        {y.name: y for y in elems if isinstance(y, BaseElement)}
                     )
         elif el_list:
             values = collect_unique_by_name(
@@ -225,7 +242,7 @@ class LAURA(MachineModel):
 
         super().model_post_init(__context)
 
-    def createDrifts(
+    def create_drifts(
         self, end: str = None, start: str = None, path: str = None
     ) -> Dict:
         """
@@ -319,7 +336,7 @@ class LAURA(MachineModel):
         :param path: Name of the lattice path to use
         :return: Dictionary of element names and their s positions
         """
-        elements = self.createDrifts(start=start, end=end, path=path)
+        elements = self.create_drifts(start=start, end=end, path=path)
         start_and_end = [
             [name, elem.physical.length, elem.hardware_type == "Drift"]
             for name, elem in elements.items()

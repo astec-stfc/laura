@@ -173,7 +173,7 @@ def fast_get_element_metadata(filename: str) -> dict:
     """Quickly extract metadata from a YAML file without full parsing."""
     metadata = {"name": None, "machine_area": None, "inherits_from": None}
     try:
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             # Metadata is usually in first 2000 chars
             content = f.read(2000)
             name_match = _NAME_RE.search(content)
@@ -188,7 +188,9 @@ def fast_get_element_metadata(filename: str) -> dict:
     except Exception:
         pass
     if not metadata["name"]:
-        metadata["name"] = os.path.basename(filename).replace('.yaml', '').replace('.yml', '')
+        metadata["name"] = (
+            os.path.basename(filename).replace(".yaml", "").replace(".yml", "")
+        )
     return metadata
 
 
@@ -315,7 +317,7 @@ class LazyElementDict(dict):
             if key in self._failed:
                 return None
         if key in self._filenames:
-            elem = read_YAML_Element_File(
+            elem = read_yaml_element_file(
                 self._filenames[key],
                 exclude_keys=self._exclude_keys,
                 strict=self._strict,
@@ -366,8 +368,8 @@ _MODEL_REGISTRY = None
 def get_model_registry():
     global _MODEL_REGISTRY
     if _MODEL_REGISTRY is None:
-        ALL_MODELS = get_all_subclasses(BaseModel)
-        _MODEL_REGISTRY = {cls.__name__: cls for cls in ALL_MODELS}
+        all_models = get_all_subclasses(BaseModel)
+        _MODEL_REGISTRY = {cls.__name__: cls for cls in all_models}
     return _MODEL_REGISTRY
 
 
@@ -887,7 +889,7 @@ def resolve_inheritance(
     return merged
 
 
-def interpret_YAML_Element(
+def interpret_yaml_element(
     elem: dict,
     exclude_set=None,
     base_dir: str | None = None,
@@ -968,7 +970,7 @@ def interpret_YAML_Element(
         return None
 
 
-def read_YAML_Element_File(
+def read_yaml_element_file(
     filename: str,
     exclude_keys: List[str] | None = None,
     validate: bool = False,
@@ -1024,7 +1026,7 @@ def read_YAML_Element_File(
         filename=filename,
         memo=memo,
     )
-    return interpret_YAML_Element(
+    return interpret_yaml_element(
         data,
         exclude_set=exclude_set,
         base_dir=os.path.dirname(os.path.abspath(filename)),
@@ -1034,7 +1036,7 @@ def read_YAML_Element_File(
     )
 
 
-def read_YAML_Element_Files(filenames: list):
+def read_yaml_element_files(filenames: list):
     data = ""
     for file in filenames:
         data += "\n---\n"
@@ -1044,7 +1046,7 @@ def read_YAML_Element_Files(filenames: list):
     return gen, filenames
 
 
-def read_YAML_Combined_File(
+def read_yaml_combined_file(
     filename: str,
     exclude_keys=None,
     validate: bool = False,
@@ -1083,9 +1085,6 @@ def read_YAML_Combined_File(
         for element in elements.values():
             validate_element_dict(element)
 
-    # A combined file may embed the controls schemas its elements reference
-    # (see COMBINED_SCHEMAS_KEY / export_machine_combined_file), so it can be
-    # loaded standalone without companion `_schema.yaml` files on disk.
     schema_map = elements.pop(COMBINED_SCHEMAS_KEY, None)
     # Definitions that exist only to be inherited from. Popped before the
     # parse loop so they never become machine elements, but kept in the
@@ -1112,7 +1111,7 @@ def read_YAML_Combined_File(
 
     _log.debug("Parsing %d elements from '%s'", len(elements), filename)
     results = [
-        interpret_YAML_Element(
+        interpret_yaml_element(
             element,
             exclude_set,
             base_dir=base_dir,
@@ -1127,7 +1126,27 @@ def read_YAML_Combined_File(
     failed = len(results) - loaded
     _log.info(
         "Loaded %d/%d elements from '%s'%s",
-        loaded, len(results), filename,
+        loaded,
+        len(results),
+        filename,
         f" ({failed} failed — enable DEBUG for details)" if failed else "",
     )
     return results
+
+
+# ---------------------------------------------------------------------------
+# Backwards compatibility: names renamed for PEP 8. Served lazily with a
+# FutureWarning so downstream consumers (astec-stfc/simba) keep working.
+# ---------------------------------------------------------------------------
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "interpret_YAML_Element": "interpret_yaml_element",
+        "read_YAML_Combined_File": "read_yaml_combined_file",
+        "read_YAML_Element_File": "read_yaml_element_file",
+        "read_YAML_Element_Files": "read_yaml_element_files",
+    },
+)

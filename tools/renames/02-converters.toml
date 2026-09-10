@@ -1,0 +1,47 @@
+[functions]
+
+# --- aperture.py ------------------------------------------------------------
+_write_ASTRA_Common = "_write_astra_common"
+_write_ASTRA_Circular = "_write_astra_circular"
+_write_ASTRA_Planar = "_write_astra_planar"
+
+# --- base.py ----------------------------------------------------------------
+_write_ASTRA_dictionary = "_write_astra_dictionary"
+_convertKeyword_Elegant = "_convert_keyword_elegant"
+_convertKeyword_Genesis = "_convert_keyword_genesis"
+_convertKeyword_Ocelot = "_convert_keyword_ocelot"
+_convertKeyword_Cheetah = "_convert_keyword_cheetah"
+_convertKeyword_Opal = "_convert_keyword_opal"
+_convertKeyword_Madx = "_convert_keyword_madx"
+_convertKeyword_WakeT = "_convert_keyword_wake_t"
+_convertKeyword_Xsuite = "_convert_keyword_xsuite"
+_convertType_Elegant = "_convert_type_elegant"
+_convertType_Genesis = "_convert_type_genesis"
+_convertType_Ocelot = "_convert_type_ocelot"
+_convertType_Cheetah = "_convert_type_cheetah"
+_convertType_Opal = "_convert_type_opal"
+_convertType_Madx = "_convert_type_madx"
+
+# --- magnet.py --------------------------------------------------------------
+_write_ASTRA_dipole = "_write_astra_dipole"
+_write_ASTRA_quadrupole = "_write_astra_quadrupole"
+_write_ASTRA_solenoid = "_write_astra_solenoid"
+_write_CSRTrack = "_write_csrtrack"
+_write_CSRTrack_Quadrupole = "_write_csrtrack"
+
+# --- wake.py ----------------------------------------------------------------
+_write_ASTRA = "_write_astra"
+
+[globals]
+
+elements_Elegant = "elements_elegant"
+elements_Genesis = "elements_genesis"
+elements_Ocelot = "elements_ocelot"
+elements_Cheetah = "elements_cheetah"
+elements_Opal = "elements_opal"
+elements_Madx = "elements_madx"
+type_conversion_rules_Elegant = "type_conversion_rules_elegant"
+type_conversion_rules_Genesis = "type_conversion_rules_genesis"
+type_conversion_rules_Opal = "type_conversion_rules_opal"
+type_conversion_rules_Madx = "type_conversion_rules_madx"
+type_conversion_rules_Names = "type_conversion_rules_names"

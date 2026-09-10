@@ -1,6 +1,6 @@
 import os
 import h5py
-from .FieldParameter import FieldParameter
+from .field_parameter import FieldParameter
 from ..units import UnitValue
 from warnings import warn
 
@@ -18,13 +18,13 @@ tw_required_attrs = [
 ]
 
 
-def read_HDF5_field_file(self, filename: str) -> str:
+def read_hdf5_field_file(self, filename: str) -> str:
     """
-    Read an HDF5 field file and convert it into a :class:`laura.translator.utils.fields.field` object
+    Read an HDF5 field file and convert it into a :class:`laura.translator.utils.fields.FieldMap` object
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object.
     filename: str
         The path to the HDF5 field file
@@ -107,15 +107,15 @@ def read_HDF5_field_file(self, filename: str) -> str:
     return filename
 
 
-def write_HDF5_field_file(self):
+def write_hdf5_field_file(self):
     """
-    Write the :class:`laura.translator.utils.fields.field` object to an HDF5 file.
+    Write the :class:`laura.translator.utils.fields.FieldMap` object to an HDF5 file.
     All of the attributes of the class are read, and if they are defined and in the correct format,
     they are written to the file.
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object to be saved.
 
     Returns
@@ -169,3 +169,15 @@ def write_HDF5_field_file(self):
                     )
                     dataset.attrs["units"] = getattr(self, dset).value.units
     return self.filename
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "read_HDF5_field_file": "read_hdf5_field_file",
+        "write_HDF5_field_file": "write_hdf5_field_file",
+    },
+)

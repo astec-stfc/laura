@@ -10,21 +10,21 @@ import numpy as np
 from pydantic import BaseModel, Field, PrivateAttr, model_validator
 from scipy.constants import speed_of_light
 
-import laura.models.element as LAURA_elements
+import laura.models.element as laura_elements
 from laura.models.element import (
-    Combined_Corrector,
+    CombinedCorrector,
     Element,
-    Horizontal_Corrector,
-    Vertical_Corrector,
+    HorizontalCorrector,
+    VerticalCorrector,
 )
-from laura.models.elementList import (
+from laura.models.element_list import (
     ElementList,
     MachineLayout,
     MachineModel,
     SectionLattice,
 )
 
-from ....Exporters.YAML import PositionMode, export_machine_combined_file
+from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
 from ...utils.bmad import (
     BMAD_SR_WAKE_SAMPLES,
     bmad_floor_angles_to_laura,
@@ -32,11 +32,11 @@ from ...utils.bmad import (
     is_half_turn,
     sample_bmad_sr_wake,
 )
-from ...utils.fields import field
-from ...utils.fields.FieldParameter import FieldParameter
+from ...utils.fields import FieldMap
+from ...utils.fields.field_parameter import FieldParameter
 from ...utils.functions import merge_layout_elements, number_repeated_names
 from ...utils.units import UnitValue
-from .. import keyword_conversion_rules_bmad, type_conversion_rules_Bmad
+from .. import keyword_conversion_rules_bmad, type_conversion_rules_bmad
 from . import magnetic_orders
 
 _SILENTLY_SKIPPED_TYPES = ("Drift", "Pipe")
@@ -115,7 +115,7 @@ def _switch_dict() -> Dict[str, str]:
     """Bmad element key -> LAURA hardware type."""
     switch = {
         native_type.lower(): laura_type
-        for laura_type, native_type in type_conversion_rules_Bmad.items()
+        for laura_type, native_type in type_conversion_rules_bmad.items()
     }
     switch.update(
         {
@@ -414,13 +414,13 @@ def _holds_a_wake_field(hardware_type: str) -> bool:
     samples down to. Asked here so an unexpected element type warns instead of
     raising a validation error part-way through an import.
     """
-    element = getattr(LAURA_elements, hardware_type, None)
+    element = getattr(laura_elements, hardware_type, None)
     simulation = getattr(element, "model_fields", {}).get("simulation")
     if simulation is None:
         return False
     for candidate in get_args(simulation.annotation) or (simulation.annotation,):
         definition = getattr(candidate, "model_fields", {}).get("wakefield_definition")
-        if definition is not None and field in get_args(definition.annotation):
+        if definition is not None and FieldMap in get_args(definition.annotation):
             return True
     return False
 
@@ -492,7 +492,7 @@ class BmadTaoInit(BaseModel):
     lines: List[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _check_lines(self):
+    def _check_lines(self):  # noqa: N804
         if any(not line.strip() for line in self.lines):
             raise ValueError("Bmad line names cannot be empty.")
         return self
@@ -585,7 +585,7 @@ class BmadLatticeImporter(BaseModel):
     _generated_tao_init: Any = PrivateAttr(default=None)
 
     @model_validator(mode="after")
-    def _check_input(self):
+    def _check_input(self):  # noqa: N804
         if (self.tao_init is None) == (self.lattice_file is None):
             raise ValueError("Give exactly one of tao_init or lattice_file.")
         if self.tao_init and self.lines:
@@ -755,7 +755,7 @@ class BmadLatticeImporter(BaseModel):
                 self.laura_elems[self.n_universes].update({b: {}})
             self.n_universes += 1
         self.branches = {
-            k: [f"{i['branch_name']}_{k}" for i in tao.lat_branch_list(ix_uni=k)]
+            k: [f'{i["branch_name"]}_{k}' for i in tao.lat_branch_list(ix_uni=k)]
             for k in range(1, self.n_universes)
         }
 
@@ -795,7 +795,7 @@ class BmadLatticeImporter(BaseModel):
             field_type = "3DWake"
         else:
             field_type = "TransverseWake"
-        wake = field(
+        wake = FieldMap(
             field_type=field_type,
             origin_code="Bmad",
             length=length,
@@ -866,7 +866,7 @@ class BmadLatticeImporter(BaseModel):
         """
         self.laura_elems[universe][branch].update(
             {
-                name: getattr(LAURA_elements, hardware_type)(
+                name: getattr(laura_elements, hardware_type)(
                     physical=dict(physical),
                     name=name,
                     hardware_type=hardware_type,
@@ -906,7 +906,7 @@ class BmadLatticeImporter(BaseModel):
         self._warn_unsupported_coupling(twiss, parameters, name)
         self.laura_elems[universe][branch].update(
             {
-                name: LAURA_elements.TwissMatch(
+                name: laura_elements.TwissMatch(
                     physical=dict(physical),
                     name=name,
                     hardware_type="TwissMatch",
@@ -1023,11 +1023,11 @@ class BmadLatticeImporter(BaseModel):
                     hgapx = _native_keyword(hardware_type, "exit_half_gap")
                     if hgapx in parameters:
                         kl["exit_gap"] = 2 * parameters[hgapx]
-                    fintx = _native_keyword(hardware_type, "exit_edge_field_integral")
+                    fintx = _native_keyword(hardware_type, "edge_field_integral_exit")
                     if fintx in parameters:
-                        kl["exit_edge_field_integral"] = parameters[fintx]
+                        kl["edge_field_integral_exit"] = parameters[fintx]
                     for exit_field, entrance_field in (
-                        ("exit_edge_field_integral", "edge_field_integral"),
+                        ("edge_field_integral_exit", "edge_field_integral"),
                         ("exit_gap", "gap"),
                     ):
                         if kl.get(exit_field) == kl.get(entrance_field):
@@ -1419,9 +1419,9 @@ class BmadLatticeImporter(BaseModel):
                                 "subelement": nam,
                             }
                         )
-                        comb = Combined_Corrector(**elems[nam])
-                        hori = Horizontal_Corrector(**helem)
-                        vert = Vertical_Corrector(**velem)
+                        comb = CombinedCorrector(**elems[nam])
+                        hori = HorizontalCorrector(**helem)
+                        vert = VerticalCorrector(**velem)
                         self.laura_elems[universe][b].update(
                             {
                                 nam: comb,
@@ -1432,7 +1432,7 @@ class BmadLatticeImporter(BaseModel):
                     else:
                         hardware_type = elems[nam]["hardware_type"]
                         self.laura_elems[universe][b].update(
-                            {nam: getattr(LAURA_elements, hardware_type)(**elems[nam])}
+                            {nam: getattr(laura_elements, hardware_type)(**elems[nam])}
                         )
         return self.laura_elems[universe]
 

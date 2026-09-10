@@ -9,19 +9,19 @@ import pytest
 pytest.importorskip("easygdf")
 pytest.importorskip("h5py")
 
-from laura.models.baseModels import (  # noqa: E402
+from laura.models.base_models import (  # noqa: E402
     set_functional_definitions,
     set_resolve_functional,
 )
 from laura.models.element import (  # noqa: E402
-    Combined_Corrector,
+    CombinedCorrector,
     Dipole,
-    Horizontal_Corrector,
+    HorizontalCorrector,
     Quadrupole,
     RFCavity,
-    Vertical_Corrector,
+    VerticalCorrector,
 )
-from laura.models.elementList import SectionLattice  # noqa: E402
+from laura.models.element_list import SectionLattice  # noqa: E402
 from laura.models.physical import PhysicalElement, Position  # noqa: E402
 from laura.translator.converters.cavity import RFCavityTranslator  # noqa: E402
 from laura.translator.converters.magnet import (  # noqa: E402
@@ -129,12 +129,12 @@ class TestMadxElements:
 
 class TestMadxCorrector:
     def test_horizontal_and_vertical_correctors(self):
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="hc1",
             machine_area="S",
             magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.02},
         )
-        vc = Vertical_Corrector(
+        vc = VerticalCorrector(
             name="vc1",
             machine_area="S",
             magnetic={"magnetic_length": 0.1, "vertical_kick": 0.03},
@@ -145,7 +145,7 @@ class TestMadxCorrector:
         assert vt.to_madx() == "vc1: vkicker, l = 0.1, kick = 0.03;\n"
 
     def test_combined_corrector_carries_both_planes(self):
-        cc = Combined_Corrector(
+        cc = CombinedCorrector(
             name="cc1",
             machine_area="S",
             magnetic={
@@ -162,7 +162,7 @@ class TestMadxCorrector:
 
     def test_symbolic_kick_is_deferred(self):
         set_functional_definitions({"hc_kick": 0.02})
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="hc1",
             machine_area="S",
             magnetic={"magnetic_length": 0.1, "horizontal_kick": "hc_kick"},
@@ -174,13 +174,13 @@ class TestMadxCorrector:
         pytest.importorskip("cpymad")
         from cpymad.madx import Madx
 
-        hc = Horizontal_Corrector(
+        hc = HorizontalCorrector(
             name="HC1",
             machine_area="S",
             magnetic={"magnetic_length": 0.1, "horizontal_kick": 0.05},
             physical=PhysicalElement(length=0.1, middle=Position(x=0, y=0, z=1.0)),
         )
-        vc = Vertical_Corrector(
+        vc = VerticalCorrector(
             name="VC1",
             machine_area="S",
             magnetic={"magnetic_length": 0.1, "vertical_kick": 0.07},
@@ -248,7 +248,7 @@ class TestMadxSection:
         c = RFCavity(
             name="C1",
             machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": volt},
             physical=PhysicalElement(length=1.0, middle=Position(x=0, y=0, z=3.0)),
         )
@@ -349,7 +349,7 @@ class TestDipoleFringeFields:
             gap=0.03,
             edge_field_integral=0.45,
             exit_gap=0.0,
-            exit_edge_field_integral=0.0,
+            edge_field_integral_exit=0.0,
         ).to_madx()
         assert "fint = 0.45" in entrance_half
         assert "hgap = 0.015" in entrance_half
@@ -360,7 +360,7 @@ class TestDipoleFringeFields:
             gap=0.0,
             edge_field_integral=0.0,
             exit_gap=0.03,
-            exit_edge_field_integral=0.45,
+            edge_field_integral_exit=0.45,
         ).to_madx()
         assert "fint = 0.0" in exit_half
         assert "hgap = 0.015" in exit_half, "the exit gap must survive a zero entrance"
@@ -373,7 +373,7 @@ class TestDipoleFringeFields:
             gap=0.04,
             edge_field_integral=0.3,
             exit_gap=0.02,
-            exit_edge_field_integral=0.3,
+            edge_field_integral_exit=0.3,
         ).to_madx()
         assert "hgap = 0.02" in both
         assert "fint = 0.3" in both

@@ -38,7 +38,7 @@ import os
 import yaml
 from yaml import CSafeLoader as Loader
 
-from laura.Importers.YAML_Loader import get_controls_schema_variables
+from laura.importers.yaml_loader import get_controls_schema_variables
 
 
 def _find_name_dependent_leaves(template, path=()):

@@ -7,17 +7,17 @@ from warnings import warn
 import numpy as np
 from pydantic import BaseModel, PrivateAttr, model_validator
 from typing import Dict, Optional, Union
-from ...utils.elegant import SDDSFile
-import laura.models.element as LAURA_elements
-from laura.models.elementList import (
+from ...utils.elegant import sdds_file
+import laura.models.element as laura_elements
+from laura.models.element_list import (
     SectionLattice,
     MachineLayout,
     MachineModel,
     ElementList,
 )
-from ...utils.elegant.sdds_classes_APS import SDDS_Params
-from ...utils.fields import field
-from ....Exporters.YAML import export_machine_combined_file, PositionMode
+from ...utils.elegant.sdds_classes_aps import SddsParams
+from ...utils.fields import FieldMap
+from ....exporters.yaml_exporter import export_machine_combined_file, PositionMode
 from .. import keyword_conversion_rules_elegant
 from ...utils.functions import merge_layout_elements, number_repeated_names
 
@@ -161,7 +161,7 @@ class ElegantLatticeImporter(BaseModel):
         return result
 
     @model_validator(mode="after")
-    def _check_input(self):
+    def _check_input(self):  # noqa: N804
         if (self.params_file is not None) == (self.source_file is not None):
             raise ValueError("Give either source_file or params_file.")
         return self
@@ -316,9 +316,9 @@ class ElegantLatticeImporter(BaseModel):
         if self.source_file and not self.params_file:
             self._prepare_source()
             self._select_source_output(next(iter(self._source_outputs)))
-        params = SDDS_Params(self.params_file)
+        params = SddsParams(self.params_file)
         if self.source_file:
-            params.elegantParams = self._saved_lattice_params(self.params_file)
+            params.elegant_params = self._saved_lattice_params(self.params_file)
         self.elegant_data, filenames = params.create_element_dictionary(self.machine_area)
         for name, data in self.elegant_data.items():
             source_name = name.lower()
@@ -377,7 +377,7 @@ class ElegantLatticeImporter(BaseModel):
                     imported_from = self.source_file or self.params_file
                     wakepath = Path(imported_from).resolve().parent / wakepath
                 simulation = data.setdefault("simulation", {})
-                wake = field(
+                wake = FieldMap(
                     field_type=(
                         "3DWake"
                         if zwakefile and trwakefile
@@ -416,7 +416,10 @@ class ElegantLatticeImporter(BaseModel):
             else:
                 v["physical"] = physical
 
-            self.elements.update({k: getattr(LAURA_elements, vtype)(**v)})
+            cls = laura_elements.ELEMENT_REGISTRY.get(vtype) or getattr(
+                laura_elements, vtype
+            )
+            self.elements.update({k: cls(**v)})
         return self.elements
 
     def create_section(
@@ -728,7 +731,7 @@ class ElegantLatticeImporter(BaseModel):
 
     @staticmethod
     def import_sdds_params_file(filename: str, page: int = 0) -> list:
-        elegantObject = SDDSFile(index=1)
-        elegantObject.read_file(filename, page=page)
-        elegantData = elegantObject.data
-        return elegantData
+        elegant_object = sdds_file.SDDSFile(index=1)
+        elegant_object.read_file(filename, page=page)
+        elegant_data = elegant_object.data
+        return elegant_data

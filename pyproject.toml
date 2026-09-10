@@ -75,6 +75,13 @@ conversion = [
     "laura-accelerator[xsuite,ocelot,cheetah,wake_t,bmad,madx,gpt]",
 ]
 
+# Naming-convention linting and the AST codemod used to apply renames.
+# Install with: pip install "laura-accelerator[lint]"
+lint = [
+    "ruff>=0.6",
+    "libcst>=1.4",
+]
+
 test = [
     "pytest",
     "pytest-cov",
@@ -106,7 +113,7 @@ rdf = [
     "rdflib>=7.0",
 ]
 
-# SQL export support (laura.Exporters.SQL + laura/schema/generated/laura_orm.py)
+# SQL export support (laura.exporters.sql_exporter + laura/schema/generated/laura_orm.py)
 # Install with: pip install "laura-accelerator[sql]"
 sql = [
     "sqlalchemy>=2.0",
@@ -129,6 +136,46 @@ include = ["laura*"]
 [tool.setuptools.package-data]
 "laura.schema.generated" = ["*.owl", "*.graphql", "*.json", "*.ttl", "*.ts", "*.sql"]
 
+[tool.ruff]
+target-version = "py310"
+extend-exclude = [
+    "laura/models/_generated.py",
+    "laura/schema/generated",
+    "build",
+]
+
+[tool.ruff.lint]
+select = ["N"]  # pep8-naming only
+ignore = ["I001"]
+
+[tool.ruff.lint.per-file-ignores]
+"laura/translator/utils/pmd_units.py" = ["N801", "N802", "N815"]
+"laura/_compat.py" = ["N801", "N802", "N803", "N806", "N807", "N815", "N816"]
+"laura/**/_compat*.py" = ["N801", "N802", "N803", "N806", "N807", "N815", "N816"]
+"unit_tests/test_rftrack_translator.py" = ["N802", "N803", "N806"]
+"unit_tests/test_sql_exporter.py" = ["N806"]
+"unit_tests/test_naming_compat.py" = ["N802"]
+
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = [
+    "classmethod",
+    "pydantic.field_validator",
+    "pydantic.model_validator",
+    "field_validator",
+    "model_validator",
+]
+extend-ignore-names = [
+    "K",     # normalised multipole strength
+    "KL",    # integrated normalised multipole strength
+    "Kn",    # multipole strength, order n
+    "KnL",   # integrated multipole strength
+    "Rx",    # rotation matrix about x
+    "Ry",    # rotation matrix about y
+    "Rz",    # rotation matrix about z
+    "Brho",  # magnetic rigidity, B-rho
+    "P_Q",   # reference momentum over charge
+]
+
 [tool.pytest.ini_options]
 addopts = "-m 'not slow'"
 markers = [
@@ -137,6 +184,3 @@ markers = [
 filterwarnings = [
     "ignore:Pydantic serializer warnings:UserWarning",
 ]
-
-[tool.ruff.lint]
-ignore = ["I001"]

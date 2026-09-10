@@ -9,10 +9,61 @@ from laura.translator.converters.codes.elegant import (
 )
 from laura.translator.converters.model import MachineModelTranslator
 from laura.translator.converters.section import SectionLatticeTranslator
-from laura.translator.utils.elegant.sdds_classes_APS import SDDS_Params
-import laura.models.element as LAURA_elements
+from laura.translator.utils.elegant.sdds_classes_aps import SddsParams
+import laura.models.element as laura_elements
 from laura.models.element import Marker
-from laura.models.elementList import ElementList, SectionLattice
+from laura.models.element_list import ElementList, SectionLattice
+
+
+@pytest.mark.skipif(
+    os.environ.get("LAURA_RUN_ELEGANT_TESTS") != "1" or shutil.which("elegant") is None,
+    reason="set LAURA_RUN_ELEGANT_TESTS=1 to run external Elegant tests",
+)
+def test_bend_fringe_integrals_resolve_from_fint_and_fint1_fint2(tmp_path):
+    """ELEGANT writes FINT1/FINT2 as -1 when they were never set, meaning "use
+    FINT"; taken literally they import as a negative fringe integral."""
+    source = tmp_path / "bends.lte"
+    source.write_text(
+        "b1: csbend, l=0.5, angle=0.1, hgap=0.02, fint=0.3\n"
+        "b2: csbend, l=0.5, angle=0.1, hgap=0.02, fint1=0.3, fint2=0.5\n"
+        "machine: line=(b1,b2)\n"
+    )
+
+    importer = ElegantLatticeImporter(source_file=str(source))
+    bends = {
+        element.name: element.magnetic
+        for section in importer.create_layout(name="machine").sections.values()
+        for element in section.elements.elements.values()
+        if element.hardware_type == "Dipole"
+    }
+
+    assert bends["B1"].edge_field_integral_entrance == pytest.approx(0.3)
+    assert bends["B1"].edge_field_integral_exit == pytest.approx(0.3)
+    assert bends["B2"].edge_field_integral_entrance == pytest.approx(0.3)
+    assert bends["B2"].edge_field_integral_exit == pytest.approx(0.5)
+    assert bends["B1"].gap == pytest.approx(0.04), "HGAP is a half gap"
+
+
+@pytest.mark.skipif(
+    os.environ.get("LAURA_RUN_ELEGANT_TESTS") != "1" or shutil.which("elegant") is None,
+    reason="set LAURA_RUN_ELEGANT_TESTS=1 to run external Elegant tests",
+)
+def test_imported_hardware_type_is_the_registry_key_not_the_class_name(tmp_path):
+    """`hardware_type` is the wire format; the PEP 8 round renamed the classes
+    and left the keys alone."""
+    source = tmp_path / "kw.lte"
+    source.write_text(
+        "k1: kicker, l=0.1\n" 'w1: watch, filename="%s.w1"\n' "machine: line=(k1,w1)\n"
+    )
+
+    importer = ElegantLatticeImporter(source_file=str(source))
+    types = {
+        element.name: element.hardware_type
+        for section in importer.create_layout(name="machine").sections.values()
+        for element in section.elements.elements.values()
+    }
+    assert types["K1"] == "Combined_Corrector"
+    assert types["W1"] == "Beam_Position_Monitor"
 
 
 @pytest.mark.skipif(
@@ -49,10 +100,6 @@ def test_source_import_builds_sections_and_retains_store(tmp_path):
     reason="set LAURA_RUN_ELEGANT_TESTS=1 to run external Elegant tests",
 )
 def test_source_import_expands_root_line_shorthand(tmp_path):
-    # A root LINE built purely from N*/- shorthand on a single sub-line
-    # must stay one section, not be split into per-name "sections" the way
-    # `machine: line=(section_a,section_b)` is above -- splitting on the
-    # bare sub-line name would silently drop the repeat count/reversal.
     source = tmp_path / "shorthand.lte"
     source.write_text(
         "Q1: QUAD,L=0.5,K1=2\n"
@@ -87,8 +134,8 @@ def test_saved_lattice_parser_expands_repeated_elements(tmp_path):
 
     assert list(params) == ["Q.1", "K", "Q.2"]
     assert params["K"]["ElementType"] == ["RFTM110"]
-    reader = SDDS_Params(str(saved))
-    reader.elegantParams = params
+    reader = SddsParams(str(saved))
+    reader.elegant_params = params
     elements, _ = reader.create_element_dictionary()
     assert elements["K"]["hardware_type"] == "RFDeflectingCavity"
 
@@ -106,12 +153,12 @@ def test_twiss_element_imports_beta_alpha_eta_and_from_beam(tmp_path):
 
     params = ElegantLatticeImporter._saved_lattice_params(str(saved))
     assert params["T"]["ElementType"] == ["TWISS"]
-    reader = SDDS_Params(str(saved))
-    reader.elegantParams = params
+    reader = SddsParams(str(saved))
+    reader.elegant_params = params
     elements, _ = reader.create_element_dictionary()
 
     assert elements["T"]["hardware_type"] == "TwissMatch"
-    twiss = LAURA_elements.TwissMatch(**elements["T"])
+    twiss = laura_elements.TwissMatch(**elements["T"])
     assert twiss.simulation.beta_x == pytest.approx(9.42)
     assert twiss.simulation.beta_y == pytest.approx(22.19)
     assert twiss.simulation.alpha_x == pytest.approx(-0.66)
@@ -252,10 +299,10 @@ def test_elegant_include_inlines_nested_relative_files(tmp_path):
 
 
 def test_elegant_moni_maps_to_diagnostic_and_uses_machine_area():
-    from laura.translator.utils.elegant.sdds_classes_APS import SDDS_Params
+    from laura.translator.utils.elegant.sdds_classes_aps import SddsParams
 
-    params = SDDS_Params("unused")
-    params.elegantParams = {
+    params = SddsParams("unused")
+    params.elegant_params = {
         "M": {
             "ElementType": ["MONI"],
             "ElementParameter": [],
@@ -271,7 +318,7 @@ def test_elegant_moni_maps_to_diagnostic_and_uses_machine_area():
 
 
 def test_elegant_transverse_and_distinct_wakes_are_not_lost(tmp_path, monkeypatch):
-    from laura.translator.utils.elegant.sdds_classes_APS import SDDS_Params
+    from laura.translator.utils.elegant.sdds_classes_aps import SddsParams
 
     data = {
         "TR": {
@@ -293,7 +340,7 @@ def test_elegant_transverse_and_distinct_wakes_are_not_lost(tmp_path, monkeypatc
     }
 
     monkeypatch.setattr(
-        SDDS_Params,
+        SddsParams,
         "create_element_dictionary",
         lambda self, machine_area="Lattice": (data, filenames),
     )

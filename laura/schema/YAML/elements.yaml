@@ -34,9 +34,10 @@ enums:
       circular:    {}
       rectangular: {}
       elliptical:  {}
+      planar:      {}
       scraper:
         description: >-
-          Scraper jaws rather than a fixed pipe cross-section. 
+          Scraper jaws rather than a fixed pipe cross-section.
 
 classes:
 

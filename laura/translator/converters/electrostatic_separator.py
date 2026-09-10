@@ -52,7 +52,7 @@ class ElectrostaticSeparatorTranslator(BaseElementTranslator):
             String representation of the element for MAD-X
         """
         self.start_write()
-        etype = self._convertType_Madx(self.hardware_type)
+        etype = self._convert_type_madx(self.hardware_type)
         string = sanitize_string(self.name) + ": " + etype + f", l = {self.length}"
 
         def _term(name: str, value) -> str:

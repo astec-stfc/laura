@@ -46,8 +46,8 @@ from laura.models.physical import (  # noqa: E402
 )
 from laura.models.simulation import TwissMatchSimulationElement  # noqa: E402
 from laura.translator.converters import (  # noqa: E402
-    elements_Bmad,
-    type_conversion_rules_Bmad,
+    elements_bmad,
+    type_conversion_rules_bmad,
 )
 from laura.translator.converters.codes import bmad_unsupported  # noqa: E402
 from laura.translator.converters.converter import translate_elements  # noqa: E402
@@ -93,11 +93,11 @@ def _write_field(path, field_type, **datasets):
 def test_bmad_rule_coverage_matches_the_element_registry():
     assert {
         source: target
-        for source, target in type_conversion_rules_Bmad.items()
-        if target not in elements_Bmad
+        for source, target in type_conversion_rules_bmad.items()
+        if target not in elements_bmad
     } == {}
-    assert set(type_conversion_rules_Bmad) - set(ELEMENT_REGISTRY) == {"Decapole"}
-    assert set(ELEMENT_REGISTRY) - set(type_conversion_rules_Bmad) == set(
+    assert set(type_conversion_rules_bmad) - set(ELEMENT_REGISTRY) == {"Decapole"}
+    assert set(ELEMENT_REGISTRY) - set(type_conversion_rules_bmad) == set(
         bmad_unsupported
     )
 
@@ -1044,7 +1044,7 @@ def test_bmad_bend_writes_fintx_only_when_the_exit_face_differs():
             "gap": 0.03,
             "edge_field_integral": 0.45,
             "exit_gap": 0.0,
-            "exit_edge_field_integral": 0.0,
+            "edge_field_integral_exit":0.0,
         },
     )
     bend = _bmad(entrance_half)
@@ -1062,7 +1062,7 @@ def test_bmad_bend_writes_fintx_only_when_the_exit_face_differs():
             "gap": 0.0,
             "edge_field_integral": 0.0,
             "exit_gap": 0.03,
-            "exit_edge_field_integral": 0.45,
+            "edge_field_integral_exit":0.45,
         },
     )
     bend = _bmad(exit_half)

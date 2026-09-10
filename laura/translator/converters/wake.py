@@ -1,5 +1,5 @@
 from .base import BaseElementTranslator
-from laura.models.RF import WakefieldElement
+from laura.models.rf import WakefieldElement
 from laura.models.simulation import WakefieldSimulationElement
 
 
@@ -31,7 +31,7 @@ class WakefieldTranslator(BaseElementTranslator):
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the wakefield element string for ASTRA;
-        see :func:`~_write_ASTRA`.
+        see :func:`~_write_astra`.
 
         Parameters
         ----------
@@ -46,9 +46,9 @@ class WakefieldTranslator(BaseElementTranslator):
             String representation of the element for ASTRA
         """
         self.start_write()
-        return self._write_ASTRA(n=n)
+        return self._write_astra(n=n)
 
-    def _write_ASTRA(self, n: int = 0, **kwargs: dict) -> str:
+    def _write_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the wakefield element string for ASTRA. Each cell in a cavity gets its own &WAKE element.
 
@@ -77,9 +77,13 @@ class WakefieldTranslator(BaseElementTranslator):
             waketype = "Dipole_Method_F"
         else:
             waketype = "Taylor_Method_F"
-        if self.simulation.scale_kick > 0:
+        # scale_kick alone is not enough: wakefields also have to be
+        # switched off when the section asks for it via wakefield_enable.
+        if self.simulation.scale_kick > 0 and getattr(
+            self.simulation, "wakefield_enable", True
+        ):
             for n in range(n, n + int(self.cavity.n_cells)):
-                output += self._write_ASTRA_dictionary(
+                output += self._write_astra_dictionary(
                     dict(
                         [
                             [
@@ -176,7 +180,11 @@ class WakefieldTranslator(BaseElementTranslator):
         )
         fringe_field_coefficient = 3.0 / self.cavity.cell_length
         output = ""
-        if self.simulation.scale_kick > 0:
+        # scale_kick alone is not enough: wakefields also have to be
+        # switched off when the section asks for it via wakefield_enable.
+        if self.simulation.scale_kick > 0 and getattr(
+            self.simulation, "wakefield_enable", True
+        ):
             zcolumn = "z"
             wzcolumn = "Wz"
             wxcolumn = (

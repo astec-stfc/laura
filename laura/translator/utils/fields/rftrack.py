@@ -1,5 +1,5 @@
 """
-Convert a :class:`~laura.translator.utils.fields.field` object's on-axis 1D
+Convert a :class:`~laura.translator.utils.fields.FieldMap` object's on-axis 1D
 samples into the plain-array form RF-Track's field-map constructors need
 (RF_Track_reference_manual.pdf §4.4).
 
@@ -58,6 +58,7 @@ analytic ``SW_Structure``/``TW_Structure`` element pair, not
 analytic, single-harmonic ``TW_Structure`` model) remains the fallback when a
 field map isn't available.
 """
+
 import numpy as np
 from scipy.signal import hilbert
 
@@ -87,7 +88,9 @@ def _uniform_mesh(z: np.ndarray, values: np.ndarray) -> tuple:
     return hz, np.asarray(values, dtype=float)
 
 
-def rf_fieldmap_1d_args(self, amplitude: float, frequency: float, direction: int = 1) -> tuple:
+def rf_fieldmap_1d_args(
+    self, amplitude: float, frequency: float, direction: int = 1
+) -> tuple:
     """
     Return the ``(Ez, hz, length, frequency, direction, P_map, P_actual)``
     positional arguments for ``RF_Track.RF_FieldMap_1d`` (manual §4.4.1), built
@@ -260,7 +263,9 @@ def rf_fieldmap_1d_travelling_wave_args_list(
     ez_core_tiled = np.tile(ez_core, n_periods)
     hz_core, ez_core_u = _uniform_mesh(z_core_tiled, ez_core_tiled)
     ez_core_complex = np.conj(hilbert(ez_core_u))
-    args_list.append((ez_core_complex, hz_core, -1, float(frequency), direction, 1.0, 1.0))
+    args_list.append(
+        (ez_core_complex, hz_core, -1, float(frequency), direction, 1.0, 1.0)
+    )
 
     if len(z_out) > 1:
         hz_out, ez_out_u = _uniform_mesh(z_out, ez_out)

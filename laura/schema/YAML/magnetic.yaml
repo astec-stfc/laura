@@ -273,21 +273,34 @@ classes:
           ucum_code: rad
       edge_field_integral:
         range: float
-        ifabsent: float(0.5)
+        required: false
         description: >-
-          Enge fringe-field integral parameter (dimensionless) at the entrance
-          face, and at both faces unless ``exit_edge_field_integral`` says
-          otherwise.
-      exit_edge_field_integral:
+          Enge fringe-field integral parameter (dimensionless), used as the
+          single combined value by codes that only support one edge focussing
+          keyword. Unset (None) by default.
+          If given, it also becomes the default for any of
+          edge_field_integral_entrance/edge_field_integral_exit that are
+          themselves not given (see MagneticElement.resolve_edge_field_integrals).
+      edge_field_integral_entrance:
         range: float
+        required: false
         description: >-
-          Enge fringe-field integral at the exit face. Absent means the exit
-          face matches the entrance.
+          Fringe-field integral for entrance-edge focussing. Unset (None) by
+          default unless edge_field_integral is given; always overrides
+          edge_field_integral when set explicitly.
+      edge_field_integral_exit:
+        range: float
+        required: false
+        description: >-
+          Fringe-field integral for exit-edge focussing. Unset (None) by
+          default unless edge_field_integral is given; always overrides
+          edge_field_integral when set explicitly.
       exit_gap:
         range: float
+        required: false
         description: >-
           Full gap between pole faces at the exit face [m]. Absent means the
-          same as ``gap``. See ``exit_edge_field_integral``.
+          same as ``gap``. See ``edge_field_integral_exit``.
         minimum_value: 0.0
         unit:
           ucum_code: m

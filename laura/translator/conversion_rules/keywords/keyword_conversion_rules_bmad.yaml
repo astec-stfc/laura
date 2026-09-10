@@ -12,7 +12,7 @@ dipole:
   half_gap: hgap
   edge_field_integral: fint
   exit_half_gap: hgapx
-  exit_edge_field_integral: fintx
+  edge_field_integral_exit: fintx
   tilt: ref_tilt
 quadrupole:
   k1l: k1
@@ -48,10 +48,6 @@ wiggler:
   period: l_period
   num_periods: n_period
 solenoid:
-  # LAURA's ks (fields.S0L) is the *integrated normalised* strength, so once the
-  # length is divided out it is Bmad's normalised `ks` [1/m] and not `bs_field`,
-  # which Bmad holds in tesla. The two differ by the rigidity, so writing one
-  # into the other is wrong by a factor that grows with beam energy.
   ks: ks
 combinedsolenoidquadrupole:
   k1l: k1

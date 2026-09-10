@@ -8,9 +8,9 @@ from pydantic.fields import FieldInfo
 
 from laura.models.element import Magnet
 from laura.utils.dict_utils import numpy_scalar_to_python
-from laura.models.baseModels import IgnoreExtra
+from laura.models.base_models import IgnoreExtra
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union, get_args, get_origin
-from .fields import field
+from .fields import FieldMap
 
 
 def number_repeated_names(names: list[str]) -> list[str]:
@@ -244,7 +244,7 @@ def convert_numpy_types(v):
             return [convert_numpy_types(li) for li in v]
         except TypeError:
             return float(v)
-    elif isinstance(v, field):
+    elif isinstance(v, FieldMap):
         return convert_numpy_types(v.model_dump())
     return numpy_scalar_to_python(v)
 
@@ -371,7 +371,10 @@ def path_function(a):
         return os.path.abspath(a)
     return "./"
 
-def expand_substitution(self, param, master_lattice="./", subs=None, elements=None, absolute=False):
+
+def expand_substitution(
+    self, param, master_lattice="./", subs=None, elements=None, absolute=False
+):
     subs = subs or {}
     elements = elements or {}
     if isinstance(param, str):
@@ -398,7 +401,7 @@ def expand_substitution(self, param, master_lattice="./", subs=None, elements=No
         return param
 
 
-def checkValue(self, d, default=None):
+def check_value(self, d, default=None):
     if isinstance(d, dict):
         if "type" in d and d["type"] == "list":
             if "default" in d:
@@ -415,7 +418,9 @@ def checkValue(self, d, default=None):
             return (
                 d["value"]
                 if d["value"] is not None
-                else d["default"] if "default" in d else default
+                else d["default"]
+                if "default" in d
+                else default
             )
     elif isinstance(d, str):
         return (
@@ -437,14 +442,25 @@ def tw_cavity_energy_gain(cavity):
     """
 
     # Approximate effective accelerating gradient
-    E_acc = cavity.field_amplitude * np.sin(
+    e_acc = cavity.field_amplitude * np.sin(
         np.pi * cavity.mode_numerator * 2 / cavity.mode_denominator / 2
     )
 
     # Total cavity length
-    L_total = cavity.n_cells * cavity.cell_length
+    l_total = cavity.n_cells * cavity.cell_length
 
     # Energy gain in MeV (since 1 MV/m * 1 m = 1 MeV for charge = e)
-    delta_W = E_acc * L_total * np.cos(np.pi * cavity.phase / 180)
+    delta_w = e_acc * l_total * np.cos(np.pi * cavity.phase / 180)
 
-    return delta_W
+    return delta_w
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "checkValue": "check_value",
+    },
+)

@@ -1,60 +1,60 @@
 from warnings import warn
 
 from ..functions import introspect_model_defaults
-from .SDDSFile import SDDSFile
+from .sdds_file import SDDSFile
 from ...converters import (
     type_conversion_rules_aliases,
-    type_conversion_rules_Elegant,
+    type_conversion_rules_elegant,
     keyword_conversion_rules_elegant,
     element_keywords,
 )
-import laura.models.element as LAURA_elements
+import laura.models.element as laura_elements
 
 
 
-class SDDS_Params:
+class SddsParams:
 
     def __init__(self, filename: str, page: int = 0):
         self.filename = filename
         self.page = page
-        self.elegantObject = None
-        self.elegantData = None
-        self.elegantParams = None
+        self.elegant_object = None
+        self.elegant_data = None
+        self.elegant_params = None
 
     def import_sdds_params_file(self, index=1) -> None:
-        self.elegantObject = SDDSFile(index=index)
-        self.elegantObject.read_file(self.filename, page=self.page)
-        self.elegantData = self.elegantObject.data
+        self.elegant_object = SDDSFile(index=index)
+        self.elegant_object.read_file(self.filename, page=self.page)
+        self.elegant_data = self.elegant_object.data
 
     def join_params(self) -> None:
-        if not self.elegantData:
+        if not self.elegant_data:
             self.import_sdds_params_file()
         max_occurrence = {}
         for name, occ in zip(
-            self.elegantData["ElementName"], self.elegantData["ElementOccurence"]
+            self.elegant_data["ElementName"], self.elegant_data["ElementOccurence"]
         ):
             max_occurrence[name] = max(max_occurrence.get(name, 1), occ)
 
-        self.elegantParams = {}
-        for i, k in enumerate(self.elegantData["ElementName"]):
-            occurrence = self.elegantData["ElementOccurence"][i]
+        self.elegant_params = {}
+        for i, k in enumerate(self.elegant_data["ElementName"]):
+            occurrence = self.elegant_data["ElementOccurence"][i]
             key = f"{k}.{occurrence}" if max_occurrence[k] > 1 else k
-            if key not in self.elegantParams:
-                self.elegantParams.update(
-                    {key: {param: [] for param in list(self.elegantData.keys())[1:]}}
+            if key not in self.elegant_params:
+                self.elegant_params.update(
+                    {key: {param: [] for param in list(self.elegant_data.keys())[1:]}}
                 )
-            for val in list(self.elegantData.keys())[1:]:
-                if self.elegantData["ElementName"][i] == k:
-                    self.elegantParams[key][val].append(self.elegantData[val][i])
+            for val in list(self.elegant_data.keys())[1:]:
+                if self.elegant_data["ElementName"][i] == k:
+                    self.elegant_params[key][val].append(self.elegant_data[val][i])
 
     def create_element_dictionary(self, machine_area: str = "Lattice") -> tuple:
-        if not self.elegantParams:
+        if not self.elegant_params:
             self.join_params()
         sfconvert = {}
         # disallowed = ["bore", "zwakefile"]
         filenames = {}
         sfconvert = {}
-        for k, v in self.elegantParams.items():
+        for k, v in self.elegant_params.items():
             elemtype = v["ElementType"][0].lower()
             alias = (
                 "Diagnostic"
@@ -82,8 +82,8 @@ class SDDS_Params:
                         }
                     }
                 )
-            elif elemtype in list(type_conversion_rules_Elegant.values()):
-                switch_dict = {y: x for x, y in type_conversion_rules_Elegant.items()}
+            elif elemtype in list(type_conversion_rules_elegant.values()):
+                switch_dict = {y: x for x, y in type_conversion_rules_elegant.items()}
                 switch_dict.update(
                     {
                         "watch": "Beam_Position_Monitor",
@@ -117,29 +117,23 @@ class SDDS_Params:
             sftype = sfconvert[k]["hardware_type"]
             if sftype == "Drift":
                 sfconvert[k]["hardware_class"] = "Drift"
+            registry = laura_elements.ELEMENT_REGISTRY
             try:
                 if sftype == "kicker":
-                    model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, "Combined_Corrector"),
-                        resolve_optional=True,
-                    )
-                    sfconvert[k]["hardware_type"] = "Combined_Corrector"
-                elif "Cavity" not in sftype:
-                    classname = (
-                        sftype
-                        if hasattr(LAURA_elements, sftype)
-                        else sftype.capitalize()
-                    )
-                    model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, classname),
-                        resolve_optional=True,
-                    )
-                    sfconvert[k]["hardware_type"] = classname
-                else:
-                    model_fields = introspect_model_defaults(
-                        getattr(LAURA_elements, sftype),
-                        resolve_optional=True,
-                    )
+                    sftype = "Combined_Corrector"
+                elif (
+                    sftype not in registry
+                    and "Cavity" not in sftype
+                    and not hasattr(laura_elements, sftype)
+                ):
+                    sftype = sftype.capitalize()
+                model_fields = introspect_model_defaults(
+                    registry[sftype]
+                    if sftype in registry
+                    else getattr(laura_elements, sftype),
+                    resolve_optional=True,
+                )
+                sfconvert[k]["hardware_type"] = sftype
             except AttributeError:
                 warn(f"Elegant type {sftype!r} for {k!r} not recognized; setting as drift.")
                 sfconvert.update(
@@ -165,6 +159,8 @@ class SDDS_Params:
                     sfconvert[k].update({subk: {}})
             for i, param in enumerate(v["ElementParameter"]):
                 param = param.lower()
+                if param in ("fint1", "fint2") and v["ParameterValue"][i] < 0:
+                    continue  # ELEGANT's sentinel for "unset, fall back to FINT"
                 merged = keyword_conversion_rules_elegant["general"]
                 if sftype.lower() in keyword_conversion_rules_elegant:
                     merged = (
@@ -172,6 +168,9 @@ class SDDS_Params:
                         | keyword_conversion_rules_elegant["general"]
                     )
                 kwele = {y: x for x, y in merged.items()}
+                kwele["fint"] = "edge_field_integral"
+                kwele["fint1"] = "edge_field_integral_entrance"
+                kwele["fint2"] = "edge_field_integral_exit"
                 if param == "hgap" and "magnetic" in sfconvert[k]:
                     sfconvert[k]["magnetic"]["gap"] = 2 * v["ParameterValue"][i]
                 for subk in model_fields:
@@ -208,3 +207,14 @@ class SDDS_Params:
                         f"check path, file format and column data"
                     )
         return sfconvert, filenames
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "SDDS_Params": "SddsParams",
+    },
+)

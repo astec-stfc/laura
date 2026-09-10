@@ -47,7 +47,7 @@ class PlasmaTranslator(BaseElementTranslator):
         )
         from ..conversion_rules.codes import wake_t_conversion
 
-        type_conversion_rules_Wake_T = wake_t_conversion.wake_t_conversion_rules
+        type_conversion_rules_wake_t = wake_t_conversion.wake_t_conversion_rules
         if self.simulation.wakefield_model is None:
             warn(
                 "No wakefield model defined; no plasma wakefields will be computed."
@@ -61,11 +61,11 @@ class PlasmaTranslator(BaseElementTranslator):
                 f"Supported models are {list(self.simulation.required_attrs.keys())[1:]}."
             )
         commondict = {
-            self._convertKeyword_WakeT(param): getattr(self, param)
+            self._convert_keyword_wake_t(param): getattr(self, param)
             for param in self.simulation.required_attrs["common"]
         }
         modeldict = {
-            self._convertKeyword_WakeT(param): getattr(self, param)
+            self._convert_keyword_wake_t(param): getattr(self, param)
             for param in self.simulation.required_attrs[self.simulation.wakefield_model]
         }
         if self.plasma.density_profile:
@@ -86,7 +86,7 @@ class PlasmaTranslator(BaseElementTranslator):
                 "More than two laser sub-elements found; only the first two will be used."
             )
             elemdict.update({"laser": SummedPulse(lasers[0], lasers[1])})
-        obj = type_conversion_rules_Wake_T[self.hardware_type](
+        obj = type_conversion_rules_wake_t[self.hardware_type](
             wakefield_model=self.simulation.wakefield_model, **elemdict
         )
         return obj

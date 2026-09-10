@@ -21,7 +21,7 @@ from laura.translator.utils.functions import (
     tw_cavity_energy_gain,
     _rotation_matrix,
 )
-from laura.models.baseModels import set_functional_definitions, set_resolve_functional
+from laura.models.base_models import set_functional_definitions, set_resolve_functional
 
 
 class TestSanitizeString:
@@ -76,8 +76,8 @@ class TestRotationMatrix:
 
     def test_quarter_turn(self):
         import numpy as np
-        R = _rotation_matrix(np.pi / 2)
-        np.testing.assert_array_almost_equal(R @ [0, 0, 1], [1, 0, 0])
+        r = _rotation_matrix(np.pi / 2)
+        np.testing.assert_array_almost_equal(r @ [0, 0, 1], [1, 0, 0])
 
 
 class TestChop:

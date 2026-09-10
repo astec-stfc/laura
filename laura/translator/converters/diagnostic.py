@@ -25,7 +25,7 @@ class DiagnosticTranslator(BaseElementTranslator):
             String representation of the element for Bmad
         """
         self.start_write()
-        etype = self._convertType_Bmad(self.hardware_type)
+        etype = self._convert_type_bmad(self.hardware_type)
         return self._format_bmad(
             etype, self._bmad_sr_wake(self._bmad_parameters(etype))
         )

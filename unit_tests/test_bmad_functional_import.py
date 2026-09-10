@@ -5,11 +5,11 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from laura.Exporters.YAML import export_as_yaml
-from laura.Importers.YAML_Loader import read_YAML_Element_File
+from laura.exporters.yaml_exporter import export_as_yaml
+from laura.importers.yaml_loader import read_yaml_element_file
 from laura.models.element import CombinedSolenoidQuadrupole, Marker, MatrixTransform
-from laura.models.elementList import ElementList, MachineLayout, SectionLattice
-from laura.translator.converters import elements_Bmad, type_conversion_rules_Bmad
+from laura.models.element_list import ElementList, MachineLayout, SectionLattice
+from laura.translator.converters import elements_bmad, type_conversion_rules_bmad
 from laura.translator.converters.codes.bmad import (
     BmadLatticeImporter,
     BmadTaoInit,
@@ -27,16 +27,16 @@ from laura.utils.rotation_matrix import euler_angles_to_rotation_matrix
 
 
 def test_bmad_conversion_rules_are_loaded():
-    assert type_conversion_rules_Bmad["Dipole"] == "sbend"
+    assert type_conversion_rules_bmad["Dipole"] == "sbend"
     assert _switch_dict()["rbend"] == "Dipole"
     assert _switch_dict()["match"] == "MatrixTransform"
     assert _native_keyword("RFCavity", "frequency") == "RF_FREQUENCY"
-    assert "ks" in elements_Bmad["sol_quad"]
+    assert "ks" in elements_bmad["sol_quad"]
     translated = translate_elements([MatrixTransform(name="map", machine_area="test")])[
         "map"
     ]
-    assert translated._convertType_Bmad("MatrixTransform") == "taylor"
-    assert translated._convertKeyword_Bmad("physical_length") == "l"
+    assert translated._convert_type_bmad("MatrixTransform") == "taylor"
+    assert translated._convert_keyword_bmad("physical_length") == "l"
 
 
 def test_bmad_parser_retains_only_deferred_assignments(tmp_path):
@@ -635,7 +635,7 @@ def test_combined_solenoid_quadrupole_yaml_round_trip(tmp_path):
     path = tmp_path / "sq.yaml"
     export_as_yaml(str(path), element)
 
-    loaded = read_YAML_Element_File(str(path), validate=True)
+    loaded = read_yaml_element_file(str(path), validate=True)
 
     assert loaded.hardware_type == "CombinedSolenoidQuadrupole"
     assert loaded.magnetic.KnL(1) == pytest.approx(0.6)
@@ -654,7 +654,7 @@ def test_spin_taylor_yaml_round_trip(tmp_path):
     path = tmp_path / "spin_map.yaml"
     export_as_yaml(str(path), element)
 
-    loaded = read_YAML_Element_File(str(path), validate=True)
+    loaded = read_yaml_element_file(str(path), validate=True)
 
     assert loaded.simulation.spin_taylor == [term]
 

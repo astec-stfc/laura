@@ -13,7 +13,7 @@ import pytest
 pytest.importorskip("easygdf")
 pytest.importorskip("h5py")
 
-from laura.models.baseModels import (  # noqa: E402
+from laura.models.base_models import (  # noqa: E402
     set_functional_definitions,
     set_resolve_functional,
 )
@@ -55,7 +55,7 @@ def _quad(k1l):
 def _cavity(field_amplitude, phase=0.0, structure="StandingWave"):
     cav = RFCavity(
         name="C1", machine_area="L02",
-        cavity={"phase": phase, "structure_Type": structure},
+        cavity={"phase": phase, "structure_type": structure},
         simulation={"field_amplitude": field_amplitude},
     )
     return RFCavityTranslator.model_validate(cav.model_dump())
@@ -169,7 +169,7 @@ class TestDirectReadResolution:
 class TestCascadeToTranslators:
     def test_section_translator_carries_definitions(self, tmp_path):
         from laura.models.element import Quadrupole, Marker
-        from laura.models.elementList import MachineModel
+        from laura.models.element_list import MachineModel
         from laura.translator.converters.section import SectionLatticeTranslator
 
         f = tmp_path / "defs.yaml"
@@ -219,13 +219,26 @@ class TestDipole:
         assert 'e1 = "e1v"' in dt.to_elegant()
 
     def test_reserved_angle_edge_resolves(self):
-        # "angle/2" references the bend angle, so it follows the bend angle:
-        # symbolic RPN in symbolic mode, a baked-in number in resolution mode
         set_functional_definitions({"bend1": 0.1})
         dt = self._dipole(k0l="bend1", exit_edge_angle="angle/2")
         assert 'e2 = "bend1 2 /"' in dt.to_elegant()
         set_resolve_functional(True)
         assert "e2 = 0.05" in dt.to_elegant()
+
+    def test_fringe_integral_exports_from_the_entrance_face(self):
+        combined = self._dipole(k0l=0.1, gap=0.04, edge_field_integral=0.3)
+        faces = self._dipole(
+            k0l=0.1,
+            gap=0.04,
+            edge_field_integral_entrance=0.3,
+            edge_field_integral_exit=0.5,
+        )
+        for dt in (combined, faces):
+            assert "fint = 0.3" in dt.to_elegant()
+            assert "fint1" not in dt.to_elegant()
+        for dt in (combined, faces):
+            assert "83.33" in dt.to_gpt(1.0)
+        assert "83.33" not in self._dipole(k0l=0.1, gap=0.04).to_gpt(1.0)
 
 
 class TestXsuite:
@@ -234,7 +247,7 @@ class TestXsuite:
 
     def _line(self, elements, defs, beam_length=1, resolve=False):
         pytest.importorskip("xtrack")
-        from laura.models.elementList import SectionLattice
+        from laura.models.element_list import SectionLattice
         from laura.translator.converters.section import SectionLatticeTranslator
 
         section = SectionLattice(
@@ -260,7 +273,7 @@ class TestXsuite:
         )
         c = RFCavity(
             name="C1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": "Vcav"},
             physical=PhysicalElement(length=1.0, middle=Position(x=0, y=0, z=3.0)),
         )

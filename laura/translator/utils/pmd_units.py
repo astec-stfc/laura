@@ -7,6 +7,7 @@ For more advanced units, use a package like Pint:
 
 c_light = 299792458
 e_charge = 1.602176634e-19
+import numpy as np
 
 
 class pmd_unit:
@@ -15,9 +16,9 @@ class pmd_unit:
     Params
     ------
 
-    unitSymbol: Native units name
-    unitSI:     Conversion factor to the the correspontign SI unit
-    unitDimension: SI Base Exponents
+    unit_symbol: Native units name
+    unit_si:     Conversion factor to the the correspontign SI unit
+    unit_dimension: SI Base Exponents
 
     Base unit dimensions are defined as:
 
@@ -40,7 +41,7 @@ class pmd_unit:
 
         defines that an eV is 1.602176634e-19 of base units m^2 kg/s^2, which is a Joule (J)
 
-    If ``unitSI=0`` (default), init with a known symbol:
+    If ``unit_si=0`` (default), init with a known symbol:
 
         ``pmd_unit('T')``
 
@@ -55,36 +56,36 @@ class pmd_unit:
 
     """
 
-    def __init__(self, unitSymbol="", unitSI=0, unitDimension=(0, 0, 0, 0, 0, 0, 0)):
+    def __init__(self, unit_symbol="", unit_si=0, unit_dimension=(0, 0, 0, 0, 0, 0, 0)):
 
         # Allow to return an internally known unit
-        if unitSI == 0:
-            if unitSymbol in known_unit:
+        if unit_si == 0:
+            if unit_symbol in known_unit:
                 # Copy internals
-                u = known_unit[unitSymbol]
-                unitSI = u.unitSI
-                unitDimension = u.unitDimension
+                u = known_unit[unit_symbol]
+                unit_si = u.unit_si
+                unit_dimension = u.unit_dimension
             else:
-                raise ValueError(f"unknown unitSymbol: {unitSymbol}")
+                raise ValueError(f"unknown unit_symbol: {unit_symbol}")
 
-        self._unitSymbol = unitSymbol
-        self._unitSI = unitSI
-        if isinstance(unitDimension, str):
-            self._unitDimension = DIMENSION[unitDimension]
+        self._unit_symbol = unit_symbol
+        self._unit_si = unit_si
+        if isinstance(unit_dimension, str):
+            self._unit_dimension = DIMENSION[unit_dimension]
         else:
-            self._unitDimension = unitDimension
+            self._unit_dimension = unit_dimension
 
     @property
-    def unitSymbol(self):
-        return self._unitSymbol
+    def unit_symbol(self):
+        return self._unit_symbol
 
     @property
-    def unitSI(self):
-        return self._unitSI
+    def unit_si(self):
+        return self._unit_si
 
     @property
-    def unitDimension(self):
-        return self._unitDimension
+    def unit_dimension(self):
+        return self._unit_dimension
 
     def __mul__(self, other):
         return multiply_units(self, other)
@@ -102,15 +103,15 @@ class pmd_unit:
         return not self.__eq__(other)
 
     def __str__(self):
-        return self.unitSymbol
+        return self.unit_symbol
 
     def __repr__(self):
-        return f"pmd_unit('{self.unitSymbol}', {self.unitSI}, {self.unitDimension})"
+        return f"pmd_unit('{self.unit_symbol}', {self.unit_si}, {self.unit_dimension})"
 
 
 def is_identity(u):
     """Checks if the unit is equivalent to 1"""
-    return u.unitSI == 1 and u.unitDimension == (0, 0, 0, 0, 0, 0, 0)
+    return u.unit_si == 1 and u.unit_dimension == (0, 0, 0, 0, 0, 0, 0)
 
 
 def multiply_units(u1, u2):
@@ -123,18 +124,18 @@ def multiply_units(u1, u2):
     if is_identity(u2):
         return u1
 
-    s1 = u1.unitSymbol
-    s2 = u2.unitSymbol
+    s1 = u1.unit_symbol
+    s2 = u2.unit_symbol
     if s1 == s2:
         symbol = f"{s1}^2"
     else:
         symbol = s1 + "*" + s2
-    d1 = u1.unitDimension
-    d2 = u2.unitDimension
+    d1 = u1.unit_dimension
+    d2 = u2.unit_dimension
     dim = tuple(sum(x) for x in zip(d1, d2))
-    unitSI = u1.unitSI * u2.unitSI
+    unit_si = u1.unit_si * u2.unit_si
 
-    return pmd_unit(unitSymbol=symbol, unitSI=unitSI, unitDimension=dim)
+    return pmd_unit(unit_symbol=symbol, unit_si=unit_si, unit_dimension=dim)
 
 
 def divide_units(u1, u2):
@@ -145,18 +146,34 @@ def divide_units(u1, u2):
     if is_identity(u2):
         return u1
 
-    s1 = u1.unitSymbol
-    s2 = u2.unitSymbol
+    s1 = u1.unit_symbol
+    s2 = u2.unit_symbol
     if s1 == s2:
         symbol = "1"
     else:
         symbol = s1 + "/" + s2
-    d1 = u1.unitDimension
-    d2 = u2.unitDimension
+    d1 = u1.unit_dimension
+    d2 = u2.unit_dimension
     dim = tuple(a - b for a, b in zip(d1, d2))
-    unitSI = u1.unitSI / u2.unitSI
+    unit_si = u1.unit_si / u2.unit_si
 
-    return pmd_unit(unitSymbol=symbol, unitSI=unitSI, unitDimension=dim)
+    return pmd_unit(unit_symbol=symbol, unit_si=unit_si, unit_dimension=dim)
+
+
+def sqrt_unit(u):
+    """
+    Returns the sqrt of a unit
+    """
+    u.unit_dimension
+
+    symbol = u.unit_symbol
+    if symbol not in ["", "1"]:
+        symbol = f"sqrt({symbol})"
+
+    unit_si = np.sqrt(u.unit_si)
+    dim = tuple(x / 2 for x in u.unit_dimension)
+
+    return pmd_unit(unit_symbol=symbol, unit_si=unit_si, unit_dimension=dim)
 
 
 DIMENSION = {
@@ -220,3 +237,251 @@ def unit(symbol):
         return multiply_units(subunits[0], subunits[1])
 
     raise ValueError(f"Unknown unit symbol: {symbol}")
+
+
+# Dicts for prefixes
+PREFIX_FACTOR = {
+    "yocto-": 1e-24,
+    "zepto-": 1e-21,
+    "atto-": 1e-18,
+    "femto-": 1e-15,
+    "pico-": 1e-12,
+    "nano-": 1e-9,
+    "micro-": 1e-6,
+    "milli-": 1e-3,
+    "centi-": 1e-2,
+    "deci-": 1e-1,
+    "deca-": 1e1,
+    "hecto-": 1e2,
+    "kilo-": 1e3,
+    "mega-": 1e6,
+    "giga-": 1e9,
+    "tera-": 1e12,
+    "peta-": 1e15,
+    "exa-": 1e18,
+    "zetta-": 1e21,
+    "yotta-": 1e24,
+}
+# Inverse
+PREFIX = dict((v, k) for k, v in PREFIX_FACTOR.items())
+
+SHORT_PREFIX_FACTOR = {
+    "y": 1e-24,
+    "z": 1e-21,
+    "a": 1e-18,
+    "f": 1e-15,
+    "p": 1e-12,
+    "n": 1e-9,
+    "µ": 1e-6,
+    "m": 1e-3,
+    "c": 1e-2,
+    "d": 1e-1,
+    "": 1,
+    "da": 1e1,
+    "h": 1e2,
+    "k": 1e3,
+    "M": 1e6,
+    "G": 1e9,
+    "T": 1e12,
+    "P": 1e15,
+    "E": 1e18,
+    "Z": 1e21,
+    "Y": 1e24,
+}
+# Inverse
+SHORT_PREFIX = dict((v, k) for k, v in SHORT_PREFIX_FACTOR.items())
+
+
+# Nice scaling
+
+
+def nice_scale_prefix(scale):
+    """
+    Returns a nice factor and a SI prefix string
+
+    Example:
+        scale = 2e-10
+
+        f, u = nice_scale_prefix(scale)
+
+
+    """
+
+    if scale == 0:
+        return 1, ""
+
+    p10 = np.log10(abs(scale))
+
+    if p10 < -2 or p10 > 2:
+        f = 10 ** (p10 // 3 * 3)
+    else:
+        f = 1
+
+    return f, SHORT_PREFIX[f]
+
+
+def nice_array(a):
+    """
+    Returns a scaled array, the scaling, and a unit prefix
+
+    Example:
+        nice_array( np.array([2e-10, 3e-10]) )
+    Returns:
+        (array([200., 300.]), 1e-12, 'p')
+
+    """
+
+    if np.isscalar(a):
+        x = a
+    elif len(a) == 1:
+        x = a[0]
+    else:
+        a = np.array(a)
+        x = a.ptp()
+
+    fac, prefix = nice_scale_prefix(x)
+
+    return a / fac, fac, prefix
+
+
+# -------------------------
+# Units for ParticleGroup
+
+PARTICLEGROUP_UNITS = {}
+for k in ["status"]:
+    PARTICLEGROUP_UNITS[k] = unit("1")
+for k in ["t"]:
+    PARTICLEGROUP_UNITS[k] = unit("s")
+for k in [
+    "energy",
+    "kinetic_energy",
+    "mass",
+    "higher_order_energy_spread",
+    "higher_order_energy",
+]:
+    PARTICLEGROUP_UNITS[k] = unit("eV")
+for k in ["px", "py", "pz", "p", "pr"]:
+    PARTICLEGROUP_UNITS[k] = unit("eV/c")
+for k in ["x", "y", "z", "r", "Jx", "Jy"]:
+    PARTICLEGROUP_UNITS[k] = unit("m")
+for k in ["beta", "beta_x", "beta_y", "beta_z", "gamma", "theta", "ptheta"]:
+    PARTICLEGROUP_UNITS[k] = unit("1")
+for k in ["charge", "species_charge", "weight"]:
+    PARTICLEGROUP_UNITS[k] = unit("C")
+for k in ["average_current"]:
+    PARTICLEGROUP_UNITS[k] = unit("A")
+for k in ["norm_emit_x", "norm_emit_y"]:
+    PARTICLEGROUP_UNITS[k] = unit("m")
+for k in ["norm_emit_4d"]:
+    PARTICLEGROUP_UNITS[k] = multiply_units(unit("m"), unit("m"))
+for k in ["xp", "yp"]:
+    PARTICLEGROUP_UNITS[k] = unit("rad")
+for k in ["x_bar", "px_bar", "y_bar", "py_bar"]:
+    PARTICLEGROUP_UNITS[k] = sqrt_unit(unit("m"))
+
+
+def pg_units(key):
+    """
+    Returns a str representing the units of any attribute
+    """
+    for prefix in ["sigma_", "mean_", "min_", "max_", "ptp_", "delta_"]:
+        if key.startswith(prefix):
+            nkey = key[len(prefix) :]
+            return PARTICLEGROUP_UNITS[nkey]
+
+    if key.startswith("cov_"):
+        subkeys = key.strip("cov_").split("__")
+        unit0 = PARTICLEGROUP_UNITS[subkeys[0]]
+
+        unit1 = PARTICLEGROUP_UNITS[subkeys[1]]
+
+        return multiply_units(unit0, unit1)
+
+    # Fields
+    if key.startswith("electricField"):
+        return unit("V/m")
+    if key.startswith("magneticField"):
+        return unit("T")
+
+    return PARTICLEGROUP_UNITS[key]
+
+
+# -------------------------
+# h5 tools
+
+
+def write_unit_h5(h5, u):
+    """
+    Writes an pmd_unit to an h5 handle
+    """
+
+    h5.attrs["unit_si"] = u.unit_si
+    h5.attrs["unit_dimension"] = u.unit_dimension
+    h5.attrs["unit_symbol"] = u.unit_symbol
+
+
+def read_unit_h5(h5):
+    """
+    Reads unit data from an h5 handle and returns a pmd_unit object
+    """
+    a = h5.attrs
+
+    unit_si = a["unit_si"]
+    unit_dimension = tuple(a["unit_dimension"])
+    if "unit_symbol" not in a:
+        unit_symbol = "unknown"
+    else:
+        unit_symbol = a["unit_symbol"]
+
+    return pmd_unit(unit_symbol=unit_symbol, unit_si=unit_si, unit_dimension=unit_dimension)
+
+
+def read_dataset_and_unit_h5(h5, expected_unit=None, convert=True):
+    """
+    Reads a dataset that has openPMD unit attributes.
+
+    expected_unit can be a pmd_unit object, or a known unit str. Examples: 'kg', 'J', 'eV'
+
+    If expected_unit is given, will check that the units are compatible.
+
+    If convert, the data will be returned with the expected_units.
+
+
+    Returns a tuple:
+        np.array, pmd_unit
+
+    """
+
+    # Read the unit that is there.
+    u = read_unit_h5(h5)
+
+    # Simple case
+    if not expected_unit:
+        return np.array(h5), u
+
+    if isinstance(expected_unit, str):
+        # Try to get unit
+        expected_unit = unit(expected_unit)
+
+    # Check dimensions
+    du = divide_units(u, expected_unit)
+
+    assert du.unit_dimension == (0, 0, 0, 0, 0, 0, 0), "incompatible units"
+
+    if convert:
+        fac = du.unit_si
+        return fac * np.array(h5), expected_unit
+    else:
+        return np.array(h5), u
+
+
+def write_dataset_and_unit_h5(h5, name, data, unit=None):
+    """
+    Writes data and pmd_unit to h5[name]
+
+    See: read_dataset_and_unit_h5
+    """
+    h5[name] = data
+
+    if unit:
+        write_unit_h5(h5[name], unit)

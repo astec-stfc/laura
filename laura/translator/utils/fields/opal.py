@@ -1,8 +1,8 @@
 import numpy as np
-from .sdds import write_SDDS_field_file
+from .sdds import write_sdds_field_file
 from warnings import warn
 from collections import Counter
-from .FieldParameter import FieldParameter
+from .field_parameter import FieldParameter
 from ..units import UnitValue
 import re
 
@@ -18,7 +18,7 @@ def write_opal_field_file(
 ):
     """
     Generate the field data in a format that is suitable for OPAL, based on the
-    :class:`~laura.translator.utils.fields.field` object provided.
+    :class:`~laura.translator.utils.fields.FieldMap` object provided.
 
     See the `OPAL manual`_ for more details.
 
@@ -31,7 +31,7 @@ def write_opal_field_file(
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
     frequency: float | None
         The frequency of the field
@@ -123,7 +123,7 @@ def write_opal_field_file(
         header = [head, leng, freq, rad]
     elif "wake" in self.field_type.lower():
         warn(f"Field type {self.field_type} defaulting to SDDS type; use with caution")
-        return write_SDDS_field_file(self)
+        return write_sdds_field_file(self)
     else:
         warn(f"Field type {self.field_type} not supported for OPAL")
     if data is not None:
@@ -145,11 +145,11 @@ def read_opal_field_file(
     frequency: float | None = None,
 ):
     """
-    Read an OPAL field file and convert it into a :class:`laura.translator.utils.fields.field` object
+    Read an OPAL field file and convert it into a :class:`laura.translator.utils.fields.FieldMap` object
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object to be updated.
     filename: str
         The path to the OPAL field file

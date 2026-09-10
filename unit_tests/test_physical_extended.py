@@ -248,10 +248,10 @@ class TestPhysicalElementExtended:
 
     def test_rotation_matrix_with_yaw(self):
         pe = PhysicalElement(rotation=Rotation(theta=np.pi / 2))
-        R = pe.rotation_matrix
+        r = pe.rotation_matrix
         # For yaw=pi/2: [cos, 0, -sin; 0, 1, 0; sin, 0, cos]
-        expected_Ry = np.array([[0, 0, -1], [0, 1, 0], [1, 0, 0]])
-        np.testing.assert_array_almost_equal(R, expected_Ry)
+        expected_ry = np.array([[0, 0, -1], [0, 1, 0], [1, 0, 0]])
+        np.testing.assert_array_almost_equal(r, expected_ry)
 
     def test_rotated_position(self):
         pe = PhysicalElement()

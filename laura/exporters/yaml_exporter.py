@@ -7,7 +7,7 @@ from warnings import warn
 
 import yaml
 
-from ..Importers.YAML_Loader import (
+from ..importers.yaml_loader import (
     COMBINED_SCHEMAS_KEY,
     COMBINED_TEMPLATES_KEY,
     INHERIT_KEYS,
@@ -21,9 +21,9 @@ from ..Importers.YAML_Loader import (
     resolve_inheritance,
 )
 from ..models.element import PhysicalElement
-from ..models.elementList import MachineModel, expand_section_order
+from ..models.element_list import MachineModel, expand_section_order
 from ..models.magnetic import MagneticElement
-from ..translator.utils.fields import field
+from ..translator.utils.fields import FieldMap
 
 _log = logging.getLogger("laura.exporter.yaml")
 
@@ -46,14 +46,14 @@ def _externalise_fields(ele, directory: str | None):
     written = {}
     for slot in _FIELD_SLOTS:
         value = getattr(simulation, slot, None)
-        if not isinstance(value, field) or not value.read or not value.filename:
+        if not isinstance(value, FieldMap) or not value.read or not value.filename:
             continue
         sidecar = value.model_copy()
         sidecar.filename = os.path.abspath(
             os.path.join(directory, os.path.basename(value.filename))
         )
         path = sidecar.write_field_file(code="hdf5", location=sidecar.filename)
-        replacement = field(field_type=value.field_type)
+        replacement = FieldMap(field_type=value.field_type)
         replacement.filename = path or sidecar.filename
         written[slot] = replacement
     if not written:
@@ -172,7 +172,7 @@ def _collapse_dump_controls(
     """
     If ``dump['controls']`` names a ``schema`` and that schema can be found,
     replace its fully-expanded ``variables`` with the minimal override form
-    (see :func:`laura.Importers.YAML_Loader.collapse_controls_schema`),
+    (see :func:`laura.importers.yaml_loader.collapse_controls_schema`),
     mutating ``dump`` in place. If the schema can't be located, the `variables`
     dump is already fully expanded (nothing to collapse), so the dangling
     `schema`/`identifier_pattern` reference is dropped instead of left in

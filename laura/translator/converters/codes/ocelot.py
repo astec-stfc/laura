@@ -5,12 +5,12 @@ from typing import Any, Dict, TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
-import laura.models.element as LAURA_elements
-from laura.models.elementList import SectionLattice, MachineLayout, ElementList
+import laura.models.element as laura_elems
+from laura.models.element_list import SectionLattice, MachineLayout, ElementList
 from . import magnetic_orders
 from .. import keyword_conversion_rules_ocelot as keyword_conversion_rules
 from ...utils.functions import introspect_model_defaults, number_repeated_names
-from ....Exporters.YAML import export_machine_combined_file, PositionMode
+from ....exporters.yaml_exporter import export_machine_combined_file, PositionMode
 from warnings import warn
 from math import isfinite
 
@@ -54,7 +54,6 @@ ocelot_unsupported = [
 
 
 class OcelotLatticeImporter(BaseModel):
-
     model_config = ConfigDict(
         extra="allow",
         arbitrary_types_allowed=True,
@@ -90,7 +89,7 @@ class OcelotLatticeImporter(BaseModel):
 
         if self.initial_twiss is not None:
             twiss_name = getattr(self.initial_twiss, "id", "") or "initial_twiss"
-            self.laura_elements[twiss_name] = LAURA_elements.TwissMatch(
+            self.laura_elements[twiss_name] = laura_elems.TwissMatch(
                 name=twiss_name,
                 machine_area=self.machine_area,
                 physical={"s": 0.0, "s_point": "end", "length": 0.0},
@@ -145,12 +144,12 @@ class OcelotLatticeImporter(BaseModel):
             try:
                 if "Cavity" not in sftype:
                     classname = (
-                        sftype if hasattr(LAURA_elements, sftype) else sftype.capitalize()
+                        sftype if hasattr(laura_elems, sftype) else sftype.capitalize()
                     )
                 else:
                     classname = sftype
                 model_fields = introspect_model_defaults(
-                    getattr(LAURA_elements, classname), resolve_optional=True
+                    getattr(laura_elems, classname), resolve_optional=True
                 )
                 newobj["hardware_type"] = classname
             except AttributeError:
@@ -280,7 +279,7 @@ class OcelotLatticeImporter(BaseModel):
                         "position": {"x": elem.dx, "y": elem.dy, "z": 0.0}
                     }
             self.laura_elements.update(
-                {numbered_id: getattr(LAURA_elements, newobj["hardware_type"])(**newobj)}
+                {numbered_id: getattr(laura_elems, newobj["hardware_type"])(**newobj)}
             )
         return self.laura_elements
 
@@ -332,3 +331,26 @@ class OcelotLatticeImporter(BaseModel):
         position_mode: PositionMode = "s",
     ) -> None:
         export_machine_combined_file(path, source, position_mode=position_mode)
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+_legacy_getattr = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "type_conversion_rules_Ocelot": "type_conversion_rules_ocelot",
+    },
+)
+
+
+def __getattr__(name: str):
+    if name in ("type_conversion_rules_ocelot", "type_conversion_rules_Ocelot"):
+        from ...conversion_rules.codes.ocelot_conversion import (
+            ocelot_conversion_rules,
+        )
+
+        globals()["type_conversion_rules_ocelot"] = ocelot_conversion_rules
+        if name == "type_conversion_rules_ocelot":
+            return ocelot_conversion_rules
+    return _legacy_getattr(name)

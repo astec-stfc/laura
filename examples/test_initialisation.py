@@ -5,7 +5,7 @@ sys.path.append(r"C:\Users\jkj62.CLRC\Documents\GitHub\laura")
 from laura.laura import LAURA
 import laura
 laura.set_log_level("DEBUG")
-from laura.Exporters.YAML import export_machine
+from laura.exporters.yaml_exporter import export_machine
 
 lattice = LAURA(
     layout="../../laura-lattices/CLARA/layouts.yaml", 

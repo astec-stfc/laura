@@ -27,7 +27,7 @@ class MatrixTransformTranslator(BaseElementTranslator):
         """
         self.start_write()
         wholestring = ""
-        etype = self._convertType_Elegant(self.hardware_type)
+        etype = self._convert_type_elegant(self.hardware_type)
         string = self.name + ": " + etype
 
         def split_lines(fullstr: str, string: str, linestr: str) -> tuple:
@@ -127,7 +127,7 @@ class MatrixTransformTranslator(BaseElementTranslator):
             String representation of the element for MAD-X
         """
         self.start_write()
-        etype = self._convertType_Madx(self.hardware_type)
+        etype = self._convert_type_madx(self.hardware_type)
         string = sanitize_string(self.name) + ": " + etype + f", l = {self.length}"
         if not np.array_equal(self.simulation.c_matrix, np.zeros(6)):
             for i, val in enumerate(self.simulation.c_matrix):
@@ -164,9 +164,9 @@ class MatrixTransformTranslator(BaseElementTranslator):
         """
         from ..conversion_rules.codes import xsuite_conversion
 
-        type_conversion_rules_Xsuite = xsuite_conversion.xsuite_conversion_rules
+        type_conversion_rules_xsuite = xsuite_conversion.xsuite_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_Xsuite[self.hardware_type]
+        obj = type_conversion_rules_xsuite[self.hardware_type]
         properties = {
             "name": self.name,
             "length": self.length,
@@ -187,9 +187,9 @@ class MatrixTransformTranslator(BaseElementTranslator):
         """
         from ..conversion_rules.codes import ocelot_conversion
 
-        type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+        type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_Ocelot[self.hardware_type](eid=self.name)
+        obj = type_conversion_rules_ocelot[self.hardware_type](eid=self.name)
         setattr(obj, "l", self.length)
         setattr(obj, "b", self.simulation.c_matrix)
         setattr(obj, "r", self.simulation.r_matrix)
@@ -207,10 +207,10 @@ class MatrixTransformTranslator(BaseElementTranslator):
         """
         from ..conversion_rules.codes import cheetah_conversion
 
-        type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
+        type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
         warn(f"WARNING! Only 1st-order transfer maps implemented for cheetah, {self.name}")
-        obj = type_conversion_rules_Cheetah[self.hardware_type](
+        obj = type_conversion_rules_cheetah[self.hardware_type](
             name=self.name,
             length=tensor(self.physical.length, dtype=float64),
             predefined_transfer_map=tensor(self.simulation.r_matrix_7x7, dtype=float64),

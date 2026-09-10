@@ -10,25 +10,25 @@ import tempfile
 import pytest
 
 from laura import LAURA
+from laura.exporters.yaml_exporter import export_machine
 from laura.laura import add_bool, flatten
+from laura.models.diagnostic import ScreenDiagnostic
 from laura.models.element import (
+    BeamPositionMonitor,
+    CombinedCorrector,
+    Dipole,
+    FaradayCupMonitor,
+    HorizontalCorrector,
     Marker,
     Quadrupole,
-    Dipole,
-    Sextupole,
-    Solenoid,
-    Horizontal_Corrector,
-    Vertical_Corrector,
-    Combined_Corrector,
-    Beam_Position_Monitor,
-    Screen,
     RFCavity,
-    Faraday_Cup_Monitor,
+    Screen,
+    Sextupole,
     Shutter,
+    Solenoid,
     Valve,
+    VerticalCorrector,
 )
-from laura.models.diagnostic import Screen_Diagnostic
-from laura.Exporters.YAML import export_machine
 
 
 class TestModuleHelpers:
@@ -45,7 +45,9 @@ class TestModuleHelpers:
 
 class TestResolveLatticePackage:
     def _stub_lattice(self, data_files=None):
-        m1 = Marker(name="M1", machine_area="S", physical={"middle": {"x": 0, "y": 0, "z": 0}})
+        m1 = Marker(
+            name="M1", machine_area="S", physical={"middle": {"x": 0, "y": 0, "z": 0}}
+        )
 
         class LatticeStub:
             layout = {"default_layout": "l1", "layouts": {"l1": ["S"]}}
@@ -61,9 +63,6 @@ class TestResolveLatticePackage:
         assert "M1" in lm.elements
 
     def test_lattice_kwarg_sets_master_lattice_from_data_files(self, tmp_path):
-        # _lattice_root() runs data_files through os.path.abspath, so the
-        # literal must be absolute on this platform -- a bare "/some/dir" is
-        # drive-relative on Windows and comes back as "D:\\some".
         pkg = tmp_path / "pkg"
         lm = LAURA(lattice=self._stub_lattice(data_files=str(pkg / "lattice.yaml")))
         assert lm.master_lattice == str(pkg)
@@ -89,7 +88,10 @@ class TestValidateElementListPathResolution:
         assert LAURA.validate_element_list("schema/YAML").endswith("YAML")
 
     def test_unresolvable_string_passed_through(self):
-        assert LAURA.validate_element_list("/definitely/does/not/exist") == "/definitely/does/not/exist"
+        assert (
+            LAURA.validate_element_list("/definitely/does/not/exist")
+            == "/definitely/does/not/exist"
+        )
 
     def test_non_string_passed_through(self):
         assert LAURA.validate_element_list(["a", "b"]) == ["a", "b"]
@@ -105,7 +107,9 @@ class TestElementListLoading:
             )
 
     def test_master_lattice_relative_directory_resolves(self):
-        m = Marker(name="M1", machine_area="SEC", physical={"middle": {"x": 0, "y": 0, "z": 0}})
+        m = Marker(
+            name="M1", machine_area="SEC", physical={"middle": {"x": 0, "y": 0, "z": 0}}
+        )
         with tempfile.TemporaryDirectory() as tmpdir:
             lattice_dir = os.path.join(tmpdir, "lattice")
             fake_machine = LAURA(
@@ -124,7 +128,9 @@ class TestElementListLoading:
             assert "M1" in reloaded.elements
 
     def test_eager_mode_loads_elements_immediately(self):
-        m = Marker(name="M1", machine_area="SEC", physical={"middle": {"x": 0, "y": 0, "z": 0}})
+        m = Marker(
+            name="M1", machine_area="SEC", physical={"middle": {"x": 0, "y": 0, "z": 0}}
+        )
         with tempfile.TemporaryDirectory() as tmpdir:
             lattice_dir = os.path.join(tmpdir, "lattice")
             fake_machine = LAURA(
@@ -147,51 +153,109 @@ class TestElementListLoading:
 # Rich fixture exercising the remaining get_*/all_* accessor methods
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def full_machine():
     elems = [
-        Marker(name="START", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 0}}),
+        Marker(
+            name="START",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 0}},
+        ),
         Quadrupole(
-            name="Q1", machine_area="S1", magnetic={"length": 0.3, "k1l": -1.0},
+            name="Q1",
+            machine_area="S1",
+            magnetic={"length": 0.3, "k1l": -1.0},
             physical={"length": 0.3, "middle": {"x": 0, "y": 0, "z": 0.5}},
         ),
         Dipole(
-            name="D1", machine_area="S1", magnetic={"length": 0.5, "angle": 0.0},
+            name="D1",
+            machine_area="S1",
+            magnetic={"length": 0.5, "angle": 0.0},
             physical={"length": 0.5, "middle": {"x": 0, "y": 0, "z": 1.0}},
         ),
         Sextupole(
-            name="SX1", machine_area="S1", magnetic={"length": 0.1, "k2l": 5.0},
+            name="SX1",
+            machine_area="S1",
+            magnetic={"length": 0.1, "k2l": 5.0},
             physical={"length": 0.1, "middle": {"x": 0, "y": 0, "z": 1.5}},
         ),
         Solenoid(
-            name="SOL1", machine_area="S1", magnetic={"length": 0.2},
+            name="SOL1",
+            machine_area="S1",
+            magnetic={"length": 0.2},
             physical={"length": 0.2, "middle": {"x": 0, "y": 0, "z": 2.0}},
         ),
-        Horizontal_Corrector(name="HC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 2.5}}),
-        Vertical_Corrector(name="VC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 3.0}}),
-        Combined_Corrector(name="CC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 3.5}}),
-        Beam_Position_Monitor(name="BPM1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 4.0}}),
+        HorizontalCorrector(
+            name="HC1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 2.5}},
+        ),
+        VerticalCorrector(
+            name="VC1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 3.0}},
+        ),
+        CombinedCorrector(
+            name="CC1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 3.5}},
+        ),
+        BeamPositionMonitor(
+            name="BPM1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 4.0}},
+        ),
         Screen(
-            name="SCR1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 4.5}},
-            diagnostic=Screen_Diagnostic(camera_name="CAM1"),
+            name="SCR1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 4.5}},
+            diagnostic=ScreenDiagnostic(camera_name="CAM1"),
         ),
-        RFCavity(name="RFC1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 5.0}}),
-        Faraday_Cup_Monitor(name="FCM1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 5.5}}),
-        Shutter(name="SH1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.0}}),
-        Valve(name="VA1", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.5}}),
-        Combined_Corrector(
-            name="CC2", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.8}},
-            Horizontal_Corrector="CC2_H", Vertical_Corrector="CC2_V",
+        RFCavity(
+            name="RFC1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 5.0}},
         ),
-        Combined_Corrector(
-            name="CC3", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.9}},
+        FaradayCupMonitor(
+            name="FCM1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 5.5}},
+        ),
+        Shutter(
+            name="SH1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 6.0}},
+        ),
+        Valve(
+            name="VA1",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 6.5}},
+        ),
+        CombinedCorrector(
+            name="CC2",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 6.8}},
+            Horizontal_Corrector="CC2_H",
+            Vertical_Corrector="CC2_V",
+        ),
+        CombinedCorrector(
+            name="CC3",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 6.9}},
             Horizontal_Corrector="CC3_H",
         ),
-        Combined_Corrector(
-            name="CC4", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 6.95}},
+        CombinedCorrector(
+            name="CC4",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 6.95}},
             Vertical_Corrector="CC4_V",
         ),
-        Marker(name="END", machine_area="S1", physical={"middle": {"x": 0, "y": 0, "z": 7.0}}),
+        Marker(
+            name="END",
+            machine_area="S1",
+            physical={"middle": {"x": 0, "y": 0, "z": 7.0}},
+        ),
     ]
     sections = {"sections": {"S1": [e.name for e in elems]}}
     layouts = {"default_layout": "beam1", "layouts": {"beam1": ["S1"]}}

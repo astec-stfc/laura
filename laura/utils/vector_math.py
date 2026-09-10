@@ -82,8 +82,12 @@ def dot_product(
 
 
 def cross_product(
-    x1: float, y1: float, z1: float,
-    x2: float, y2: float, z2: float,
+    x1: float,
+    y1: float,
+    z1: float,
+    x2: float,
+    y2: float,
+    z2: float,
 ) -> tuple:
     """
     Calculate cross product of two 3D vectors.

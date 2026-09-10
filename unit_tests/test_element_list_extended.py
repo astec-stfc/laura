@@ -9,17 +9,17 @@ from laura.models.element import (
     PhysicalBaseElement,
     Dipole,
     Drift,
-    Beam_Position_Monitor,
+    BeamPositionMonitor,
 )
 from laura.models.physical import Position, PhysicalElement
-from laura.models.elementList import (
+from laura.models.element_list import (
     ElementList,
     SectionLattice,
     MachineLayout,
     MachineModel,
     load_functional_definitions,
 )
-from laura.models.baseModels import (
+from laura.models.base_models import (
     IgnoreExtra,
     set_functional_definitions,
     set_resolve_functional,
@@ -130,7 +130,7 @@ class TestSectionLattice:
         assert first.name == "M1"
 
     def test_create_drifts(self, section_lattice):
-        drifts = section_lattice.createDrifts()
+        drifts = section_lattice.create_drifts()
         assert isinstance(drifts, dict)
         # Count drift elements
         drift_names = [k for k in drifts.keys() if "drift" in k.lower()]
@@ -147,7 +147,7 @@ class TestSectionLattice:
                     magnetic={"magnetic_length": 0.5, "k1l": 0.3},
                     physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
                 ),
-                Beam_Position_Monitor(
+                BeamPositionMonitor(
                     name="BPM",
                     machine_area="S",
                     physical=PhysicalElement(length=0.3, middle=Position(z=1.15)),
