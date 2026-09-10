@@ -35,7 +35,12 @@ from ..utils.functions import (
     sanitize_string,
     tw_cavity_energy_gain,
 )
-from ..utils.pals import PalsBeamLine, pals_document, pals_safe_names
+from ..utils.pals import (
+    PalsBeamLine,
+    fold_repeated_cells,
+    pals_document,
+    pals_safe_names,
+)
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator
@@ -549,11 +554,15 @@ class SectionLatticeTranslator(SectionLattice):
             definitions.update(translator.to_pals())
             line.append(translator.name)
 
+        name = renames.get(self.name, self.name)
+        sublines, line = fold_repeated_cells(name, definitions, line)
+
         geometry = getattr(self.geometry, "value", self.geometry) or "open"
         return PalsBeamLine(
-            name=renames.get(self.name, self.name),
+            name=name,
             definitions=definitions,
             line=line,
+            sublines=sublines,
             periodic=str(geometry).lower() == "closed",
             particle=particle,
             energy=self.reference_energy,

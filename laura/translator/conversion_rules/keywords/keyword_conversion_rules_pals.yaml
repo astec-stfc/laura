@@ -1,0 +1,21 @@
+general:
+  physical_error_position_x: BodyShiftP.x_offset
+  physical_error_position_y: BodyShiftP.y_offset
+  physical_error_position_z: BodyShiftP.z_offset
+  physical_error_rotation_phi: BodyShiftP.x_rot
+  physical_error_rotation_psi: BodyShiftP.z_rot
+dipole:
+  e1: BendP.e1
+  e2: BendP.e2
+  tilt: BendP.tilt_ref
+rfcavity:
+  frequency: RFP.frequency
+crabcavity:
+  frequency: RFP.frequency
+rfdeflectingcavity:
+  frequency: RFP.frequency
+beambeam:
+  horizontal_sigma: BeamBeamP.sigma_x
+  vertical_sigma: BeamBeamP.sigma_y
+  charge: BeamBeamP.charge
+  n_particles: BeamBeamP.N_particle

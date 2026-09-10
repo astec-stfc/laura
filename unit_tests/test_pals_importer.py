@@ -10,10 +10,12 @@ constructs -- a periodic branch, a repeated sub-line and a fork.
 """
 
 import os
+from pathlib import Path
 
 import pytest
 from scipy.constants import speed_of_light
 
+from laura.models.element import RFCavity
 from laura.translator.converters.codes.pals import PalsLatticeImporter
 from laura.translator.utils.pals import parser_available
 
@@ -21,6 +23,8 @@ _DATA = os.path.join(os.path.dirname(__file__), "data")
 _LATTICE = os.path.join(_DATA, "pals_test_lattice.pals.yaml")
 _BRANCHES = os.path.join(_DATA, "pals_test_branches.pals.yaml")
 _TRAVELLING_WAVE = os.path.join(_DATA, "pals_test_travelling_wave.pals.yaml")
+_RING = os.path.join(_DATA, "pals_test_ring.pals.yaml")
+_DETAIL = os.path.join(_DATA, "pals_test_detail.pals.yaml")
 
 pytestmark = pytest.mark.skipif(
     not parser_available(), reason="palsparserpy is not installed"
@@ -43,6 +47,20 @@ def branches():
 def travelling_wave():
     importer = PalsLatticeImporter(source_file=_TRAVELLING_WAVE)
     return importer.create_laura_element_dictionary()
+
+
+@pytest.fixture
+def detail():
+    importer = PalsLatticeImporter(source_file=_DETAIL)
+    with pytest.warns(UserWarning, match="TaylorP has no stated term format"):
+        return importer.create_laura_element_dictionary()
+
+
+@pytest.fixture
+def ring():
+    importer = PalsLatticeImporter(source_file=_RING)
+    with pytest.warns(UserWarning, match="sigma_z"):
+        return importer.create_laura_element_dictionary()
 
 
 class TestPalsElements:
@@ -161,6 +179,96 @@ class TestPalsElements:
             section = importer.create_section()
         lattice = section["main_line"]
         assert lattice.elements.elements["q1"].physical.middle.z == pytest.approx(1.25)
+
+
+class TestApertureDetail:
+    """The whole of ``ApertureP``, not just its widths."""
+
+    def test_the_edges_give_a_width_about_a_centre(self, detail):
+        aperture = detail["jaws"].aperture
+        # -0.004 .. 0.010 is 14 mm wide, centred 3 mm off the axis. The
+        # document states no x_center; it is recovered from the edges.
+        assert aperture.horizontal_size == pytest.approx(0.014)
+        assert aperture.horizontal_center == pytest.approx(0.003)
+        assert aperture.vertical_size == pytest.approx(0.01)
+        assert aperture.vertical_center == pytest.approx(0.0)
+
+    def test_the_jaws_keep_what_they_are_made_of(self, detail):
+        aperture = detail["jaws"].aperture
+        assert aperture.material == "tungsten"
+        assert aperture.thickness == pytest.approx(0.5)
+        assert aperture.location == "exit_end"
+
+    def test_an_inactive_aperture_is_kept_switched_off(self, detail):
+        # It used to be dropped, which lost the geometry with the switch.
+        aperture = detail["jaws"].aperture
+        assert aperture.active is False
+        assert aperture.shifts_with_body is False
+        assert aperture.horizontal_size == pytest.approx(0.014)
+
+
+class TestMeta:
+    def test_the_identity_comes_out_of_metap(self, detail):
+        jaws = detail["jaws"]
+        assert jaws.alias == ["TCP.B6L7"]
+        assert jaws.manufacturer.serial_number == "SN-00417"
+        assert jaws.machine_area == "IR7"
+
+
+class TestTaylorMap:
+    """The map travels in ``LauraP``; ``TaylorP`` has no stated term format."""
+
+    def test_the_matrices_come_back(self, detail):
+        simulation = detail["tay1"].simulation
+        assert detail["tay1"].hardware_type == "MatrixTransform"
+        assert simulation.r_matrix[0, 1] == pytest.approx(2.5)
+        assert simulation.c_matrix[0] == pytest.approx(0.001)
+        assert simulation.t_matrix[0, 1, 1] == pytest.approx(0.5)
+        assert simulation.u_matrix[2, 3, 3, 3] == pytest.approx(-0.25)
+
+    def test_nothing_else_is_invented(self, detail):
+        simulation = detail["tay1"].simulation
+        assert (simulation.t_matrix != 0).sum() == 1
+        assert (simulation.u_matrix != 0).sum() == 1
+
+    def test_a_taylor_from_elsewhere_is_the_identity(self, tmp_path):
+        import numpy as np
+
+        source = tmp_path / "bare.pals.yaml"
+        source.write_text(Path(_DETAIL).read_text().replace("LauraP:", "TrackingP:"))
+        importer = PalsLatticeImporter(source_file=str(source))
+        with pytest.warns(UserWarning, match="TaylorP has no stated term format"):
+            elements = importer.create_laura_element_dictionary()
+        assert np.array_equal(elements["tay1"].simulation.r_matrix, np.eye(6))
+
+
+class TestWhatNeedsTheWholeBranch:
+    def test_a_harmonic_number_becomes_a_frequency(self, ring):
+        # 400 RF periods in one turn of a 100 m ring. The flight time follows
+        # the reference energy through the branch rather than assuming beta = 1.
+        momentum = (1.0e9**2 - 510998.95**2) ** 0.5
+        period = 100.0 * 1.0e9 / (momentum * speed_of_light)
+        assert ring["cav"].cavity.frequency == pytest.approx(400 / period)
+
+    def test_an_open_branch_has_no_revolution_to_count(self, tmp_path):
+        source = tmp_path / "open.pals.yaml"
+        source.write_text(
+            Path(_RING).read_text().replace("periodic: true", "periodic: false")
+        )
+        importer = PalsLatticeImporter(source_file=str(source))
+        with pytest.warns(UserWarning, match="harmon"):
+            elements = importer.create_laura_element_dictionary()
+        # Left at whatever the LAURA cavity itself defaults to, rather than a
+        # frequency derived from a period the branch does not have.
+        assert elements["cav"].cavity.frequency == RFCavity(name="cav").cavity.frequency
+
+    def test_a_beam_beam_holds_the_opposing_bunch(self, ring):
+        bunch = ring["ip"].simulation
+        assert ring["ip"].hardware_type == "BeamBeam"
+        assert bunch.horizontal_sigma == pytest.approx(1.0e-5)
+        assert bunch.vertical_sigma == pytest.approx(2.0e-6)
+        assert bunch.n_particles == pytest.approx(1.0e11)
+        assert bunch.charge == pytest.approx(1.0)
 
 
 class TestPalsLattice:

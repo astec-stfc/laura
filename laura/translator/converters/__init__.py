@@ -108,3 +108,5 @@ elements_Madx = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/e
 
 keyword_conversion_rules_bmad = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_bmad.yaml"))
 elements_Bmad = LazyDict(lambda: _load_yaml_file("../conversion_rules/elements/elements_bmad.yaml"))
+
+keyword_conversion_rules_pals = LazyDict(lambda: _load_yaml_file("../conversion_rules/keywords/keyword_conversion_rules_pals.yaml"))

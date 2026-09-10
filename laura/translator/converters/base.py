@@ -24,6 +24,7 @@ from ..converters import (
     keyword_conversion_rules_madx,
     keyword_conversion_rules_ocelot,
     keyword_conversion_rules_opal,
+    keyword_conversion_rules_pals,
     keyword_conversion_rules_wake_t,
     keyword_conversion_rules_xsuite,
     type_conversion_rules,
@@ -96,6 +97,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             "genesis": keyword_conversion_rules_genesis,
             "opal": keyword_conversion_rules_opal,
             "bmad": keyword_conversion_rules_bmad,
+            "pals": keyword_conversion_rules_pals,
         }
         for code, rules in rules_by_code.items():
             self.conversion_rules[code] = (

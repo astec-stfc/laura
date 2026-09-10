@@ -9,11 +9,9 @@ Two things the standard offers are deliberately not used:
     lattice be written without drifts at all. Here, gaps are written as
     explicit ``Drift`` elements, from ``SectionLattice.createDrifts()``.
 
-``BeamLine`` nesting
-    LAURA has no sub-line concept to nest with, so each section is written flat.
-
 The document shape is one ``BeamLine`` per LAURA section, one ``Lattice``
-naming them as branches, and a ``use``.
+naming them as branches, and a ``use``. A section that repeats a cell nests a
+further ``BeamLine`` inside its own; see :func:`fold_repeated_cells`.
 """
 
 from typing import Any, Dict, Iterable, List, NamedTuple, Optional, Sequence
@@ -28,8 +26,10 @@ __all__ = [
     "PALS_RESERVED_NAMES",
     "PALS_TWISS_COMPONENTS",
     "PalsBeamLine",
+    "fold_repeated_cells",
     "pals_document",
     "pals_element_body",
+    "pals_keyword_map",
     "pals_safe_names",
 ]
 
@@ -42,9 +42,23 @@ PALS_RESERVED_NAMES = frozenset(
 PALS_RENAME_SUFFIX = "_element"
 """Appended to a reserved name; a further ``_2``, ``_3`` ... breaks a tie."""
 
+
+class _FlowList(list):
+    """A list written on one line, so a 6x6 matrix is six rows and not 36."""
+
+
+yaml.SafeDumper.add_representer(
+    _FlowList,
+    lambda dumper, value: dumper.represent_sequence(
+        "tag:yaml.org,2002:seq", value, flow_style=True
+    ),
+)
+
+PALS_DEFAULT_AREA = "Lattice"
+
 _KIND_GROUPS = {
     "ACKicker": {"ApertureP", "BodyShiftP", "MagneticMultipoleP"},
-    "BeamBeam": {"ApertureP", "BodyShiftP"},
+    "BeamBeam": {"ApertureP", "BeamBeamP", "BodyShiftP"},
     "BeginningEle": {"ApertureP", "BodyShiftP", "ReferenceP"},
     "Bend": {"ApertureP", "BendP", "BodyShiftP", "MagneticMultipoleP"},
     "CrabCavity": {"ApertureP", "BodyShiftP", "MagneticMultipoleP", "RFP"},
@@ -83,6 +97,13 @@ _CAVITY_TYPES = {
     "travelingwave": "TRAVELING_WAVE",
 }
 
+#: What a kind loses on the way out, where PALS has nowhere to put it. The
+#: mirror of ``_LOSSY_CONVERSIONS`` in ``converters/codes/pals.py``.
+_LOSSY_KINDS = {
+    "Wiggler": "its period, peak field and number of periods",
+    "BeamBeam": "its offsets and width; BeamBeamP has no component for either",
+}
+
 
 class PalsBeamLine(NamedTuple):
     """One branch of the document: a ``BeamLine`` and its reference state."""
@@ -93,8 +114,9 @@ class PalsBeamLine(NamedTuple):
     definitions: Dict[str, Dict[str, Any]]
     """Element name -> body, one entry per element the line names."""
 
-    line: List[str]
-    """Element names in traversal order."""
+    line: List[Any]
+    """Traversal order: an element or sub-line name, or a single-key mapping of
+    one to its line-item options (``repeat``)."""
 
     periodic: bool = False
     """Flag to indicate whether the beamline is periodic."""
@@ -114,6 +136,21 @@ class PalsBeamLine(NamedTuple):
     s_position: Optional[float] = None
     """Arc length the branch starts at."""
 
+    sublines: Dict[str, Dict[str, Any]] = {}
+    """Nested ``BeamLine`` bodies the entries of ``line`` name, written into the
+    facility ahead of it. Not branches of their own."""
+
+
+def _reads_as_something_else(name: str) -> bool:
+    """True for a name PALS would not read as a name."""
+    return name.lower() in PALS_RESERVED_NAMES or (
+        len(name) > 1
+        and name.isascii()
+        and name.isalpha()
+        and name[0].isupper()
+        and name.endswith("P")
+    )
+
 
 def pals_safe_names(names: Iterable[str]) -> Dict[str, str]:
     """
@@ -127,18 +164,18 @@ def pals_safe_names(names: Iterable[str]) -> Dict[str, str]:
     Returns
     -------
     dict
-        Original name -> replacement, for the reserved names only.
+        Original name -> replacement, for the unusable names only.
     """
     names = list(names)
     seen = {name.lower() for name in names}
     renames: Dict[str, str] = {}
     reserved = list(
-        dict.fromkeys(name for name in names if name.lower() in PALS_RESERVED_NAMES)
+        dict.fromkeys(name for name in names if _reads_as_something_else(name))
     )
     for name in reserved:
         candidate = name + PALS_RENAME_SUFFIX
         count = 1
-        while candidate.lower() in seen or candidate.lower() in PALS_RESERVED_NAMES:
+        while candidate.lower() in seen or _reads_as_something_else(candidate):
             count += 1
             candidate = f"{name}{PALS_RENAME_SUFFIX}_{count}"
         seen.add(candidate.lower())
@@ -146,9 +183,10 @@ def pals_safe_names(names: Iterable[str]) -> Dict[str, str]:
     if renames:
         listed = ", ".join(f"{old} -> {new}" for old, new in sorted(renames.items()))
         warn(
-            "PALS reads these names as facility commands, so they are written "
-            f"out under different ones: {listed}. Anything matching the exported "
-            "lattice back to this one by name has to follow the same mapping."
+            "PALS reads these names as a command or a parameter group rather "
+            f"than as a name, so they are written out under different ones: "
+            f"{listed}. Anything matching the exported lattice back to this one "
+            "by name has to follow the same mapping."
         )
     return renames
 
@@ -179,22 +217,34 @@ def _resolve(element: Any, value: Any) -> Any:
     return _scalar(value)
 
 
-def _edge_angle(element: Any, which: str) -> Optional[float]:
-    """A bend's entrance or exit edge angle, as a number.
-    LAURA legacy behaviour allows `"angle"` to be defined as a parameter, so
-    this is retained here.
+def pals_keyword_map(rules: Dict[str, str], group: str) -> Dict[str, str]:
+    """The ``LAURA keyword -> PALS parameter`` entries of a keyword table that
+    belong to one parameter group, with the group stripped off."""
+    prefix = f"{group}."
+    return {
+        laura_key: pals_key.removeprefix(prefix)
+        for laura_key, pals_key in rules.items()
+        if pals_key.startswith(prefix)
+    }
 
-    All other functional definitions go through ``_resolve``.
+
+def _table_groups(element: Any, groups: Iterable[str]) -> Dict[str, Dict[str, Any]]:
+    """The parameters the PALS keyword table renames, split into their groups.
+
+    Everything that is not a plain rename is left to the ``_*_group`` helpers
+    below, as is any group the element's kind cannot carry.
     """
-    magnetic = element.magnetic
-    value = getattr(magnetic, which)
-    if isinstance(value, str):
-        stripped = value.replace(" ", "")
-        if stripped == "angle":
-            return _scalar(magnetic.KnL(0))
-        if stripped in ("angle/2", "angle/2.0"):
-            return _scalar(magnetic.KnL(0) / 2.0)
-    return _resolve(element, value)
+    rules = element.conversion_rules["pals"]
+    parameters: Dict[str, Dict[str, Any]] = {}
+    for keyword, value in element.full_dump().items():
+        target = element._convert_keyword(keyword, rules)
+        if "." not in target:
+            continue
+        group, pals_key = target.split(".")
+        number = _resolve(element, value)
+        if group in groups and number:
+            parameters.setdefault(group, {})[pals_key] = number
+    return parameters
 
 
 def _multipole_group(
@@ -236,7 +286,7 @@ def _corrector_group(element: Any) -> Dict[str, Any]:
 
 
 def _bend_group(element: Any) -> Dict[str, Any]:
-    """``BendP`` for a dipole."""
+    """``BendP`` for a dipole: what the keyword table cannot state as a rename."""
     magnetic = element.magnetic
     group: Dict[str, Any] = {}
     angle = _scalar(magnetic.KnL(0))
@@ -246,13 +296,6 @@ def _bend_group(element: Any) -> Dict[str, Any]:
             group["g_ref"] = angle / length
         else:
             group["angle_ref"] = angle
-    for pals_key, laura_key in (
-        ("e1", "entrance_edge_angle"),
-        ("e2", "exit_edge_angle"),
-    ):
-        value = _edge_angle(element, laura_key)
-        if value:
-            group[pals_key] = value
     integrals = element._fringe_integrals()
     for pals_key, fint, half_gap in (
         ("edge1_int", integrals[0], magnetic.half_gap),
@@ -261,9 +304,6 @@ def _bend_group(element: Any) -> Dict[str, Any]:
         fint, half_gap = _resolve(element, fint), _scalar(half_gap)
         if fint and half_gap:
             group[pals_key] = fint * half_gap
-    tilt = _resolve(element, getattr(magnetic, "tilt", None))
-    if tilt:
-        group["tilt_ref"] = tilt
     return group
 
 
@@ -284,12 +324,9 @@ def _solenoid_group(element: Any) -> Dict[str, Any]:
 
 
 def _rf_group(element: Any) -> Dict[str, Any]:
-    """``RFP`` for a cavity."""
+    """``RFP`` for a cavity: what the keyword table cannot state as a rename."""
     cavity = element.cavity
     group: Dict[str, Any] = {}
-    frequency = _resolve(element, cavity.frequency)
-    if frequency:
-        group["frequency"] = frequency
     structure = str(cavity.structure_type or "").replace("_", "").lower()
     amplitude = _resolve(element, getattr(element.simulation, "field_amplitude", None))
     factor = getattr(element, "travelling_wave_voltage_factor", None)
@@ -315,9 +352,10 @@ def _rf_group(element: Any) -> Dict[str, Any]:
 
 
 def _aperture_group(element: Any) -> Dict[str, Any]:
-    """``ApertureP`` from LAURA's full widths.
+    """``ApertureP`` from LAURA's full widths about their centres.
 
-    LAURA has no aperture offset, so they are symmetric.
+    None of this can ride the keyword table: it renames numbers only, and
+    ``location``, ``material`` and the two flags are strings and booleans.
     """
     aperture = getattr(element, "aperture", None)
     horizontal = _scalar(getattr(aperture, "horizontal_size", None)) or 0.0
@@ -325,42 +363,98 @@ def _aperture_group(element: Any) -> Dict[str, Any]:
     if not horizontal and not vertical:
         return {}
     group: Dict[str, Any] = {}
-    for axis, size in (("x", horizontal), ("y", vertical)):
-        if size:
-            group[f"{axis}_min"] = -size / 2.0
-            group[f"{axis}_max"] = size / 2.0
+    for axis, size, centre in (
+        ("x", horizontal, _scalar(getattr(aperture, "horizontal_center", None)) or 0.0),
+        ("y", vertical, _scalar(getattr(aperture, "vertical_center", None)) or 0.0),
+    ):
+        if not size:
+            continue
+        group[f"{axis}_min"] = centre - size / 2.0
+        group[f"{axis}_max"] = centre + size / 2.0
+        if centre:
+            group[f"{axis}_center"] = centre
     shape = _APERTURE_SHAPES.get(str(getattr(aperture, "shape", "") or "").lower())
     if shape:
         group["shape"] = shape
-    group["location"] = "EVERYWHERE"
+    location = getattr(aperture, "location", None)
+    location = getattr(location, "value", location) or "everywhere"
+    group["location"] = str(location).upper()
+    material = getattr(aperture, "material", None)
+    if material:
+        group["material"] = str(material)
+    thickness = _scalar(getattr(aperture, "thickness", None))
+    if thickness:
+        group["thickness"] = thickness
+    for laura_key, pals_key in (
+        ("active", "aperture_active"),
+        ("shifts_with_body", "aperture_shifts_with_body"),
+    ):
+        flag = getattr(aperture, laura_key, None)
+        if flag is False:  # the PALS default is true; only state a departure
+            group[pals_key] = False
     return group
+
+
+def _meta_group(element: Any) -> Dict[str, Any]:
+    """``MetaP``: the identity LAURA carries and no other group has room for.
+    Only what somebody actually set goes in.
+    """
+    group: Dict[str, Any] = {}
+    aliases = [str(alias) for alias in getattr(element, "alias", None) or []]
+    if aliases:
+        group["alias"] = aliases[0] if len(aliases) == 1 else aliases
+    serial = getattr(getattr(element, "manufacturer", None), "serial_number", None)
+    if serial:
+        group["ID"] = str(serial)
+    area = getattr(element, "machine_area", None)
+    if area and area != PALS_DEFAULT_AREA:
+        group["location"] = str(area)
+    return group
+
+
+def _sparse_matrix(array: Any, order: int) -> Dict[str, float]:
+    """A Taylor coefficient array as ``"1,2,2" -> coefficient``, 1-based."""
+    if array is None:
+        return {}
+    array = np.asarray(array, dtype=float)
+    if array.ndim != order:
+        return {}
+    return {
+        ",".join(str(index + 1) for index in position): float(array[position])
+        for position in zip(*np.nonzero(array))
+    }
+
+
+def _matrix_extension(element: Any) -> Dict[str, Any]:
+    """The transfer map, for the ``LauraP`` extension group.
+
+    PALS has a ``TaylorP``, but neither the standard nor the reference parser
+    states the format of a term. So the map goes in LAURA's own extension group,
+    which round-trips exactly and invents no wire format.
+    """
+    simulation = getattr(element, "simulation", None)
+    r_matrix = getattr(simulation, "r_matrix", None)
+    if r_matrix is None:
+        return {}
+    matrix: Dict[str, Any] = {}
+    if not np.allclose(r_matrix, np.eye(6)):
+        matrix["r"] = [_FlowList(float(value) for value in row) for row in r_matrix]
+    for key, order in (("c", 1), ("t", 3), ("u", 4)):
+        terms = _sparse_matrix(getattr(simulation, f"{key}_matrix", None), order)
+        if terms:
+            matrix[key] = terms
+    spin = getattr(simulation, "spin_taylor", None)
+    if spin:
+        matrix["spin_taylor"] = list(spin)
+    return {"matrix": matrix} if matrix else {}
 
 
 def _body_shift_group(element: Any) -> Dict[str, Any]:
-    """``BodyShiftP`` from a LAURA position/rotation error.
-
-    The rotations are the importer's mapping read backwards: ``x_rot = phi``,
-    ``y_rot = -theta``, ``z_rot = psi``.
-    """
+    """The one ``BodyShiftP`` rotation LAURA states with the opposite sign; the
+    offsets and the other two are renames, in the keyword table."""
     error = getattr(getattr(element, "physical", None), "error", None)
-    if error is None:
-        return {}
-    group: Dict[str, Any] = {}
-    position = getattr(error, "position", None)
-    for axis in ("x", "y", "z"):
-        offset = _scalar(getattr(position, axis, None))
-        if offset:
-            group[f"{axis}_offset"] = offset
-    rotation = getattr(error, "rotation", None)
-    for pals_key, laura_key, sign in (
-        ("x_rot", "phi", 1.0),
-        ("y_rot", "theta", -1.0),
-        ("z_rot", "psi", 1.0),
-    ):
-        angle = _scalar(getattr(rotation, laura_key, None))
-        if angle:
-            group[pals_key] = sign * angle
-    return group
+    theta = _scalar(getattr(getattr(error, "rotation", None), "theta", None))
+    return {"y_rot": -theta} if theta else {}
 
 
 def pals_element_body(element: Any) -> Dict[str, Any]:
@@ -389,38 +483,112 @@ def pals_element_body(element: Any) -> Dict[str, Any]:
 
     groups = _KIND_GROUPS.get(kind, set())
     magnetic = getattr(element, "magnetic", None)
+    derived: Dict[str, Dict[str, Any]] = {}
     if magnetic is not None and "MagneticMultipoleP" in groups:
         if hasattr(magnetic, "horizontal_kick"):
-            multipoles = _corrector_group(element)
+            derived["MagneticMultipoleP"] = _corrector_group(element)
         elif kind == "Bend":
-            multipoles = _multipole_group(element, skip_orders=(0,), tilt=False)
+            derived["MagneticMultipoleP"] = _multipole_group(
+                element, skip_orders=(0,), tilt=False
+            )
         else:
-            multipoles = _multipole_group(element)
-        if multipoles:
-            body["MagneticMultipoleP"] = multipoles
+            derived["MagneticMultipoleP"] = _multipole_group(element)
     if magnetic is not None and "BendP" in groups:
-        bend = _bend_group(element)
-        if bend:
-            body["BendP"] = bend
+        derived["BendP"] = _bend_group(element)
     if magnetic is not None and "SolenoidP" in groups:
-        solenoid = _solenoid_group(element)
-        if solenoid:
-            body["SolenoidP"] = solenoid
+        derived["SolenoidP"] = _solenoid_group(element)
     if getattr(element, "cavity", None) is not None and "RFP" in groups:
-        rf = _rf_group(element)
-        if rf:
-            body["RFP"] = rf
+        derived["RFP"] = _rf_group(element)
     if "ApertureP" in groups:
-        aperture = _aperture_group(element)
-        if aperture:
-            body["ApertureP"] = aperture
+        derived["ApertureP"] = _aperture_group(element)
     if "BodyShiftP" in groups:
-        shift = _body_shift_group(element)
-        if shift:
-            body["BodyShiftP"] = shift
+        derived["BodyShiftP"] = _body_shift_group(element)
+    derived["MetaP"] = _meta_group(element)
+
+    parameters = _table_groups(element, groups)
+    for group, values in derived.items():
+        if values:
+            parameters.setdefault(group, {}).update(values)
+    body.update(parameters)
+
+    extension: Dict[str, Any] = {}
     if not pals_kind_round_trips(hardware_type):
-        body[LAURA_TYPE_EXTENSION] = {"hardware_type": hardware_type}
+        extension["hardware_type"] = hardware_type
+    if kind == "Taylor":
+        extension.update(_matrix_extension(element))
+        warn(
+            "Neither the PALS standard nor its parser states how a TaylorP "
+            "term is written, so the transfer map of a LAURA "
+            f"{hardware_type} is in the {LAURA_TYPE_EXTENSION} extension "
+            "instead. Only LAURA reads it back."
+        )
+    if extension:
+        body[LAURA_TYPE_EXTENSION] = extension
+    if kind in _LOSSY_KINDS:
+        # No element name, so the warning registry collapses a line of them.
+        warn(
+            f"A LAURA {hardware_type} is written as a PALS {kind}, which drops "
+            f"{_LOSSY_KINDS[kind]}."
+        )
     return body
+
+
+def fold_repeated_cells(
+    name: str, definitions: Dict[str, Any], line: List[Any]
+) -> tuple:
+    """Rewrite a repeated run of a line as a nested ``BeamLine`` and a ``repeat``.
+
+    A LAURA section that repeats a cell arrives here already flattened, with
+    every copy under its own numbered name.
+
+    The shortest repeating period wins, and a period of one is left alone --
+    ``repeat`` would work on it, but a run of same-kind singles (four markers,
+    say) is not a cell and folding it only loses their names.
+
+    Returns
+    -------
+    tuple
+        ``(sublines, line)`` -- the nested ``BeamLine`` bodies to define, and
+        the line rewritten to name them.
+    """
+    bodies = [definitions.get(entry) for entry in line]
+    sublines: Dict[str, Dict[str, Any]] = {}
+    folded: List[Any] = []
+    index = 0
+    while index < len(line):
+        for period in range(2, (len(line) - index) // 2 + 1):
+            block = bodies[index : index + period]
+            count = 1
+            while bodies[index + count * period : index + (count + 1) * period] == block:
+                count += 1
+            if count > 1:
+                break
+        else:
+            folded.append(line[index])
+            index += 1
+            continue
+        cell = f"{name}_cell{'' if not sublines else f'_{len(sublines) + 1}'}"
+        sublines[cell] = {
+            "kind": "BeamLine",
+            "line": line[index : index + period],
+        }
+        folded.append({cell: {"repeat": count}})
+        index += count * period
+
+    if sublines:
+        kept = {
+            entry for body in sublines.values() for entry in body["line"]
+        } | {entry for entry in folded if isinstance(entry, str)}
+        dropped = sorted(set(line) - kept)
+        for entry in dropped:
+            definitions.pop(entry, None)
+        warn(
+            f"LAURA section {name!r} repeats a cell, written out as the nested "
+            f"BeamLine {', '.join(sublines)}. Every copy of the cell collapses "
+            f"onto the first, so {', '.join(dropped)} are no longer names in the "
+            "document."
+        )
+    return sublines, folded
 
 
 PALS_TWISS_COMPONENTS = {
@@ -519,6 +687,12 @@ def pals_document(
             uses_extension = uses_extension or LAURA_TYPE_EXTENSION in body
 
     for beamline in beamlines:
+        for name, body in beamline.sublines.items():
+            if name not in defined:
+                defined[name] = body
+                facility.append({name: body})
+
+    for beamline in beamlines:
         begin = beamline.begin_name or f"{beamline.name}_begin"
         line: List[Any] = [{begin: _beginning_element(beamline)}]
         line.extend(beamline.line)
@@ -545,8 +719,10 @@ def pals_document(
         document["extension_labels"] = {
             "names": {
                 LAURA_TYPE_EXTENSION: (
-                    "LAURA hardware type, where the PALS kind covers a family "
-                    "of them. See the LAURA documentation."
+                    "What LAURA holds and PALS has no component for: the "
+                    "hardware type where the kind covers a family of them, "
+                    "and the transfer map of a Taylor. See the LAURA "
+                    "documentation."
                 )
             }
         }
@@ -568,7 +744,7 @@ def _plain(value: Any) -> Any:
     if isinstance(value, dict):
         return {key: _plain(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
-        return [_plain(item) for item in value]
+        return type(value)(_plain(item) for item in value)
     if isinstance(value, np.generic):
         return value.item()
     return value

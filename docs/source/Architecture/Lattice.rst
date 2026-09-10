@@ -450,12 +450,20 @@ A flattened multipass path and the repetition reading of the
 same file emit byte-identical section and element names. The pass number
 is inserted before any within-section repeat index to keep it so.
 
-.. note::
+Two backends can hold the identity instead of a copy per traversal, and both take a
+translator built with ``from_layout(layout, multipass=True)``, which keeps the path unflattened:
 
-   Bmad can hold multipass natively, with real
-   lord/slave elements sharing attributes and per-slave ``E_TOT`` and ``phi0_multipass``; that
-   is a separate item, as is round-tripping multipass back in through Bmad, whose lord
-   elements never reach ``lat_list``.
+* :py:meth:`to_bmad_multipass <laura.translator.converters.layout.MachineLayoutTranslator.to_bmad_multipass>`
+  writes a ``line[multipass]`` whose slaves are ``NAME\1``, ``NAME\2``. ``phi0_multipass`` is
+  the only attribute Bmad takes per slave; anything else a pass changes is dropped with a
+  warning naming it.
+* :py:meth:`to_pals_multipass <laura.translator.converters.layout.MachineLayoutTranslator.to_pals_multipass>`
+  writes a ``BeamLine`` marked ``multipass`` and named once per pass; the PALS parser stamps a
+  ``multipass_index`` on each visit. ``overrides`` and ``momentum`` are dropped with a warning.
+
+Both refuse a reversed pass rather than write something the reading code would
+mis-expand. Flatten with the ordinary ``to_bmad()``/``to_pals()`` where the per-pass values
+matter more than the shared hardware.
 
 .. _per-pass-strengths:
 

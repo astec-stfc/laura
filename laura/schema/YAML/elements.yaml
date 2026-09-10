@@ -36,7 +36,22 @@ enums:
       elliptical:  {}
       scraper:
         description: >-
-          Scraper jaws rather than a fixed pipe cross-section. 
+          Scraper jaws rather than a fixed pipe cross-section.
+
+  ApertureLocationEnum:
+    description: >-
+      Where along the element an aperture is checked. Following PALS
+      ``ApertureP.location``.
+    permissible_values:
+      entrance_end: {}
+      center:       {}
+      exit_end:     {}
+      both_ends:    {}
+      everywhere:   {}
+      nowhere:
+        description: >-
+          Defined but never checked -- distinct from ``active: false``, which
+          switches off an aperture that is otherwise placed.
 
 classes:
 
@@ -211,9 +226,47 @@ classes:
         minimum_value: 0.0
         unit:
           ucum_code: m
+      horizontal_center:
+        range: float
+        description: >-
+          Horizontal offset of the aperture centre from the axis [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
+      vertical_center:
+        range: float
+        description: Vertical offset of the aperture centre from the axis [m].
+        ifabsent: float(0.0)
+        unit:
+          ucum_code: m
       shape:
         range: ApertureShapeEnum
         description: Cross-sectional aperture shape.
+      location:
+        range: ApertureLocationEnum
+        description: Where along the element the aperture is checked.
+        ifabsent: string(everywhere)
+      material:
+        range: string
+        description: Material of the aperture jaws or collimator body.
+      thickness:
+        range: float
+        description: Longitudinal thickness of the aperture material [m].
+        minimum_value: 0.0
+        unit:
+          ucum_code: m
+      active:
+        range: boolean
+        description: >-
+          Whether the aperture is applied. False keeps the definition without
+          checking against it.
+        ifabsent: 'true'
+      shifts_with_body:
+        range: boolean
+        description: >-
+          Whether the aperture follows the element's misalignment rather than
+          staying on the design orbit.
+        ifabsent: 'true'
       radius:
         range: float
         description: Radius for circular apertures [m].

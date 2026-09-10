@@ -10,7 +10,7 @@ from laura.models.elementList import (
 from laura.models.reversal import reverse_section
 
 from ..utils.functions import sanitize_string
-from ..utils.pals import pals_document
+from ..utils.pals import PalsBeamLine, pals_document
 from .converter import translate_elements
 from .fanout import ContainerTranslator, wrap_lattice_line
 from .section import SectionLatticeTranslator
@@ -236,6 +236,88 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             for _, section in self._children()
         ]
         return pals_document(beamlines, self.name)
+
+    def to_pals_multipass(self, particle: str | None = None) -> str:
+        """
+        Create a PALS document holding this whole beam path as one branch, with
+        a multipass section written as a nested ``multipass`` ``BeamLine``.
+
+        :meth:`to_pals` flattens, giving each traversal a branch and a copy of
+        the hardware; this keeps the identity PALS holds.
+
+        Requires a translator built with ``from_layout(..., multipass=True)``.
+
+        Parameters
+        ----------
+        particle: str | None
+            Used only if the layout does not name a particle itself.
+
+        Returns
+        -------
+        str
+            The contents of a ``*.pals.yaml`` file.
+        """
+        entries = self._passes_in_beam_order()
+        if not entries:
+            raise ValueError(
+                "to_pals_multipass needs a layout with passes; build the "
+                "translator with from_layout(layout, multipass=True)"
+            )
+        reversed_passes = [entry for entry in entries if entry.direction == -1]
+        if reversed_passes:
+            raise NotImplementedError(
+                "PALS takes `direction: -1` on a line item. "
+                f"{reversed_passes} cannot be exported "
+                "natively; use to_pals() to flatten instead."
+            )
+        changed = [
+            f"{entry.section} pass {entry.number}"
+            for entry in entries
+            if entry.overrides or entry.momentum
+        ]
+        if changed:
+            warn(
+                "PALS defines multipass hardware once and shares it across every "
+                f"pass, so the per-pass settings on {', '.join(changed)} are not "
+                "in the export; flatten with to_pals() if you need them."
+            )
+        shared = {entry.section for entry in entries if entry.number is not None}
+        beamlines = {
+            name: self._section_translator(self.sections[name])._pals_beamline(
+                particle=self.particle or particle
+            )
+            for name in dict.fromkeys(entry.section for entry in entries)
+        }
+
+        definitions: Dict[str, Any] = {}
+        sublines: Dict[str, Any] = {}
+        for name, beamline in beamlines.items():
+            definitions.update(beamline.definitions)
+            sublines.update(beamline.sublines)
+            body: Dict[str, Any] = {"kind": "BeamLine"}
+            if name in shared:
+                body["multipass"] = True
+            body["line"] = beamline.line
+            sublines[beamline.name] = body
+
+        line = [beamlines[entry.section].name for entry in entries]
+        first = beamlines[entries[0].section]
+        return pals_document(
+            [
+                PalsBeamLine(
+                    name=sanitize_string(self.name),
+                    definitions=definitions,
+                    line=line,
+                    sublines=sublines,
+                    periodic=first.periodic,
+                    particle=first.particle,
+                    energy=first.energy,
+                    twiss=first.twiss,
+                    s_position=first.s_position,
+                )
+            ],
+            f"{sanitize_string(self.name)}_lattice",
+        )
 
     def to_bmad_multipass(
         self,

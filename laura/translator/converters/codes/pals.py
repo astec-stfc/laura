@@ -22,37 +22,44 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from warnings import warn
 
+import numpy as np
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 from scipy.constants import speed_of_light
 
 import laura.models.element as LAURA_elements
 from laura.models.elementList import (
     ElementList,
+    LayoutPass,
     MachineLayout,
     MachineModel,
     SectionLattice,
 )
+from laura.models.magnetic import Multipoles
 
 from ....Exporters.YAML import PositionMode, export_machine_combined_file
+from .. import keyword_conversion_rules_pals
 from ...utils.functions import merge_layout_elements, number_repeated_names
 from ...utils.pals import (
     LAURA_TYPE_EXTENSION,
+    PALS_DEFAULT_AREA,
     PalsBranch,
     PalsDocument,
     PALS_TWISS_COMPONENTS,
     PalsElement,
     laura_type_to_pals_kind,
+    pals_keyword_map,
     pals_kind_to_laura_type,
     parse_pals_file,
 )
 
-#: Parsed but never turned into a LAURA element.
+MAX_MULTIPOLE_ORDER = max(
+    int(name[1:-1]) for name in Multipoles.model_fields if re.fullmatch(r"K\d+L", name)
+)
+
 _SILENTLY_SKIPPED_KINDS = ("Drift", "Placeholder")
 
-#: PALS kinds LAURA has no representation for at all.
 _UNSUPPORTED_KINDS = ("Converter", "Feedback", "Girder", "UnionEle")
 
-#: Kinds that survive import in a reduced form, and what is lost.
 _LOSSY_CONVERSIONS = {
     "Fork": "the branch it forks to; the fork point is kept as a Marker",
     "Patch": "its coordinate transform; LAURA has no patch element",
@@ -61,16 +68,13 @@ _LOSSY_CONVERSIONS = {
     "Fiducial": "its fiducial constraint",
     "Foil": "its material and thickness; kept as a Collimator",
     "EGun": "its cathode model; kept as an RFCavity",
-    "Taylor": "nothing yet -- the map itself is not imported",
+    "Taylor": (
+        "its map, unless LAURA wrote the document: a TaylorP has no stated "
+        "term format, so the map travels in the LauraP extension group"
+    ),
     "ACKicker": "its time dependence; kept as a horizontal AC dipole",
 }
 
-#: ``BmadP.Bmad_key`` refinements. PALS collapses a plane-specific corrector
-#: onto one ``Kicker`` kind and every diagnostic onto ``Instrument``; a document
-#: written out of Bmad carries the original key in its extension group, which
-#: recovers the distinction without guessing. Only consulted for the two kinds
-#: that are genuinely ambiguous, so a stray ``Bmad_key`` cannot retype an
-#: element wholesale.
 _BMAD_KEY_REFINEMENT = {
     "Kicker": {
         "hkicker": "Horizontal_Corrector",
@@ -86,14 +90,16 @@ _BMAD_KEY_REFINEMENT = {
 
 _ORDER_TYPES = {0: "Dipole", 1: "Quadrupole", 2: "Sextupole", 3: "Octupole"}
 
-#: The LAURA types whose magnetic model is a kick angle rather than multipoles.
 _CORRECTOR_TYPES = (
     "Horizontal_Corrector",
     "Vertical_Corrector",
     "Combined_Corrector",
 )
 
-#: ``RFP.cavity_type`` -> LAURA ``cavity.structure_type``.
+_APERTURE_LOCATIONS = frozenset(
+    {"entrance_end", "center", "exit_end", "both_ends", "everywhere", "nowhere"}
+)
+
 _CAVITY_TYPES = {
     "STANDING_WAVE": "StandingWave",
     "TRAVELING_WAVE": "TravellingWave",
@@ -266,14 +272,25 @@ def _multipoles(
         for key in unconvertible
         if int(key[2:].rstrip("L")) not in skip_orders
     ]
+    too_high = []
     for order, components in sorted(orders.items()):
         if order in skip_orders:
+            continue
+        if order > MAX_MULTIPOLE_ORDER:
+            too_high.append(order)
             continue
         pole: Dict[str, Any] = {"order": order, **components}
         if len(pole) > 1:
             multipoles[f"K{order}L"] = pole
 
     converted: Dict[str, Any] = {"multipoles": multipoles} if multipoles else {}
+
+    if too_high:
+        warn(
+            f"PALS element {element.name!r} has multipole orders "
+            f"{', '.join(str(order) for order in too_high)}; LAURA holds poles "
+            f"up to order {MAX_MULTIPOLE_ORDER}, so those were dropped."
+        )
 
     tilted = sorted(
         key for key in group if key.startswith("tilt") and _number(group[key])
@@ -452,22 +469,70 @@ def _body_shift(element: PalsElement) -> Dict[str, Any]:
     return {"error": {"position": position, "rotation": rotation}}
 
 
+def _meta(element: PalsElement) -> Dict[str, Any]:
+    """The identity in ``MetaP``. The inverse of ``writer._meta_group``.
+
+    ``MetaP`` is an open group. Only the components LAURA
+    has a home for are read; the rest are left alone rather than warned about,
+    since holding them is the group's whole purpose.
+    """
+    group = element.group("MetaP")
+    data: Dict[str, Any] = {}
+    alias = group.get("alias")
+    if alias:
+        if isinstance(alias, str):
+            alias = [alias]
+        data["alias"] = [str(one) for one in alias]
+    if group.get("ID"):
+        data["manufacturer"] = {"serial_number": str(group["ID"])}
+    if group.get("location"):
+        data["machine_area"] = str(group["location"])
+    return data
+
+
+def _matrix(element: PalsElement) -> Dict[str, Any]:
+    """Read a transfer map back out of the ``LauraP`` extension group.
+
+    The inverse of ``writer._matrix_extension``.
+    """
+    matrix = element.group(LAURA_TYPE_EXTENSION).get("matrix")
+    if not isinstance(matrix, dict):
+        return {}
+    simulation: Dict[str, Any] = {}
+    if isinstance(matrix.get("r"), list):
+        simulation["r_matrix"] = np.asarray(matrix["r"], dtype=float)
+    for key, shape in (("c", (6,)), ("t", (6,) * 3), ("u", (6,) * 4)):
+        terms = matrix.get(key)
+        if not isinstance(terms, dict):
+            continue
+        array = np.zeros(shape)
+        for position, coefficient in terms.items():
+            index = tuple(int(part) - 1 for part in str(position).split(","))
+            array[index] = float(coefficient)
+        simulation[f"{key}_matrix"] = array
+    if matrix.get("spin_taylor"):
+        simulation["spin_taylor"] = list(matrix["spin_taylor"])
+    return {"simulation": simulation} if simulation else {}
+
+
 def _aperture(element: PalsElement) -> Dict[str, Any]:
     """Convert ``ApertureP`` limits to a LAURA ``aperture`` dict.
 
     PALS states signed edges (``x_min``/``x_max``) or a full ``x_width`` about
-    an ``x_center``; LAURA's ``horizontal_size``/``vertical_size`` are full
-    widths, so the width form is used directly and the edge form is differenced.
-    An ``ApertureP`` carrying only a shape and a location — which is what a
-    Bmad-derived document puts on every element — describes no aperture at all
-    and must not become a zero-size one.
+    an ``x_center``; LAURA holds a full width and a centre, so the edge form is
+    differenced and averaged. An ``ApertureP`` carrying only a shape and a
+    location describes no aperture at all and must not become a zero-size one.
     """
     group = element.group("ApertureP")
-    if not group or group.get("aperture_active") is False:
+    if not group:
         return {}
     sizes: Dict[str, Any] = {}
     one_sided = []
-    for axis, laura_key in (("x", "horizontal_size"), ("y", "vertical_size")):
+    for axis, size_key, centre_key in (
+        ("x", "horizontal_size", "horizontal_center"),
+        ("y", "vertical_size", "vertical_center"),
+    ):
+        centre = _number(group.get(f"{axis}_center"))
         width = _number(group.get(f"{axis}_width"))
         if width is None:
             low, high = (
@@ -476,11 +541,14 @@ def _aperture(element: PalsElement) -> Dict[str, Any]:
             )
             if low is not None and high is not None:
                 width = high - low
+                centre = (high + low) / 2.0 if centre is None else centre
             elif low is not None or high is not None:
                 one_sided.append(axis)
                 width = 2.0 * abs(low if low is not None else high)
         if width:
-            sizes[laura_key] = abs(width)
+            sizes[size_key] = abs(width)
+            if centre:
+                sizes[centre_key] = centre
     if not sizes:
         return {}
     if one_sided:
@@ -488,15 +556,6 @@ def _aperture(element: PalsElement) -> Dict[str, Any]:
             f"PALS element {element.name!r} has a one-sided "
             f"{'/'.join(one_sided)} aperture; LAURA holds a full width, so it "
             "was imported symmetric about the axis."
-        )
-    offsets = sorted(
-        axis for axis in ("x", "y") if _number(group.get(f"{axis}_center"))
-    )
-    if offsets:
-        warn(
-            f"PALS element {element.name!r} has an off-axis aperture "
-            f"({', '.join(f'{axis}_center' for axis in offsets)}); LAURA has no "
-            "aperture offset, so it was centred on the axis."
         )
     shape = str(group.get("shape", "ELLIPTICAL")).lower()
     if shape in ("vertices", "custom_shape"):
@@ -507,12 +566,26 @@ def _aperture(element: PalsElement) -> Dict[str, Any]:
         shape = "rectangular"
     sizes["shape"] = shape if shape in ("rectangular", "elliptical") else "rectangular"
 
-    location = str(group.get("location", "")).upper()
-    if location and location not in ("EVERYWHERE", "BOTH_ENDS"):
+    location = str(group.get("location", "")).lower()
+    if location in _APERTURE_LOCATIONS:
+        sizes["location"] = location
+    elif location:
         warn(
-            f"PALS element {element.name!r} applies its aperture at {location}; "
-            "LAURA has no aperture location, so it will act along the whole element."
+            f"PALS element {element.name!r} applies its aperture at "
+            f"{location.upper()}, which LAURA has no name for; it will act "
+            "along the whole element."
         )
+    if group.get("material"):
+        sizes["material"] = str(group["material"])
+    thickness = _number(group.get("thickness"))
+    if thickness is not None:
+        sizes["thickness"] = thickness
+    for pals_key, laura_key in (
+        ("aperture_active", "active"),
+        ("aperture_shifts_with_body", "shifts_with_body"),
+    ):
+        if isinstance(group.get(pals_key), bool):
+            sizes[laura_key] = group[pals_key]
     return {"aperture": sizes}
 
 
@@ -520,33 +593,74 @@ def _cell_length(frequency: float, mode: tuple[int, int]) -> float:
     """The length of one cell: the ``mode`` fraction of a wavelength, halved.
 
     ``mode`` is the assumption in :data:`_CAVITY_MODES` -- 2*pi/3 gives
-    `lambda/3` and pi gives `lambda/2`. Taking `lambda/2` for *every* cavity,
-    which is what this did before, makes a travelling-wave cell half as long
-    again as it should be.
+    `lambda/3` and pi gives `lambda/2`.
 
-    The tempting alternative -- `L_active/num_cells`, which would be geometry
-    rather than a guess -- is not available. The parser's bookkeeper derives
-    `L_active` as the element length whenever the document omits it, exactly as
+    `L_active` is the element length whenever the document omits it, exactly as
     it derives `voltage` from `gradient`, so a stated active length cannot be
-    told from a defaulted one; and `length/num_cells` under-reads a real cavity,
-    whose physical length also holds couplers and end cells.
+    told from a defaulted one; and `length/num_cells` under-reads a real cavity.
     """
     numerator, denominator = mode
     return numerator * speed_of_light / (2 * denominator * frequency)
 
 
-def _cavity(element: PalsElement) -> Dict[str, Dict[str, Any]]:
+def _beam_beam(element: PalsElement) -> Dict[str, Dict[str, Any]]:
+    """Convert ``BeamBeamP`` to a LAURA ``simulation`` dict."""
+    group = element.group("BeamBeamP")
+    components = pals_keyword_map(
+        keyword_conversion_rules_pals["beambeam"], "BeamBeamP"
+    )
+    simulation = {
+        laura_key: _number(group[pals_key])
+        for laura_key, pals_key in components.items()
+        if group.get(pals_key) is not None
+    }
+    dropped = set(group) - set(components.values())
+    if dropped:
+        warn(
+            f"PALS BeamBeamP on {element.name!r} sets "
+            f"{', '.join(sorted(dropped))}, which LAURA cannot hold."
+        )
+    return {"simulation": simulation} if simulation else {}
+
+
+def _revolution_period(branch: PalsBranch) -> Optional[float]:
+    """One turn of the reference particle [s], for ``harmon`` -> frequency.
+
+    A harmonic number counts RF periods in a revolution, so an open branch has
+    none. Flight time follows the energy rather than assuming ``beta = 1``.
+    """
+    if not branch.attributes.get("periodic"):
+        return None
+    period = 0.0
+    for element in branch.elements:
+        if not element.length:
+            continue
+        group = element.group("ReferenceP")
+        energy = _number(group.get("E_tot_ref"))
+        momentum = _number(group.get("pc_ref"))
+        if not energy or not momentum:
+            return None
+        period += element.length * energy / (momentum * speed_of_light)
+    return period or None
+
+
+def _cavity(element: PalsElement, period: Optional[float] = None) -> Dict[str, Dict[str, Any]]:
     """Convert ``RFP`` to LAURA ``cavity`` and ``simulation`` dicts."""
     rf = element.group("RFP")
     if not rf:
         return {}
     length = element.length
     frequency = _number(rf.get("frequency"))
-    if frequency is None and rf.get("harmon") is not None:
-        warn(
-            f"PALS cavity {element.name!r} sets harmon rather than frequency; "
-            "converting it needs the ring circumference, so no frequency was set."
-        )
+    harmon = _number(rf.get("harmon"))
+    if frequency is None and harmon:
+        if period:
+            frequency = harmon / period
+        else:
+            warn(
+                f"PALS cavity {element.name!r} sets harmon rather than frequency; "
+                "converting it needs a periodic branch with a reference energy, "
+                "which this one does not give, so no frequency was set."
+            )
     n_cells = int(_number(rf.get("num_cells")) or 1)
     active_length = _number(rf.get("L_active")) or length
 
@@ -585,15 +699,18 @@ def _cavity(element: PalsElement) -> Dict[str, Dict[str, Any]]:
             "LAURA's phase is always measured from the accelerating crest, so "
             "the imported phase is offset by a quarter period."
         )
-    for key, message in (
-        ("multipass_phase", "a per-pass phase offset"),
-        ("dE_ref", "a reference-energy change"),
-    ):
-        if _number(rf.get(key)):
-            warn(
-                f"PALS cavity {element.name!r} sets {key}; LAURA cannot hold "
-                f"{message}, so it was dropped."
-            )
+    if _number(rf.get("multipass_phase")):
+        warn(
+            f"PALS cavity {element.name!r} sets multipass_phase. LAURA holds a "
+            "per-pass phase as an override on the layout entry for that pass, "
+            "but the standard does not say which pass this offset applies to, "
+            "so it was dropped."
+        )
+    if _number(rf.get("dE_ref")):
+        warn(
+            f"PALS cavity {element.name!r} sets dE_ref; LAURA cannot hold a "
+            "reference-energy change, so it was dropped."
+        )
 
     converted: Dict[str, Dict[str, Any]] = {"cavity": cavity}
     if amplitude is not None:
@@ -619,7 +736,7 @@ class PalsLatticeImporter(BaseModel):
 
     name: str = "Lattice"
 
-    machine_area: str = "Lattice"
+    machine_area: str = PALS_DEFAULT_AREA
 
     lattice: Optional[str] = None
     """Which PALS ``Lattice`` to import. Defaults to the only one present —
@@ -632,6 +749,13 @@ class PalsLatticeImporter(BaseModel):
     _native: Dict[str, Dict[str, PalsElement]] = PrivateAttr(default_factory=dict)
     _reference: Dict[str, Dict[str, Any]] = PrivateAttr(default_factory=dict)
     _warned_kinds: set = PrivateAttr(default_factory=set)
+    _period: Optional[float] = PrivateAttr(default=None)
+    """Revolution period of the branch being converted; see
+    :func:`_revolution_period`."""
+
+    _passes: Dict[str, List[tuple]] = PrivateAttr(default_factory=dict)
+    """``{branch: [(section name, pass number)]}`` in beam order, from
+    :meth:`_multipass_runs`."""
 
     def _default_name(self) -> str:
         if self.name != "Lattice":
@@ -721,6 +845,7 @@ class PalsLatticeImporter(BaseModel):
         target = self._branch(branch)
         native = self.create_element_dictionary(target.name)
         switch = pals_kind_to_laura_type()
+        self._period = _revolution_period(target)
 
         elements: Dict[str, Any] = {}
         for numbered_name, element in native.items():
@@ -762,8 +887,8 @@ class PalsLatticeImporter(BaseModel):
         if element.parameters.get("direction") == -1:
             warn(
                 f"PALS element {numbered_name!r} is traversed in reverse "
-                "(direction: -1); LAURA has no element reversal, so it was "
-                "imported facing forwards."
+                "(direction: -1). LAURA reverses a whole section, on the layout "
+                "entry that traverses it."
             )
         if element.parameters.get("is_on") is False:
             warn(
@@ -790,8 +915,13 @@ class PalsLatticeImporter(BaseModel):
             },
         }
         data["physical"].update(_body_shift(element))
+        data.update(_meta(element))
         data.update(_aperture(element))
-        data.update(_cavity(element))
+        data.update(_cavity(element, self._period))
+        if kind == "BeamBeam":
+            data.update(_beam_beam(element))
+        if kind == "Taylor":
+            data.update(_matrix(element))
 
         magnetic: Dict[str, Any] = {}
         if kind == "Bend":
@@ -837,13 +967,6 @@ class PalsLatticeImporter(BaseModel):
                 f"PALS element {numbered_name!r} has electric multipoles, which "
                 "LAURA cannot represent; they were dropped.",
             )
-        if element.parameters.get("multipass_index") not in (None, 1):
-            self._warn_once(
-                "multipass",
-                f"PALS element {numbered_name!r} is a multipass element; LAURA "
-                "has no multipass concept, so each pass is a separate element.",
-            )
-
         try:
             element_class = getattr(LAURA_elements, hardware_type)
         except AttributeError:
@@ -911,8 +1034,9 @@ class PalsLatticeImporter(BaseModel):
             self._warn_once(
                 "Multipole",
                 f"PALS Multipole {element.name!r} has order {highest}, above the "
-                "highest LAURA magnet type; imported as an Octupole with its "
-                "higher poles kept as multipoles.",
+                "highest LAURA magnet type; imported as an Octupole. Its poles "
+                f"up to order {MAX_MULTIPOLE_ORDER} are kept as multipoles and "
+                "the rest are reported as they are dropped.",
             )
             chosen = "Octupole"
         return chosen
@@ -954,10 +1078,43 @@ class PalsLatticeImporter(BaseModel):
         self._warned_kinds.add(key)
         warn(message)
 
+    def _multipass_runs(self, branch_name: str, order: List[str]) -> List[tuple]:
+        """Split a branch into ``(section name, pass number, names)`` runs.
+
+        A PALS ``multipass`` line stamps one ``multipass_index`` on every element
+        of one traversal.
+        Returns one run for the whole branch unless it really is multipass, so
+        the ordinary import is untouched.
+
+        The expanded view names no lines, so two different multipass lines that
+        meet end to end, both on the same pass, read as one line.
+        """
+        native = self._native.get(branch_name, {})
+        indices = [native[name].parameters.get("multipass_index") for name in order]
+        if not any(index for index in indices if index and index > 1):
+            return [(branch_name, None, order)]
+
+        runs: List[tuple] = []
+        for index, name in zip(indices, order):
+            if runs and runs[-1][0] == index:
+                runs[-1][1].append(name)
+            else:
+                runs.append((index, [name]))
+
+        named: List[tuple] = []
+        lines: Dict[tuple, str] = {}
+        for index, names in runs:
+            key = tuple(native[name].name for name in names)
+            section = lines.get(key)
+            if section is None:
+                section = lines[key] = f"{branch_name}_{len(lines) + 1}"
+            named.append((section, index, names))
+        return named
+
     def create_section(
         self, branch: Optional[str] = None
     ) -> Dict[str, SectionLattice]:
-        """Build one :class:`SectionLattice` from a PALS branch.
+        """Build a :class:`SectionLattice` per PALS branch, or per multipass run.
 
         Returns nothing for a branch that holds only drifts and reference
         elements — legal in PALS, and a section LAURA has no use for — so that
@@ -975,19 +1132,48 @@ class PalsLatticeImporter(BaseModel):
             )
             return {}
         reference = self._reference.get(target.name, {})
-        section = SectionLattice(
-            order=[
-                name
-                for name, element in elements.items()
-                if not element.is_subelement()
-            ],
-            elements=ElementList(elements=elements),
-            name=target.name,
-            geometry=reference.get("geometry"),
-            reference_energy=reference.get("reference_energy"),
-        )
-        section.resolve_positions(elements)
-        return {target.name: section}
+        order = [
+            name for name, element in elements.items() if not element.is_subelement()
+        ]
+
+        runs = self._multipass_runs(target.name, order)
+        unnumber = self._unnumbered(target.name, runs)
+
+        sections: Dict[str, SectionLattice] = {}
+        entries: List[tuple] = []
+        for name, pass_number, names in runs:
+            entries.append((name, pass_number))
+            if name in sections:
+                continue  # a later pass through hardware already imported
+            held = {}
+            for held_name, element in elements.items():
+                if held_name not in names and not element.is_subelement():
+                    continue
+                element.name = unnumber.get(held_name, held_name)
+                held[element.name] = element
+            section = SectionLattice(
+                order=[unnumber.get(held_name, held_name) for held_name in names],
+                elements=ElementList(elements=held),
+                name=name,
+                geometry=reference.get("geometry"),
+                reference_energy=reference.get("reference_energy"),
+            )
+            section.resolve_positions(held)
+            sections[name] = section
+        self._passes[target.name] = entries
+        return sections
+
+    def _unnumbered(self, branch_name: str, runs: List[tuple]) -> Dict[str, str]:
+        """``{numbered name: PALS name}`` for the elements a multipass keeps."""
+        native = self._native.get(branch_name, {})
+        first: Dict[str, List[str]] = {}
+        for name, _, names in runs:
+            first.setdefault(name, names)
+        if len(first) == len(runs):
+            return {}  # not multipass: nothing was dropped
+        kept = [name for names in first.values() for name in names]
+        bases = [native[name].name for name in kept]
+        return dict(zip(kept, bases)) if len(set(bases)) == len(bases) else {}
 
     def create_layout(
         self, name: Optional[str] = None, branches: Optional[List[str]] = None
@@ -1012,6 +1198,11 @@ class PalsLatticeImporter(BaseModel):
             name=name or lattice.name or self._default_name(),
             sections=sections,
             particle=particles.pop() if len(particles) == 1 else None,
+            passes=[
+                LayoutPass(section=section, number=number)
+                for branch_name in wanted
+                for section, number in self._passes.get(branch_name, ())
+            ],
         )
 
     def create_machine_model(self, min_section_length: int = 5) -> MachineModel:
@@ -1026,18 +1217,19 @@ class PalsLatticeImporter(BaseModel):
 
         elements: Dict[str, Any] = {}
         section_definitions: Dict[str, List[str]] = {}
-        layout_definitions: Dict[str, List[str]] = {}
+        layout_definitions: Dict[str, List[Any]] = {}
         section_metadata: Dict[str, tuple] = {}
         layout_particles: Dict[str, Optional[str]] = {}
         skipped: List[str] = []
 
         for pals_lattice in document.lattices:
-            layout = PalsLatticeImporter(
+            importer = PalsLatticeImporter(
                 document=document,
                 lattice=pals_lattice.name,
                 machine_area=self.machine_area,
-            ).create_layout()
-            layout_sections = []
+            )
+            layout = importer.create_layout()
+            renamed: Dict[str, str] = {}
             for source_name, section in layout.sections.items():
                 if len(section.order) < min_section_length:
                     skipped.append(f"{layout.name}/{source_name}")
@@ -1057,7 +1249,19 @@ class PalsLatticeImporter(BaseModel):
                     section.geometry,
                     section.reference_energy,
                 )
-                layout_sections.append(section_name)
+                renamed[source_name] = section_name
+            # One entry per traversal, so a multipass line is listed once per
+            # pass rather than once per name.
+            layout_sections = [
+                (
+                    {renamed[source_name]: {"multipass": pass_number}}
+                    if pass_number is not None
+                    else renamed[source_name]
+                )
+                for entries in importer._passes.values()
+                for source_name, pass_number in entries
+                if source_name in renamed
+            ]
             if layout_sections:
                 layout_definitions[layout.name] = layout_sections
                 layout_particles[layout.name] = layout.particle

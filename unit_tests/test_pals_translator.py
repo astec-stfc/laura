@@ -37,6 +37,8 @@ from laura.translator.utils.pals import (
 _DATA = os.path.join(os.path.dirname(__file__), "data")
 _LATTICE = os.path.join(_DATA, "pals_test_lattice.pals.yaml")
 _BRANCHES = os.path.join(_DATA, "pals_test_branches.pals.yaml")
+_RING = os.path.join(_DATA, "pals_test_ring.pals.yaml")
+_DETAIL = os.path.join(_DATA, "pals_test_detail.pals.yaml")
 
 pytestmark = pytest.mark.skipif(
     not parser_available(), reason="palsparserpy is not installed"
@@ -207,6 +209,25 @@ class TestElementBodies:
         assert facility["mark1"] == {"kind": "Marker"}
 
 
+class TestBeamBeam:
+    @pytest.fixture(scope="class")
+    def collision(self):
+        importer = PalsLatticeImporter(source_file=_RING)
+        with pytest.warns(UserWarning, match="sigma_z"):
+            model = importer.create_machine_model(min_section_length=1)
+        with pytest.warns(UserWarning, match="drops its offsets"):
+            document = MachineModelTranslator.from_machine(model).to_pals()["lat1"]
+        return _facility(document)["ip"]
+
+    def test_the_opposing_bunch_comes_back_out(self, collision):
+        assert collision["BeamBeamP"] == {
+            "sigma_x": pytest.approx(1.0e-5),
+            "sigma_y": pytest.approx(2.0e-6),
+            "charge": pytest.approx(1.0),
+            "N_particle": pytest.approx(1.0e11),
+        }
+
+
 class TestTypeExtension:
     def test_a_family_member_states_its_laura_type(self, facility):
         # PALS has one Kicker where LAURA has three correctors and one
@@ -237,10 +258,98 @@ class TestTypeExtension:
         assert "extension_labels" not in yaml.safe_load(document["lat1"])["PALS"]
 
 
+class TestDetailRoundTrip:
+    """``ApertureP`` in full, ``MetaP`` and the ``LauraP`` transfer map.
+
+    Written out and read back through the reference parser, which is the only
+    check that catches a convention LAURA has backwards in both directions.
+    """
+
+    @pytest.fixture(scope="class")
+    def detail(self):
+        importer = PalsLatticeImporter(source_file=_DETAIL)
+        with pytest.warns(UserWarning, match="TaylorP has no stated term format"):
+            model = importer.create_machine_model(min_section_length=1)
+        with pytest.warns(UserWarning, match="how a TaylorP term is written"):
+            document = MachineModelTranslator.from_machine(model).to_pals()["lat1"]
+        return _facility(document)
+
+    def test_the_aperture_is_written_whole(self, detail):
+        assert detail["jaws"]["ApertureP"] == {
+            "x_min": pytest.approx(-0.004),
+            "x_max": pytest.approx(0.010),
+            "x_center": pytest.approx(0.003),
+            "y_min": pytest.approx(-0.005),
+            "y_max": pytest.approx(0.005),
+            "shape": "RECTANGULAR",
+            "location": "EXIT_END",
+            "material": "tungsten",
+            "thickness": pytest.approx(0.5),
+            "aperture_active": False,
+            "aperture_shifts_with_body": False,
+        }
+
+    def test_the_identity_is_written_as_metap(self, detail):
+        assert detail["jaws"]["MetaP"] == {
+            "alias": "TCP.B6L7",
+            "ID": "SN-00417",
+            "location": "IR7",
+        }
+
+    def test_the_placeholder_area_is_not_written(self, facility):
+        # Every element of a document that named no area gets machine_area
+        # "Lattice" on import; stamping that back on all of them is noise.
+        assert all("MetaP" not in body for body in facility.values())
+
+    def test_the_map_is_written_under_the_extension(self, detail):
+        matrix = detail["tay1"]["LauraP"]["matrix"]
+        assert matrix["r"][0] == [1.0, pytest.approx(2.5), 0.0, 0.0, 0.0, 0.0]
+        assert matrix["t"] == {"1,2,2": pytest.approx(0.5)}
+        assert matrix["u"] == {"3,4,4,4": pytest.approx(-0.25)}
+
+    def test_no_taylorp_is_written(self, detail):
+        assert "TaylorP" not in detail["tay1"]
+
+    def test_the_indices_survive_being_yaml_keys(self, detail):
+        # A digit-string key ("122", "010000") is re-read as an integer, and a
+        # leading-zero one as octal, so a term would come back as another term.
+        # Comma-separated indices are the reason this is a string at all.
+        assert all("," in key for key in detail["tay1"]["LauraP"]["matrix"]["t"])
+
+
+class TestRepeatedCells:
+    """A section that repeats a cell is written as a nested ``BeamLine``."""
+
+    @pytest.fixture(scope="class")
+    def ring(self):
+        with pytest.warns(UserWarning, match="repeats a cell"):
+            document = MachineModelTranslator.from_machine(_model(_BRANCHES)).to_pals()
+        return _facility(document["lat1"])
+
+    def test_the_cell_is_defined_once_and_repeated(self, ring):
+        assert ring["ring_cell"] == {
+            "kind": "BeamLine",
+            "line": ["qf.1", "ring_drift_1", "qd.1", "b.1"],
+        }
+        assert {"ring_cell": {"repeat": 2}} in ring["ring"]["line"]
+
+    def test_the_copies_are_no_longer_defined(self, ring):
+        assert not any(name.endswith(".2") for name in ring)
+
+    def test_a_section_with_no_repeat_is_left_flat(self, facility):
+        assert all(isinstance(name, str) for name in facility["main_line"]["line"][1:])
+
+
 class TestReservedNames:
     def test_a_command_name_is_renamed(self):
         renames = pals_safe_names(["q1", "use", "set"])
         assert renames == {"use": "use_element", "set": "set_element"}
+
+    def test_a_name_that_would_read_as_a_parameter_group_is_renamed(self):
+        # PALS tells a parameter group from a name by spelling alone: two or
+        # more letters, capitalised, ending in P. A `DUMP` line is an unknown
+        # group, not a beamline.
+        assert pals_safe_names(["DUMP", "Dump", "P", "q1p"]) == {"DUMP": "DUMP_element"}
 
     def test_an_ordinary_name_is_left_alone(self):
         # PALS is permissive about names; only the facility command keys are
