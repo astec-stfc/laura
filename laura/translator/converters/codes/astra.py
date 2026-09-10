@@ -261,11 +261,7 @@ class AstraOutput(AstraHeader):
     # section: SectionLatticeTranslator
 
     def model_post_init(self, context: Any, /) -> None:
-        self.astradict = {
-            "input_particle_definition": "Distribution",
-            "sample_interval": "n_red",
-            "toffset": "Toff",
-        }
+        # No astradict: &OUTPUT has none of &NEWRUN's renamed fields.
         self.exclude.extend(
             ["screens", "section", "end_element", "start_element"]
         )  # , "starting_offset"])
@@ -378,8 +374,8 @@ class AstraCharge(AstraHeader):
     def model_post_init(self, context: Any, /) -> None:
         self.astradict = {
             "cathode": "Lmirror",
-            "space_charge_2D": "LSPCH",
-            "space_charge_3D": "LSPCH3D",
+            "space_charge_2d": "LSPCH",
+            "space_charge_3d": "LSPCH3D",
         }
         self.exclude.extend(
             ["npart", "sample_interval", "space_charge_mode", "mirror_charge"]

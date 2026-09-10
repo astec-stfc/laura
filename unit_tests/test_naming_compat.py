@@ -260,6 +260,52 @@ class TestConverterAliases:
             and "renamed" in str(w.message)
         ]
 
+    def test_namelist_keyword_maps_still_name_real_fields(self):
+        """
+        ASTRA's ``astradict`` and OPAL's ``opaldict`` map a model field name to
+        its native attribute name. A key left behind by a field rename does not
+        raise -- the writer just falls through and emits the *python* name,
+        which ASTRA and OPAL both reject, killing the whole deck. That is how
+        ``space_charge_2D`` survived long enough to break &CHARGE.
+        """
+        import ast
+        import inspect
+        import textwrap
+        from laura.translator.converters.codes import astra, opal
+
+        def subclasses(cls):
+            for sub in cls.__subclasses__():
+                yield sub
+                yield from subclasses(sub)
+
+        def mapped_keys(cls, attr):
+            """Keys of the ``self.<attr> = {...}`` literal in model_post_init.
+
+            Read from source rather than an instance: several of these
+            post-inits go on to size a mesh from fields a bare instance has
+            not got.
+            """
+            src = textwrap.dedent(inspect.getsource(cls.model_post_init))
+            return [
+                key.value
+                for node in ast.walk(ast.parse(src))
+                if isinstance(node, ast.Assign) and isinstance(node.value, ast.Dict)
+                for target in node.targets
+                if isinstance(target, ast.Attribute) and target.attr == attr
+                for key in node.value.keys
+            ]
+
+        checked = 0
+        for base, attr in ((astra.AstraHeader, "astradict"),
+                           (opal.OpalHeader, "opaldict")):
+            for cls in [base, *subclasses(base)]:
+                if attr not in inspect.getsource(cls.model_post_init):
+                    continue
+                stale = sorted(set(mapped_keys(cls, attr)) - set(cls.model_fields))
+                assert not stale, f"{cls.__name__}.{attr} names missing fields: {stale}"
+                checked += 1
+        assert checked > 4, f"only {checked} namelist maps found -- did they move?"
+
     def test_notation_arguments_were_not_renamed(self):
         """
         Brho and P_Q are notation *and* public keyword arguments. Renaming them

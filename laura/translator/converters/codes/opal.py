@@ -453,10 +453,9 @@ class OpalFieldSolver(OpalHeader):
     (P3M + GREENSF=STANDARD only)."""
 
     def model_post_init(self, context: Any, /) -> None:
-        self.opaldict = {"input_particle_definition": "FNAME"}
         self.exclude.extend(
-            ["npart", "space_charge_mode", "grids", "sample_interval",
-             "grid_size_override"]
+            ["npart", "space_charge", "space_charge_mode", "grids",
+             "sample_interval", "grid_size_override", "MIN_PARTICLES_PER_CELL"]
         )
         if isinstance(self.grid_size_override, (tuple, list)):
             self.MX, self.MY, self.MT = (int(v) for v in self.grid_size_override)
