@@ -130,38 +130,38 @@ class TwissMatchSimulationElement(_TwissMatchSimulationElementBase):
         bx = np.sqrt(self.beta_x)
         by = np.sqrt(self.beta_y)
 
-        R = np.eye(6)
+        r = np.eye(6)
 
         # x-plane CS transform
-        R[0, 0] = bx
-        R[0, 5] = self.eta_x
+        r[0, 0] = bx
+        r[0, 5] = self.eta_x
 
-        R[1, 0] = -self.alpha_x / bx
-        R[1, 1] = 1.0 / bx
-        R[1, 5] = self.eta_xp
+        r[1, 0] = -self.alpha_x / bx
+        r[1, 1] = 1.0 / bx
+        r[1, 5] = self.eta_xp
 
         # y-plane CS transform
-        R[2, 2] = by
-        R[2, 5] = self.eta_y
+        r[2, 2] = by
+        r[2, 5] = self.eta_y
 
-        R[3, 2] = -self.alpha_y / by
-        R[3, 3] = 1.0 / by
-        R[3, 5] = self.eta_yp
+        r[3, 2] = -self.alpha_y / by
+        r[3, 3] = 1.0 / by
+        r[3, 5] = self.eta_yp
 
         # z, δ untouched
-        R[4, 4] = 1.0
-        R[5, 5] = 1.0
+        r[4, 4] = 1.0
+        r[5, 5] = 1.0
 
-        return R
+        return r
 
     @computed_field
     @property
     def r_matrix_7x7(self) -> np.ndarray:
         n = self.r_matrix.shape[0]
-        B = np.zeros((n + 1, n + 1))
-        B[:n, :n] = self.r_matrix
-        B[n, n] = 1
-        return B
+        augmented = np.zeros((n + 1, n + 1))
+        augmented[:n, :n] = self.r_matrix
+        augmented[n, n] = 1
+        return augmented
 
 
 class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
@@ -281,10 +281,10 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
     @property
     def r_matrix_7x7(self) -> np.ndarray:
         n = self.r_matrix.shape[0]
-        B = np.zeros((n + 1, n + 1))
-        B[:n, :n] = self.r_matrix
-        B[n, n] = 1
-        return B
+        augmented = np.zeros((n + 1, n + 1))
+        augmented[:n, :n] = self.r_matrix
+        augmented[n, n] = 1
+        return augmented
 
 
 class ElectrostaticSeparatorSimulationElement(_ElectrostaticSeparatorSimulationElementBase):

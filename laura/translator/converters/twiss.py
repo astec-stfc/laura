@@ -31,9 +31,9 @@ class TwissMatchTranslator(BaseElementTranslator):
         """
         from ..conversion_rules.codes import xsuite_conversion
 
-        type_conversion_rules_Xsuite = xsuite_conversion.xsuite_conversion_rules
+        type_conversion_rules_xsuite = xsuite_conversion.xsuite_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_Xsuite["MatrixTransform"]
+        obj = type_conversion_rules_xsuite["MatrixTransform"]
         properties = {
             "name": self.name,
             "length": self.length,
@@ -52,9 +52,9 @@ class TwissMatchTranslator(BaseElementTranslator):
         """
         from ..conversion_rules.codes import ocelot_conversion
 
-        type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+        type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_Ocelot["MatrixTransform"](eid=self.name)
+        obj = type_conversion_rules_ocelot["MatrixTransform"](eid=self.name)
         setattr(obj, "l", self.length)
         setattr(obj, "r", self.simulation.r_matrix)
         return obj
@@ -70,9 +70,9 @@ class TwissMatchTranslator(BaseElementTranslator):
         """
         from ..conversion_rules.codes import cheetah_conversion
 
-        type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
+        type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_Cheetah["MatrixTransform"](
+        obj = type_conversion_rules_cheetah["MatrixTransform"](
             name=self.name,
             length=tensor(self.physical.length, dtype=float64),
             predefined_transfer_map=tensor(self.simulation.r_matrix_7x7, dtype=float64),
