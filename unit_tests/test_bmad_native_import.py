@@ -33,11 +33,11 @@ pytestmark = pytest.mark.skipif(
 @pytest.mark.parametrize(
     "relative_path, expected_elements",
     [
-        ("small_ring/small_ring.bmad", 58),
-        ("Dragt_PSR_small_ring/Dragt_PSR_small_ring.bmad", 36),
-        ("jlab_ep_collider/original_e_ring.bmad", 754),
-        ("jlab_ep_collider/original_p_ring.bmad", 496),
-        ("jlab_fel/bates.bmad", 113),
+        ("small_ring/small_ring.bmad", 90),
+        ("Dragt_PSR_small_ring/Dragt_PSR_small_ring.bmad", 80),
+        ("jlab_ep_collider/original_e_ring.bmad", 1502),
+        ("jlab_ep_collider/original_p_ring.bmad", 998),
+        ("jlab_fel/bates.bmad", 117),
     ],
 )
 def test_documentation_lattice_matches_tao_s_positions(

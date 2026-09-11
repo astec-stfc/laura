@@ -21,7 +21,7 @@ from ..importers.yaml_loader import (
     resolve_inheritance,
 )
 from ..models.element import PhysicalElement
-from ..models.element_list import MachineModel, expand_section_order
+from ..models.element_list import MachineModel, SectionLattice, expand_section_order
 from ..models.magnetic import MagneticElement
 from ..translator.utils.fields import FieldMap
 
@@ -490,6 +490,30 @@ def _repeat_signature(elem) -> dict:
     return _strip_non_inherited(elem.model_dump(exclude_defaults=True))
 
 
+def _machine_view(machine) -> tuple:
+    """``(sections, elements)`` as plain dicts, whatever ``machine`` is.
+
+    The exporters are handed a :class:`MachineModel`, a
+    :class:`~laura.models.elementList.MachineLayout` or a single
+    :class:`~laura.models.elementList.SectionLattice`.
+    A layout's ``elements`` is a list of *names* and a
+    section has no ``sections`` at all.
+
+    ``isinstance`` rather than ``hasattr``, because
+    :meth:`ElementList.__getattr__` answers to every name.
+    """
+    sections = (
+        {machine.name: machine}
+        if isinstance(machine, SectionLattice)
+        else machine.sections
+    )
+    elements = dict(machine.elements) if isinstance(machine, MachineModel) else {}
+    for section in sections.values():
+        for name, elem in section.elements.elements.items():
+            elements.setdefault(name, elem)
+    return sections, elements
+
+
 def _repeat_aliases(machine: MachineModel, position_mode: PositionMode) -> dict:
     """``{numbered name: the name to write instead}`` for collapsible repeats.
 
@@ -503,16 +527,17 @@ def _repeat_aliases(machine: MachineModel, position_mode: PositionMode) -> dict:
     if position_mode != "sequential":
         return {}
     aliases: dict = {}
-    for section in machine.sections.values():
+    sections, all_elements = _machine_view(machine)
+    for section in sections.values():
         groups: dict = {}
         for name in section.order:
             original = section._repeat_origins.get(name)
-            elem = machine.elements.get(name)
+            elem = all_elements.get(name)
             if original is None or elem is None:
                 continue
             groups.setdefault(original, []).append((name, _repeat_signature(elem)))
         for original, members in groups.items():
-            if original in machine.elements:
+            if original in all_elements:
                 continue
             if any(signature != members[0][1] for _, signature in members):
                 warn(
@@ -535,11 +560,12 @@ def _iter_section_order(machine: MachineModel, aliases: Optional[dict] = None):
     """
     aliases = aliases or {}
     seen: set = set()
-    for section in machine.sections.values():
+    sections, all_elements = _machine_view(machine)
+    for section in sections.values():
         prev_name: Optional[str] = None
         prev_elem = None
         for name in section.order:
-            elem = machine.elements.get(name)
+            elem = all_elements.get(name)
             if elem is None:
                 continue
             out_name = aliases.get(name, name)
@@ -548,7 +574,7 @@ def _iter_section_order(machine: MachineModel, aliases: Optional[dict] = None):
                 yield out_name, elem, prev_name, prev_elem
             prev_name = out_name
             prev_elem = elem
-    for name, elem in machine.elements.items():
+    for name, elem in all_elements.items():
         if name not in seen and name not in aliases and elem is not None:
             yield name, elem, None, None
 
@@ -570,7 +596,9 @@ def _authored_sections(machine: MachineModel, flat: dict) -> dict:
     """Put authored ``repeat`` counts and nested lines back into ``flat``;
     the inverse of :func:`~laura.models.elementList.expand_section_order`.
     """
-    definitions = getattr(machine, "_section_definitions", None) or {}
+    definitions = (
+        machine._section_definitions if isinstance(machine, MachineModel) else {}
+    ) or {}
     if not any("authored" in definition for definition in definitions.values()):
         return flat
 
@@ -630,7 +658,7 @@ def export_machine_sections(
             "elements": [aliases.get(n, n) for n in section.order],
             "type": section.section_type,
         }
-        for name, section in machine.sections.items()
+        for name, section in _machine_view(machine)[0].items()
     }
     with open(os.path.join(path, filename), "w") as handle:
         yaml.dump(
@@ -937,7 +965,7 @@ def export_machine(
     namespace = _template_namespace(template_root) if collapse_inheritance else None
     aliases = _repeat_aliases(machine, position_mode)
     copied_schemas = set()
-    copied_templates = {name: None for name in machine.elements}
+    copied_templates = {name: None for name in _machine_view(machine)[1]}
     for name, elem, prev_name, prev_elem in _iter_section_order(machine, aliases):
         directory = os.path.join(path, elem.subdirectory)
         os.makedirs(directory, exist_ok=True)

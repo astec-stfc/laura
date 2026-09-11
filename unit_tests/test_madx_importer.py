@@ -11,6 +11,7 @@ import math
 from pathlib import Path
 
 import pytest
+import yaml
 
 from laura.translator.converters.codes.madx import MadxLatticeImporter
 
@@ -25,8 +26,12 @@ def importer():
 
 
 class TestMadxImporter:
-    def test_drift_not_imported(self, importer):
-        assert "DR1" not in importer.elements
+    def test_drift_imported(self, importer):
+        """Sequential placement carries the geometry in the order, so a drift
+        is hardware like anything else rather than a gap to be re-derived."""
+        drift = importer.elements["DR1"]
+        assert drift.hardware_type == "Drift"
+        assert drift.physical.length > 0
 
     def test_lattice_name_from_sequence_header(self, importer):
         assert importer.lattice_name == "TESTLINE"
@@ -393,3 +398,30 @@ def test_placeholder_is_imported_as_marker(tmp_path):
 
     assert elements["ph"].hardware_type == "Marker"
     assert elements["ph"].physical.length == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize("source", ["section", "layout"])
+@pytest.mark.parametrize("position_mode", ["global", "s", "reference", "sequential"])
+def test_export_yaml_runs_for_every_source_and_mode(
+    importer, tmp_path, source, position_mode
+):
+    """`export_yaml` accepts either thing `create_section`/`create_layout`
+    hands back, in every position mode.
+
+    A layout's `elements` is a list of *names* and a section has no `sections`
+    at all, so neither can be walked like the `MachineModel` the exporter was
+    written for. Regression test: every combination below raised.
+    """
+    lattice = (
+        next(iter(importer.create_section().values()))
+        if source == "section"
+        else importer.create_layout()
+    )
+    out = tmp_path / f"{source}_{position_mode}"
+
+    importer.export_yaml(str(out), lattice, position_mode=position_mode)
+
+    written = yaml.safe_load((out / "summary.yaml").read_text())
+    assert "DR1" in written
+    if position_mode == "sequential":
+        assert "DR1" in (out / "_sections.yaml").read_text()

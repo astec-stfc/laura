@@ -72,7 +72,7 @@ class SddsParams:
                 sfconvert.update(
                     {k: {"hardware_type": alias, "name": k, "machine_area": machine_area}}
                 )
-            elif elemtype in element_keywords and "drift" not in elemtype:
+            elif elemtype in element_keywords:
                 sfconvert.update(
                     {
                         k: {

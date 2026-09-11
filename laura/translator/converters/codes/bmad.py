@@ -39,7 +39,8 @@ from ...utils.units import UnitValue
 from .. import keyword_conversion_rules_bmad, type_conversion_rules_bmad
 from . import magnetic_orders
 
-_SILENTLY_SKIPPED_TYPES = ("Drift", "Pipe")
+_DRIFT_TYPES = ("Drift", "Pipe")
+"""Bmad types with no physics of their own."""
 
 _CAVITY_TYPES = ("Lcavity", "RFCavity", "Crab_Cavity", "E_Gun")
 
@@ -119,6 +120,8 @@ def _switch_dict() -> Dict[str, str]:
     }
     switch.update(
         {
+            "drift": "Drift",
+            "pipe": "Drift",
             "lcavity": "RFCavity",
             "rfcavity": "RFCavity",
             "match": "MatrixTransform",
@@ -1375,7 +1378,9 @@ class BmadLatticeImporter(BaseModel):
                             " reference energy downstream of this patch is"
                             " wrong."
                         )
-                elif etype not in _SILENTLY_SKIPPED_TYPES:
+                elif etype in _DRIFT_TYPES:
+                    elem_data = {"hardware_type": "Drift", "hardware_class": "Drift"}
+                else:
                     warn(
                         f"Could not parse Bmad element type {etype!r} for "
                         f"{nam!r}; skipping."

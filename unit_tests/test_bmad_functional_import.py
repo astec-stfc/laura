@@ -301,7 +301,9 @@ def test_bmad_additional_element_mappings():
     assert elements["sol_quad"].magnetic.KnL(1) == pytest.approx(0.6)
     assert elements["sol_quad"].magnetic.ks == pytest.approx(0.8)
     assert elements["instrument"].hardware_type == "Diagnostic"
-    assert "pipe" not in elements
+    assert elements["pipe"].hardware_type == "Drift"
+    assert elements["pipe"].physical.length == pytest.approx(0.4)
+    assert "patch" not in elements
 
 
 def test_bmad_fixers_and_empty_multipoles_are_kept_as_markers():

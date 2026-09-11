@@ -27,7 +27,7 @@ def test_xsuite_importer_uses_common_s_lifecycle():
     elements = importer.create_element_dictionary()
     layout = importer.create_layout()
 
-    assert list(elements) == ["quad", "bend", "cavity", "marker"]
+    assert list(elements) == ["drift", "quad", "bend", "cavity", "marker"]
     assert elements["quad"].magnetic.KnL(1) == pytest.approx(0.1)
     assert elements["bend"].magnetic.KnL(0) == pytest.approx(-0.1)
     assert elements["cavity"].cavity.phase == pytest.approx(30)
@@ -264,7 +264,7 @@ def test_sliced_line_imports_the_thick_elements_it_came_from():
         importer = XsuiteLatticeImporter(line=line, name="test")
     elements = importer.create_element_dictionary()
 
-    assert list(elements) == ["quad", "bend"]
+    assert list(elements) == ["d", "quad", "bend"]
     assert elements["quad"].physical.length == pytest.approx(0.5)
     assert elements["quad"].magnetic.KnL(1) == pytest.approx(0.1)
     assert elements["bend"].magnetic.KnL(0) == pytest.approx(-0.1)

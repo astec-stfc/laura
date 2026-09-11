@@ -20,6 +20,7 @@ xsuite_unsupported = [
 ]
 
 _TYPE_MAP = {
+    "Drift": laura_elements.Drift,
     "Bend": laura_elements.Dipole,
     "RBend": laura_elements.Dipole,
     "DipoleEdge": laura_elements.Marker,
@@ -667,8 +668,6 @@ class XsuiteLatticeImporter(BaseModel):
         for index, element_name in enumerate(element_names):
             native = self.line.element_dict[element_name]
             native_type = type(native).__name__
-            if native_type == "Drift":
-                continue
             if index in skip_indices:
                 continue
             stored_type = stored_types.get(element_name)
@@ -714,6 +713,8 @@ class XsuiteLatticeImporter(BaseModel):
                     absorbed_edges.get(element_name),
                 ),
             }
+            if laura_type is laura_elements.Drift:
+                data["hardware_class"] = "Drift"
             self.elements[element_name] = laura_type(**data)
         return self.elements
 

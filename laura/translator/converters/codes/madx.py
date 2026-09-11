@@ -24,8 +24,6 @@ from . import magnetic_orders
 from .. import type_conversion_rules_madx, keyword_conversion_rules_madx
 from ....exporters.yaml_exporter import export_machine_combined_file, PositionMode
 
-_SILENTLY_SKIPPED_TYPES = ("drift",)
-
 _RAW_KEYS = ("k0", "k1", "k2", "k3", "angle", "l", "kick", "hkick", "vkick", "ks")
 
 _ORDER_TYPES = {order: name for name, order in magnetic_orders.items()}
@@ -62,6 +60,7 @@ def _switch_dict() -> Dict[str, str]:
     switch = {y: x for x, y in type_conversion_rules_madx.items()}
     switch.update(
         {
+            "drift": "Drift",
             "monitor": "Beam_Position_Monitor",
             "marker": "Marker",
             "rcollimator": "Collimator",
@@ -358,8 +357,6 @@ class MadxLatticeImporter(BaseModel):
                     },
                 }
                 continue
-            if elemtype in _SILENTLY_SKIPPED_TYPES:
-                continue
             if elemtype not in switch_dict:
                 warn(f"Could not parse MAD-X element type {elemtype!r} for {name!r}; skipping.")
                 continue
@@ -382,6 +379,8 @@ class MadxLatticeImporter(BaseModel):
                 "l": row.get("l", 0.0),
                 "s": row.get("s", 0.0),
             }
+            if sftype == "Drift":
+                entry["hardware_class"] = "Drift"
             for subk in ("magnetic", "cavity", "simulation", "diagnostic", "physical", "aperture"):
                 if subk in model_fields:
                     entry[subk] = {}

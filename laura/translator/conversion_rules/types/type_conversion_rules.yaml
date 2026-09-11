@@ -206,6 +206,7 @@ aliases:
       - rfca
     Drift:
       - drif
+      - drift
       - edrift
       - lscdrift
       - csrdrift

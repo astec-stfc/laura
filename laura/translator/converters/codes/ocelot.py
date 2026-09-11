@@ -25,6 +25,7 @@ def _switch_dict(type_rules: Dict[str, type]) -> Dict[str, str]:
     switch.update(
         {
             "aperture": "Aperture",
+            "drift": "Drift",
             "bend": "Dipole",
             "hcor": "Horizontal_Corrector",
             "marker": "Marker",
@@ -116,8 +117,6 @@ class OcelotLatticeImporter(BaseModel):
             phys_common = {"s": cumulative_s, "s_point": "end", "length": length}
 
             typeconv = type(elem).__name__.lower()
-            if typeconv == "drift":
-                continue
             sftype = switch_dict.get(typeconv)
             if not sftype:
                 warn(
@@ -131,6 +130,8 @@ class OcelotLatticeImporter(BaseModel):
                 "machine_area": self.machine_area,
                 "physical": dict(phys_common),
             }
+            if sftype == "Drift":
+                newobj["hardware_class"] = "Drift"
             try:
                 merged = (
                     keyword_conversion_rules[sftype.lower()]

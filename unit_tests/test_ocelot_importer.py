@@ -90,10 +90,14 @@ def test_repeated_elements_across_periods_are_not_collapsed():
     importer = OcelotLatticeImporter(magnetic_lattice=_periodic_lattice(), name="test")
     elements = importer.create_laura_element_dictionary()
 
-    assert list(elements) == ["Q1.1", "Q2.1", "Q1.2", "Q2.2", "Q1.3", "Q2.3"]
+    assert list(elements) == [
+        "D1.1", "Q1.1", "D1.2", "Q2.1",
+        "D1.3", "Q1.2", "D1.4", "Q2.2",
+        "D1.5", "Q1.3", "D1.6", "Q2.3",
+    ]
     s_positions = [elements[name].physical.s for name in elements]
     assert s_positions == sorted(s_positions)
-    assert len(set(s_positions)) == 6
+    assert len(set(s_positions)) == 12
 
 
 def test_monitor_and_rbend_and_bend_are_imported():
