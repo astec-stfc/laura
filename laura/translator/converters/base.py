@@ -63,7 +63,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         "_write_ASTRA_dipole": "_write_astra_dipole",
         "_write_ASTRA_quadrupole": "_write_astra_quadrupole",
         "_write_ASTRA_solenoid": "_write_astra_solenoid",
-        "_write_CSRTrack": "_write_csrtrack",
+        "_write_CSRTrack_quadrupole": "_write_csrtrack_quadrupole",
     }
 
     type_conversion_rules: Dict = {}
@@ -480,9 +480,13 @@ class BaseElementTranslator(PhysicalBaseElement):
                 # "store_particles": True,
             }
             return self.name, obj, properties
+        if self.hardware_type.lower() == "dipole":
+            # a default; an explicit n_kicks below overrides it
+            properties.update({"num_multipole_kicks": 10})
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
+            xkey = self._convert_keyword_xsuite(key)
             if (key not in ["name", "type", "commandtype"]) and (
-                self._convert_keyword_xsuite(key) in list(obj.__dict__.keys())
+                xkey in list(obj.__dict__.keys())
             ):
                 if key in ["k1", "k2", "k3", "k4", "k5", "k6"] and not self._resolve_functional:
                     expr = self._functional_strength_expr(int(key[1]), "xsuite")
@@ -501,8 +505,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                             properties.update(
                                 {"k0": self.magnetic.KnL(0) / self.length}
                             )
-                if self.hardware_type.lower() == "dipole":
-                    properties.update({"num_multipole_kicks": 10})
                 if (
                     "edge" in key
                     and isinstance(value, str)
@@ -513,7 +515,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                     elif value == "angle/2":
                         value = self.magnetic.KnL(0) / 2
                 if value is not None:
-                    properties.update({key: value})
+                    # the gate above tests the *converted* name, so the converted
+                    # name is what xsuite has to be handed as well
+                    properties.update({xkey: value})
         return self.name, obj, properties
 
     def to_genesis(self, index: int) -> str:

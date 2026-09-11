@@ -10,7 +10,7 @@ import tempfile
 import pytest
 
 from laura import LAURA
-from laura.exporters.yaml import export_machine
+from laura.exporters.yaml_exporter import export_machine
 from laura.laura import add_bool, flatten
 from laura.models.diagnostic import ScreenDiagnostic
 from laura.models.element import (

@@ -5,7 +5,6 @@ general:
   edge_field_integral_exit: edge_exit_fint
   half_gap: hgap
   n_kicks: num_multipole_kicks
-  length: l
   isr_enable: radiation_flag
 rfcavity:
   phase: phase
