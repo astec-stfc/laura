@@ -58,7 +58,8 @@ def _add_default_handler() -> None:
     """Attach a stderr StreamHandler with a readable format if none exist."""
     handler = logging.StreamHandler()
     handler.setFormatter(
-        logging.Formatter("%(asctime)s  %(levelname)-8s  %(name)s — %(message)s",
-                          datefmt="%H:%M:%S")
+        logging.Formatter(
+            "%(asctime)s  %(levelname)-8s  %(name)s — %(message)s", datefmt="%H:%M:%S"
+        )
     )
     _logger.addHandler(handler)

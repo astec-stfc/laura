@@ -11,6 +11,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  naming:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ruff
+        run: pip install "ruff==0.16.2"
+
+      - name: Check naming
+        run: ruff check laura/
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -56,19 +72,18 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
           cache: pip
 
-      # Order matters: install simba first so it pulls its pinned laura from
-      # PyPI, then overwrite it with this PR's laura. Installing laura first
-      # lets simba's own dependency resolution silently replace it.
       - name: Install simba, then this PR's laura over the top
         run: |
-          pip install -e "./simba[test]"
+          pip install -e "./simba[test,simcodes]"
           pip install -e "./laura"
 
       - name: Show which laura is actually in use
         run: python -c "import laura; print(laura.__file__)"
 
+      # No simcodes docker image is pulled here, so skip the tests that need it
+      # -- same split simba's own workflow uses.
       - name: Run simba's test suite
-        run: pytest simba/unit_tests -v
+        run: pytest simba/unit_tests -v -m "not needs_container"

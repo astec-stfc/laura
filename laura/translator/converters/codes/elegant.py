@@ -1,10 +1,10 @@
 import numpy as np
 from pydantic import BaseModel
 from typing import Dict
-from ...utils.elegant import SDDSFile
-import laura.models.element as LAURA_elements
-from laura.models.elementList import SectionLattice, MachineLayout, ElementList
-from ...utils.elegant.sdds_classes_APS import SDDS_Floor, SDDS_Params
+from ...utils.elegant import sdds_file
+import laura.models.element as laura_elements
+from laura.models.element_list import SectionLattice, MachineLayout, ElementList
+from ...utils.elegant.sdds_classes_aps import SddsFloor, SddsParams
 
 elegant_unsupported = [
     "Plasma",
@@ -14,7 +14,6 @@ elegant_unsupported = [
 ]
 
 class ElegantLatticeImporter(BaseModel):
-
     params_file: str
     """Name of ELEGANT parameters file"""
 
@@ -32,12 +31,12 @@ class ElegantLatticeImporter(BaseModel):
     :class:`~laura.models.element.Element` objects"""
 
     def create_element_dictionary(self):
-        params = SDDS_Params(self.params_file)
+        params = SddsParams(self.params_file)
         self.elegant_data, filenames = params.create_element_dictionary()
         return self.elegant_data, filenames
 
     def update_floor_coordinates(self):
-        flr = SDDS_Floor()
+        flr = SddsFloor()
         flr.import_sdds_floor_file(self.floor_file)
         self.floor_data = flr.data
 
@@ -104,13 +103,18 @@ class ElegantLatticeImporter(BaseModel):
                     if "physical" in v:
                         v["physical"].update(
                             {
-                                "middle": {p: c for p, c in zip(["x", "y", "z"], centre.tolist())},
+                                "middle": {
+                                    p: c
+                                    for p, c in zip(["x", "y", "z"], centre.tolist())
+                                },
                                 "global_rotation": rotation,
                             }
                         )
                     else:
                         v["physical"] = {
-                            "middle": {p: c for p, c in zip(["x", "y", "z"], centre.tolist())},
+                            "middle": {
+                                p: c for p, c in zip(["x", "y", "z"], centre.tolist())
+                            },
                             "global_rotation": rotation,
                         }
 
@@ -120,7 +124,7 @@ class ElegantLatticeImporter(BaseModel):
                     if "hardware_class" not in v:
                         v["hardware_class"] = vtype
 
-                    self.elements.update({k: getattr(LAURA_elements, vtype)(**v)})
+                    self.elements.update({k: getattr(laura_elements, vtype)(**v)})
 
     def create_section(self, section: Dict) -> Dict[str, SectionLattice]:
         if not self.elements:
@@ -192,7 +196,7 @@ class ElegantLatticeImporter(BaseModel):
 
     @staticmethod
     def import_sdds_params_file(filename: str, page: int = 0) -> list:
-        elegantObject = SDDSFile(index=1)
-        elegantObject.read_file(filename, page=page)
-        elegantData = elegantObject.data
-        return elegantData
+        elegant_object = sdds_file.SDDSFile(index=1)
+        elegant_object.read_file(filename, page=page)
+        elegant_data = elegant_object.data
+        return elegant_data

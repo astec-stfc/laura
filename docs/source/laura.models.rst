@@ -4,10 +4,10 @@ laura.models package
 Submodules
 ----------
 
-laura.models.RF module
-----------------------
+laura.models.rf module
+-------------------------------
 
-.. automodule:: laura.models.RF
+.. automodule:: laura.models.rf
    :members:
    :private-members:
    :show-inheritance:
@@ -22,10 +22,10 @@ laura.models.\_functions module
    :show-inheritance:
    :undoc-members:
 
-laura.models.baseModels module
-------------------------------
+laura.models.base_models module
+-------------------------------
 
-.. automodule:: laura.models.baseModels
+.. automodule:: laura.models.base_models
    :members:
    :private-members:
    :show-inheritance:
@@ -85,10 +85,10 @@ laura.models.element module
    :show-inheritance:
    :undoc-members:
 
-laura.models.elementList module
--------------------------------
+laura.models.element_list module
+--------------------------------
 
-.. automodule:: laura.models.elementList
+.. automodule:: laura.models.element_list
    :members:
    :private-members:
    :show-inheritance:

@@ -1,36 +1,37 @@
 import os
-import numpy as np
-from pydantic import computed_field, Field
-
-from laura.models.physical import PhysicalElement, Position  # noqa E402
-from laura.models.element import PhysicalBaseElement
-from laura.models.baseModels import IgnoreExtra
-from laura.utils import flatten_dict
-from typing import ClassVar, Dict, Any
+from typing import Any, ClassVar, Dict
 from warnings import warn
 
+import numpy as np
+from pydantic import Field, computed_field
+
+from laura.models.base_models import IgnoreExtra
+from laura.models.element import PhysicalBaseElement
+from laura.models.physical import PhysicalElement, Position  # noqa E402
+from laura.utils import flatten_dict
+
 from ..converters import (
-    type_conversion_rules,
-    type_conversion_rules_Elegant,
-    type_conversion_rules_Genesis,
-    type_conversion_rules_Opal,
-    type_conversion_rules_Madx,
-    elements_Elegant,
-    elements_Genesis,
-    elements_Opal,
-    elements_Madx,
+    elements_elegant,
+    elements_genesis,
+    elements_madx,
+    elements_opal,
+    keyword_conversion_rules_cheetah,
     keyword_conversion_rules_elegant,
     keyword_conversion_rules_genesis,
-    keyword_conversion_rules_ocelot,
-    keyword_conversion_rules_cheetah,
-    keyword_conversion_rules_xsuite,
-    keyword_conversion_rules_wake_t,
-    keyword_conversion_rules_opal,
     keyword_conversion_rules_madx,
+    keyword_conversion_rules_ocelot,
+    keyword_conversion_rules_opal,
+    keyword_conversion_rules_wake_t,
+    keyword_conversion_rules_xsuite,
+    type_conversion_rules,
+    type_conversion_rules_elegant,
+    type_conversion_rules_genesis,
+    type_conversion_rules_madx,
+    type_conversion_rules_opal,
 )
-from ..utils.fields import field
-from ..utils.functions import expand_substitution, checkValue, sanitize_string
-from ..converters.codes.gpt import gpt_ccs
+from ..converters.codes.gpt import GptCcs
+from ..utils.fields import FieldMap
+from ..utils.functions import check_value, expand_substitution, sanitize_string
 
 
 class BaseElementTranslator(PhysicalBaseElement):
@@ -38,6 +39,32 @@ class BaseElementTranslator(PhysicalBaseElement):
     Translator class for converting a :class:`~laura.models.element.Element` instance into a string or
     object that can be understood by various simulation codes.
     """
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "_convertKeyword_Cheetah": "_convert_keyword_cheetah",
+        "_convertKeyword_Elegant": "_convert_keyword_elegant",
+        "_convertKeyword_Genesis": "_convert_keyword_genesis",
+        "_convertKeyword_Madx": "_convert_keyword_madx",
+        "_convertKeyword_Ocelot": "_convert_keyword_ocelot",
+        "_convertKeyword_Opal": "_convert_keyword_opal",
+        "_convertKeyword_WakeT": "_convert_keyword_wake_t",
+        "_convertKeyword_Xsuite": "_convert_keyword_xsuite",
+        "_convertType_Cheetah": "_convert_type_cheetah",
+        "_convertType_Elegant": "_convert_type_elegant",
+        "_convertType_Genesis": "_convert_type_genesis",
+        "_convertType_Madx": "_convert_type_madx",
+        "_convertType_Ocelot": "_convert_type_ocelot",
+        "_convertType_Opal": "_convert_type_opal",
+        "_write_ASTRA": "_write_astra",
+        "_write_ASTRA_Circular": "_write_astra_circular",
+        "_write_ASTRA_Common": "_write_astra_common",
+        "_write_ASTRA_Planar": "_write_astra_planar",
+        "_write_ASTRA_dictionary": "_write_astra_dictionary",
+        "_write_ASTRA_dipole": "_write_astra_dipole",
+        "_write_ASTRA_quadrupole": "_write_astra_quadrupole",
+        "_write_ASTRA_solenoid": "_write_astra_solenoid",
+        "_write_CSRTrack_quadrupole": "_write_csrtrack_quadrupole",
+    }
 
     type_conversion_rules: Dict = {}
     """Conversion rules for keywords when exporting to different code formats."""
@@ -57,8 +84,13 @@ class BaseElementTranslator(PhysicalBaseElement):
     directory: str = "./"
     """Directory to which lattice/element files will be written."""
 
-    ccs: gpt_ccs | None = None
+    ccs: GptCcs | None = None
     """Co-ordinate system for GPT elements."""
+
+    opal_version: str = "202210"
+    """Version of OPAL being written for. Classic OPAL and OPAL-X disagree on
+    some attribute conventions -- notably the solenoid ``KS``; see
+    :func:`~laura.translator.converters.magnet.SolenoidTranslator.opal_ks`."""
 
     def model_post_init(self, __context):
         self.type_conversion_rules = type_conversion_rules
@@ -84,7 +116,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 keyword_conversion_rules_madx[self.hardware_type.lower()]
                 | keyword_conversion_rules_madx["general"]
             )
-        self.ccs = gpt_ccs(name="wcs", position=[0, 0, 0], rotation=[0, 0, 0])
+        self.ccs = GptCcs(name="wcs", position=[0, 0, 0], rotation=[0, 0, 0])
         super().model_post_init(__context)
 
     def full_dump(self, resolve: bool = True) -> Dict[str, Any]:
@@ -106,6 +138,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             A flattened dictionary containing the attributes of the element.
         """
         data = flatten_dict({**self.model_dump()}, parent_key="", separator="_")
+        data.pop("magnetic_gap", None)
         if resolve:
             defs = IgnoreExtra.functional_definitions
             data = {
@@ -204,9 +237,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                 return self._rpn(raw) if code == "elegant" else raw
             if value == "angle/2":
                 return self._rpn(raw, 2, "/") if code == "elegant" else f"{raw} / 2"
-            # Any other expression referencing "angle": substitute the token
-            # (infix codes only -- ELEGANT rpn doesn't support arbitrary
-            # substitution into an infix expression here).
             return value.replace("angle", raw) if code != "elegant" else self._rpn(raw)
         if self.is_functional(value):
             return self._rpn(value) if code == "elegant" else value
@@ -248,7 +278,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         self.start_write()
         wholestring = ""
-        etype = self._convertType_Elegant(self.hardware_type)
+        etype = self._convert_type_elegant(self.hardware_type)
         string = self.name + ": " + etype
         keys = []
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
@@ -256,15 +286,11 @@ class BaseElementTranslator(PhysicalBaseElement):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Elegant(key) in elements_Elegant[etype]
+                and self._convert_keyword_elegant(key) in elements_elegant[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Elegant(key)
+                    key = self._convert_keyword_elegant(key)
                     if value in ("angle", "angle/2") and key in ("e1", "e2"):
-                        # Dipole edge angle referencing the reserved "angle"
-                        # token: carry a functional bend angle through
-                        # symbolically (as an rpn expression); otherwise
-                        # resolve numerically as before.
                         raw = (
                             None
                             if self._resolve_functional
@@ -281,9 +307,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                     elif value == "angle/2":
                         value = self.magnetic.KnL(0) / 2
                     elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                        # When rendering symbolically, carry a functional strength
-                        # through to ELEGANT as the normalized k = KnL/length (an
-                        # rpn expression); otherwise use the computed numeric value.
                         expr = (
                             None
                             if self._resolve_functional
@@ -291,9 +314,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                         )
                         value = expr if expr is not None else getattr(self, f"{key}")
                     elif key == "angle":
-                        # Dipole bend angle: carry a functional definition through
-                        # symbolically (ELEGANT ANGLE is the integrated KnL(0)); it
-                        # is quoted by _elegant_value below.
                         raw = (
                             None
                             if self._resolve_functional
@@ -328,23 +348,24 @@ class BaseElementTranslator(PhysicalBaseElement):
         from ocelot.cpbd.elements import Marker, Aperture
         from ..conversion_rules.codes import ocelot_conversion
 
-        type_conversion_rules_Ocelot = ocelot_conversion.ocelot_conversion_rules
+        type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
         self.start_write()
-        obj = type_conversion_rules_Ocelot[self.hardware_type](eid=self.name)
+        obj = type_conversion_rules_ocelot[self.hardware_type](eid=self.name)
         for key, value in self.full_dump().items():
             if (key not in ["name", "type", "commandtype"]) and (
                 not type(obj) in [Aperture, Marker]
-                and self._convertKeyword_Ocelot(key) in obj.__class__().element.__dict__
+                and self._convert_keyword_ocelot(key)
+                in obj.__class__().element.__dict__
             ):
                 if value is not None:
-                    key = self._convertKeyword_Ocelot(key)
+                    key = self._convert_keyword_ocelot(key)
                     if value == "angle":
                         value = self.magnetic.KnL(0)
                     if key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
                         value = getattr(self, f"{key}l") / self.magnetic.length
                     if key == "gap":
                         value = 2 * value
-                    setattr(obj, self._convertKeyword_Ocelot(key), value)
+                    setattr(obj, self._convert_keyword_ocelot(key), value)
         return obj
 
     def to_cheetah(self) -> object:
@@ -362,16 +383,16 @@ class BaseElementTranslator(PhysicalBaseElement):
         from ..conversion_rules.codes import cheetah_conversion
         from torch import tensor, float64
 
-        type_conversion_rules_Cheetah = cheetah_conversion.cheetah_conversion_rules
+        type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
         try:
-            obj = type_conversion_rules_Cheetah[self.hardware_type](
+            obj = type_conversion_rules_cheetah[self.hardware_type](
                 name=self.name,
                 length=tensor(self.physical.length, dtype=float64),
                 sanitize_name=True,
             )
         except Exception as e:
-            if self.hardware_type in type_conversion_rules_Cheetah:
+            if self.hardware_type in type_conversion_rules_cheetah:
                 if self.physical.length > 0:
                     obj = Drift_Cheetah(
                         name=self.name,
@@ -395,22 +416,22 @@ class BaseElementTranslator(PhysicalBaseElement):
         for key, value in self.full_dump().items():
             if (key not in ["name", "type", "commandtype"]) and (
                 not type(obj) in [Aperture_Cheetah]
-                and self._convertKeyword_Cheetah(key) in buffers
+                and self._convert_keyword_cheetah(key) in buffers
             ):
-                key = self._convertKeyword_Cheetah(key)
+                key = self._convert_keyword_cheetah(key)
                 if key == "gap":
                     value = 2 * value
                 if isinstance(value, float):
                     dt = float64
                     setattr(
-                        obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
+                        obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
                 elif isinstance(value, int):
                     from torch import int64
 
                     dt = int64
                     setattr(
-                        obj, self._convertKeyword_Cheetah(key), tensor(value, dtype=dt)
+                        obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
                     # else:
                     #     from torch import get_default_dtype
@@ -438,16 +459,16 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         from ..conversion_rules.codes import xsuite_conversion
 
-        type_conversion_rules_Xsuite = xsuite_conversion.xsuite_conversion_rules
+        type_conversion_rules_xsuite = xsuite_conversion.xsuite_conversion_rules
         self.start_write()
-        if self.hardware_type in type_conversion_rules_Xsuite:
-            obj = type_conversion_rules_Xsuite[self.hardware_type]
+        if self.hardware_type in type_conversion_rules_xsuite:
+            obj = type_conversion_rules_xsuite[self.hardware_type]
         else:
             warn(
                 f"Could not find hardware type {self.hardware_type} in xsuite conversion rules "
                 f"for element {self.name}; setting as drift"
             )
-            obj = type_conversion_rules_Xsuite["Drift"]
+            obj = type_conversion_rules_xsuite["Drift"]
         properties = {}
         from xtrack.monitors import ParticlesMonitor
 
@@ -459,22 +480,20 @@ class BaseElementTranslator(PhysicalBaseElement):
                 # "store_particles": True,
             }
             return self.name, obj, properties
+        if self.hardware_type.lower() == "dipole":
+            # a default; an explicit n_kicks below overrides it
+            properties.update({"num_multipole_kicks": 10})
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
+            xkey = self._convert_keyword_xsuite(key)
             if (key not in ["name", "type", "commandtype"]) and (
-                self._convertKeyword_Xsuite(key) in list(obj.__dict__.keys())
+                xkey in list(obj.__dict__.keys())
             ):
-                key = self._convertKeyword_Xsuite(key)
                 if key in ["k1", "k2", "k3", "k4", "k5", "k6"] and not self._resolve_functional:
-                    # Carry a symbolic functional strength through to Xsuite as the
-                    # normalized k = KnL/length, referencing the Environment
-                    # variable; else use the number.
                     expr = self._functional_strength_expr(int(key[1]), "xsuite")
                     if expr is not None:
                         value = expr
                 if key == "angle":
                     if self.length > 0:
-                        # Xsuite dipole uses k0 = angle / length; carry a functional
-                        # bend angle through symbolically as an Environment expression.
                         raw = (
                             None
                             if self._resolve_functional
@@ -486,14 +505,19 @@ class BaseElementTranslator(PhysicalBaseElement):
                             properties.update(
                                 {"k0": self.magnetic.KnL(0) / self.length}
                             )
-                if self.hardware_type.lower() == "dipole":
-                    properties.update({"num_multipole_kicks": 10})
-                if "edge" in key and isinstance(value, str) and not self.is_functional(value):
+                if (
+                    "edge" in key
+                    and isinstance(value, str)
+                    and not self.is_functional(value)
+                ):
                     if value == "angle":
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
                         value = self.magnetic.KnL(0) / 2
-                properties.update({key: value})
+                if value is not None:
+                    # the gate above tests the *converted* name, so the converted
+                    # name is what xsuite has to be handed as well
+                    properties.update({xkey: value})
         return self.name, obj, properties
 
     def to_genesis(self, index: int) -> str:
@@ -507,7 +531,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         self.start_write()
         wholestring = ""
-        etype = self._convertType_Genesis(self.hardware_type)
+        etype = self._convert_type_genesis(self.hardware_type)
         if "mark" in etype.lower():
             fld = ", dumpfield = 1" if "photon" in self.hardware_type.lower() else ""
             return f"{index}{self.name}: {etype} = " + "{dumpbeam = 1" + fld + "};\n"
@@ -518,10 +542,10 @@ class BaseElementTranslator(PhysicalBaseElement):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Genesis(key) in elements_Genesis[etype]
+                and self._convert_keyword_genesis(key) in elements_genesis[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Genesis(key)
+                    key = self._convert_keyword_genesis(key)
                     if key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
                         value = getattr(self, f"{key}l")
                     value = 1 if value is True else value
@@ -606,7 +630,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             )
             builder = build_drift
         obj = builder(self, P_Q=P_Q)
-        for o in (obj if isinstance(obj, list) else [obj]):
+        for o in obj if isinstance(obj, list) else [obj]:
             o.set_name(self.name)
             self._apply_rftrack_aperture(o)
         return obj
@@ -732,9 +756,9 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         from ..conversion_rules.codes import wake_t_conversion
 
-        type_conversion_rules_Wake_T = wake_t_conversion.wake_t_conversion_rules
-        if self.hardware_type in type_conversion_rules_Wake_T:
-            obj = type_conversion_rules_Wake_T[self.hardware_type]()
+        type_conversion_rules_wake_t = wake_t_conversion.wake_t_conversion_rules
+        if self.hardware_type in type_conversion_rules_wake_t:
+            obj = type_conversion_rules_wake_t[self.hardware_type]()
         else:
             if "drift" not in self.hardware_type.lower():
                 warn(
@@ -745,9 +769,9 @@ class BaseElementTranslator(PhysicalBaseElement):
             obj = Drift_WakeT()
         obj.element_name = self.name
         for key, value in self.full_dump().items():
-            if key not in ["name", "type", "commandtype"]:
-                key = self._convertKeyword_WakeT(key)
-                setattr(obj, self._convertKeyword_WakeT(key), value)
+            if key not in ["name", "type", "commandtype"] and value is not None:
+                key = self._convert_keyword_wake_t(key)
+                setattr(obj, self._convert_keyword_wake_t(key), value)
         return obj
 
     def to_opal(self, sval: float, designenergy: float | None = None) -> str:
@@ -768,7 +792,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         # wholestring = ""
         self.start_write()
-        etype = self._convertType_Opal(self.hardware_type)
+        etype = self._convert_type_opal(self.hardware_type)
         wholestring = self.name.replace("-", "_") + ": " + etype
         if etype.lower() == "drift":
             return ""
@@ -778,10 +802,10 @@ class BaseElementTranslator(PhysicalBaseElement):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Opal(key) in elements_Opal[etype]
+                and self._convert_keyword_opal(key) in elements_opal[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Opal(key)
+                    key = self._convert_keyword_opal(key)
                     if value == "angle":
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
@@ -827,7 +851,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 return stripped
         return keyword
 
-    def to_madx(self, at: float = None) -> str:
+    def to_madx(self, at: float | None = None) -> str:
         """
         Generates a string representation of the object's properties in the MAD-X
         format (see the `MAD-X User Guide <https://madx.web.cern.ch/webguide/manual.html>`_),
@@ -853,7 +877,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             A formatted string representing the object's properties in MAD-X format.
         """
         self.start_write()
-        etype = self._convertType_Madx(self.hardware_type)
+        etype = self._convert_type_madx(self.hardware_type)
         string = sanitize_string(self.name) + ": " + etype
         keys = []
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
@@ -861,16 +885,12 @@ class BaseElementTranslator(PhysicalBaseElement):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and self._convertKeyword_Madx(key) in elements_Madx[etype]
+                and self._convert_keyword_madx(key) in elements_madx[etype]
             ):
                 if value is not None:
-                    key = self._convertKeyword_Madx(key)
+                    key = self._convert_keyword_madx(key)
                     deferred = False
                     if value in ("angle", "angle/2") and key in ("e1", "e2"):
-                        # Dipole edge angle referencing the reserved "angle"
-                        # token: carry a functional bend angle through
-                        # symbolically (as a deferred expression); otherwise
-                        # resolve numerically as before.
                         raw = (
                             None
                             if self._resolve_functional
@@ -920,51 +940,52 @@ class BaseElementTranslator(PhysicalBaseElement):
             string += f", at = {at}"
         return string + ";\n"
 
-    def _convertType_Elegant(self, etype: str) -> str:
+    def _convert_type_elegant(self, etype: str) -> str:
         """Converts the element type to the corresponding Elegant type using predefined rules."""
-        return self._convert_type(etype, type_conversion_rules_Elegant, etype)
+        return self._convert_type(etype, type_conversion_rules_elegant, etype)
 
-    def _convertKeyword_Elegant(self, keyword: str, updated_type: str = "") -> str:
+    def _convert_keyword_elegant(self, keyword: str, updated_type: str = "") -> str:
         """Converts a keyword to its corresponding Elegant keyword using predefined rules."""
         if updated_type.lower() in keyword_conversion_rules_elegant:
             conversion_rules = (
                 keyword_conversion_rules_elegant[updated_type.lower()]
                 | keyword_conversion_rules_elegant["general"]
             )
-            element = elements_Elegant.get(
-                self._convertType_Elegant(updated_type).lower(),
-                elements_Elegant["drift"],
+            element = elements_elegant.get(
+                self._convert_type_elegant(updated_type).lower(),
+                elements_elegant["drift"],
             )
         else:
             conversion_rules = self.conversion_rules["elegant"]
-            element = elements_Elegant.get(
-                self._convertType_Elegant(self.hardware_type).lower(),
-                elements_Elegant["drift"],
+            element = elements_elegant.get(
+                self._convert_type_elegant(self.hardware_type).lower(),
+                elements_elegant["drift"],
             )
         return self._convert_keyword(keyword, conversion_rules, element)
 
-    def _convertType_Genesis(self, etype: str) -> str:
+    def _convert_type_genesis(self, etype: str) -> str:
         """Converts the element type to the corresponding Genesis type using predefined rules."""
-        return self._convert_type(etype, type_conversion_rules_Genesis, etype)
+        return self._convert_type(etype, type_conversion_rules_genesis, etype)
 
-    def _convertKeyword_Genesis(self, keyword: str, updated_type: str = "") -> str:
+    def _convert_keyword_genesis(self, keyword: str, updated_type: str = "") -> str:
         """Converts a keyword to its corresponding Genesis keyword using predefined rules."""
         if updated_type.lower() in keyword_conversion_rules_genesis:
             conversion_rules = (
                 keyword_conversion_rules_genesis[updated_type.lower()]
                 | keyword_conversion_rules_genesis["general"]
             )
-            element = elements_Genesis.get(
-                self._convertType_Genesis(updated_type), elements_Genesis["drift"]
+            element = elements_genesis.get(
+                self._convert_type_genesis(updated_type), elements_genesis["drift"]
             )
         else:
             conversion_rules = self.conversion_rules["genesis"]
-            element = elements_Genesis.get(
-                self._convertType_Genesis(self.hardware_type), elements_Genesis["drift"]
+            element = elements_genesis.get(
+                self._convert_type_genesis(self.hardware_type),
+                elements_genesis["drift"],
             )
         return self._convert_keyword(keyword, conversion_rules, element)
 
-    def _convertType_Ocelot(self, etype: str) -> object:
+    def _convert_type_ocelot(self, etype: str) -> object:
         """Converts the element type to the corresponding Ocelot type using predefined rules."""
         from ..conversion_rules.codes import ocelot_conversion
         from ocelot.cpbd.elements.drift import Drift as Drift_Oce
@@ -973,11 +994,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             etype, ocelot_conversion.ocelot_conversion_rules, Drift_Oce
         )
 
-    def _convertKeyword_Ocelot(self, keyword: str, updated_type: str = "") -> str:
+    def _convert_keyword_ocelot(self, keyword: str, updated_type: str = "") -> str:
         """Converts a keyword to its corresponding Ocelot keyword using predefined rules."""
         return self._convert_keyword(keyword, self.conversion_rules["ocelot"])
 
-    def _convertType_Cheetah(self, etype: str) -> object:
+    def _convert_type_cheetah(self, etype: str) -> object:
         """Converts the element type to the corresponding Cheetah type using predefined rules."""
         from ..conversion_rules.codes import cheetah_conversion
         from cheetah.accelerator import Drift as Drift_Che
@@ -986,15 +1007,15 @@ class BaseElementTranslator(PhysicalBaseElement):
             etype, cheetah_conversion.cheetah_conversion_rules, Drift_Che
         )
 
-    def _convertKeyword_Cheetah(self, keyword: str) -> str:
+    def _convert_keyword_cheetah(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Cheetah keyword using predefined rules."""
         return self._convert_keyword(keyword, self.conversion_rules["cheetah"])
 
-    def _convertKeyword_Xsuite(self, keyword: str) -> str:
+    def _convert_keyword_xsuite(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Xsuite keyword using predefined rules."""
         return self._convert_keyword(keyword, self.conversion_rules["xsuite"])
 
-    def _convertKeyword_WakeT(self, keyword: str) -> str:
+    def _convert_keyword_wake_t(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Wake-T keyword using predefined rules."""
         return self._convert_keyword(
             keyword,
@@ -1002,24 +1023,24 @@ class BaseElementTranslator(PhysicalBaseElement):
             strip_prefixes=self._KEYWORD_STRIP_PREFIXES_WAKE_T,
         )
 
-    def _convertType_Opal(self, etype: str) -> str:
+    def _convert_type_opal(self, etype: str) -> str:
         """Converts the element type to the corresponding Opal type using predefined rules."""
-        return self._convert_type(etype, type_conversion_rules_Opal, etype)
+        return self._convert_type(etype, type_conversion_rules_opal, etype)
 
-    def _convertKeyword_Opal(self, keyword: str, updated_type: str = "") -> str:
+    def _convert_keyword_opal(self, keyword: str, updated_type: str = "") -> str:
         """Converts a keyword to its corresponding Opal keyword using predefined rules."""
         if updated_type.lower() in keyword_conversion_rules_opal:
             conversion_rules = (
                 keyword_conversion_rules_opal[updated_type.lower()]
                 | keyword_conversion_rules_opal["general"]
             )
-            element = elements_Opal[self._convertType_Opal(updated_type)]
+            element = elements_opal[self._convert_type_opal(updated_type)]
         else:
             conversion_rules = self.conversion_rules["opal"]
-            element = elements_Opal[self._convertType_Opal(self.hardware_type)]
+            element = elements_opal[self._convert_type_opal(self.hardware_type)]
         return self._convert_keyword(keyword, conversion_rules, element)
 
-    def _convertType_Madx(self, etype: str) -> str:
+    def _convert_type_madx(self, etype: str) -> str:
         """
         Converts the element type to the corresponding MAD-X type using predefined rules.
 
@@ -1034,12 +1055,12 @@ class BaseElementTranslator(PhysicalBaseElement):
             The converted type of the element, or the original type if no conversion rule exists.
         """
         return (
-            type_conversion_rules_Madx[etype]
-            if etype in type_conversion_rules_Madx
+            type_conversion_rules_madx[etype]
+            if etype in type_conversion_rules_madx
             else etype
         )
 
-    def _convertKeyword_Madx(self, keyword: str, updated_type: str = "") -> str:
+    def _convert_keyword_madx(self, keyword: str, updated_type: str = "") -> str:
         """
         Converts a keyword to its corresponding MAD-X keyword using predefined rules.
 
@@ -1059,10 +1080,10 @@ class BaseElementTranslator(PhysicalBaseElement):
                 keyword_conversion_rules_madx[updated_type.lower()]
                 | keyword_conversion_rules_madx["general"]
             )
-            element = elements_Madx[self._convertType_Madx(updated_type).lower()]
+            element = elements_madx[self._convert_type_madx(updated_type).lower()]
         else:
             conversion_rules = self.conversion_rules["madx"]
-            element = elements_Madx[self._convertType_Madx(self.hardware_type).lower()]
+            element = elements_madx[self._convert_type_madx(self.hardware_type).lower()]
         for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
             stripped = keyword.replace(strip, "")
             if stripped in conversion_rules:
@@ -1071,7 +1092,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 return stripped
         return keyword
 
-    def _write_ASTRA_dictionary(self, d: dict, n: int | None = 1) -> str:
+    def _write_astra_dictionary(self, d: dict, n: int | None = 1) -> str:
         """
         Generates a string representation of the object's properties in the ASTRA format.
 
@@ -1089,9 +1110,9 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         output = ""
         for k, v in list(d.items()):
-            if checkValue(self, v) is not None:
+            if check_value(self, v) is not None:
                 if "type" in v and v["type"] == "list":
-                    for i, l in enumerate(checkValue(self, v)):
+                    for i, l in enumerate(check_value(self, v)):
                         if n is not None:
                             param_string = (
                                 k
@@ -1113,34 +1134,34 @@ class BaseElementTranslator(PhysicalBaseElement):
                         param_string = k + "(" + str(n) + ") = ("
                     else:
                         param_string = k + " = ("
-                    for i, l in enumerate(checkValue(self, v)):
+                    for i, l in enumerate(check_value(self, v)):
                         param_string += str(l) + ", "
                         if len((output + param_string).splitlines()[-1]) > 70:
                             output += "\n"
                     output += param_string[:-2] + "),\n"
                 elif "type" in v and v["type"] == "not_zero":
-                    if abs(checkValue(self, v)) > 0:
+                    if abs(check_value(self, v)) > 0:
                         if n is not None:
                             param_string = (
                                 k
                                 + "("
                                 + str(n)
                                 + ") = "
-                                + str(checkValue(self, v))
+                                + str(check_value(self, v))
                                 + ", "
                             )
                         else:
-                            param_string = k + " = " + str(checkValue(self, v)) + ",\n"
+                            param_string = k + " = " + str(check_value(self, v)) + ",\n"
                         if len((output + param_string).splitlines()[-1]) > 70:
                             output += "\n"
                         output += param_string
                 else:
                     if n is not None:
                         param_string = (
-                            k + "(" + str(n) + ") = " + str(checkValue(self, v)) + ", "
+                            k + "(" + str(n) + ") = " + str(check_value(self, v)) + ", "
                         )
                     else:
-                        param_string = k + " = " + str(checkValue(self, v)) + ",\n"
+                        param_string = k + " = " + str(check_value(self, v)) + ",\n"
                     if len((output + param_string).splitlines()[-1]) > 70:
                         output += "\n"
                     output += param_string
@@ -1202,7 +1223,7 @@ class BaseElementTranslator(PhysicalBaseElement):
     def dz_rot(self) -> float:
         return self.physical.error.rotation.psi
 
-    def get_field_reference_position(self, if_none: str = 'start') -> np.ndarray:
+    def get_field_reference_position(self, if_none: str = "start") -> np.ndarray:
         """
         Returns the position of the field reference point based on the `field_reference_position` attribute.
 
@@ -1219,9 +1240,16 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         if self.simulation.field_reference_position is not None:
             try:
-                return np.array(list(getattr(
-                    self.physical, self.simulation.field_reference_position.lower()
-                ).model_dump().values()))
+                return np.array(
+                    list(
+                        getattr(
+                            self.physical,
+                            self.simulation.field_reference_position.lower(),
+                        )
+                        .model_dump()
+                        .values()
+                    )
+                )
             except AttributeError:
                 warn(
                     "field_reference_position should be (start/middle/end) not"
@@ -1230,9 +1258,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                 )
         else:
             try:
-                return np.array(list(getattr(
-                    self.physical, if_none.lower()
-                ).model_dump().values()))
+                return np.array(
+                    list(getattr(self.physical, if_none.lower()).model_dump().values())
+                )
             except AttributeError:
                 return np.array(list(self.physical.start.model_dump().values()))
         return np.array(list(self.physical.start.model_dump().values()))
@@ -1249,7 +1277,9 @@ class BaseElementTranslator(PhysicalBaseElement):
             ):
                 field_kwargs = {
                     "filename": expand_substitution(
-                        self, self.simulation.field_definition, self.master_lattice,
+                        self,
+                        self.simulation.field_definition,
+                        self.master_lattice,
                     ),
                     # "field_type": self.field_type,
                 }
@@ -1262,9 +1292,11 @@ class BaseElementTranslator(PhysicalBaseElement):
                         }
                     )
                 try:
-                    self.simulation.field_definition = field(**field_kwargs)
+                    self.simulation.field_definition = FieldMap(**field_kwargs)
                 except Exception as exc:
-                    raise Exception(f"Setting field definition on {self.name} failed: {field_kwargs}")
+                    raise Exception(
+                        f"Setting field definition on {self.name} failed: {field_kwargs}"
+                    )
             if (
                 hasattr(self.simulation, "wakefield_definition")
                 and self.simulation.wakefield_definition is not None
@@ -1279,29 +1311,33 @@ class BaseElementTranslator(PhysicalBaseElement):
                             {"structure_Type": self.cavity.structure_type}
                         )
                         cavity_type = (self.cavity.structure_type,)
-                    self.simulation.wakefield_definition = field(
+                    self.simulation.wakefield_definition = FieldMap(
                         filename=expand_substitution(
-                            self, self.simulation.wakefield_definition, self.master_lattice,
+                            self,
+                            self.simulation.wakefield_definition,
+                            self.master_lattice,
                         ),
                         # field_type=self.field_type,
                         n_cells=self.cavity.n_cells,
                         **additional,
                     )
                 else:
-                    self.simulation.wakefield_definition = field(
+                    self.simulation.wakefield_definition = FieldMap(
                         filename=expand_substitution(
-                            self, self.simulation.wakefield_definition, self.master_lattice,
+                            self,
+                            self.simulation.wakefield_definition,
+                            self.master_lattice,
                         ),
                     )
 
-    def generate_field_file_name(self, param: field, code: str) -> str | None:
+    def generate_field_file_name(self, param: FieldMap, code: str) -> str | None:
         """
         Generates a field file name based on the provided frameworkElement and tracking code.
 
         Parameters
         ----------
         param: field
-            The :class:`~laura.translator.utils.fields.field` object for which the field file is being generated.
+            The :class:`~laura.translator.utils.fields.FieldMap` object for which the field file is being generated.
         code: str
             The tracking code for which the field file is being generated (e.g., 'elegant', 'ocelot').
 

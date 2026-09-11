@@ -57,6 +57,14 @@ URI: [laura:ManufacturerElement](https://w3id.org/laura/ManufacturerElement)
 | [Element](Element.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [TwissMatch](TwissMatch.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [MatrixTransform](MatrixTransform.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [ElectrostaticSeparator](ElectrostaticSeparator.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [ACDipole](ACDipole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [HorizontalACDipole](HorizontalACDipole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [VerticalACDipole](VerticalACDipole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [Wire](Wire.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [BeamBeam](BeamBeam.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [RFMultipole](RFMultipole.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [Stage](Stage.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [VacuumGauge](VacuumGauge.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [Laser](Laser.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
@@ -71,6 +79,7 @@ URI: [laura:ManufacturerElement](https://w3id.org/laura/ManufacturerElement)
 | [Magnet](Magnet.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [RFCavity](RFCavity.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [RFDeflectingCavity](RFDeflectingCavity.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [CrabCavity](CrabCavity.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [Wakefield](Wakefield.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [LowLevelRF](LowLevelRF.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [RFModulator](RFModulator.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |

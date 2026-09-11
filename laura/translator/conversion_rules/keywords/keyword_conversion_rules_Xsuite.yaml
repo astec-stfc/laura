@@ -1,10 +1,10 @@
 general:
   entrance_edge_angle: edge_entry_angle
   exit_edge_angle: edge_exit_angle
-  edge_field_integral: fint
+  edge_field_integral_entrance: edge_entry_fint
+  edge_field_integral_exit: edge_exit_fint
   half_gap: hgap
   n_kicks: num_multipole_kicks
-  length: l
   isr_enable: radiation_flag
 rfcavity:
   phase: phase

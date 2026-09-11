@@ -13,7 +13,7 @@ import pytest
 pytest.importorskip("easygdf")
 pytest.importorskip("h5py")
 
-from laura.models.baseModels import (  # noqa: E402
+from laura.models.base_models import (  # noqa: E402
     set_functional_definitions,
     set_resolve_functional,
 )
@@ -48,7 +48,7 @@ def _quad(k1l):
 def _cavity(field_amplitude, phase=0.0, structure="StandingWave"):
     cav = RFCavity(
         name="C1", machine_area="L02",
-        cavity={"phase": phase, "structure_Type": structure},
+        cavity={"phase": phase, "structure_type": structure},
         simulation={"field_amplitude": field_amplitude},
     )
     return RFCavityTranslator.model_validate(cav.model_dump())
@@ -135,7 +135,7 @@ class TestDirectReadResolution:
 class TestCascadeToTranslators:
     def test_section_translator_carries_definitions(self, tmp_path):
         from laura.models.element import Quadrupole, Marker
-        from laura.models.elementList import MachineModel
+        from laura.models.element_list import MachineModel
         from laura.translator.converters.section import SectionLatticeTranslator
 
         f = tmp_path / "defs.yaml"
@@ -197,7 +197,7 @@ class TestXsuite:
 
     def _line(self, elements, defs, beam_length=1, resolve=False):
         pytest.importorskip("xtrack")
-        from laura.models.elementList import SectionLattice
+        from laura.models.element_list import SectionLattice
         from laura.translator.converters.section import SectionLatticeTranslator
 
         section = SectionLattice(
@@ -223,7 +223,7 @@ class TestXsuite:
         )
         c = RFCavity(
             name="C1", machine_area="S",
-            cavity={"phase": 0.0, "structure_Type": "StandingWave"},
+            cavity={"phase": 0.0, "structure_type": "StandingWave"},
             simulation={"field_amplitude": "Vcav"},
             physical=PhysicalElement(length=1.0, middle=Position(x=0, y=0, z=3.0)),
         )

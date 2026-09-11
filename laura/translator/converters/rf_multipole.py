@@ -1,6 +1,7 @@
-from .base import BaseElementTranslator
 from laura.models.simulation import RFMultipoleSimulationElement
+
 from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator
 
 
 class RFMultipoleTranslator(BaseElementTranslator):

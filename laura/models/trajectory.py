@@ -29,7 +29,7 @@ class Trajectory:
         rot_matrices: np.ndarray,
     ) -> None:
         self._s = np.asarray(s_vals, dtype=float)
-        self._pos = np.asarray(positions, dtype=float)   # (N, 3)
+        self._pos = np.asarray(positions, dtype=float)  # (N, 3)
         self._rots = np.asarray(rot_matrices, dtype=float)  # (N, 3, 3)
 
     # ── public interface ───────────────────────────────────────────────────────
@@ -41,6 +41,7 @@ class Trajectory:
         local beam direction outside the stored range.
         """
         from .physical import Position
+
         return Position.from_list(self._lerp_pos(float(s)).tolist())
 
     def rotation_at_s(self, s: float) -> np.ndarray:
@@ -58,16 +59,16 @@ class Trajectory:
         if n == 0:
             return np.zeros(3)
         if n == 1:
-            d = self._rots[0] @ np.array([0., 0., 1.])
+            d = self._rots[0] @ np.array([0.0, 0.0, 1.0])
             return self._pos[0] + d * (s - self._s[0])
 
         idx = int(np.searchsorted(self._s, s, side="right"))
 
         if idx == 0:
-            d = self._rots[0] @ np.array([0., 0., 1.])
+            d = self._rots[0] @ np.array([0.0, 0.0, 1.0])
             return self._pos[0] + d * (s - self._s[0])
         if idx >= n:
-            d = self._rots[-1] @ np.array([0., 0., 1.])
+            d = self._rots[-1] @ np.array([0.0, 0.0, 1.0])
             return self._pos[-1] + d * (s - self._s[-1])
 
         s0, p0 = self._s[idx - 1], self._pos[idx - 1]

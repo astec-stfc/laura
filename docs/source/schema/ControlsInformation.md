@@ -63,6 +63,14 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | [Element](Element.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [TwissMatch](TwissMatch.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [MatrixTransform](MatrixTransform.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [ElectrostaticSeparator](ElectrostaticSeparator.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [ACDipole](ACDipole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [HorizontalACDipole](HorizontalACDipole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [VerticalACDipole](VerticalACDipole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [Wire](Wire.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [BeamBeam](BeamBeam.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [RFMultipole](RFMultipole.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Stage](Stage.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [VacuumGauge](VacuumGauge.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Laser](Laser.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
@@ -77,6 +85,7 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | [Magnet](Magnet.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [RFCavity](RFCavity.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [RFDeflectingCavity](RFDeflectingCavity.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [CrabCavity](CrabCavity.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Wakefield](Wakefield.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [LowLevelRF](LowLevelRF.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [RFModulator](RFModulator.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |

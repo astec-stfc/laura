@@ -8,12 +8,12 @@ from copy import deepcopy
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from laura.laura import LAURA
-from laura.Importers.Magnet_Table import (
+from laura.importers.magnet_table import (
     add_magnet_table_parameters,
     magnet_table,
     magnet_table_filename,
 )
-from laura.Exporters.YAML import export_as_yaml
+from laura.exporters.yaml_exporter import export_as_yaml
 
 ZERO_LSC = "0,0,0,0,0,0,0"
 
@@ -176,7 +176,7 @@ def main():
                 "pandas is not installed. "
                 "Install with: pip install pandas"
             ) from _err
-        import laura.Importers.Magnet_Table as mt
+        import laura.importers.magnet_table as mt
 
         mt.magnet_table = pandas.read_excel(
             args.excel,

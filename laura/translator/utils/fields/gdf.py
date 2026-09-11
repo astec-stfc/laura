@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 import easygdf
 from warnings import warn
-from .FieldParameter import FieldParameter
+from .field_parameter import FieldParameter
 from ..units import UnitValue
 from laura.models.constants import speed_of_light
 
@@ -10,7 +10,7 @@ from laura.models.constants import speed_of_light
 def write_gdf_field_file(self) -> str:
     """
     Generate the field data in a format that is suitable for GPT, based on the
-    :class:`~laura.translator.utils.fields.field` object provided.
+    :class:`~laura.translator.utils.fields.FieldMap` object provided.
     This is then written to a GDF file.
     The `field_type` parameter determines the format of the file.
 
@@ -18,7 +18,7 @@ def write_gdf_field_file(self) -> str:
 
     Parameters
     ----------
-    self: :class:`~laura.translator.utils.fields.field`
+    self: :class:`~laura.translator.utils.fields.FieldMap`
         The field object
 
     Returns
@@ -90,20 +90,20 @@ def write_gdf_field_file(self) -> str:
             halfcell2[:, 1] /= max(halfcell2[:, 1])
             halfcell1end = halfcell1[-1, 0]
             zstep = zdata[1] - zdata[0]
-            lambdaRF = speed_of_light / self.frequency
+            lambda_rf = speed_of_light / self.frequency
             ncells = (self.n_cells - 1) * self.mode_numerator / self.mode_denominator
-            nsteps = int(np.floor((ncells) * lambdaRF / zstep))
-            middleRF = np.array(
+            nsteps = int(np.floor((ncells) * lambda_rf / zstep))
+            middle_rf = np.array(
                 [
                     [
                         (x * zstep + halfcell1end + zstep),
-                        np.cos((2 * np.pi / lambdaRF) * (x * zstep)),
+                        np.cos((2 * np.pi / lambda_rf) * (x * zstep)),
                     ]
                     for x in range(0, nsteps + 1)
                 ]
             )
-            halfcell2[:, 0] += middleRF[-1, 0] + zstep
-            zdata, ezdata = np.concatenate([halfcell1, middleRF, halfcell2]).transpose()
+            halfcell2[:, 0] += middle_rf[-1, 0] + zstep
+            zdata, ezdata = np.concatenate([halfcell1, middle_rf, halfcell2]).transpose()
         blocks = union(
             [
                 {"name": "z", "value": zdata},
@@ -153,11 +153,11 @@ def read_gdf_field_file(
     normalize_b: bool = True,
 ):
     """
-    Read a GDF field file and convert it into a :class:`SimulationFramework.Modules.Fields.field` object
+    Read a GDF field file and convert it into a :class:`SimulationFramework.Modules.Fields.FieldMap` object
 
     Parameters
     ----------
-    self: :class:`~SimulationFramework.Modules.Fields.field`
+    self: :class:`~SimulationFramework.Modules.Fields.FieldMap`
         The field object to be updated.
     filename: str
         The path to the GDF field file
@@ -219,7 +219,7 @@ def read_gdf_field_file(
         bzval = [k["value"] for k in fdat if k["name"].lower().capitalize() == "Bz"][0]
         # Normalise by the maximum *on-axis* Bz field
         if normalize_b:
-            normBz = max(
+            norm_bz = max(
                 [
                     abs(Bz)
                     for x, y, Bz in zip(xval, yval, bzval)
@@ -227,24 +227,24 @@ def read_gdf_field_file(
                 ]
             )
         else:
-            normBz = 1
+            norm_bz = 1
         setattr(self, "x", FieldParameter(name="x", value=UnitValue(xval, units="m")))
         setattr(self, "y", FieldParameter(name="y", value=UnitValue(yval, units="m")))
         setattr(self, "z", FieldParameter(name="z", value=UnitValue(zval, units="m")))
         setattr(
             self,
             "Bx",
-            FieldParameter(name="Bx", value=UnitValue(bxval / normBz, units="T")),
+            FieldParameter(name="Bx", value=UnitValue(bxval / norm_bz, units="T")),
         )
         setattr(
             self,
             "By",
-            FieldParameter(name="By", value=UnitValue(byval / normBz, units="T")),
+            FieldParameter(name="By", value=UnitValue(byval / norm_bz, units="T")),
         )
         setattr(
             self,
             "Bz",
-            FieldParameter(name="Bz", value=UnitValue(bzval / normBz, units="T")),
+            FieldParameter(name="Bz", value=UnitValue(bzval / norm_bz, units="T")),
         )
     elif field_type == "1DElectroDynamic":
         if cavity_type == "StandingWave":

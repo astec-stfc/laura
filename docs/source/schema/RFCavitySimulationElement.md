@@ -134,6 +134,7 @@ URI: [laura:RFCavitySimulationElement](https://w3id.org/laura/RFCavitySimulation
 | ---  | --- | --- | --- |
 | [RFCavity](RFCavity.md) | [simulation](simulation.md) | range | [RFCavitySimulationElement](RFCavitySimulationElement.md) |
 | [RFDeflectingCavity](RFDeflectingCavity.md) | [simulation](simulation.md) | range | [RFCavitySimulationElement](RFCavitySimulationElement.md) |
+| [CrabCavity](CrabCavity.md) | [simulation](simulation.md) | range | [RFCavitySimulationElement](RFCavitySimulationElement.md) |
 
 
 
@@ -323,6 +324,8 @@ attributes:
     domain_of:
     - MagnetSimulationElement
     - RFCavitySimulationElement
+    - ACDipoleSimulationElement
+    - RFMultipoleSimulationElement
     range: float
     required: true
     any_of:
@@ -486,6 +489,8 @@ attributes:
     domain_of:
     - MagnetSimulationElement
     - RFCavitySimulationElement
+    - ACDipoleSimulationElement
+    - RFMultipoleSimulationElement
     range: float
     required: true
     any_of:

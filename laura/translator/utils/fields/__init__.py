@@ -8,7 +8,7 @@ Functions are provided to read in existing files, and to write them in the forma
 required for specific codes.
 
 Classes:
-    - :class:`~laura.translator.utils.fields.field`: Generic field definition.
+    - :class:`~laura.translator.utils.fields.FieldMap`: Generic field definition.
     - :class:`~laura.translator.utils.fields.FieldParameter.FieldParameter`: Field parameter with a
       name and a :class:`~laura.translator.utils.units.UnitValue` associated with it.
 """
@@ -16,7 +16,7 @@ Classes:
 import os
 import warnings
 import numpy as np
-from .FieldParameter import FieldParameter
+from .field_parameter import FieldParameter
 from laura.models.constants import speed_of_light
 from pydantic import (
     BaseModel,
@@ -55,7 +55,7 @@ cavitytype = Literal[
 ]
 
 
-class field(BaseModel):
+class FieldMap(BaseModel):
     """
     Base class for representing electromagnetic fields, including RF structures, wakefields,
     and magnets.
@@ -187,12 +187,12 @@ class field(BaseModel):
         *args,
         **kwargs,
     ):
-        field.filename = filename
-        field.field_type = (field_type,)
-        field.frequency = (frequency,)
-        field.cavity_type = (cavity_type,)
+        FieldMap.filename = filename
+        FieldMap.field_type = (field_type,)
+        FieldMap.frequency = (frequency,)
+        FieldMap.cavity_type = (cavity_type,)
         super(
-            field,
+            FieldMap,
             self,
         ).__init__(
             filename=filename,
@@ -307,7 +307,7 @@ class field(BaseModel):
         """
         fext = os.path.splitext(os.path.basename(filename))[-1]
         if fext == ".hdf5":
-            hdf5.read_HDF5_field_file(self, filename)
+            hdf5.read_hdf5_field_file(self, filename)
         else:
             if fext.lower() in [".astra", ".dat"]:
                 # print('Field: read_field_file: astra', filename, fext.lower())
@@ -320,7 +320,7 @@ class field(BaseModel):
                 )
             elif fext.lower() in [".sdds"]:
                 # print('Field: read_field_file: SDDS', filename, fext.lower())
-                sdds.read_SDDS_field_file(self, filename, field_type=field_type)
+                sdds.read_sdds_field_file(self, filename, field_type=field_type)
             elif fext.lower() in [".gdf"]:
                 # print('Field: read_field_file: GPT', filename, fext.lower())
                 gdf.read_gdf_field_file(
@@ -435,7 +435,7 @@ class field(BaseModel):
         if code.lower() in ["astra", "ocelot"]:
             return astra.write_astra_field_file(self)
         elif code.lower() in ["sdds", "elegant"]:
-            return sdds.write_SDDS_field_file(self)
+            return sdds.write_sdds_field_file(self)
         elif code.lower() in ["gdf", "gpt"]:
             return gdf.write_gdf_field_file(self)
         elif code.lower() == "opal":
@@ -447,4 +447,15 @@ class field(BaseModel):
                 orientation=self.orientation,
             )
         elif code.lower() == "hdf5":
-            return hdf5.write_HDF5_field_file(self)
+            return hdf5.write_hdf5_field_file(self)
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "field": "FieldMap",
+    },
+)

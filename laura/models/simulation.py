@@ -1,30 +1,28 @@
-from pydantic import (
-    computed_field,
-    field_validator,
-    Field
-)
-from typing import Literal, Any, ClassVar, Union, Dict, List
-from .baseModels import IgnoreExtra, FunctionalMixin
-from ._generated import (
-    _ApertureElementBase,
-    _SimulationElementBase,
-    _MagnetSimulationElementBase,
-    _RFCavitySimulationElementBase,
-    _WakefieldSimulationElementBase,
-    _DriftSimulationElementBase,
-    _DiagnosticSimulationElementBase,
-    _PlasmaSimulationElementBase,
-    _TwissMatchSimulationElementBase,
-    _MatrixTransformSimulationElementBase,
-    _ElectrostaticSeparatorSimulationElementBase,
-    _ACDipoleSimulationElementBase,
-    _WireSimulationElementBase,
-    _BeamBeamSimulationElementBase,
-    _RFMultipoleSimulationElementBase,
-)
-from ..translator.utils.fields import field
-import numpy as np
 import re
+from typing import Any, ClassVar, Dict, List, Literal, Union
+
+import numpy as np
+from pydantic import Field, computed_field, field_validator
+
+from ..translator.utils.fields import FieldMap
+from ._generated import (
+    _ACDipoleSimulationElementBase,
+    _ApertureElementBase,
+    _BeamBeamSimulationElementBase,
+    _DiagnosticSimulationElementBase,
+    _DriftSimulationElementBase,
+    _ElectrostaticSeparatorSimulationElementBase,
+    _MagnetSimulationElementBase,
+    _MatrixTransformSimulationElementBase,
+    _PlasmaSimulationElementBase,
+    _RFCavitySimulationElementBase,
+    _RFMultipoleSimulationElementBase,
+    _SimulationElementBase,
+    _TwissMatchSimulationElementBase,
+    _WakefieldSimulationElementBase,
+    _WireSimulationElementBase,
+)
+from .base_models import FunctionalMixin, IgnoreExtra
 
 
 class ApertureElement(_ApertureElementBase):
@@ -38,10 +36,6 @@ class SimulationElement(_SimulationElementBase, FunctionalMixin):
     Simulation element model.
     """
 
-    # Everything else PR #4 declared here (field_definition, wakefield_definition,
-    # field_reference_position, scale_field) now comes from the generated schema
-    # base. wakefield_enable does not yet exist in the schema, so it stays an
-    # explicit override until it is added to laura_schema.yaml.
     wakefield_enable: bool = True
     """Flag to indicate whether the wakefield defined by
     :attr:`~wakefield_definition` is applied. Set to False to track the element
@@ -53,12 +47,10 @@ class MagnetSimulationElement(_MagnetSimulationElementBase, FunctionalMixin):
     Magnet simulation element model.
     """
 
-    field_definition: str | field | None = None
-    # Schema declares `smooth` as boolean but ASTRA uses an integer smoothing count (Q_smooth / S_smooth).
+    field_definition: str | FieldMap | None = None
+
     smooth: int | None = 2
 
-    # Schema types this as plain float; widened to accept the name of a
-    # functional definition, and marked so functional_references() finds it.
     field_amplitude: Union[float, str] = Field(
         default=0.0, json_schema_extra={"functional": True}
     )
@@ -109,11 +101,9 @@ class RFCavitySimulationElement(_RFCavitySimulationElementBase, FunctionalMixin)
     RF cavity simulation element model.
     """
 
-    field_definition: str | field | None = None
-    wakefield_definition: str | field | None = None
+    field_definition: str | FieldMap | None = None
+    wakefield_definition: str | FieldMap | None = None
 
-    # Schema types this as plain float; widened to accept the name of a
-    # functional definition, and marked so functional_references() finds it.
     field_amplitude: Union[float, str] = Field(
         default=0.0, json_schema_extra={"functional": True}
     )
@@ -126,7 +116,7 @@ class WakefieldSimulationElement(_WakefieldSimulationElementBase):
     Wakefield simulation element model.
     """
 
-    wakefield_definition: str | field | None = None
+    wakefield_definition: str | FieldMap | None = None
 
     pass
 
@@ -140,38 +130,38 @@ class TwissMatchSimulationElement(_TwissMatchSimulationElementBase):
         bx = np.sqrt(self.beta_x)
         by = np.sqrt(self.beta_y)
 
-        R = np.eye(6)
+        r = np.eye(6)
 
         # x-plane CS transform
-        R[0, 0] = bx
-        R[0, 5] = self.eta_x
+        r[0, 0] = bx
+        r[0, 5] = self.eta_x
 
-        R[1, 0] = -self.alpha_x / bx
-        R[1, 1] = 1.0 / bx
-        R[1, 5] = self.eta_xp
+        r[1, 0] = -self.alpha_x / bx
+        r[1, 1] = 1.0 / bx
+        r[1, 5] = self.eta_xp
 
         # y-plane CS transform
-        R[2, 2] = by
-        R[2, 5] = self.eta_y
+        r[2, 2] = by
+        r[2, 5] = self.eta_y
 
-        R[3, 2] = -self.alpha_y / by
-        R[3, 3] = 1.0 / by
-        R[3, 5] = self.eta_yp
+        r[3, 2] = -self.alpha_y / by
+        r[3, 3] = 1.0 / by
+        r[3, 5] = self.eta_yp
 
         # z, δ untouched
-        R[4, 4] = 1.0
-        R[5, 5] = 1.0
+        r[4, 4] = 1.0
+        r[5, 5] = 1.0
 
-        return R
+        return r
 
     @computed_field
     @property
     def r_matrix_7x7(self) -> np.ndarray:
         n = self.r_matrix.shape[0]
-        B = np.zeros((n + 1, n + 1))
-        B[:n, :n] = self.r_matrix
-        B[n, n] = 1
-        return B
+        augmented = np.zeros((n + 1, n + 1))
+        augmented[:n, :n] = self.r_matrix
+        augmented[n, n] = 1
+        return augmented
 
 
 class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
@@ -291,10 +281,10 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
     @property
     def r_matrix_7x7(self) -> np.ndarray:
         n = self.r_matrix.shape[0]
-        B = np.zeros((n + 1, n + 1))
-        B[:n, :n] = self.r_matrix
-        B[n, n] = 1
-        return B
+        augmented = np.zeros((n + 1, n + 1))
+        augmented[:n, :n] = self.r_matrix
+        augmented[n, n] = 1
+        return augmented
 
 
 class ElectrostaticSeparatorSimulationElement(_ElectrostaticSeparatorSimulationElementBase):

@@ -1,56 +1,56 @@
-from typing import List, Dict
+from typing import Dict, List
 
 from laura.models.element import (
-    Element,
-    Magnet,
-    Solenoid,
+    ACDipole,
+    Aperture,
+    BeamBeam,
+    CombinedCorrector,
+    CrabCavity,
+    Diagnostic,
     Dipole,
+    Drift,
+    ElectrostaticSeparator,
+    Element,
+    HorizontalCorrector,
+    Laser,
+    Magnet,
+    Marker,
+    MatrixTransform,
+    NonLinearLens,
+    Plasma,
     RFCavity,
     RFDeflectingCavity,
-    CrabCavity,
-    Drift,
-    Aperture,
-    Diagnostic,
-    Marker,
-    Plasma,
-    Laser,
-    Wiggler,
-    Combined_Corrector,
-    Horizontal_Corrector,
-    Vertical_Corrector,
-    NonLinearLens,
-    TwissMatch,
-    Screen,
-    MatrixTransform,
-    ElectrostaticSeparator,
-    ACDipole,
-    Wire,
-    BeamBeam,
     RFMultipole,
+    Screen,
+    Solenoid,
+    TwissMatch,
+    VerticalCorrector,
+    Wiggler,
+    Wire,
 )
 
-from .base import BaseElementTranslator
-from .magnet import (
-    MagnetTranslator,
-    SolenoidTranslator,
-    DipoleTranslator,
-    WigglerTranslator,
-    NonLinearLensTranslator,
-    CorrectorTranslator,
-)
-from .cavity import RFCavityTranslator
-from .drift import DriftTranslator
-from .diagnostic import DiagnosticTranslator
-from .aperture import ApertureTranslator
-from .plasma import PlasmaTranslator
-from .laser import LaserTranslator
-from .twiss import TwissMatchTranslator
-from .matrix import MatrixTransformTranslator
-from .electrostatic_separator import ElectrostaticSeparatorTranslator
 from .ac_dipole import ACDipoleTranslator
-from .wire import WireTranslator
+from .aperture import ApertureTranslator
+from .base import BaseElementTranslator
 from .beam_beam import BeamBeamTranslator
+from .cavity import RFCavityTranslator
+from .diagnostic import DiagnosticTranslator
+from .drift import DriftTranslator
+from .electrostatic_separator import ElectrostaticSeparatorTranslator
+from .laser import LaserTranslator
+from .magnet import (
+    CorrectorTranslator,
+    DipoleTranslator,
+    MagnetTranslator,
+    NonLinearLensTranslator,
+    SolenoidTranslator,
+    WigglerTranslator,
+)
+from .matrix import MatrixTransformTranslator
+from .plasma import PlasmaTranslator
 from .rf_multipole import RFMultipoleTranslator
+from .twiss import TwissMatchTranslator
+from .wire import WireTranslator
 
 
 def translate_elements(
@@ -82,9 +82,9 @@ def translate_elements(
             if isinstance(elem, Solenoid):
                 translator = SolenoidTranslator
             elif type(elem) in [
-                Combined_Corrector,
-                Horizontal_Corrector,
-                Vertical_Corrector,
+                CombinedCorrector,
+                HorizontalCorrector,
+                VerticalCorrector,
             ]:
                 translator = CorrectorTranslator
             elif isinstance(elem, Dipole):
@@ -99,7 +99,11 @@ def translate_elements(
             translator = RFCavityTranslator
         elif isinstance(elem, Drift):
             translator = DriftTranslator
-        elif isinstance(elem, Diagnostic) or isinstance(elem, Marker) or isinstance(elem, Screen):
+        elif (
+            isinstance(elem, Diagnostic)
+            or isinstance(elem, Marker)
+            or isinstance(elem, Screen)
+        ):
             translator = DiagnosticTranslator
         elif isinstance(elem, Aperture):
             translator = ApertureTranslator
@@ -124,9 +128,13 @@ def translate_elements(
         else:
             translator = BaseElementTranslator
         try:
-            elem_dict.update({elem.name: translator.model_validate(elem.model_dump(by_alias=False))})
+            elem_dict.update(
+                {elem.name: translator.model_validate(elem.model_dump(by_alias=False))}
+            )
         except Exception as exc:
-            raise Exception(f"Element {elem.name} failed validation: {elem.model_dump().keys()}")
+            raise Exception(
+                f"Element {elem.name} failed validation: {elem.model_dump().keys()}"
+            )
         elem_dict[elem.name].master_lattice = master_lattice
         elem_dict[elem.name].directory = directory
     return elem_dict

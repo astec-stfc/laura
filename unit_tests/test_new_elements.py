@@ -11,8 +11,8 @@ pytest.importorskip("h5py")
 
 from laura.models.element import (  # noqa: E402
     ElectrostaticSeparator,
-    Horizontal_AC_Dipole,
-    Vertical_AC_Dipole,
+    HorizontalACDipole,
+    VerticalACDipole,
     Wire,
     BeamBeam,
     RFMultipole,
@@ -24,7 +24,7 @@ from laura.models.element import (  # noqa: E402
     Collimator,
     Marker,
 )
-from laura.models.elementList import SectionLattice, MachineModel  # noqa: E402
+from laura.models.element_list import SectionLattice, MachineModel  # noqa: E402
 from laura.translator.converters.converter import translate_elements  # noqa: E402
 from laura.translator.converters.section import SectionLatticeTranslator  # noqa: E402
 from laura.translator.converters.model import MachineModelTranslator  # noqa: E402
@@ -55,11 +55,11 @@ class TestElectrostaticSeparator:
 
 class TestACDipole:
     def test_madx_horizontal_and_vertical(self):
-        hac = Horizontal_AC_Dipole(
+        hac = HorizontalACDipole(
             name="hac1", machine_area="S",
             simulation={"field_amplitude": 1e6, "frequency": 1e5, "phase": 0.0, "ramp": [1, 2, 3, 4]},
         )
-        vac = Vertical_AC_Dipole(
+        vac = VerticalACDipole(
             name="vac1", machine_area="S", simulation={"field_amplitude": 2e6, "frequency": 2e5},
         )
         d = translate_elements([hac, vac])
@@ -74,7 +74,7 @@ class TestACDipole:
     def test_madx_parses(self):
         pytest.importorskip("cpymad")
         from cpymad.madx import Madx
-        hac = Horizontal_AC_Dipole(
+        hac = HorizontalACDipole(
             name="hac1", machine_area="S", simulation={"field_amplitude": 1e6, "frequency": 1e5},
         )
         madx = Madx(stdout=False)
@@ -83,10 +83,10 @@ class TestACDipole:
 
     def test_xsuite(self):
         pytest.importorskip("xtrack")
-        hac = Horizontal_AC_Dipole(
+        hac = HorizontalACDipole(
             name="hac1", machine_area="S", simulation={"field_amplitude": 1e3, "frequency": 1e5},
         )
-        vac = Vertical_AC_Dipole(
+        vac = VerticalACDipole(
             name="vac1", machine_area="S", simulation={"field_amplitude": 1e3, "frequency": 1e5},
         )
         d = translate_elements([hac, vac])
@@ -99,7 +99,7 @@ class TestACDipole:
 
     def test_xsuite_revolution_frequency_conversion(self):
         pytest.importorskip("xtrack")
-        hac = Horizontal_AC_Dipole(
+        hac = HorizontalACDipole(
             name="hac1", machine_area="S", simulation={"field_amplitude": 1e3, "frequency": 1e5},
         )
         translator = translate_elements([hac])["hac1"]
@@ -119,7 +119,7 @@ class TestRevolutionFrequencyCascade:
     down to child sections/layouts that don't define their own."""
 
     def _lattice(self, revolution_frequency=None):
-        hac = Horizontal_AC_Dipole(
+        hac = HorizontalACDipole(
             name="hac1", machine_area="S1", simulation={"field_amplitude": 1e3, "frequency": 1e5},
         )
         m = Marker(name="m1", machine_area="S1", hardware_class="Marker")

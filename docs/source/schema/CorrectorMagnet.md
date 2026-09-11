@@ -147,6 +147,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.0)
     domain_of:
+    - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
     range: float
@@ -216,6 +217,7 @@ attributes:
     ifabsent: float(0.0)
     owner: Corrector_Magnet
     domain_of:
+    - ElectrostaticSeparatorSimulationElement
     - MagneticElement
     - Corrector_Magnet
     range: float

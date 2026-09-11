@@ -85,10 +85,6 @@ classes:
       smooth:
         range: integer
         description: Number of smoothing passes applied to the field map (ASTRA Q_smooth / S_smooth).
-      edge_field_integral:
-        range: float
-        description: Fringe-field integral for edge focussing.
-        ifabsent: float(0.5)
       edge1_effects:
         range: boolean
         description: Enable entrance-edge focussing effects.

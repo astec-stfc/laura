@@ -1,7 +1,8 @@
-from .base import BaseElementTranslator
-from laura.models.simulation import BeamBeamSimulationElement
 from laura.models.constants import elementary_charge
+from laura.models.simulation import BeamBeamSimulationElement
+
 from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator
 
 
 class BeamBeamTranslator(BaseElementTranslator):

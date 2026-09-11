@@ -4,29 +4,40 @@ LAURA Main Module
 The main class for handling a full particle accelerator lattice.
 """
 
+import glob
 import logging
 import os
-import glob
 import types
-from math import copysign
 from itertools import chain
-from typing import List, Dict, Any
+from math import copysign
+from typing import Any, Dict, List
+
+import numpy as np
 from pydantic import field_validator, model_validator
 from yaml.constructor import Constructor
 
 _log = logging.getLogger("laura.machine")
 
+from ._compat import DeprecatedMethodAliases
 from .models.physical import PhysicalElement, Position
-from .models.elementList import MachineModel, baseElement, dot, chunks
+from .models.element_list import MachineModel, BaseElement, dot, chunks
 from .models.element import Drift
-from .Importers.YAML_Loader import (
-    read_YAML_Combined_File,
-    read_YAML_Element_File,
+from .importers.yaml_loader import (
+    read_yaml_combined_file,
+    read_yaml_element_file,
     LazyElementDict,
     fast_get_element_metadata,
 )
-import numpy as np
-import time
+
+NON_ELEMENT_FILENAMES = {"summary.yaml", "summary.yml"}
+"""Files to ignore when scanning an ``element_list`` directory. ``summary.yaml`` is an
+aggregate of every element in the machine, not a single-element file, so treating it as
+one invents a bogus element -- and it cannot be recognised by content, because
+:func:`~laura.Importers.YAML_Loader.fast_get_element_metadata` reads only the first 2000
+characters and most real element files declare ``name:`` after that (falling back to the
+filename), so a summary would simply be named after its file."""
+
+
 
 def flatten(xss):
     """Flatten a list of lists."""
@@ -58,14 +69,19 @@ def _lattice_root(lattice: Any) -> str | None:
 Constructor.add_constructor("tag:yaml.org,2002:bool", add_bool)
 
 
-class LAURA(MachineModel):
+class LAURA(DeprecatedMethodAliases, MachineModel):
     """
     LAURA Main Class
 
     The main class for handling a full particle accelerator lattice.
     """
 
-    element_list: str | List[baseElement]
+    _DEPRECATED_METHOD_ALIASES = {
+        "createDrifts": "create_drifts",
+    }
+    """Legacy names which are served by a ``FutureWarning``"""
+
+    element_list: str | List[BaseElement]
     """List containing all elements in the machine model, either as a path to a YAML file/directory 
     or as a list of element objects."""
 
@@ -104,6 +120,7 @@ class LAURA(MachineModel):
                 "with 'layout', 'section', and 'element_list' attributes"
             )
         return data
+
     """List of top-level keys to exclude when reading YAML files"""
 
     @field_validator("element_list", mode="before")
@@ -119,19 +136,17 @@ class LAURA(MachineModel):
             elif os.path.isdir(os.path.abspath(os.path.dirname(__file__) + "/" + v)):
                 return os.path.abspath(os.path.dirname(__file__) + "/" + v)
             else:
-                # Not resolvable relative to the cwd or the laura package;
-                # defer to model_post_init, which resolves the path relative
-                # to master_lattice (the environment-independent anchor the
-                # framework always supplies). Raising here would break any
-                # environment where laura is not installed beside the lattice
-                # files (e.g. laura in site-packages during testing).
                 return v
         else:
             return v
 
     def model_post_init(self, __context):
         el_list = self.element_list
-        if isinstance(el_list, str) and not os.path.exists(el_list) and self.master_lattice:
+        if (
+            isinstance(el_list, str)
+            and not os.path.exists(el_list)
+            and self.master_lattice
+        ):
             candidate = os.path.join(self.master_lattice, el_list)
             if os.path.exists(candidate):
                 el_list = candidate
@@ -148,34 +163,42 @@ class LAURA(MachineModel):
 
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
-                elems = read_YAML_Combined_File(el_list)
-                values = {y.name: y for y in elems if hasattr(y, 'name')}
+                elems = read_yaml_combined_file(el_list)
+                values = {y.name: y for y in elems if hasattr(y, "name")}
                 self.elements.update(values)
             elif os.path.isdir(el_list):
                 files = glob.glob(
                     os.path.abspath(el_list + "/**/*.yaml"), recursive=True
                 )
-                # Underscore-prefixed files (e.g. `_schema.yaml`, a shared
-                # `controls->schema` template) are auxiliary, not elements.
-                files = [f for f in files if not os.path.basename(f).startswith("_")]
+                files = [
+                    f
+                    for f in files
+                    if os.path.basename(f).lower() not in NON_ELEMENT_FILENAMES
+                ]
                 filenames = {}
                 for fn in files:
                     meta = fast_get_element_metadata(fn)
                     filenames[meta["name"]] = fn
                 # Create lazy dict instead of loading all!
                 if not self.eager_mode:
-                    self.elements = LazyElementDict(filenames, exclude_keys=self.exclude_keys)
+                    self.elements = LazyElementDict(
+                        filenames, exclude_keys=self.exclude_keys
+                    )
                 else:
-                    elems = [read_YAML_Element_File(fn, exclude_keys=self.exclude_keys) for fn in files]
-                    self.elements.update({y.name: y for y in elems if isinstance(y, baseElement)})
+                    elems = [
+                        read_yaml_element_file(fn, exclude_keys=self.exclude_keys)
+                        for fn in files
+                    ]
+                    self.elements.update(
+                        {y.name: y for y in elems if isinstance(y, BaseElement)}
+                    )
         elif el_list:
-            values = {y.name: y for y in el_list if hasattr(y, 'name')}
+            values = {y.name: y for y in el_list if hasattr(y, "name")}
             self.elements.update(values)
 
-        # Call super after populating elements so _build_layouts can work
         super().model_post_init(__context)
 
-    def createDrifts(
+    def create_drifts(
         self, end: str = None, start: str = None, path: str = None
     ) -> Dict:
         """
@@ -198,9 +221,6 @@ class LAURA(MachineModel):
         for name in elements:
             elem = self.elements[name]
             if elem.is_subelement():
-                # Co-located with another element (e.g. a solenoid wrapped
-                # around a cavity) -- excluded from s/drift calculations,
-                # matching MachineLayout.createDrifts in elementList.py.
                 continue
             originalelements[name] = elem
             pos = elem.physical.start.array
@@ -221,7 +241,9 @@ class LAURA(MachineModel):
                     length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
                     vector = dot((d[1] - d[0]), [0, 0, 1])
                 except Exception as exc:
-                    _log.error("Drift calculation error near element '%s': %s", e[0], exc)
+                    _log.error(
+                        "Drift calculation error near element '%s': %s", e[0], exc
+                    )
                     _log.debug("Position data: %s", d)
                     raise exc
                 if round(length, 6) > 0:
@@ -270,7 +292,7 @@ class LAURA(MachineModel):
         :param path: Name of the lattice path to use
         :return: Dictionary of element names and their s positions
         """
-        elements = self.createDrifts(start=start, end=end, path=path)
+        elements = self.create_drifts(start=start, end=end, path=path)
         start_and_end = [
             [name, elem.physical.length, elem.hardware_type == "Drift"]
             for name, elem in elements.items()
@@ -281,13 +303,6 @@ class LAURA(MachineModel):
             s_pos += l
             if not drift:
                 elem_s[elem] = round(s_pos, 6)
-                # A combined corrector is placed as a single physical element,
-                # but get_horizontal_correctors()/get_vertical_correctors()
-                # hand back the names of its individual H/V sub-elements
-                # (separate control PVs at the same location) instead of the
-                # combined corrector's own name. Those sub-names never appear
-                # in the path's element list, so give them the parent's
-                # s-position too.
                 original = self.elements.get(elem)
                 for sub_attr in ("Horizontal_Corrector", "Vertical_Corrector"):
                     sub_name = getattr(original, sub_attr, None)

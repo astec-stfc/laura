@@ -16,11 +16,11 @@ try:
     from xtrack.beam_elements import SecondOrderTaylorMap as SecondOrderTaylorMap_xs
     from xtrack.beam_elements import CrabCavity as CrabCavity_xs
     from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
+
     _XSUITE_AVAILABLE = True
 except ImportError as _err:
     raise ImportError(
-        "xsuite is not installed. "
-        "Install with: pip install \"laura-accelerator[xsuite]\""
+        'xsuite is not installed. Install with: pip install "laura-accelerator[xsuite]"'
     ) from _err
 
 from laura.models.element import (

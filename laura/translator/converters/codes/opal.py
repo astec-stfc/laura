@@ -1,5 +1,10 @@
+from typing import Any, Dict, List, Literal
+from warnings import warn
+
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Dict, List, Any, Literal
+
+from laura._compat import DeprecatedMethodAliases
+
 from ...utils.classes import get_grid_size
 
 opal_unsupported = [
@@ -14,7 +19,7 @@ opal_unsupported = [
     "CrabCavity",
 ]
 
-class opal_header(BaseModel):
+class OpalHeader(DeprecatedMethodAliases, BaseModel):
     """
     Generic class for generating OPAL namelists
 
@@ -22,6 +27,10 @@ class opal_header(BaseModel):
 
     .. _OPAL manual: https://amas.web.psi.ch/opal/Documentation/master/OPAL_Manual.html
     """
+
+    _DEPRECATED_METHOD_ALIASES = {
+        "write_Opal": "write_opal",
+    }
 
     model_config = ConfigDict(
         extra="allow",
@@ -56,7 +65,7 @@ class opal_header(BaseModel):
     )
     """String used for separating headers in the input file"""
 
-    def write_Opal(self) -> str:
+    def write_opal(self) -> str:
         """
         Write the text for the Opal namelist based on its attributes.
 
@@ -82,7 +91,7 @@ class opal_header(BaseModel):
         return output
 
 
-class opal_option(opal_header):
+class OpalOption(OpalHeader):
     """
     Class for generating the OPTION namelist for OPAL. See `OPAL manual`_ for more details.
     """
@@ -275,7 +284,7 @@ class opal_option(opal_header):
     """Defines after how many time steps we dump statistical data, such as RMS beam emittance, to the .stat file. 
     Its default value is 10."""
 
-    def write_Opal(self) -> str:
+    def write_opal(self) -> str:
         """
         Write the text for the Opal namelist based on its attributes.
 
@@ -291,7 +300,7 @@ class opal_option(opal_header):
         return output
 
 
-class opal_distribution(opal_header):
+class OpalDistribution(OpalHeader):
     """
     Class for generating the OPTION namelist for OPAL. See `OPAL manual`_ for more details.
 
@@ -311,18 +320,56 @@ class opal_distribution(opal_header):
 
     input_particle_definition: str
 
-    def model_post_init(self, context: Any, /) -> None:
-        self.opaldict = {"input_particle_definition": "FNAME"}
+    emitted: bool = None
+    """If True, the distribution is emitted from a cathode: the longitudinal
+    column of the input file is read as an emission *time* rather than a
+    position, and particles are released over the emission window. SIMBA's
+    :func:`~simba.Modules.Beams.opal.write_opal_beam_file` already writes times
+    in that column when emitting from a cathode, so this must be set to match --
+    otherwise OPAL reads the times (of order 1e-12) as metres and the bunch
+    collapses to a point."""
 
-    def write_Opal(self) -> str:
+    emission_model: str = None
+    """Emission model used at the cathode (e.g. ``ASTRA``, ``NONE``,
+    ``NONEQUIL``). Only meaningful when :attr:`~emitted` is True."""
+
+    emission_steps: int = None
+    """Number of steps used to emit the bunch from the cathode."""
+
+    n_bins: int = None
+    """Number of energy bins used while the bunch is being emitted."""
+
+    emission_time: float = None
+    """Length of the emission window in seconds. Only meaningful when
+    :attr:`~emitted` is True."""
+
+    def model_post_init(self, context: Any, /) -> None:
+        self.opaldict = {
+            "input_particle_definition": "FNAME",
+            "emitted": "EMITTED",
+            "emission_model": "EMISSIONMODEL",
+            "emission_steps": "EMISSIONSTEPS",
+            "n_bins": "NBIN",
+            "emission_time": "TEMISSION",
+        }
+
+    raw_block: str | None = None
+    """A complete, pre-rendered ``DISTRIBUTION`` block to emit verbatim instead
+    of the ``FROMFILE`` form. Used when the bunch is generated natively by OPAL
+    from the cathode, where the distribution is described by the generator's own
+    parameters rather than an imported particle file."""
+
+    def write_opal(self) -> str:
+        if self.raw_block:
+            return f"{self.breakstr}\n{self.raw_block}"
         if not self.input_particle_definition:
             raise ValueError(
                 "input_particle_definition must be defined for opal_distribution"
             )
-        return super().write_Opal()
+        return super().write_opal()
 
 
-class opal_fieldsolver(opal_header):
+class OpalFieldSolver(OpalHeader):
     """
     Class for generating the FIELDSOLVER namelist for OPAL. See `OPAL manual`_ for more details.
 
@@ -347,6 +394,19 @@ class opal_fieldsolver(opal_header):
     sample_interval: int = 1
     """Downsampling interval calculated as 2 ** (3 * sample_interval)"""
 
+    MIN_PARTICLES_PER_CELL: int = 8
+    """Fewest particles per space-charge cell the automatic mesh may produce.
+    Eight matches the mesh at which the CLARA benchmark stopped improving (16^3
+    at 32768 particles gave 2.07x ASTRA against 2.05x at 32^3, for an eighth of
+    the cells) and keeps ``grid**3`` safely below the particle count."""
+
+    grid_size_override: int | tuple[int, int, int] | list | None = None
+    """Explicit space-charge mesh size, replacing the automatic particle-count
+    heuristic in :func:`~grid_size`. A single value is applied to all three
+    dimensions; a ``(MX, MY, MT)`` triple sets them independently, which is
+    what a bunch with a strong aspect ratio needs -- near the cathode it is a
+    thin pancake, so the longitudinal mesh is the one that has to be fine."""
+
     FSTYPE: Literal["FFT", "FFTPERIODIC", "SAAMG", "P3M", "NONE"] = "FFT"
     """Specify the type of field solver: FFT, FFTPERIODIC, SAAMG, P3M and NONE. 
     Further arguments are enabled with the AMR solver (cf. Adaptive Mesh Refinement (AMR) Solver)."""
@@ -360,13 +420,13 @@ class opal_fieldsolver(opal_header):
     PARFFTT: bool = True
     """If TRUE, the dimension t is distributed among the processors"""
 
-    MX: int = None
+    MX: int | None = None
     """Number of grid points in x specifying rectangular grid"""
 
-    MY: int = None
+    MY: int | None = None
     """Number of grid points in y specifying rectangular grid"""
 
-    MT: int = None
+    MT: int | None = None
     """Number of grid points in t specifying rectangular grid"""
 
     BCFFTX: str = "open"
@@ -381,34 +441,62 @@ class opal_fieldsolver(opal_header):
     GREENSF: str = "Integrated"
     """Defines the Greens function for the FFT-based solvers (FFT + P3M only)."""
 
-    BBOXINCR: float = None
+    BBOXINCR: float | None = None
     """Enlargement of the bounding box in %."""
 
-    ITSOLVER: str = None
+    ITSOLVER: str | None = None
     """Type of iterative solver (SAAMG + AMR_MG only)."""
 
-    RC: float = None
+    RC: float | None = None
     """Defines the cut-off radius in the boosted frame for the P3M solver (P3M only)."""
 
-    ALPHA: float = None
+    ALPHA: float | None = None
     """Defines the interaction splitting parameter for the P3M solver with standard Green’s function 
     (P3M + GREENSF=STANDARD only)."""
 
     def model_post_init(self, context: Any, /) -> None:
         self.opaldict = {"input_particle_definition": "FNAME"}
-        self.exclude.extend(["npart", "space_charge_mode", "sample_interval"])
-        self.MX = self.grid_size
-        self.MY = self.grid_size
-        self.MT = self.grid_size
+        self.exclude.extend(
+            ["npart", "space_charge_mode", "grids", "sample_interval",
+             "grid_size_override", "MIN_PARTICLES_PER_CELL"]
+        )
+        if isinstance(self.grid_size_override, (tuple, list)):
+            self.MX, self.MY, self.MT = (int(v) for v in self.grid_size_override)
+        else:
+            self.MX = self.MY = self.MT = self.grid_size
+        self.apply_space_charge_mode()
+
+    def apply_space_charge_mode(self) -> None:
+        """
+        Translate the requested space-charge mode into an OPAL ``FSTYPE``.
+
+        OPAL's solvers are all three-dimensional (``FFT``, ``FFTBOX``, ``SAAMG``,
+        ``P3M``, ...) -- there is no cylindrical/2D solver of the kind ASTRA
+        uses, so a ``2D`` request is honoured with the 3D FFT solver and a
+        warning, rather than being silently dropped as it was before.
+        An explicitly disabled mode selects ``FSTYPE = NONE``.
+        """
+        mode = str(self.space_charge_mode or "").strip().lower()
+        if mode in ("false", "off", "0", "no", "none_"):
+            self.FSTYPE = "NONE"
+        elif mode == "2d":
+            warn(
+                "OPAL has no 2D/cylindrical space-charge solver; the 2D request "
+                "is being run with the 3D FFT solver, which will not reproduce "
+                "a 2D code (e.g. ASTRA) exactly."
+            )
+            self.FSTYPE = "FFT"
+        elif mode == "3d":
+            self.FSTYPE = "FFT"
         if self.space_charge:
             self.FSTYPE = "FFT"
         else:
             self.FSTYPE = "NONE"
 
-    def write_Opal(self) -> str:
+    def write_opal(self) -> str:
         if not self.npart:
             raise ValueError("npart must be defined for opal_fieldsolver")
-        return super().write_Opal()
+        return super().write_opal()
 
     @property
     def space_charge(self) -> bool:
@@ -430,17 +518,29 @@ class opal_fieldsolver(opal_header):
     @property
     def grid_size(self) -> int:
         """
-        Get the number of space charge bins.
+        Get the space-charge mesh size for one dimension.
+
+        Uses :attr:`~grid_size_override` when set, otherwise the automatic
+        heuristic based on the particle count. The heuristic returns roughly the
+        cube root of the particle count, i.e. about one gridpoint per particle,
+        which is the coarsest mesh OPAL accepts -- it rejects any run where
+        ``npart < grid**3``.
 
         Returns
         -------
         int
-            The number of space charge bins based on the number of particles
+            The number of mesh points per dimension
         """
-        return get_grid_size(self.npart / self.sample_interval)
+        if self.grid_size_override:
+            return int(self.grid_size_override)
+        npart = self.npart / self.sample_interval
+        grid = get_grid_size(npart)
+        while grid > 4 and grid ** 3 > npart / self.MIN_PARTICLES_PER_CELL:
+            grid //= 2
+        return grid
 
 
-class opal_beam(opal_header):
+class OpalBeam(OpalHeader):
     """
     Class for generating the BEAM namelist for OPAL. See `OPAL manual`_ for more details.
 
@@ -476,7 +576,7 @@ class opal_beam(opal_header):
     So essentially this is set to the charge of the bunch in micro-coulombs."""
 
 
-class opal_track(opal_header):
+class OpalTrack(OpalHeader):
     """
     Class for generating the TRACK namelist for OPAL. See `OPAL manual`_ for more details.
     """
@@ -500,8 +600,11 @@ class opal_track(opal_header):
     T0: float = None
     """The initial time [s] of the simulation, its default value is 0."""
 
-    DT: float | str = 1e-12
-    """Array of time step sizes for tracking, default length of the array is 1 and its only value is 1 ps."""
+    DT: float | str | list | tuple = 1e-12
+    """Array of time step sizes for tracking, default length of the array is 1 and its only value is 1 ps.
+    A sequence gives OPAL one step size per stage, paired elementwise with
+    :attr:`~ZSTOP`, which is how a run can take fine steps through the cathode
+    region and coarse ones afterwards."""
 
     MAXSTEPS: int = None
     """Array of maximal number of time steps, default length of the array is 1 and its only value is 10."""
@@ -509,22 +612,38 @@ class opal_track(opal_header):
     ZSTART: float = None
     """Initial position of the reference particle along the reference trajectory, default position is 0.0 m."""
 
-    ZSTOP: float | str
-    """Array of z-locations [m], default length of the array is 1 and its only value is 1E61E6 [m]. 
+    ZSTOP: float | str | list | tuple
+    """Array of z-locations [m], default length of the array is 1 and its only value is 1E61E6 [m].
     The simulation switches to the next set, i+1i+1, of DT, MAXSTEPS and ZSTOP if either it has been t
-    racking with the current set for more than MAXSTEPS steps or the mean position has reached a z-position 
+    racking with the current set for more than MAXSTEPS steps or the mean position has reached a z-position
     larger than ZSTOP. If set i is the last set of the array then the simulation stops."""
 
     TIMEINTEGRATOR: Literal["RK4", "LF2", "MTS"] = None
     """Define the time integrator. Currently only available in OPAL-cycl. The valid options are RK4, LF2 and MTS"""
 
-    def write_Opal(self) -> str:
-        self.DT = str(self.DT)
-        self.ZSTOP = "{" + str(self.ZSTOP + 1e-1) + "}"
-        return super().write_Opal()
+    ZSTOP_STAGES: list | tuple | None = None
+    """Intermediate z-positions [m] at which :attr:`~DT` moves to its next value,
+    held separately from :attr:`~ZSTOP` because the section translator resets
+    that to the end of the line once the element positions are known. Not written
+    out on its own -- it is folded into the ``ZSTOP`` array."""
+
+    def model_post_init(self, context: Any, /) -> None:
+        self.exclude.append("ZSTOP_STAGES")
+
+    def write_opal(self) -> str:
+        # OPAL takes DT/ZSTOP as arrays; a scalar is just the one-stage case. The
+        # final ZSTOP is nudged past the end of the line so the last element is
+        # tracked through rather than stopped on.
+        if isinstance(self.DT, (list, tuple)):
+            self.DT = "{" + ", ".join(str(dt) for dt in self.DT) + "}"
+        else:
+            self.DT = str(self.DT)
+        stops = list(self.ZSTOP_STAGES or []) + [self.ZSTOP + 1e-1]
+        self.ZSTOP = "{" + ", ".join(str(z) for z in stops) + "}"
+        return super().write_opal()
 
 
-class opal_run(opal_header):
+class OpalRun(OpalHeader):
     """
     Class for generating the RUN namelist for OPAL. See `OPAL manual`_ for more details.
 
@@ -590,3 +709,20 @@ class opal_run(opal_header):
     bunch back in time. It changes the size of the time step when it crosses the thresholds given in the 
     ZSTOP attribute of the TRACK command and stops once it reaches the lowest item of ZSTOP. 
     Only available in OPAL-t. Default is FALSE."""
+
+
+from laura._compat import deprecated_aliases  # noqa: E402
+
+__getattr__ = deprecated_aliases(
+    __name__,
+    globals(),
+    {
+        "opal_beam": "OpalBeam",
+        "opal_distribution": "OpalDistribution",
+        "opal_fieldsolver": "OpalFieldSolver",
+        "opal_header": "OpalHeader",
+        "opal_option": "OpalOption",
+        "opal_run": "OpalRun",
+        "opal_track": "OpalTrack",
+    },
+)
