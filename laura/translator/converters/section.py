@@ -954,7 +954,9 @@ class SectionLatticeTranslator(SectionLattice):
 
         maglat = MagneticLattice(elements, method=method)
         if save:
-            maglat.save_as_py_file(f"{self.directory}/{self.name}.py")
+            maglat.save_as_py_file(
+                f"{self.directory}/{self.name}.py", remove_rep_drifts=False
+            )
 
         return maglat
 

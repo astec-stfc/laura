@@ -147,15 +147,17 @@ class RFCavityTranslator(BaseElementTranslator):
         self._bmad_sr_wake(parameters)
         return self._format_bmad(etype, parameters)
 
-    def set_wakefield_column_names(self, wakefield_file_name: str) -> None:
+    def set_wakefield_column_names(self, wakefield_file_name: str | None) -> None:
         """
         Set the column names for the wakefield file, based on ``wakefield_definition``.
 
         Parameters
         ----------
-        wakefield_file_name: str
-            Name of the wakefield file
+        wakefield_file_name: str or None
+            Name of the wakefield file; nothing is set if there is no file
         """
+        if wakefield_file_name is None:
+            return
         if all([x is not None for x in [self.wxcolumn, self.wycolumn, self.wzcolumn]]):
             self.wakefile = '"' + wakefield_file_name + '"'
             return
@@ -332,7 +334,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and value
+                and (value.size > 0 if isinstance(value, np.ndarray) else value)
                 and self._convert_keyword_ocelot(key)
                 in obj.__class__().element.__dict__
             ):
