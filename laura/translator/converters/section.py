@@ -21,12 +21,13 @@ from ...models.simulation import (
     WakefieldSimulationElement,
 )
 from ..utils.bmad import (
+    BmadBody,
     bmad_beginning_datum,
     bmad_leading_drift,
     bmad_patch,
     bmad_safe_names,
-    BmadBody,
 )
+from ..utils.fields import FieldMap
 from ..utils.functions import (
     bmad_functional_definitions,
     elegant_functional_definitions,
@@ -34,7 +35,6 @@ from ..utils.functions import (
     sanitize_string,
     tw_cavity_energy_gain,
 )
-from ..utils.fields import FieldMap
 from .ac_dipole import ACDipoleTranslator
 from .aperture import ApertureTranslator
 from .cavity import RFCavityTranslator

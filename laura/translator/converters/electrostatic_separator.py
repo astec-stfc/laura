@@ -1,7 +1,9 @@
 from math import atan2, hypot
 from .base import BaseElementTranslator
 from laura.models.simulation import ElectrostaticSeparatorSimulationElement
+
 from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator
 
 
 class ElectrostaticSeparatorTranslator(BaseElementTranslator):

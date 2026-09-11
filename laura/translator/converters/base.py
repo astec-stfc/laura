@@ -1,28 +1,22 @@
 import math
 import os
-from typing import Any, Dict, Tuple, ClassVar
+from typing import Any, ClassVar, Dict, Tuple
 from warnings import warn
 
 import numpy as np
 from pydantic import Field, PrivateAttr, computed_field
 
-from laura.models.physical import PhysicalElement, Position  # noqa E402
-from laura.models.element import PhysicalBaseElement
 from laura.models.base_models import IgnoreExtra
+from laura.models.element import PhysicalBaseElement
+from laura.models.physical import PhysicalElement, Position  # noqa E402
 from laura.utils import flatten_dict
 
 from ..converters import (
-    type_conversion_rules,
-    type_conversion_rules_elegant,
-    type_conversion_rules_genesis,
-    type_conversion_rules_opal,
-    type_conversion_rules_madx,
-    type_conversion_rules_bmad,
+    elements_bmad,
     elements_elegant,
     elements_genesis,
-    elements_opal,
     elements_madx,
-    elements_bmad,
+    elements_opal,
     keyword_conversion_rules_bmad,
     keyword_conversion_rules_cheetah,
     keyword_conversion_rules_elegant,
@@ -30,13 +24,19 @@ from ..converters import (
     keyword_conversion_rules_madx,
     keyword_conversion_rules_ocelot,
     keyword_conversion_rules_opal,
-    keyword_conversion_rules_xsuite,
     keyword_conversion_rules_wake_t,
+    keyword_conversion_rules_xsuite,
+    type_conversion_rules,
+    type_conversion_rules_bmad,
+    type_conversion_rules_elegant,
+    type_conversion_rules_genesis,
+    type_conversion_rules_madx,
+    type_conversion_rules_opal,
 )
+from ..converters.codes.gpt import GptCcs
 from ..utils.bmad import bmad_misalignment
 from ..utils.fields import FieldMap
-from ..utils.functions import expand_substitution, check_value, sanitize_string
-from ..converters.codes.gpt import GptCcs
+from ..utils.functions import check_value, expand_substitution, sanitize_string
 
 _ASTRA_ROTATION_SIGN = {"x": -1.0, "y": -1.0, "z": 1.0}
 """Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family."""
@@ -529,9 +529,13 @@ class BaseElementTranslator(PhysicalBaseElement):
                 # "store_particles": True,
             }
             return self.name, obj, properties
+        if self.hardware_type.lower() == "dipole":
+            # a default; an explicit n_kicks below overrides it
+            properties.update({"num_multipole_kicks": 10})
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
+            xkey = self._convert_keyword_xsuite(key)
             if (key not in ["name", "type", "commandtype"]) and (
-                self._convert_keyword_xsuite(key) in list(obj.__dict__.keys())
+                xkey in list(obj.__dict__.keys())
             ):
                 key = self._convert_keyword_xsuite(key)
                 if (
@@ -554,8 +558,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                             properties.update(
                                 {"k0": self.magnetic.KnL(0) / self.length}
                             )
-                if self.hardware_type.lower() == "dipole":
-                    properties.update({"num_multipole_kicks": 10})
                 if (
                     "edge" in key
                     and isinstance(value, str)
@@ -566,15 +568,16 @@ class BaseElementTranslator(PhysicalBaseElement):
                     elif value == "angle/2":
                         value = self.magnetic.KnL(0) / 2
                 if value is not None:
-                    properties.update({key: value})
+                    properties.update({xkey: value})
         if self.hardware_type.lower() == "dipole":
+            edges = {
+                "edge_entry_fint": self.magnetic.edge_field_integral_entrance,
+                "edge_exit_fint": self.magnetic.edge_field_integral_exit,
+                "edge_entry_hgap": self.magnetic.half_gap,
+                "edge_exit_hgap": self.magnetic.exit_half_gap,
+            }
             properties.update(
-                {
-                    "edge_entry_fint": self.magnetic.edge_field_integral_entrance,
-                    "edge_exit_fint": self.magnetic.edge_field_integral_exit,
-                    "edge_entry_hgap": self.magnetic.half_gap,
-                    "edge_exit_hgap": self.magnetic.exit_half_gap,
-                }
+                {k: v for k, v in edges.items() if v is not None}
             )
         return self.name, obj, properties
 

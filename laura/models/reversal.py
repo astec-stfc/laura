@@ -53,7 +53,7 @@ _SOLENOID_BLOCKS = ("fields", "systematic_fields", "random_fields")
 longitudinal field flips with ``s``, so every term negates."""
 
 
-class ElementNotReversible(Exception):
+class ElementNotReversible(Exception):  # noqa: N818 (reads as a condition, not an Error)
     """Raised when an element's reversal is not a sign flip.
 
     Carries the element name and every reason found, rather than the first, so

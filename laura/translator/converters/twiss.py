@@ -1,6 +1,8 @@
-from .base import BaseElementTranslator
+from torch import float64, tensor
+
 from laura.models.simulation import TwissMatchSimulationElement
-from torch import tensor, float64
+
+from .base import BaseElementTranslator
 
 
 class TwissMatchTranslator(BaseElementTranslator):

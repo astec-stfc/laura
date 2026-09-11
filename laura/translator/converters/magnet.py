@@ -1,28 +1,30 @@
 from copy import deepcopy
 from typing import Union
-
-from pydantic import computed_field, model_validator, field_validator
 from warnings import warn
-from .base import BaseElementTranslator
+
+import numpy as np
+from pydantic import computed_field, field_validator, model_validator
+
 from laura.models.magnetic import (
-    MagneticElement,
-    CombinedSolenoidQuadrupoleMagnet,
-    SolenoidMagnet,
-    DipoleMagnet,
-    WigglerMagnet,
-    NonLinearLensMagnet,
-    CorrectorMagnet,
     CombinedCorrectorMagnet,
+    CombinedSolenoidQuadrupoleMagnet,
+    CorrectorMagnet,
+    DipoleMagnet,
+    MagneticElement,
+    NonLinearLensMagnet,
+    SolenoidMagnet,
+    WigglerMagnet,
 )
 from laura.models.simulation import MagnetSimulationElement
-from ..utils.functions import _rotation_matrix, chop, expand_substitution
-import numpy as np
-from .codes.gpt import GptCcs
 from laura.translator.utils.fields import FieldMap
+
 from ..converters import (
     elements_genesis,
     elements_opal,
 )
+from ..utils.functions import _rotation_matrix, chop, expand_substitution
+from .base import BaseElementTranslator
+from .codes.gpt import GptCcs
 
 
 def add(x, y):

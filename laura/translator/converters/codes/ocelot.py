@@ -335,7 +335,7 @@ class OcelotLatticeImporter(BaseModel):
 
 from laura._compat import deprecated_aliases  # noqa: E402
 
-_legacy_getattr = deprecated_aliases(
+_deprecated_getattr = deprecated_aliases(
     __name__,
     globals(),
     {
@@ -344,7 +344,7 @@ _legacy_getattr = deprecated_aliases(
 )
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> object:
     if name in ("type_conversion_rules_ocelot", "type_conversion_rules_Ocelot"):
         from ...conversion_rules.codes.ocelot_conversion import (
             ocelot_conversion_rules,
@@ -353,4 +353,4 @@ def __getattr__(name: str):
         globals()["type_conversion_rules_ocelot"] = ocelot_conversion_rules
         if name == "type_conversion_rules_ocelot":
             return ocelot_conversion_rules
-    return _legacy_getattr(name)
+    return _deprecated_getattr(name)

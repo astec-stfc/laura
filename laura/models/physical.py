@@ -327,7 +327,7 @@ class ReferencePlacement(_ReferencePlacementBase):
         raise ValueError("offset must be a list of 3 floats or {x, y, z} dict")
 
     @model_validator(mode="after")
-    def _check_offset_exclusivity(self) -> "ReferencePlacement":  # noqa: N804
+    def _check_offset_exclusivity(self) -> "ReferencePlacement":  # noqa: N804 (pydantic after-validator takes self)
         n = sum(
             [
                 self.offset is not None,
@@ -371,7 +371,7 @@ class PhysicalElement(_PhysicalElementBase):
     _explicit_angle: bool = PrivateAttr(default=False)
 
     @model_validator(mode="after")
-    def _check_placement_exclusivity(self) -> "PhysicalElement":  # noqa: N804
+    def _check_placement_exclusivity(self) -> "PhysicalElement":  # noqa: N804 (pydantic after-validator takes self)
         # Pydantic v2 re-runs model validators on every field assignment when
         # validate_assignment=True.  After construction the lattice assembly
         # legitimately sets both middle AND s on the same element, so we only

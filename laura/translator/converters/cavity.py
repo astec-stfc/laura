@@ -184,13 +184,7 @@ class RFCavityTranslator(BaseElementTranslator):
         self.start_write()
         wholestring = ""
         etype = self._convert_type_elegant(self.hardware_type)
-        if self._wakefield_active():
-            wakefield_file_name = self.generate_field_file_name(
-                self.simulation.wakefield_definition, code="elegant"
-            )
-            if wakefield_file_name is not None:
-                self.set_wakefield_column_names(wakefield_file_name)
-        elif self.hardware_type == "RFCavity":
+        if self.hardware_type == "RFCavity" and not self._wakefield_active():
             etype = "rfca"
             # if self.simulation.field_definition is not None:
             # etype = "rftmez0"
@@ -198,7 +192,7 @@ class RFCavityTranslator(BaseElementTranslator):
             #     field_file_name = self.generate_field_file_name(
             #     self.simulation.field_definition, code="elegant"
             # )
-        else:
+        elif self._wakefield_active():
             wakefield_file_name = self.generate_field_file_name(
                 self.simulation.wakefield_definition, code="elegant"
             )

@@ -1,6 +1,7 @@
-from .base import BaseElementTranslator
 from laura.models.rf import WakefieldElement
 from laura.models.simulation import WakefieldSimulationElement
+
+from .base import BaseElementTranslator
 
 
 class WakefieldTranslator(BaseElementTranslator):

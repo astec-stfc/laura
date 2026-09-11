@@ -208,7 +208,7 @@ METHOD_ALIASES: dict[str, tuple[str, dict[str, str]]] = {
         "_write_ASTRA_dipole": "_write_astra_dipole",
         "_write_ASTRA_quadrupole": "_write_astra_quadrupole",
         "_write_ASTRA_solenoid": "_write_astra_solenoid",
-        "_write_CSRTrack": "_write_csrtrack",
+        "_write_CSRTrack_quadrupole": "_write_csrtrack_quadrupole",
         "_convertKeyword_Elegant": "_convert_keyword_elegant",
         "_convertKeyword_Genesis": "_convert_keyword_genesis",
         "_convertKeyword_Ocelot": "_convert_keyword_ocelot",

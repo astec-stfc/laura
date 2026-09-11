@@ -1,8 +1,10 @@
+from typing import Any, Dict, List, Literal
 from warnings import warn
 
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Dict, List, Any, Literal
+
 from laura._compat import DeprecatedMethodAliases
+
 from ...utils.classes import get_grid_size
 
 opal_unsupported = [
@@ -454,8 +456,8 @@ class OpalFieldSolver(OpalHeader):
 
     def model_post_init(self, context: Any, /) -> None:
         self.exclude.extend(
-            ["npart", "space_charge", "space_charge_mode", "grids",
-             "sample_interval", "grid_size_override", "MIN_PARTICLES_PER_CELL"]
+            ["npart", "space_charge_mode", "grids", "sample_interval",
+             "grid_size_override", "MIN_PARTICLES_PER_CELL"]
         )
         if isinstance(self.grid_size_override, (tuple, list)):
             self.MX, self.MY, self.MT = (int(v) for v in self.grid_size_override)

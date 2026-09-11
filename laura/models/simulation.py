@@ -161,10 +161,10 @@ class TwissMatchSimulationElement(_TwissMatchSimulationElementBase):
     @property
     def r_matrix_7x7(self) -> np.ndarray:
         n = self.r_matrix.shape[0]
-        expanded = np.zeros((n + 1, n + 1))
-        expanded[:n, :n] = self.r_matrix
-        expanded[n, n] = 1
-        return expanded
+        augmented = np.zeros((n + 1, n + 1))
+        augmented[:n, :n] = self.r_matrix
+        augmented[n, n] = 1
+        return augmented
 
 
 class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
@@ -323,10 +323,10 @@ class MatrixTransformSimulationElement(_MatrixTransformSimulationElementBase):
     @property
     def r_matrix_7x7(self) -> np.ndarray:
         n = self.r_matrix.shape[0]
-        expanded = np.zeros((n + 1, n + 1))
-        expanded[:n, :n] = self.r_matrix
-        expanded[n, n] = 1
-        return expanded
+        augmented = np.zeros((n + 1, n + 1))
+        augmented[:n, :n] = self.r_matrix
+        augmented[n, n] = 1
+        return augmented
 
 
 class ElectrostaticSeparatorSimulationElement(

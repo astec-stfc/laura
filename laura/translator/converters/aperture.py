@@ -1,7 +1,8 @@
 from laura.models.simulation import ApertureElement
-from .base import BaseElementTranslator
+
 from ..converters import elements_elegant, elements_madx
 from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator
 
 
 class ApertureTranslator(BaseElementTranslator):
@@ -67,18 +68,16 @@ class ApertureTranslator(BaseElementTranslator):
                 and not key == "type"
                 and not key == "commandtype"
                 and self._convert_keyword_madx(key) in elements_madx[etype]
+                and value is not None
             ):
-                if value is not None:
-                    key = self._convert_keyword_madx(key)
-                    deferred = not self._resolve_functional and self.is_functional(
-                        value
-                    )
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    if key not in keys:
-                        op = ":=" if deferred else "="
-                        string += f", {key} {op} {value}"
-                    keys.append(key)
+                key = self._convert_keyword_madx(key)
+                deferred = not self._resolve_functional and self.is_functional(value)
+                value = 1 if value is True else value
+                value = 0 if value is False else value
+                if key not in keys:
+                    op = ":=" if deferred else "="
+                    string += f", {key} {op} {value}"
+                keys.append(key)
         if at is not None:
             string += f", at = {at}"
         return string + ";\n"

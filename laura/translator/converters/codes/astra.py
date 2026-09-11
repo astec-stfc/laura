@@ -410,9 +410,6 @@ class AstraCharge(AstraHeader):
             output += f"nxf = {self.grid_size},\n"
             output += f"nyf = {self.grid_size},\n"
             output += f"nzf = {self.grid_size},\n"
-        elif self.space_charge_2d:
-            output += f"nrad = {self.grid_size},\n"
-            output += f"nlong_in = {self.grid_size},\n"
         elif self.space_charge():
             output += f"nxf = {self.grid_size},\n"
             output += f"nyf = {self.grid_size},\n"
