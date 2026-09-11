@@ -1,15 +1,19 @@
-from pydantic import computed_field
 import numpy as np
-from .base import BaseElementTranslator
+from pydantic import computed_field
+
 from laura.models.rf import RFCavityElement
 from laura.models.simulation import RFCavitySimulationElement
 from laura.translator.utils.fields import FieldMap
-from ..utils.functions import sanitize_string
+
 from ..converters import (
     elements_elegant,
-    elements_opal,
     elements_madx,
+    elements_opal,
 )
+from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator
+
+
 
 
 class RFCavityTranslator(BaseElementTranslator):
@@ -73,15 +77,17 @@ class RFCavityTranslator(BaseElementTranslator):
     def wzcolumn(self) -> str | None:
         return f'"{self.simulation.wz_column}"' if self.simulation.wz_column else None
 
-    def set_wakefield_column_names(self, wakefield_file_name: str) -> None:
+    def set_wakefield_column_names(self, wakefield_file_name: str | None) -> None:
         """
         Set the column names for the wakefield file, based on ``wakefield_definition``.
 
         Parameters
         ----------
-        wakefield_file_name: str
-            Name of the wakefield file
+        wakefield_file_name: str or None
+            Name of the wakefield file; nothing is set if there is no file
         """
+        if wakefield_file_name is None:
+            return
         if all([x is not None for x in [self.wxcolumn, self.wycolumn, self.wzcolumn]]):
             self.wakefile = '"' + wakefield_file_name + '"'
             return
@@ -249,7 +255,7 @@ class RFCavityTranslator(BaseElementTranslator):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
-                and value
+                and (value.size > 0 if isinstance(value, np.ndarray) else value)
                 and self._convert_keyword_ocelot(key)
                 in obj.__class__().element.__dict__
             ):

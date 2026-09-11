@@ -1,35 +1,32 @@
 from copy import deepcopy
-from typing import Dict, Any, TYPE_CHECKING
-from warnings import warn
 from textwrap import wrap
+from typing import TYPE_CHECKING, Any, Dict
+from warnings import warn
+
 import numpy as np
 from pydantic import PositiveInt
 
 if TYPE_CHECKING:
-    from ocelot.cpbd.magnetic_lattice import MagneticLattice
     from cheetah import Segment
+    from ocelot.cpbd.magnetic_lattice import MagneticLattice
     from wake_t import Beamline
     from xtrack import Line
 
+from ...models.base_models import IgnoreExtra
 from ...models.element import Drift
 from ...models.element_list import SectionLattice
 from ...models.rf import WakefieldElement
-from ...models.simulation import WakefieldSimulationElement, DiagnosticSimulationElement
-from .aperture import ApertureTranslator
-from .cavity import RFCavityTranslator
-from .converter import translate_elements
-from .diagnostic import DiagnosticTranslator
-from .wake import WakefieldTranslator
-from .codes.gpt import GptCcs, GptZMinMax, GptDtMinT
-from .ac_dipole import ACDipoleTranslator
+from ...models.simulation import DiagnosticSimulationElement, WakefieldSimulationElement
+from ..utils.fields import FieldMap
 from ..utils.functions import (
-    tw_cavity_energy_gain,
     elegant_functional_definitions,
     madx_functional_definitions,
+    sanitize_string,
+    tw_cavity_energy_gain,
 )
-from ..utils.fields import FieldMap
-from ...models.base_models import IgnoreExtra
-from ..utils.functions import sanitize_string
+from .ac_dipole import ACDipoleTranslator
+from .aperture import ApertureTranslator
+from .cavity import RFCavityTranslator
 from .codes import (
     astra_unsupported,
     cheetah_unsupported,
@@ -42,6 +39,10 @@ from .codes import (
     wake_t_unsupported,
     xsuite_unsupported,
 )
+from .codes.gpt import GptCcs, GptDtMinT, GptZMinMax
+from .converter import translate_elements
+from .diagnostic import DiagnosticTranslator
+from .wake import WakefieldTranslator
 
 unsupported_elements = {
     "astra": astra_unsupported,
@@ -650,11 +651,7 @@ class SectionLatticeTranslator(SectionLattice):
         for d in elem_dict.values():
             obj = d.to_ocelot()
             objs = list(obj) if isinstance(obj, (list, tuple)) else [obj]
-            # e.g. a Combined_Corrector split into an Hcor + Vcor pair.
             elements.extend(objs)
-            # Some finite-length elements (e.g. collimators) map to zero-length
-            # Ocelot elements (Aperture takes no length).
-            # Pad the difference with a drift so the total length is preserved.
             oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
             gap = d.physical.length - oce_len
             if gap > 1e-9:
@@ -662,7 +659,9 @@ class SectionLatticeTranslator(SectionLattice):
 
         maglat = MagneticLattice(elements, method=method)
         if save:
-            maglat.save_as_py_file(f"{self.directory}/{self.name}.py")
+            maglat.save_as_py_file(
+                f"{self.directory}/{self.name}.py", remove_rep_drifts=False
+            )
 
         return maglat
 
@@ -1017,10 +1016,6 @@ class SectionLatticeTranslator(SectionLattice):
         seqstring += fulltext
         seqstring += "ENDSEQUENCE;\n"
         if has_beam:
-            # USE is only meaningful once a BEAM has been declared for the
-            # sequence -- MAD-X aborts with "USE - sequence without beam"
-            # otherwise. Without a beam this is a plain sequence definition,
-            # to be USEd by the caller after it issues its own BEAM.
             seqstring += f"USE, PERIOD={sanitize_string(self.name)};"
         return seqstring
 

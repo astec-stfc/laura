@@ -1,11 +1,14 @@
-import numpy as np
-from laura.models.constants import pi, c, e, m_e, epsilon_0
 from typing import Any
 from warnings import warn
-from .base import BaseElementTranslator
+
+import numpy as np
+
+from laura.models.constants import c, e, epsilon_0, m_e, pi
+from laura.models.laser import LaserElement
 from laura.models.plasma import PlasmaElement
 from laura.models.simulation import PlasmaSimulationElement
-from laura.models.laser import LaserElement
+
+from .base import BaseElementTranslator
 from .laser import LaserTranslator
 
 

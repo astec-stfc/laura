@@ -1,9 +1,11 @@
-from typing import Dict, Any, TYPE_CHECKING
 from textwrap import wrap
+from typing import TYPE_CHECKING, Any, Dict
+
 from laura.models.element_list import MachineModel
+
+from ..utils.functions import elegant_functional_definitions, sanitize_string
 from .converter import translate_elements
 from .layout import MachineLayoutTranslator
-from ..utils.functions import elegant_functional_definitions, sanitize_string
 
 if TYPE_CHECKING:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
@@ -184,5 +186,6 @@ class MachineModelTranslator(MachineModel):
     ) -> Dict[str, Dict[str, str]]:
         model = {}
         for name, latt in self.lattices.items():
+            b = beam.get(name, None)
             model.update({sanitize_string(name): self._layout_translator(latt).to_madx(beam=b)})
         return model

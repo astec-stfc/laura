@@ -1,36 +1,37 @@
 import os
-import numpy as np
-from pydantic import computed_field, Field
-
-from laura.models.physical import PhysicalElement, Position  # noqa E402
-from laura.models.element import PhysicalBaseElement
-from laura.models.base_models import IgnoreExtra
-from laura.utils import flatten_dict
-from typing import ClassVar, Dict, Any
+from typing import Any, ClassVar, Dict
 from warnings import warn
 
+import numpy as np
+from pydantic import Field, computed_field
+
+from laura.models.base_models import IgnoreExtra
+from laura.models.element import PhysicalBaseElement
+from laura.models.physical import PhysicalElement, Position  # noqa E402
+from laura.utils import flatten_dict
+
 from ..converters import (
+    elements_elegant,
+    elements_genesis,
+    elements_madx,
+    elements_opal,
+    keyword_conversion_rules_cheetah,
+    keyword_conversion_rules_elegant,
+    keyword_conversion_rules_genesis,
+    keyword_conversion_rules_madx,
+    keyword_conversion_rules_ocelot,
+    keyword_conversion_rules_opal,
+    keyword_conversion_rules_wake_t,
+    keyword_conversion_rules_xsuite,
     type_conversion_rules,
     type_conversion_rules_elegant,
     type_conversion_rules_genesis,
-    type_conversion_rules_opal,
     type_conversion_rules_madx,
-    elements_elegant,
-    elements_genesis,
-    elements_opal,
-    elements_madx,
-    keyword_conversion_rules_elegant,
-    keyword_conversion_rules_genesis,
-    keyword_conversion_rules_ocelot,
-    keyword_conversion_rules_cheetah,
-    keyword_conversion_rules_xsuite,
-    keyword_conversion_rules_wake_t,
-    keyword_conversion_rules_opal,
-    keyword_conversion_rules_madx,
+    type_conversion_rules_opal,
 )
-from ..utils.fields import FieldMap
-from ..utils.functions import expand_substitution, check_value, sanitize_string
 from ..converters.codes.gpt import GptCcs
+from ..utils.fields import FieldMap
+from ..utils.functions import check_value, expand_substitution, sanitize_string
 
 
 class BaseElementTranslator(PhysicalBaseElement):

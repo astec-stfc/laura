@@ -1,5 +1,6 @@
-from .base import BaseElementTranslator
 from laura.models.simulation import DiagnosticSimulationElement
+
+from .base import BaseElementTranslator
 
 
 class DiagnosticTranslator(BaseElementTranslator):

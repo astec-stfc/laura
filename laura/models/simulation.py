@@ -1,30 +1,28 @@
-from pydantic import (
-    computed_field,
-    field_validator,
-    Field
-)
-from typing import Literal, Any, ClassVar, Union, Dict, List
-from .base_models import IgnoreExtra, FunctionalMixin
-from ._generated import (
-    _ApertureElementBase,
-    _SimulationElementBase,
-    _MagnetSimulationElementBase,
-    _RFCavitySimulationElementBase,
-    _WakefieldSimulationElementBase,
-    _DriftSimulationElementBase,
-    _DiagnosticSimulationElementBase,
-    _PlasmaSimulationElementBase,
-    _TwissMatchSimulationElementBase,
-    _MatrixTransformSimulationElementBase,
-    _ElectrostaticSeparatorSimulationElementBase,
-    _ACDipoleSimulationElementBase,
-    _WireSimulationElementBase,
-    _BeamBeamSimulationElementBase,
-    _RFMultipoleSimulationElementBase,
-)
-from ..translator.utils.fields import FieldMap
-import numpy as np
 import re
+from typing import Any, ClassVar, Dict, List, Literal, Union
+
+import numpy as np
+from pydantic import Field, computed_field, field_validator
+
+from ..translator.utils.fields import FieldMap
+from ._generated import (
+    _ACDipoleSimulationElementBase,
+    _ApertureElementBase,
+    _BeamBeamSimulationElementBase,
+    _DiagnosticSimulationElementBase,
+    _DriftSimulationElementBase,
+    _ElectrostaticSeparatorSimulationElementBase,
+    _MagnetSimulationElementBase,
+    _MatrixTransformSimulationElementBase,
+    _PlasmaSimulationElementBase,
+    _RFCavitySimulationElementBase,
+    _RFMultipoleSimulationElementBase,
+    _SimulationElementBase,
+    _TwissMatchSimulationElementBase,
+    _WakefieldSimulationElementBase,
+    _WireSimulationElementBase,
+)
+from .base_models import FunctionalMixin, IgnoreExtra
 
 
 class ApertureElement(_ApertureElementBase):

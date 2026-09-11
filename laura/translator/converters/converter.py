@@ -1,56 +1,56 @@
-from typing import List, Dict
+from typing import Dict, List
 
 from laura.models.element import (
-    Element,
-    Magnet,
-    Solenoid,
+    ACDipole,
+    Aperture,
+    BeamBeam,
+    CombinedCorrector,
+    CrabCavity,
+    Diagnostic,
     Dipole,
+    Drift,
+    ElectrostaticSeparator,
+    Element,
+    HorizontalCorrector,
+    Laser,
+    Magnet,
+    Marker,
+    MatrixTransform,
+    NonLinearLens,
+    Plasma,
     RFCavity,
     RFDeflectingCavity,
-    CrabCavity,
-    Drift,
-    Aperture,
-    Diagnostic,
-    Marker,
-    Plasma,
-    Laser,
-    Wiggler,
-    CombinedCorrector,
-    HorizontalCorrector,
-    VerticalCorrector,
-    NonLinearLens,
-    TwissMatch,
-    Screen,
-    MatrixTransform,
-    ElectrostaticSeparator,
-    ACDipole,
-    Wire,
-    BeamBeam,
     RFMultipole,
+    Screen,
+    Solenoid,
+    TwissMatch,
+    VerticalCorrector,
+    Wiggler,
+    Wire,
 )
 
-from .base import BaseElementTranslator
-from .magnet import (
-    MagnetTranslator,
-    SolenoidTranslator,
-    DipoleTranslator,
-    WigglerTranslator,
-    NonLinearLensTranslator,
-    CorrectorTranslator,
-)
-from .cavity import RFCavityTranslator
-from .drift import DriftTranslator
-from .diagnostic import DiagnosticTranslator
-from .aperture import ApertureTranslator
-from .plasma import PlasmaTranslator
-from .laser import LaserTranslator
-from .twiss import TwissMatchTranslator
-from .matrix import MatrixTransformTranslator
-from .electrostatic_separator import ElectrostaticSeparatorTranslator
 from .ac_dipole import ACDipoleTranslator
-from .wire import WireTranslator
+from .aperture import ApertureTranslator
+from .base import BaseElementTranslator
 from .beam_beam import BeamBeamTranslator
+from .cavity import RFCavityTranslator
+from .diagnostic import DiagnosticTranslator
+from .drift import DriftTranslator
+from .electrostatic_separator import ElectrostaticSeparatorTranslator
+from .laser import LaserTranslator
+from .magnet import (
+    CorrectorTranslator,
+    DipoleTranslator,
+    MagnetTranslator,
+    NonLinearLensTranslator,
+    SolenoidTranslator,
+    WigglerTranslator,
+)
+from .matrix import MatrixTransformTranslator
+from .plasma import PlasmaTranslator
 from .rf_multipole import RFMultipoleTranslator
+from .twiss import TwissMatchTranslator
+from .wire import WireTranslator
 
 
 def translate_elements(

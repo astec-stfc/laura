@@ -12,7 +12,7 @@ from itertools import chain
 from math import copysign
 from typing import Any, Dict, List
 
-
+import numpy as np
 from pydantic import field_validator, model_validator
 from yaml.constructor import Constructor
 

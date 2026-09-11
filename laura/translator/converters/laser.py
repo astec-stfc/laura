@@ -1,6 +1,8 @@
 from typing import Any, List
-from .base import BaseElementTranslator
+
 from laura.models.laser import LaserElement
+
+from .base import BaseElementTranslator
 
 
 class LaserTranslator(BaseElementTranslator):

@@ -1,6 +1,7 @@
-from .base import BaseElementTranslator
 from laura.models.simulation import WireSimulationElement
+
 from ..utils.functions import sanitize_string
+from .base import BaseElementTranslator
 
 
 class WireTranslator(BaseElementTranslator):

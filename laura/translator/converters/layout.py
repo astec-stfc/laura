@@ -1,9 +1,11 @@
-from typing import Dict, Any, TYPE_CHECKING
 from textwrap import wrap
+from typing import TYPE_CHECKING, Any, Dict
+
 from laura.models.element_list import MachineLayout
+
+from ..utils.functions import elegant_functional_definitions, sanitize_string
 from .converter import translate_elements
 from .section import SectionLatticeTranslator
-from ..utils.functions import elegant_functional_definitions, sanitize_string
 
 if TYPE_CHECKING:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice

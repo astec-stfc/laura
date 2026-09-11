@@ -3,6 +3,7 @@ from .constants import speed_of_light, pi
 from pydantic import (
     ConfigDict,
     model_serializer,
+    model_validator,
     Field,
     field_validator,
     NonNegativeInt,

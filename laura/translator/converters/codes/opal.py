@@ -1,6 +1,10 @@
+from typing import Any, Dict, List, Literal
+from warnings import warn
+
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Dict, List, Any, Literal
+
 from laura._compat import DeprecatedMethodAliases
+
 from ...utils.classes import get_grid_size
 
 opal_unsupported = [

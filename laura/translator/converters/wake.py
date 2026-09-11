@@ -1,6 +1,6 @@
-from .base import BaseElementTranslator
 from laura.models.rf import WakefieldElement
-from ..utils.fields import FieldMap
+
+from .base import BaseElementTranslator
 
 
 class WakefieldTranslator(BaseElementTranslator):
