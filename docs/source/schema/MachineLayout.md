@@ -25,6 +25,17 @@ URI: [laura:MachineLayout](https://w3id.org/laura/MachineLayout)
         
       MachineLayout : particle
         
+      MachineLayout : passes
+        
+          
+    
+        
+        
+        MachineLayout --> "*" LayoutPass : passes
+        click LayoutPass href "../LayoutPass/"
+    
+
+        
       MachineLayout : sections
         
       
@@ -50,6 +61,7 @@ URI: [laura:MachineLayout](https://w3id.org/laura/MachineLayout)
 | [master_lattice](master_lattice.md) | 0..1 <br/> [String](String.md) | Name of the master lattice this layout belongs to | direct |
 | [particle](particle.md) | 0..1 <br/> [String](String.md) | Design particle species for this layout, overriding the machine-wide value | direct |
 | [sections](sections.md) | * <br/> [String](String.md) | Ordered list of section names | direct |
+| [passes](passes.md) | * <br/> [LayoutPass](LayoutPass.md) | The beam order, one entry per section traversal | direct |
 
 
 
@@ -151,6 +163,16 @@ attributes:
     - MachineModel
     range: string
     multivalued: true
+  passes:
+    name: passes
+    description: The beam order, one entry per section traversal. Distinct from sections,
+      which is keyed by name and so cannot express a section entered twice.
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    domain_of:
+    - MachineLayout
+    range: LayoutPass
+    multivalued: true
 class_uri: laura:MachineLayout
 
 ```
@@ -209,6 +231,17 @@ attributes:
     - MachineLayout
     - MachineModel
     range: string
+    multivalued: true
+  passes:
+    name: passes
+    description: The beam order, one entry per section traversal. Distinct from sections,
+      which is keyed by name and so cannot express a section entered twice.
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    owner: MachineLayout
+    domain_of:
+    - MachineLayout
+    range: LayoutPass
     multivalued: true
 class_uri: laura:MachineLayout
 

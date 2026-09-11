@@ -183,6 +183,9 @@ profile_output.txt
 .pytest_cache/
 .ruff_caache/
 
+# Credentials
+gcloud-auth-config.json
+
 # AI
 ANALYSIS.md
 REFACTORING_PLAN.md

@@ -1,7 +1,7 @@
 # Slot: inherits_from 
 
 
-_If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML, matching PALS. Resolution happens on the raw dict before parsing (see ``YAML_Loader.resolve_inheritance``); position, identity and topology fields are never inherited. Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one._
+_If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one._
 
 
 
@@ -78,6 +78,7 @@ URI: [laura:inherits_from](https://w3id.org/laura/inherits_from)
 | [VerticalCorrector](VerticalCorrector.md) | Vertical steering corrector |  no  |
 | [CombinedCorrector](CombinedCorrector.md) | Combined horizontal/vertical steering corrector, naming the two single-plane ... |  no  |
 | [Solenoid](Solenoid.md) | Solenoid focusing magnet |  no  |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | Magnet combining coaxial solenoid and quadrupole fields |  no  |
 | [Wiggler](Wiggler.md) | Wiggler / undulator insertion device |  no  |
 | [NonLinearLens](NonLinearLens.md) | Non-linear integrable-optics lens |  no  |
 
@@ -152,9 +153,8 @@ URI: [laura:inherits_from](https://w3id.org/laura/inherits_from)
 name: inherits_from
 description: If set, this element's definition is merged on top of the named element's
   at load time, so it need only state what differs. Populated from ``inherit`` in
-  YAML, matching PALS. Resolution happens on the raw dict before parsing (see ``YAML_Loader.resolve_inheritance``);
-  position, identity and topology fields are never inherited. Unrelated to ``subelement``,
-  which is a physical part-of relationship rather than a definitional one.
+  YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which
+  is a physical part-of relationship rather than a definitional one.
 from_schema: https://w3id.org/laura/schema
 aliases:
 - inherit

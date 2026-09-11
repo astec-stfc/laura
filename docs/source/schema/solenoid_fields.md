@@ -89,9 +89,9 @@ name: solenoid_fields
 description: Nominal integrated axial solenoid field components.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-owner: CombinedSolenoidQuadrupole_Magnet
+owner: CombinedSolenoidQuadrupoleMagnet
 domain_of:
-- CombinedSolenoidQuadrupole_Magnet
+- CombinedSolenoidQuadrupoleMagnet
 range: SolenoidFields
 
 ```

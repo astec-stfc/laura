@@ -28,7 +28,7 @@ classes:
 
   # -- Magnet Objects -----------------------------------------------------------------
 
-  Dipole_Magnet:
+  DipoleMagnet:
     is_a: MagneticElement
     slot_usage:
       order:
@@ -39,12 +39,12 @@ classes:
     is_a: Magnet
     slot_usage:
       magnetic:
-        range: Dipole_Magnet
+        range: DipoleMagnet
       hardware_type:
         equals_string: Dipole
         ifabsent: Dipole
 
-  Quadrupole_Magnet:
+  QuadrupoleMagnet:
     is_a: MagneticElement
     slot_usage:
       order:
@@ -55,12 +55,12 @@ classes:
     is_a: Magnet
     slot_usage:
       magnetic:
-        range: Quadrupole_Magnet
+        range: QuadrupoleMagnet
       hardware_type:
         equals_string: Quadrupole
         ifabsent: Quadrupole
 
-  Sextupole_Magnet:
+  SextupoleMagnet:
     is_a: MagneticElement
     description: Sextupole magnet field, principal multipole order 2.
     slot_usage:
@@ -74,12 +74,12 @@ classes:
     class_uri: laura:Sextupole
     slot_usage:
       magnetic:
-        range: Sextupole_Magnet
+        range: SextupoleMagnet
       hardware_type:
         equals_string: Sextupole
         ifabsent: Sextupole
 
-  Octupole_Magnet:
+  OctupoleMagnet:
     is_a: MagneticElement
     description: Octupole magnet field, principal multipole order 3.
     slot_usage:
@@ -93,42 +93,48 @@ classes:
     class_uri: laura:Octupole
     slot_usage:
       magnetic:
-        range: Octupole_Magnet
+        range: OctupoleMagnet
       hardware_type:
         equals_string: Octupole
         ifabsent: Octupole
 
   # -- Correctors ---------------------------------------------------------------
-  # Correctors are dipoles in Python (``is_a: Dipole``) but carry a kick-based
-  # magnetic model rather than a multipole one.
 
   Corrector_Magnet:
+    is_a: DipoleMagnet
     description: >-
-      Steering-corrector field, expressed as horizontal and vertical kicks
-      rather than multipole coefficients.
-    class_uri: laura:Corrector_Magnet
+      Steering-corrector field. A dipole magnet whose order-0 multipole is
+      addressed by beam plane: the normal component is the horizontal kick and
+      the skew component is the vertical kick. Inherits from 
+      DipoleMagnet / MagneticElement.
+    class_uri: laura:CorrectorMagnet
     attributes:
-      length:
-        range: float
-        ifabsent: float(0.0)
-        description: Magnetic length [m].
-        minimum_value: 0
-      order:
-        range: integer
-        ifabsent: int(0)
-        description: Multipole order (0, a dipole field).
-      tilt:
-        range: float
-        ifabsent: float(0.0)
-        description: Roll of the corrector about the beam axis [rad].
       horizontal_kick:
         range: float
+        any_of:
+          - range: float
+          - range: string
+        in_subset:
+          - functional_parameters
         ifabsent: float(0.0)
-        description: Horizontal deflection [rad]. May be a functional expression.
+        description: >-
+          Horizontal deflection [rad]. May be a functional expression. Derived
+          from multipoles.K0L.normal.
+        unit:
+          ucum_code: rad
       vertical_kick:
         range: float
+        any_of:
+          - range: float
+          - range: string
+        in_subset:
+          - functional_parameters
         ifabsent: float(0.0)
-        description: Vertical deflection [rad]. May be a functional expression.
+        description: >-
+          Vertical deflection [rad]. May be a functional expression. Derived
+          from multipoles.K0L.skew.
+        unit:
+          ucum_code: rad
 
   HorizontalCorrector:
     is_a: Dipole
@@ -152,6 +158,18 @@ classes:
         equals_string: Vertical_Corrector
         ifabsent: Vertical_Corrector
 
+  CombinedCorrectorMagnet:
+    description: >-
+      The pair of steering-corrector fields inside one combined corrector.
+    class_uri: laura:CombinedCorrectorMagnet
+    attributes:
+      horizontal:
+        range: Corrector_Magnet
+        description: Horizontal-plane corrector field, with its own calibration.
+      vertical:
+        range: Corrector_Magnet
+        description: Vertical-plane corrector field, with its own calibration.
+
   CombinedCorrector:
     is_a: Dipole
     description: >-
@@ -160,7 +178,7 @@ classes:
     class_uri: laura:CombinedCorrector
     slot_usage:
       magnetic:
-        range: Corrector_Magnet
+        range: CombinedCorrectorMagnet
       hardware_type:
         equals_string: Combined_Corrector
         ifabsent: Combined_Corrector
@@ -279,10 +297,10 @@ classes:
         equals_string: Solenoid
         ifabsent: Solenoid
 
-  CombinedSolenoidQuadrupole_Magnet:
+  CombinedSolenoidQuadrupoleMagnet:
     is_a: MagneticElement
     description: Combined solenoid and quadrupole magnetic field.
-    class_uri: laura:CombinedSolenoidQuadrupole_Magnet
+    class_uri: laura:CombinedSolenoidQuadrupoleMagnet
     slot_usage:
       order:
         ifabsent: int(1)
@@ -298,7 +316,7 @@ classes:
     class_uri: laura:CombinedSolenoidQuadrupole
     slot_usage:
       magnetic:
-        range: CombinedSolenoidQuadrupole_Magnet
+        range: CombinedSolenoidQuadrupoleMagnet
       hardware_type:
         equals_string: CombinedSolenoidQuadrupole
         ifabsent: CombinedSolenoidQuadrupole
@@ -372,11 +390,11 @@ classes:
 
   # -- Non-linear lens ----------------------------------------------------------
 
-  NonLinearLens_Magnet:
+  NonLinearLensMagnet:
     description: >-
       Integrable-optics non-linear lens field.  See the MAD-X manual and
       Danilov/Nagaitsev, PAC2011 WEP070.
-    class_uri: laura:NonLinearLens_Magnet
+    class_uri: laura:NonLinearLensMagnet
     attributes:
       length:
         range: float
@@ -403,7 +421,7 @@ classes:
     class_uri: laura:NonLinearLens
     slot_usage:
       magnetic:
-        range: NonLinearLens_Magnet
+        range: NonLinearLensMagnet
       hardware_type:
         equals_string: NonLinearLens
         ifabsent: NonLinearLens

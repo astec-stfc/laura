@@ -17,6 +17,7 @@ URI: [laura:ApertureShapeEnum](https://w3id.org/laura/ApertureShapeEnum)
 | circular | None |  |
 | rectangular | None |  |
 | elliptical | None |  |
+| planar | None |  |
 | scraper | None | Scraper jaws rather than a fixed pipe cross-section |
 
 
@@ -68,9 +69,11 @@ permissible_values:
     text: rectangular
   elliptical:
     text: elliptical
+  planar:
+    text: planar
   scraper:
     text: scraper
-    description: 'Scraper jaws rather than a fixed pipe cross-section. '
+    description: Scraper jaws rather than a fixed pipe cross-section.
 
 ```
 </details>

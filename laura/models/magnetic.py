@@ -15,6 +15,7 @@ from pydantic import (
 )
 from laura._compat import DeprecatedMethodAliases
 from ._generated import (
+    _CombinedCorrectorMagnetBase,
     _CombinedSolenoidQuadrupoleMagnetBase,
     _CorrectorMagnetBase,
     _FieldIntegralBase,
@@ -609,7 +610,7 @@ class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalM
         output_dict = self.linear_saturation_coefficients.current_to_k(
             current=current, momentum=momentum
         )
-        return output_dict["KL"] * 360 / (2.0 * np.pi) / 1000
+        return output_dict["KL"] * 360 / (2.0 * np.pi)
 
 
 class DipoleMagnet(MagneticElement):
@@ -620,6 +621,9 @@ class DipoleMagnet(MagneticElement):
     order: int = Field(repr=False, default=0)
     """Magnetic order of the dipole."""
 
+    # `angle` is deliberately not a schema slot (see magnetic.yaml): it is
+    # derived from multipoles.K0L here, so a symbolic bend angle survives
+    # round-tripping and reads follow the global resolution mode.
     @property
     def angle(self) -> Union[int, float, str]:
         """Bend angle as configured. By default (global resolution mode off) this
@@ -635,37 +639,35 @@ class DipoleMagnet(MagneticElement):
         self.multipoles.K0L.normal = value
 
     def current_to_angle(self, current: float, momentum: float) -> float:
-        """Convert current to bend angle in degrees."""
-        output_dict = self.linear_saturation_coefficients.current_to_k(
-            current=current, momentum=momentum
-        )
-        return output_dict["KL"] * 360 / (2.0 * np.pi) / 1000
+        """
+        Convert current to bend angle in degrees.
+
+        Args:
+            current (float): Magnet current [A].
+            momentum (float): Beam momentum [MeV/c].
+
+        Returns:
+            float: The bend angle [degrees].
+        """
+        return self.current_to_k(current=current, momentum=momentum)["degrees"]
 
     def current_to_k(self, *args, **kwargs):
-        output_dict = {
-            k: v / 1000
-            for k, v in self.linear_saturation_coefficients.current_to_k(
-                *args, **kwargs
-            ).items()
-        }
-        output_dict.update({"degrees": output_dict["KL"] * 360 / (2.0 * np.pi)})
+        """
+        Current -> K/KL, plus the bend angle in degrees.
+
+        ``LinearSaturationFit.current_to_k`` already applies an order-aware
+        ``c/1e9`` for order 0, which makes ``KL`` the bend angle in **radians**.
+        """
+        output_dict = dict(
+            self.linear_saturation_coefficients.current_to_k(*args, **kwargs)
+        )
+        if "KL" in output_dict:
+            output_dict["degrees"] = output_dict["KL"] * 360 / (2.0 * np.pi)
         return output_dict
 
-    def k_to_current(self, K, momentum): # noqa N806
-        """Reverse the /1000 scaling applied by currentToK."""
-        if isinstance(K, dict):
-            k = {k: v * 1000 for k, v in K.items() if isinstance(v, (int, float))}
-        else:
-            k = K * 1000
-        return self.linear_saturation_coefficients.k_to_current(k, momentum)
-
-    def kl_to_current(self, KL, momentum): # noqa N806
-        """Reverse the /1000 scaling applied by currentToK."""
-        if isinstance(KL, dict):
-            kl = {k: v * 1000 for k, v in KL.items() if isinstance(v, (int, float))}
-        else:
-            kl = KL * 1000
-        return self.linear_saturation_coefficients.kl_to_current(kl, momentum)
+    # No k_to_current/kl_to_current override: current_to_k above no longer
+    # divides by 1000, so there is nothing to undo and MagneticElement's
+    # inverses round-trip exactly.
 
     @computed_field
     @property
@@ -821,6 +823,12 @@ class SolenoidMagnet(_SolenoidMagnetBase, IgnoreExtra):
     Solenoid magnet including higher order fields.
     """
 
+    # _SolenoidMagnetBase pulls in ConfiguredBaseModel's serialize_by_alias=True.
+    # Fields below use `alias=` (bidirectional) rather than the generated
+    # classes' input-only `validation_alias=`, so with serialize_by_alias on,
+    # model_dump() would emit YAML aliases (e.g. "mag_set_max_wait_time")
+    # instead of field names -- breaking flatten_dict()-based full_dump() and
+    # every export path that reads dumps by field name. Pin it back off.
     model_config = ConfigDict(serialize_by_alias=False)
 
     length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
@@ -920,42 +928,267 @@ class NonLinearLensMagnet(_NonLinearLensMagnetBase, IgnoreExtra):
         super().__init__(**data)
 
 
-class CorrectorMagnet(_CorrectorMagnetBase, IgnoreExtra):
+class CorrectorMagnet(DipoleMagnet, _CorrectorMagnetBase):
     """
     Corrector (steering) magnet.
 
-    Unlike :class:`DipoleMagnet` -- whose single ``K0L`` multipole's ``normal``/
-    ``skew`` components denote the magnetic field's orientation, not a beam
-    plane -- a corrector's kick is stored as two explicitly-named, independent
-    kick angles, so a :class:`~laura.models.element.HorizontalCorrector` or
-    :class:`~laura.models.element.VerticalCorrector` populates only its own
-    plane, while a :class:`~laura.models.element.CombinedCorrector` can carry
-    both simultaneously.
+    The two kick angles are the two components of the *same* order-0 multipole,
+    addressed by beam plane: `horizontal_kick` goes to `multipoles.K0L.normal`
+    and `vertical_kick` goes to `multipoles.K0L.vertical`.
+
+    Use :meth:`resolved_kicks` for the resolved numbers regardless of mode.
     """
 
-    # See the comment on Solenoid_Magnet.model_config -- same reasoning.
-    model_config = ConfigDict(serialize_by_alias=False)
+    def __init__(self, /, **data: Any) -> None:
+        super().__init__(**data)
+        if data.get("horizontal_kick") is not None:
+            self.horizontal_kick = data["horizontal_kick"]
+        if data.get("vertical_kick") is not None:
+            self.vertical_kick = data["vertical_kick"]
 
-    length: NonNegativeFloat = Field(default=0.0, alias="magnetic_length")
-    """Magnetic length [m]."""
+    def _k0l(self) -> Multipole:
+        """The order-0 multipole, creating ``multipoles`` if it is unset."""
+        if self.multipoles is None:
+            object.__setattr__(self, "multipoles", Multipoles())
+        return self.multipoles.K0L
 
-    order: int = Field(repr=False, default=0, frozen=True)
-    """Corrector multipole order (0 = dipole-like kick)."""
+    @computed_field
+    @property
+    def horizontal_kick(self) -> Union[int, float, str]:
+        """Horizontal kick angle [rad] -- the normal component of ``K0L``."""
+        return resolve_functional_parameter(self._k0l().normal)
 
-    tilt: float = Field(default=0.0)
-    """Tilt angle of the corrector [degrees]."""
+    @horizontal_kick.setter
+    def horizontal_kick(self, value: Union[int, float, str]) -> None:
+        k0l = self._k0l()
+        k0l.normal = value
+        k0l.order = 0
 
-    horizontal_kick: Union[float, str] = Field(
-        default=0.0, json_schema_extra={"functional": True}
-    )
-    """Horizontal kick angle [rad]. Stored verbatim: a number, or the name of a
-    functional definition."""
+    @computed_field
+    @property
+    def vertical_kick(self) -> Union[int, float, str]:
+        """Vertical kick angle [rad] -- the skew component of ``K0L``."""
+        return resolve_functional_parameter(self._k0l().skew)
 
-    vertical_kick: Union[float, str] = Field(
-        default=0.0, json_schema_extra={"functional": True}
-    )
-    """Vertical kick angle [rad]. Stored verbatim: a number, or the name of a
-    functional definition."""
+    @vertical_kick.setter
+    def vertical_kick(self, value: Union[int, float, str]) -> None:
+        k0l = self._k0l()
+        k0l.skew = value
+        k0l.order = 0
+
+    def resolved_kicks(self) -> tuple[float, float]:
+        """
+        Both kick angles as numbers, the kick counterpart of
+        :meth:`~MagneticElement.KnL`.
+
+        Returns:
+            tuple[float, float]: ``(horizontal_kick, vertical_kick)`` [rad].
+        """
+        k0l = self._k0l()
+        return (
+            resolve_functional_parameter(k0l.normal, force=True),
+            resolve_functional_parameter(k0l.skew, force=True),
+        )
+
+    def kick_from_angle(self, skew: bool = None) -> Union[int, float, str]:
+        """
+        Transfer this magnet's bend angle (equivalently ``k0l`` / ``kl``) onto
+        the kick of the plane implied by *skew*, and return it.
+
+        Args:
+            skew (bool, optional): Put the angle in the vertical (skew) plane
+                rather than the horizontal (normal) one. Defaults to this
+                magnet's :attr:`skew` flag.
+
+        Returns:
+            Union[int, float, str]: The kick now held by the selected plane,
+            as stored.
+        """
+        skew = self.skew if skew is None else skew
+        k0l = self._k0l()
+        source = "skew" if skew else "normal"
+        other = "normal" if skew else "skew"
+        value = getattr(k0l, source)
+        if not _is_set(value) and _is_set(getattr(k0l, other)):
+            value = getattr(k0l, other)
+            setattr(k0l, source, value)
+            setattr(k0l, other, 0.0)
+        return value
+
+    def current_to_angle(self, current: float, momentum: float) -> float:
+        """
+        Convert a magnet current to a kick angle.
+
+        Args:
+            current (float): Magnet current [A].
+            momentum (float): Beam momentum [MeV/c].
+
+        Returns:
+            float: The kick angle [rad]. Note this is radians, unlike
+            :meth:`DipoleMagnet.current_to_angle`, which returns degrees.
+        """
+        return self.linear_saturation_coefficients.current_to_k(
+            current=current, momentum=momentum
+        )["KL"]
+
+    def angle_to_current(self, angle: float, momentum: float) -> float:
+        """
+        Inverse of :meth:`current_to_angle`.
+
+        Args:
+            angle (float): Kick angle [rad].
+            momentum (float): Beam momentum [MeV/c].
+
+        Returns:
+            float: The magnet current [A].
+        """
+        return self.linear_saturation_coefficients.kl_to_current(angle, momentum)
+
+
+class CombinedCorrectorMagnet(_CombinedCorrectorMagnetBase, IgnoreExtra):
+    """
+    The two corrector fields inside one combined corrector.
+
+    The horizontal and vertical planes are separate magnets with separate
+    windings.
+
+    The kick accessors are proxied to the plane that owns them, so
+    ``magnetic.horizontal_kick`` / ``magnetic.vertical_kick`` read and write the
+    same way they do on a single-plane corrector -- only the *calibration* is
+    per-plane.
+    """
+
+    horizontal: CorrectorMagnet = Field(default_factory=CorrectorMagnet)
+    """Horizontal-plane corrector field, with its own calibration."""
+
+    vertical: CorrectorMagnet = Field(default_factory=CorrectorMagnet)
+    """Vertical-plane corrector field, with its own calibration."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_single_magnet(cls, data: Any) -> Any:
+        """Build the two planes, merging any shared top-level magnetic keys into
+        each. Could be a single flat corrector mapping, a flat mapping plus
+        ``horizontal`` and ``vertical`` keys, or two fully specified planes.
+
+        Each plane keeps only its own kick, so a combined corrector never
+        deflects in both planes off one value.
+        """
+        if not isinstance(data, dict):
+            return data
+        per_plane = ("horizontal", "vertical")
+        kicks = ("horizontal_kick", "vertical_kick")
+        shared = {k: v for k, v in data.items() if k not in per_plane + kicks}
+        out = {}
+        for plane, kick in zip(per_plane, kicks):
+            own = data.get(plane) or {}
+            merged = {**shared, **own}
+            merged[kick] = own.get(kick, data.get(kick, 0.0))
+            merged.pop(kicks[1] if plane == "horizontal" else kicks[0], None)
+            out[plane] = merged
+        return out
+
+    # -- Proxies to the plane that owns the quantity ------------------------
+    @computed_field
+    @property
+    def horizontal_kick(self) -> Union[int, float, str]:
+        """Horizontal kick angle [rad], held by :attr:`horizontal`."""
+        return self.horizontal.horizontal_kick
+
+    @horizontal_kick.setter
+    def horizontal_kick(self, value: Union[int, float, str]) -> None:
+        self.horizontal.horizontal_kick = value
+
+    @computed_field
+    @property
+    def vertical_kick(self) -> Union[int, float, str]:
+        """Vertical kick angle [rad], held by :attr:`vertical`."""
+        return self.vertical.vertical_kick
+
+    @vertical_kick.setter
+    def vertical_kick(self, value: Union[int, float, str]) -> None:
+        self.vertical.vertical_kick = value
+
+    @computed_field
+    @property
+    def length(self) -> float:
+        """Magnetic length [m] of the horizontal magnet."""
+        return self.horizontal.length
+
+    @length.setter
+    def length(self, value: float) -> None:
+        self.horizontal.length = value
+        self.vertical.length = value
+
+    @computed_field
+    @property
+    def order(self) -> int:
+        """Multipole order (0, a dipole-like kick)."""
+        return self.horizontal.order
+
+    @computed_field
+    @property
+    def tilt(self) -> float:
+        """Roll of the horizontal magnet about the beam axis [rad]."""
+        return self.horizontal.tilt
+
+    @tilt.setter
+    def tilt(self, value: float) -> None:
+        self.horizontal.tilt = value
+        self.vertical.tilt = value
+
+    def __getattr__(self, name: str) -> Any:
+        """Fall back to the horizontal plane for the rest of the magnetic
+        surface (``tilt``, ``multipoles``, ``current_to_k``, ...), so a combined
+        corrector still reads like a magnet."""
+        if name.startswith("_") or name in ("horizontal", "vertical"):
+            raise AttributeError(name)
+        return getattr(self.horizontal, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Mirror of :meth:`__getattr__`. Anything proxied is geometry the two
+        planes share, so it is written to both -- without this, a write of a
+        proxied name (``reverse_element`` swapping the edge angles) would land
+        on the pair as an extra field and the plane would keep the old value."""
+        if (
+            name.startswith("_")
+            or name in type(self).model_fields
+            or hasattr(type(self), name)
+        ):
+            super().__setattr__(name, value)
+            return
+        setattr(self.horizontal, name, value)
+        setattr(self.vertical, name, value)
+
+    def resolved_kicks(self) -> tuple[float, float]:
+        """``(horizontal_kick, vertical_kick)`` [rad] as numbers, resolving
+        functional definitions regardless of the global resolution mode."""
+        return (
+            self.horizontal.resolved_kicks()[0],
+            self.vertical.resolved_kicks()[1],
+        )
+
+    def current_to_angle(self, current: float, momentum: float, skew: bool = False) -> float:
+        """
+        Convert a magnet current to a kick angle using the calibration of the
+        requested plane.
+
+        Args:
+            current (float): Magnet current [A].
+            momentum (float): Beam momentum [MeV/c].
+            skew (bool): Use the vertical plane's calibration instead of the
+                horizontal one.
+
+        Returns:
+            float: The kick angle [rad].
+        """
+        plane = self.vertical if skew else self.horizontal
+        return plane.current_to_angle(current, momentum)
+
+    def angle_to_current(self, angle: float, momentum: float, skew: bool = False) -> float:
+        """Inverse of :meth:`current_to_angle`, using the same plane selection."""
+        plane = self.vertical if skew else self.horizontal
+        return plane.angle_to_current(angle, momentum)
 
 
 class WigglerMagnet(_WigglerMagnetBase, IgnoreExtra):

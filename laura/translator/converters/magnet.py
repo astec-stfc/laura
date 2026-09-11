@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Union
 
-from pydantic import computed_field, model_validator
+from pydantic import computed_field, model_validator, field_validator
 from warnings import warn
 from .base import BaseElementTranslator
 from laura.models.magnetic import (
@@ -12,6 +12,7 @@ from laura.models.magnetic import (
     WigglerMagnet,
     NonLinearLensMagnet,
     CorrectorMagnet,
+    CombinedCorrectorMagnet,
 )
 from laura.models.simulation import MagnetSimulationElement
 from ..utils.functions import _rotation_matrix, chop, expand_substitution
@@ -1394,23 +1395,26 @@ class CorrectorTranslator(BaseElementTranslator):
     :class:`~laura.models.element.CombinedCorrector` element instance into a string or
     object that can be understood by various simulation codes.
 
-    Correctors use :class:`~laura.models.magnetic.CorrectorMagnet`, which stores
-    the horizontal and vertical kick angles as two independent, explicitly-named
-    fields (unlike :class:`DipoleMagnet`, whose multipole ``normal``/``skew``
-    components denote field orientation, not beam plane) -- so this does *not*
-    subclass :class:`MagnetTranslator`, whose ``k1``/``k2``/``k3`` etc. and
-    ASTRA/CSRTrack/GPT writers assume a multipole-based magnetic model.
     A :class:`~laura.models.element.HorizontalCorrector`/
     :class:`~laura.models.element.VerticalCorrector` is expected to populate only
     its own plane; a :class:`~laura.models.element.CombinedCorrector` can carry
     both simultaneously.
     """
 
-    magnetic: CorrectorMagnet
-    """Corrector magnetic element."""
+    magnetic: CorrectorMagnet | CombinedCorrectorMagnet
+    """Corrector magnetic element. A ``CombinedCorrector`` carries the
+    per-plane pair (``horizontal``/``vertical``)."""
 
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
+
+    @field_validator("magnetic", mode="before")
+    @classmethod
+    def _select_magnetic_shape(cls, v):
+        """Pick the pair model when the payload carries per-plane magnets."""
+        if isinstance(v, dict) and {"horizontal", "vertical"} & v.keys():
+            return CombinedCorrectorMagnet(**v)
+        return v
 
     @computed_field
     @property
@@ -1430,12 +1434,8 @@ class CorrectorTranslator(BaseElementTranslator):
         a pair of objects) for the corrector.
 
         Ocelot's ``Hcor``/``Vcor`` are single-plane elements with no combined
-        horizontal+vertical equivalent, so a `Combined_Corrector` is represented
-        as an ``Hcor`` immediately followed by a ``Vcor``, each given half this
-        element's length -- so the pair has the same total length as the
-        original single element -- and its own plane's kick. Ocelot has no
-        symbolic/deferred-expression support, so a functional kick is resolved
-        to a number here regardless of the global resolution mode.
+        horizontal+vertical equivalent, so a `CombinedCorrector` splits this into
+        an ``Hcor`` and a ``Vcor``.
 
         Returns
         -------
@@ -1472,10 +1472,7 @@ class CorrectorTranslator(BaseElementTranslator):
         combined-plane element and must be split -- see :meth:`to_ocelot`).
 
         Xtrack's normal-multipole convention deflects toward *negative* x for a
-        positive ``knl`` -- the opposite of the "positive kick deflects toward
-        positive x/y" convention used by MAD-X/Ocelot/Cheetah (verified against
-        each by direct particle tracking) -- so ``knl[0]`` is the *negated*
-        horizontal kick; the skew component (``ksl[0]``) needs no such negation.
+        positive ``knl``.
 
         Returns
         -------

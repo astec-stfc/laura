@@ -21,7 +21,7 @@ URI: [laura:length](https://w3id.org/laura/length)
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
 | [SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |  no  |
 | [OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |  no  |
-| [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field, expressed as horizontal and vertical kicks rather t... |  no  |
+| [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field |  no  |
 | [SolenoidMagnet](SolenoidMagnet.md) | Solenoid field model, including systematic and random field errors and the cu... |  no  |
 | [CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md) | Combined solenoid and quadrupole magnetic field |  no  |
 | [WigglerMagnet](WigglerMagnet.md) | Periodic wiggler/undulator field |  no  |
@@ -39,7 +39,7 @@ URI: [laura:length](https://w3id.org/laura/length)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [PhysicalElement](PhysicalElement.md), [MagneticElement](MagneticElement.md), [CorrectorMagnet](CorrectorMagnet.md), [SolenoidMagnet](SolenoidMagnet.md), [WigglerMagnet](WigglerMagnet.md), [NonLinearLensMagnet](NonLinearLensMagnet.md) |
+| Domain Of | [PhysicalElement](PhysicalElement.md), [MagneticElement](MagneticElement.md), [SolenoidMagnet](SolenoidMagnet.md), [WigglerMagnet](WigglerMagnet.md), [NonLinearLensMagnet](NonLinearLensMagnet.md) |
 
 ### Cardinality and Requirements
 
@@ -80,10 +80,9 @@ name: length
 domain_of:
 - PhysicalElement
 - MagneticElement
-- Corrector_Magnet
 - Solenoid_Magnet
 - Wiggler_Magnet
-- NonLinearLens_Magnet
+- NonLinearLensMagnet
 range: string
 
 ```

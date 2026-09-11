@@ -75,6 +75,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -439,6 +446,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -573,6 +587,13 @@
         "hardware_type": {
           "const": "Aperture",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -749,6 +770,7 @@
         "circular",
         "rectangular",
         "elliptical",
+        "planar",
         "scraper"
       ],
       "title": "ApertureShapeEnum",
@@ -881,6 +903,13 @@
         "hardware_type": {
           "const": "Beam_Arrival_Monitor",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -1064,6 +1093,13 @@
         "hardware_type": {
           "const": "BeamBeam",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -1465,6 +1501,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -1669,6 +1712,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -1858,6 +1908,13 @@
         "hardware_type": {
           "const": "Camera",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -2466,6 +2523,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -2659,6 +2723,13 @@
         "hardware_type": {
           "const": "Collimator",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -2872,6 +2943,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -2892,7 +2970,7 @@
         "magnetic": {
           "anyOf": [
             {
-              "$ref": "#/$defs/CorrectorMagnet"
+              "$ref": "#/$defs/CombinedCorrectorMagnet"
             },
             {
               "type": "null"
@@ -2990,6 +3068,36 @@
       "title": "CombinedCorrector",
       "type": "object"
     },
+    "CombinedCorrectorMagnet": {
+      "additionalProperties": false,
+      "description": "The pair of steering-corrector fields inside one combined corrector.",
+      "properties": {
+        "horizontal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrectorMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Horizontal-plane corrector field, with its own calibration."
+        },
+        "vertical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CorrectorMagnet"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vertical-plane corrector field, with its own calibration."
+        }
+      },
+      "title": "CombinedCorrectorMagnet",
+      "type": "object"
+    },
     "CombinedSolenoidQuadrupole": {
       "additionalProperties": false,
       "description": "Magnet combining coaxial solenoid and quadrupole fields.",
@@ -3072,6 +3180,13 @@
         "hardware_type": {
           "const": "CombinedSolenoidQuadrupole",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -3215,7 +3330,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -3251,15 +3380,8 @@
           "description": "Fringe-field exit edge angle [rad].",
           "type": "string"
         },
-        "exit_edge_field_integral": {
-          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
-          "type": [
-            "number",
-            "null"
-          ]
-        },
         "exit_gap": {
-          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
           "minimum": 0.0,
           "type": [
             "number",
@@ -3561,39 +3683,233 @@
     },
     "CorrectorMagnet": {
       "additionalProperties": false,
-      "description": "Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.",
+      "description": "Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.",
       "properties": {
-        "horizontal_kick": {
-          "description": "Horizontal deflection [rad]. May be a functional expression.",
+        "angle": {
+          "description": "Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default.",
           "type": [
             "number",
             "null"
           ]
+        },
+        "bore": {
+          "description": "Magnet bore radius [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral": {
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "entrance_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field entrance edge angle [rad].",
+          "type": "string"
+        },
+        "exit_edge_angle": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fringe-field exit edge angle [rad].",
+          "type": "string"
+        },
+        "exit_gap": {
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "field_integral_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldIntegral"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Polynomial calibration of integrated field vs. current."
+        },
+        "fringe_field_coefficient": {
+          "description": "Coefficient controlling the fringe-field roll-off rate.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gap": {
+          "description": "Full gap between pole faces [m].",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gradient": {
+          "description": "Peak field gradient [T/m] (quads) or peak field [T] (dipoles).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "horizontal_kick": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Horizontal deflection [rad]. May be a functional expression. Derived from multipoles.K0L.normal.",
+          "type": "number"
         },
         "length": {
-          "description": "Magnetic length [m].",
-          "minimum": 0,
+          "description": "Magnetic (effective) length [m].",
+          "minimum": 0.0,
           "type": [
             "number",
             "null"
           ]
         },
+        "linear_saturation_coefficients": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LinearSaturationFit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Bi-linear saturation calibration."
+        },
+        "multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Integrated multipole field components."
+        },
         "order": {
-          "description": "Multipole order (0, a dipole field).",
+          "const": 0,
+          "description": "Principal multipole order (0 = dipole, 1 = quad, ?).",
+          "minimum": -1,
           "type": [
             "integer",
             "null"
           ]
         },
+        "plane": {
+          "$ref": "#/$defs/BendingPlaneEnum",
+          "description": "Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."
+        },
+        "random_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Random multipole errors at the reference radius."
+        },
+        "settle_time": {
+          "description": "Power-supply settle time after a change [s].",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "skew": {
+          "description": "Whether the magnet is rotated 45? to produce a skew field component.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "systematic_multipoles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Multipoles"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Systematic (design) multipole errors at the reference radius."
+        },
         "tilt": {
-          "description": "Roll of the corrector about the beam axis [rad].",
+          "description": "Global tilt about the beam axis [rad].",
           "type": [
             "number",
             "null"
           ]
         },
         "vertical_kick": {
-          "description": "Vertical deflection [rad]. May be a functional expression.",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Vertical deflection [rad]. May be a functional expression. Derived from multipoles.K0L.skew.",
+          "type": "number"
+        },
+        "width": {
+          "description": "Physical width of the magnet in the bending plane [m].",
           "type": [
             "number",
             "null"
@@ -3685,6 +4001,13 @@
         "hardware_type": {
           "const": "CrabCavity",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -3911,6 +4234,13 @@
         },
         "hardware_type": {
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -4290,6 +4620,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -4428,7 +4765,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -4464,15 +4815,8 @@
           "description": "Fringe-field exit edge angle [rad].",
           "type": "string"
         },
-        "exit_edge_field_integral": {
-          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
-          "type": [
-            "number",
-            "null"
-          ]
-        },
         "exit_gap": {
-          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
           "minimum": 0.0,
           "type": [
             "number",
@@ -4680,6 +5024,13 @@
         "hardware_type": {
           "const": "Drift",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -5106,6 +5457,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -5481,6 +5839,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -5724,6 +6089,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -5955,6 +6327,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -6144,6 +6523,13 @@
         "hardware_type": {
           "const": "Horizontal_Corrector",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -6373,6 +6759,13 @@
         "hardware_type": {
           "const": "Integrated_Current_Transformer",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -6646,6 +7039,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -6824,6 +7224,13 @@
         "hardware_type": {
           "const": "LaserAttenuator",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -7089,6 +7496,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -7267,6 +7681,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -7440,6 +7861,13 @@
         "hardware_type": {
           "const": "LaserMirror",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -7658,6 +8086,35 @@
       "title": "LatticeGeometryEnum",
       "type": "string"
     },
+    "LayoutPass": {
+      "additionalProperties": false,
+      "description": "One traversal of one section by one beam path.",
+      "properties": {
+        "direction": {
+          "description": "1 if this pass traverses the section forwards, -1 if backwards. A property of the path, not of the section.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "number": {
+          "description": "Multipass occurrence number, counting from 1. Absent for an ordinary single traversal and for repetition, where each occurrence is a separate device with its own section.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "section": {
+          "description": "Name of the section traversed on this pass.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "section"
+      ],
+      "title": "LayoutPass",
+      "type": "object"
+    },
     "Lighting": {
       "additionalProperties": false,
       "description": "Experimental-hall lighting element.",
@@ -7718,6 +8175,13 @@
         "hardware_type": {
           "const": "Lighting",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -7958,6 +8422,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -8142,6 +8613,16 @@
             "null"
           ]
         },
+        "passes": {
+          "description": "The beam order, one entry per section traversal. Distinct from sections, which is keyed by name and so cannot express a section entered twice.",
+          "items": {
+            "$ref": "#/$defs/LayoutPass"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "sections": {
           "description": "Ordered list of section names.",
           "items": {
@@ -8285,6 +8766,13 @@
         },
         "hardware_type": {
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -8464,7 +8952,7 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Per-simulation override of the magnet's fringe-field integral. Absent means \"use ``MagneticElement.edge_field_integral``\", which is what every element wants unless a study is deliberately varying the edge focussing independently of the magnet. It used to default to 0.5, and because the keyword converters strip the sub-model prefix before looking a name up, that default reached the exporters ahead of the magnet's own value and shadowed it: a magnet with ``edge_field_integral = 0.3`` exported ``fint = 0.5`` to MAD-X, ELEGANT, OPAL, Ocelot and Xsuite. Only Bmad escaped, because ``_bmad_parameters`` overwrites ``fint`` after the loop.",
+          "description": "Per-simulation override of the magnet's fringe-field integral. Absent means \"use ``MagneticElement.edge_field_integral``\".",
           "type": [
             "number",
             "null"
@@ -8689,7 +9177,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -8725,15 +9227,8 @@
           "description": "Fringe-field exit edge angle [rad].",
           "type": "string"
         },
-        "exit_edge_field_integral": {
-          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
-          "type": [
-            "number",
-            "null"
-          ]
-        },
         "exit_gap": {
-          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
           "minimum": 0.0,
           "type": [
             "number",
@@ -8967,6 +9462,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -9145,6 +9647,13 @@
         "hardware_type": {
           "const": "MatrixTransform",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -9701,6 +10210,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -9937,6 +10453,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -10075,7 +10598,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -10111,15 +10648,8 @@
           "description": "Fringe-field exit edge angle [rad].",
           "type": "string"
         },
-        "exit_edge_field_integral": {
-          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
-          "type": [
-            "number",
-            "null"
-          ]
-        },
         "exit_gap": {
-          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
           "minimum": 0.0,
           "type": [
             "number",
@@ -10316,6 +10846,13 @@
         "hardware_type": {
           "const": "PID",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -10660,6 +11197,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -10837,6 +11381,13 @@
         },
         "hardware_type": {
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -11134,6 +11685,13 @@
         "hardware_type": {
           "const": "Plasma",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -11689,6 +12247,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -11872,6 +12437,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -12010,7 +12582,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -12046,15 +12632,8 @@
           "description": "Fringe-field exit edge angle [rad].",
           "type": "string"
         },
-        "exit_edge_field_integral": {
-          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
-          "type": [
-            "number",
-            "null"
-          ]
-        },
         "exit_gap": {
-          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
           "minimum": 0.0,
           "type": [
             "number",
@@ -12273,6 +12852,13 @@
         "hardware_type": {
           "const": "RFCavity",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -12906,6 +13492,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -13188,6 +13781,13 @@
           ],
           "description": "RF heartbeat parameters."
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -13350,6 +13950,13 @@
         "hardware_type": {
           "const": "RFModulator",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -13539,6 +14146,13 @@
         "hardware_type": {
           "const": "RFMultipole",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -13961,6 +14575,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -14284,6 +14905,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -14561,6 +15189,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -14699,7 +15334,21 @@
           ]
         },
         "edge_field_integral": {
-          "description": "Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise.",
+          "description": "Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_entrance": {
+          "description": "Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "edge_field_integral_exit": {
+          "description": "Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.",
           "type": [
             "number",
             "null"
@@ -14735,15 +15384,8 @@
           "description": "Fringe-field exit edge angle [rad].",
           "type": "string"
         },
-        "exit_edge_field_integral": {
-          "description": "Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check.",
-          "type": [
-            "number",
-            "null"
-          ]
-        },
         "exit_gap": {
-          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``.",
+          "description": "Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.",
           "minimum": 0.0,
           "type": [
             "number",
@@ -14951,6 +15593,13 @@
         "hardware_type": {
           "const": "Shutter",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -15346,6 +15995,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -15725,6 +16381,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -15891,6 +16554,13 @@
         },
         "hardware_type": {
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -16099,6 +16769,13 @@
         "hardware_type": {
           "const": "TwissMatch",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -16517,6 +17194,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -16695,6 +17379,13 @@
         "hardware_type": {
           "const": "Valve",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -16900,6 +17591,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -17089,6 +17787,13 @@
         "hardware_type": {
           "const": "Vertical_Corrector",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -17294,6 +17999,13 @@
         "hardware_type": {
           "const": "Wakefield",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -17832,6 +18544,13 @@
             "null"
           ]
         },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "inputs": {
           "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
           "items": {
@@ -18021,6 +18740,13 @@
         "hardware_type": {
           "const": "Wiggler",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -18307,6 +19033,13 @@
         "hardware_type": {
           "const": "Wire",
           "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
           "type": [
             "string",
             "null"
@@ -18640,6 +19373,13 @@
     },
     "hardware_type": {
       "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "inherits_from": {
+      "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
       "type": [
         "string",
         "null"

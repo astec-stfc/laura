@@ -96,6 +96,8 @@ URI: [laura:CombinedCorrector](https://w3id.org/laura/CombinedCorrector)
         
       CombinedCorrector : Horizontal_Corrector
         
+      CombinedCorrector : inherits_from
+        
       CombinedCorrector : inputs
         
           
@@ -115,8 +117,8 @@ URI: [laura:CombinedCorrector](https://w3id.org/laura/CombinedCorrector)
     
         
         
-        CombinedCorrector --> "0..1" CorrectorMagnet : magnetic
-        click CorrectorMagnet href "../CorrectorMagnet/"
+        CombinedCorrector --> "0..1" CombinedCorrectorMagnet : magnetic
+        click CombinedCorrectorMagnet href "../CombinedCorrectorMagnet/"
     
 
         
@@ -224,7 +226,7 @@ URI: [laura:CombinedCorrector](https://w3id.org/laura/CombinedCorrector)
 | ---  | --- | --- | --- |
 | [Horizontal_Corrector](Horizontal_Corrector.md) | 0..1 <br/> [String](String.md) | Name of the horizontal-plane corrector element | direct |
 | [Vertical_Corrector](Vertical_Corrector.md) | 0..1 <br/> [String](String.md) | Name of the vertical-plane corrector element | direct |
-| [magnetic](magnetic.md) | 0..1 <br/> [CorrectorMagnet](CorrectorMagnet.md) | Magnetic field parameters | [Magnet](Magnet.md) |
+| [magnetic](magnetic.md) | 0..1 <br/> [CombinedCorrectorMagnet](CombinedCorrectorMagnet.md) | Magnetic field parameters | [Magnet](Magnet.md) |
 | [degauss](degauss.md) | 0..1 <br/> [DegaussableElement](DegaussableElement.md) | Degaussing-cycle parameters | [Magnet](Magnet.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
@@ -241,6 +243,7 @@ URI: [laura:CombinedCorrector](https://w3id.org/laura/CombinedCorrector)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inherits_from](inherits_from.md) | 0..1 <br/> [String](String.md) | If set, this element's definition is merged on top of the named element's at ... | [AcceleratorElement](AcceleratorElement.md) |
 | [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element consumes (e | [AcceleratorElement](AcceleratorElement.md) |
 | [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element produces (e | [AcceleratorElement](AcceleratorElement.md) |
 | [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements feeding this one, whose ``outputs`` supply its ``inputs`` | [AcceleratorElement](AcceleratorElement.md) |
@@ -302,7 +305,7 @@ is_a: Dipole
 slot_usage:
   magnetic:
     name: magnetic
-    range: Corrector_Magnet
+    range: CombinedCorrectorMagnet
   hardware_type:
     name: hardware_type
     ifabsent: Combined_Corrector
@@ -341,7 +344,7 @@ is_a: Dipole
 slot_usage:
   magnetic:
     name: magnetic
-    range: Corrector_Magnet
+    range: CombinedCorrectorMagnet
   hardware_type:
     name: hardware_type
     ifabsent: Combined_Corrector
@@ -375,7 +378,7 @@ attributes:
     owner: CombinedCorrector
     domain_of:
     - Magnet
-    range: Corrector_Magnet
+    range: CombinedCorrectorMagnet
   degauss:
     name: degauss
     description: Degaussing-cycle parameters.
@@ -536,6 +539,20 @@ attributes:
     description: If set, this element is a logical sub-component of the named parent
       element.
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: CombinedCorrector
+    domain_of:
+    - AcceleratorElement
+    range: string
+  inherits_from:
+    name: inherits_from
+    description: If set, this element's definition is merged on top of the named element's
+      at load time, so it need only state what differs. Populated from ``inherit``
+      in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``,
+      which is a physical part-of relationship rather than a definitional one.
+    from_schema: https://w3id.org/laura/schema
+    aliases:
+    - inherit
     rank: 1000
     owner: CombinedCorrector
     domain_of:

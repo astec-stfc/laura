@@ -17,17 +17,24 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
       MagneticElement <|-- DipoleMagnet
         click MagneticElement href "../MagneticElement/"
       
+
+      DipoleMagnet <|-- CorrectorMagnet
+        click CorrectorMagnet href "../CorrectorMagnet/"
+      
+
       DipoleMagnet : angle
         
       DipoleMagnet : bore
         
       DipoleMagnet : edge_field_integral
         
+      DipoleMagnet : edge_field_integral_entrance
+        
+      DipoleMagnet : edge_field_integral_exit
+        
       DipoleMagnet : entrance_edge_angle
         
       DipoleMagnet : exit_edge_angle
-        
-      DipoleMagnet : exit_edge_field_integral
         
       DipoleMagnet : exit_gap
         
@@ -125,6 +132,7 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
 ## Inheritance
 * [MagneticElement](MagneticElement.md)
     * **DipoleMagnet**
+        * [CorrectorMagnet](CorrectorMagnet.md)
 
 
 ## Slots
@@ -147,8 +155,9 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
 | [plane](plane.md) | 0..1 <br/> [BendingPlaneEnum](BendingPlaneEnum.md) | Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combin... | [MagneticElement](MagneticElement.md) |
 | [width](width.md) | 0..1 <br/> [Float](Float.md) | Physical width of the magnet in the bending plane [m] | [MagneticElement](MagneticElement.md) |
 | [tilt](tilt.md) | 0..1 <br/> [Float](Float.md) | Global tilt about the beam axis [rad] | [MagneticElement](MagneticElement.md) |
-| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless) at the entrance face, an... | [MagneticElement](MagneticElement.md) |
-| [exit_edge_field_integral](exit_edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral at the exit face | [MagneticElement](MagneticElement.md) |
+| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless), used as the single comb... | [MagneticElement](MagneticElement.md) |
+| [edge_field_integral_entrance](edge_field_integral_entrance.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for entrance-edge focussing | [MagneticElement](MagneticElement.md) |
+| [edge_field_integral_exit](edge_field_integral_exit.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for exit-edge focussing | [MagneticElement](MagneticElement.md) |
 | [exit_gap](exit_gap.md) | 0..1 <br/> [Float](Float.md) | Full gap between pole faces at the exit face [m] | [MagneticElement](MagneticElement.md) |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | 0..1 <br/> [Float](Float.md) | Coefficient controlling the fringe-field roll-off rate | [MagneticElement](MagneticElement.md) |
 | [gradient](gradient.md) | 0..1 <br/> [Float](Float.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) | [MagneticElement](MagneticElement.md) |
@@ -209,7 +218,7 @@ URI: [laura:DipoleMagnet](https://w3id.org/laura/DipoleMagnet)
 
 <details>
 ```yaml
-name: Dipole_Magnet
+name: DipoleMagnet
 from_schema: https://w3id.org/laura/schema
 is_a: MagneticElement
 slot_usage:
@@ -225,7 +234,7 @@ slot_usage:
 
 <details>
 ```yaml
-name: Dipole_Magnet
+name: DipoleMagnet
 from_schema: https://w3id.org/laura/schema
 is_a: MagneticElement
 slot_usage:
@@ -239,11 +248,10 @@ attributes:
     description: Principal multipole order (0 = dipole, 1 = quad, ?).
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: '0'
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
     minimum_value: -1
@@ -253,7 +261,7 @@ attributes:
     description: Whether the magnet is rotated 45? to produce a skew field component.
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: 'False'
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - Multipole
     - MagneticElement
@@ -265,14 +273,13 @@ attributes:
     aliases:
     - magnetic_length
     ifabsent: float(0)
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0.0
     unit:
@@ -282,7 +289,7 @@ attributes:
     description: Integrated multipole field components.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: Multipoles
@@ -291,7 +298,7 @@ attributes:
     description: Systematic (design) multipole errors at the reference radius.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: Multipoles
@@ -300,7 +307,7 @@ attributes:
     description: Random multipole errors at the reference radius.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: Multipoles
@@ -309,7 +316,7 @@ attributes:
     description: Polynomial calibration of integrated field vs. current.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
@@ -319,7 +326,7 @@ attributes:
     description: Bi-linear saturation calibration.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
@@ -329,7 +336,7 @@ attributes:
     description: Power-supply settle time after a change [s].
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
@@ -344,7 +351,7 @@ attributes:
     - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: string
@@ -361,7 +368,7 @@ attributes:
     - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: string
@@ -376,7 +383,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.032)
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -389,7 +396,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.037)
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -403,7 +410,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: string(Horizontal)
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: BendingPlaneEnum
@@ -412,7 +419,7 @@ attributes:
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.2)
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - BeamBeamSimulationElement
     - MagneticElement
@@ -424,51 +431,61 @@ attributes:
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.0)
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
-    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad
   edge_field_integral:
     name: edge_field_integral
-    description: Enge fringe-field integral parameter (dimensionless) at the entrance
-      face, and at both faces unless ``exit_edge_field_integral`` says otherwise.
+    description: Enge fringe-field integral parameter (dimensionless), used as the
+      single combined value by codes that only support one edge focussing keyword.
+      Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit
+      that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
     from_schema: https://w3id.org/laura/schema/magnetic
-    ifabsent: float(0.5)
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagnetSimulationElement
     - MagneticElement
     range: float
-  exit_edge_field_integral:
-    name: exit_edge_field_integral
-    description: 'Enge fringe-field integral at the exit face. Absent means the exit
-      face matches the entrance, which is what a lattice quoting a single integral
-      means and what Bmad''s own ``fintx`` default does, so files that set only ``edge_field_integral``
-      are unaffected. Set it only when the faces genuinely differ: a bend split by
-      superposition carries the entrance fringe on its first piece and the exit fringe
-      on its last, and collapsing the two both invents a fringe mid-magnet and drops
-      the real one. The fringe integral enters only the vertical edge kick, so getting
-      this wrong is invisible to every horizontal check.'
+    required: false
+  edge_field_integral_entrance:
+    name: edge_field_integral_entrance
+    description: Fringe-field integral for entrance-edge focussing. Unset (None) by
+      default unless edge_field_integral is given; always overrides edge_field_integral
+      when set explicitly.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: float
+    required: false
+  edge_field_integral_exit:
+    name: edge_field_integral_exit
+    description: Fringe-field integral for exit-edge focussing. Unset (None) by default
+      unless edge_field_integral is given; always overrides edge_field_integral when
+      set explicitly.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: DipoleMagnet
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
   exit_gap:
     name: exit_gap
     description: Full gap between pole faces at the exit face [m]. Absent means the
-      same as ``gap``. See ``exit_edge_field_integral``.
+      same as ``gap``. See ``edge_field_integral_exit``.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: float
+    required: false
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -478,7 +495,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.0)
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -487,7 +504,7 @@ attributes:
     description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -504,7 +521,7 @@ attributes:
       property object as the field default.'
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Dipole_Magnet
+    owner: DipoleMagnet
     domain_of:
     - MagneticElement
     range: float

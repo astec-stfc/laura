@@ -90,6 +90,7 @@ from .magnetic import (
     NonLinearLensMagnet,
     WigglerMagnet,
     CorrectorMagnet,
+    CombinedCorrectorMagnet
 )
 from .plasma import PlasmaElement
 from .diagnostic import (
@@ -457,8 +458,8 @@ class HorizontalCorrector(Dipole, _HorizontalCorrectorBase):
     Attributes:
         hardware_type (str): The hardware type of the corrector.
         magnetic (:class:`~laura.models.magnetic.CorrectorMagnet`): The magnetic
-        attributes of the corrector -- only ``horizontal_kick`` is expected to be
-        set.
+        attributes of the corrector -- only ``horizontal_kick`` (equivalently the
+        normal component of ``multipoles.K0L``) is expected to be set.
     """
 
     hardware_type: str = Field(default="Horizontal_Corrector", frozen=True)
@@ -475,8 +476,8 @@ class VerticalCorrector(Dipole, _VerticalCorrectorBase):
     Attributes:
         hardware_type (str): The hardware type of the corrector.
         magnetic (:class:`~laura.models.magnetic.CorrectorMagnet`): The magnetic
-        attributes of the corrector -- only ``vertical_kick`` is expected to be
-        set.
+        attributes of the corrector -- only ``vertical_kick`` (equivalently the
+        skew component of ``multipoles.K0L``) is expected to be set.
     """
 
     hardware_type: str = Field(default="Vertical_Corrector", frozen=True)
@@ -492,22 +493,25 @@ class CombinedCorrector(Dipole, _CombinedCorrectorBase):
 
     Attributes:
         hardware_type (str): The hardware type of the corrector.
-        magnetic (:class:`~laura.models.magnetic.CorrectorMagnet`): The magnetic
-        attributes of the corrector; both ``horizontal_kick`` and ``vertical_kick``
-        may be set independently.
+        magnetic (:class:`~laura.models.magnetic.CombinedCorrectorMagnet`): The
+        magnetic attributes of the corrector -- a *pair* of
+        :class:`~laura.models.magnetic.CorrectorMagnet`, ``horizontal`` and
+        ``vertical``.
         Horizontal_Corrector (str): Name of a separately-defined
         :class:`HorizontalCorrector` element this combined corrector is paired
         with, for hardware/PS bookkeeping (see e.g. ``LAURA.get_correctors``) --
         this is a cross-reference, not where the horizontal kick strength lives.
-        Vertical_Corrector (str): As ``Horizontal_Corrector``, for the paired
+        Vertical_Corrector (str): As ``HorizontalCorrector``, for the paired
         :class:`VerticalCorrector` element.
     """
 
     hardware_type: str = Field(default="Combined_Corrector", frozen=True)
     """Combined corrector hardware type."""
 
-    magnetic: CorrectorMagnet = Field(default_factory=CorrectorMagnet)
-    """Corrector magnetic attributes."""
+    magnetic: CombinedCorrectorMagnet = Field(
+        default_factory=CombinedCorrectorMagnet
+    )
+    """Per-plane corrector magnetic attributes."""
 
     Horizontal_Corrector: str | None = Field(default=None, frozen=True)  # noqa: N815
     """Name of horizontal corrector."""

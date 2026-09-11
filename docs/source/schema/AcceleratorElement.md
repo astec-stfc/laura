@@ -50,6 +50,8 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
         
       AcceleratorElement : hardware_type
         
+      AcceleratorElement : inherits_from
+        
       AcceleratorElement : inputs
         
           
@@ -123,6 +125,7 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | direct |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | direct |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | direct |
+| [inherits_from](inherits_from.md) | 0..1 <br/> [String](String.md) | If set, this element's definition is merged on top of the named element's at ... | direct |
 | [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element consumes (e | direct |
 | [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element produces (e | direct |
 | [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements feeding this one, whose ``outputs`` supply its ``inputs`` | direct |
@@ -390,6 +393,19 @@ attributes:
     domain_of:
     - AcceleratorElement
     range: string
+  inherits_from:
+    name: inherits_from
+    description: If set, this element's definition is merged on top of the named element's
+      at load time, so it need only state what differs. Populated from ``inherit``
+      in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``,
+      which is a physical part-of relationship rather than a definitional one.
+    from_schema: https://w3id.org/laura/schema
+    aliases:
+    - inherit
+    rank: 1000
+    domain_of:
+    - AcceleratorElement
+    range: string
   inputs:
     name: inputs
     description: Signal types this element consumes (e.g. ``[current, voltage]``).
@@ -525,6 +541,20 @@ attributes:
     description: If set, this element is a logical sub-component of the named parent
       element.
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: AcceleratorElement
+    domain_of:
+    - AcceleratorElement
+    range: string
+  inherits_from:
+    name: inherits_from
+    description: If set, this element's definition is merged on top of the named element's
+      at load time, so it need only state what differs. Populated from ``inherit``
+      in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``,
+      which is a physical part-of relationship rather than a definitional one.
+    from_schema: https://w3id.org/laura/schema
+    aliases:
+    - inherit
     rank: 1000
     owner: AcceleratorElement
     domain_of:

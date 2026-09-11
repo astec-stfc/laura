@@ -79,9 +79,9 @@ Name: laura_schema
 | [CameraPixelResultsNames](CameraPixelResultsNames.md) | Names of camera pixel-analysis result arrays |
 | [CameraSensor](CameraSensor.md) | Camera sensor hardware configuration |
 | [ChannelNames](ChannelNames.md) | Names for LLRF channels 1 |
+| [CombinedCorrectorMagnet](CombinedCorrectorMagnet.md) | The pair of steering-corrector fields inside one combined corrector |
 | [ControlsInformation](ControlsInformation.md) | Collection of process-variable definitions for an element's control interface |
 | [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |
-| [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field, expressed as horizontal and vertical kicks rather t... |
 | [DegaussableElement](DegaussableElement.md) | Degaussing (demagnetisation cycle) parameters for magnets that require a fiel... |
 | [DiagnosticElement](DiagnosticElement.md) | Base class for diagnostic instrument sub-models |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[BAMDiagnosticElement](BAMDiagnosticElement.md) | Beam-arrival monitor (BAM) diagnostic data |
@@ -100,6 +100,7 @@ Name: laura_schema
 | [LaserHalfWavePlateElement](LaserHalfWavePlateElement.md) | Half-wave plate sub-model (no additional fields) |
 | [LaserMirrorElement](LaserMirrorElement.md) | Mirror steering parameters for a laser mirror |
 | [LaserMirrorSense](LaserMirrorSense.md) | Mirror sense switch values |
+| [LayoutPass](LayoutPass.md) | One traversal of one section by one beam path |
 | [LightingElement](LightingElement.md) | Lighting element (no additional fields currently defined) |
 | [LinearSaturationFit](LinearSaturationFit.md) | Bi-linear saturation model mapping magnet current to integrated field strengt... |
 | [LLRFTiming](LLRFTiming.md) | Start/end window timing definition |
@@ -110,6 +111,7 @@ Name: laura_schema
 | [MagneticElement](MagneticElement.md) | Magnetic field parameters for a beamline magnet, including multipole componen... |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md) | Combined solenoid and quadrupole magnetic field |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[DipoleMagnet](DipoleMagnet.md) |  |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[QuadrupoleMagnet](QuadrupoleMagnet.md) |  |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |
@@ -227,6 +229,7 @@ Name: laura_schema
 | [devices](devices.md) | List of attached devices |
 | [diagnostic](diagnostic.md) | Instrument-specific diagnostic parameters |
 | [dimensional_parameter](dimensional_parameter.md) | Dimensional parameter setting the transverse scale (MAD-X ``cnll``) |
+| [direction](direction.md) | 1 if this pass traverses the section forwards, -1 if backwards |
 | [disable](disable.md) | Disable command/value |
 | [down](down.md) | Down sense value |
 | [downstream](downstream.md) | Names of elements this one feeds; the inverse of ``upstream`` |
@@ -238,6 +241,8 @@ Name: laura_schema
 | [edge1_effects](edge1_effects.md) | Enable entrance-edge focussing effects |
 | [edge2_effects](edge2_effects.md) | Enable exit-edge focussing effects |
 | [edge_field_integral](edge_field_integral.md) | Per-simulation override of the magnet's fringe-field integral |
+| [edge_field_integral_entrance](edge_field_integral_entrance.md) | Fringe-field integral for entrance-edge focussing |
+| [edge_field_integral_exit](edge_field_integral_exit.md) | Fringe-field integral for exit-edge focussing |
 | [edge_order](edge_order.md) | Polynomial order of the edge-field expansion |
 | [electrical](electrical.md) | Power-supply electrical limits |
 | [element](element.md) | Name of the reference element |
@@ -254,7 +259,6 @@ Name: laura_schema
 | [eta_y](eta_y.md) | Vertical dispersion |
 | [eta_yp](eta_yp.md) | Vertical dispersion derivative |
 | [exit_edge_angle](exit_edge_angle.md) | Fringe-field exit edge angle [rad] |
-| [exit_edge_field_integral](exit_edge_field_integral.md) | Enge fringe-field integral at the exit face |
 | [exit_gap](exit_gap.md) | Full gap between pole faces at the exit face [m] |
 | [expression](expression.md) | Expression graph computing the value written to ``target``, as nested mapping... |
 | [ez_peak](ez_peak.md) | Peak longitudinal electric field |
@@ -286,6 +290,7 @@ Name: laura_schema
 | [has_led](has_led.md) | True if the camera mount includes an LED backlight |
 | [heartbeat](heartbeat.md) | RF heartbeat parameters |
 | [helical](helical.md) | True for a helical device, False for planar |
+| [horizontal](horizontal.md) | Horizontal-plane corrector field, with its own calibration |
 | [horizontal_channel](horizontal_channel.md) | Horizontal control channel index |
 | [Horizontal_Corrector](Horizontal_Corrector.md) | Name of the horizontal-plane corrector element |
 | [horizontal_field](horizontal_field.md) | Horizontal deflecting electric field [V/m] |
@@ -296,6 +301,7 @@ Name: laura_schema
 | [I0](I0.md) | Current offset [A] |
 | [I_max](I_max.md) | Current at which saturation begins [A] |
 | [identifier](identifier.md) | Protocol-specific PV name (e |
+| [inherits_from](inherits_from.md) | If set, this element's definition is merged on top of the named element's at ... |
 | [initial_position](initial_position.md) | Initial longitudinal position of the laser pulse [m] |
 | [inputs](inputs.md) | Signal types this element consumes (e |
 | [integrated_strength](integrated_strength.md) | Integrated lens strength (MAD-X ``knll``) |
@@ -370,6 +376,7 @@ Name: laura_schema
 | [normal](normal.md) | Integrated normal (upright) multipole strength [T |
 | [num_periods](num_periods.md) | Number of full magnetic periods |
 | [num_steps](num_steps.md) | Number of integration steps through the element |
+| [number](number.md) | Multipass occurrence number, counting from 1 |
 | [number_of_elements](number_of_elements.md) | Number of aperture sub-elements (e |
 | [number_of_start_zeros](number_of_start_zeros.md) | Number of leading zeros in a trace |
 | [offset](offset.md) | Offset expressed in the reference element's local frame at the chosen point |
@@ -379,6 +386,7 @@ Name: laura_schema
 | [outputs](outputs.md) | Signal types this element produces (e |
 | [parabolic_coefficient](parabolic_coefficient.md) | Parabolic coefficient for a transverse density profile |
 | [particle](particle.md) | Design particle species for this layout, overriding the machine-wide value |
+| [passes](passes.md) | The beam order, one entry per section traversal |
 | [peak_magnetic_field](peak_magnetic_field.md) | Peak on-axis field [T] |
 | [period](period.md) | Magnetic period length [m] |
 | [phase](phase.md) | Operating phase offset [deg] |
@@ -455,6 +463,7 @@ Name: laura_schema
 | [scale_field_hz](scale_field_hz.md) | z-component of the horizontal direction vector |
 | [scale_kick](scale_kick.md) | Factor by which to scale wake kicks |
 | [screen_name](screen_name.md) | Name of the screen element to which this camera is attached |
+| [section](section.md) | Name of the section traversed on this pass |
 | [sections](sections.md) | Ordered list of section names |
 | [sense](sense.md) | Mirror sense/interlock configuration |
 | [sensor](sensor.md) | Camera sensor hardware configuration |
@@ -511,6 +520,7 @@ Name: laura_schema
 | [values](values.md) | Sequence of peak currents applied during the degauss cycle [A] |
 | [valve](valve.md) | Valve configuration |
 | [variables](variables.md) | Named control variables keyed by logical name |
+| [vertical](vertical.md) | Vertical-plane corrector field, with its own calibration |
 | [vertical_channel](vertical_channel.md) | Vertical control channel index |
 | [Vertical_Corrector](Vertical_Corrector.md) | Name of the vertical-plane corrector element |
 | [vertical_field](vertical_field.md) | Vertical deflecting electric field [V/m] |

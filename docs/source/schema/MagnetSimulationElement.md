@@ -254,15 +254,8 @@ attributes:
     minimum_value: 1
   edge_field_integral:
     name: edge_field_integral
-    description: 'Per-simulation override of the magnet''s fringe-field integral.
-      Absent means "use ``MagneticElement.edge_field_integral``", which is what every
-      element wants unless a study is deliberately varying the edge focussing independently
-      of the magnet. It used to default to 0.5, and because the keyword converters
-      strip the sub-model prefix before looking a name up, that default reached the
-      exporters ahead of the magnet''s own value and shadowed it: a magnet with ``edge_field_integral
-      = 0.3`` exported ``fint = 0.5`` to MAD-X, ELEGANT, OPAL, Ocelot and Xsuite.
-      Only Bmad escaped, because ``_bmad_parameters`` overwrites ``fint`` after the
-      loop.'
+    description: Per-simulation override of the magnet's fringe-field integral. Absent
+      means "use ``MagneticElement.edge_field_integral``".
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     domain_of:
@@ -398,15 +391,8 @@ attributes:
     minimum_value: 1
   edge_field_integral:
     name: edge_field_integral
-    description: 'Per-simulation override of the magnet''s fringe-field integral.
-      Absent means "use ``MagneticElement.edge_field_integral``", which is what every
-      element wants unless a study is deliberately varying the edge focussing independently
-      of the magnet. It used to default to 0.5, and because the keyword converters
-      strip the sub-model prefix before looking a name up, that default reached the
-      exporters ahead of the magnet''s own value and shadowed it: a magnet with ``edge_field_integral
-      = 0.3`` exported ``fint = 0.5`` to MAD-X, ELEGANT, OPAL, Ocelot and Xsuite.
-      Only Bmad escaped, because ``_bmad_parameters`` overwrites ``fint`` after the
-      loop.'
+    description: Per-simulation override of the magnet's fringe-field integral. Absent
+      means "use ``MagneticElement.edge_field_integral``".
     from_schema: https://w3id.org/laura/schema/simulation
     rank: 1000
     owner: MagnetSimulationElement

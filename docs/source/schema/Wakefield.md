@@ -94,6 +94,8 @@ URI: [laura:Wakefield](https://w3id.org/laura/Wakefield)
         
       Wakefield : hardware_type
         
+      Wakefield : inherits_from
+        
       Wakefield : inputs
         
           
@@ -221,6 +223,7 @@ URI: [laura:Wakefield](https://w3id.org/laura/Wakefield)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inherits_from](inherits_from.md) | 0..1 <br/> [String](String.md) | If set, this element's definition is merged on top of the named element's at ... | [AcceleratorElement](AcceleratorElement.md) |
 | [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element consumes (e | [AcceleratorElement](AcceleratorElement.md) |
 | [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element produces (e | [AcceleratorElement](AcceleratorElement.md) |
 | [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements feeding this one, whose ``outputs`` supply its ``inputs`` | [AcceleratorElement](AcceleratorElement.md) |
@@ -479,6 +482,20 @@ attributes:
     description: If set, this element is a logical sub-component of the named parent
       element.
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Wakefield
+    domain_of:
+    - AcceleratorElement
+    range: string
+  inherits_from:
+    name: inherits_from
+    description: If set, this element's definition is merged on top of the named element's
+      at load time, so it need only state what differs. Populated from ``inherit``
+      in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``,
+      which is a physical part-of relationship rather than a definitional one.
+    from_schema: https://w3id.org/laura/schema
+    aliases:
+    - inherit
     rank: 1000
     owner: Wakefield
     domain_of:

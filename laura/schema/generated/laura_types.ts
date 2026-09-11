@@ -127,7 +127,8 @@ export enum ApertureShapeEnum {
     circular = "circular",
     rectangular = "rectangular",
     elliptical = "elliptical",
-    /** Scraper jaws rather than a fixed pipe cross-section.  */
+    planar = "planar",
+    /** Scraper jaws rather than a fixed pipe cross-section. */
     scraper = "scraper",
 };
 /**
@@ -577,6 +578,19 @@ export interface SectionLattice {
 
 
 /**
+ * One traversal of one section by one beam path.
+ */
+export interface LayoutPass {
+    /** Name of the section traversed on this pass. */
+    section: string,
+    /** 1 if this pass traverses the section forwards, -1 if backwards. A property of the path, not of the section. */
+    direction?: number,
+    /** Multipass occurrence number, counting from 1. Absent for an ordinary single traversal and for repetition, where each occurrence is a separate device with its own section. */
+    number?: number,
+}
+
+
+/**
  * An ordered list of section names defining a beamline layout (a contiguous sequence of sections).
  */
 export interface MachineLayout {
@@ -588,6 +602,8 @@ export interface MachineLayout {
     particle?: string,
     /** Ordered list of section names. */
     sections?: string[],
+    /** The beam order, one entry per section traversal. Distinct from sections, which is keyed by name and so cannot express a section entered twice. */
+    passes?: LayoutPass[],
 }
 
 
@@ -670,7 +686,7 @@ export interface MagnetSimulationElement extends SimulationElement {
     field_amplitude?: number,
     /** Number of longitudinal slices for thick-lens tracking. */
     n_slices?: number,
-    /** Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``", which is what every element wants unless a study is deliberately varying the edge focussing independently of the magnet. It used to default to 0.5, and because the keyword converters strip the sub-model prefix before looking a name up, that default reached the exporters ahead of the magnet's own value and shadowed it: a magnet with ``edge_field_integral = 0.3`` exported ``fint = 0.5`` to MAD-X, ELEGANT, OPAL, Ocelot and Xsuite. Only Bmad escaped, because ``_bmad_parameters`` overwrites ``fint`` after the loop. */
+    /** Per-simulation override of the magnet's fringe-field integral. Absent means "use ``MagneticElement.edge_field_integral``". */
     edge_field_integral?: number,
     /** Enable entrance-edge focussing effects. */
     edge1_effects?: boolean,
@@ -1074,11 +1090,13 @@ export interface MagneticElement {
     width?: number,
     /** Global tilt about the beam axis [rad]. */
     tilt?: number,
-    /** Enge fringe-field integral parameter (dimensionless) at the entrance face, and at both faces unless ``exit_edge_field_integral`` says otherwise. */
+    /** Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals). */
     edge_field_integral?: number,
-    /** Enge fringe-field integral at the exit face. Absent means the exit face matches the entrance, which is what a lattice quoting a single integral means and what Bmad's own ``fintx`` default does, so files that set only ``edge_field_integral`` are unaffected. Set it only when the faces genuinely differ: a bend split by superposition carries the entrance fringe on its first piece and the exit fringe on its last, and collapsing the two both invents a fringe mid-magnet and drops the real one. The fringe integral enters only the vertical edge kick, so getting this wrong is invisible to every horizontal check. */
-    exit_edge_field_integral?: number,
-    /** Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``. */
+    /** Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly. */
+    edge_field_integral_entrance?: number,
+    /** Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly. */
+    edge_field_integral_exit?: number,
+    /** Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``. */
     exit_gap?: number,
     /** Coefficient controlling the fringe-field roll-off rate. */
     fringe_field_coefficient?: number,
@@ -1872,18 +1890,12 @@ export interface Octupole extends Magnet {
 
 
 /**
- * Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.
+ * Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.
  */
-export interface CorrectorMagnet {
-    /** Magnetic length [m]. */
-    length?: number,
-    /** Multipole order (0, a dipole field). */
-    order?: number,
-    /** Roll of the corrector about the beam axis [rad]. */
-    tilt?: number,
-    /** Horizontal deflection [rad]. May be a functional expression. */
+export interface CorrectorMagnet extends DipoleMagnet {
+    /** Horizontal deflection [rad]. May be a functional expression. Derived from multipoles.K0L.normal. */
     horizontal_kick?: number,
-    /** Vertical deflection [rad]. May be a functional expression. */
+    /** Vertical deflection [rad]. May be a functional expression. Derived from multipoles.K0L.skew. */
     vertical_kick?: number,
 }
 
@@ -1899,6 +1911,17 @@ export interface HorizontalCorrector extends Dipole {
  * Vertical steering corrector.
  */
 export interface VerticalCorrector extends Dipole {
+}
+
+
+/**
+ * The pair of steering-corrector fields inside one combined corrector.
+ */
+export interface CombinedCorrectorMagnet {
+    /** Horizontal-plane corrector field, with its own calibration. */
+    horizontal?: CorrectorMagnet,
+    /** Vertical-plane corrector field, with its own calibration. */
+    vertical?: CorrectorMagnet,
 }
 
 
@@ -2103,6 +2126,8 @@ export interface AcceleratorElement {
     alias?: string[],
     /** If set, this element is a logical sub-component of the named parent element. */
     subelement?: string,
+    /** If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one. */
+    inherits_from?: string,
     /** Signal types this element consumes (e.g. ``[current, voltage]``). */
     inputs?: string,
     /** Signal types this element produces (e.g. ``[power, phase]``). */

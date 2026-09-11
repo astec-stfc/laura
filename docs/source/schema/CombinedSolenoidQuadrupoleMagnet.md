@@ -9,7 +9,7 @@ _Combined solenoid and quadrupole magnetic field._
 
 
 
-URI: [laura:CombinedSolenoidQuadrupole_Magnet](https://w3id.org/laura/CombinedSolenoidQuadrupole_Magnet)
+URI: [laura:CombinedSolenoidQuadrupoleMagnet](https://w3id.org/laura/CombinedSolenoidQuadrupoleMagnet)
 
 
 
@@ -28,11 +28,13 @@ URI: [laura:CombinedSolenoidQuadrupole_Magnet](https://w3id.org/laura/CombinedSo
         
       CombinedSolenoidQuadrupoleMagnet : edge_field_integral
         
+      CombinedSolenoidQuadrupoleMagnet : edge_field_integral_entrance
+        
+      CombinedSolenoidQuadrupoleMagnet : edge_field_integral_exit
+        
       CombinedSolenoidQuadrupoleMagnet : entrance_edge_angle
         
       CombinedSolenoidQuadrupoleMagnet : exit_edge_angle
-        
-      CombinedSolenoidQuadrupoleMagnet : exit_edge_field_integral
         
       CombinedSolenoidQuadrupoleMagnet : exit_gap
         
@@ -147,7 +149,7 @@ URI: [laura:CombinedSolenoidQuadrupole_Magnet](https://w3id.org/laura/CombinedSo
 
 | Property | Value |
 | --- | --- |
-| Class URI | [laura:CombinedSolenoidQuadrupole_Magnet](https://w3id.org/laura/CombinedSolenoidQuadrupole_Magnet) |
+| Class URI | [laura:CombinedSolenoidQuadrupoleMagnet](https://w3id.org/laura/CombinedSolenoidQuadrupoleMagnet) |
 
 
 ## Slots
@@ -171,8 +173,9 @@ URI: [laura:CombinedSolenoidQuadrupole_Magnet](https://w3id.org/laura/CombinedSo
 | [plane](plane.md) | 0..1 <br/> [BendingPlaneEnum](BendingPlaneEnum.md) | Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combin... | [MagneticElement](MagneticElement.md) |
 | [width](width.md) | 0..1 <br/> [Float](Float.md) | Physical width of the magnet in the bending plane [m] | [MagneticElement](MagneticElement.md) |
 | [tilt](tilt.md) | 0..1 <br/> [Float](Float.md) | Global tilt about the beam axis [rad] | [MagneticElement](MagneticElement.md) |
-| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless) at the entrance face, an... | [MagneticElement](MagneticElement.md) |
-| [exit_edge_field_integral](exit_edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral at the exit face | [MagneticElement](MagneticElement.md) |
+| [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless), used as the single comb... | [MagneticElement](MagneticElement.md) |
+| [edge_field_integral_entrance](edge_field_integral_entrance.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for entrance-edge focussing | [MagneticElement](MagneticElement.md) |
+| [edge_field_integral_exit](edge_field_integral_exit.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for exit-edge focussing | [MagneticElement](MagneticElement.md) |
 | [exit_gap](exit_gap.md) | 0..1 <br/> [Float](Float.md) | Full gap between pole faces at the exit face [m] | [MagneticElement](MagneticElement.md) |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | 0..1 <br/> [Float](Float.md) | Coefficient controlling the fringe-field roll-off rate | [MagneticElement](MagneticElement.md) |
 | [gradient](gradient.md) | 0..1 <br/> [Float](Float.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) | [MagneticElement](MagneticElement.md) |
@@ -217,7 +220,7 @@ URI: [laura:CombinedSolenoidQuadrupole_Magnet](https://w3id.org/laura/CombinedSo
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:CombinedSolenoidQuadrupole_Magnet |
+| self | laura:CombinedSolenoidQuadrupoleMagnet |
 | native | laura:CombinedSolenoidQuadrupoleMagnet |
 
 
@@ -233,7 +236,7 @@ URI: [laura:CombinedSolenoidQuadrupole_Magnet](https://w3id.org/laura/CombinedSo
 
 <details>
 ```yaml
-name: CombinedSolenoidQuadrupole_Magnet
+name: CombinedSolenoidQuadrupoleMagnet
 description: Combined solenoid and quadrupole magnetic field.
 from_schema: https://w3id.org/laura/schema
 is_a: MagneticElement
@@ -249,9 +252,9 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     domain_of:
-    - CombinedSolenoidQuadrupole_Magnet
+    - CombinedSolenoidQuadrupoleMagnet
     range: SolenoidFields
-class_uri: laura:CombinedSolenoidQuadrupole_Magnet
+class_uri: laura:CombinedSolenoidQuadrupoleMagnet
 
 ```
 </details>
@@ -260,7 +263,7 @@ class_uri: laura:CombinedSolenoidQuadrupole_Magnet
 
 <details>
 ```yaml
-name: CombinedSolenoidQuadrupole_Magnet
+name: CombinedSolenoidQuadrupoleMagnet
 description: Combined solenoid and quadrupole magnetic field.
 from_schema: https://w3id.org/laura/schema
 is_a: MagneticElement
@@ -275,20 +278,19 @@ attributes:
     description: Nominal integrated axial solenoid field components.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
-    - CombinedSolenoidQuadrupole_Magnet
+    - CombinedSolenoidQuadrupoleMagnet
     range: SolenoidFields
   order:
     name: order
     description: Principal multipole order (0 = dipole, 1 = quad, ?).
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: int(1)
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
     minimum_value: -1
@@ -298,7 +300,7 @@ attributes:
     description: Whether the magnet is rotated 45? to produce a skew field component.
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: 'False'
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - Multipole
     - MagneticElement
@@ -310,14 +312,13 @@ attributes:
     aliases:
     - magnetic_length
     ifabsent: float(0)
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0.0
     unit:
@@ -327,7 +328,7 @@ attributes:
     description: Integrated multipole field components.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: Multipoles
@@ -336,7 +337,7 @@ attributes:
     description: Systematic (design) multipole errors at the reference radius.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: Multipoles
@@ -345,7 +346,7 @@ attributes:
     description: Random multipole errors at the reference radius.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: Multipoles
@@ -354,7 +355,7 @@ attributes:
     description: Polynomial calibration of integrated field vs. current.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
@@ -364,7 +365,7 @@ attributes:
     description: Bi-linear saturation calibration.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
@@ -374,7 +375,7 @@ attributes:
     description: Power-supply settle time after a change [s].
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
@@ -389,7 +390,7 @@ attributes:
     - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: string
@@ -406,7 +407,7 @@ attributes:
     - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: string
@@ -421,7 +422,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.032)
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -434,7 +435,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.037)
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -448,7 +449,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: string(Horizontal)
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: BendingPlaneEnum
@@ -457,7 +458,7 @@ attributes:
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.2)
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - BeamBeamSimulationElement
     - MagneticElement
@@ -469,51 +470,61 @@ attributes:
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.0)
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
-    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad
   edge_field_integral:
     name: edge_field_integral
-    description: Enge fringe-field integral parameter (dimensionless) at the entrance
-      face, and at both faces unless ``exit_edge_field_integral`` says otherwise.
+    description: Enge fringe-field integral parameter (dimensionless), used as the
+      single combined value by codes that only support one edge focussing keyword.
+      Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit
+      that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
     from_schema: https://w3id.org/laura/schema/magnetic
-    ifabsent: float(0.5)
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagnetSimulationElement
     - MagneticElement
     range: float
-  exit_edge_field_integral:
-    name: exit_edge_field_integral
-    description: 'Enge fringe-field integral at the exit face. Absent means the exit
-      face matches the entrance, which is what a lattice quoting a single integral
-      means and what Bmad''s own ``fintx`` default does, so files that set only ``edge_field_integral``
-      are unaffected. Set it only when the faces genuinely differ: a bend split by
-      superposition carries the entrance fringe on its first piece and the exit fringe
-      on its last, and collapsing the two both invents a fringe mid-magnet and drops
-      the real one. The fringe integral enters only the vertical edge kick, so getting
-      this wrong is invisible to every horizontal check.'
+    required: false
+  edge_field_integral_entrance:
+    name: edge_field_integral_entrance
+    description: Fringe-field integral for entrance-edge focussing. Unset (None) by
+      default unless edge_field_integral is given; always overrides edge_field_integral
+      when set explicitly.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
+    required: false
+  edge_field_integral_exit:
+    name: edge_field_integral_exit
+    description: Fringe-field integral for exit-edge focussing. Unset (None) by default
+      unless edge_field_integral is given; always overrides edge_field_integral when
+      set explicitly.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: CombinedSolenoidQuadrupoleMagnet
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
   exit_gap:
     name: exit_gap
     description: Full gap between pole faces at the exit face [m]. Absent means the
-      same as ``gap``. See ``exit_edge_field_integral``.
+      same as ``gap``. See ``edge_field_integral_exit``.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
+    required: false
     minimum_value: 0.0
     unit:
       ucum_code: m
@@ -523,7 +534,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.0)
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -532,7 +543,7 @@ attributes:
     description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -549,13 +560,13 @@ attributes:
       property object as the field default.'
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: CombinedSolenoidQuadrupole_Magnet
+    owner: CombinedSolenoidQuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
     unit:
       ucum_code: rad
-class_uri: laura:CombinedSolenoidQuadrupole_Magnet
+class_uri: laura:CombinedSolenoidQuadrupoleMagnet
 
 ```
 </details></div>

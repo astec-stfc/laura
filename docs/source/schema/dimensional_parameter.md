@@ -92,9 +92,9 @@ description: Dimensional parameter setting the transverse scale (MAD-X ``cnll``)
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: float(0.0)
-owner: NonLinearLens_Magnet
+owner: NonLinearLensMagnet
 domain_of:
-- NonLinearLens_Magnet
+- NonLinearLensMagnet
 range: float
 
 ```

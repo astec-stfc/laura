@@ -5,6 +5,7 @@ enum ApertureShapeEnum
     circular
     rectangular
     elliptical
+    planar
     scraper
   }
 
@@ -104,6 +105,7 @@ type AcceleratorElement
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -120,6 +122,7 @@ interface ACDipole
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -171,6 +174,7 @@ type Aperture
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -210,6 +214,7 @@ type BeamArrivalMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -234,6 +239,7 @@ type BeamBeam
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -287,6 +293,7 @@ type BeamPositionMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -321,6 +328,7 @@ type BunchLengthMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -345,6 +353,7 @@ type Camera
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -440,6 +449,7 @@ type ChargeDiagnostic
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -469,6 +479,7 @@ type Collimator
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -516,6 +527,7 @@ type CrabCavity
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -548,6 +560,7 @@ type Diagnostic
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -602,6 +615,7 @@ type Drift
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -663,6 +677,7 @@ type ElectrostaticSeparator
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -715,6 +730,7 @@ type Element
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -747,6 +763,7 @@ type FaradayCupMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -776,6 +793,7 @@ type HorizontalACDipole
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -799,6 +817,7 @@ type IntegratedCurrentTransformer
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -823,6 +842,7 @@ type Laser
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -847,6 +867,7 @@ type LaserAttenuator
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -885,6 +906,7 @@ type LaserEnergyMeter
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -912,6 +934,7 @@ type LaserHalfWavePlate
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -939,6 +962,7 @@ type LaserMirror
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -968,6 +992,13 @@ type LaserMirrorSense
     down: Float
   }
 
+type LayoutPass
+  {
+    section: String!
+    direction: Int
+    number: Int
+  }
+
 type Lighting
   {
     name: String!
@@ -977,6 +1008,7 @@ type Lighting
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1030,6 +1062,7 @@ type LowLevelRF
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1058,6 +1091,7 @@ type MachineLayout
     masterLattice: String
     particle: String
     sections: [String]
+    passes: [LayoutPass]
   }
 
 type MachineModel
@@ -1078,6 +1112,7 @@ type Magnet
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1112,7 +1147,8 @@ type MagneticElement
     width: Float
     tilt: Float
     edgeFieldIntegral: Float
-    exitEdgeFieldIntegral: Float
+    edgeFieldIntegralEntrance: Float
+    edgeFieldIntegralExit: Float
     exitGap: Float
     fringeFieldCoefficient: Float
     gradient: Float
@@ -1171,6 +1207,7 @@ type Marker
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1194,6 +1231,7 @@ type MatrixTransform
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1272,6 +1310,7 @@ type PhotonMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1298,6 +1337,7 @@ type PhysicalAcceleratorElement
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1335,6 +1375,7 @@ type PID
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1382,6 +1423,7 @@ type Plasma
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1464,6 +1506,7 @@ type PowerSupply
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1500,6 +1543,7 @@ type RFCavity
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1586,6 +1630,7 @@ type RFDeflectingCavity
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1625,6 +1670,7 @@ type RFHeartbeat
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1652,6 +1698,7 @@ type RFModulator
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1679,6 +1726,7 @@ type RFMultipole
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1734,6 +1782,7 @@ type RFProtection
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1768,6 +1817,7 @@ type Screen
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1809,6 +1859,7 @@ type Shutter
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1863,6 +1914,7 @@ type Stage
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1887,6 +1939,7 @@ type StandardElement
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1915,6 +1968,7 @@ type TwissMatch
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1972,6 +2026,7 @@ type VacuumGauge
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -1995,6 +2050,7 @@ type Valve
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -2024,6 +2080,7 @@ type VerticalACDipole
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -2047,6 +2104,7 @@ type Wakefield
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -2123,6 +2181,7 @@ type WallCurrentMonitor
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]
@@ -2147,6 +2206,7 @@ type Wire
     virtualName: String
     alias: [String]
     subelement: String
+    inheritsFrom: String
     inputs: [IOTypeEnum]
     outputs: [IOTypeEnum]
     upstream: [AcceleratorElement]

@@ -219,7 +219,6 @@ attributes:
     domain_of:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
-    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad
@@ -281,7 +280,6 @@ attributes:
     domain_of:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
-    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad

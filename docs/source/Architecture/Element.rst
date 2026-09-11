@@ -966,23 +966,21 @@ Both may be defined functionally (see :ref:`functional-parameters`).
 Corrector Magnet
 ----------------
 
-:py:class:`HorizontalCorrector <laura.models.element.HorizontalCorrector>`,
-:py:class:`VerticalCorrector <laura.models.element.VerticalCorrector>`, and
-:py:class:`CombinedCorrector <laura.models.element.CombinedCorrector>` are steering
-(kicker) magnets. Although they extend :py:class:`Dipole <laura.models.element.Dipole>`
-at the element level, they do **not** use :py:class:`DipoleMagnet <laura.models.magnetic.DipoleMagnet>`
-for their ``magnetic`` attribute -- a dipole's ``normal``/``skew`` multipole components denote the
-magnetic field's *orientation*, not a beam plane, and reusing them to mean "horizontal" and "vertical"
-would be opaque. Instead, correctors use
-:py:class:`CorrectorMagnet <laura.models.magnetic.CorrectorMagnet>`, which stores the two planes as
+:py:class:`Horizontal_Corrector <laura.models.element.HorizontalCorrector>`,
+:py:class:`Vertical_Corrector <laura.models.element.VerticalCorrector>`, and
+:py:class:`Combined_Corrector <laura.models.element.CombinedCorrector>` are steering
+(kicker) magnets. They extend :py:class:`Dipole <laura.models.element.Dipole>`
+at the element level, using :py:class:`CorrectorMagnet <laura.models.magnetic.CorrectorMagnet>`
+for their ``magnetic`` attribute, which stores the two planes as
 two independent, explicitly-named fields:
 
 * ``horizontal_kick: float`` -- horizontal kick angle [rad].
 * ``vertical_kick: float`` -- vertical kick angle [rad].
 
-A :py:class:`HorizontalCorrector <laura.models.element.HorizontalCorrector>` or
-:py:class:`VerticalCorrector <laura.models.element.VerticalCorrector>` is expected to populate only its
-own plane; a :py:class:`CombinedCorrector <laura.models.element.CombinedCorrector>` may set both
+These are mapped automatically to ``multipoles.K0L.normal`` and ``multipoles.K0L.skew``, respectively.
+A :py:class:`Horizontal_Corrector <laura.models.element.HorizontalCorrector>` or
+:py:class:`Vertical_Corrector <laura.models.element.VerticalCorrector>` is expected to populate only its
+own plane; a :py:class:`Combined_Corrector <laura.models.element.CombinedCorrector>` may set both
 simultaneously. Both fields may be defined functionally (see :ref:`functional-parameters`).
 
 .. note::

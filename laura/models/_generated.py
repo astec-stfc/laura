@@ -580,10 +580,9 @@ class _PhysicalElementBase(ConfiguredBaseModel):
     """Survey-measured position and rotation."""
     length: float = Field(default=0, description="""Effective length along the beam axis [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement',
                        'MagneticElement',
-                       'Corrector_Magnet',
                        'Solenoid_Magnet',
                        'Wiggler_Magnet',
-                       'NonLinearLens_Magnet'],
+                       'NonLinearLensMagnet'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     """Effective length along the beam axis [m]."""
@@ -1569,9 +1568,7 @@ class _ElectrostaticSeparatorSimulationElementBase(_SimulationElementBase):
          'in_subset': ['functional_parameters'],
          'unit': {'ucum_code': 'V/m'}} })
     """Vertical deflecting electric field [V/m]."""
-    tilt: float = Field(default=0.0, description="""Rotation about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement',
-                       'MagneticElement',
-                       'Corrector_Magnet'],
+    tilt: float = Field(default=0.0, description="""Rotation about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Rotation about the beam axis [rad]."""
@@ -1977,10 +1974,7 @@ class _MultipoleBase(ConfiguredBaseModel):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Multipole',
          'from_schema': 'https://w3id.org/laura/schema/magnetic'})
 
-    order: int = Field(default=0, description="""Multipole order (0 = dipole, 1 = quadrupole, ?).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
-                       'MagneticElement',
-                       'Corrector_Magnet',
-                       'Solenoid_Magnet'],
+    order: int = Field(default=0, description="""Multipole order (0 = dipole, 1 = quadrupole, ?).""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
          'ifabsent': 'int(0)'} })
     """Multipole order (0 = dipole, 1 = quadrupole, ?)."""
     normal: Optional[Union[float, str]] = Field(default=0, description="""Integrated normal (upright) multipole strength [T.m^{1-n}].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
@@ -2066,10 +2060,7 @@ class _MagneticElementBase(ConfiguredBaseModel):
          'from_schema': 'https://w3id.org/laura/schema/magnetic',
          'in_subset': ['magnetic_properties']})
 
-    order: int = Field(default=-1, description="""Principal multipole order (0 = dipole, 1 = quad, ?).""", ge=-1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
-                       'MagneticElement',
-                       'Corrector_Magnet',
-                       'Solenoid_Magnet'],
+    order: int = Field(default=-1, description="""Principal multipole order (0 = dipole, 1 = quad, ?).""", ge=-1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
          'ifabsent': 'int(-1)'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
@@ -2077,10 +2068,9 @@ class _MagneticElementBase(ConfiguredBaseModel):
     length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'aliases': ['magnetic_length'],
          'domain_of': ['PhysicalElement',
                        'MagneticElement',
-                       'Corrector_Magnet',
                        'Solenoid_Magnet',
                        'Wiggler_Magnet',
-                       'NonLinearLens_Magnet'],
+                       'NonLinearLensMagnet'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     """Magnetic (effective) length [m]."""
@@ -2121,9 +2111,7 @@ class _MagneticElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0.2)',
          'unit': {'ucum_code': 'm'}} })
     """Physical width of the magnet in the bending plane [m]."""
-    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement',
-                       'MagneticElement',
-                       'Corrector_Magnet'],
+    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
@@ -2941,10 +2929,7 @@ class _DipoleMagnetBase(_MagneticElementBase):
                                   'ifabsent': '0',
                                   'name': 'order'}}})
 
-    order: int = Field(default=0, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=0, ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
-                       'MagneticElement',
-                       'Corrector_Magnet',
-                       'Solenoid_Magnet'],
+    order: int = Field(default=0, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=0, ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
          'ifabsent': '0'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
@@ -2952,10 +2937,9 @@ class _DipoleMagnetBase(_MagneticElementBase):
     length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'aliases': ['magnetic_length'],
          'domain_of': ['PhysicalElement',
                        'MagneticElement',
-                       'Corrector_Magnet',
                        'Solenoid_Magnet',
                        'Wiggler_Magnet',
-                       'NonLinearLens_Magnet'],
+                       'NonLinearLensMagnet'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     """Magnetic (effective) length [m]."""
@@ -2996,9 +2980,7 @@ class _DipoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.2)',
          'unit': {'ucum_code': 'm'}} })
     """Physical width of the magnet in the bending plane [m]."""
-    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement',
-                       'MagneticElement',
-                       'Corrector_Magnet'],
+    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
@@ -3022,10 +3004,7 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
                                   'ifabsent': '1',
                                   'name': 'order'}}})
 
-    order: int = Field(default=1, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=1, ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
-                       'MagneticElement',
-                       'Corrector_Magnet',
-                       'Solenoid_Magnet'],
+    order: int = Field(default=1, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=1, ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
          'ifabsent': '1'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
@@ -3033,10 +3012,9 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
     length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'aliases': ['magnetic_length'],
          'domain_of': ['PhysicalElement',
                        'MagneticElement',
-                       'Corrector_Magnet',
                        'Solenoid_Magnet',
                        'Wiggler_Magnet',
-                       'NonLinearLens_Magnet'],
+                       'NonLinearLensMagnet'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     """Magnetic (effective) length [m]."""
@@ -3077,9 +3055,7 @@ class _QuadrupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.2)',
          'unit': {'ucum_code': 'm'}} })
     """Physical width of the magnet in the bending plane [m]."""
-    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement',
-                       'MagneticElement',
-                       'Corrector_Magnet'],
+    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
@@ -3106,10 +3082,7 @@ class _SextupoleMagnetBase(_MagneticElementBase):
                                   'ifabsent': '2',
                                   'name': 'order'}}})
 
-    order: int = Field(default=2, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=2, ge=2, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
-                       'MagneticElement',
-                       'Corrector_Magnet',
-                       'Solenoid_Magnet'],
+    order: int = Field(default=2, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=2, ge=2, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
          'ifabsent': '2'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
@@ -3117,10 +3090,9 @@ class _SextupoleMagnetBase(_MagneticElementBase):
     length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'aliases': ['magnetic_length'],
          'domain_of': ['PhysicalElement',
                        'MagneticElement',
-                       'Corrector_Magnet',
                        'Solenoid_Magnet',
                        'Wiggler_Magnet',
-                       'NonLinearLens_Magnet'],
+                       'NonLinearLensMagnet'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     """Magnetic (effective) length [m]."""
@@ -3161,9 +3133,7 @@ class _SextupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.2)',
          'unit': {'ucum_code': 'm'}} })
     """Physical width of the magnet in the bending plane [m]."""
-    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement',
-                       'MagneticElement',
-                       'Corrector_Magnet'],
+    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
@@ -3192,10 +3162,7 @@ class _OctupoleMagnetBase(_MagneticElementBase):
                                   'ifabsent': '3',
                                   'name': 'order'}}})
 
-    order: int = Field(default=3, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=3, ge=3, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
-                       'MagneticElement',
-                       'Corrector_Magnet',
-                       'Solenoid_Magnet'],
+    order: int = Field(default=3, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=3, ge=3, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
          'ifabsent': '3'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
@@ -3203,10 +3170,9 @@ class _OctupoleMagnetBase(_MagneticElementBase):
     length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'aliases': ['magnetic_length'],
          'domain_of': ['PhysicalElement',
                        'MagneticElement',
-                       'Corrector_Magnet',
                        'Solenoid_Magnet',
                        'Wiggler_Magnet',
-                       'NonLinearLens_Magnet'],
+                       'NonLinearLensMagnet'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     """Magnetic (effective) length [m]."""
@@ -3247,9 +3213,7 @@ class _OctupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.2)',
          'unit': {'ucum_code': 'm'}} })
     """Physical width of the magnet in the bending plane [m]."""
-    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement',
-                       'MagneticElement',
-                       'Corrector_Magnet'],
+    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
@@ -3269,36 +3233,93 @@ class _OctupoleMagnetBase(_MagneticElementBase):
     """Integrated bending angle [rad]. Dipoles only. Part of the data model (lattice YAML may set it), but derived from multipoles.K0L rather than stored: the MagneticElement wrapper implements it as a read/write property so a symbolic bend angle survives round-tripping and reads follow the global resolution mode. Listed in _PYDANTIC_EXCLUDED_SLOTS in generate_pydantic.py so the generated base does not also declare it as a field, which would make pydantic treat the property object as the field default."""
 
 
-class _CorrectorMagnetBase(ConfiguredBaseModel):
+class _CorrectorMagnetBase(_DipoleMagnetBase):
     """
-    Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.
+    Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.
     """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:Corrector_Magnet',
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CorrectorMagnet',
          'from_schema': 'https://w3id.org/laura/schema/magnetic'})
 
-    length: float = Field(default=0.0, description="""Magnetic length [m].""", ge=0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement',
+    order: int = Field(default=0, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=0, ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
+         'ifabsent': '0'} })
+    """Principal multipole order (0 = dipole, 1 = quad, ?)."""
+    skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
+    """Whether the magnet is rotated 45? to produce a skew field component."""
+    length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'aliases': ['magnetic_length'],
+         'domain_of': ['PhysicalElement',
                        'MagneticElement',
-                       'Corrector_Magnet',
                        'Solenoid_Magnet',
                        'Wiggler_Magnet',
-                       'NonLinearLens_Magnet'],
-         'ifabsent': 'float(0.0)'} })
-    """Magnetic length [m]."""
-    order: int = Field(default=0, description="""Multipole order (0, a dipole field).""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
-                       'MagneticElement',
-                       'Corrector_Magnet',
-                       'Solenoid_Magnet'],
-         'ifabsent': 'int(0)'} })
-    """Multipole order (0, a dipole field)."""
-    tilt: float = Field(default=0.0, description="""Roll of the corrector about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement',
-                       'MagneticElement',
-                       'Corrector_Magnet'],
-         'ifabsent': 'float(0.0)'} })
-    """Roll of the corrector about the beam axis [rad]."""
-    horizontal_kick: float = Field(default=0.0, description="""Horizontal deflection [rad]. May be a functional expression.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Corrector_Magnet'], 'ifabsent': 'float(0.0)'} })
-    """Horizontal deflection [rad]. May be a functional expression."""
-    vertical_kick: float = Field(default=0.0, description="""Vertical deflection [rad]. May be a functional expression.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Corrector_Magnet'], 'ifabsent': 'float(0.0)'} })
-    """Vertical deflection [rad]. May be a functional expression."""
+                       'NonLinearLensMagnet'],
+         'ifabsent': 'float(0)',
+         'unit': {'ucum_code': 'm'}} })
+    """Magnetic (effective) length [m]."""
+    multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Integrated multipole field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Integrated multipole field components."""
+    systematic_multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Systematic (design) multipole errors at the reference radius.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Systematic (design) multipole errors at the reference radius."""
+    random_multipoles: Optional[_MultipolesBase] = Field(default=None, description="""Random multipole errors at the reference radius.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Random multipole errors at the reference radius."""
+    field_integral_coefficients: Optional[_FieldIntegralBase] = Field(default=None, description="""Polynomial calibration of integrated field vs. current.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement', 'Solenoid_Magnet']} })
+    """Polynomial calibration of integrated field vs. current."""
+    linear_saturation_coefficients: Optional[_LinearSaturationFitBase] = Field(default=None, description="""Bi-linear saturation calibration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement', 'Solenoid_Magnet']} })
+    """Bi-linear saturation calibration."""
+    settle_time: Optional[float] = Field(default=None, description="""Power-supply settle time after a change [s].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement', 'Solenoid_Magnet'],
+         'unit': {'ucum_code': 's'}} })
+    """Power-supply settle time after a change [s]."""
+    entrance_edge_angle: Optional[Union[float, str]] = Field(default=None, description="""Fringe-field entrance edge angle [rad].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
+         'domain_of': ['MagneticElement'],
+         'in_subset': ['functional_parameters', 'bend_angle_reference'],
+         'unit': {'ucum_code': 'rad'}} })
+    """Fringe-field entrance edge angle [rad]."""
+    exit_edge_angle: Optional[Union[float, str]] = Field(default=None, description="""Fringe-field exit edge angle [rad].""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'float'}, {'range': 'string'}],
+         'domain_of': ['MagneticElement'],
+         'in_subset': ['functional_parameters', 'bend_angle_reference'],
+         'unit': {'ucum_code': 'rad'}} })
+    """Fringe-field exit edge angle [rad]."""
+    gap: float = Field(default=0.032, description="""Full gap between pole faces [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+         'ifabsent': 'float(0.032)',
+         'unit': {'ucum_code': 'm'}} })
+    """Full gap between pole faces [m]."""
+    bore: float = Field(default=0.037, description="""Magnet bore radius [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'],
+         'ifabsent': 'float(0.037)',
+         'unit': {'ucum_code': 'm'}} })
+    """Magnet bore radius [m]."""
+    plane: Optional[BendingPlaneEnum] = Field(default=BendingPlaneEnum.Horizontal, description="""Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'string(Horizontal)'} })
+    """Principal bending / focusing plane (``Horizontal``, ``Vertical``, or ``Combined``)."""
+    width: float = Field(default=0.2, description="""Physical width of the magnet in the bending plane [m].""", json_schema_extra = { "linkml_meta": {'domain_of': ['BeamBeamSimulationElement', 'MagneticElement'],
+         'ifabsent': 'float(0.2)',
+         'unit': {'ucum_code': 'm'}} })
+    """Physical width of the magnet in the bending plane [m]."""
+    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement', 'MagneticElement'],
+         'ifabsent': 'float(0.0)',
+         'unit': {'ucum_code': 'rad'}} })
+    """Global tilt about the beam axis [rad]."""
+    edge_field_integral: Optional[float] = Field(default=None, description="""Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement', 'MagneticElement']} })
+    """Enge fringe-field integral parameter (dimensionless), used as the single combined value by codes that only support one edge focussing keyword. Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit that are themselves not given (see MagneticElement.resolve_edge_field_integrals)."""
+    edge_field_integral_entrance: Optional[float] = Field(default=None, description="""Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Fringe-field integral for entrance-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
+    edge_field_integral_exit: Optional[float] = Field(default=None, description="""Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement']} })
+    """Fringe-field integral for exit-edge focussing. Unset (None) by default unless edge_field_integral is given; always overrides edge_field_integral when set explicitly."""
+    exit_gap: Optional[float] = Field(default=None, description="""Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'm'}} })
+    """Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``."""
+    fringe_field_coefficient: float = Field(default=0.0, description="""Coefficient controlling the fringe-field roll-off rate.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'ifabsent': 'float(0.0)'} })
+    """Coefficient controlling the fringe-field roll-off rate."""
+    gradient: Optional[float] = Field(default=None, description="""Peak field gradient [T/m] (quads) or peak field [T] (dipoles).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagneticElement'], 'unit': {'ucum_code': 'T.m-1'}} })
+    """Peak field gradient [T/m] (quads) or peak field [T] (dipoles)."""
+
+
+class _CombinedCorrectorMagnetBase(ConfiguredBaseModel):
+    """
+    The pair of steering-corrector fields inside one combined corrector.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CombinedCorrectorMagnet',
+         'from_schema': 'https://w3id.org/laura/schema/magnetic'})
+
+    horizontal: Optional[_CorrectorMagnetBase] = Field(default=None, description="""Horizontal-plane corrector field, with its own calibration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CombinedCorrectorMagnet']} })
+    """Horizontal-plane corrector field, with its own calibration."""
+    vertical: Optional[_CorrectorMagnetBase] = Field(default=None, description="""Vertical-plane corrector field, with its own calibration.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CombinedCorrectorMagnet']} })
+    """Vertical-plane corrector field, with its own calibration."""
 
 
 class _SolenoidFieldsBase(ConfiguredBaseModel):
@@ -3345,16 +3366,12 @@ class _SolenoidMagnetBase(ConfiguredBaseModel):
 
     length: float = Field(default=0.0, description="""Magnetic length [m].""", ge=0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement',
                        'MagneticElement',
-                       'Corrector_Magnet',
                        'Solenoid_Magnet',
                        'Wiggler_Magnet',
-                       'NonLinearLens_Magnet'],
+                       'NonLinearLensMagnet'],
          'ifabsent': 'float(0.0)'} })
     """Magnetic length [m]."""
-    order: int = Field(default=0, description="""Principal solenoid multipole order.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
-                       'MagneticElement',
-                       'Corrector_Magnet',
-                       'Solenoid_Magnet'],
+    order: int = Field(default=0, description="""Principal solenoid multipole order.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
          'ifabsent': 'int(0)'} })
     """Principal solenoid multipole order."""
     fields: Optional[_SolenoidFieldsBase] = Field(default=None, description="""Nominal integrated axial field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Solenoid_Magnet']} })
@@ -3375,18 +3392,15 @@ class _CombinedSolenoidQuadrupoleMagnetBase(_MagneticElementBase):
     """
     Combined solenoid and quadrupole magnetic field.
     """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CombinedSolenoidQuadrupole_Magnet',
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:CombinedSolenoidQuadrupoleMagnet',
          'from_schema': 'https://w3id.org/laura/schema/magnetic',
          'slot_usage': {'order': {'equals_number': 1,
                                   'ifabsent': 'int(1)',
                                   'name': 'order'}}})
 
-    solenoid_fields: Optional[_SolenoidFieldsBase] = Field(default=None, description="""Nominal integrated axial solenoid field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CombinedSolenoidQuadrupole_Magnet']} })
+    solenoid_fields: Optional[_SolenoidFieldsBase] = Field(default=None, description="""Nominal integrated axial solenoid field components.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CombinedSolenoidQuadrupoleMagnet']} })
     """Nominal integrated axial solenoid field components."""
-    order: int = Field(default=1, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=1, ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole',
-                       'MagneticElement',
-                       'Corrector_Magnet',
-                       'Solenoid_Magnet'],
+    order: int = Field(default=1, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=1, ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
          'ifabsent': 'int(1)'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
@@ -3394,10 +3408,9 @@ class _CombinedSolenoidQuadrupoleMagnetBase(_MagneticElementBase):
     length: float = Field(default=0, description="""Magnetic (effective) length [m].""", ge=0.0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'aliases': ['magnetic_length'],
          'domain_of': ['PhysicalElement',
                        'MagneticElement',
-                       'Corrector_Magnet',
                        'Solenoid_Magnet',
                        'Wiggler_Magnet',
-                       'NonLinearLens_Magnet'],
+                       'NonLinearLensMagnet'],
          'ifabsent': 'float(0)',
          'unit': {'ucum_code': 'm'}} })
     """Magnetic (effective) length [m]."""
@@ -3438,9 +3451,7 @@ class _CombinedSolenoidQuadrupoleMagnetBase(_MagneticElementBase):
          'ifabsent': 'float(0.2)',
          'unit': {'ucum_code': 'm'}} })
     """Physical width of the magnet in the bending plane [m]."""
-    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement',
-                       'MagneticElement',
-                       'Corrector_Magnet'],
+    tilt: float = Field(default=0.0, description="""Global tilt about the beam axis [rad].""", json_schema_extra = { "linkml_meta": {'domain_of': ['ElectrostaticSeparatorSimulationElement', 'MagneticElement'],
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'rad'}} })
     """Global tilt about the beam axis [rad]."""
@@ -3469,10 +3480,9 @@ class _WigglerMagnetBase(ConfiguredBaseModel):
 
     length: float = Field(default=0.0, description="""Magnetic length [m].""", ge=0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement',
                        'MagneticElement',
-                       'Corrector_Magnet',
                        'Solenoid_Magnet',
                        'Wiggler_Magnet',
-                       'NonLinearLens_Magnet'],
+                       'NonLinearLensMagnet'],
          'ifabsent': 'float(0.0)'} })
     """Magnetic length [m]."""
     strength: float = Field(default=0.0, description="""Deflection parameter K. May be a functional expression.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Wiggler_Magnet'], 'ifabsent': 'float(0.0)'} })
@@ -3499,20 +3509,19 @@ class _NonLinearLensMagnetBase(ConfiguredBaseModel):
     """
     Integrable-optics non-linear lens field.  See the MAD-X manual and Danilov/Nagaitsev, PAC2011 WEP070.
     """
-    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:NonLinearLens_Magnet',
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:NonLinearLensMagnet',
          'from_schema': 'https://w3id.org/laura/schema/magnetic'})
 
     length: float = Field(default=0.0, description="""Magnetic length [m].""", ge=0, validation_alias=AliasChoices('length', 'magnetic_length'), json_schema_extra = { "linkml_meta": {'domain_of': ['PhysicalElement',
                        'MagneticElement',
-                       'Corrector_Magnet',
                        'Solenoid_Magnet',
                        'Wiggler_Magnet',
-                       'NonLinearLens_Magnet'],
+                       'NonLinearLensMagnet'],
          'ifabsent': 'float(0.0)'} })
     """Magnetic length [m]."""
-    integrated_strength: float = Field(default=0.0, description="""Integrated lens strength (MAD-X ``knll``). May be a functional expression.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['NonLinearLens_Magnet'], 'ifabsent': 'float(0.0)'} })
+    integrated_strength: float = Field(default=0.0, description="""Integrated lens strength (MAD-X ``knll``). May be a functional expression.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['NonLinearLensMagnet'], 'ifabsent': 'float(0.0)'} })
     """Integrated lens strength (MAD-X ``knll``). May be a functional expression."""
-    dimensional_parameter: float = Field(default=0.0, description="""Dimensional parameter setting the transverse scale (MAD-X ``cnll``). May be a functional expression.""", json_schema_extra = { "linkml_meta": {'domain_of': ['NonLinearLens_Magnet'], 'ifabsent': 'float(0.0)'} })
+    dimensional_parameter: float = Field(default=0.0, description="""Dimensional parameter setting the transverse scale (MAD-X ``cnll``). May be a functional expression.""", json_schema_extra = { "linkml_meta": {'domain_of': ['NonLinearLensMagnet'], 'ifabsent': 'float(0.0)'} })
     """Dimensional parameter setting the transverse scale (MAD-X ``cnll``). May be a functional expression."""
 
 
@@ -6383,7 +6392,7 @@ class _DipoleBase(_MagnetBase):
          'slot_usage': {'hardware_type': {'equals_string': 'Dipole',
                                           'ifabsent': 'Dipole',
                                           'name': 'hardware_type'},
-                        'magnetic': {'name': 'magnetic', 'range': 'Dipole_Magnet'}}})
+                        'magnetic': {'name': 'magnetic', 'range': 'DipoleMagnet'}}})
 
     magnetic: Optional[_DipoleMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
     """Magnetic field parameters."""
@@ -6439,7 +6448,7 @@ class _QuadrupoleBase(_MagnetBase):
          'slot_usage': {'hardware_type': {'equals_string': 'Quadrupole',
                                           'ifabsent': 'Quadrupole',
                                           'name': 'hardware_type'},
-                        'magnetic': {'name': 'magnetic', 'range': 'Quadrupole_Magnet'}}})
+                        'magnetic': {'name': 'magnetic', 'range': 'QuadrupoleMagnet'}}})
 
     magnetic: Optional[_QuadrupoleMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
     """Magnetic field parameters."""
@@ -6499,7 +6508,7 @@ class _SextupoleBase(_MagnetBase):
          'slot_usage': {'hardware_type': {'equals_string': 'Sextupole',
                                           'ifabsent': 'Sextupole',
                                           'name': 'hardware_type'},
-                        'magnetic': {'name': 'magnetic', 'range': 'Sextupole_Magnet'}}})
+                        'magnetic': {'name': 'magnetic', 'range': 'SextupoleMagnet'}}})
 
     magnetic: Optional[_SextupoleMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
     """Magnetic field parameters."""
@@ -6559,7 +6568,7 @@ class _OctupoleBase(_MagnetBase):
          'slot_usage': {'hardware_type': {'equals_string': 'Octupole',
                                           'ifabsent': 'Octupole',
                                           'name': 'hardware_type'},
-                        'magnetic': {'name': 'magnetic', 'range': 'Octupole_Magnet'}}})
+                        'magnetic': {'name': 'magnetic', 'range': 'OctupoleMagnet'}}})
 
     magnetic: Optional[_OctupoleMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
     """Magnetic field parameters."""
@@ -6739,13 +6748,14 @@ class _CombinedCorrectorBase(_DipoleBase):
          'slot_usage': {'hardware_type': {'equals_string': 'Combined_Corrector',
                                           'ifabsent': 'Combined_Corrector',
                                           'name': 'hardware_type'},
-                        'magnetic': {'name': 'magnetic', 'range': 'Corrector_Magnet'}}})
+                        'magnetic': {'name': 'magnetic',
+                                     'range': 'CombinedCorrectorMagnet'}}})
 
     Horizontal_Corrector: Optional[str] = Field(default=None, description="""Name of the horizontal-plane corrector element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CombinedCorrector']} })
     """Name of the horizontal-plane corrector element."""
     Vertical_Corrector: Optional[str] = Field(default=None, description="""Name of the vertical-plane corrector element.""", json_schema_extra = { "linkml_meta": {'domain_of': ['CombinedCorrector']} })
     """Name of the vertical-plane corrector element."""
-    magnetic: Optional[_CorrectorMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
+    magnetic: Optional[_CombinedCorrectorMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
     """Magnetic field parameters."""
     degauss: Optional[_DegaussableElementBase] = Field(default=None, description="""Degaussing-cycle parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet']} })
     """Degaussing-cycle parameters."""
@@ -6864,7 +6874,7 @@ class _CombinedSolenoidQuadrupoleBase(_MagnetBase):
                                           'ifabsent': 'CombinedSolenoidQuadrupole',
                                           'name': 'hardware_type'},
                         'magnetic': {'name': 'magnetic',
-                                     'range': 'CombinedSolenoidQuadrupole_Magnet'}}})
+                                     'range': 'CombinedSolenoidQuadrupoleMagnet'}}})
 
     magnetic: Optional[_CombinedSolenoidQuadrupoleMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
     """Magnetic field parameters."""
@@ -6992,7 +7002,7 @@ class _NonLinearLensBase(_MagnetBase):
                                           'ifabsent': 'NonLinearLens',
                                           'name': 'hardware_type'},
                         'magnetic': {'name': 'magnetic',
-                                     'range': 'NonLinearLens_Magnet'}}})
+                                     'range': 'NonLinearLensMagnet'}}})
 
     magnetic: Optional[_NonLinearLensMagnetBase] = Field(default=None, description="""Magnetic field parameters.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Magnet'], 'in_subset': ['magnetic_properties']} })
     """Magnetic field parameters."""
@@ -7118,6 +7128,7 @@ _QuadrupoleMagnetBase.model_rebuild()
 _SextupoleMagnetBase.model_rebuild()
 _OctupoleMagnetBase.model_rebuild()
 _CorrectorMagnetBase.model_rebuild()
+_CombinedCorrectorMagnetBase.model_rebuild()
 _SolenoidFieldsBase.model_rebuild()
 _SolenoidMagnetBase.model_rebuild()
 _CombinedSolenoidQuadrupoleMagnetBase.model_rebuild()

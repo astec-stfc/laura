@@ -1306,22 +1306,21 @@ class PlasmaElement(Base):
     
 
 
-class CorrectorMagnet(Base):
+class CombinedCorrectorMagnet(Base):
     """
-    Steering-corrector field, expressed as horizontal and vertical kicks rather than multipole coefficients.
+    The pair of steering-corrector fields inside one combined corrector.
     """
-    __tablename__ = 'Corrector_Magnet'
+    __tablename__ = 'CombinedCorrectorMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
-    length = Column(Float())
-    order = Column(Integer())
-    tilt = Column(Float())
-    horizontal_kick = Column(Float())
-    vertical_kick = Column(Float())
+    horizontal_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
+    horizontal = relationship("CorrectorMagnet", uselist=False, foreign_keys=[horizontal_id])
+    vertical_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
+    vertical = relationship("CorrectorMagnet", uselist=False, foreign_keys=[vertical_id])
     
 
     def __repr__(self):
-        return f"Corrector_Magnet(id={self.id},length={self.length},order={self.order},tilt={self.tilt},horizontal_kick={self.horizontal_kick},vertical_kick={self.vertical_kick},)"
+        return f"CombinedCorrectorMagnet(id={self.id},horizontal_id={self.horizontal_id},vertical_id={self.vertical_id},)"
 
 
 
@@ -1419,7 +1418,7 @@ class NonLinearLensMagnet(Base):
     """
     Integrable-optics non-linear lens field.  See the MAD-X manual and Danilov/Nagaitsev, PAC2011 WEP070.
     """
-    __tablename__ = 'NonLinearLens_Magnet'
+    __tablename__ = 'NonLinearLensMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     length = Column(Float())
@@ -1428,7 +1427,7 @@ class NonLinearLensMagnet(Base):
     
 
     def __repr__(self):
-        return f"NonLinearLens_Magnet(id={self.id},length={self.length},integrated_strength={self.integrated_strength},dimensional_parameter={self.dimensional_parameter},)"
+        return f"NonLinearLensMagnet(id={self.id},length={self.length},integrated_strength={self.integrated_strength},dimensional_parameter={self.dimensional_parameter},)"
 
 
 
@@ -8375,7 +8374,7 @@ class DipoleMagnet(MagneticElement):
     """
     None
     """
-    __tablename__ = 'Dipole_Magnet'
+    __tablename__ = 'DipoleMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     order = Column(Integer())
@@ -8409,7 +8408,7 @@ class DipoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"Dipole_Magnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"DipoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8425,7 +8424,7 @@ class QuadrupoleMagnet(MagneticElement):
     """
     None
     """
-    __tablename__ = 'Quadrupole_Magnet'
+    __tablename__ = 'QuadrupoleMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     order = Column(Integer())
@@ -8459,7 +8458,7 @@ class QuadrupoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"Quadrupole_Magnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"QuadrupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8475,7 +8474,7 @@ class SextupoleMagnet(MagneticElement):
     """
     Sextupole magnet field, principal multipole order 2.
     """
-    __tablename__ = 'Sextupole_Magnet'
+    __tablename__ = 'SextupoleMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     order = Column(Integer())
@@ -8509,7 +8508,7 @@ class SextupoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"Sextupole_Magnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"SextupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8525,7 +8524,7 @@ class OctupoleMagnet(MagneticElement):
     """
     Octupole magnet field, principal multipole order 3.
     """
-    __tablename__ = 'Octupole_Magnet'
+    __tablename__ = 'OctupoleMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     order = Column(Integer())
@@ -8559,7 +8558,7 @@ class OctupoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"Octupole_Magnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"OctupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -8575,7 +8574,7 @@ class CombinedSolenoidQuadrupoleMagnet(MagneticElement):
     """
     Combined solenoid and quadrupole magnetic field.
     """
-    __tablename__ = 'CombinedSolenoidQuadrupole_Magnet'
+    __tablename__ = 'CombinedSolenoidQuadrupoleMagnet'
 
     id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
     order = Column(Integer())
@@ -8611,7 +8610,7 @@ class CombinedSolenoidQuadrupoleMagnet(MagneticElement):
     
 
     def __repr__(self):
-        return f"CombinedSolenoidQuadrupole_Magnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},solenoid_fields_id={self.solenoid_fields_id},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
+        return f"CombinedSolenoidQuadrupoleMagnet(id={self.id},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},solenoid_fields_id={self.solenoid_fields_id},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -9376,6 +9375,58 @@ class LaserAttenuator(StandardElement):
 
     def __repr__(self):
         return f"LaserAttenuator(maximum={self.maximum},minimum={self.minimum},name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class CorrectorMagnet(DipoleMagnet):
+    """
+    Steering-corrector field. A dipole magnet whose order-0 multipole is addressed by beam plane: the normal component is the horizontal kick and the skew component is the vertical kick. Inherits from  DipoleMagnet / MagneticElement.
+    """
+    __tablename__ = 'Corrector_Magnet'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    horizontal_kick = Column(Float())
+    vertical_kick = Column(Float())
+    order = Column(Integer())
+    skew = Column(Boolean())
+    length = Column(Float())
+    settle_time = Column(Float())
+    entrance_edge_angle = Column(Text())
+    exit_edge_angle = Column(Text())
+    gap = Column(Float())
+    bore = Column(Float())
+    plane = Column(Enum('Horizontal', 'Vertical', 'Combined', name='BendingPlaneEnum'))
+    width = Column(Float())
+    tilt = Column(Float())
+    edge_field_integral = Column(Float())
+    edge_field_integral_entrance = Column(Float())
+    edge_field_integral_exit = Column(Float())
+    exit_gap = Column(Float())
+    fringe_field_coefficient = Column(Float())
+    gradient = Column(Float())
+    angle = Column(Float())
+    multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    multipoles = relationship("Multipoles", uselist=False, foreign_keys=[multipoles_id])
+    systematic_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    systematic_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[systematic_multipoles_id])
+    random_multipoles_id = Column(Integer(), ForeignKey('Multipoles.id'))
+    random_multipoles = relationship("Multipoles", uselist=False, foreign_keys=[random_multipoles_id])
+    field_integral_coefficients_id = Column(Integer(), ForeignKey('FieldIntegral.id'))
+    field_integral_coefficients = relationship("FieldIntegral", uselist=False, foreign_keys=[field_integral_coefficients_id])
+    linear_saturation_coefficients_id = Column(Integer(), ForeignKey('LinearSaturationFit.id'))
+    linear_saturation_coefficients = relationship("LinearSaturationFit", uselist=False, foreign_keys=[linear_saturation_coefficients_id])
+    
+
+    def __repr__(self):
+        return f"Corrector_Magnet(id={self.id},horizontal_kick={self.horizontal_kick},vertical_kick={self.vertical_kick},order={self.order},skew={self.skew},length={self.length},settle_time={self.settle_time},entrance_edge_angle={self.entrance_edge_angle},exit_edge_angle={self.exit_edge_angle},gap={self.gap},bore={self.bore},plane={self.plane},width={self.width},tilt={self.tilt},edge_field_integral={self.edge_field_integral},edge_field_integral_entrance={self.edge_field_integral_entrance},edge_field_integral_exit={self.edge_field_integral_exit},exit_gap={self.exit_gap},fringe_field_coefficient={self.fringe_field_coefficient},gradient={self.gradient},angle={self.angle},multipoles_id={self.multipoles_id},systematic_multipoles_id={self.systematic_multipoles_id},random_multipoles_id={self.random_multipoles_id},field_integral_coefficients_id={self.field_integral_coefficients_id},linear_saturation_coefficients_id={self.linear_saturation_coefficients_id},)"
 
 
 
@@ -11617,7 +11668,7 @@ class Dipole(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     inherits_from = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('Dipole_Magnet.id'))
+    magnetic_id = Column(Integer(), ForeignKey('DipoleMagnet.id'))
     magnetic = relationship("DipoleMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
@@ -11687,7 +11738,7 @@ class Quadrupole(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     inherits_from = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('Quadrupole_Magnet.id'))
+    magnetic_id = Column(Integer(), ForeignKey('QuadrupoleMagnet.id'))
     magnetic = relationship("QuadrupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
@@ -11757,7 +11808,7 @@ class Sextupole(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     inherits_from = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('Sextupole_Magnet.id'))
+    magnetic_id = Column(Integer(), ForeignKey('SextupoleMagnet.id'))
     magnetic = relationship("SextupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
@@ -11827,7 +11878,7 @@ class Octupole(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     inherits_from = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('Octupole_Magnet.id'))
+    magnetic_id = Column(Integer(), ForeignKey('OctupoleMagnet.id'))
     magnetic = relationship("OctupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
@@ -11967,7 +12018,7 @@ class CombinedSolenoidQuadrupole(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     inherits_from = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('CombinedSolenoidQuadrupole_Magnet.id'))
+    magnetic_id = Column(Integer(), ForeignKey('CombinedSolenoidQuadrupoleMagnet.id'))
     magnetic = relationship("CombinedSolenoidQuadrupoleMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
@@ -12109,7 +12160,7 @@ class NonLinearLens(Magnet):
     virtual_name = Column(Text())
     subelement = Column(Text())
     inherits_from = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('NonLinearLens_Magnet.id'))
+    magnetic_id = Column(Integer(), ForeignKey('NonLinearLensMagnet.id'))
     magnetic = relationship("NonLinearLensMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
@@ -12525,8 +12576,8 @@ class CombinedCorrector(Dipole):
     virtual_name = Column(Text())
     subelement = Column(Text())
     inherits_from = Column(Text())
-    magnetic_id = Column(Integer(), ForeignKey('Corrector_Magnet.id'))
-    magnetic = relationship("CorrectorMagnet", uselist=False, foreign_keys=[magnetic_id])
+    magnetic_id = Column(Integer(), ForeignKey('CombinedCorrectorMagnet.id'))
+    magnetic = relationship("CombinedCorrectorMagnet", uselist=False, foreign_keys=[magnetic_id])
     degauss_id = Column(Integer(), ForeignKey('DegaussableElement.id'))
     degauss = relationship("DegaussableElement", uselist=False, foreign_keys=[degauss_id])
     physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))

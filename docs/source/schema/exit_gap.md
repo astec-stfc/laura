@@ -1,7 +1,7 @@
 # Slot: exit_gap 
 
 
-_Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``exit_edge_field_integral``._
+_Full gap between pole faces at the exit face [m]. Absent means the same as ``gap``. See ``edge_field_integral_exit``._
 
 
 
@@ -25,6 +25,7 @@ URI: [laura:exit_gap](https://w3id.org/laura/exit_gap)
 | [QuadrupoleMagnet](QuadrupoleMagnet.md) |  |  no  |
 | [SextupoleMagnet](SextupoleMagnet.md) | Sextupole magnet field, principal multipole order 2 |  no  |
 | [OctupoleMagnet](OctupoleMagnet.md) | Octupole magnet field, principal multipole order 3 |  no  |
+| [CorrectorMagnet](CorrectorMagnet.md) | Steering-corrector field |  no  |
 | [CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md) | Combined solenoid and quadrupole magnetic field |  no  |
 
 
@@ -109,13 +110,14 @@ URI: [laura:exit_gap](https://w3id.org/laura/exit_gap)
 ```yaml
 name: exit_gap
 description: Full gap between pole faces at the exit face [m]. Absent means the same
-  as ``gap``. See ``exit_edge_field_integral``.
+  as ``gap``. See ``edge_field_integral_exit``.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: MagneticElement
 domain_of:
 - MagneticElement
 range: float
+required: false
 minimum_value: 0.0
 unit:
   ucum_code: m
