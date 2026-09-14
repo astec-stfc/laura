@@ -84,6 +84,20 @@ enum LaserProfileTypeEnum
     file
   }
 
+enum NumericDtypeEnum
+  {
+    int8
+    int16
+    int32
+    int64
+    uint8
+    uint16
+    uint32
+    uint64
+    float32
+    float64
+  }
+
 type AcceleratorElement
   {
     name: String!
@@ -453,6 +467,8 @@ type ControlVariable
     controlType: ControlTypeEnum
     target: String
     expression: String
+    elementDtype: NumericDtypeEnum
+    shape: [String]
     states: String
     readback: String
     setpoint: String
@@ -1929,5 +1945,4 @@ type WireSimulationElement
     horizontalOffset: Float
     verticalOffset: Float
   }
-
 

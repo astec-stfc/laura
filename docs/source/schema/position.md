@@ -1,10 +1,10 @@
-# Slot: shape 
+# Slot: position 
 
 <div data-search-exclude markdown="1">
 
 
 
-URI: [laura:shape](https://w3id.org/laura/shape)
+URI: [laura:position](https://w3id.org/laura/position)
 <!-- no inheritance hierarchy -->
 
 
@@ -15,8 +15,8 @@ URI: [laura:shape](https://w3id.org/laura/shape)
 
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
-| [ControlVariable](ControlVariable.md) | A single process-variable entry mapping a logical name to a control-system PV... |  no  |
-| [ApertureElement](ApertureElement.md) | Transverse aperture geometry for drift-space checks and collimators |  no  |
+| [ElementPositionError](ElementPositionError.md) | Alignment position and rotation errors for a physically-located element |  no  |
+| [ElementSurvey](ElementSurvey.md) | Survey-measured position and rotation of an element |  no  |
 
 
 
@@ -30,7 +30,7 @@ URI: [laura:shape](https://w3id.org/laura/shape)
 | Property | Value |
 | --- | --- |
 | Range | [String](String.md) |
-| Domain Of | [ControlVariable](ControlVariable.md), [ApertureElement](ApertureElement.md) |
+| Domain Of | [ElementPositionError](ElementPositionError.md), [ElementSurvey](ElementSurvey.md) |
 
 ### Cardinality and Requirements
 
@@ -57,8 +57,8 @@ URI: [laura:shape](https://w3id.org/laura/shape)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:shape |
-| native | laura:shape |
+| self | laura:position |
+| native | laura:position |
 
 
 
@@ -67,10 +67,10 @@ URI: [laura:shape](https://w3id.org/laura/shape)
 
 <details>
 ```yaml
-name: shape
+name: position
 domain_of:
-- ControlVariable
-- ApertureElement
+- ElementPositionError
+- ElementSurvey
 range: string
 
 ```

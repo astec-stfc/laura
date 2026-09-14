@@ -2711,6 +2711,10 @@
             "null"
           ]
         },
+        "element_dtype": {
+          "$ref": "#/$defs/NumericDtypeEnum",
+          "description": "Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container: ``dtype: float`` does not say ``float32`` or ``float64``. ``shape`` is what makes a variable an array, not this."
+        },
         "expression": {
           "description": "Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.",
           "type": [
@@ -2750,6 +2754,24 @@
           "description": "Name of the set-point variable this readback follows.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "shape": {
+          "description": "Maximum array dimensions of a waveform, in NumPy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those (i.e. ``diagnostic.sensor.y_pixels * diagnostic.sensor.x_pixels``).",
+          "items": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -8341,6 +8363,23 @@
       },
       "title": "NonLinearLensMagnet",
       "type": "object"
+    },
+    "NumericDtypeEnum": {
+      "description": "Numeric storage type of a control variable's value, or of an individual element of a waveform's array. Not every protocol carries every type -- Channel Access has no native unsigned integer channels, for instance -- so a consumer is expected to reject the combinations it cannot represent.",
+      "enum": [
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "float32",
+        "float64"
+      ],
+      "title": "NumericDtypeEnum",
+      "type": "string"
     },
     "Octupole": {
       "additionalProperties": false,

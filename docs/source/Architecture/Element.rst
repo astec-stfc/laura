@@ -619,12 +619,49 @@ TANGO Attribute, organised as follows:
 * ``value: float | int | str | list`` -- current value of the control variable.
 * ``type: str`` -- kind of control variable; one of ``scalar``, ``binary``, ``state``, ``string``, ``waveform``, ``statistical``.
 * ``states: dict`` -- possible state mapping enums, for variables of ``type='state'``.
+* ``element_dtype: str`` -- numeric type of the value, or of one array element for a waveform; see :ref:`waveform-shape`.
+* ``shape: list`` -- maximum array dimensions of a waveform; see :ref:`waveform-shape`.
 * ``target: str`` -- attribute path on the element to which the variable is applied, e.g. ``magnetic.k1l``.
 * ``expression: dict`` -- expression graph defining how to compute the value set at the ``target``.
 * ``readback: str`` -- connects a setpoint to a readback.
 * ``setpoint: str`` -- connects a readback to a setpoint.
 * ``update: dict`` -- function used to update the variable's value; see :ref:`update-functions`.
 * ``dynamics: dict`` -- response model relating a readback to its setpoint; see :ref:`response-dynamics`.
+
+.. _waveform-shape:
+
+Numeric Types and Waveform Shape
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``element_dtype`` names the numeric type a variable carries, which ``dtype`` cannot: ``dtype:
+float`` does not say ``float32`` or ``float64``. Any numeric variable may declare one
+(``int8``-``int64``, ``uint8``-``uint64``, ``float32``, ``float64``; not every protocol carries
+every type -- Channel Access has no native unsigned channels).
+
+A variable of ``type: waveform`` carries an array, and a control system must be told how large
+that array can be before it can serve it. ``element_dtype`` is then the type of a single element,
+and ``shape`` gives the maximum dimensions in NumPy order, ``[rows, columns]``.
+
+Each ``shape`` entry is a positive integer, a dotted attribute path on the owning element, or a
+``*``-separated product of those. A path is resolved after any inline overrides are applied, so a
+camera image can be sized from the sensor it is attached to:
+
+.. code-block:: yaml
+
+    diagnostic:
+      sensor:
+        x_pixels: 2560
+        y_pixels: 2160
+    controls:
+      variables:
+        CAM1_ArrayData:
+          type: waveform
+          dtype: list
+          element_dtype: int16
+          shape:
+            - diagnostic.sensor.y_pixels * diagnostic.sensor.x_pixels
+
+The product of the entries is the waveform's capacity; the payload at any moment may be shorter.
 
 .. _update-functions:
 

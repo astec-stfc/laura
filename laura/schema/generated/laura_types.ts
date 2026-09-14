@@ -119,6 +119,32 @@ export enum ControlTypeEnum {
     statistical = "statistical",
 };
 /**
+* Numeric storage type of a control variable's value, or of an individual element of a waveform's array. Not every protocol carries every type -- Channel Access has no native unsigned integer channels, for instance -- so a consumer is expected to reject the combinations it cannot represent.
+*/
+export enum NumericDtypeEnum {
+    
+    /** Signed 8-bit integer. */
+    int8 = "int8",
+    /** Signed 16-bit integer. */
+    int16 = "int16",
+    /** Signed 32-bit integer. */
+    int32 = "int32",
+    /** Signed 64-bit integer. */
+    int64 = "int64",
+    /** Unsigned 8-bit integer. */
+    uint8 = "uint8",
+    /** Unsigned 16-bit integer. */
+    uint16 = "uint16",
+    /** Unsigned 32-bit integer. */
+    uint32 = "uint32",
+    /** Unsigned 64-bit integer. */
+    uint64 = "uint64",
+    /** Single-precision float. */
+    float32 = "float32",
+    /** Double-precision float. */
+    float64 = "float64",
+};
+/**
 * Cross-sectional shape of a beam-pipe aperture.
 */
 export enum ApertureShapeEnum {
@@ -322,6 +348,10 @@ export interface ControlVariable {
     target?: string,
     /** Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``. */
     expression?: string,
+    /** Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container: ``dtype: float`` does not say ``float32`` or ``float64``. ``shape`` is what makes a variable an array, not this. */
+    element_dtype?: string,
+    /** Maximum array dimensions of a waveform, in NumPy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those (i.e. ``diagnostic.sensor.y_pixels * diagnostic.sensor.x_pixels``). */
+    shape?: string[],
     /** Mapping of state name to underlying control-system value, for ``control_type: state``. */
     states?: string,
     /** Name of the readback variable this set-point drives. */

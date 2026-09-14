@@ -292,6 +292,52 @@ class ControlTypeEnum(str, Enum):
     """
 
 
+class NumericDtypeEnum(str, Enum):
+    """
+    Numeric storage type of a control variable's value, or of an individual element of a waveform's array. Not every protocol carries every type -- Channel Access has no native unsigned integer channels, for instance -- so a consumer is expected to reject the combinations it cannot represent.
+    """
+    int8 = "int8"
+    """
+    Signed 8-bit integer.
+    """
+    int16 = "int16"
+    """
+    Signed 16-bit integer.
+    """
+    int32 = "int32"
+    """
+    Signed 32-bit integer.
+    """
+    int64 = "int64"
+    """
+    Signed 64-bit integer.
+    """
+    uint8 = "uint8"
+    """
+    Unsigned 8-bit integer.
+    """
+    uint16 = "uint16"
+    """
+    Unsigned 16-bit integer.
+    """
+    uint32 = "uint32"
+    """
+    Unsigned 32-bit integer.
+    """
+    uint64 = "uint64"
+    """
+    Unsigned 64-bit integer.
+    """
+    float32 = "float32"
+    """
+    Single-precision float.
+    """
+    float64 = "float64"
+    """
+    Double-precision float.
+    """
+
+
 class ApertureShapeEnum(str, Enum):
     """
     Cross-sectional shape of a beam-pipe aperture.
@@ -592,6 +638,11 @@ class _ControlVariableBase(ConfiguredBaseModel):
     """Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value."""
     expression: Optional[str] = Field(default=None, description="""Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``."""
+    element_dtype: Optional[NumericDtypeEnum] = Field(default=None, description="""Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container: ``dtype: float`` does not say ``float32`` or ``float64``. ``shape`` is what makes a variable an array, not this.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    """Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container: ``dtype: float`` does not say ``float32`` or ``float64``. ``shape`` is what makes a variable an array, not this."""
+    shape: Optional[list[Union[int, str]]] = Field(default=None, description="""Maximum array dimensions of a waveform, in NumPy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those (i.e. ``diagnostic.sensor.y_pixels * diagnostic.sensor.x_pixels``).""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'string'}],
+         'domain_of': ['ControlVariable', 'ApertureElement']} })
+    """Maximum array dimensions of a waveform, in NumPy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those (i.e. ``diagnostic.sensor.y_pixels * diagnostic.sensor.x_pixels``)."""
     states: Optional[str] = Field(default=None, description="""Mapping of state name to underlying control-system value, for ``control_type: state``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Mapping of state name to underlying control-system value, for ``control_type: state``."""
     readback: Optional[str] = Field(default=None, description="""Name of the readback variable this set-point drives.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
@@ -663,7 +714,7 @@ class _ApertureElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Full vertical aperture [m]."""
-    shape: Optional[ApertureShapeEnum] = Field(default=None, description="""Cross-sectional aperture shape.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
+    shape: Optional[ApertureShapeEnum] = Field(default=None, description="""Cross-sectional aperture shape.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable', 'ApertureElement']} })
     """Cross-sectional aperture shape."""
     radius: Optional[float] = Field(default=None, description="""Radius for circular apertures [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'Multipole', 'CameraMask'],
          'unit': {'ucum_code': 'm'}} })

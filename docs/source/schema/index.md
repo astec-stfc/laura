@@ -240,6 +240,7 @@ Name: laura_schema
 | [edge_order](edge_order.md) | Polynomial order of the edge-field expansion |
 | [electrical](electrical.md) | Power-supply electrical limits |
 | [element](element.md) | Name of the reference element |
+| [element_dtype](element_dtype.md) | Numeric type of the value, or of one element of the array for ``control_type:... |
 | [elements](elements.md) | Ordered list of element names in this section |
 | [enable](enable.md) | Enable command/value |
 | [end](end.md) | End time |
@@ -453,7 +454,7 @@ Name: laura_schema
 | [serial_number](serial_number.md) | Manufacturer serial number |
 | [setpoint](setpoint.md) | Name of the set-point variable this readback follows |
 | [settle_time](settle_time.md) | Power-supply settle time after a change [s] |
-| [shape](shape.md) | Cross-sectional aperture shape |
+| [shape](shape.md) | Maximum array dimensions of a waveform, in NumPy order (``[rows, columns]`` f... |
 | [shunt_impedance](shunt_impedance.md) | Shunt impedance [M?/m] |
 | [shutter](shutter.md) | Shutter interlock configuration |
 | [simulation](simulation.md) | Simulation / tracking attributes |
@@ -542,6 +543,7 @@ Name: laura_schema
 | [IOTypeEnum](IOTypeEnum.md) | Input types for accelerator elements |
 | [LaserPolarizationEnum](LaserPolarizationEnum.md) | Polarization state of a laser beam |
 | [LaserProfileTypeEnum](LaserProfileTypeEnum.md) | Transverse intensity profile model for a laser beam |
+| [NumericDtypeEnum](NumericDtypeEnum.md) | Numeric storage type of a control variable's value, or of an individual eleme... |
 
 
 ## Types

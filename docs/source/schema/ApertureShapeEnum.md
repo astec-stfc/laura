@@ -23,12 +23,6 @@ URI: [laura:ApertureShapeEnum](https://w3id.org/laura/ApertureShapeEnum)
 
 
 
-## Slots
-
-| Name | Description |
-| ---  | --- |
-| [shape](shape.md) | Cross-sectional aperture shape |
-
 
 
 
