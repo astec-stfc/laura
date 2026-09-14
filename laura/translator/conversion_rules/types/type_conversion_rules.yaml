@@ -4,16 +4,16 @@ elegant:
   Sextupole: ksext
   Octupole: koct
   Decapole: mult
-  Beam_Position_Monitor: watch
-  Beam_Arrival_Monitor: moni
-  Bunch_Length_Monitor: moni
+  Beam_Position_Monitor: moni
+  Beam_Arrival_Monitor: watch
+  Bunch_Length_Monitor: watch
   Screen: watch
   Collimator: ecol
   Solenoid: sole
-  Wall_Current_Monitor: moni
-  Integrated_Current_Transformer: moni
-  Faraday_Cup_Monitor: moni
-  Diagnostic: moni
+  Wall_Current_Monitor: watch
+  Integrated_Current_Transformer: watch
+  Faraday_Cup_Monitor: watch
+  Diagnostic: watch
   RFCavity: rfcw
   RFDeflectingCavity: rftm110
   Longitudinal_Wakefield: wake
@@ -35,7 +35,7 @@ elegant:
   Laser: drift
   TwissMatch: twiss
   Plasma: drift
-  Photon_Monitor: moni
+  Photon_Monitor: watch
   CrabCavity: rfdf
   MatrixTransform: ematrix
   BeamBeam: beambeam
@@ -117,17 +117,17 @@ madx:
   Sextupole: sextupole
   Octupole: octupole
   Beam_Position_Monitor: monitor
-  Beam_Arrival_Monitor: monitor
-  Bunch_Length_Monitor: monitor
-  Screen: monitor
+  Beam_Arrival_Monitor: instrument
+  Bunch_Length_Monitor: instrument
+  Screen: instrument
   RCollimator: rcollimator
   Collimator: rcollimator
-  Monitor: monitor
+  Monitor: instrument
   Solenoid: solenoid
   Drift: drift
-  Wall_Current_Monitor: monitor
-  Integrated_Current_Transformer: monitor
-  Faraday_Cup_Monitor: monitor
+  Wall_Current_Monitor: instrument
+  Integrated_Current_Transformer: instrument
+  Faraday_Cup_Monitor: instrument
   RFCavity: rfcavity
   RFDeflectingCavity: crabcavity
   Wakefield: drift
@@ -141,15 +141,15 @@ madx:
   Laser: drift
   Aperture: rcollimator
   Marker: marker
-  Photon_Monitor: monitor
+  Photon_Monitor: instrument
   Shutter: drift
   Valve: drift
   Bellows: drift
   Cleaner: drift
   Scatter: marker
   APContour: marker
-  Watch_Point: monitor
-  Diagnostic: monitor
+  Watch_Point: instrument
+  Diagnostic: instrument
   FEL_Modulator: drift
   MatrixTransform: matrix
   CrabCavity: crabcavity

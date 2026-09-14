@@ -29,7 +29,7 @@ def test_xsuite_importer_uses_common_s_lifecycle():
 
     assert list(elements) == ["drift", "quad", "bend", "cavity", "marker"]
     assert elements["quad"].magnetic.KnL(1) == pytest.approx(0.1)
-    assert elements["bend"].magnetic.KnL(0) == pytest.approx(-0.1)
+    assert elements["bend"].magnetic.KnL(0) == pytest.approx(0.1)
     assert elements["cavity"].cavity.phase == pytest.approx(30)
     assert layout.sections["test"].order == list(elements)
     assert elements["quad"].physical.middle.z == pytest.approx(1.25)
@@ -267,7 +267,7 @@ def test_sliced_line_imports_the_thick_elements_it_came_from():
     assert list(elements) == ["d", "quad", "bend"]
     assert elements["quad"].physical.length == pytest.approx(0.5)
     assert elements["quad"].magnetic.KnL(1) == pytest.approx(0.1)
-    assert elements["bend"].magnetic.KnL(0) == pytest.approx(-0.1)
+    assert elements["bend"].magnetic.KnL(0) == pytest.approx(0.1)
 
 
 def test_sliced_line_warns_once_not_on_every_revalidation():
@@ -443,7 +443,7 @@ def test_bend_defined_by_k0_keeps_its_bending_strength():
 
     element = XsuiteLatticeImporter(line=line).create_element_dictionary()["bend"]
 
-    assert element.magnetic.KnL(0) == pytest.approx(-0.1)
+    assert element.magnetic.KnL(0) == pytest.approx(0.1)
 
 
 def test_bend_defined_by_angle_is_unchanged():
@@ -453,7 +453,7 @@ def test_bend_defined_by_angle_is_unchanged():
 
     element = XsuiteLatticeImporter(line=line).create_element_dictionary()["bend"]
 
-    assert element.magnetic.KnL(0) == pytest.approx(-0.1)
+    assert element.magnetic.KnL(0) == pytest.approx(0.1)
 
 
 def test_per_metre_strength_variable_is_rescaled_to_integrated():
@@ -514,9 +514,9 @@ def test_shared_per_metre_variable_with_differing_lengths_falls_back_to_numbers(
     assert elements["long"].magnetic.KnL(1) == pytest.approx(0.2 * 1.5)
 
 
-def test_bend_per_metre_variable_keeps_the_sign_flip():
-    """LAURA stores a bend's dipole term negated, so the rescaled definition
-    has to carry the sign as well as the length."""
+def test_bend_per_metre_variable_is_rescaled_by_length():
+    """A bend's k0 variable rescales by length like every other per-metre
+    strength -- K0L carries the same sign as xtrack's k0."""
     env = xt.Environment()
     env["k0b"] = 0.1
     env.new("bend", xt.Bend, length=2.0, k0="k0b")
@@ -526,7 +526,7 @@ def test_bend_per_metre_variable_keeps_the_sign_flip():
     element = importer.create_element_dictionary()["bend"]
     importer.create_layout()
 
-    assert element.magnetic.KnL(0) == pytest.approx(-0.2)
+    assert element.magnetic.KnL(0) == pytest.approx(0.2)
 
 
 def test_thin_element_with_a_nominal_length_does_not_shift_the_lattice():
@@ -616,3 +616,22 @@ def test_initial_twiss_is_imported_as_twiss_match():
     assert marker.simulation.eta_yp == pytest.approx(0.02)
     assert marker.simulation.from_beam is False
     assert list(elements)[1] == "q1"
+
+
+def test_bpm_survives_a_round_trip_through_xtrack():
+    """Xtrack has a real `BeamPositionMonitor`, so a LAURA BPM exports to it
+    rather than to the generic `ParticlesMonitor` (which is a Screen) and
+    reads back as a BPM. Codes without one, like Ocelot, get the generic
+    treatment instead."""
+    from laura.models.element import BeamPositionMonitor
+    from laura.translator.converters.converter import translate_elements
+
+    bpm = BeamPositionMonitor(
+        name="BPM1", machine_area="AREA", physical={"length": 0.0}
+    )
+    _, native_type, properties = translate_elements([bpm])["BPM1"].to_xsuite(beam_length=1)
+    line = xt.Line(elements=[native_type(**properties)], element_names=["BPM1"])
+
+    assert native_type is xt.BeamPositionMonitor
+    element = XsuiteLatticeImporter(line=line).create_element_dictionary()["BPM1"]
+    assert element.hardware_type == "Beam_Position_Monitor"

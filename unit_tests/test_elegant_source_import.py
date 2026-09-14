@@ -63,7 +63,7 @@ def test_imported_hardware_type_is_the_registry_key_not_the_class_name(tmp_path)
         for element in section.elements.elements.values()
     }
     assert types["K1"] == "Combined_Corrector"
-    assert types["W1"] == "Beam_Position_Monitor"
+    assert types["W1"] == "Marker"
 
 
 @pytest.mark.skipif(
@@ -298,7 +298,7 @@ def test_elegant_include_inlines_nested_relative_files(tmp_path):
     assert "main: line=(sec)" in text
 
 
-def test_elegant_moni_maps_to_diagnostic_and_uses_machine_area():
+def test_elegant_moni_maps_to_a_bpm_and_uses_machine_area():
     from laura.translator.utils.elegant.sdds_classes_aps import SddsParams
 
     params = SddsParams("unused")
@@ -313,8 +313,46 @@ def test_elegant_moni_maps_to_diagnostic_and_uses_machine_area():
 
     converted, _ = params.create_element_dictionary("AREA")
 
-    assert converted["M"]["hardware_type"] == "Diagnostic"
+    assert converted["M"]["hardware_type"] == "Beam_Position_Monitor"
     assert converted["M"]["machine_area"] == "AREA"
+
+
+def test_elegant_watch_maps_back_to_marker():
+    """A LAURA `Marker` exports as ELEGANT `watch`, so `watch` has to import
+    back as a `Marker`. A BPM exports as `moni` (which is ELEGANT's beam
+    position monitor) rather than fighting over `watch`."""
+    from laura.translator.utils.elegant.sdds_classes_aps import SddsParams
+
+    params = SddsParams("unused")
+    params.elegant_params = {
+        "W": {
+            "ElementType": ["WATCH"],
+            "ElementParameter": [],
+            "ParameterValue": [],
+            "ParameterValueString": [],
+        }
+    }
+
+    converted, _ = params.create_element_dictionary("AREA")
+
+    assert converted["W"]["hardware_type"] == "Marker"
+
+
+def test_only_a_watch_point_is_given_an_output_filename():
+    """ELEGANT's MONI takes no FILENAME -- writing one makes the .lte
+    unparseable -- so the automatic `.SDDS` output name is only for elements
+    written as a `watch`."""
+    from laura.translator.converters.converter import translate_elements
+
+    bpm = laura_elements.BeamPositionMonitor(
+        name="BPM1", machine_area="AREA", physical={"length": 0.0}
+    )
+    marker = laura_elements.Marker(name="MARK1", machine_area="AREA")
+    translated = translate_elements([bpm, marker])
+
+    assert "moni" in translated["BPM1"].to_elegant()
+    assert "filename" not in translated["BPM1"].to_elegant()
+    assert "filename" in translated["MARK1"].to_elegant()
 
 
 def test_elegant_transverse_and_distinct_wakes_are_not_lost(tmp_path, monkeypatch):

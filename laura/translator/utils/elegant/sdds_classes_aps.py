@@ -57,7 +57,7 @@ class SddsParams:
         for k, v in self.elegant_params.items():
             elemtype = v["ElementType"][0].lower()
             alias = (
-                "Diagnostic"
+                "Beam_Position_Monitor"
                 if elemtype == "moni"
                 else next(
                     (
@@ -86,7 +86,7 @@ class SddsParams:
                 switch_dict = {y: x for x, y in type_conversion_rules_elegant.items()}
                 switch_dict.update(
                     {
-                        "watch": "Beam_Position_Monitor",
+                        "watch": "Marker",
                         "mark": "Marker",
                         "marker": "Marker",
                     }

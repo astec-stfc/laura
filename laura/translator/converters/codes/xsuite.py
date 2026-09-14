@@ -280,12 +280,7 @@ class XsuiteLatticeImporter(BaseModel):
                     symbol = self._bare_symbol(element_name, field)
                     if symbol is None or symbol not in self._raw_definitions:
                         continue
-                    factor = (
-                        -length
-                        if field == "k0" and native_type in {"Bend", "RBend"}
-                        else length
-                    )
-                    value = float(self._raw_definitions[symbol]) * factor
+                    value = float(self._raw_definitions[symbol]) * length
                     if symbol in scaled and not np.isclose(scaled[symbol], value):
                         conflicting.add(symbol)
                     scaled[symbol] = value
@@ -350,9 +345,9 @@ class XsuiteLatticeImporter(BaseModel):
             if native_type in {"Bend", "RBend"}:
                 k0 = getattr(native, "k0", None)
                 if k0 is None or isinstance(k0, str):
-                    normal[0] = -float(getattr(native, "angle", normal[0]))
+                    normal[0] = float(getattr(native, "angle", normal[0]))
                 else:
-                    normal[0] = -float(k0) * length
+                    normal[0] = float(k0) * length
                 for component_order in (1, 2):
                     normal[component_order] += (
                         float(getattr(native, f"k{component_order}", 0.0)) * length

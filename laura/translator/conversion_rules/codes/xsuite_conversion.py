@@ -16,6 +16,7 @@ try:
     from xtrack.beam_elements import SecondOrderTaylorMap as SecondOrderTaylorMap_xs
     from xtrack.beam_elements import CrabCavity as CrabCavity_xs
     from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
+    from xtrack.monitors import BeamPositionMonitor as BeamPositionMonitor_xs
     from xtrack.beam_elements import SecondOrderTaylorMap as SecondOrderTaylorMap_xs
     from xtrack.beam_elements import CrabCavity as CrabCavity_xs
     _XSUITE_AVAILABLE = True
@@ -65,11 +66,12 @@ xsuite_conversion_rules = {
     "Sextupole": Sextupole_xs,
     "Octupole": Octupole_xs,
     "Decapole": Multipole_xs,
-    "Beam_Position_Monitor": ParticlesMonitor_xs,
+    "Beam_Position_Monitor": BeamPositionMonitor_xs,
     "Beam_Arrival_Monitor": Drift_xs,
     "Bunch_Length_Monitor": Drift_xs,
     "Screen": ParticlesMonitor_xs,
     "Marker": Marker_xs,
+    "Diagnostic": Marker_xs,
     "Rcollimator": Drift_xs,
     "Collimator": Drift_xs,
     "Monitor": Marker_xs,

@@ -106,7 +106,11 @@ def test_monitor_and_rbend_and_bend_are_imported():
     type named "Monitor", which does not exist -- every BPM was silently
     dropped) and `RBend`/`Bend` (missing from `_switch_dict` entirely) were
     all dropped on import, never raising or warning about anything but
-    "not recognized"."""
+    "not recognized".
+
+    Ocelot's `Monitor` holds `x`/`y`/`x_ref`/`y_ref`, so it is a beam
+    position monitor; only a `Beam_Position_Monitor` exports to it, and every
+    other LAURA monitor exports to `Marker`."""
     from ocelot.cpbd.elements import Monitor, RBend, Bend
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
 
@@ -119,7 +123,7 @@ def test_monitor_and_rbend_and_bend_are_imported():
     elements = importer.create_laura_element_dictionary()
 
     assert set(elements) == {"BPM1", "RB1", "B1"}
-    assert elements["BPM1"].hardware_type == "Diagnostic"
+    assert elements["BPM1"].hardware_type == "Beam_Position_Monitor"
     assert elements["RB1"].hardware_type == "Dipole"
     assert elements["RB1"].magnetic.KnL(0) == pytest.approx(0.01)
     assert elements["B1"].hardware_type == "Dipole"

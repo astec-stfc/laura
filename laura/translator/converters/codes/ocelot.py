@@ -29,7 +29,7 @@ def _switch_dict(type_rules: Dict[str, type]) -> Dict[str, str]:
             "bend": "Dipole",
             "hcor": "Horizontal_Corrector",
             "marker": "Marker",
-            "monitor": "Diagnostic",
+            "monitor": "Beam_Position_Monitor",
             "rbend": "Dipole",
             "tdcavity": "RFDeflectingCavity",
             "undulator": "Wiggler",

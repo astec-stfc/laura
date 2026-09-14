@@ -54,8 +54,7 @@ def _switch_dict() -> Dict[str, str]:
     """MAD-X keyword -> LAURA type name, reversing ``type_conversion_rules_madx``.
 
     Several LAURA types collide on the same (coarser) MAD-X keyword -- e.g.
-    ``Beam_Position_Monitor``/``Screen`` /... all export as
-    ``monitor``.
+    every collimator is an ``ecollimator``.
     """
     switch = {y: x for x, y in type_conversion_rules_madx.items()}
     switch.update(
