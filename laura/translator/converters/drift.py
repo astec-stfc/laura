@@ -32,6 +32,8 @@ class DriftTranslator(BaseElementTranslator):
         self.start_write()
         if self.simulation.csr_enable:
             self.hardware_type = "csrdrift"
+            if not self.simulation.lsc_enable:
+                self.simulation.lsc_bins = 0
         elif self.simulation.lsc_enable:
             self.hardware_type = "lscdrift"
         else:

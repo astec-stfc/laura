@@ -1,9 +1,23 @@
-from typing import Iterator, Tuple
+from typing import Iterator, List, Optional, Tuple
+from warnings import warn
 
 from laura.models.element_list import MachineModel
 
 from .fanout import ContainerTranslator, wrap_lattice_line
 from .layout import MachineLayoutTranslator
+
+
+def _layout_line_name(name: str, sections: List[str]) -> Optional[str]:
+    """Name for a layout's ``LINE`` of section lines, or ``None`` to omit it."""
+    if sections == [name]:
+        return None
+    if name not in sections:
+        return name
+    warn(
+        f"Layout {name!r} contains a section of the same name; its line is "
+        f"written as {name}_LAYOUT to keep the two distinct."
+    )
+    return f"{name}_LAYOUT"
 
 
 class MachineModelTranslator(ContainerTranslator, MachineModel):
@@ -59,7 +73,10 @@ class MachineModelTranslator(ContainerTranslator, MachineModel):
             lines += layout_lines
 
         for name, latt in self.lattices.items():
-            line = f"{name}: LINE = (" + ", ".join(latt.keys()) + ")"
+            line_name = _layout_line_name(name, list(latt.keys()))
+            if line_name is None:
+                continue
+            line = f"{line_name}: LINE = (" + ", ".join(latt.keys()) + ")"
             lines += wrap_lattice_line(line) + "\n\n"
         return definitions, lines
 
@@ -69,5 +86,8 @@ class MachineModelTranslator(ContainerTranslator, MachineModel):
             body += layout._genesis_body()
 
         for name, latt in self.lattices.items():
-            body += f"{name}: LINE = " + "{" + ", ".join(latt.keys()) + "};\n\n"
+            line_name = _layout_line_name(name, list(latt.keys()))
+            if line_name is None:
+                continue
+            body += f"{line_name}: LINE = " + "{" + ", ".join(latt.keys()) + "};\n\n"
         return body

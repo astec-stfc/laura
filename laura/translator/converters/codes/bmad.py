@@ -73,6 +73,31 @@ _MULTIPASS_OVERRIDES = {"PHI0_MULTIPASS": ("cavity.phase", lambda value: -360.0 
 they come back as. The inverse of
 :data:`~laura.translator.converters.layout.bmad_per_pass_attributes`."""
 
+bmad_unsupported = [
+    "Horizontal_AC_Dipole",
+    "Vertical_AC_Dipole",
+    "Laser",
+    "LaserAttenuator",
+    "LaserEnergyMeter",
+    "LaserHalfWavePlate",
+    "LaserMirror",
+    "Lighting",
+    "Low_Level_RF",
+    "NonLinearLens",
+    "PID",
+    "Plasma",
+    "PowerSupply",
+    "RFHeartbeat",
+    "RFModulator",
+    "RFMultipole",
+    "RFProtection",
+    "Shutter",
+    "Stage",
+    "VacuumGauge",
+    "Valve",
+    "Wire",
+]
+
 
 def _layout_entries(
     layout: MachineLayout, sections: List[str], renamed: Dict[str, str]

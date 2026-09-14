@@ -293,7 +293,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         self.start_write()
         wholestring = ""
         etype = self._convert_type_elegant(self.hardware_type)
-        if etype == "drift" and self.hardware_type != "Drift":
+        if etype == "drift" and self.hardware_type.lower() != "drift":
             warn(
                 f"Elegant does not support {self.hardware_type!r}; "
                 f"{self.name!r} was exported as a drift."

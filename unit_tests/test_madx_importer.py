@@ -262,6 +262,75 @@ def test_twiss_file_start_marker_imports_as_twiss_match(tmp_path):
     assert next(iter(elements)) == "SEQ$START"
 
 
+def test_twiss_file_repeated_placements_and_integrated_strengths(tmp_path):
+    """A TWISS table has one row per *placement*, so a reused definition
+    repeats under the same name, and it reports strengths integrated
+    (``K1L``) rather than per-metre (``K1``)."""
+    twiss = tmp_path / "twiss.tfs"
+    twiss.write_text(
+        '@ SEQUENCE %s "SEQ"\n'
+        "* NAME KEYWORD S L K1L K2SL\n"
+        "$ %s %s %le %le %le %le\n"
+        '"Q1" "QUADRUPOLE" 0.5 0.5 0.15 0.0\n'
+        '"DR" "DRIFT" 1.5 1.0 0.0 0.0\n'
+        '"Q1" "QUADRUPOLE" 2.0 0.5 0.15 0.0\n'
+        '"S1" "SEXTUPOLE" 2.2 0.2 0.0 0.8\n'
+    )
+
+    elements = MadxLatticeImporter(
+        twiss_file=str(twiss)
+    ).create_laura_element_dictionary()
+
+    assert list(elements) == ["Q1.1", "DR", "Q1.2", "S1"]
+    assert sum(e.physical.length for e in elements.values()) == pytest.approx(2.2)
+    assert elements["Q1.2"].magnetic.multipoles.K1L.normal == pytest.approx(0.15)
+    assert elements["S1"].magnetic.multipoles.K2L.skew == pytest.approx(0.8)
+
+
+def test_twiss_model_elegant_line_is_not_self_referential():
+    """A TWISS import names the layout and its only section after the same
+    sequence, and elegant's line/element namespace is flat -- so the layout
+    wrapper came out as ``X: LINE = (X)``, which elegant rejects."""
+    from laura.translator.converters.model import (
+        MachineModelTranslator,
+        _layout_line_name,
+    )
+
+    model = MadxLatticeImporter(twiss_file=_TWISS).create_machine_model()
+    lte = MachineModelTranslator.from_machine(model).to_elegant()
+
+    assert lte.count("TESTLINE: LINE = (") == 1
+    assert "TESTLINE: LINE = (TESTLINE)" not in lte
+    assert _layout_line_name("A", ["A"]) is None
+    assert _layout_line_name("A", ["A", "B"]) == "A_LAYOUT"
+    assert _layout_line_name("A", ["B", "C"]) == "A"
+
+
+@pytest.mark.parametrize(
+    "kwargs, csr, radiation",
+    [
+        ({}, "0", "0"),
+        ({"collective_effects": True, "radiation": True}, "1", "1"),
+    ],
+)
+def test_twiss_import_leaves_collective_and_radiation_off(kwargs, csr, radiation):
+    """LAURA's simulation models default CSR, LSC, SR and ISR all on, so an
+    untouched MAD-X import exported every drift as a ``CSRDRIFT`` and every
+    bend with ``csr = 1, synch_rad = 1, isr = 1`` -- physics MAD-X cannot
+    specify. They are opt-in now."""
+    from laura.translator.converters.model import MachineModelTranslator
+
+    model = MadxLatticeImporter(twiss_file=_TWISS, **kwargs).create_machine_model()
+    lte = MachineModelTranslator.from_machine(model).to_elegant()
+
+    assert f"csr = {csr}" in lte
+    assert f"synch_rad = {radiation}" in lte
+    assert f"isr = {radiation}" in lte
+    # elegant's CSRDRIFT has no LSC switch -- any nonzero LSC_BINS runs it.
+    assert (": csrdrift," in lte) is (csr == "1")
+    assert ("lsc_bins" in lte) is (csr == "1")
+
+
 def test_nested_sequence_is_flattened(tmp_path):
     """A ring assembled from sub-sequences (e.g. LEIR's SS10/Arc10/SS20/...)
     has those sub-sequences as opaque `Sequence` entries in

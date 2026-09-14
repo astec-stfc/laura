@@ -1,6 +1,6 @@
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, NamedTuple
+from typing import TYPE_CHECKING, Any, Dict, NamedTuple, Optional
 from warnings import warn
 
 import numpy as np
@@ -99,11 +99,13 @@ class SectionLatticeTranslator(SectionLattice):
     WARNING: OPAL not fully benchmarked / tested.
     """
 
-    csr_enable: bool = True
-    """Flag to enable calculation of CSR in drifts."""
+    csr_enable: Optional[bool] = None
+    """Flag to enable calculation of CSR in the drifts synthesised between
+    elements. ``None`` follows the lattice -- see :meth:`_collective_flag`."""
 
-    lsc_enable: bool = True
-    """Flag to enable calculation of LSC in drifts."""
+    lsc_enable: Optional[bool] = None
+    """Flag to enable calculation of LSC in the drifts synthesised between
+    elements. ``None`` follows the lattice -- see :meth:`_collective_flag`."""
 
     wakefield_enable: bool = True
     """Flag to enable structure wakefields on accelerating cavities."""
@@ -148,6 +150,13 @@ class SectionLatticeTranslator(SectionLattice):
                 "revolution_frequency": section.revolution_frequency,
             }
         )
+
+    def _collective_flag(self, flag: str) -> bool:
+        """Resolved ``csr_enable``/``lsc_enable``: an explicit setting wins,
+        otherwise follow the lattice via :meth:`~SectionLattice._collective_default`.
+        """
+        explicit = getattr(self, flag)
+        return self._collective_default(flag) if explicit is None else explicit
 
     def _check_elements_supported(self, code):
         hw_types = set([e.hardware_type for e in list(self.elements.elements.values())])
@@ -236,7 +245,11 @@ class SectionLatticeTranslator(SectionLattice):
         header = bmad_functional_definitions(self.functional_definitions)
         if particle:
             header += f"parameter[particle] = {particle}\n"
-        enabled = "T" if self.csr_enable or self.lsc_enable else "F"
+        enabled = (
+            "T"
+            if self._collective_flag("csr_enable") or self._collective_flag("lsc_enable")
+            else "F"
+        )
         header += f"bmad_com[csr_and_space_charge_on] = {enabled}\n"
         if space_charge_n_bin is not None:
             if space_charge_n_bin < 1:

@@ -75,6 +75,14 @@ def _switch_dict() -> Dict[str, str]:
     return switch
 
 
+def _switch_off(element, flags) -> None:
+    """Clear ``flags`` on ``element.simulation``, skipping ones it lacks."""
+    simulation = getattr(element, "simulation", None)
+    for flag in flags:
+        if hasattr(simulation, flag):
+            setattr(simulation, flag, False)
+
+
 class MadxLatticeImporter(BaseModel):
 
     machine_area: str = "Lattice"
@@ -88,6 +96,12 @@ class MadxLatticeImporter(BaseModel):
 
     sequence: Optional[str] = None
     """Sequence to import from ``source_file``; defaults to its sole sequence."""
+
+    collective_effects: bool = False
+    """Keep LAURA's CSR and LSC defaults on imported elements -- see :func:`_switch_off`."""
+
+    radiation: bool = False
+    """Keep LAURA's CSR/ISR defaults on imported magnets."""
 
     madx_data: Dict = {}
     """Dictionary containing data about the MAD-X lattice, keyed by element name."""
@@ -277,6 +291,9 @@ class MadxLatticeImporter(BaseModel):
             tfs.read_file(self.twiss_file)
             self.lattice_name = tfs.headers.get("sequence")
             rows = tfs.rows()
+            numbered = number_repeated_names([str(row["name"]) for row in rows])
+            for row, name in zip(rows, numbered):
+                row["name"] = name
 
         switch_dict = _switch_dict()
         source_definitions = self._source_functional_definitions
@@ -406,6 +423,20 @@ class MadxLatticeImporter(BaseModel):
                         entry[subk][param] = val
                     elif param in kwele and kwele[param] in model_fields[subk]:
                         entry[subk][kwele[param]] = val
+            if "magnetic" in entry:
+                multipoles = {}
+                for param, val in row.items():
+                    matched = re.fullmatch(r"k(\d+)(s?)l", param)
+                    if matched and val:
+                        order = int(matched.group(1))
+                        if order > 4:
+                            warn(f"Dropping order-{order} strength {param} of {name!r}; "
+                                 "LAURA models multipoles up to K4L.")
+                            continue
+                        pole = multipoles.setdefault(f"K{order}L", {"order": order})
+                        pole["skew" if matched.group(2) else "normal"] = float(val)
+                if multipoles:
+                    entry["magnetic"]["multipoles"] = multipoles
             for param, expression in self.deferred_parameters.get(name, {}).items():
                 symbol = self._single_symbol(
                     expression, source_definitions, row.get("l", 0)
@@ -507,7 +538,12 @@ class MadxLatticeImporter(BaseModel):
             else:
                 v["physical"] = physical
 
-            self.elements.update({k: getattr(laura_elements, vtype)(**v)})
+            element = getattr(laura_elements, vtype)(**v)
+            off = [] if self.collective_effects else ["csr_enable", "lsc_enable"]
+            if not self.radiation:
+                off += ["sr_enable", "isr_enable"]
+            _switch_off(element, off)
+            self.elements.update({k: element})
         return self.elements
 
     def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:

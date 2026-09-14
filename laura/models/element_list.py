@@ -471,14 +471,27 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
         """
         return [self.elements[e] for e in self.order if e in self.elements.names]
 
+    def _collective_default(self, flag: str) -> bool:
+        """Whether synthesised drifts should carry ``flag``: only if some real
+        element already has it on.
+        """
+        return any(
+            getattr(element.simulation, flag, False)
+            for element in self._get_all_elements()
+        )
+
     def create_drifts(
         self,
-        csr_enable: bool = True,
-        lsc_enable: bool = True,
+        csr_enable: Optional[bool] = None,
+        lsc_enable: Optional[bool] = None,
         lsc_bins: PositiveInt = 20,
         keep_diagnostic_length: bool = False,
     ):
         """Insert drifts into a sequence of 'elements'."""
+        if csr_enable is None:
+            csr_enable = self._collective_default("csr_enable")
+        if lsc_enable is None:
+            lsc_enable = self._collective_default("lsc_enable")
         positions = []
         originalelements = dict()
         elementno = 0
