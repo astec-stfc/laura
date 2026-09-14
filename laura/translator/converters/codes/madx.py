@@ -612,7 +612,9 @@ class MadxLatticeImporter(BaseModel):
             functional_definitions=self.functional_definitions,
         )
 
-    def create_machine_model(self, min_section_length: int = 5) -> MachineModel:
+    def create_machine_model(
+        self, min_section_length: int = 5, sections: Optional[Dict] = None
+    ) -> MachineModel:
         """Build a model with one layout per top-level MAD-X sequence.
 
         Only usable with ``source_file`` -- a single ``twiss_file`` table
@@ -621,12 +623,22 @@ class MadxLatticeImporter(BaseModel):
         Sequence-specific ``name__sequence`` copies are is created
         for repeated elements because :class:`MachineModel`
         stores one placement per name.
+
+        ``sections`` (``{name: [first_element, last_element]}``, see
+        :meth:`create_layout`) splits the ``twiss_file`` path into named
+        sections instead of one spanning the whole table. It has no meaning
+        for ``source_file``, where the sequences define the sections.
         """
         if min_section_length < 1:
             raise ValueError("min_section_length must be at least 1.")
+        if sections and self.source_file:
+            raise ValueError(
+                "sections applies to the twiss_file path only; with source_file "
+                "the MAD-X sequences already define the sections."
+            )
 
         if not self.source_file:
-            layout = self.create_layout()
+            layout = self.create_layout(sections=sections)
             return MachineModel(
                 elements={
                     element.name: element

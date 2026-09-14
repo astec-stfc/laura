@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Union
+from typing import Optional, Union
 from warnings import warn
 
 import numpy as np
@@ -21,6 +21,7 @@ from laura.translator.utils.fields import FieldMap
 from ..converters import (
     elements_genesis,
     elements_opal,
+    keyword_conversion_rules_elegant,
 )
 from ..utils.functions import _rotation_matrix, chop, expand_substitution
 from .base import BaseElementTranslator
@@ -1353,6 +1354,46 @@ class WigglerTranslator(BaseElementTranslator):
 
     simulation: MagnetSimulationElement
     """Wiggler simulation element."""
+
+    @computed_field
+    @property
+    def poles(self) -> int:
+        """Number of poles, for elegant's planar ``WIGGLER``."""
+        return 2 * self.magnetic.num_periods
+
+    @computed_field
+    @property
+    def sinusoidal(self) -> int:
+        """``CWIGGLER`` needs this, or a field map file, to have any field."""
+        return 1
+
+    @computed_field
+    @property
+    def bx_max(self) -> Optional[float]:
+        """A helical ``CWIGGLER`` needs the horizontal field too: given only
+        ``BY_MAX`` elegant reports ``BMAX=0 and BXMAX=0`` and the optics blow up.
+        """
+        if not self.magnetic.helical:
+            return None
+        return self.magnetic.peak_magnetic_field
+
+    def to_elegant(self) -> str:
+        """Elegant string. Helical wigglers go to ``CWIGGLER`` -- elegant's
+        plain ``WIGGLER`` is a vertical field only.
+        """
+        self.start_write()
+        if not self.magnetic.peak_magnetic_field and self.magnetic.period:
+            self.magnetic.peak_magnetic_field = self.magnetic.resolved("strength") / (
+                93.3728962 * self.magnetic.period
+            )
+        if self.magnetic.helical:
+            self.hardware_type = "cwiggler"
+            # conversion_rules were frozen from the original type at init
+            self.conversion_rules["elegant"] = (
+                keyword_conversion_rules_elegant["cwiggler"]
+                | keyword_conversion_rules_elegant["general"]
+            )
+        return super().to_elegant()
 
     def to_genesis(self, index: int) -> str:
         """
