@@ -444,15 +444,19 @@ def test_bmad_taylor_and_match_syntax():
         simulation={"beta_x": 2, "beta_y": 3, "alpha_x": -0.5},
     )
     text = _bmad(match)
-    assert "TW: match, l = 0.0, beta_a1 = 2.0, beta_b1 = 3.0" in text
-    assert "alpha_a1 = -0.5" in text
-    assert "matrix = match_twiss" in text
+    assert "TW: fixer, beta_a_stored = 2.0, beta_b_stored = 3.0" in text
+    assert "alpha_a_stored = -0.5" in text
+    assert "is_on = T" in text
+    # A fixer declares the Twiss; it is not a matching element and has no length.
+    assert "match_twiss" not in text
+    assert "l = " not in text
 
 
 def test_bmad_leading_twiss_match_becomes_beginning_not_a_match_element():
-    """A TwissMatch at the head of a section stands in for Bmad's beginning_ele
-    (or an active fixer), which does not touch the beam. Exporting it as a
-    `match` element would put a real transfer matrix at the start of the line.
+    """A TwissMatch declares the design Twiss at a point; it does not touch the
+    beam. At the head of a section that is Bmad's ``beginning[...]``, and
+    anywhere else it is a ``fixer``. Either way a ``match`` element would be the
+    wrong thing, because it puts a real transfer matrix in the line.
     """
     seed = TwissMatch(
         name="BEGINNING",
@@ -503,7 +507,8 @@ def test_bmad_leading_twiss_match_becomes_beginning_not_a_match_element():
     assert "beginning[beta_a] = 2.0" not in override
     assert "matrix = match_twiss" not in override
 
-    # A TwissMatch anywhere else really is a matching element.
+    # A TwissMatch anywhere else is a fixer: the same declaration, made at a
+    # point Bmad cannot put in its header.
     interior = SectionLattice(
         name="S-2",
         order=["Q-1", "BEGINNING"],
@@ -516,7 +521,11 @@ def test_bmad_leading_twiss_match_becomes_beginning_not_a_match_element():
         geometry="open",
     )
     interior_text = SectionLatticeTranslator.from_section(interior).to_bmad()
-    assert "matrix = match_twiss" in interior_text
+    # ``BEGINNING`` is reserved, so the name is the one bmad_safe_names gave it.
+    assert "BEGINNING_ELEMENT: fixer, beta_a_stored = 2.0" in interior_text
+    assert "eta_x_stored = 0.4" in interior_text
+    assert "is_on = T" in interior_text
+    assert "match_twiss" not in interior_text
     assert "beginning[beta_a]" not in interior_text
 
 
@@ -600,6 +609,181 @@ def test_bmad_section_layout_and_model_export():
     assert "parameter[particle] = electron" in model_text["L_1"]["S_1"]
     assert "bmad_com[csr_and_space_charge_on] = T" in model_text["L_1"]["S_1"]
     assert "space_charge_com[n_bin] = 32" in model_text["L_1"]["S_1"]
+
+
+def test_bmad_header_states_radiation_the_way_the_elements_asked():
+    """Radiation is a ``bmad_com`` global in Bmad and a per-element flag in
+    LAURA, and the header is where the two meet.
+    """
+    radiating = Quadrupole(
+        name="Q-RAD",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.5, "k1l": 0.3},
+        physical=PhysicalElement(length=0.5, middle=Position(z=1)),
+    )
+    section = SectionLattice(
+        name="S-1",
+        order=["Q-RAD"],
+        elements=[radiating],
+        geometry="open",
+    )
+    translator = SectionLatticeTranslator.from_section(section)
+    # LAURA's own defaults, which elegant already honours as `synch_rad = 1`.
+    text = translator.to_bmad()
+    assert "bmad_com[radiation_damping_on] = T" in text
+    assert "bmad_com[radiation_fluctuations_on] = T" in text
+
+    radiating.simulation.sr_enable = False
+    radiating.simulation.isr_enable = False
+    text = SectionLatticeTranslator.from_section(section).to_bmad()
+    assert "bmad_com[radiation_damping_on] = F" in text
+    assert "bmad_com[radiation_fluctuations_on] = F" in text
+
+
+def test_bmad_cavity_carries_its_rf_step_count():
+    """``n_rf_steps`` is Bmad's RF-only stepping control, and LAURA's
+    code-agnostic name for it is ``n_kicks``.
+    """
+    cavity = RFCavity(
+        name="C-STEPPED",
+        machine_area="S",
+        cavity={
+            "phase": 0,
+            "frequency": 1e9,
+            "n_cells": 1,
+            "cell_length": 1,
+            "structure_type": "StandingWave",
+        },
+        simulation={"field_amplitude": 2e6, "n_kicks": 1000},
+        physical=PhysicalElement(length=1, middle=Position(z=2)),
+    )
+    assert "n_rf_steps = 1000" in _bmad(cavity)
+
+    # Bmad counts RF steps from one, so LAURA's zero default is "unset" rather
+    # than a cavity to be stepped no times at all.
+    unstepped = cavity.model_copy(deep=True)
+    unstepped.simulation.n_kicks = 0
+    assert "n_rf_steps" not in _bmad(unstepped)
+
+
+def test_bmad_fringe_model_reaches_bmad_and_nowhere_it_would_be_misread():
+    """LAURA names the fringe model in Bmad's vocabulary, which is why it is
+    called ``fringe_model`` and not ``fringe_type``: elegant has a quadrupole
+    attribute of the latter name that chooses where the fringe acts rather
+    than which model runs, and the words for the two do not overlap.
+    """
+    dipole = Dipole(
+        name="B-FRINGED",
+        machine_area="S",
+        magnetic={"magnetic_length": 1, "k0l": 0.1},
+        simulation={"fringe_model": "full"},
+        physical=PhysicalElement(length=1, middle=Position(z=2)),
+    )
+    quadrupole = Quadrupole(
+        name="Q-FRINGED",
+        machine_area="S",
+        magnetic={"magnetic_length": 1, "k1l": 0.1},
+        simulation={"fringe_model": "soft_edge_only"},
+        physical=PhysicalElement(length=1, middle=Position(z=2)),
+    )
+    assert "fringe_type = full" in _bmad(dipole)
+    assert "fringe_type = soft_edge_only" in _bmad(quadrupole)
+
+    converted = next(
+        iter(translate_elements([quadrupole], directory=".").values())
+    )
+    assert "fringe" not in converted.to_elegant()
+
+    plain = quadrupole.model_copy(deep=True)
+    plain.simulation.fringe_model = None
+    assert "fringe_type" not in _bmad(plain)
+
+
+def test_bmad_element_aperture_is_written_without_a_collimator_standing_in():
+    """An ordinary element states its own aperture in Bmad, so a magnet that
+    knows its bore does not need a collimator inserted beside it to say so.
+
+    LAURA gives a full width and Bmad a distance from the axis to either side,
+    hence the halving -- the same convention ``ApertureTranslator`` follows for
+    the ``Collimator`` class itself. Only a shape Bmad would not assume gets
+    named: rectangular is its default everywhere outside an ecollimator.
+    """
+    bore = {"horizontal_size": 0.032, "vertical_size": 0.032}
+    quadrupole = Quadrupole(
+        name="QA01",
+        machine_area="S",
+        magnetic={"magnetic_length": 1, "k1l": 0.1},
+        physical=PhysicalElement(length=1, middle=Position(z=2)),
+        aperture=bore | {"shape": "rectangular"},
+    )
+    written = _bmad(quadrupole)
+    assert "x1_limit = 0.016" in written
+    assert "y2_limit = 0.016" in written
+    assert "aperture_type" not in written
+
+    elliptical = quadrupole.model_copy(deep=True)
+    elliptical.aperture.shape = "elliptical"
+    assert "aperture_type = elliptical" in _bmad(elliptical)
+
+    bare = quadrupole.model_copy(deep=True)
+    bare.aperture = None
+    assert "limit" not in _bmad(bare)
+
+
+def test_bmad_section_states_its_space_charge_resolution():
+    """Turning CSR on is not enough to make it run. Bmad's ``space_charge_com``
+    starts at ``n_bin = 0`` and ``ds_track_step = 0``, and reads those not as
+    defaults but as "nobody configured this": it marks the whole bunch lost and
+    says so. So a lattice with ``csr_and_space_charge_on = T`` and no
+    ``space_charge_com`` is worse than one with neither.
+
+    The settings sit on the section because that is the scale the choice is
+    made at -- a bunch compressor gets one binning and the linac around it
+    another -- and a caller running the section itself still wins, which is how
+    SIMBA sets the mode for a section it is about to track.
+    """
+    quadrupole = Quadrupole(
+        name="Q-1",
+        machine_area="S",
+        magnetic={"magnetic_length": 0.5, "k1l": 0.1},
+        physical=PhysicalElement(length=0.5, middle=Position(z=0.25)),
+    )
+    section = SectionLattice(
+        name="S-1",
+        order=["Q-1"],
+        elements=[quadrupole],
+        geometry="open",
+        space_charge={
+            "number_of_bins": 40,
+            "step_size": 0.01,
+            "chamber_height": 0.024,
+            "bin_span": 2,
+            "sigma_cutoff": 0.1,
+        },
+    )
+    text = SectionLatticeTranslator.from_section(section).to_bmad()
+    assert "space_charge_com[n_bin] = 40" in text
+    assert "space_charge_com[ds_track_step] = 0.01" in text
+    assert "space_charge_com[beam_chamber_height] = 0.024" in text
+    # An integer in Bmad, so an integer here: its parser will not take `2.0`.
+    assert "space_charge_com[particle_bin_span] = 2\n" in text
+    assert "space_charge_com[lsc_sigma_cutoff] = 0.1" in text
+    # Left unset, so left to Bmad. Zero images is an unshielded calculation,
+    # which is what saying nothing already means.
+    assert "n_shield_images" not in text
+
+    # The caller running this section owns the mode for it.
+    overridden = SectionLatticeTranslator.from_section(section).to_bmad(
+        space_charge_n_bin=64
+    )
+    assert "space_charge_com[n_bin] = 64" in overridden
+    assert "space_charge_com[n_bin] = 40" not in overridden
+
+    quiet = section.model_copy(deep=True)
+    quiet.space_charge = None
+    assert "space_charge_com" not in SectionLatticeTranslator.from_section(
+        quiet
+    ).to_bmad()
 
 
 def test_bmad_section_superimposes_overlapping_elements():

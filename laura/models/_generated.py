@@ -710,6 +710,29 @@ class _ApertureElementBase(ConfiguredBaseModel):
     """Downstream / outer extent [m]."""
 
 
+class _SpaceChargeSettingsBase(ConfiguredBaseModel):
+    """
+    How finely a code should resolve the collective fields -- space charge and CSR -- over one section.
+    Held on the section rather than on the elements because that is the scale at which the choice is actually made: a bunch compressor is run with one binning and the linac around it with another, and a single element has no say in it. The switches that turn the effects on stay per-element, since those do vary element by element; this is only the resolution of the calculation once something has asked for it.
+    Every field is optional, and absent means \"leave the receiving code's own default alone\". A code told nothing is a code that has not been misconfigured.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:SpaceChargeSettings',
+         'from_schema': 'https://w3id.org/laura/schema/machine'})
+
+    number_of_bins: Optional[int] = Field(default=None, description="""Longitudinal bins the bunch is divided into to build the collective field. Bmad's ``space_charge_com[n_bin]``, which has no usable default: it starts at zero, and a zero is fatal rather than ignored -- Bmad marks the whole bunch lost and says the structure was never set.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
+    """Longitudinal bins the bunch is divided into to build the collective field. Bmad's ``space_charge_com[n_bin]``, which has no usable default: it starts at zero, and a zero is fatal rather than ignored -- Bmad marks the whole bunch lost and says the structure was never set."""
+    step_size: Optional[float] = Field(default=None, description="""Distance between collective-field recalculations, where an element does not name its own. Bmad's ``space_charge_com[ds_track_step]``; like the bin count it starts at zero and is fatal there, and a per-element step overrides it.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings'], 'unit': {'ucum_code': 'm'}} })
+    """Distance between collective-field recalculations, where an element does not name its own. Bmad's ``space_charge_com[ds_track_step]``; like the bin count it starts at zero and is fatal there, and a per-element step overrides it."""
+    chamber_height: Optional[float] = Field(default=None, description="""Full height of the vacuum chamber, used to model the shielding of CSR by the chamber walls. Bmad's ``space_charge_com[beam_chamber_height]``, paired with ``shield_images``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings'], 'unit': {'ucum_code': 'm'}} })
+    """Full height of the vacuum chamber, used to model the shielding of CSR by the chamber walls. Bmad's ``space_charge_com[beam_chamber_height]``, paired with ``shield_images``."""
+    shield_images: Optional[int] = Field(default=None, description="""Number of image charges to sum when modelling wall shielding. Zero means an unshielded calculation. Bmad's ``space_charge_com[n_shield_images]``.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
+    """Number of image charges to sum when modelling wall shielding. Zero means an unshielded calculation. Bmad's ``space_charge_com[n_shield_images]``."""
+    bin_span: Optional[int] = Field(default=None, description="""Width of a particle's deposition kernel, counted in bins. Bmad's ``space_charge_com[particle_bin_span]``, an integer there and so an integer here -- Bmad's parser will not take ``2.0`` for it.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
+    """Width of a particle's deposition kernel, counted in bins. Bmad's ``space_charge_com[particle_bin_span]``, an integer there and so an integer here -- Bmad's parser will not take ``2.0`` for it."""
+    sigma_cutoff: Optional[float] = Field(default=None, description="""Transverse beam size below which a slice is treated as having none, as a fraction of the mean, guarding the longitudinal space-charge kick against a division by an unresolved sigma. Bmad's ``space_charge_com[lsc_sigma_cutoff]``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
+    """Transverse beam size below which a slice is treated as having none, as a fraction of the mean, guarding the longitudinal space-charge kick against a division by an unresolved sigma. Bmad's ``space_charge_com[lsc_sigma_cutoff]``."""
+
+
 class _SectionLatticeBase(ConfiguredBaseModel):
     """
     An ordered list of element names defining a contiguous beamline section.
@@ -725,6 +748,8 @@ class _SectionLatticeBase(ConfiguredBaseModel):
     """Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent."""
     reference_energy: Optional[float] = Field(default=None, description="""Reference total energy of the design particle [eV].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice'], 'unit': {'ucum_code': 'eV'}} })
     """Reference total energy of the design particle [eV]."""
+    space_charge: Optional[_SpaceChargeSettingsBase] = Field(default=None, description="""Resolution of the collective-field calculation over this section. Absent leaves every receiving code on its own defaults.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice']} })
+    """Resolution of the collective-field calculation over this section. Absent leaves every receiving code on its own defaults."""
     elements: list[str] = Field(default_factory=list, description="""Ordered list of element names in this section.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
     """Ordered list of element names in this section."""
 
@@ -884,6 +909,8 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Enable entrance-edge focussing effects."""
     edge2_effects: Optional[bool] = Field(default=None, description="""Enable exit-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
     """Enable exit-edge focussing effects."""
+    fringe_model: Optional[str] = Field(default=None, description="""Which fringe-field model to integrate, named in Bmad's vocabulary because it is the widest: none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means \"whatever the receiving code does by default\", so a model a code cannot express is dropped rather than approximated. Not named ``fringe_type``: elegant spells a quadrupole attribute that way, but it selects where the fringe acts rather than which model runs, so the two names must not resolve to each other.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
+    """Which fringe-field model to integrate, named in Bmad's vocabulary because it is the widest: none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means "whatever the receiving code does by default", so a model a code cannot express is dropped rather than approximated. Not named ``fringe_type``: elegant spells a quadrupole attribute that way, but it selects where the fringe acts rather than which model runs, so the two names must not resolve to each other."""
     sr_enable: Optional[bool] = Field(default=True, description="""Enable synchrotron-radiation energy loss.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
     """Enable synchrotron-radiation energy loss."""
     isr_enable: Optional[bool] = Field(default=True, description="""Enable incoherent synchrotron-radiation emittance growth.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
@@ -7067,6 +7094,7 @@ _ShutterElementBase.model_rebuild()
 _ValveElementBase.model_rebuild()
 _LightingElementBase.model_rebuild()
 _ApertureElementBase.model_rebuild()
+_SpaceChargeSettingsBase.model_rebuild()
 _SectionLatticeBase.model_rebuild()
 _LayoutPassBase.model_rebuild()
 _MachineLayoutBase.model_rebuild()

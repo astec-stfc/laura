@@ -190,7 +190,7 @@ bmad:
   Combined_Corrector: kicker
   Wiggler: wiggler
   Marker: marker
-  TwissMatch: match
+  TwissMatch: fixer
   MatrixTransform: taylor
   ElectrostaticSeparator: elseparator
   Wakefield: drift

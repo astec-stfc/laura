@@ -118,6 +118,13 @@ classes:
       edge2_effects:
         range: boolean
         description: Enable exit-edge focussing effects.
+      fringe_model:
+        range: string
+        description: >-
+          Which fringe-field model to integrate: 
+          none, soft_edge_only, hard_edge_only,
+          full, sad_full, linear_edge or basic_bend. Absent means default
+          for that code.
       sr_enable:
         range: boolean
         description: Enable synchrotron-radiation energy loss.

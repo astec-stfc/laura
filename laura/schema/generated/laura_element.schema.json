@@ -8994,6 +8994,13 @@
             "null"
           ]
         },
+        "fringe_model": {
+          "description": "Which fringe-field model to integrate, named in Bmad's vocabulary because it is the widest: none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means \"whatever the receiving code does by default\", so a model a code cannot express is dropped rather than approximated. Not named ``fringe_type``: elegant spells a quadrupole attribute that way, but it selects where the fringe acts rather than which model runs, so the two names must not resolve to each other.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "horizontal_offset": {
           "description": "Horizontal simulation offset from the reference orbit [m].",
           "type": [
@@ -15094,6 +15101,17 @@
             "number",
             "null"
           ]
+        },
+        "space_charge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpaceChargeSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Resolution of the collective-field calculation over this section. Absent leaves every receiving code on its own defaults."
         }
       },
       "required": [
@@ -16303,6 +16321,62 @@
         }
       },
       "title": "SolenoidMagnet",
+      "type": "object"
+    },
+    "SpaceChargeSettings": {
+      "additionalProperties": false,
+      "description": "How finely a code should resolve the collective fields -- space charge and CSR -- over one section.\nHeld on the section rather than on the elements because that is the scale at which the choice is actually made: a bunch compressor is run with one binning and the linac around it with another, and a single element has no say in it. The switches that turn the effects on stay per-element, since those do vary element by element; this is only the resolution of the calculation once something has asked for it.\nEvery field is optional, and absent means \"leave the receiving code's own default alone\". A code told nothing is a code that has not been misconfigured.",
+      "properties": {
+        "bin_span": {
+          "description": "Width of a particle's deposition kernel, counted in bins. Bmad's ``space_charge_com[particle_bin_span]``, an integer there and so an integer here -- Bmad's parser will not take ``2.0`` for it.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "chamber_height": {
+          "description": "Full height of the vacuum chamber, used to model the shielding of CSR by the chamber walls. Bmad's ``space_charge_com[beam_chamber_height]``, paired with ``shield_images``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "number_of_bins": {
+          "description": "Longitudinal bins the bunch is divided into to build the collective field. Bmad's ``space_charge_com[n_bin]``, which has no usable default: it starts at zero, and a zero is fatal rather than ignored -- Bmad marks the whole bunch lost and says the structure was never set.",
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "shield_images": {
+          "description": "Number of image charges to sum when modelling wall shielding. Zero means an unshielded calculation. Bmad's ``space_charge_com[n_shield_images]``.",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "sigma_cutoff": {
+          "description": "Transverse beam size below which a slice is treated as having none, as a fraction of the mean, guarding the longitudinal space-charge kick against a division by an unresolved sigma. Bmad's ``space_charge_com[lsc_sigma_cutoff]``.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "step_size": {
+          "description": "Distance between collective-field recalculations, where an element does not name its own. Bmad's ``space_charge_com[ds_track_step]``; like the bin count it starts at zero and is fatal there, and a per-element step overrides it.",
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "title": "SpaceChargeSettings",
       "type": "object"
     },
     "Stage": {

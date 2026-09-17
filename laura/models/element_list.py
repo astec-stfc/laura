@@ -1,4 +1,3 @@
-from laura._compat import DeprecatedMethodAliases
 import logging
 import math
 import os
@@ -19,6 +18,8 @@ from pydantic import (
 )
 from yaml import safe_load
 
+from laura._compat import DeprecatedMethodAliases
+
 from ..utils.naming import number_repeated_names
 from ..utils.rotation_matrix import (
     euler_angles_to_rotation_matrix,
@@ -37,12 +38,12 @@ from .base_models import (
     set_resolve_functional,
     validate_functional_references,
 )
-from .element import Diagnostic, Drift, PhysicalBaseElement, BaseElement
-from .exceptions import LatticeError
 from .control import set_attr_by_path
+from .element import BaseElement, Diagnostic, Drift, PhysicalBaseElement
+from .exceptions import LatticeError
 from .magnetic import brho
-from .reversal import reverse_element
 from .physical import PhysicalElement, Position, Rotation
+from .reversal import reverse_element
 from .simulation import DriftSimulationElement
 from .trajectory import Trajectory
 
@@ -1368,8 +1369,7 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
         passes = [
             entry
             for entry in self.passes
-            if entry.number == number
-            and (section is None or entry.section == section)
+            if entry.number == number and (section is None or entry.section == section)
         ]
         if not passes:
             available = sorted(
@@ -1961,6 +1961,7 @@ class MachineModel(ModelBase, _MachineModelBase):
         normalised_sections = {}
 
         for section_name, section_data in sections.items():
+            space_charge = None
             if isinstance(section_data, list):
                 elements = section_data
                 section_type = "beam"
@@ -1974,6 +1975,7 @@ class MachineModel(ModelBase, _MachineModelBase):
                     section_data.get("type", section_data.get("section_type")),
                     context=f"section '{section_name}'",
                 )
+                space_charge = section_data.get("space_charge")
             else:
                 raise TypeError(f"Section '{section_name}' must be a list or dict")
 
@@ -1984,6 +1986,8 @@ class MachineModel(ModelBase, _MachineModelBase):
                 "elements": elements,
                 "type": section_type,
             }
+            if space_charge is not None:
+                normalised_sections[section_name]["space_charge"] = space_charge
 
         authored = {
             name: definition["elements"]
@@ -2104,9 +2108,7 @@ class MachineModel(ModelBase, _MachineModelBase):
                     options.get("overrides"), section_name, layout_name
                 )
                 names.append(section_name)
-                listed.append(
-                    (section_name, direction, multipass, momentum, overrides)
-                )
+                listed.append((section_name, direction, multipass, momentum, overrides))
                 if direction == -1:
                     marked[section_name] = -1
             areas[layout_name] = names
@@ -2436,6 +2438,32 @@ class MachineModel(ModelBase, _MachineModelBase):
         """Build sections (and layout objects when no full-layout definitions exist)."""
         self._build_sections_phase(elements)
 
+    @staticmethod
+    def _section_members(elem_names, by_name):
+        """A section's elements: the ones it orders, plus their subelements."""
+        members = [by_name[name] for name in elem_names if name in by_name]
+
+        def parent_of(element):
+            if isinstance(element, dict):
+                return element.get("subelement")
+            return getattr(element, "subelement", None)
+
+        ordered = set(elem_names)
+        seen = {name for name in elem_names if name in by_name}
+        while True:
+            found = [
+                (name, element)
+                for name, element in by_name.items()
+                if name not in seen and parent_of(element) in ordered
+            ]
+            if not found:
+                break
+            for name, element in found:
+                members.append(element)
+                seen.add(name)
+                ordered.add(name)
+        return members
+
     def _build_sections_phase(self, elements):
         """Create all SectionLattice objects without yet creating MachineLayout objects."""
         by_area, by_name = self._index_elements(elements)
@@ -2449,7 +2477,7 @@ class MachineModel(ModelBase, _MachineModelBase):
                     area,
                     section_definition,
                 )
-                new_elements = [by_name[name] for name in elem_names if name in by_name]
+                new_elements = self._section_members(elem_names, by_name)
                 _log.debug(
                     "Section %s elements=(%s)",
                     area,
@@ -2460,6 +2488,7 @@ class MachineModel(ModelBase, _MachineModelBase):
                     elements=new_elements,
                     order=elem_names,
                     section_type=section_type,
+                    space_charge=section_definition.get("space_charge"),
                     master_lattice=self.master_lattice,
                     functional_definitions=self.functional_definitions,
                     resolve_functional=self.resolve_functional,
@@ -2475,9 +2504,7 @@ class MachineModel(ModelBase, _MachineModelBase):
                             area,
                             self._section_definitions[area],
                         )
-                        new_elements = [
-                            by_name[name] for name in elem_names if name in by_name
-                        ]
+                        new_elements = self._section_members(elem_names, by_name)
                         _log.debug(
                             "Section %s elements=(%s)",
                             area,
@@ -2488,6 +2515,9 @@ class MachineModel(ModelBase, _MachineModelBase):
                             elements=new_elements,
                             order=elem_names,
                             section_type=section_type,
+                            space_charge=self._section_definitions[area].get(
+                                "space_charge"
+                            ),
                             master_lattice=self.master_lattice,
                             functional_definitions=self.functional_definitions,
                             resolve_functional=self.resolve_functional,

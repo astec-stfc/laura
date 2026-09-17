@@ -42,9 +42,71 @@ from . import magnetic_orders
 _DRIFT_TYPES = ("Drift", "Pipe")
 """Bmad types with no physics of their own."""
 
+_CANCELS_TOL = 1e-9
+"""How exactly a pair of drifts has to cancel, in metres, to be merged."""
+
+
+def _absorb_negative_drifts(names, types, lengths, spos, params, children):
+    """Fold each backwards drift into the neighbour that undoes it.
+
+    A drift of negative length is how a Bmad lattice moves its own s-origin,
+    but LAURA does not (currently) support negative drifts.
+
+    Only an exact cancellation is folded; anything else is left for the element
+    loop to drop with a warning. Returns children reindexed onto the
+    shortened lists; the other five are modified in place.
+    """
+    drop = set()
+    for index, length in enumerate(lengths):
+        if length >= 0.0 or types[index] not in _DRIFT_TYPES:
+            continue
+        for other in (index + 1, index - 1):
+            if not 0 <= other < len(lengths) or other in drop:
+                continue
+            if types[other] not in _DRIFT_TYPES:
+                continue
+            if abs(lengths[other] + length) > _CANCELS_TOL:
+                continue
+            first, last = min(index, other), max(index, other)
+            lengths[other] = 0.0
+            if "L" in params[other]:
+                params[other]["L"] = 0.0
+            spos[other] = spos[last]
+            entrance = params[first].get("_FLOOR_ENTRANCE")
+            if entrance is not None:
+                params[other]["_FLOOR"] = entrance
+                params[other]["_FLOOR_ENTRANCE"] = entrance
+            drop.add(index)
+            break
+    if not drop:
+        return children
+    kept = [index for index in range(len(names)) if index not in drop]
+    moved = {old: new for new, old in enumerate(kept)}
+    for column in (names, types, lengths, spos, params):
+        column[:] = [column[index] for index in kept]
+    return {
+        moved[child]: moved[lord]
+        for child, lord in children.items()
+        if child in moved and lord in moved
+    }
+
+
 _CAVITY_TYPES = ("Lcavity", "RFCavity", "Crab_Cavity", "E_Gun")
 
 _COLLIMATOR_TYPES = ("ECollimator", "RCollimator")
+
+_COLLIMATOR_SHAPES = {"ECollimator": "elliptical", "RCollimator": "rectangular"}
+"""The aperture shape each Bmad collimator class stands for."""
+
+_SPACE_CHARGE_COM = {
+    "n_bin": "number_of_bins",
+    "ds_track_step": "step_size",
+    "beam_chamber_height": "chamber_height",
+    "n_shield_images": "shield_images",
+    "particle_bin_span": "bin_span",
+    "lsc_sigma_cutoff": "sigma_cutoff",
+}
+"""Bmad's ``space_charge_com`` namelist under LAURA's section-level names."""
 
 _MULTIPOLE_TYPES = ("Multipole", "AB_multipole", "Thick_Multipole", "Sad_Mult")
 
@@ -68,7 +130,9 @@ _ORDER_TYPES = {0: "Dipole", 1: "Quadrupole", 2: "Sextupole", 3: "Octupole"}
 
 _MULTIPASS_SLAVE_NAME = re.compile(r"^(?P<base>.+)\\(?P<number>\d+)$")
 
-_MULTIPASS_OVERRIDES = {"PHI0_MULTIPASS": ("cavity.phase", lambda value: -360.0 * value)}
+_MULTIPASS_OVERRIDES = {
+    "PHI0_MULTIPASS": ("cavity.phase", lambda value: -360.0 * value)
+}
 """Bmad attributes a multipass slave holds on its own, and the LAURA override
 they come back as. The inverse of
 :data:`~laura.translator.converters.layout.bmad_per_pass_attributes`."""
@@ -246,24 +310,24 @@ def _misalignment(parameters: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
     return {"error": {"position": position, "rotation": rotation}}
 
 
-def _aperture(parameters: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-    """Convert an element's Bmad aperture limits to a LAURA ``aperture`` dict."""
+def _aperture(parameters: Dict[str, Any], etype: str = "") -> Dict[str, Dict[str, Any]]:
+    """Convert an element's Bmad aperture limits to a LAURA ``aperture`` dict.
+
+    The shape comes from the element class.
+    A collimator keeps its shape even with every limit at zero.
+    """
     limits = {
         key: float(parameters.get(key, 0.0) or 0.0)
         for key in ("X1_LIMIT", "X2_LIMIT", "Y1_LIMIT", "Y2_LIMIT")
     }
-    if not any(limits.values()):
+    shape = _COLLIMATOR_SHAPES.get(etype)
+    if not any(limits.values()) and shape is None:
         return {}
-    shape = str(parameters.get("aperture_type", "rectangular")).lower()
     return {
         "aperture": {
             "horizontal_size": limits["X1_LIMIT"] + limits["X2_LIMIT"],
             "vertical_size": limits["Y1_LIMIT"] + limits["Y2_LIMIT"],
-            "shape": (
-                shape
-                if shape in ("rectangular", "elliptical", "circular")
-                else "rectangular"
-            ),
+            "shape": shape or "rectangular",
         }
     }
 
@@ -331,23 +395,22 @@ def _bmad_cavity_cells(
 ) -> int:
     """How many cells Bmad actually gave a cavity, not how many were asked for.
 
-    ``n_cell`` is a request. A non-positive value -- ``-1`` is what the LCLS
-    linac uses -- means "fill the element with as many half-wavelength cells as
-    will fit", and Bmad reports the length it settled on in ``l_active``. A
-    positive value is still capped the same way: a nine-cell request in a
+    ``n_cell`` is a request. A non-positive value -- ``-1``
+    means "fill the element with as many half-wavelength cells as
+    will fit". A positive value is still capped: a nine-cell request in a
     one-cell-long element gets one cell.
 
-    Reading the sentinel as a single cell shrank a 2.87 m S-band structure's
-    active region to 52 mm. The energy gain survives that, because it comes
-    from ``voltage``, but the RF focusing does not: the exit beta of the first
-    L1 cavity came out at 3.41 m against Bmad's own 6.53 m.
+    An ``l_active`` longer than the element is not this element's: a super-slave
+    reports the whole lord's active length.
+    :meth:`BmadLatticeImporter._collapse_super_lords` normally means no
+    slice gets this far, so fall back to the length that does fit.
     """
     if cell_length <= 0.0:
         return int(n_cell) if n_cell and n_cell >= 1 else 1
     fits = int(length // cell_length)
     if n_cell and n_cell >= 1:
         wanted = int(n_cell)
-    elif l_active:
+    elif l_active and float(l_active) <= length + cell_length:
         wanted = round(l_active / cell_length)
     else:
         wanted = fits
@@ -383,9 +446,6 @@ def _wake_tables(tao, element_id: str) -> Dict[str, Any] | None:
         "sr_trans": table("sr_trans_table"),
     }
     if not tables["sr_long"] and not tables["sr_trans"]:
-        # A long-range wake, a tabulated z-wake, or a wake struct that carries
-        # nothing this importer reads. Say so once rather than dropping it in
-        # silence.
         if base.get("has#lr_mode") or base.get("has#sr_z_long"):
             warn(
                 f"Bmad element {element_id!r} carries a long-range or "
@@ -451,6 +511,85 @@ def _holds_a_wake_field(hardware_type: str) -> bool:
         if definition is not None and FieldMap in get_args(definition.annotation):
             return True
     return False
+
+
+def _simulation_fields(hardware_type: str) -> frozenset:
+    """The simulation attributes a LAURA element of this type can hold.
+
+    LAURA spreads these over a class per element family, so the settings Bmad
+    reports for every element alike have to be filtered before they are handed
+    to a constructor that would reject them.
+    """
+    element = getattr(laura_elements, hardware_type, None)
+    simulation = getattr(element, "model_fields", {}).get("simulation")
+    if simulation is None:
+        return frozenset()
+    fields: set = set()
+    for candidate in get_args(simulation.annotation) or (simulation.annotation,):
+        fields.update(getattr(candidate, "model_fields", {}))
+    return frozenset(fields)
+
+
+def _collective_settings(
+    parameters: Dict[str, Any], bmad_com: Dict[str, Any], hardware_type: str
+) -> Dict[str, Any]:
+    """The collective-effect and radiation settings an element carries.
+
+    LAURA has no global container for collective effects, so the globals ride on every
+    element that can hold them and
+    :meth:`~laura.models.element_list.SectionLattice._collective_default`
+    gathers them back into one ``bmad_com[...]`` statement on export.
+    A method is only recorded when it is not ``Off``.
+    """
+    holds = _simulation_fields(hardware_type)
+    settings: Dict[str, Any] = {}
+    methods = parameters.get("_METHODS") or {}
+    for method in ("csr_method", "space_charge_method"):
+        value = str(methods.get(method, "Off"))
+        if method in holds and value.lower() != "off":
+            settings[method] = value
+    csr_ds_step = parameters.get("CSR_DS_STEP")
+    if "csrdz" in holds and csr_ds_step:
+        settings["csrdz"] = csr_ds_step
+    if bmad_com:
+        collective = bool(bmad_com.get("csr_and_space_charge_on"))
+        for switch, flag in (
+            (collective, "csr_enable"),
+            (collective, "lsc_enable"),
+            (bool(bmad_com.get("radiation_damping_on")), "sr_enable"),
+            (bool(bmad_com.get("radiation_fluctuations_on")), "isr_enable"),
+        ):
+            if flag in holds:
+                settings[flag] = switch
+    return settings
+
+
+_BMAD_FRINGE_DEFAULTS: Dict[str, str] = {
+    "sbend": "basic_bend",
+    "rbend": "basic_bend",
+    "e_gun": "full",
+    "em_field": "full",
+    "lcavity": "full",
+    "rfcavity": "full",
+}
+
+
+def _fringe_model(
+    parameters: Dict[str, Any], etype: str, hardware_type: str
+) -> Dict[str, Any]:
+    """The fringe model an element asks for, when it differs from the default.
+
+    Recorded under LAURA's ``fringe_model``.
+    Only magnets hold the field, so a cavity's ``Full`` is dropped here --
+    it is Bmad's own default for cavities in any case.
+    """
+    value = parameters.get("FRINGE_TYPE")
+    if not value or "fringe_model" not in _simulation_fields(hardware_type):
+        return {}
+    default = _BMAD_FRINGE_DEFAULTS.get(etype.lower(), "none")
+    if str(value).lower() == default:
+        return {}
+    return {"fringe_model": str(value).lower()}
 
 
 def _ac_kicker_data(tao, element_id: str) -> Dict[str, list]:
@@ -599,6 +738,17 @@ class BmadLatticeImporter(BaseModel):
     branch_params: Dict[int, Dict[str, Dict[str, Any]]] = {}
     """Tao ``branch1`` records, holding ``param_geometry`` and ``param_particle``."""
 
+    bmad_com: Dict[str, Any] = {}
+    """Bmad's global switches, as Tao resolved them."""
+
+    space_charge_com: Dict[str, Any] = {}
+    """Bmad's collective-field resolution, as Tao resolved it."""
+
+    super_lord_children: Dict[int, Dict[str, Dict[str, str]]] = {}
+    """``{child name: lord name}`` per branch, for elements Bmad superimposed
+    inside another one. Set by :meth:`_collapse_super_lords`; read back when
+    the element dictionary is built to give the child a ``subelement``."""
+
     laura_elems: Dict[int, Dict[str, Dict[str, Element]]] = {}
 
     branches: Dict[int, List[str]] = {}
@@ -689,6 +839,8 @@ class BmadLatticeImporter(BaseModel):
         self._read_functional_definitions()
 
         tao = Tao(f"-init {self._tao_init_path()} -noplot", so_lib=self.libtao)
+        self.bmad_com = dict(tao.bmad_com())
+        self.space_charge_com = dict(tao.space_charge_com())
         universe_count = tao.super_universe()["n_universe"]
         while self.n_universes <= universe_count:
             self.branches.update(
@@ -707,6 +859,7 @@ class BmadLatticeImporter(BaseModel):
             self.params.update({self.n_universes: {}})
             self.branch_params.update({self.n_universes: {}})
             self.laura_elems.update({self.n_universes: {}})
+            self.super_lord_children.update({self.n_universes: {}})
             for ind, b in enumerate(self.branches[self.n_universes]):
                 kwa = {
                     "ix_uni": str(self.n_universes),
@@ -716,64 +869,34 @@ class BmadLatticeImporter(BaseModel):
                     ix_uni=self.n_universes, ix_branch=ind
                 )
                 names = [i for i in tao.lat_list("*", "ele.name", **kwa)]
-                names_numbered = number_repeated_names(names)
                 types = [i for i in tao.lat_list("*", "ele.key", **kwa)]
                 lengths = [i for i in tao.lat_list("*", "ele.l", **kwa)]
                 spos = [i for i in tao.lat_list("*", "ele.s", **kwa)]
-                params = []
-                for i, etype in enumerate(types):
-                    element_id = f"{self.n_universes}@{ind}>>{i}"
-                    attributes = tao.ele_gen_attribs(element_id)
-                    if self.position_mode == "floor":
-                        attributes["_FLOOR"] = tao.ele_floor(element_id, where="center")
-                        attributes["_FLOOR_ENTRANCE"] = tao.ele_floor(
-                            element_id, where="beginning"
-                        )
-                    if etype == "Match":
-                        matrix = tao.ele_mat6(element_id, who="mat6")
-                        attributes["_MAT6"] = [matrix[str(row)] for row in range(1, 7)]
-                        attributes["_VEC0"] = tao.ele_mat6(element_id, who="vec0")[
-                            "vec0"
-                        ]
-                    elif etype == "Taylor":
-                        attributes["_TAYLOR"] = tao.ele_taylor(element_id)
-                        attributes["_SPIN_TAYLOR"] = tao.ele_spin_taylor(element_id)
-                    elif etype in _MULTIPOLE_TYPES or etype in magnetic_orders:
-                        # For the multipole keys this table *is* the element. For
-                        # an ordinary magnet it holds only the `an`/`bn` content,
-                        # which the element definition cannot carry -- Tao leaves
-                        # the main `k1`/`k3` out of it, so there is nothing to
-                        # double-count, and a magnet with no `an`/`bn` reports an
-                        # empty table rather than an error.
-                        attributes["_MULTIPOLES"] = tao.ele_multipoles(element_id)
-                    elif etype == "AC_Kicker":
-                        attributes["_AC_KICKER"] = _ac_kicker_data(tao, element_id)
-                    elif etype == "Beginning_Ele":
-                        attributes["_TWISS"] = tao.ele_twiss(element_id)
-                        attributes["_FLOOR"] = tao.ele_floor(element_id)
-                        attributes["_COUPLING"] = tao.twiss_at_s(
-                            ix_uni=self.n_universes,
-                            ele=f"{ind}>>{i}",
-                            s_offset=0.0,
-                        )
-                    elif etype == "Fixer":
-                        attributes["_ACTIVE"] = bool(
-                            tao.ele_head(element_id).get("is_on")
-                        )
-                        if attributes["_ACTIVE"]:
-                            attributes["_TWISS"] = tao.ele_twiss(element_id)
-                            attributes["_COUPLING"] = tao.twiss_at_s(
-                                ix_uni=self.n_universes,
-                                ele=f"{ind}>>{i}",
-                                s_offset=0.0,
-                            )
-                    wake = _wake_tables(tao, element_id)
-                    if wake:
-                        attributes["_WAKE"] = wake
-                    params.append(attributes)
+                params = [
+                    self._element_attributes(tao, self.n_universes, ind, i, etype)
+                    for i, etype in enumerate(types)
+                ]
                 for index, wake in _lord_wakes(tao, self.n_universes, ind).items():
                     if 0 <= index < len(params):
                         params[index].setdefault("_WAKE", wake)
+                children = self._collapse_super_lords(
+                    tao,
+                    self.n_universes,
+                    ind,
+                    names,
+                    types,
+                    lengths,
+                    spos,
+                    params,
+                )
+                children = _absorb_negative_drifts(
+                    names, types, lengths, spos, params, children
+                )
+                names_numbered = number_repeated_names(names)
+                self.super_lord_children[self.n_universes][b] = {
+                    names_numbered[index]: names_numbered[lord]
+                    for index, lord in children.items()
+                }
                 self.names[self.n_universes].update({b: names})
                 self.names_numbered[self.n_universes].update({b: names_numbered})
                 self.types[self.n_universes].update({b: types})
@@ -783,9 +906,182 @@ class BmadLatticeImporter(BaseModel):
                 self.laura_elems[self.n_universes].update({b: {}})
             self.n_universes += 1
         self.branches = {
-            k: [f'{i["branch_name"]}_{k}' for i in tao.lat_branch_list(ix_uni=k)]
+            k: [f"{i['branch_name']}_{k}" for i in tao.lat_branch_list(ix_uni=k)]
             for k in range(1, self.n_universes)
         }
+
+    def _element_attributes(
+        self, tao, universe: int, branch_index: int, index: int, etype: str
+    ) -> Dict[str, Any]:
+        """One Bmad element's attributes, with the per-key extras Tao keeps
+        behind their own accessors folded in under ``_``-prefixed keys.
+
+        ``index`` may address a lord as readily as a tracking element, so
+        :meth:`_collapse_super_lords` can read a super-lord the same way.
+        """
+        element_id = f"{universe}@{branch_index}>>{index}"
+        attributes = tao.ele_gen_attribs(element_id)
+        # the general attribute table.
+        attributes["_METHODS"] = tao.ele_methods(element_id)
+        if self.position_mode == "floor":
+            attributes["_FLOOR"] = tao.ele_floor(element_id, where="center")
+            attributes["_FLOOR_ENTRANCE"] = tao.ele_floor(element_id, where="beginning")
+        if etype == "Match":
+            matrix = tao.ele_mat6(element_id, who="mat6")
+            attributes["_MAT6"] = [matrix[str(row)] for row in range(1, 7)]
+            attributes["_VEC0"] = tao.ele_mat6(element_id, who="vec0")["vec0"]
+        elif etype == "Taylor":
+            attributes["_TAYLOR"] = tao.ele_taylor(element_id)
+            attributes["_SPIN_TAYLOR"] = tao.ele_spin_taylor(element_id)
+        elif etype in _MULTIPOLE_TYPES or etype in magnetic_orders:
+            attributes["_MULTIPOLES"] = tao.ele_multipoles(element_id)
+        elif etype == "AC_Kicker":
+            attributes["_AC_KICKER"] = _ac_kicker_data(tao, element_id)
+        elif etype == "Beginning_Ele":
+            attributes["_TWISS"] = tao.ele_twiss(element_id)
+            attributes["_FLOOR"] = tao.ele_floor(element_id)
+            attributes["_COUPLING"] = tao.twiss_at_s(
+                ix_uni=universe,
+                ele=f"{branch_index}>>{index}",
+                s_offset=0.0,
+            )
+        elif etype == "Fixer":
+            attributes["_ACTIVE"] = bool(tao.ele_head(element_id).get("is_on"))
+            if attributes["_ACTIVE"]:
+                attributes["_TWISS"] = tao.ele_twiss(element_id)
+                attributes["_COUPLING"] = tao.twiss_at_s(
+                    ix_uni=universe,
+                    ele=f"{branch_index}>>{index}",
+                    s_offset=0.0,
+                )
+        wake = _wake_tables(tao, element_id)
+        if wake:
+            attributes["_WAKE"] = wake
+        return attributes
+
+    def _collapse_super_lords(
+        self,
+        tao,
+        universe: int,
+        branch_index: int,
+        names: List[str],
+        types: List[str],
+        lengths: List[float],
+        spos: List[float],
+        params: List[Dict[str, Any]],
+    ) -> Dict[int, int]:
+        """Put super-lords back in place of the slices Bmad cut them into.
+
+        Superimposing anything on an element makes Bmad replace it with a
+        lord plus numbered super-slaves; for an
+        ``lcavity``:
+
+        * every slave reports the *lord's* ``l_active``, the whole-cell length
+          the RF actually fills. .
+        * the entrance and exit focusing kicks belong to the lord's ends.
+
+        Slices are merged back into
+        the lord and the elements that split it become its ``subelement``
+        children. These become ``superimpose`` statements on export.
+
+        The lists are rewritten in place. Returns ``{child index: lord index}``
+        into the rewritten lists, for the superimposed elements.
+        """
+        lords: Dict[int, List[int]] = {}
+        try:
+            info = tao.lat_branch_list(ix_uni=universe)[branch_index]
+            first, last = int(info["n_ele_track"]) + 1, int(info["n_ele_max"])
+        except Exception:
+            return {}
+        for index in range(first, last + 1):
+            element_id = f"{universe}@{branch_index}>>{index}"
+            try:
+                rows = tao.ele_lord_slave(element_id)
+            except Exception:
+                continue
+            location = f"{branch_index}>>{index}"
+            mine = False
+            for row in rows:
+                if row.get("type") == "Element":
+                    mine = (
+                        row.get("location_name") == location
+                        and row.get("status") == "Super_Lord"
+                    )
+                elif mine and row.get("type") == "Slave":
+                    slave = str(row.get("location_name") or "")
+                    if row.get("status") == "Super_Slave" and slave.startswith(
+                        f"{branch_index}>>"
+                    ):
+                        lords.setdefault(index, []).append(int(slave.split(">>")[1]))
+
+        every_slave = {index for slaves in lords.values() for index in slaves}
+        merge: Dict[int, int] = {}  # first slave index -> lord index
+        drop: set = set()  # the other slave indices
+        children: Dict[int, int] = {}  # child index -> lord index
+        for lord, slaves in sorted(lords.items()):
+            slaves = sorted(slaves)
+            if not slaves or max(slaves) >= len(names):
+                continue
+            inside = [
+                index
+                for index in range(slaves[0], slaves[-1] + 1)
+                if index not in set(slaves)
+            ]
+            reason = None
+            if any(index in every_slave for index in inside):
+                reason = "it overlaps another superimposed element"
+            elif any(abs(float(lengths[index])) > 1e-12 for index in inside):
+                reason = "an element with length was superimposed on it"
+            elif any(index in merge or index in drop for index in slaves):
+                reason = "its slices are shared with another lord"
+            if reason:
+                warn(
+                    f"Bmad super-lord {names[slaves[0]]!r} was left as "
+                    f"{len(slaves)} slices because {reason}. An lcavity "
+                    "imported this way splits its energy gain and its edge "
+                    "focusing between the slices, which Bmad does not."
+                )
+                continue
+            merge[slaves[0]] = lord
+            drop.update(slaves[1:])
+            children.update({index: lord for index in inside})
+
+        if not merge:
+            return {}
+
+        new_names, new_types, new_lengths, new_spos, new_params = [], [], [], [], []
+        lord_row: Dict[int, int] = {}  # lord index -> row in the rewritten lists
+        child_row: Dict[int, int] = {}  # child row -> lord index
+        for index in range(len(names)):
+            if index in drop:
+                continue
+            if index in merge:
+                lord = merge[index]
+                head = tao.ele_head(f"{universe}@{branch_index}>>{lord}")
+                attributes = self._element_attributes(
+                    tao, universe, branch_index, lord, head["key"]
+                )
+                lord_row[lord] = len(new_names)
+                new_names.append(head["name"])
+                new_types.append(head["key"])
+                new_lengths.append(float(attributes.get("L", 0.0)))
+                new_spos.append(float(head["s"]))
+                new_params.append(attributes)
+                continue
+            if index in children:
+                child_row[len(new_names)] = children[index]
+            new_names.append(names[index])
+            new_types.append(types[index])
+            new_lengths.append(lengths[index])
+            new_spos.append(spos[index])
+            new_params.append(params[index])
+
+        names[:] = new_names
+        types[:] = new_types
+        lengths[:] = new_lengths
+        spos[:] = new_spos
+        params[:] = new_params
+        return {row: lord_row[lord] for row, lord in child_row.items()}
 
     def _wake_field(
         self,
@@ -878,6 +1174,12 @@ class BmadLatticeImporter(BaseModel):
     def create_element_dictionary(self, universe: int) -> Dict[str, Dict[str, Element]]:
         return self.create_laura_element_dictionary(universe)
 
+    def _subelement_of(self, universe: int, branch: str, name: str) -> dict:
+        """``{"subelement": lord}`` if Bmad superimposed *name* inside another
+        element, else empty. See :meth:`_collapse_super_lords`."""
+        lord = self.super_lord_children.get(universe, {}).get(branch, {}).get(name)
+        return {"subelement": lord} if lord else {}
+
     def _store_marker(
         self,
         universe: int,
@@ -892,6 +1194,17 @@ class BmadLatticeImporter(BaseModel):
         Used both for Bmad's genuinely point-like keys and as the fallback for
         elements LAURA has no strength model for.
         """
+        extra = self._wake_field(
+            name,
+            parameters,
+            float(physical.get("length") or 0.0),
+            hardware_type,
+        )
+        settings = _collective_settings(
+            parameters, getattr(self, "bmad_com", {}), hardware_type
+        )
+        if settings:
+            extra["simulation"] = settings | dict(extra.get("simulation") or {})
         self.laura_elems[universe][branch].update(
             {
                 name: getattr(laura_elements, hardware_type)(
@@ -899,13 +1212,9 @@ class BmadLatticeImporter(BaseModel):
                     name=name,
                     hardware_type=hardware_type,
                     machine_area=getattr(self, "machine_area", "Lattice"),
+                    **self._subelement_of(universe, branch, name),
                     **_aperture(parameters),
-                    **self._wake_field(
-                        name,
-                        parameters,
-                        float(physical.get("length") or 0.0),
-                        hardware_type,
-                    ),
+                    **extra,
                 )
             }
         )
@@ -939,7 +1248,10 @@ class BmadLatticeImporter(BaseModel):
                     name=name,
                     hardware_type="TwissMatch",
                     machine_area=getattr(self, "machine_area", "Lattice"),
-                    simulation={
+                    simulation=_collective_settings(
+                        parameters, getattr(self, "bmad_com", {}), "TwissMatch"
+                    )
+                    | {
                         "beta_x": twiss["beta_a"],
                         "beta_y": twiss["beta_b"],
                         "alpha_x": twiss["alpha_a"],
@@ -1074,11 +1386,6 @@ class BmadLatticeImporter(BaseModel):
                             f"K{extra_order}L", {"order": extra_order}
                         )
                         for component, value in components.items():
-                            # `an`/`bn` are *additional* to the element's own
-                            # strength, so they add rather than replace. A
-                            # symbolic main strength has no number to add to, so
-                            # it wins and the extra term is dropped with a
-                            # warning rather than silently stringified.
                             standing = pole.get(component) or 0.0
                             if isinstance(standing, str):
                                 warn(
@@ -1094,10 +1401,6 @@ class BmadLatticeImporter(BaseModel):
                             pole[component] = standing + value
                     main = poles.get(f"K{order}L", {})
                     if main.get("skew") and not main.get("normal"):
-                        # A magnet whose own order is pure skew -- `a1` and no
-                        # `k1`. `magnetic.skew` is how LAURA says that, and it
-                        # is what `KnL()` keys on, so without it the strength
-                        # would read back as zero.
                         magnetic["skew"] = True
                     elem_data = {
                         "hardware_type": hardware_type,
@@ -1135,7 +1438,12 @@ class BmadLatticeImporter(BaseModel):
                         "simulation": {
                             "field_amplitude": parameters[
                                 _native_keyword(hardware_type, "field_amplitude")
-                            ]
+                            ],
+                            **(
+                                {"n_kicks": int(parameters["N_RF_STEPS"])}
+                                if parameters.get("N_RF_STEPS")
+                                else {}
+                            ),
                         },
                     }
                 elif etype in ("Wiggler", "Undulator"):
@@ -1160,9 +1468,6 @@ class BmadLatticeImporter(BaseModel):
                         },
                     }
                 elif etype == "Solenoid":
-                    # Bmad's `ks` is normalised [1/m] and LAURA's S0L is the
-                    # integrated normalised strength, so the length multiplies
-                    # in. (This used to read `bs_field`, which is tesla.)
                     ks = parameters.get(_native_keyword(mapped_type, "ks"), 0.0)
                     elem_data = {
                         "hardware_type": mapped_type,
@@ -1239,21 +1544,7 @@ class BmadLatticeImporter(BaseModel):
                         },
                     }
                 elif etype in _COLLIMATOR_TYPES:
-                    x1 = _native_keyword(mapped_type, "x1_limit")
-                    x2 = _native_keyword(mapped_type, "x2_limit")
-                    y1 = _native_keyword(mapped_type, "y1_limit")
-                    y2 = _native_keyword(mapped_type, "y2_limit")
-                    elem_data = {
-                        "hardware_type": mapped_type,
-                        "aperture": {
-                            "horizontal_size": (
-                                parameters.get(x1, 0.0) + parameters.get(x2, 0.0)
-                            ),
-                            "vertical_size": (
-                                parameters.get(y1, 0.0) + parameters.get(y2, 0.0)
-                            ),
-                        },
-                    }
+                    elem_data = {"hardware_type": mapped_type}
                 elif etype in _MULTIPOLE_TYPES:
                     poles = {}
                     for row in parameters.get("_MULTIPOLES", {}).get("data", []):
@@ -1404,6 +1695,15 @@ class BmadLatticeImporter(BaseModel):
                             " wrong."
                         )
                 elif etype in _DRIFT_TYPES:
+                    if length < 0.0:
+                        warn(
+                            f"Bmad drift {nam!r} has negative length ({length} "
+                            "m), which LAURA cannot hold, and nothing adjacent "
+                            "cancels it, so it is dropped. Everything "
+                            f"downstream of it sits {-2 * length} m too far "
+                            "along the beam line."
+                        )
+                        continue
                     elem_data = {"hardware_type": "Drift", "hardware_class": "Drift"}
                 else:
                     warn(
@@ -1412,6 +1712,17 @@ class BmadLatticeImporter(BaseModel):
                     )
 
                 if elem_data:
+                    collective = _collective_settings(
+                        parameters,
+                        getattr(self, "bmad_com", {}),
+                        elem_data.get("hardware_type", ""),
+                    ) | _fringe_model(
+                        parameters, etype, elem_data.get("hardware_type", "")
+                    )
+                    if collective:
+                        elem_data["simulation"] = collective | dict(
+                            elem_data.get("simulation") or {}
+                        )
                     wake_data = self._wake_field(
                         nam, parameters, length, elem_data.get("hardware_type", "")
                     )
@@ -1424,8 +1735,9 @@ class BmadLatticeImporter(BaseModel):
                             "physical": dict(phys_common),
                             "name": nam,
                             "machine_area": getattr(self, "machine_area", "Lattice"),
-                            **_aperture(parameters),
+                            **_aperture(parameters, etype),
                             **elem_data,
+                            **self._subelement_of(universe, b, nam),
                         }
                     }
                     if etype == "Kicker":
@@ -1490,6 +1802,17 @@ class BmadLatticeImporter(BaseModel):
                 "currently unsupported."
             )
 
+    def _space_charge_settings(self) -> Dict[str, Any]:
+        """The section's collective-field resolution, read from Bmad's
+        ``space_charge_com``. Only positive values are carried.
+        """
+        return {
+            field: value
+            for key, field in _SPACE_CHARGE_COM.items()
+            if isinstance(value := self.space_charge_com.get(key), (int, float))
+            and value > 0
+        }
+
     def create_section(self, universe: int, branch: str) -> Dict[str, SectionLattice]:
         if not self.laura_elems[universe][branch]:
             self.create_laura_element_dictionary(universe)
@@ -1505,12 +1828,14 @@ class BmadLatticeImporter(BaseModel):
             functional_definitions=self.functional_definitions,
             geometry=str(geometry).lower() if geometry else None,
             reference_energy=self._reference_energy(universe, branch),
+            space_charge=self._space_charge_settings() or None,
         )
         seclat.resolve_positions(elems)
         if self.position_mode == "floor":
             self._restore_arc_length(universe, branch, elems)
+        superimposed = self.super_lord_children.get(universe, {}).get(branch, {})
         for name, elem in elems.items():
-            if elem.is_subelement():
+            if elem.is_subelement() and name not in superimposed:
                 parent = elems.get(elem.subelement)
                 if parent is not None and parent.physical.middle is not None:
                     elem.physical.s = parent.physical.s
@@ -1603,6 +1928,7 @@ class BmadLatticeImporter(BaseModel):
                 functional_definitions=self.functional_definitions,
                 geometry=section.geometry,
                 reference_energy=section.reference_energy,
+                space_charge=section.space_charge,
             )
             by_hardware[hardware] = name
             passes.append({"section": name, "number": number, "overrides": {}})
@@ -1751,6 +2077,13 @@ class BmadLatticeImporter(BaseModel):
                     section.order,
                     layout_name,
                 )
+                if section.space_charge is not None:
+                    section_definitions[section_name] = {
+                        "elements": section_definitions[section_name],
+                        "space_charge": section.space_charge.model_dump(
+                            exclude_none=True
+                        ),
+                    }
                 section_metadata[section_name] = (
                     section.geometry,
                     section.reference_energy,
@@ -1785,12 +2118,11 @@ class BmadLatticeImporter(BaseModel):
             functional_definitions=self.functional_definitions,
             particle=particles.pop() if len(particles) == 1 else None,
         )
-        for section_name, (geometry, reference_energy) in section_metadata.items():
+        for section_name, metadata in section_metadata.items():
             section = model.sections.get(section_name)
             if section is None:
                 continue
-            section.geometry = geometry
-            section.reference_energy = reference_energy
+            section.geometry, section.reference_energy = metadata
         for layout_name, particle in layout_particles.items():
             layout = model.lattices.get(layout_name)
             if layout is not None:

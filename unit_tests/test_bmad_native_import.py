@@ -773,14 +773,19 @@ def test_bmad_active_fixer_imports_as_the_sections_twiss_point(tmp_path):
     assert any("FY" in str(item.message) for item in raised)
     assert not any("FX" in str(item.message) for item in raised)
 
-    # It is not the head of the section, so the export writes it as a Bmad
-    # `match`, not as a fixer. That reproduces the Twiss downstream and nothing
-    # else; see BmadLatticeImporter._store_twiss_point.
+    # It is not the head of the section, so it cannot go in the `beginning`
+    # header; the export writes the fixer back as a fixer, with the same stored
+    # numbers it came in with and still switched on.
     from laura.translator.converters.section import SectionLatticeTranslator
 
     section = importer.create_section(1, branch)[branch]
     written = SectionLatticeTranslator.from_section(section).to_bmad()
-    assert "matrix = match_twiss" in written
+    assert "FX: fixer, beta_a_stored = 3.0, beta_b_stored = 4.0" in written
+    assert "alpha_a_stored = 0.5, alpha_b_stored = -0.25" in written
+    assert "eta_x_stored = 0.11" in written
+    assert "etap_x_stored = 0.02" in written
+    assert "is_on = T" in written
+    assert "match_twiss" not in written
 
 
 def test_bmad_misalignments_survive_the_round_trip(tmp_path):
@@ -916,7 +921,9 @@ def test_bmad_collimator_apertures_survive_the_round_trip(tmp_path):
         for index in range(tao.lat_branch_list(ix_uni=1)[0]["n_ele_track"] + 1):
             head = tao.ele_head(f"1@0>>{index}")
             gen = tao.ele_gen_attribs(f"1@0>>{index}")
-            found[head["name"].upper()] = {key: gen.get(key, 0.0) for key in limits}
+            found[head["name"].upper()] = {key: gen.get(key, 0.0) for key in limits} | {
+                "key": head["key"]
+            }
         return found
 
     before = apertures(source)
@@ -931,6 +938,127 @@ def test_bmad_collimator_apertures_survive_the_round_trip(tmp_path):
     assert after["R1"]["X1_LIMIT"] == pytest.approx(0.01)
     assert after["R1"]["Y1_LIMIT"] == pytest.approx(0.02)
     assert after["E1"]["X1_LIMIT"] == pytest.approx(0.003)
+
+    # An ecollimator has to come back an ecollimator. The importer's collimator
+    # branch built its own `aperture` naming no shape, and the spread that
+    # merged it came after the one carrying the shape, so every elliptical
+    # collimator lost it and the exporter -- which picks the class off the shape
+    # -- squared it off. Bmad's own `aperture_type` is no help: Tao reports it
+    # in neither `ele_head` nor `ele_gen_attribs`, so the class is the only
+    # statement of shape there is, in both directions.
+    assert after["E1"]["key"] == "ECollimator"
+    assert after["R1"]["key"] == "RCollimator"
+
+
+def test_bmad_aperture_survives_on_an_element_that_is_not_a_collimator(tmp_path):
+    """Bmad hangs an aperture off nearly every element, and the LCLS lattices
+    use that: 191 of CU_HXR's quadrupoles state their bore and no separate
+    collimator stands in for them.
+
+    LAURA read those in -- ``PhysicalAcceleratorElement`` has held an
+    ``aperture`` all along -- but nothing wrote them back out, because the only
+    route to Bmad's limits was ``ApertureTranslator``, which fires for the
+    ``Collimator`` class alone. A round-tripped machine therefore had no
+    aperture anywhere outside its collimators, and a tracking run through it
+    could not lose a particle on the one thing most likely to scrape it.
+    """
+    from pytao import Tao
+
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    source = tmp_path / "bores.bmad"
+    source.write_text(
+        "beginning[e_tot] = 1e9\n"
+        "beginning[beta_a] = 5.0\n"
+        "beginning[beta_b] = 3.0\n"
+        "parameter[geometry] = open\n"
+        "Q1: quadrupole, l = 0.1, k1 = 1.2, x_limit = 0.016, y_limit = 0.016\n"
+        "D1: drift, l = 0.5, x_limit = 0.02, y_limit = 0.01\n"
+        "Q2: quadrupole, l = 0.1, k1 = -1.2\n"
+        "L: line = (Q1, D1, Q2)\n"
+        "use, L\n"
+    )
+    importer = BmadLatticeImporter(
+        lattice_file=str(source), libtao=str(LIBTAO), position_mode="floor"
+    )
+    branch = importer.branches[1][0]
+    section = importer.create_section(1, branch)[branch]
+    written = SectionLatticeTranslator.from_section(section).to_bmad(
+        particle="Electron"
+    )
+    exported = tmp_path / "bores_rt.bmad"
+    exported.write_text(written)
+
+    tao = Tao(lattice_file=str(exported), so_lib=str(LIBTAO), noplot=True)
+    found = {}
+    for index in range(tao.lat_branch_list(ix_uni=1)[0]["n_ele_track"] + 1):
+        gen = tao.ele_gen_attribs(f"1@0>>{index}")
+        found[tao.ele_head(f"1@0>>{index}")["name"].upper()] = gen
+
+    # Halved on the way out, because LAURA states a full width and Bmad a
+    # distance from the axis to either side.
+    assert found["Q1"]["X1_LIMIT"] == pytest.approx(0.016)
+    assert found["Q1"]["Y2_LIMIT"] == pytest.approx(0.016)
+    assert found["D1"]["X1_LIMIT"] == pytest.approx(0.02)
+    assert found["D1"]["Y1_LIMIT"] == pytest.approx(0.01)
+    # A quadrupole that never named one does not acquire an aperture.
+    assert found["Q2"]["X1_LIMIT"] == pytest.approx(0.0)
+
+
+def test_bmad_space_charge_settings_survive_the_round_trip(tmp_path):
+    """``space_charge_com`` is a third global namelist beyond ``bmad_com`` and
+    the per-element methods, and the one that decides whether switching CSR on
+    does anything.
+
+    LAURA read neither it nor anything like it, so a lattice imported with CSR
+    active came back out with ``csr_and_space_charge_on = T``, the right
+    ``csr_method`` on the right 152 elements, and an ``n_bin`` of zero -- which
+    Bmad does not treat as a default but as an unconfigured structure, marking
+    the whole bunch lost and saying so. ``ds_track_step`` is the same. The
+    settings ride on the section because that is the scale at which the choice
+    is made.
+    """
+    from pytao import Tao
+
+    from laura.translator.converters.section import SectionLatticeTranslator
+
+    source = tmp_path / "collective.bmad"
+    source.write_text(
+        "beginning[e_tot] = 1e9\n"
+        "beginning[beta_a] = 5.0\n"
+        "beginning[beta_b] = 3.0\n"
+        "parameter[geometry] = open\n"
+        "bmad_com[csr_and_space_charge_on] = T\n"
+        "space_charge_com[n_bin] = 40\n"
+        "space_charge_com[ds_track_step] = 0.01\n"
+        "space_charge_com[beam_chamber_height] = 0.024\n"
+        "space_charge_com[particle_bin_span] = 3\n"
+        "B1: sbend, l = 0.5, angle = 0.05, csr_method = 1_Dim\n"
+        "D1: drift, l = 0.5\n"
+        "L: line = (B1, D1)\n"
+        "use, L\n"
+    )
+    importer = BmadLatticeImporter(
+        lattice_file=str(source), libtao=str(LIBTAO), position_mode="floor"
+    )
+    branch = importer.branches[1][0]
+    section = importer.create_section(1, branch)[branch]
+    assert section.space_charge.number_of_bins == 40
+    assert section.space_charge.step_size == pytest.approx(0.01)
+    assert section.space_charge.chamber_height == pytest.approx(0.024)
+    assert section.space_charge.bin_span == 3
+
+    exported = tmp_path / "collective_rt.bmad"
+    exported.write_text(
+        SectionLatticeTranslator.from_section(section).to_bmad(particle="Electron")
+    )
+    tao = Tao(lattice_file=str(exported), so_lib=str(LIBTAO), noplot=True)
+    after = tao.space_charge_com()
+    assert after["n_bin"] == 40
+    assert after["ds_track_step"] == pytest.approx(0.01)
+    assert after["beam_chamber_height"] == pytest.approx(0.024)
+    assert after["particle_bin_span"] == 3
+    assert tao.bmad_com()["csr_and_space_charge_on"] is True
 
 
 def test_bmad_cavity_phase_round_trip_keeps_the_sign_of_the_chirp(tmp_path):
@@ -1102,25 +1230,32 @@ def test_a_short_range_wake_is_imported_as_sampled_arrays(tmp_path):
     """
     elements = _wake_model(tmp_path)
 
-    wake = elements["C1#1"].simulation.wakefield_definition
+    wake = elements["C1"].simulation.wakefield_definition
     assert wake.field_type == "LongitudinalWake"
     assert wake.z.value.val[-1] == 0.0
     assert wake.z.value.val[0] == pytest.approx(-0.01)
     assert wake.Wz.value.val[-1] == pytest.approx(2.0e14)
 
 
-def test_a_super_lord_s_wake_reaches_the_slaves_that_are_tracked(tmp_path):
+def test_a_super_lord_is_imported_whole_and_keeps_its_wake(tmp_path):
     """A superimposed element splits the cavity into slaves and turns the
-    cavity itself into a lord. ``lat_list`` returns only the slaves, the wake
-    stays on the lord, and asking a slave for it is an error -- so the lords
-    have to be swept separately and mapped back down.
+    cavity itself into a lord. ``lat_list`` returns only the slaves, so an
+    import that took them at face value would hand out pieces of a cavity that
+    no longer add up -- each with the lord's ``L_ACTIVE``, and each with a pair
+    of entrance/exit edge kicks that belong only to the whole.
+
+    The importer puts the lord back together instead, so what comes out is the
+    cavity as written, carrying the wake that was always the lord's, with the
+    superimposed marker recorded as a part of it rather than a step in the line.
     """
     elements = _wake_model(tmp_path)
 
-    for slave in ("C1#1", "C1#2"):
-        wake = elements[slave].simulation.wakefield_definition
-        assert wake is not None, f"{slave} lost its lord's wake"
-        assert wake.Wz.value.val[-1] == pytest.approx(2.0e14)
+    assert not [name for name in elements if name.startswith("C1#")]
+    wake = elements["C1"].simulation.wakefield_definition
+    assert wake is not None, "C1 lost its wake"
+    assert wake.Wz.value.val[-1] == pytest.approx(2.0e14)
+    assert elements["C1"].physical.length == pytest.approx(2.0)
+    assert elements["SPLIT"].subelement == "C1"
 
 
 def test_a_wake_on_a_marker_is_imported_too(tmp_path):
@@ -1211,7 +1346,7 @@ def test_the_exported_wake_tracks_the_way_the_modes_it_came_from_do(
     from laura.models.elementList import SectionLattice
     from laura.models.physical import Position
 
-    element = elements["C1#1"].model_copy(deep=True)
+    element = elements["C1"].model_copy(deep=True)
     element.name = "W1"
     element.physical.length = 2.0
     element.simulation.wakefield_definition.filename = "W1_wake.bmad"
@@ -1239,16 +1374,18 @@ def test_the_exported_wake_tracks_the_way_the_modes_it_came_from_do(
 
 
 def test_bmad_split_bend_keeps_its_exit_fringe_field(tmp_path):
-    """A bend split by superposition owns its faces separately.
+    """A bend split by superposition imports as the bend that was written.
 
     Superimposing a marker inside a bend replaces it with two tracking
     super-slaves, and Bmad divides the fringe between them: the first piece
     carries ``FINT``/``HGAP`` and zero at its exit, the last carries zero at its
-    entrance and ``FINTX``/``HGAPX``. The interior faces are not physical, and
-    Bmad is careful to say so.
+    entrance and ``FINTX``/``HGAPX``. Importing those pieces would give a bend
+    with no exit face followed by one with no entrance face. The importer
+    reassembles the lord, so ``B`` has to come out indistinguishable from
+    ``WHOLE``, which is the same magnet with nothing superimposed on it.
 
-    An unsplit bend must stay single-valued: absent means "same as the
-    entrance", so a lattice quoting one integral reads, and writes, as it
+    Either way an unsplit bend must stay single-valued: absent means "same as
+    the entrance", so a lattice quoting one integral reads, and writes, as it
     always did.
     """
     source = tmp_path / "split.bmad"
@@ -1269,15 +1406,15 @@ def test_bmad_split_bend_keeps_its_exit_fringe_field(tmp_path):
     converted = importer.create_laura_element_dictionary(1)[branch]
     bends = {name.upper(): element for name, element in converted.items()}
 
-    entrance, exit_ = bends["B#1"].magnetic, bends["B#2"].magnetic
-    assert entrance.edge_field_integral == pytest.approx(0.45)
-    assert entrance.half_gap == pytest.approx(0.015)
-    assert entrance.exit_fringe_integral == 0.0
-    assert entrance.exit_half_gap == 0.0
-    assert exit_.edge_field_integral == 0.0
-    assert exit_.half_gap == 0.0
-    assert exit_.exit_fringe_integral == pytest.approx(0.45)
-    assert exit_.exit_half_gap == pytest.approx(0.015)
+    assert not [name for name in bends if name.startswith("B#")]
+    assert bends["M"].subelement == "B"
+
+    split = bends["B"].magnetic
+    assert bends["B"].physical.length == pytest.approx(1.0)
+    assert split.edge_field_integral == pytest.approx(0.45)
+    assert split.half_gap == pytest.approx(0.015)
+    assert split.exit_fringe_integral == pytest.approx(0.45)
+    assert split.exit_half_gap == pytest.approx(0.015)
 
     whole = bends["WHOLE"].magnetic
     # FINTX was not given, so the exit face resolves to FINT; HGAPX was not

@@ -131,9 +131,6 @@ def functional_references(model: Any) -> set:
             continue
         meta = functional_annotations(field_info)
         if meta.get("functional") and isinstance(value, str):
-            # A field may reserve some literal string values that are not
-            # functional-definition names (e.g. edge angles use "angle"/"angle/2"
-            # to reference the bend angle); those are skipped.
             reserved = meta.get("reserved_contains")
             if not (reserved and reserved in value):
                 refs.add(value)
@@ -209,6 +206,8 @@ def convert_numpy_types(v: Any) -> Any:
     """
     if isinstance(v, (dict)):
         return {k: convert_numpy_types(l) for k, l in v.items()}
+    if isinstance(v, np.ndarray) and v.ndim == 0:
+        return numpy_scalar_to_python(v.item())
     if isinstance(v, (np.ndarray, list, tuple)):
         return FlowList([convert_numpy_types(arr) for arr in v])
     return numpy_scalar_to_python(v)
@@ -222,8 +221,6 @@ class ModelBase(BaseModel):
         try:
             return super().__eq__(other)
         except (ValueError, TypeError):
-            # Fallback: compare serialised forms when private-attribute
-            # comparison fails (e.g. numpy arrays).
             if not isinstance(other, BaseModel):
                 return NotImplemented
             return self.model_dump() == other.model_dump()

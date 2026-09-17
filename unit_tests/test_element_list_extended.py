@@ -452,6 +452,45 @@ class TestMachineModel:
         assert "Q1" in result
         assert "Q2" in result
 
+    def test_space_charge_is_authored_on_the_section_definition(self, elements):
+        # The definitions are what a model hands on -- written out to
+        # `_sections.yaml`, or passed to a code that rebuilds the machine from
+        # `machine.section` -- so a setting only applied to the built
+        # SectionLattice afterwards is lost the moment anything downstream asks
+        # the machine for its sections again.
+        definitions = {
+            "sections": {
+                "S1": {
+                    "elements": ["M1", "Q1", "Q2", "M2"],
+                    "space_charge": {"number_of_bins": 40, "step_size": 0.01},
+                }
+            }
+        }
+        layout = {"default_layout": "beam1", "layouts": {"beam1": ["S1"]}}
+        mm = MachineModel(
+            layout=layout,
+            section=definitions,
+            elements={e.name: e for e in elements},
+        )
+        assert mm.sections["S1"].space_charge.number_of_bins == 40
+        assert mm.sections["S1"].space_charge.step_size == 0.01
+        assert mm.sections["S1"].space_charge.chamber_height is None
+
+        rebuilt = MachineModel(
+            layout=layout,
+            section=mm.section,
+            elements={e.name: e for e in elements},
+        )
+        assert rebuilt.sections["S1"].space_charge.number_of_bins == 40
+
+    def test_section_written_as_a_bare_list_has_no_space_charge(self, elements):
+        mm = MachineModel(
+            layout={"default_layout": "beam1", "layouts": {"beam1": ["S1"]}},
+            section={"sections": {"S1": ["M1", "Q1", "Q2", "M2"]}},
+            elements={e.name: e for e in elements},
+        )
+        assert mm.sections["S1"].space_charge is None
+
     def test_layout_validation_missing_layouts_key(self):
         with pytest.raises(KeyError):
             MachineModel(

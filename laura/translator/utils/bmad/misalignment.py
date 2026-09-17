@@ -19,7 +19,7 @@ BMAD_MISALIGNMENT = {
 ``physical.error`` -> (Bmad misalignment attribute, sign).
 """
 
-BMAD_NO_MISALIGNMENT = frozenset({"match"})
+BMAD_NO_MISALIGNMENT = frozenset({"match", "fixer"})
 """
 Bmad types that reject misalignment attributes (measured, not assumed).
 """

@@ -7,6 +7,7 @@ general:
   integration_order: integrator_order
   deltaL: ds_step
   csrdz: csr_ds_step
+  fringe_model: fringe_type
 dipole:
   angle: angle
   half_gap: hgap
@@ -35,14 +36,17 @@ rfcavity:
   field_amplitude: voltage
   n_cells: n_cell
   structure_type: cavity_type
+  n_kicks: n_rf_steps
 rfdeflectingcavity:
   phase: phi0
   frequency: rf_frequency
   field_amplitude: voltage
+  n_kicks: n_rf_steps
 crabcavity:
   phase: phi0
   frequency: rf_frequency
   field_amplitude: voltage
+  n_kicks: n_rf_steps
 wiggler:
   peak_magnetic_field: b_max
   period: l_period

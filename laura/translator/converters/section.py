@@ -70,6 +70,17 @@ unsupported_elements = {
     "xsuite": xsuite_unsupported,
 }
 
+_BMAD_SPACE_CHARGE_COM = {
+    "n_bin": "number_of_bins",
+    "ds_track_step": "step_size",
+    "beam_chamber_height": "chamber_height",
+    "n_shield_images": "shield_images",
+    "particle_bin_span": "bin_span",
+    "lsc_sigma_cutoff": "sigma_cutoff",
+}
+"""Bmad's ``space_charge_com`` namelist against the section fields holding it,
+in the order the header states them."""
+
 
 class SectionLatticeTranslator(SectionLattice):
     """
@@ -106,6 +117,14 @@ class SectionLatticeTranslator(SectionLattice):
     lsc_enable: Optional[bool] = None
     """Flag to enable calculation of LSC in the drifts synthesised between
     elements. ``None`` follows the lattice -- see :meth:`_collective_flag`."""
+
+    sr_enable: Optional[bool] = None
+    """Flag to enable synchrotron-radiation energy loss (Bmad's
+    ``radiation_damping_on``). ``None`` follows the lattice."""
+
+    isr_enable: Optional[bool] = None
+    """Flag to enable incoherent synchrotron-radiation emittance growth (Bmad's
+    ``radiation_fluctuations_on``). ``None`` follows the lattice."""
 
     wakefield_enable: bool = True
     """Flag to enable structure wakefields on accelerating cavities."""
@@ -148,6 +167,7 @@ class SectionLatticeTranslator(SectionLattice):
                 "geometry": section.geometry,
                 "reference_energy": section.reference_energy,
                 "revolution_frequency": section.revolution_frequency,
+                "space_charge": section.space_charge,
             }
         )
 
@@ -247,14 +267,30 @@ class SectionLatticeTranslator(SectionLattice):
             header += f"parameter[particle] = {particle}\n"
         enabled = (
             "T"
-            if self._collective_flag("csr_enable") or self._collective_flag("lsc_enable")
+            if self._collective_flag("csr_enable")
+            or self._collective_flag("lsc_enable")
             else "F"
         )
         header += f"bmad_com[csr_and_space_charge_on] = {enabled}\n"
+        for switch, flag in (
+            ("radiation_damping_on", "sr_enable"),
+            ("radiation_fluctuations_on", "isr_enable"),
+        ):
+            on = "T" if self._collective_flag(flag) else "F"
+            header += f"bmad_com[{switch}] = {on}\n"
+        space_charge = dict(_BMAD_SPACE_CHARGE_COM)
+        for attribute, field in _BMAD_SPACE_CHARGE_COM.items():
+            value = getattr(self.space_charge, field, None)
+            if value is None:
+                del space_charge[attribute]
+            else:
+                space_charge[attribute] = value
         if space_charge_n_bin is not None:
             if space_charge_n_bin < 1:
                 raise ValueError("space_charge_n_bin must be positive")
-            header += f"space_charge_com[n_bin] = {space_charge_n_bin}\n"
+            space_charge["n_bin"] = space_charge_n_bin
+        for attribute, value in space_charge.items():
+            header += f"space_charge_com[{attribute}] = {value}\n"
         header += f"parameter[geometry] = {geometry}\n"
         if reference_energy is not None:
             header += f"beginning[e_tot] = {reference_energy}\n"
@@ -407,13 +443,18 @@ class SectionLatticeTranslator(SectionLattice):
         def rename(item: str) -> str:
             return renames.get(item, item)
 
-        lead = max(s_bounds(backbone[0])[0], 0.0) if has_origin else 0.0
+        lead = (
+            max(s_bounds(backbone[0])[0] - s_bounds(seed)[1], 0.0)
+            if has_origin
+            else 0.0
+        )
         lead_definition, lead_name = bmad_leading_drift(
             sanitize_string(self.name), lead
         )
         if lead_name is None:
             lead = 0.0
         definitions = lead_definition + patch_definitions
+        declared_twiss = False
         for element_name, translator in elements.items():
             if element_name in renames:
                 translator.name = renames[element_name]
@@ -424,6 +465,9 @@ class SectionLatticeTranslator(SectionLattice):
             else:
                 if hasattr(translator, "bmad_geometry"):
                     translator.bmad_geometry = geometry
+                if hasattr(translator, "bmad_active_fixer"):
+                    translator.bmad_active_fixer = not declared_twiss
+                    declared_twiss = True
                 definitions += translator.to_bmad()
         name = sanitize_string(rename(self.name))
         member_names = [sanitize_string(rename(item)) for item in ordered_members]
@@ -470,6 +514,7 @@ class SectionLatticeTranslator(SectionLattice):
             An ASTRA-compatible input file.
         """
         from .codes.astra import section_header_text_astra
+
         self._check_elements_supported("astra")
 
         headers = [
@@ -940,11 +985,13 @@ class SectionLatticeTranslator(SectionLattice):
         MagneticLattice
             An Ocelot `MagneticLattice` object.
         """
+        from ocelot.cpbd.elements import Drift as OcelotDrift
+        from ocelot.cpbd.elements import Octupole, Undulator
         from ocelot.cpbd.magnetic_lattice import MagneticLattice
-        from ocelot.cpbd.transformations.second_order import SecondTM
         from ocelot.cpbd.transformations.kick import KickTM
         from ocelot.cpbd.transformations.runge_kutta import RungeKuttaTM
-        from ocelot.cpbd.elements import Octupole, Undulator, Drift as OcelotDrift
+        from ocelot.cpbd.transformations.second_order import SecondTM
+
         self._check_elements_supported("ocelot")
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
@@ -1364,4 +1411,3 @@ class SectionLatticeTranslator(SectionLattice):
                 # except Exception as e:
                 #     print('Wake-T writeElements error:', element.name, e)
         return Beamline(beamline)
-

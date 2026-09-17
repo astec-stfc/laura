@@ -607,7 +607,7 @@ def _authored_sections(machine: MachineModel, flat: dict) -> dict:
         for name, definition in definitions.items()
     }
     compact = {
-        name: {"elements": authored.get(name, entry["elements"]), "type": entry["type"]}
+        name: entry | {"elements": authored.get(name, entry["elements"])}
         for name, entry in flat.items()
     }
     for name in list(compact):
@@ -658,6 +658,11 @@ def export_machine_sections(
             "elements": [aliases.get(n, n) for n in section.order],
             "type": section.section_type,
         }
+        | (
+            {"space_charge": section.space_charge.model_dump(exclude_none=True)}
+            if section.space_charge is not None
+            else {}
+        )
         for name, section in _machine_view(machine)[0].items()
     }
     with open(os.path.join(path, filename), "w") as handle:

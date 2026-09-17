@@ -321,6 +321,26 @@ class TestRepeatsCollapseOnExport:
         _, order, _ = self._export(self._fodo(), tmp_path)
         assert order == self.ORDER
 
+    def test_the_section_writes_its_space_charge_settings(self, tmp_path):
+        """A section order alone does not describe a section: how finely the
+        collective fields are resolved over it is a property of the section
+        too, and the file is what carries it to whatever reads it back."""
+        m = self._fodo()
+        m.sections["S"].space_charge = {"number_of_bins": 40, "step_size": 0.01}
+        self._export(m, tmp_path)
+        written = yaml.safe_load((tmp_path / "_sections.yaml").open())
+        assert written["sections"]["S"]["space_charge"] == {
+            "number_of_bins": 40,
+            "step_size": 0.01,
+        }
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            reloaded = LAURA(
+                element_list=str(tmp_path / "summary.yaml"),
+                section=str(tmp_path / "_sections.yaml"),
+            )
+        assert reloaded.sections["S"].space_charge.number_of_bins == 40
+
     def test_the_repeated_element_is_written_once(self, tmp_path):
         doc, _, _ = self._export(self._fodo(), tmp_path)
         assert [name for name in doc if name.startswith("D")] == ["D"]

@@ -280,11 +280,13 @@ def test_bmad_additional_element_mappings():
         position_mode="s",
         deferred_parameters={},
         functional_definitions={},
+        super_lord_children={},
     )
     importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
     importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
     importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
     importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
+    importer._subelement_of = BmadLatticeImporter._subelement_of.__get__(importer)
     elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
         "LINE_1"
     ]
@@ -340,11 +342,13 @@ def test_bmad_fixers_and_empty_multipoles_are_kept_as_markers():
         position_mode="s",
         deferred_parameters={},
         functional_definitions={},
+        super_lord_children={},
     )
     importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
     importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
     importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
     importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
+    importer._subelement_of = BmadLatticeImporter._subelement_of.__get__(importer)
 
     with pytest.warns(UserWarning) as record:
         elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
@@ -457,11 +461,13 @@ def _patch_importer(position_mode):
         position_mode=position_mode,
         deferred_parameters={},
         functional_definitions={},
+        super_lord_children={},
     )
     importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
     importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
     importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
     importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
+    importer._subelement_of = BmadLatticeImporter._subelement_of.__get__(importer)
     return importer
 
 
@@ -558,11 +564,13 @@ def test_bmad_non_positive_n_cell_fills_the_element_with_cells():
         position_mode="s",
         deferred_parameters={},
         functional_definitions={},
+        super_lord_children={},
     )
     importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
     importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
     importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
     importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
+    importer._subelement_of = BmadLatticeImporter._subelement_of.__get__(importer)
 
     elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
         "LINE_1"
@@ -699,3 +707,139 @@ def test_bmad_floor_angles_reduce_to_a_sign_flip_for_a_flat_machine():
 
     roll = bmad_floor_angles_to_laura(0.0, 0.0, 0.3)
     assert roll == pytest.approx({"theta": 0.0, "phi": 0.0, "psi": 0.3})
+
+
+def test_bmad_collective_and_radiation_settings_reach_the_elements():
+    """Bmad splits the collective settings over two places and LAURA over one.
+
+    ``csr_method`` and ``space_charge_method`` are per-element, but the switches
+    that arm them are ``bmad_com`` globals; LAURA has no global container, so
+    they ride back on the elements -- point elements included, since the export
+    reads the branch's one switch off whether *any* element wants the effect.
+    """
+    names = ["q", "cav", "mark"]
+    importer = SimpleNamespace(
+        names_numbered={1: {"LINE_1": names}},
+        types={1: {"LINE_1": ["Quadrupole", "Lcavity", "Marker"]}},
+        lengths={1: {"LINE_1": [0.5, 3.0441, 0.0]}},
+        spos={1: {"LINE_1": [0.5, 3.5441, 3.5441]}},
+        params={
+            1: {
+                "LINE_1": [
+                    {
+                        "K1": 0.5,
+                        "CSR_DS_STEP": 0.01,
+                        "_METHODS": {
+                            "csr_method": "1_Dim",
+                            "space_charge_method": "Slice",
+                        },
+                    },
+                    {
+                        "N_CELL": -1,
+                        "N_RF_STEPS": 1000,
+                        "RF_FREQUENCY": 2856000000.0,
+                        "VOLTAGE": 5.2e7,
+                        "PHI0": 0.0,
+                        "_METHODS": {},
+                    },
+                    {"_METHODS": {}},
+                ]
+            }
+        },
+        bmad_com={
+            "csr_and_space_charge_on": False,
+            "radiation_damping_on": False,
+            "radiation_fluctuations_on": True,
+        },
+        laura_elems={1: {"LINE_1": {}}},
+        position_mode="s",
+        deferred_parameters={},
+        functional_definitions={},
+        super_lord_children={},
+    )
+    for method in ("_physical_common", "_symbol", "_store_marker", "_wake_field",
+                   "_subelement_of"):
+        setattr(
+            importer, method, getattr(BmadLatticeImporter, method).__get__(importer)
+        )
+
+    elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
+        "LINE_1"
+    ]
+
+    quadrupole = elements["q"].simulation
+    assert (quadrupole.csr_method, quadrupole.space_charge_method) == (
+        "1_Dim",
+        "Slice",
+    )
+    assert quadrupole.csrdz == 0.01
+    assert (quadrupole.sr_enable, quadrupole.isr_enable) == (False, True)
+    assert (quadrupole.csr_enable, quadrupole.lsc_enable) == (False, False)
+
+    # Off everywhere is Bmad's default; recording it on every element buys
+    # nothing but noise.
+    cavity = elements["cav"].simulation
+    assert cavity.csr_method is None and cavity.space_charge_method is None
+    assert cavity.n_kicks == 1000
+
+    assert elements["mark"].simulation.csr_enable is False
+
+
+_BEND = {"ANGLE": 0.01, "E1": 0.0, "E2": 0.0, "HGAP": 0.0, "FINT": 0.0,
+         "REF_TILT": 0.0, "_METHODS": {}}
+
+
+def test_bmad_fringe_model_is_kept_only_when_it_is_not_the_default():
+    """Bmad fills ``fringe_type`` in on every element, so the value alone does
+    not say whether anybody asked for it. Its defaults differ by class --
+    ``basic_bend`` on bends, ``full`` on cavities, ``none`` elsewhere -- and
+    recording those back would put a fringe model on three thousand elements
+    that never named one.
+    """
+    names = ["b_full", "b_default", "q_default", "cav"]
+    importer = SimpleNamespace(
+        names_numbered={1: {"LINE_1": names}},
+        types={1: {"LINE_1": ["SBend", "SBend", "Quadrupole", "Lcavity"]}},
+        lengths={1: {"LINE_1": [0.2, 0.2, 0.5, 3.0441]}},
+        spos={1: {"LINE_1": [0.2, 0.4, 0.9, 3.9441]}},
+        params={
+            1: {
+                "LINE_1": [
+                    {**_BEND, "FRINGE_TYPE": "Full"},
+                    {**_BEND, "FRINGE_TYPE": "Basic_Bend"},
+                    {"K1": 0.5, "FRINGE_TYPE": "None", "_METHODS": {}},
+                    {
+                        "N_CELL": 1,
+                        "RF_FREQUENCY": 2856000000.0,
+                        "VOLTAGE": 5.2e7,
+                        "PHI0": 0.0,
+                        "FRINGE_TYPE": "Full",
+                        "_METHODS": {},
+                    },
+                ]
+            }
+        },
+        bmad_com={},
+        laura_elems={1: {"LINE_1": {}}},
+        position_mode="s",
+        deferred_parameters={},
+        functional_definitions={},
+        super_lord_children={},
+    )
+    for method in ("_physical_common", "_symbol", "_store_marker", "_wake_field",
+                   "_subelement_of"):
+        setattr(
+            importer, method, getattr(BmadLatticeImporter, method).__get__(importer)
+        )
+
+    elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
+        "LINE_1"
+    ]
+
+    assert elements["b_full"].simulation.fringe_model == "full"
+    assert elements["b_default"].simulation.fringe_model is None
+    assert elements["q_default"].simulation.fringe_model is None
+
+    # Only magnets hold the field, and `Full` is Bmad's own cavity default
+    # in any case.
+    assert not hasattr(elements["cav"].simulation, "fringe_model")

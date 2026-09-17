@@ -51,6 +51,10 @@ _BMAD_MAIN_MULTIPOLE_ORDERS = {
 }
 """Multipole orders a Bmad element definition already expresses on its own."""
 
+_BMAD_NO_APERTURE = ("match", "fixer", "ecollimator", "rcollimator")
+"""Bmad classes that get no aperture limits written onto them."""
+
+
 class BaseElementTranslator(PhysicalBaseElement):
     """
     Translator class for converting a :class:`~laura.models.element.Element` instance into a string or
@@ -576,9 +580,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 "edge_entry_hgap": self.magnetic.half_gap,
                 "edge_exit_hgap": self.magnetic.exit_half_gap,
             }
-            properties.update(
-                {k: v for k, v in edges.items() if v is not None}
-            )
+            properties.update({k: v for k, v in edges.items() if v is not None})
         return self.name, obj, properties
 
     def to_genesis(self, index: int) -> str:
@@ -884,8 +886,17 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
-    _KEYWORD_STRIP_PREFIXES: ClassVar[list] = ["", "simulation_", "cavity_", "magnetic_", "aperture_"]
-    _KEYWORD_STRIP_PREFIXES_WAKE_T: ClassVar[list] = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
+    _KEYWORD_STRIP_PREFIXES: ClassVar[list] = [
+        "",
+        "simulation_",
+        "cavity_",
+        "magnetic_",
+        "aperture_",
+    ]
+    _KEYWORD_STRIP_PREFIXES_WAKE_T: ClassVar[list] = _KEYWORD_STRIP_PREFIXES + [
+        "plasma_",
+        "laser_",
+    ]
 
     @staticmethod
     def _convert_type(etype: str, rules: dict, default):
@@ -1300,8 +1311,10 @@ class BaseElementTranslator(PhysicalBaseElement):
             source_field = source_key.removeprefix("simulation_")
             if source_field not in explicit and (
                 key in common
-                or source_field in {"horizontal_offset", "vertical_offset"}
+                or source_field in {"horizontal_offset", "vertical_offset", "n_kicks"}
             ):
+                continue
+            if key == "n_rf_steps" and not (isinstance(value, int) and value >= 1):
                 continue
             if value in ("angle", "angle/2") and key in ("e1", "e2"):
                 raw = (
@@ -1350,8 +1363,29 @@ class BaseElementTranslator(PhysicalBaseElement):
             if exit_hgap != parameters["hgap"] or exit_fint != parameters["fint"]:
                 parameters["hgapx"] = exit_hgap
                 parameters["fintx"] = exit_fint
+        self._add_bmad_aperture(parameters, element, etype)
         self._add_bmad_multipoles(parameters, etype)
         return parameters
+
+    def _add_bmad_aperture(
+        self, parameters: Dict[str, Any], element: Dict[str, Any], etype: str
+    ) -> None:
+        """
+        Write the element's own aperture as Bmad's four limits."""
+        aperture = getattr(self, "aperture", None)
+        if aperture is None or etype in _BMAD_NO_APERTURE:
+            return
+        if "x1_limit" not in element:
+            return
+        horizontal = aperture.radius or (aperture.horizontal_size or 0.0) / 2
+        vertical = aperture.radius or (aperture.vertical_size or 0.0) / 2
+        if not horizontal and not vertical:
+            return
+        parameters["x1_limit"] = parameters["x2_limit"] = horizontal
+        parameters["y1_limit"] = parameters["y2_limit"] = vertical
+        shape = getattr(aperture.shape, "value", aperture.shape)
+        if shape in ("elliptical", "circular"):
+            parameters["aperture_type"] = "elliptical"
 
     def _add_bmad_multipoles(self, parameters: Dict[str, Any], etype: str) -> None:
         """
@@ -1768,7 +1802,9 @@ class BaseElementTranslator(PhysicalBaseElement):
                 parameters["sr_wake"] = f"call::{wake}"
         return parameters
 
-    def generate_field_file_name(self, param: FieldMap, code: str, **kwargs) -> str | None:
+    def generate_field_file_name(
+        self, param: FieldMap, code: str, **kwargs
+    ) -> str | None:
         """
         Generates a field file name based on the provided frameworkElement and tracking code.
 

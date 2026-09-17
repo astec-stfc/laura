@@ -8,6 +8,11 @@ common:
   csr_method: string
   space_charge_method: string
   csr_ds_step: double
+  x1_limit: double
+  x2_limit: double
+  y1_limit: double
+  y2_limit: double
+  aperture_type: string
 drift:
   l: double
   sr_wake: string
@@ -21,6 +26,7 @@ sbend:
   hgap: double
   fint: double
   ref_tilt: double
+  fringe_type: string
 rbend:
   l: double
   angle: double
@@ -31,20 +37,24 @@ rbend:
   hgap: double
   fint: double
   ref_tilt: double
+  fringe_type: string
 quadrupole:
   l: double
   k1: double
   tilt: double
   field_calc: string
   gen_gradients: string
+  fringe_type: string
 sextupole:
   l: double
   k2: double
   tilt: double
+  fringe_type: string
 octupole:
   l: double
   k3: double
   tilt: double
+  fringe_type: string
 decapole:
   l: double
   k4: double
@@ -52,13 +62,16 @@ decapole:
 hkicker:
   l: double
   kick: double
+  fringe_type: string
 vkicker:
   l: double
   kick: double
+  fringe_type: string
 kicker:
   l: double
   hkick: double
   vkick: double
+  fringe_type: string
 rfcavity:
   l: double
   phi0: double
@@ -67,6 +80,7 @@ rfcavity:
   n_cell: integer
   cavity_type: string
   sr_wake: string
+  n_rf_steps: integer
 lcavity:
   l: double
   phi0: double
@@ -75,32 +89,38 @@ lcavity:
   n_cell: integer
   cavity_type: string
   sr_wake: string
+  n_rf_steps: integer
 crab_cavity:
   l: double
   phi0: double
   rf_frequency: double
   voltage: double
   sr_wake: string
+  n_rf_steps: integer
 wiggler:
   l: double
   b_max: double
   l_period: double
   n_period: integer
+  fringe_type: string
 solenoid:
   l: double
   ks: double
   field_calc: string
   gen_gradients: string
+  fringe_type: string
 sol_quad:
   l: double
   k1: double
   ks: double
+  fringe_type: string
 elseparator:
   l: double
   e_field: double
   hkick: double
   vkick: double
   tilt: double
+  fringe_type: string
 beambeam:
   charge: double
   n_particle: double
@@ -120,6 +140,16 @@ match:
   etap_x1: double
   etap_y1: double
   matrix: string
+fixer:
+  beta_a_stored: double
+  beta_b_stored: double
+  alpha_a_stored: double
+  alpha_b_stored: double
+  eta_x_stored: double
+  eta_y_stored: double
+  etap_x_stored: double
+  etap_y_stored: double
+  is_on: logical
 taylor:
   l: double
 ecollimator:
