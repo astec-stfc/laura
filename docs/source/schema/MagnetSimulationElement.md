@@ -46,6 +46,8 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
         
       MagnetSimulationElement : field_reference_position
         
+      MagnetSimulationElement : fringe_model
+        
       MagnetSimulationElement : horizontal_offset
         
       MagnetSimulationElement : integration_order
@@ -116,6 +118,7 @@ URI: [laura:MagnetSimulationElement](https://w3id.org/laura/MagnetSimulationElem
 | [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Per-simulation override of the magnet's fringe-field integral | direct |
 | [edge1_effects](edge1_effects.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable entrance-edge focussing effects | direct |
 | [edge2_effects](edge2_effects.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable exit-edge focussing effects | direct |
+| [fringe_model](fringe_model.md) | 0..1 <br/> [String](String.md) | Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only,... | direct |
 | [sr_enable](sr_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable synchrotron-radiation energy loss | direct |
 | [isr_enable](isr_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Enable incoherent synchrotron-radiation emittance growth | direct |
 | [csr_bins](csr_bins.md) | 0..1 <br/> [Integer](Integer.md) | Number of longitudinal bins for the CSR mesh | direct |
@@ -278,6 +281,15 @@ attributes:
     domain_of:
     - MagnetSimulationElement
     range: boolean
+  fringe_model:
+    name: fringe_model
+    description: 'Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only,
+      full, sad_full, linear_edge or basic_bend. Absent means default for that code.'
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    domain_of:
+    - MagnetSimulationElement
+    range: string
   sr_enable:
     name: sr_enable
     description: Enable synchrotron-radiation energy loss.
@@ -418,6 +430,16 @@ attributes:
     domain_of:
     - MagnetSimulationElement
     range: boolean
+  fringe_model:
+    name: fringe_model
+    description: 'Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only,
+      full, sad_full, linear_edge or basic_bend. Absent means default for that code.'
+    from_schema: https://w3id.org/laura/schema/simulation
+    rank: 1000
+    owner: MagnetSimulationElement
+    domain_of:
+    - MagnetSimulationElement
+    range: string
   sr_enable:
     name: sr_enable
     description: Enable synchrotron-radiation energy loss.

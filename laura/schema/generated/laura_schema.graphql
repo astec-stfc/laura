@@ -95,6 +95,20 @@ enum LatticeGeometryEnum
     closed
   }
 
+enum NumericDtypeEnum
+  {
+    int8
+    int16
+    int32
+    int64
+    uint8
+    uint16
+    uint32
+    uint64
+    float32
+    float64
+  }
+
 type AcceleratorElement
   {
     name: String!
@@ -511,6 +525,8 @@ type ControlVariable
     controlType: ControlTypeEnum
     target: String
     expression: String
+    elementDtype: NumericDtypeEnum
+    shape: [String]
     states: String
     readback: String
     setpoint: String
@@ -1179,6 +1195,7 @@ type MagnetSimulationElement
     edgeFieldIntegral: Float
     edge1Effects: Boolean
     edge2Effects: Boolean
+    fringeModel: String
     srEnable: Boolean
     isrEnable: Boolean
     csrBins: Int
@@ -1847,6 +1864,7 @@ type SectionLattice
     masterLattice: String
     geometry: LatticeGeometryEnum
     referenceEnergy: Float
+    spaceCharge: SpaceChargeSettings
     elements: [String]
   }
 
@@ -1903,6 +1921,16 @@ type SimulationElement
     wakefieldEnable: Boolean
     fieldReferencePosition: String
     scaleField: Float
+  }
+
+type SpaceChargeSettings
+  {
+    numberOfBins: Int
+    stepSize: Float
+    chamberHeight: Float
+    shieldImages: Int
+    binSpan: Int
+    sigmaCutoff: Float
   }
 
 type Stage

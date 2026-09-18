@@ -290,6 +290,7 @@ class ControlVariable(Base):
     control_type = Column(Enum('scalar', 'binary', 'state', 'string', 'waveform', 'statistical', name='ControlTypeEnum'))
     target = Column(Text())
     expression = Column(Text())
+    element_dtype = Column(Enum('int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64', 'float32', 'float64', name='NumericDtypeEnum'))
     states = Column(Text())
     readback = Column(Text())
     setpoint = Column(Text())
@@ -297,9 +298,14 @@ class ControlVariable(Base):
     dynamics = Column(Text())
     ControlsInformation_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
     
+    
+    shape_rel = relationship( "ControlVariableShape" )
+    shape = association_proxy("shape_rel", "shape",
+                                  creator=lambda x_: ControlVariableShape(shape=x_))
+    
 
     def __repr__(self):
-        return f"ControlVariable(id={self.id},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},states={self.states},readback={self.readback},setpoint={self.setpoint},update={self.update},dynamics={self.dynamics},ControlsInformation_id={self.ControlsInformation_id},)"
+        return f"ControlVariable(id={self.id},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},element_dtype={self.element_dtype},states={self.states},readback={self.readback},setpoint={self.setpoint},update={self.update},dynamics={self.dynamics},ControlsInformation_id={self.ControlsInformation_id},)"
 
 
 
@@ -407,6 +413,31 @@ class ApertureElement(Base):
     
 
 
+class SpaceChargeSettings(Base):
+    """
+    How finely a code should resolve CSR and space charge over one section.
+On the section: a bunch compressor is run with one binning and the linac around it with another.  The switches that turn the effects on stay per-element, as they can vary.
+All fields is optional; absence means "use the code's defaults".
+    """
+    __tablename__ = 'SpaceChargeSettings'
+
+    id = Column(Integer(), primary_key=True, autoincrement=True , nullable=False )
+    number_of_bins = Column(Integer())
+    step_size = Column(Float())
+    chamber_height = Column(Float())
+    shield_images = Column(Integer())
+    bin_span = Column(Integer())
+    sigma_cutoff = Column(Float())
+    
+
+    def __repr__(self):
+        return f"SpaceChargeSettings(id={self.id},number_of_bins={self.number_of_bins},step_size={self.step_size},chamber_height={self.chamber_height},shield_images={self.shield_images},bin_span={self.bin_span},sigma_cutoff={self.sigma_cutoff},)"
+
+
+
+    
+
+
 class SectionLattice(Base):
     """
     An ordered list of element names defining a contiguous beamline section.
@@ -417,6 +448,8 @@ class SectionLattice(Base):
     master_lattice = Column(Text())
     geometry = Column(Enum('open', 'closed', name='LatticeGeometryEnum'))
     reference_energy = Column(Float())
+    space_charge_id = Column(Integer(), ForeignKey('SpaceChargeSettings.id'))
+    space_charge = relationship("SpaceChargeSettings", uselist=False, foreign_keys=[space_charge_id])
     
     
     elements_rel = relationship( "SectionLatticeElements" )
@@ -425,7 +458,7 @@ class SectionLattice(Base):
     
 
     def __repr__(self):
-        return f"SectionLattice(name={self.name},master_lattice={self.master_lattice},geometry={self.geometry},reference_energy={self.reference_energy},)"
+        return f"SectionLattice(name={self.name},master_lattice={self.master_lattice},geometry={self.geometry},reference_energy={self.reference_energy},space_charge_id={self.space_charge_id},)"
 
 
 
@@ -1824,6 +1857,24 @@ class PhysicalAcceleratorElementDownstream(Base):
 
     def __repr__(self):
         return f"PhysicalAcceleratorElement_downstream(PhysicalAcceleratorElement_name={self.PhysicalAcceleratorElement_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class ControlVariableShape(Base):
+    """
+    None
+    """
+    __tablename__ = 'ControlVariable_shape'
+
+    ControlVariable_id = Column(Integer(), ForeignKey('ControlVariable.id'), primary_key=True)
+    shape = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"ControlVariable_shape(ControlVariable_id={self.ControlVariable_id},shape={self.shape},)"
 
 
 
@@ -7484,6 +7535,7 @@ class MagnetSimulationElement(SimulationElement):
     edge_field_integral = Column(Float())
     edge1_effects = Column(Boolean())
     edge2_effects = Column(Boolean())
+    fringe_model = Column(Text())
     sr_enable = Column(Boolean())
     isr_enable = Column(Boolean())
     csr_bins = Column(Integer())
@@ -7515,7 +7567,7 @@ class MagnetSimulationElement(SimulationElement):
     
 
     def __repr__(self):
-        return f"MagnetSimulationElement(id={self.id},field_amplitude={self.field_amplitude},n_slices={self.n_slices},edge_field_integral={self.edge_field_integral},edge1_effects={self.edge1_effects},edge2_effects={self.edge2_effects},sr_enable={self.sr_enable},isr_enable={self.isr_enable},csr_bins={self.csr_bins},nonlinear={self.nonlinear},smoothing_half_width={self.smoothing_half_width},edge_order={self.edge_order},smooth_points={self.smooth_points},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
+        return f"MagnetSimulationElement(id={self.id},field_amplitude={self.field_amplitude},n_slices={self.n_slices},edge_field_integral={self.edge_field_integral},edge1_effects={self.edge1_effects},edge2_effects={self.edge2_effects},fringe_model={self.fringe_model},sr_enable={self.sr_enable},isr_enable={self.isr_enable},csr_bins={self.csr_bins},nonlinear={self.nonlinear},smoothing_half_width={self.smoothing_half_width},edge_order={self.edge_order},smooth_points={self.smooth_points},n_kicks={self.n_kicks},lsc_bins={self.lsc_bins},csr_enable={self.csr_enable},lsc_enable={self.lsc_enable},tracking_method={self.tracking_method},mat6_calc_method={self.mat6_calc_method},spin_tracking_method={self.spin_tracking_method},integration_order={self.integration_order},num_steps={self.num_steps},deltaL={self.deltaL},csr_method={self.csr_method},space_charge_method={self.space_charge_method},csrdz={self.csrdz},smooth={self.smooth},horizontal_offset={self.horizontal_offset},vertical_offset={self.vertical_offset},field_definition={self.field_definition},wakefield_definition={self.wakefield_definition},wakefield_enable={self.wakefield_enable},field_reference_position={self.field_reference_position},scale_field={self.scale_field},)"
 
 
 

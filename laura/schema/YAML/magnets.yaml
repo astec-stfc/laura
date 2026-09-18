@@ -32,7 +32,7 @@ classes:
     is_a: MagneticElement
     slot_usage:
       order:
-        ifabsent: 0
+        ifabsent: int(0)
         equals_number: 0
 
   Dipole:
@@ -48,7 +48,7 @@ classes:
     is_a: MagneticElement
     slot_usage:
       order:
-        ifabsent: 1
+        ifabsent: int(1)
         equals_number: 1
 
   Quadrupole:
@@ -65,7 +65,7 @@ classes:
     description: Sextupole magnet field, principal multipole order 2.
     slot_usage:
       order:
-        ifabsent: 2
+        ifabsent: int(2)
         equals_number: 2
 
   Sextupole:
@@ -84,7 +84,7 @@ classes:
     description: Octupole magnet field, principal multipole order 3.
     slot_usage:
       order:
-        ifabsent: 3
+        ifabsent: int(3)
         equals_number: 3
 
   Octupole:

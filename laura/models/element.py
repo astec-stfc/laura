@@ -682,6 +682,9 @@ class BeamPositionMonitor(Diagnostic, _BeamPositionMonitorBase):
     hardware_model: str = Field(default="Stripline", frozen=True)
     """BPM hardware model."""
 
+    diagnostic: Optional[BeamPositionMonitorDiagnostic] = None
+    """BPM diagnostic attributes."""
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "diagnostic", BeamPositionMonitorDiagnostic)
@@ -704,6 +707,9 @@ class BeamArrivalMonitor(Diagnostic, _BeamArrivalMonitorBase):
     hardware_model: str = Field(default="DESY", frozen=True)
     """BAM hardware model."""
 
+    diagnostic: Optional[BeamArrivalMonitorDiagnostic] = None
+    """BAM diagnostic attributes."""
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "diagnostic", BeamArrivalMonitorDiagnostic)
@@ -725,6 +731,9 @@ class BunchLengthMonitor(Diagnostic, _BunchLengthMonitorBase):
 
     hardware_model: str = Field(default="CDR", frozen=True)
     """BLM hardware model."""
+
+    diagnostic: Optional[BunchLengthMonitorDiagnostic] = None
+    """BLM diagnostic attributes."""
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
@@ -778,6 +787,9 @@ class Camera(Diagnostic, _CameraBase):
     hardware_model: str = Field(default="PCO", frozen=True)
     """Camera hardware model."""
 
+    diagnostic: Optional[CameraDiagnostic] = None
+    """Camera diagnostic attributes, including the sensor geometry."""
+
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "diagnostic", CameraDiagnostic)
@@ -800,6 +812,9 @@ class Screen(Diagnostic, _ScreenBase):
     hardware_model: str = Field(default="YAG", frozen=True)
     """Screen hardware model."""
 
+    diagnostic: Optional[ScreenDiagnostic] = None
+    """Screen diagnostic attributes."""
+
     controls: ScreenControlsInformation | None = None
 
     def model_post_init(self, __context: Any) -> None:
@@ -819,6 +834,9 @@ class ChargeDiagnostic(Diagnostic, _ChargeDiagnosticBase):
 
     hardware_type: str = Field(default="ChargeDiagnostic", frozen=True)
     """Charge diagnostic hardware type."""
+
+    diagnostic: Optional[ChargeDiagnosticElement] = None
+    """Charge diagnostic attributes; inherited by the WCM/Faraday cup/ICT subclasses."""
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)

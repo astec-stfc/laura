@@ -224,7 +224,7 @@ is_a: MagneticElement
 slot_usage:
   order:
     name: order
-    ifabsent: '2'
+    ifabsent: int(2)
     equals_number: 2
 
 ```
@@ -241,14 +241,14 @@ is_a: MagneticElement
 slot_usage:
   order:
     name: order
-    ifabsent: '2'
+    ifabsent: int(2)
     equals_number: 2
 attributes:
   order:
     name: order
     description: Principal multipole order (0 = dipole, 1 = quad, ?).
     from_schema: https://w3id.org/laura/schema/magnetic
-    ifabsent: '2'
+    ifabsent: int(2)
     owner: SextupoleMagnet
     domain_of:
     - Multipole

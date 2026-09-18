@@ -152,6 +152,7 @@ Name: laura_schema
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[WireSimulationElement](WireSimulationElement.md) | Simulation attributes for a compensating wire |
 | [SolenoidMagnet](SolenoidMagnet.md) | Solenoid field model, including systematic and random field errors and the cu... |
 | [SolenoidFields](SolenoidFields.md) | Solenoid integrated axial field components ``S0L``–``S12L`` [T |
+| [SpaceChargeSettings](SpaceChargeSettings.md) | How finely a code should resolve CSR and space charge over one section |
 | [Trace](Trace.md) | LLRF trace metadata |
 | [ValveElement](ValveElement.md) | Vacuum valve configuration (no additional fields) |
 | [WakefieldElement](WakefieldElement.md) | Passive wakefield structure parameters |
@@ -175,6 +176,7 @@ Name: laura_schema
 | [beam_pixel_average](beam_pixel_average.md) | Average pixel value for beam detection |
 | [beta_x](beta_x.md) | Horizontal beta |
 | [beta_y](beta_y.md) | Vertical beta |
+| [bin_span](bin_span.md) | Width of a particle's deposition kernel, counted in bins |
 | [bit_depth](bit_depth.md) | Camera bit depth |
 | [body_focus_model](body_focus_model.md) | Cavity body focusing model |
 | [bore](bore.md) | Magnet bore radius [m] |
@@ -196,6 +198,7 @@ Name: laura_schema
 | [ch6](ch6.md) |  |
 | [ch7](ch7.md) |  |
 | [ch8](ch8.md) |  |
+| [chamber_height](chamber_height.md) | Full height of the vacuum chamber for CSR shielding |
 | [change_momentum](change_momentum.md) | Allow wakefield to change bunch momentum |
 | [change_p0](change_p0.md) | Flag indicating whether the cavity changes reference momentum |
 | [channel_names](channel_names.md) | Channel labels |
@@ -246,6 +249,7 @@ Name: laura_schema
 | [edge_order](edge_order.md) | Polynomial order of the edge-field expansion |
 | [electrical](electrical.md) | Power-supply electrical limits |
 | [element](element.md) | Name of the reference element |
+| [element_dtype](element_dtype.md) | Numeric type of the value, or of one element of the array for ``control_type:... |
 | [elements](elements.md) | Ordered list of element names in this section |
 | [enable](enable.md) | Enable command/value |
 | [end](end.md) | End time |
@@ -277,6 +281,7 @@ Name: laura_schema
 | [forward_channel](forward_channel.md) | Forward channel index |
 | [frequency](frequency.md) | Operating frequency [Hz] |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | Coefficient controlling the fringe-field roll-off rate |
+| [fringe_model](fringe_model.md) | Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only,... |
 | [from_beam](from_beam.md) | Compute transform from tracked beam properties |
 | [gap](gap.md) | Full gap between pole faces [m] |
 | [geometry](geometry.md) | Whether the reference orbit closes on itself |
@@ -377,6 +382,7 @@ Name: laura_schema
 | [num_periods](num_periods.md) | Number of full magnetic periods |
 | [num_steps](num_steps.md) | Number of integration steps through the element |
 | [number](number.md) | Multipass occurrence number, counting from 1 |
+| [number_of_bins](number_of_bins.md) | Longitudinal bins the bunch is divided into to build the collective field |
 | [number_of_elements](number_of_elements.md) | Number of aperture sub-elements (e |
 | [number_of_start_zeros](number_of_start_zeros.md) | Number of leading zeros in a trace |
 | [offset](offset.md) | Offset expressed in the reference element's local frame at the chosen point |
@@ -470,9 +476,11 @@ Name: laura_schema
 | [serial_number](serial_number.md) | Manufacturer serial number |
 | [setpoint](setpoint.md) | Name of the set-point variable this readback follows |
 | [settle_time](settle_time.md) | Power-supply settle time after a change [s] |
-| [shape](shape.md) | Cross-sectional aperture shape |
+| [shape](shape.md) | Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` f... |
+| [shield_images](shield_images.md) | Number of image charges to sum when modelling wall shielding |
 | [shunt_impedance](shunt_impedance.md) | Shunt impedance [M?/m] |
 | [shutter](shutter.md) | Shutter interlock configuration |
+| [sigma_cutoff](sigma_cutoff.md) | Transverse beam size below which a slice is treated as having none |
 | [simulation](simulation.md) | Simulation / tracking attributes |
 | [skew](skew.md) | Integrated skew (rotated) multipole strength [T |
 | [smooth](smooth.md) | Smoothing control for field or wake interpolation |
@@ -480,6 +488,7 @@ Name: laura_schema
 | [smooth_points](smooth_points.md) | Number of points used to smooth the field map [ASTRA] |
 | [smoothing_half_width](smoothing_half_width.md) | Half-width of the current-profile smoothing kernel |
 | [solenoid_fields](solenoid_fields.md) | Nominal integrated axial solenoid field components |
+| [space_charge](space_charge.md) | Resolution of the collective-field calculation over this section |
 | [space_charge_method](space_charge_method.md) | Space-charge tracking method |
 | [species](species.md) | Plasma species name (e |
 | [spin_taylor](spin_taylor.md) | Sparse quaternion Taylor terms |
@@ -488,6 +497,7 @@ Name: laura_schema
 | [start](start.md) | Start time |
 | [states](states.md) | Mapping of state name to underlying control-system value, for ``control_type:... |
 | [step_max](step_max.md) | Maximum step size for mirror adjustment |
+| [step_size](step_size.md) | Distance between collective-field recalculations |
 | [steps](steps.md) | Number of degauss steps per half-cycle |
 | [strength](strength.md) | Deflection parameter K |
 | [structure_type](structure_type.md) | RF structure type (e |
@@ -567,6 +577,7 @@ Name: laura_schema
 | [LaserPolarizationEnum](LaserPolarizationEnum.md) | Polarization state of a laser beam |
 | [LaserProfileTypeEnum](LaserProfileTypeEnum.md) | Transverse intensity profile model for a laser beam |
 | [LatticeGeometryEnum](LatticeGeometryEnum.md) | Whether the reference orbit closes on itself |
+| [NumericDtypeEnum](NumericDtypeEnum.md) | Numeric storage type of a control variable's value, or of an individual eleme... |
 
 
 ## Types

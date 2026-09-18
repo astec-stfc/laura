@@ -331,7 +331,7 @@ attributes:
     name: order
     description: Principal multipole order (0 = dipole, 1 = quad, ?).
     from_schema: https://w3id.org/laura/schema/magnetic
-    ifabsent: '0'
+    ifabsent: int(0)
     owner: Corrector_Magnet
     domain_of:
     - Multipole

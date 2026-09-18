@@ -1,4 +1,6 @@
 import builtins
+import math
+import re
 from pydantic import (
     ValidationError,
     field_validator,
@@ -7,7 +9,7 @@ from pydantic import (
     Field,
 )
 from pydantic import ValidationInfo
-from typing import Any, Callable, Dict, Type
+from typing import Any, Callable, Dict, Mapping, Type
 import operator
 from dataclasses import fields, is_dataclass
 from laura.utils.dynamics import resolve_response, response_path
@@ -49,6 +51,14 @@ def eval_expr(expr, context):
     op = OPS[expr["op"]]
     args = [eval_expr(a, context) for a in expr["args"]]
     return op(*args)
+
+
+_DOTTED_PATH = re.compile(r"[A-Za-z_]\w*(\.[A-Za-z_]\w*)*")
+
+
+def shape_terms(entry: int | str) -> list[str]:
+    """The ``*``-separated terms of one `ControlVariable.shape` entry."""
+    return [term.strip() for term in str(entry).split("*")]
 
 
 def set_attr_by_path(obj, path: str, value):
@@ -161,8 +171,8 @@ class ControlVariable(_ControlVariableBase):
     # richer than the LinkML range can express, or where the schema's
     # cardinality is looser than this model wants. Everything else --
     # `units`, `description`, `read_only`, `control_type`, `target`,
-    # `readback`, `setpoint` -- is inherited from the generated base,
-    # including the `type` alias on `control_type`.
+    # `readback`, `setpoint`, `element_dtype`, `shape` -- is inherited from
+    # the generated base, including the `type` alias on `control_type`.
 
     identifier: str
     """Unique identifier for the control variable."""
@@ -300,6 +310,65 @@ class ControlVariable(_ControlVariableBase):
             return v
         raise TypeError(f"dtype must be a type or string, got {type(v)}")
 
+    @field_validator("shape", mode="before")
+    @classmethod
+    def validate_shape(cls, v: list | str | None, info: ValidationInfo) -> list | None:
+        """Check that every `shape` entry is a positive integer, a dotted attribute
+        path on the owning element, or a ``*``-separated product of those.
+        Only the spelling is checked here; see :func:~`resolve_shape`.
+        """
+        who = info.data.get("identifier", "<unknown>")
+        if isinstance(v, str):
+            v = [v]
+        for entry in v or []:
+            for term in shape_terms(entry):
+                try:
+                    size = int(term)
+                except ValueError:
+                    if not _DOTTED_PATH.fullmatch(term):
+                        raise ValueError(
+                            f"shape entry '{entry}' of {who} is neither a dimension "
+                            "nor a dotted attribute path"
+                        ) from None
+                else:
+                    if size < 1:
+                        raise ValueError(
+                            f"shape entry '{entry}' of {who} is not a positive dimension"
+                        )
+        return v
+
+    def resolve_shape(self, owner) -> tuple[int, ...]:
+        """Resolve `shape` against `owner`, the element this variable belongs to."""
+        if not self.shape:
+            raise ValueError(f"{self} has no shape to resolve")
+        return tuple(
+            math.prod(self._resolve_dimension(owner, term) for term in shape_terms(entry))
+            for entry in self.shape
+        )
+
+    def _resolve_dimension(self, owner, term: str) -> int:
+        try:
+            return int(term)
+        except ValueError:
+            pass
+        value = owner
+        for attr in term.split("."):
+            try:
+                value = value[attr] if isinstance(value, Mapping) else getattr(value, attr)
+            except (KeyError, AttributeError):
+                raise ValueError(
+                    f"shape of {self} refers to '{term}', which does not resolve "
+                    f"on {type(owner).__name__}"
+                ) from None
+        if isinstance(value, float) and value.is_integer():
+            value = int(value)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(
+                f"shape of {self} refers to '{term}', which is {value!r} and not "
+                "a positive dimension"
+            )
+        return value
+
     # Default values that should be omitted from serialised output to keep
     # YAML exports clean.  Only exact matches are suppressed.
     _SERIALIZE_DEFAULTS: dict = {
@@ -311,11 +380,7 @@ class ControlVariable(_ControlVariableBase):
 
     def unstripped_dump(self) -> dict:
         """As `serialize`, but keeping fields that happen to equal a documented
-        default. Used where exact values matter regardless of whether they're
-        the default -- e.g. diffing against a schema when collapsing a
-        resolved element back down for export, where a field explicitly reset
-        to its default still needs to appear if the schema itself specifies a
-        non-default value for it."""
+        default."""
         data = {k: getattr(self, k) for k in self.__class__.model_fields}
         if self.model_extra:
             data.update(self.model_extra)

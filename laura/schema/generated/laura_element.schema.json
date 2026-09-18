@@ -3571,6 +3571,10 @@
             "null"
           ]
         },
+        "element_dtype": {
+          "$ref": "#/$defs/NumericDtypeEnum",
+          "description": "Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container."
+        },
         "expression": {
           "description": "Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.",
           "type": [
@@ -3610,6 +3614,24 @@
           "description": "Name of the set-point variable this readback follows.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "shape": {
+          "description": "Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those.",
+          "items": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "type": "string"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -8995,7 +9017,7 @@
           ]
         },
         "fringe_model": {
-          "description": "Which fringe-field model to integrate, named in Bmad's vocabulary because it is the widest: none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means \"whatever the receiving code does by default\", so a model a code cannot express is dropped rather than approximated. Not named ``fringe_type``: elegant spells a quadrupole attribute that way, but it selects where the fringe acts rather than which model runs, so the two names must not resolve to each other.",
+          "description": "Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code.",
           "type": [
             "string",
             "null"
@@ -10372,6 +10394,23 @@
       },
       "title": "NonLinearLensMagnet",
       "type": "object"
+    },
+    "NumericDtypeEnum": {
+      "description": "Numeric storage type of a control variable's value, or of an individual element of a waveform's array.",
+      "enum": [
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "float32",
+        "float64"
+      ],
+      "title": "NumericDtypeEnum",
+      "type": "string"
     },
     "Octupole": {
       "additionalProperties": false,
@@ -15111,7 +15150,7 @@
               "type": "null"
             }
           ],
-          "description": "Resolution of the collective-field calculation over this section. Absent leaves every receiving code on its own defaults."
+          "description": "Resolution of the collective-field calculation over this section."
         }
       },
       "required": [
@@ -16325,10 +16364,10 @@
     },
     "SpaceChargeSettings": {
       "additionalProperties": false,
-      "description": "How finely a code should resolve the collective fields -- space charge and CSR -- over one section.\nHeld on the section rather than on the elements because that is the scale at which the choice is actually made: a bunch compressor is run with one binning and the linac around it with another, and a single element has no say in it. The switches that turn the effects on stay per-element, since those do vary element by element; this is only the resolution of the calculation once something has asked for it.\nEvery field is optional, and absent means \"leave the receiving code's own default alone\". A code told nothing is a code that has not been misconfigured.",
+      "description": "How finely a code should resolve CSR and space charge over one section.\nOn the section: a bunch compressor is run with one binning and the linac around it with another.  The switches that turn the effects on stay per-element, as they can vary.\nAll fields is optional; absence means \"use the code's defaults\".",
       "properties": {
         "bin_span": {
-          "description": "Width of a particle's deposition kernel, counted in bins. Bmad's ``space_charge_com[particle_bin_span]``, an integer there and so an integer here -- Bmad's parser will not take ``2.0`` for it.",
+          "description": "Width of a particle's deposition kernel, counted in bins.",
           "minimum": 1,
           "type": [
             "integer",
@@ -16336,7 +16375,7 @@
           ]
         },
         "chamber_height": {
-          "description": "Full height of the vacuum chamber, used to model the shielding of CSR by the chamber walls. Bmad's ``space_charge_com[beam_chamber_height]``, paired with ``shield_images``.",
+          "description": "Full height of the vacuum chamber for CSR shielding.",
           "minimum": 0.0,
           "type": [
             "number",
@@ -16344,7 +16383,7 @@
           ]
         },
         "number_of_bins": {
-          "description": "Longitudinal bins the bunch is divided into to build the collective field. Bmad's ``space_charge_com[n_bin]``, which has no usable default: it starts at zero, and a zero is fatal rather than ignored -- Bmad marks the whole bunch lost and says the structure was never set.",
+          "description": "Longitudinal bins the bunch is divided into to build the collective field.",
           "minimum": 1,
           "type": [
             "integer",
@@ -16352,7 +16391,7 @@
           ]
         },
         "shield_images": {
-          "description": "Number of image charges to sum when modelling wall shielding. Zero means an unshielded calculation. Bmad's ``space_charge_com[n_shield_images]``.",
+          "description": "Number of image charges to sum when modelling wall shielding.",
           "minimum": 0,
           "type": [
             "integer",
@@ -16360,7 +16399,7 @@
           ]
         },
         "sigma_cutoff": {
-          "description": "Transverse beam size below which a slice is treated as having none, as a fraction of the mean, guarding the longitudinal space-charge kick against a division by an unresolved sigma. Bmad's ``space_charge_com[lsc_sigma_cutoff]``.",
+          "description": "Transverse beam size below which a slice is treated as having none.",
           "minimum": 0.0,
           "type": [
             "number",
@@ -16368,7 +16407,7 @@
           ]
         },
         "step_size": {
-          "description": "Distance between collective-field recalculations, where an element does not name its own. Bmad's ``space_charge_com[ds_track_step]``; like the bin count it starts at zero and is fatal there, and a per-element step overrides it.",
+          "description": "Distance between collective-field recalculations.",
           "minimum": 0.0,
           "type": [
             "number",

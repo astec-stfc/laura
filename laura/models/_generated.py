@@ -292,6 +292,52 @@ class ControlTypeEnum(str, Enum):
     """
 
 
+class NumericDtypeEnum(str, Enum):
+    """
+    Numeric storage type of a control variable's value, or of an individual element of a waveform's array.
+    """
+    int8 = "int8"
+    """
+    Signed 8-bit integer.
+    """
+    int16 = "int16"
+    """
+    Signed 16-bit integer.
+    """
+    int32 = "int32"
+    """
+    Signed 32-bit integer.
+    """
+    int64 = "int64"
+    """
+    Signed 64-bit integer.
+    """
+    uint8 = "uint8"
+    """
+    Unsigned 8-bit integer.
+    """
+    uint16 = "uint16"
+    """
+    Unsigned 16-bit integer.
+    """
+    uint32 = "uint32"
+    """
+    Unsigned 32-bit integer.
+    """
+    uint64 = "uint64"
+    """
+    Unsigned 64-bit integer.
+    """
+    float32 = "float32"
+    """
+    Single-precision float.
+    """
+    float64 = "float64"
+    """
+    Double-precision float.
+    """
+
+
 class ApertureShapeEnum(str, Enum):
     """
     Cross-sectional shape of a beam-pipe aperture.
@@ -628,6 +674,11 @@ class _ControlVariableBase(ConfiguredBaseModel):
     """Dotted attribute path on the owning element that ``expression`` writes to (e.g., ``magnetic.k1l``). Not a set-point value."""
     expression: Optional[str] = Field(default=None, description="""Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``."""
+    element_dtype: Optional[NumericDtypeEnum] = Field(default=None, description="""Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
+    """Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container."""
+    shape: Optional[list[Union[int, str]]] = Field(default=None, description="""Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those.""", json_schema_extra = { "linkml_meta": {'any_of': [{'range': 'integer'}, {'range': 'string'}],
+         'domain_of': ['ControlVariable', 'ApertureElement']} })
+    """Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those."""
     states: Optional[str] = Field(default=None, description="""Mapping of state name to underlying control-system value, for ``control_type: state``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
     """Mapping of state name to underlying control-system value, for ``control_type: state``."""
     readback: Optional[str] = Field(default=None, description="""Name of the readback variable this set-point drives.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable']} })
@@ -699,7 +750,7 @@ class _ApertureElementBase(ConfiguredBaseModel):
          'ifabsent': 'float(0.0)',
          'unit': {'ucum_code': 'm'}} })
     """Full vertical aperture [m]."""
-    shape: Optional[ApertureShapeEnum] = Field(default=None, description="""Cross-sectional aperture shape.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement']} })
+    shape: Optional[ApertureShapeEnum] = Field(default=None, description="""Cross-sectional aperture shape.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ControlVariable', 'ApertureElement']} })
     """Cross-sectional aperture shape."""
     radius: Optional[float] = Field(default=None, description="""Radius for circular apertures [m].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['ApertureElement', 'Multipole', 'CameraMask'],
          'unit': {'ucum_code': 'm'}} })
@@ -712,25 +763,25 @@ class _ApertureElementBase(ConfiguredBaseModel):
 
 class _SpaceChargeSettingsBase(ConfiguredBaseModel):
     """
-    How finely a code should resolve the collective fields -- space charge and CSR -- over one section.
-    Held on the section rather than on the elements because that is the scale at which the choice is actually made: a bunch compressor is run with one binning and the linac around it with another, and a single element has no say in it. The switches that turn the effects on stay per-element, since those do vary element by element; this is only the resolution of the calculation once something has asked for it.
-    Every field is optional, and absent means \"leave the receiving code's own default alone\". A code told nothing is a code that has not been misconfigured.
+    How finely a code should resolve CSR and space charge over one section.
+    On the section: a bunch compressor is run with one binning and the linac around it with another.  The switches that turn the effects on stay per-element, as they can vary.
+    All fields is optional; absence means \"use the code's defaults\".
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:SpaceChargeSettings',
          'from_schema': 'https://w3id.org/laura/schema/machine'})
 
-    number_of_bins: Optional[int] = Field(default=None, description="""Longitudinal bins the bunch is divided into to build the collective field. Bmad's ``space_charge_com[n_bin]``, which has no usable default: it starts at zero, and a zero is fatal rather than ignored -- Bmad marks the whole bunch lost and says the structure was never set.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
-    """Longitudinal bins the bunch is divided into to build the collective field. Bmad's ``space_charge_com[n_bin]``, which has no usable default: it starts at zero, and a zero is fatal rather than ignored -- Bmad marks the whole bunch lost and says the structure was never set."""
-    step_size: Optional[float] = Field(default=None, description="""Distance between collective-field recalculations, where an element does not name its own. Bmad's ``space_charge_com[ds_track_step]``; like the bin count it starts at zero and is fatal there, and a per-element step overrides it.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings'], 'unit': {'ucum_code': 'm'}} })
-    """Distance between collective-field recalculations, where an element does not name its own. Bmad's ``space_charge_com[ds_track_step]``; like the bin count it starts at zero and is fatal there, and a per-element step overrides it."""
-    chamber_height: Optional[float] = Field(default=None, description="""Full height of the vacuum chamber, used to model the shielding of CSR by the chamber walls. Bmad's ``space_charge_com[beam_chamber_height]``, paired with ``shield_images``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings'], 'unit': {'ucum_code': 'm'}} })
-    """Full height of the vacuum chamber, used to model the shielding of CSR by the chamber walls. Bmad's ``space_charge_com[beam_chamber_height]``, paired with ``shield_images``."""
-    shield_images: Optional[int] = Field(default=None, description="""Number of image charges to sum when modelling wall shielding. Zero means an unshielded calculation. Bmad's ``space_charge_com[n_shield_images]``.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
-    """Number of image charges to sum when modelling wall shielding. Zero means an unshielded calculation. Bmad's ``space_charge_com[n_shield_images]``."""
-    bin_span: Optional[int] = Field(default=None, description="""Width of a particle's deposition kernel, counted in bins. Bmad's ``space_charge_com[particle_bin_span]``, an integer there and so an integer here -- Bmad's parser will not take ``2.0`` for it.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
-    """Width of a particle's deposition kernel, counted in bins. Bmad's ``space_charge_com[particle_bin_span]``, an integer there and so an integer here -- Bmad's parser will not take ``2.0`` for it."""
-    sigma_cutoff: Optional[float] = Field(default=None, description="""Transverse beam size below which a slice is treated as having none, as a fraction of the mean, guarding the longitudinal space-charge kick against a division by an unresolved sigma. Bmad's ``space_charge_com[lsc_sigma_cutoff]``.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
-    """Transverse beam size below which a slice is treated as having none, as a fraction of the mean, guarding the longitudinal space-charge kick against a division by an unresolved sigma. Bmad's ``space_charge_com[lsc_sigma_cutoff]``."""
+    number_of_bins: Optional[int] = Field(default=None, description="""Longitudinal bins the bunch is divided into to build the collective field.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
+    """Longitudinal bins the bunch is divided into to build the collective field."""
+    step_size: Optional[float] = Field(default=None, description="""Distance between collective-field recalculations.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings'], 'unit': {'ucum_code': 'm'}} })
+    """Distance between collective-field recalculations."""
+    chamber_height: Optional[float] = Field(default=None, description="""Full height of the vacuum chamber for CSR shielding.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings'], 'unit': {'ucum_code': 'm'}} })
+    """Full height of the vacuum chamber for CSR shielding."""
+    shield_images: Optional[int] = Field(default=None, description="""Number of image charges to sum when modelling wall shielding.""", ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
+    """Number of image charges to sum when modelling wall shielding."""
+    bin_span: Optional[int] = Field(default=None, description="""Width of a particle's deposition kernel, counted in bins.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
+    """Width of a particle's deposition kernel, counted in bins."""
+    sigma_cutoff: Optional[float] = Field(default=None, description="""Transverse beam size below which a slice is treated as having none.""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SpaceChargeSettings']} })
+    """Transverse beam size below which a slice is treated as having none."""
 
 
 class _SectionLatticeBase(ConfiguredBaseModel):
@@ -748,8 +799,8 @@ class _SectionLatticeBase(ConfiguredBaseModel):
     """Whether the reference orbit closes on itself. Per-section rather than per-machine because a forked branch may differ from its parent."""
     reference_energy: Optional[float] = Field(default=None, description="""Reference total energy of the design particle [eV].""", ge=0.0, json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice'], 'unit': {'ucum_code': 'eV'}} })
     """Reference total energy of the design particle [eV]."""
-    space_charge: Optional[_SpaceChargeSettingsBase] = Field(default=None, description="""Resolution of the collective-field calculation over this section. Absent leaves every receiving code on its own defaults.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice']} })
-    """Resolution of the collective-field calculation over this section. Absent leaves every receiving code on its own defaults."""
+    space_charge: Optional[_SpaceChargeSettingsBase] = Field(default=None, description="""Resolution of the collective-field calculation over this section.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice']} })
+    """Resolution of the collective-field calculation over this section."""
     elements: list[str] = Field(default_factory=list, description="""Ordered list of element names in this section.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SectionLattice', 'MachineModel']} })
     """Ordered list of element names in this section."""
 
@@ -909,8 +960,8 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Enable entrance-edge focussing effects."""
     edge2_effects: Optional[bool] = Field(default=None, description="""Enable exit-edge focussing effects.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
     """Enable exit-edge focussing effects."""
-    fringe_model: Optional[str] = Field(default=None, description="""Which fringe-field model to integrate, named in Bmad's vocabulary because it is the widest: none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means \"whatever the receiving code does by default\", so a model a code cannot express is dropped rather than approximated. Not named ``fringe_type``: elegant spells a quadrupole attribute that way, but it selects where the fringe acts rather than which model runs, so the two names must not resolve to each other.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
-    """Which fringe-field model to integrate, named in Bmad's vocabulary because it is the widest: none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means "whatever the receiving code does by default", so a model a code cannot express is dropped rather than approximated. Not named ``fringe_type``: elegant spells a quadrupole attribute that way, but it selects where the fringe acts rather than which model runs, so the two names must not resolve to each other."""
+    fringe_model: Optional[str] = Field(default=None, description="""Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
+    """Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code."""
     sr_enable: Optional[bool] = Field(default=True, description="""Enable synchrotron-radiation energy loss.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
     """Enable synchrotron-radiation energy loss."""
     isr_enable: Optional[bool] = Field(default=True, description="""Enable incoherent synchrotron-radiation emittance growth.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'True'} })
@@ -2953,11 +3004,11 @@ class _PlasmaElementBase(ConfiguredBaseModel):
 class _DipoleMagnetBase(_MagneticElementBase):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/laura/schema/magnetic',
          'slot_usage': {'order': {'equals_number': 0,
-                                  'ifabsent': '0',
+                                  'ifabsent': 'int(0)',
                                   'name': 'order'}}})
 
     order: int = Field(default=0, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=0, ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
-         'ifabsent': '0'} })
+         'ifabsent': 'int(0)'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""
@@ -3028,11 +3079,11 @@ class _DipoleMagnetBase(_MagneticElementBase):
 class _QuadrupoleMagnetBase(_MagneticElementBase):
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/laura/schema/magnetic',
          'slot_usage': {'order': {'equals_number': 1,
-                                  'ifabsent': '1',
+                                  'ifabsent': 'int(1)',
                                   'name': 'order'}}})
 
     order: int = Field(default=1, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=1, ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
-         'ifabsent': '1'} })
+         'ifabsent': 'int(1)'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""
@@ -3106,11 +3157,11 @@ class _SextupoleMagnetBase(_MagneticElementBase):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/laura/schema/magnetic',
          'slot_usage': {'order': {'equals_number': 2,
-                                  'ifabsent': '2',
+                                  'ifabsent': 'int(2)',
                                   'name': 'order'}}})
 
     order: int = Field(default=2, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=2, ge=2, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
-         'ifabsent': '2'} })
+         'ifabsent': 'int(2)'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""
@@ -3186,11 +3237,11 @@ class _OctupoleMagnetBase(_MagneticElementBase):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/laura/schema/magnetic',
          'slot_usage': {'order': {'equals_number': 3,
-                                  'ifabsent': '3',
+                                  'ifabsent': 'int(3)',
                                   'name': 'order'}}})
 
     order: int = Field(default=3, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=3, ge=3, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
-         'ifabsent': '3'} })
+         'ifabsent': 'int(3)'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""
@@ -3268,7 +3319,7 @@ class _CorrectorMagnetBase(_DipoleMagnetBase):
          'from_schema': 'https://w3id.org/laura/schema/magnetic'})
 
     order: int = Field(default=0, description="""Principal multipole order (0 = dipole, 1 = quad, ?)."""    , le=0, ge=0, json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement', 'Solenoid_Magnet'],
-         'ifabsent': '0'} })
+         'ifabsent': 'int(0)'} })
     """Principal multipole order (0 = dipole, 1 = quad, ?)."""
     skew: bool = Field(default=False, description="""Whether the magnet is rotated 45? to produce a skew field component.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Multipole', 'MagneticElement'], 'ifabsent': 'False'} })
     """Whether the magnet is rotated 45? to produce a skew field component."""

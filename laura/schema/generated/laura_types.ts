@@ -120,6 +120,32 @@ export enum ControlTypeEnum {
     statistical = "statistical",
 };
 /**
+* Numeric storage type of a control variable's value, or of an individual element of a waveform's array.
+*/
+export enum NumericDtypeEnum {
+    
+    /** Signed 8-bit integer. */
+    int8 = "int8",
+    /** Signed 16-bit integer. */
+    int16 = "int16",
+    /** Signed 32-bit integer. */
+    int32 = "int32",
+    /** Signed 64-bit integer. */
+    int64 = "int64",
+    /** Unsigned 8-bit integer. */
+    uint8 = "uint8",
+    /** Unsigned 16-bit integer. */
+    uint16 = "uint16",
+    /** Unsigned 32-bit integer. */
+    uint32 = "uint32",
+    /** Unsigned 64-bit integer. */
+    uint64 = "uint64",
+    /** Single-precision float. */
+    float32 = "float32",
+    /** Double-precision float. */
+    float64 = "float64",
+};
+/**
 * Cross-sectional shape of a beam-pipe aperture.
 */
 export enum ApertureShapeEnum {
@@ -344,6 +370,10 @@ export interface ControlVariable {
     target?: string,
     /** Expression graph computing the value written to ``target``, as nested mappings of the form ``{op: mul, args: [<symbol>, <symbol>]}``, where a symbol is a variable name or a dotted attribute path. Operators are ``add``, ``sub``, ``mul``, ``truediv`` and ``pow``. */
     expression?: string,
+    /** Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container. */
+    element_dtype?: string,
+    /** Maximum array dimensions of a waveform, in numpy order (``[rows, columns]`` for an image).  Each entry is a positive integer, a dotted attribute path on the owning element, or a ``*``-separated product of those. */
+    shape?: string[],
     /** Mapping of state name to underlying control-system value, for ``control_type: state``. */
     states?: string,
     /** Name of the readback variable this set-point drives. */
@@ -561,6 +591,27 @@ export interface PowerSupply extends StandardElement {
 
 
 /**
+ * How finely a code should resolve CSR and space charge over one section.
+On the section: a bunch compressor is run with one binning and the linac around it with another.  The switches that turn the effects on stay per-element, as they can vary.
+All fields is optional; absence means "use the code's defaults".
+ */
+export interface SpaceChargeSettings {
+    /** Longitudinal bins the bunch is divided into to build the collective field. */
+    number_of_bins?: number,
+    /** Distance between collective-field recalculations. */
+    step_size?: number,
+    /** Full height of the vacuum chamber for CSR shielding. */
+    chamber_height?: number,
+    /** Number of image charges to sum when modelling wall shielding. */
+    shield_images?: number,
+    /** Width of a particle's deposition kernel, counted in bins. */
+    bin_span?: number,
+    /** Transverse beam size below which a slice is treated as having none. */
+    sigma_cutoff?: number,
+}
+
+
+/**
  * An ordered list of element names defining a contiguous beamline section.
  */
 export interface SectionLattice {
@@ -572,6 +623,8 @@ export interface SectionLattice {
     geometry?: string,
     /** Reference total energy of the design particle [eV]. */
     reference_energy?: number,
+    /** Resolution of the collective-field calculation over this section. */
+    space_charge?: SpaceChargeSettings,
     /** Ordered list of element names in this section. */
     elements?: string[],
 }
@@ -692,6 +745,8 @@ export interface MagnetSimulationElement extends SimulationElement {
     edge1_effects?: boolean,
     /** Enable exit-edge focussing effects. */
     edge2_effects?: boolean,
+    /** Which fringe-field model to integrate:  none, soft_edge_only, hard_edge_only, full, sad_full, linear_edge or basic_bend. Absent means default for that code. */
+    fringe_model?: string,
     /** Enable synchrotron-radiation energy loss. */
     sr_enable?: boolean,
     /** Enable incoherent synchrotron-radiation emittance growth. */
