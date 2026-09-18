@@ -289,6 +289,7 @@ class ControlVariable(Base):
     control_type = Column(Enum('scalar', 'binary', 'state', 'string', 'waveform', 'statistical', name='ControlTypeEnum'))
     target = Column(Text())
     expression = Column(Text())
+    element_dtype = Column(Enum('int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64', 'float32', 'float64', name='NumericDtypeEnum'))
     states = Column(Text())
     readback = Column(Text())
     setpoint = Column(Text())
@@ -296,9 +297,14 @@ class ControlVariable(Base):
     dynamics = Column(Text())
     ControlsInformation_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
     
+    
+    shape_rel = relationship( "ControlVariableShape" )
+    shape = association_proxy("shape_rel", "shape",
+                                  creator=lambda x_: ControlVariableShape(shape=x_))
+    
 
     def __repr__(self):
-        return f"ControlVariable(id={self.id},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},states={self.states},readback={self.readback},setpoint={self.setpoint},update={self.update},dynamics={self.dynamics},ControlsInformation_id={self.ControlsInformation_id},)"
+        return f"ControlVariable(id={self.id},identifier={self.identifier},dtype={self.dtype},protocol={self.protocol},units={self.units},description={self.description},read_only={self.read_only},value={self.value},control_type={self.control_type},target={self.target},expression={self.expression},element_dtype={self.element_dtype},states={self.states},readback={self.readback},setpoint={self.setpoint},update={self.update},dynamics={self.dynamics},ControlsInformation_id={self.ControlsInformation_id},)"
 
 
 
@@ -1779,6 +1785,24 @@ class PhysicalAcceleratorElementDownstream(Base):
 
     def __repr__(self):
         return f"PhysicalAcceleratorElement_downstream(PhysicalAcceleratorElement_name={self.PhysicalAcceleratorElement_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
+class ControlVariableShape(Base):
+    """
+    None
+    """
+    __tablename__ = 'ControlVariable_shape'
+
+    ControlVariable_id = Column(Integer(), ForeignKey('ControlVariable.id'), primary_key=True)
+    shape = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"ControlVariable_shape(ControlVariable_id={self.ControlVariable_id},shape={self.shape},)"
 
 
 

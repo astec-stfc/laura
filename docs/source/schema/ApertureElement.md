@@ -167,8 +167,8 @@ attributes:
     name: shape
     description: Cross-sectional aperture shape.
     from_schema: https://w3id.org/laura/schema/elements
-    rank: 1000
     domain_of:
+    - ControlVariable
     - ApertureElement
     range: ApertureShapeEnum
   radius:
@@ -258,9 +258,9 @@ attributes:
     name: shape
     description: Cross-sectional aperture shape.
     from_schema: https://w3id.org/laura/schema/elements
-    rank: 1000
     owner: ApertureElement
     domain_of:
+    - ControlVariable
     - ApertureElement
     range: ApertureShapeEnum
   radius:
