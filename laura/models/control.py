@@ -310,14 +310,16 @@ class ControlVariable(_ControlVariableBase):
             return v
         raise TypeError(f"dtype must be a type or string, got {type(v)}")
 
-    @field_validator("shape")
+    @field_validator("shape", mode="before")
     @classmethod
-    def validate_shape(cls, v: list | None, info: ValidationInfo) -> list | None:
+    def validate_shape(cls, v: list | str | None, info: ValidationInfo) -> list | None:
         """Check that every `shape` entry is a positive integer, a dotted attribute
         path on the owning element, or a ``*``-separated product of those.
         Only the spelling is checked here; see :func:~`resolve_shape`.
         """
         who = info.data.get("identifier", "<unknown>")
+        if isinstance(v, str):
+            v = [v]
         for entry in v or []:
             for term in shape_terms(entry):
                 try:
