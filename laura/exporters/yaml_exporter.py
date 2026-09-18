@@ -7,7 +7,7 @@ from typing import Union, Literal, Optional
 from ..models.element_list import MachineModel
 from ..models.element import PhysicalElement
 from ..models.magnetic import MagneticElement
-from ..Importers.YAML_Loader import (
+from ..importers.yaml_loader import (
     COMBINED_SCHEMAS_KEY,
     collapse_controls_schema,
     get_controls_schema_variables,
