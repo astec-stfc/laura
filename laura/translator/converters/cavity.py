@@ -338,7 +338,6 @@ class RFCavityTranslator(BaseElementTranslator):
                     setattr(
                         obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
-        # Pinned to "standing_wave" so Cheetah stays consistent with other codes.
         if hasattr(obj, "cavity_type"):
             if self.cavity.structure_type == "TravellingWave":
                 obj.cavity_type = "traveling_wave"
