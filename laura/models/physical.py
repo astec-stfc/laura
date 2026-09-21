@@ -327,7 +327,9 @@ class ReferencePlacement(_ReferencePlacementBase):
         raise ValueError("offset must be a list of 3 floats or {x, y, z} dict")
 
     @model_validator(mode="after")
-    def _check_offset_exclusivity(self) -> "ReferencePlacement":  # noqa: N804 (pydantic after-validator takes self)
+    def _check_offset_exclusivity(
+        self,
+    ) -> "ReferencePlacement":  # noqa: N804 (pydantic after-validator takes self)
         n = sum(
             [
                 self.offset is not None,
@@ -371,7 +373,9 @@ class PhysicalElement(_PhysicalElementBase):
     _explicit_angle: bool = PrivateAttr(default=False)
 
     @model_validator(mode="after")
-    def _check_placement_exclusivity(self) -> "PhysicalElement":  # noqa: N804 (pydantic after-validator takes self)
+    def _check_placement_exclusivity(
+        self,
+    ) -> "PhysicalElement":  # noqa: N804 (pydantic after-validator takes self)
         # Pydantic v2 re-runs model validators on every field assignment when
         # validate_assignment=True.  After construction the lattice assembly
         # legitimately sets both middle AND s on the same element, so we only
@@ -615,6 +619,34 @@ class PhysicalElement(_PhysicalElementBase):
         return self.rotation_matrix @ np.array(vec)
 
     @property
+    def _physical_tilt(self) -> float:
+        """Roll of the layout plane about the beam axis [rad].
+
+        :attr:`start`, :attr:`end` and :attr:`end_rotation_matrix` all lay the
+        bend out in the ``y = 0`` plane of :attr:`rotation_matrix`.  A magnet
+        rolled about the beam axis bends in a different plane,
+        so the layout has to be rolled with it.
+        Read off the magnet rather than folded into :attr:`rotation`.
+        """
+        magnetic = getattr(self._parent, "magnetic", None)
+        tilt = getattr(magnetic, "tilt", None) if magnetic is not None else None
+        if not isinstance(tilt, (int, float)) or not tilt:
+            return 0.0
+        placed = getattr(self.global_rotation, "psi", 0.0) or 0.0
+        return 0.0 if abs(placed - float(tilt)) < 1e-9 else float(tilt)
+
+    @property
+    def _layout_matrix(self) -> np.ndarray:
+        """:attr:`rotation_matrix`, rolled into the plane the magnet bends in."""
+        tilt = self._physical_tilt
+        if not tilt:
+            return self.rotation_matrix
+        cz, sz = np.cos(tilt), np.sin(tilt)
+        return self.rotation_matrix @ np.array(
+            [[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]]
+        )
+
+    @property
     def end_rotation_matrix(self) -> np.ndarray:
         """Rotation matrix at the element exit, accounting for bending angle.
 
@@ -627,6 +659,7 @@ class PhysicalElement(_PhysicalElementBase):
         ``rotation_matrix`` gives the actual exit direction, which equals
         ``rotation_matrix @ Ry(-θ)`` where Ry uses LAURA's convention
         ``Ry(α) = [[cos α, 0, −sin α], [0,1,0], [sin α, 0, cos α]]``.
+
         """
         theta = self._physical_angle
         if abs(theta) < 1e-9:
@@ -634,7 +667,12 @@ class PhysicalElement(_PhysicalElementBase):
         ct, st = np.cos(theta), np.sin(theta)
         # Ry(-theta) in LAURA's convention
         ry_neg = np.array([[ct, 0, st], [0, 1, 0], [-st, 0, ct]])
-        return self.rotation_matrix @ ry_neg
+        tilt = self._physical_tilt
+        if not tilt:
+            return self.rotation_matrix @ ry_neg
+        cz, sz = np.cos(tilt), np.sin(tilt)
+        rz = np.array([[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]])
+        return self.rotation_matrix @ rz @ ry_neg @ rz.T
 
     @property
     def start(self) -> Position:
@@ -657,8 +695,7 @@ class PhysicalElement(_PhysicalElementBase):
             # Straight element
             sx, sy, sz = 0, 0, -self.length / 2.0
 
-        vec = [sx, sy, sz]
-        start = middle + self.rotated_position(vec)
+        start = middle + self._layout_matrix @ np.array([sx, sy, sz])
         return Position.from_list(start)
 
     @property
@@ -681,6 +718,5 @@ class PhysicalElement(_PhysicalElementBase):
         else:
             ex, ey, ez = 0, 0, self.length / 2.0
 
-        vec = [ex, ey, ez]
-        end = middle + self.rotated_position(vec)
+        end = middle + self._layout_matrix @ np.array([ex, ey, ez])
         return Position.from_list(end)

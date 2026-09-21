@@ -1404,10 +1404,16 @@ def test_bmad_survey_frame_neutralises_only_a_roll_that_is_really_there():
     )
     assert np.allclose(bmad_survey_frame(arc_placed, "start"), np.eye(3))
 
+    # Both placements, both faces: how LAURA was told where the magnet is
+    # cannot change which plane it bends in. The s-placed one used to report a
+    # plain Ry(-angle) here -- a yaw, as though the roll were not there -- which
+    # is the same thing that drew a 62 degree vertical arc flat on the floor.
     assert np.allclose(
         bmad_survey_frame(floor_placed, "end"), _rz(psi) @ ry_neg @ _rz(-psi)
     )
-    assert np.allclose(bmad_survey_frame(arc_placed, "end"), ry_neg)
+    assert np.allclose(
+        bmad_survey_frame(arc_placed, "end"), _rz(psi) @ ry_neg @ _rz(-psi)
+    )
 
 
 def test_bmad_skew_magnet_writes_its_strength_into_bmads_skew_slot():

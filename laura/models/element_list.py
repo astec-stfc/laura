@@ -185,6 +185,13 @@ def _s_start_of(phys: "PhysicalElement") -> float:
     return s  # 'start'
 
 
+def _bend_tilt(elem: object) -> float:
+    """Roll of an element's bend plane about the beam axis [rad]."""
+    magnetic = getattr(elem, "magnetic", None)
+    tilt = getattr(magnetic, "tilt", None) if magnetic is not None else None
+    return float(tilt) if isinstance(tilt, (int, float)) else 0.0
+
+
 def load_functional_definitions(
     value: Union[str, Dict, None], master_lattice: str | None = None
 ) -> Dict[str, Union[int, float]]:
@@ -840,6 +847,15 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
                 pos_list.append(current_pos.copy())
                 rot_list.append(current_r.copy())
 
+            tilt = _bend_tilt(elem)
+            if tilt:
+                cz, sz = np.cos(tilt), np.sin(tilt)
+                rz = np.array([[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]])
+                elem_r = current_r @ rz
+            else:
+                rz = None
+                elem_r = current_r
+
             # Compute middle and end positions
             if abs(angle) < 1e-9:
                 mid_pos = current_pos + current_r @ np.array([0.0, 0.0, l / 2.0])
@@ -855,16 +871,15 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
                 local_end = np.array(
                     [rho * (1.0 - np.cos(angle)), 0.0, rho * np.sin(angle)]
                 )
-                mid_pos = current_pos + current_r @ local_mid
-                end_pos = current_pos + current_r @ local_end
+                mid_pos = current_pos + elem_r @ local_mid
+                end_pos = current_pos + elem_r @ local_end
                 ct, st = np.cos(angle), np.sin(angle)
                 ry_neg = np.array([[ct, 0.0, st], [0.0, 1.0, 0.0], [-st, 0.0, ct]])
-                exit_r = current_r @ ry_neg
+                exit_r = elem_r @ ry_neg if rz is None else elem_r @ ry_neg @ rz.T
 
             # Set world-frame middle on the element
             phys.middle = Position.from_list(mid_pos.tolist())
 
-            # Inherit trajectory orientation when no explicit rotation given
             if "rotation" not in phys.model_fields_set:
                 yaw, pitch, roll = rotation_matrix_to_euler(current_r)
                 phys.rotation = Rotation(theta=yaw, phi=pitch, psi=roll)
@@ -889,6 +904,8 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
         middle / end of each element, assigns the arc-length ``s`` value (at
         middle) back onto each element's physical block, and attaches the
         trajectory as ``phys._trajectory`` for bidirectional sync.
+        An uncomposed section starts counting from the arc length its own first
+        element states, not from zero.
         """
         if self._composed_frame is not None:
             current_s, prev_end, _ = self._composed_frame
@@ -896,6 +913,15 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
         else:
             current_s = 0.0
             prev_end = None
+            for name in self.order:
+                phys = getattr(element_registry.get(name), "physical", None)
+                if phys is None or phys.middle is None:
+                    continue
+                if phys.s is not None:
+                    current_s = _s_start_of(phys)
+                    start = phys.start
+                    prev_end = np.array([start.x, start.y, start.z])
+                break
 
         s_list = [current_s]
         pos_list = [np.zeros(3) if prev_end is None else prev_end.copy()]
@@ -939,6 +965,7 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
                 [phys.rotation_matrix, phys.rotation_matrix, phys.end_rotation_matrix]
             )
 
+            phys._trajectory = None
             phys.s_point = "middle"
             phys.s = s_elem_mid
 

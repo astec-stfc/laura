@@ -3,23 +3,26 @@ import re
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Dict, Optional, Union
 from warnings import warn
+
 import numpy as np
 from pydantic import BaseModel, PrivateAttr, model_validator
-from typing import Dict, Optional, Union
-from ...utils.elegant import sdds_file
+
 import laura.models.element as laura_elements
 from laura.models.element_list import (
-    SectionLattice,
+    ElementList,
     MachineLayout,
     MachineModel,
-    ElementList,
+    SectionLattice,
 )
+
+from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
+from ...utils.elegant import sdds_file
 from ...utils.elegant.sdds_classes_aps import SddsParams
 from ...utils.fields import FieldMap
-from ....exporters.yaml_exporter import export_machine_combined_file, PositionMode
-from .. import keyword_conversion_rules_elegant
 from ...utils.functions import merge_layout_elements, number_repeated_names
+from .. import keyword_conversion_rules_elegant
 
 elegant_unsupported = [
     "Plasma",
@@ -74,8 +77,8 @@ def _expand_line_member(member: str, lookup: Dict[str, tuple]) -> list:
         result = list(reversed(result))
     return result * count
 
-class ElegantLatticeImporter(BaseModel):
 
+class ElegantLatticeImporter(BaseModel):
     machine_area: str = "Lattice"
 
     params_file: Optional[str] = None
@@ -203,9 +206,9 @@ class ElegantLatticeImporter(BaseModel):
                 )
             }
             if expressions:
-                self._source_expressions[element.lower()] = expressions
+                self._source_expressions[element.strip('"').lower()] = expressions
         line_bodies = dict(
-            re.findall(r"(?im)^\s*([^\s:]+)\s*:\s*line\s*=\s*\(([^)]*)\)", text)
+            re.findall(r'(?im)^\s*"?([^\s:"]+)"?\s*:\s*line\s*=\s*\(([^)]*)\)', text)
         )
         self._source_lines = {
             name: [member.strip() for member in body.split(",") if member.strip()]
@@ -222,10 +225,7 @@ class ElegantLatticeImporter(BaseModel):
             self.lattice_name = self.beamline
         else:
             referenced = {
-                re.sub(r"^(?:\d+\*)?-?", "", member.strip())
-                .strip()
-                .strip('"')
-                .lower()
+                re.sub(r"^(?:\d+\*)?-?", "", member.strip()).strip().strip('"').lower()
                 for body in line_bodies.values()
                 for member in body.split(",")
             }
@@ -233,14 +233,22 @@ class ElegantLatticeImporter(BaseModel):
             beamlines = roots or beamlines
         self._source_roots = beamlines.copy()
         if len(beamlines) == 1:
-            raw_members = [member.strip() for member in line_bodies[beamlines[0]].split(",")]
+            raw_members = [
+                member.strip() for member in line_bodies[beamlines[0]].split(",")
+            ]
             members = [
                 re.sub(r"^(?:\d+\*)?-?", "", member).strip().strip('"')
                 for member in raw_members
             ]
             lookup = {name.lower(): name for name in line_bodies}
-            undecorated = not any(re.match(r"^\d+\s*\*|^-", member) for member in raw_members)
-            if undecorated and members and all(member.lower() in lookup for member in members):
+            undecorated = not any(
+                re.match(r"^\d+\s*\*|^-", member) for member in raw_members
+            )
+            if (
+                undecorated
+                and members
+                and all(member.lower() in lookup for member in members)
+            ):
                 self.lattice_name = beamlines[0]
                 beamlines = list(
                     dict.fromkeys(lookup[member.lower()] for member in members)
@@ -319,7 +327,9 @@ class ElegantLatticeImporter(BaseModel):
         params = SddsParams(self.params_file)
         if self.source_file:
             params.elegant_params = self._saved_lattice_params(self.params_file)
-        self.elegant_data, filenames = params.create_element_dictionary(self.machine_area)
+        self.elegant_data, filenames = params.create_element_dictionary(
+            self.machine_area
+        )
         for name, data in self.elegant_data.items():
             source_name = name.lower()
             expressions = self._source_expressions.get(source_name, {})
@@ -510,7 +520,9 @@ class ElegantLatticeImporter(BaseModel):
         def member_name(member: str) -> tuple[str, int]:
             value = member.strip()
             match = re.match(r"^(\d+)\s*\*\s*(.*)$", value)
-            repeats, value = (int(match.group(1)), match.group(2)) if match else (1, value)
+            repeats, value = (
+                (int(match.group(1)), match.group(2)) if match else (1, value)
+            )
             return value.lstrip("-").strip().strip('"'), repeats
 
         def expanded_length(name: str, stack: tuple[str, ...] = ()) -> int:
@@ -518,7 +530,9 @@ class ElegantLatticeImporter(BaseModel):
             if key is None:
                 return 1
             if key.lower() in stack:
-                raise ValueError(f"Recursive ELEGANT LINE definition involving {key!r}.")
+                raise ValueError(
+                    f"Recursive ELEGANT LINE definition involving {key!r}."
+                )
             return sum(
                 repeats * expanded_length(child, stack + (key.lower(),))
                 for child, repeats in map(member_name, self._source_lines[key])
@@ -629,8 +643,7 @@ class ElegantLatticeImporter(BaseModel):
             )
         if not layout_definitions:
             raise ValueError(
-                "No ELEGANT layouts meet min_section_length="
-                f"{min_section_length}."
+                f"No ELEGANT layouts meet min_section_length={min_section_length}."
             )
         default_layout = next(iter(layout_definitions))
         return MachineModel(
@@ -686,7 +699,7 @@ class ElegantLatticeImporter(BaseModel):
 
     def _convert_k_to_kl(self, v) -> dict:
         multi = {}
-        if "angle" in v:
+        if "angle" in v and "magnetic" in v:
             symbol = self._rpn_symbol(v["angle"])
             if symbol:
                 v["k0"] = symbol
