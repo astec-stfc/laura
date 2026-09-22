@@ -29,7 +29,7 @@ class ApertureTranslator(BaseElementTranslator):
             String representation of the element for MAD-X
         """
         self.start_write()
-        etype = self._convertType_Madx(self.hardware_type)
+        etype = self._convert_type_madx(self.hardware_type)
         if self.aperture.shape in ["elliptical", "circular"] and etype == "rcollimator":
             etype = "ecollimator"
         string = sanitize_string(self.name) + ": " + etype

@@ -209,6 +209,14 @@ class RFCavityTranslator(BaseElementTranslator):
                 if key == "wakefile":
                     value = value
 
+                # A TravellingWave structure needs ELEGANT's own TW1 body-focus
+                # model -- the default ("SRS") is the standing-wave model, which
+                # MAD-X's tw_matrix_cavity and Ocelot's add_tw1_focusing no longer
+                # use for TravellingWave cavities, so leaving this unset makes
+                # ELEGANT disagree with both of them.
+                if key == "body_focus_model" and self.structure_type == "TravellingWave":
+                    value = "TW1"
+
                 # In CAVITY NKICK = n_cells
                 if key == "n_kicks" and self.get_cells() > 1:
                     value = 3 * self.get_cells()
@@ -330,9 +338,11 @@ class RFCavityTranslator(BaseElementTranslator):
                     setattr(
                         obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
-        # Pinned to "standing_wave" so Cheetah stays consistent with other codes.
         if hasattr(obj, "cavity_type"):
-            obj.cavity_type = "standing_wave"
+            if self.cavity.structure_type == "TravellingWave":
+                obj.cavity_type = "traveling_wave"
+            else:
+                obj.cavity_type = "standing_wave"
         return obj
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
@@ -499,8 +509,9 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_madx(self.hardware_type)
-        if self.structure_type == "TravellingWave" and etype == "rfcavity":
-            etype = "twcavity"
+        # "twcavity" in MAD-X does not accelerate, and so this does not work as intended!
+        # if self.structure_type == "TravellingWave" and etype == "rfcavity":
+        #     etype = "twcavity"
         string = sanitize_string(self.name) + ": " + etype
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (
