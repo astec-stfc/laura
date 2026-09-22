@@ -609,8 +609,6 @@ class BaseElementTranslator(PhysicalBaseElement):
             ):
                 if value is not None:
                     key = self._convert_keyword_genesis(key)
-                    if key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                        value = getattr(self, f"{key}l")
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
