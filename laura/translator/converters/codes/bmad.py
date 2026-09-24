@@ -3,7 +3,7 @@ import re
 import tempfile
 from itertools import permutations
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union, get_args
+from typing import Any, Dict, List, Literal, NamedTuple, Optional, Union, get_args
 from warnings import warn
 
 import numpy as np
@@ -29,7 +29,6 @@ from ...utils.bmad import (
     BMAD_SR_WAKE_SAMPLES,
     bmad_floor_angles_to_laura,
     is_flat_roll,
-    is_half_turn,
     sample_bmad_sr_wake,
 )
 from ...utils.fields import FieldMap
@@ -38,6 +37,7 @@ from ...utils.functions import merge_layout_elements, number_repeated_names
 from ...utils.units import UnitValue
 from .. import keyword_conversion_rules_bmad, type_conversion_rules_bmad
 from . import magnetic_orders
+from .importer import read_with_calls
 
 _DRIFT_TYPES = ("Drift", "Pipe")
 """Bmad types with no physics of their own."""
@@ -127,6 +127,8 @@ _PATCH_TRANSFORM_ATTRIBUTES = _PATCH_GEOMETRIC_ATTRIBUTES + _PATCH_ENERGY_ATTRIB
 _PATCH_TRANSFORM_TOLERANCE = 1e-12
 
 _ORDER_TYPES = {0: "Dipole", 1: "Quadrupole", 2: "Sextupole", 3: "Octupole"}
+
+_CALL_RE = re.compile(r"(?im)^\s*call\s*,\s*file\s*=\s*([^\s;]+)\s*;?\s*$")
 
 _MULTIPASS_SLAVE_NAME = re.compile(r"^(?P<base>.+)\\(?P<number>\d+)$")
 
@@ -364,30 +366,6 @@ def _native_keyword(hardware_type: str, laura_field: str) -> str:
     if key in keyword_conversion_rules_bmad:
         rules = keyword_conversion_rules_bmad[key] | rules
     return rules.get(laura_field, laura_field).upper()
-
-
-def _read_lattice_text(path: Path, _seen: Optional[set] = None) -> str:
-    """Read a Bmad lattice file, inlining any ``call, file = ...`` statements
-    it contains.
-
-    Bmad resolves a ``call``'d filename relative to the directory of the file
-    containing the ``call`` -- mirror that here so functional parameter
-    definitions declared in a called file are still found.
-    """
-    seen = _seen if _seen is not None else set()
-    path = path.resolve()
-    if path in seen:
-        return ""
-    seen.add(path)
-    text = re.sub(r"!.*", "", path.read_text())
-
-    def _inline(match: "re.Match") -> str:
-        called = (path.parent / match.group(1).strip("'\"")).resolve()
-        if not called.is_file():
-            return match.group(0)
-        return _read_lattice_text(called, seen)
-
-    return re.sub(r"(?im)^\s*call\s*,\s*file\s*=\s*([^\s;]+)\s*;?\s*$", _inline, text)
 
 
 def _bmad_cavity_cells(
@@ -652,6 +630,49 @@ def _taylor_matrices(taylor: Dict[str, Any]):
     return c_matrix, r_matrix, t_matrix, u_matrix
 
 
+class _NativeElement(NamedTuple):
+    """One Bmad element as read from Tao, handed to a ``_build_*`` method."""
+
+    universe: int
+    branch: str
+    name: str
+    etype: str
+    hardware_type: Optional[str]
+    length: float
+    parameters: Dict[str, Any]
+    physical: dict
+
+    @property
+    def base_name(self) -> str:
+        """``name`` as :meth:`BmadLatticeImporter._symbol` looks it up."""
+        return self.name.split(".", 1)[0]
+
+    def keyword(self, laura_field: str) -> str:
+        return _native_keyword(self.hardware_type, laura_field)
+
+
+# Bmad element key -> the BmadLatticeImporter method that builds it.
+_BUILDERS = {
+    **dict.fromkeys(("Kicker", "HKicker", "VKicker"), "_build_kicker"),
+    **dict.fromkeys(magnetic_orders, "_build_magnet"),
+    **dict.fromkeys(_CAVITY_TYPES, "_build_cavity"),
+    **dict.fromkeys(("Wiggler", "Undulator"), "_build_wiggler"),
+    "Solenoid": "_build_solenoid",
+    "Sol_Quad": "_build_sol_quad",
+    "ELSeparator": "_build_separator",
+    "Match": "_build_match",
+    "Taylor": "_build_taylor",
+    **dict.fromkeys(_COLLIMATOR_TYPES, "_build_collimator"),
+    **dict.fromkeys(_MULTIPOLE_TYPES, "_build_multipole"),
+    "AC_Kicker": "_build_ac_kicker",
+    "BeamBeam": "_build_beam_beam",
+    **dict.fromkeys(_MARKER_TYPES, "_build_marker"),
+    "Beginning_Ele": "_build_beginning",
+    "Patch": "_build_patch",
+    **dict.fromkeys(_DRIFT_TYPES, "_build_drift"),
+}
+
+
 class BmadTaoInit(BaseModel):
     """Minimal Tao init file for one Bmad lattice and optional line selections."""
 
@@ -784,7 +805,7 @@ class BmadLatticeImporter(BaseModel):
     def _read_functional_definitions(self) -> None:
         if not self.lattice_file:
             return
-        text = _read_lattice_text(Path(self.lattice_file))
+        text = read_with_calls(Path(self.lattice_file), _CALL_RE)
         text = text.replace("&\n", " ")
         statements = [statement.strip() for statement in re.split(r";|\n", text)]
         values = {}
@@ -1150,12 +1171,10 @@ class BmadLatticeImporter(BaseModel):
         angle = parameters.get("ANGLE")
         roll = 0.0
         if angle:
-            geometric = -float(angle)
+            common["physical_angle"] = -float(angle)
             roll = float(parameters.get("REF_TILT") or 0.0)
             if is_flat_roll(roll):
-                geometric = -geometric if is_half_turn(roll) else geometric
-                roll = 0.0
-            common["physical_angle"] = geometric
+                roll = 0.0  # the layout rolls a flat bend by ``magnetic.tilt``
         if self.position_mode == "floor":
             floor = _floor_to_physical(
                 parameters.get("_FLOOR", {}),
@@ -1270,513 +1289,415 @@ class BmadLatticeImporter(BaseModel):
         self, universe: int
     ) -> Dict[str, Dict[str, Element]]:
         switch_dict = _switch_dict()
-        for b in self.names_numbered[universe].keys():
-            for i, nam in enumerate(self.names_numbered[universe][b]):
+        for b, names in self.names_numbered[universe].items():
+            for i, nam in enumerate(names):
                 etype = self.types[universe][b][i]
-                mapped_type = switch_dict.get(etype.lower())
-                length = float(self.lengths[universe][b][i])
-                phys_common = self._physical_common(universe, b, i)
-
-                elem_data = {}
-                parameters = self.params[universe][b][i]
-                if etype == "Kicker":
-                    hardware_type = mapped_type
-                    horizontal = nam + "_H"
-                    vertical = nam + "_V"
-                    hkick = _native_keyword(hardware_type, "horizontal_kick")
-                    vkick = _native_keyword(hardware_type, "vertical_kick")
-                    hcor = {"length": length, "horizontal_kick": parameters[hkick]}
-                    vcor = {"length": length, "vertical_kick": parameters[vkick]}
-                    elem_data = {
-                        "hardware_type": hardware_type,
-                        "magnetic": {
-                            "length": length,
-                            "horizontal_kick": parameters[hkick],
-                            "vertical_kick": parameters[vkick],
-                        },
-                    }
-                    for attribute, target in (
-                        (hkick, "horizontal_kick"),
-                        (vkick, "vertical_kick"),
-                    ):
-                        symbol = self._symbol(nam.split(".", 1)[0], attribute)
-                        if symbol:
-                            elem_data["magnetic"][target] = symbol
-                            (hcor if attribute == "HKICK" else vcor)[target] = symbol
-                elif etype in ("HKicker", "VKicker"):
-                    target = (
-                        "horizontal_kick" if etype == "HKicker" else "vertical_kick"
-                    )
-                    kick = _native_keyword(mapped_type, target)
-                    elem_data = {
-                        "hardware_type": mapped_type,
-                        "magnetic": {
-                            "length": length,
-                            target: self._symbol(nam.split(".", 1)[0], kick)
-                            or parameters[kick],
-                        },
-                    }
-                elif etype in magnetic_orders:
-                    hardware_type = mapped_type
-                    order = magnetic_orders[hardware_type]
-                    try:
-                        normal = (
-                            self._symbol(nam.split(".", 1)[0], f"K{order}", length)
-                            or parameters[f"K{order}"] * length
-                        )
-                        kl = {
-                            "multipoles": {
-                                f"K{order}L": {
-                                    "normal": normal,
-                                    "order": order,
-                                },
-                            },
-                        }
-                    except KeyError:
-                        angle = (
-                            self._symbol(nam.split(".", 1)[0], "ANGLE")
-                            or parameters["ANGLE"]
-                        )
-                        kl = {
-                            "multipoles": {
-                                f"K{order}L": {
-                                    "normal": angle,
-                                    "order": order,
-                                },
-                            },
-                            "entrance_edge_angle": parameters[
-                                _native_keyword(hardware_type, "entrance_edge_angle")
-                            ],
-                            "exit_edge_angle": parameters[
-                                _native_keyword(hardware_type, "exit_edge_angle")
-                            ],
-                        }
-                    gap = _native_keyword(hardware_type, "gap")
-                    if gap in parameters:
-                        kl.update({"gap": parameters[gap]})
-                    hgap = _native_keyword(hardware_type, "half_gap")
-                    if hgap in parameters:
-                        kl["gap"] = 2 * parameters[hgap]
-                    fint = _native_keyword(hardware_type, "edge_field_integral")
-                    if fint in parameters:
-                        kl["edge_field_integral"] = parameters[fint]
-                    hgapx = _native_keyword(hardware_type, "exit_half_gap")
-                    if hgapx in parameters:
-                        kl["exit_gap"] = 2 * parameters[hgapx]
-                    fintx = _native_keyword(hardware_type, "edge_field_integral_exit")
-                    if fintx in parameters:
-                        kl["edge_field_integral_exit"] = parameters[fintx]
-                    for exit_field, entrance_field in (
-                        ("edge_field_integral_exit", "edge_field_integral"),
-                        ("exit_gap", "gap"),
-                    ):
-                        if kl.get(exit_field) == kl.get(entrance_field):
-                            kl.pop(exit_field, None)
-                    tilt = parameters.get(
-                        _native_keyword(hardware_type, "tilt")
-                    ) or parameters.get("TILT")
-                    if tilt:
-                        kl["tilt"] = tilt
-                    magnetic = {"order": order, "length": length, **kl}
-                    poles = magnetic["multipoles"]
-                    for extra_order, components in _an_bn_multipoles(
-                        parameters
-                    ).items():
-                        pole = poles.setdefault(
-                            f"K{extra_order}L", {"order": extra_order}
-                        )
-                        for component, value in components.items():
-                            standing = pole.get(component) or 0.0
-                            if isinstance(standing, str):
-                                warn(
-                                    f"Bmad {etype} {nam!r} has both a functional "
-                                    f"K{extra_order} and a fixed "
-                                    f"{'a' if component == 'skew' else 'b'}"
-                                    f"{extra_order} = {value}; LAURA holds one "
-                                    "value per component, so the functional "
-                                    "definition was kept and the fixed term "
-                                    "dropped."
-                                )
-                                continue
-                            pole[component] = standing + value
-                    main = poles.get(f"K{order}L", {})
-                    if main.get("skew") and not main.get("normal"):
-                        magnetic["skew"] = True
-                    elem_data = {
-                        "hardware_type": hardware_type,
-                        "magnetic": magnetic,
-                    }
-                elif etype in _CAVITY_TYPES:
-                    hardware_type = mapped_type
-                    frequency = parameters[_native_keyword(hardware_type, "frequency")]
-                    cell_length = (
-                        speed_of_light / (2.0 * frequency) if frequency else 0.0
-                    )
-                    n_cells = _bmad_cavity_cells(
-                        parameters.get(_native_keyword(hardware_type, "n_cells"), 1),
-                        parameters.get("L_ACTIVE"),
-                        length,
-                        cell_length,
-                    )
-                    elem_data = {
-                        "hardware_type": hardware_type,
-                        "cavity": {
-                            "phase": -360.0
-                            * parameters.get(
-                                _native_keyword(hardware_type, "phase"), 0.0
-                            ),
-                            "frequency": frequency,
-                            "n_cells": n_cells,
-                            "cell_length": cell_length or length / n_cells,
-                            "structure_type": str(
-                                parameters.get(
-                                    _native_keyword(hardware_type, "structure_type"),
-                                    "Standing_Wave",
-                                )
-                            ).replace("_", ""),
-                        },
-                        "simulation": {
-                            "field_amplitude": parameters[
-                                _native_keyword(hardware_type, "field_amplitude")
-                            ],
-                            **(
-                                {"n_kicks": int(parameters["N_RF_STEPS"])}
-                                if parameters.get("N_RF_STEPS")
-                                else {}
-                            ),
-                        },
-                    }
-                elif etype in ("Wiggler", "Undulator"):
-                    b_max = parameters.get(
-                        _native_keyword(mapped_type, "peak_magnetic_field"), 0.0
-                    )
-                    l_period = parameters.get(
-                        _native_keyword(mapped_type, "period"), 0.0
-                    )
-                    elem_data = {
-                        "hardware_type": mapped_type,
-                        "magnetic": {
-                            "length": length,
-                            "peak_magnetic_field": b_max,
-                            "period": l_period,
-                            "num_periods": int(
-                                parameters.get(
-                                    _native_keyword(mapped_type, "num_periods"), 0
-                                )
-                            ),
-                            "strength": 0.934 * b_max * (l_period * 100.0),
-                        },
-                    }
-                elif etype == "Solenoid":
-                    ks = parameters.get(_native_keyword(mapped_type, "ks"), 0.0)
-                    elem_data = {
-                        "hardware_type": mapped_type,
-                        "magnetic": {
-                            "length": length,
-                            "fields": {"S0L": ks * length},
-                        },
-                    }
-                elif etype == "Sol_Quad":
-                    k1 = _native_keyword(mapped_type, "k1l")
-                    ks = _native_keyword(mapped_type, "ks")
-                    elem_data = {
-                        "hardware_type": mapped_type,
-                        "magnetic": {
-                            "length": length,
-                            "k1l": self._symbol(nam.split(".", 1)[0], k1, length)
-                            or parameters.get(k1, 0.0) * length,
-                            "solenoid_fields": {
-                                "S0L": parameters.get(ks, 0.0) * length
-                            },
-                        },
-                    }
-                elif etype == "ELSeparator":
-                    field = parameters.get(
-                        _native_keyword(mapped_type, "field_amplitude"), 0.0
-                    )
-                    hkick = parameters.get(
-                        _native_keyword(mapped_type, "horizontal_kick"), 0.0
-                    )
-                    vkick = parameters.get(
-                        _native_keyword(mapped_type, "vertical_kick"), 0.0
-                    )
-                    kick = math.hypot(hkick, vkick)
-                    if kick:
-                        horizontal_field = field * hkick / kick
-                        vertical_field = field * vkick / kick
-                    else:
-                        tilt = parameters.get("TILT", 0.0)
-                        horizontal_field = field * math.sin(tilt)
-                        vertical_field = field * math.cos(tilt)
-                    elem_data = {
-                        "hardware_type": mapped_type,
-                        "simulation": {
-                            "horizontal_field": horizontal_field,
-                            "vertical_field": vertical_field,
-                        },
-                    }
-                elif etype == "Match":
-                    elem_data = {
-                        "hardware_type": mapped_type,
-                        "simulation": {
-                            "apply": True,
-                            "c_matrix": parameters["_VEC0"],
-                            "r_matrix": parameters["_MAT6"],
-                        },
-                    }
-                elif etype == "Taylor":
-                    try:
-                        c_matrix, r_matrix, t_matrix, u_matrix = _taylor_matrices(
-                            parameters["_TAYLOR"]
-                        )
-                    except ValueError as exc:
-                        warn(f"Could not import Bmad Taylor element {nam!r}: {exc}.")
-                        continue
-                    elem_data = {
-                        "hardware_type": mapped_type,
-                        "simulation": {
-                            "apply": True,
-                            "c_matrix": c_matrix,
-                            "r_matrix": r_matrix,
-                            "t_matrix": t_matrix,
-                            "u_matrix": u_matrix,
-                            "spin_taylor": parameters["_SPIN_TAYLOR"],
-                        },
-                    }
-                elif etype in _COLLIMATOR_TYPES:
-                    elem_data = {"hardware_type": mapped_type}
-                elif etype in _MULTIPOLE_TYPES:
-                    poles = {}
-                    for row in parameters.get("_MULTIPOLES", {}).get("data", []):
-                        order = int(row["index"])
-                        normal = row.get("Bn", row.get("Bn (equiv)", 0.0)) or 0.0
-                        skew = row.get("An", row.get("An (equiv)", 0.0)) or 0.0
-                        if normal or skew:
-                            scale = math.factorial(order)
-                            poles[f"K{order}L"] = {
-                                "order": order,
-                                "normal": normal * scale,
-                                "skew": skew * scale,
-                            }
-                    if not poles:
-                        warn(
-                            f"Bmad {etype} {nam!r} has no multipole content; "
-                            "imported as a Marker, since there is no order to "
-                            "give a zero-strength magnet."
-                            + (
-                                f" Its {length} m length is dependent on the"
-                                " Bmad element key and is dropped on export."
-                                if length
-                                else ""
-                            )
-                        )
-                        self._store_marker(
-                            universe, b, nam, phys_common, parameters, "Marker"
-                        )
-                    else:
-                        highest = max(int(k[1:-1]) for k in poles)
-                        hardware_type = _ORDER_TYPES.get(highest, "Magnet")
-                        elem_data = {
-                            "hardware_type": hardware_type,
-                            "magnetic": {
-                                "order": highest,
-                                "length": length,
-                                "multipoles": poles,
-                            },
-                        }
-                elif etype == "AC_Kicker":
-                    hkick = parameters.get("HKICK", 0.0) or 0.0
-                    vkick = parameters.get("VKICK", 0.0) or 0.0
-                    vertical = abs(vkick) > abs(hkick)
-                    amplitude = vkick if vertical else hkick
-                    simulation = {"field_amplitude": amplitude}
-                    ac_data = parameters.get("_AC_KICKER", {})
-                    frequencies = ac_data.get("frequencies", [])
-                    if frequencies:
-                        frequency, scale, phase = max(
-                            frequencies, key=lambda row: abs(row[1])
-                        )
-                        simulation.update(
-                            {
-                                "field_amplitude": amplitude * scale,
-                                "frequency": frequency,
-                                "phase": phase * 360,
-                            }
-                        )
-                        if len(frequencies) > 1:
-                            warn(
-                                f"Bmad AC_Kicker {nam!r} has multiple frequencies; "
-                                "LAURA stores one, so the largest-amplitude component "
-                                "was imported."
-                            )
-                    if ac_data.get("amp_vs_time"):
-                        warn(
-                            f"Bmad AC_Kicker {nam!r} uses amp_vs_time; LAURA has no "
-                            "equivalent sampled-time waveform, so it was not imported."
-                        )
-                    elem_data = {
-                        "hardware_type": (
-                            "Vertical_AC_Dipole" if vertical else "Horizontal_AC_Dipole"
-                        ),
-                        "simulation": simulation,
-                    }
-                    if hkick and vkick:
-                        warn(
-                            f"Bmad AC_Kicker {nam!r} kicks in both planes "
-                            f"(hkick={hkick}, vkick={vkick}); LAURA models a single "
-                            "plane per element, so only the larger kick is imported."
-                        )
-                elif etype == "BeamBeam":
-                    elem_data = {
-                        "hardware_type": mapped_type,
-                        "simulation": {
-                            "n_particles": parameters.get("N_PARTICLE"),
-                            "charge": parameters.get("CHARGE"),
-                            "horizontal_sigma": parameters.get("SIG_X"),
-                            "vertical_sigma": parameters.get("SIG_Y"),
-                            "width": parameters.get("SIG_Z"),
-                        },
-                    }
-                elif etype in _MARKER_TYPES:
-                    if etype == "Fixer" and parameters.get("_ACTIVE"):
-                        self._store_twiss_point(
-                            universe, b, nam, phys_common, parameters
-                        )
-                    else:
-                        if etype == "Fixer":
-                            warn(
-                                f"Bmad Fixer {nam!r} is not the active fixer, so "
-                                "its stored orbit and Twiss are not this "
-                                "branch's; it is imported as a Marker and they "
-                                "are dropped."
-                            )
-                        self._store_marker(
-                            universe, b, nam, phys_common, parameters, mapped_type
-                        )
-                elif etype == "Beginning_Ele":
-                    if parameters.get("_TWISS"):
-                        physical = dict(phys_common)
-                        physical.update(
-                            _floor_to_physical(parameters.get("_FLOOR", {}))
-                        )
-                        self._store_twiss_point(universe, b, nam, physical, parameters)
-                elif etype == "Patch":
-                    transform = {
-                        key: parameters[key]
-                        for key in _PATCH_TRANSFORM_ATTRIBUTES
-                        if abs(parameters.get(key) or 0.0) > _PATCH_TRANSFORM_TOLERANCE
-                    }
-                    described = ", ".join(
-                        f"{key}={value}"
-                        for key, value in transform.items()
-                        if key in _PATCH_GEOMETRIC_ATTRIBUTES
-                    )
-                    if described and self.position_mode == "s":
-                        warn(
-                            f"Bmad Patch {nam!r} moves the reference frame "
-                            f"({described}). position_mode='s' integrates"
-                            " geometry from element lengths and bend angles and"
-                            " cannot represent the shift, so every element after"
-                            " this one is placed as though the patch were"
-                            " absent. Import with position_mode='floor' to take"
-                            " the placement from Tao instead."
-                        )
-                    energy = ", ".join(
-                        f"{key}={value}"
-                        for key, value in transform.items()
-                        if key in _PATCH_ENERGY_ATTRIBUTES
-                    )
-                    if energy:
-                        warn(
-                            f"Bmad Patch {nam!r} changes the reference energy "
-                            f"({energy}). LAURA has no element for a"
-                            " reference-energy jump, so it is dropped and the"
-                            " reference energy downstream of this patch is"
-                            " wrong."
-                        )
-                elif etype in _DRIFT_TYPES:
-                    if length < 0.0:
-                        warn(
-                            f"Bmad drift {nam!r} has negative length ({length} "
-                            "m), which LAURA cannot hold, and nothing adjacent "
-                            "cancels it, so it is dropped. Everything "
-                            f"downstream of it sits {-2 * length} m too far "
-                            "along the beam line."
-                        )
-                        continue
-                    elem_data = {"hardware_type": "Drift", "hardware_class": "Drift"}
-                else:
+                native = _NativeElement(
+                    universe=universe,
+                    branch=b,
+                    name=nam,
+                    etype=etype,
+                    hardware_type=switch_dict.get(etype.lower()),
+                    length=float(self.lengths[universe][b][i]),
+                    parameters=self.params[universe][b][i],
+                    physical=self._physical_common(universe, b, i),
+                )
+                builder = _BUILDERS.get(etype)
+                if builder is None:
                     warn(
                         f"Could not parse Bmad element type {etype!r} for "
                         f"{nam!r}; skipping."
                     )
-
+                    continue
+                elem_data = getattr(self, builder)(native)
                 if elem_data:
-                    collective = _collective_settings(
-                        parameters,
-                        getattr(self, "bmad_com", {}),
-                        elem_data.get("hardware_type", ""),
-                    ) | _fringe_model(
-                        parameters, etype, elem_data.get("hardware_type", "")
-                    )
-                    if collective:
-                        elem_data["simulation"] = collective | dict(
-                            elem_data.get("simulation") or {}
-                        )
-                    wake_data = self._wake_field(
-                        nam, parameters, length, elem_data.get("hardware_type", "")
-                    )
-                    if wake_data:
-                        simulation = dict(elem_data.get("simulation") or {})
-                        simulation.update(wake_data["simulation"])
-                        elem_data["simulation"] = simulation
-                    elems = {
-                        nam: {
-                            "physical": dict(phys_common),
-                            "name": nam,
-                            "machine_area": getattr(self, "machine_area", "Lattice"),
-                            **_aperture(parameters, etype),
-                            **elem_data,
-                            **self._subelement_of(universe, b, nam),
-                        }
-                    }
-                    if etype == "Kicker":
-                        helem = dict(elems[nam])
-                        helem["physical"] = dict(phys_common)
-                        helem.update(
-                            {
-                                "name": horizontal,
-                                "hardware_type": "Horizontal_Corrector",
-                                "magnetic": hcor,
-                                "subelement": nam,
-                            }
-                        )
-                        velem = dict(elems[nam])
-                        velem["physical"] = dict(phys_common)
-                        velem.update(
-                            {
-                                "name": vertical,
-                                "hardware_type": "Vertical_Corrector",
-                                "magnetic": vcor,
-                                "subelement": nam,
-                            }
-                        )
-                        comb = CombinedCorrector(**elems[nam])
-                        hori = HorizontalCorrector(**helem)
-                        vert = VerticalCorrector(**velem)
-                        self.laura_elems[universe][b].update(
-                            {
-                                nam: comb,
-                                horizontal: hori,
-                                vertical: vert,
-                            },
-                        )
-                    else:
-                        hardware_type = elems[nam]["hardware_type"]
-                        self.laura_elems[universe][b].update(
-                            {nam: getattr(laura_elements, hardware_type)(**elems[nam])}
-                        )
+                    self._store_element(native, elem_data)
         return self.laura_elems[universe]
+
+    def _store_element(self, e: "_NativeElement", elem_data: dict) -> None:
+        """Add the settings every element shares to ``elem_data`` and store it.
+
+        A Bmad ``kicker`` is stored as a ``Combined_Corrector`` followed by its
+        horizontal and vertical halves.
+        """
+        hardware_type = elem_data.get("hardware_type", "")
+        simulation = (
+            _collective_settings(
+                e.parameters, getattr(self, "bmad_com", {}), hardware_type
+            )
+            | _fringe_model(e.parameters, e.etype, hardware_type)
+            | dict(elem_data.get("simulation") or {})
+        )
+        wake_data = self._wake_field(e.name, e.parameters, e.length, hardware_type)
+        if wake_data:
+            simulation.update(wake_data["simulation"])
+        if simulation:
+            elem_data["simulation"] = simulation
+        data = {
+            "physical": dict(e.physical),
+            "name": e.name,
+            "machine_area": getattr(self, "machine_area", "Lattice"),
+            **_aperture(e.parameters, e.etype),
+            **elem_data,
+            **self._subelement_of(e.universe, e.branch, e.name),
+        }
+        stored = self.laura_elems[e.universe][e.branch]
+        if e.etype != "Kicker":
+            stored[e.name] = getattr(laura_elements, data["hardware_type"])(**data)
+            return
+        stored[e.name] = CombinedCorrector(**data)
+        for suffix, cls, hardware_type, kick in (
+            ("_H", HorizontalCorrector, "Horizontal_Corrector", "horizontal_kick"),
+            ("_V", VerticalCorrector, "Vertical_Corrector", "vertical_kick"),
+        ):
+            stored[e.name + suffix] = cls(
+                **{
+                    **data,
+                    "physical": dict(e.physical),
+                    "name": e.name + suffix,
+                    "hardware_type": hardware_type,
+                    "magnetic": {"length": e.length, kick: data["magnetic"][kick]},
+                    "subelement": e.name,
+                }
+            )
+
+    def _build_kicker(self, e: "_NativeElement") -> dict:
+        planes = {
+            "HKicker": ("horizontal_kick",),
+            "VKicker": ("vertical_kick",),
+        }.get(e.etype, ("horizontal_kick", "vertical_kick"))
+        magnetic = {"length": e.length}
+        for target in planes:
+            kick = e.keyword(target)
+            magnetic[target] = self._symbol(e.base_name, kick) or e.parameters[kick]
+        return {"hardware_type": e.hardware_type, "magnetic": magnetic}
+
+    def _build_magnet(self, e: "_NativeElement") -> dict:
+        parameters = e.parameters
+        order = magnetic_orders[e.hardware_type]
+        magnetic = {"order": order, "length": e.length}
+        strength = f"K{order}"
+        normal = self._symbol(e.base_name, strength, e.length)
+        if normal is None and strength in parameters:
+            normal = parameters[strength] * e.length
+        if normal is None:
+            normal = self._symbol(e.base_name, "ANGLE") or parameters["ANGLE"]
+            for edge in ("entrance_edge_angle", "exit_edge_angle"):
+                magnetic[edge] = parameters[e.keyword(edge)]
+        poles = {f"K{order}L": {"normal": normal, "order": order}}
+        magnetic["multipoles"] = poles
+        for field, native, scale in (
+            ("gap", "gap", 1),
+            ("gap", "half_gap", 2),
+            ("edge_field_integral", "edge_field_integral", 1),
+            ("exit_gap", "exit_half_gap", 2),
+            ("edge_field_integral_exit", "edge_field_integral_exit", 1),
+        ):
+            native = e.keyword(native)
+            if native in parameters:
+                magnetic[field] = scale * parameters[native]
+        for exit_field, entrance_field in (
+            ("edge_field_integral_exit", "edge_field_integral"),
+            ("exit_gap", "gap"),
+        ):
+            if magnetic.get(exit_field) == magnetic.get(entrance_field):
+                magnetic.pop(exit_field, None)
+        tilt = parameters.get(e.keyword("tilt")) or parameters.get("TILT")
+        if tilt:
+            magnetic["tilt"] = tilt
+        for extra_order, components in _an_bn_multipoles(parameters).items():
+            pole = poles.setdefault(f"K{extra_order}L", {"order": extra_order})
+            for component, value in components.items():
+                standing = pole.get(component) or 0.0
+                if isinstance(standing, str):
+                    warn(
+                        f"Bmad {e.etype} {e.name!r} has both a functional "
+                        f"K{extra_order} and a fixed "
+                        f"{'a' if component == 'skew' else 'b'}"
+                        f"{extra_order} = {value}; LAURA holds one "
+                        "value per component, so the functional "
+                        "definition was kept and the fixed term "
+                        "dropped."
+                    )
+                    continue
+                pole[component] = standing + value
+        main = poles.get(f"K{order}L", {})
+        if main.get("skew") and not main.get("normal"):
+            magnetic["skew"] = True
+        return {"hardware_type": e.hardware_type, "magnetic": magnetic}
+
+    def _build_cavity(self, e: "_NativeElement") -> dict:
+        parameters = e.parameters
+        frequency = parameters[e.keyword("frequency")]
+        cell_length = speed_of_light / (2.0 * frequency) if frequency else 0.0
+        n_cells = _bmad_cavity_cells(
+            parameters.get(e.keyword("n_cells"), 1),
+            parameters.get("L_ACTIVE"),
+            e.length,
+            cell_length,
+        )
+        simulation = {"field_amplitude": parameters[e.keyword("field_amplitude")]}
+        if parameters.get("N_RF_STEPS"):
+            simulation["n_kicks"] = int(parameters["N_RF_STEPS"])
+        return {
+            "hardware_type": e.hardware_type,
+            "cavity": {
+                "phase": -360.0 * parameters.get(e.keyword("phase"), 0.0),
+                "frequency": frequency,
+                "n_cells": n_cells,
+                "cell_length": cell_length or e.length / n_cells,
+                "structure_type": str(
+                    parameters.get(e.keyword("structure_type"), "Standing_Wave")
+                ).replace("_", ""),
+            },
+            "simulation": simulation,
+        }
+
+    def _build_wiggler(self, e: "_NativeElement") -> dict:
+        b_max = e.parameters.get(e.keyword("peak_magnetic_field"), 0.0)
+        l_period = e.parameters.get(e.keyword("period"), 0.0)
+        return {
+            "hardware_type": e.hardware_type,
+            "magnetic": {
+                "length": e.length,
+                "peak_magnetic_field": b_max,
+                "period": l_period,
+                "num_periods": int(e.parameters.get(e.keyword("num_periods"), 0)),
+                # K = 0.934 B[T] lambda_u[cm]
+                "strength": 0.934 * b_max * (l_period * 100.0),
+            },
+        }
+
+    def _build_solenoid(self, e: "_NativeElement") -> dict:
+        ks = e.parameters.get(e.keyword("ks"), 0.0)
+        return {
+            "hardware_type": e.hardware_type,
+            "magnetic": {"length": e.length, "fields": {"S0L": ks * e.length}},
+        }
+
+    def _build_sol_quad(self, e: "_NativeElement") -> dict:
+        k1 = e.keyword("k1l")
+        ks = e.parameters.get(e.keyword("ks"), 0.0)
+        return {
+            "hardware_type": e.hardware_type,
+            "magnetic": {
+                "length": e.length,
+                "k1l": self._symbol(e.base_name, k1, e.length)
+                or e.parameters.get(k1, 0.0) * e.length,
+                "solenoid_fields": {"S0L": ks * e.length},
+            },
+        }
+
+    def _build_separator(self, e: "_NativeElement") -> dict:
+        field = e.parameters.get(e.keyword("field_amplitude"), 0.0)
+        hkick = e.parameters.get(e.keyword("horizontal_kick"), 0.0)
+        vkick = e.parameters.get(e.keyword("vertical_kick"), 0.0)
+        kick = math.hypot(hkick, vkick)
+        if kick:
+            horizontal, vertical = hkick / kick, vkick / kick
+        else:
+            tilt = e.parameters.get("TILT", 0.0)
+            horizontal, vertical = math.sin(tilt), math.cos(tilt)
+        return {
+            "hardware_type": e.hardware_type,
+            "simulation": {
+                "horizontal_field": field * horizontal,
+                "vertical_field": field * vertical,
+            },
+        }
+
+    def _build_match(self, e: "_NativeElement") -> dict:
+        return {
+            "hardware_type": e.hardware_type,
+            "simulation": {
+                "apply": True,
+                "c_matrix": e.parameters["_VEC0"],
+                "r_matrix": e.parameters["_MAT6"],
+            },
+        }
+
+    def _build_taylor(self, e: "_NativeElement") -> Optional[dict]:
+        try:
+            c_matrix, r_matrix, t_matrix, u_matrix = _taylor_matrices(
+                e.parameters["_TAYLOR"]
+            )
+        except ValueError as exc:
+            warn(f"Could not import Bmad Taylor element {e.name!r}: {exc}.")
+            return None
+        return {
+            "hardware_type": e.hardware_type,
+            "simulation": {
+                "apply": True,
+                "c_matrix": c_matrix,
+                "r_matrix": r_matrix,
+                "t_matrix": t_matrix,
+                "u_matrix": u_matrix,
+                "spin_taylor": e.parameters["_SPIN_TAYLOR"],
+            },
+        }
+
+    def _build_collimator(self, e: "_NativeElement") -> dict:
+        return {"hardware_type": e.hardware_type}
+
+    def _build_multipole(self, e: "_NativeElement") -> Optional[dict]:
+        poles = {}
+        for row in e.parameters.get("_MULTIPOLES", {}).get("data", []):
+            order = int(row["index"])
+            normal = row.get("Bn", row.get("Bn (equiv)", 0.0)) or 0.0
+            skew = row.get("An", row.get("An (equiv)", 0.0)) or 0.0
+            if normal or skew:
+                scale = math.factorial(order)
+                poles[f"K{order}L"] = {
+                    "order": order,
+                    "normal": normal * scale,
+                    "skew": skew * scale,
+                }
+        if not poles:
+            warn(
+                f"Bmad {e.etype} {e.name!r} has no multipole content; "
+                "imported as a Marker, since there is no order to "
+                "give a zero-strength magnet."
+                + (
+                    f" Its {e.length} m length is dependent on the"
+                    " Bmad element key and is dropped on export."
+                    if e.length
+                    else ""
+                )
+            )
+            self._store_marker(
+                e.universe, e.branch, e.name, e.physical, e.parameters, "Marker"
+            )
+            return None
+        highest = max(int(k[1:-1]) for k in poles)
+        return {
+            "hardware_type": _ORDER_TYPES.get(highest, "Magnet"),
+            "magnetic": {"order": highest, "length": e.length, "multipoles": poles},
+        }
+
+    def _build_ac_kicker(self, e: "_NativeElement") -> dict:
+        hkick = e.parameters.get("HKICK", 0.0) or 0.0
+        vkick = e.parameters.get("VKICK", 0.0) or 0.0
+        vertical = abs(vkick) > abs(hkick)
+        amplitude = vkick if vertical else hkick
+        simulation = {"field_amplitude": amplitude}
+        ac_data = e.parameters.get("_AC_KICKER", {})
+        frequencies = ac_data.get("frequencies", [])
+        if frequencies:
+            frequency, scale, phase = max(frequencies, key=lambda row: abs(row[1]))
+            simulation.update(
+                {
+                    "field_amplitude": amplitude * scale,
+                    "frequency": frequency,
+                    "phase": phase * 360,
+                }
+            )
+            if len(frequencies) > 1:
+                warn(
+                    f"Bmad AC_Kicker {e.name!r} has multiple frequencies; "
+                    "LAURA stores one, so the largest-amplitude component "
+                    "was imported."
+                )
+        if ac_data.get("amp_vs_time"):
+            warn(
+                f"Bmad AC_Kicker {e.name!r} uses amp_vs_time; LAURA has no "
+                "equivalent sampled-time waveform, so it was not imported."
+            )
+        if hkick and vkick:
+            warn(
+                f"Bmad AC_Kicker {e.name!r} kicks in both planes "
+                f"(hkick={hkick}, vkick={vkick}); LAURA models a single "
+                "plane per element, so only the larger kick is imported."
+            )
+        return {
+            "hardware_type": (
+                "Vertical_AC_Dipole" if vertical else "Horizontal_AC_Dipole"
+            ),
+            "simulation": simulation,
+        }
+
+    def _build_beam_beam(self, e: "_NativeElement") -> dict:
+        get = e.parameters.get
+        return {
+            "hardware_type": e.hardware_type,
+            "simulation": {
+                "n_particles": get("N_PARTICLE"),
+                "charge": get("CHARGE"),
+                "horizontal_sigma": get("SIG_X"),
+                "vertical_sigma": get("SIG_Y"),
+                "width": get("SIG_Z"),
+            },
+        }
+
+    def _build_marker(self, e: "_NativeElement") -> None:
+        if e.etype == "Fixer" and e.parameters.get("_ACTIVE"):
+            self._store_twiss_point(
+                e.universe, e.branch, e.name, e.physical, e.parameters
+            )
+            return
+        if e.etype == "Fixer":
+            warn(
+                f"Bmad Fixer {e.name!r} is not the active fixer, so "
+                "its stored orbit and Twiss are not this "
+                "branch's; it is imported as a Marker and they "
+                "are dropped."
+            )
+        self._store_marker(
+            e.universe, e.branch, e.name, e.physical, e.parameters, e.hardware_type
+        )
+
+    def _build_beginning(self, e: "_NativeElement") -> None:
+        if e.parameters.get("_TWISS"):
+            physical = dict(e.physical)
+            physical.update(_floor_to_physical(e.parameters.get("_FLOOR", {})))
+            self._store_twiss_point(
+                e.universe, e.branch, e.name, physical, e.parameters
+            )
+
+    def _build_patch(self, e: "_NativeElement") -> None:
+        """Warn about what LAURA loses from a patch; nothing is stored."""
+        transform = {
+            key: e.parameters[key]
+            for key in _PATCH_TRANSFORM_ATTRIBUTES
+            if abs(e.parameters.get(key) or 0.0) > _PATCH_TRANSFORM_TOLERANCE
+        }
+
+        def described(keys) -> str:
+            return ", ".join(
+                f"{key}={value}" for key, value in transform.items() if key in keys
+            )
+
+        geometric = described(_PATCH_GEOMETRIC_ATTRIBUTES)
+        if geometric and self.position_mode == "s":
+            warn(
+                f"Bmad Patch {e.name!r} moves the reference frame "
+                f"({geometric}). position_mode='s' integrates"
+                " geometry from element lengths and bend angles and"
+                " cannot represent the shift, so every element after"
+                " this one is placed as though the patch were"
+                " absent. Import with position_mode='floor' to take"
+                " the placement from Tao instead."
+            )
+        energy = described(_PATCH_ENERGY_ATTRIBUTES)
+        if energy:
+            warn(
+                f"Bmad Patch {e.name!r} changes the reference energy "
+                f"({energy}). LAURA has no element for a"
+                " reference-energy jump, so it is dropped and the"
+                " reference energy downstream of this patch is"
+                " wrong."
+            )
+
+    def _build_drift(self, e: "_NativeElement") -> Optional[dict]:
+        if e.length < 0.0:
+            warn(
+                f"Bmad drift {e.name!r} has negative length ({e.length} "
+                "m), which LAURA cannot hold, and nothing adjacent "
+                "cancels it, so it is dropped. Everything "
+                f"downstream of it sits {-2 * e.length} m too far "
+                "along the beam line."
+            )
+            return None
+        return {"hardware_type": "Drift", "hardware_class": "Drift"}
 
     def _reference_energy(self, universe: int, branch: str) -> float | None:
         """Reference total energy [eV] at the start of ``branch``."""

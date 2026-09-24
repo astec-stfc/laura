@@ -1,3 +1,4 @@
+import inspect
 import warnings
 from pathlib import Path
 from types import SimpleNamespace
@@ -24,6 +25,13 @@ from laura.translator.utils.bmad import (
     bmad_floor_rotation_matrix,
 )
 from laura.utils.rotation_matrix import euler_angles_to_rotation_matrix
+
+
+def _bind_importer_methods(importer):
+    """Give a ``SimpleNamespace`` stand-in the importer methods it lacks."""
+    for name, member in vars(BmadLatticeImporter).items():
+        if inspect.isfunction(member) and not hasattr(importer, name):
+            setattr(importer, name, member.__get__(importer))
 
 
 def test_bmad_conversion_rules_are_loaded():
@@ -282,11 +290,7 @@ def test_bmad_additional_element_mappings():
         functional_definitions={},
         super_lord_children={},
     )
-    importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
-    importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
-    importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
-    importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
-    importer._subelement_of = BmadLatticeImporter._subelement_of.__get__(importer)
+    _bind_importer_methods(importer)
     elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
         "LINE_1"
     ]
@@ -344,11 +348,7 @@ def test_bmad_fixers_and_empty_multipoles_are_kept_as_markers():
         functional_definitions={},
         super_lord_children={},
     )
-    importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
-    importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
-    importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
-    importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
-    importer._subelement_of = BmadLatticeImporter._subelement_of.__get__(importer)
+    _bind_importer_methods(importer)
 
     with pytest.warns(UserWarning) as record:
         elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
@@ -463,11 +463,7 @@ def _patch_importer(position_mode):
         functional_definitions={},
         super_lord_children={},
     )
-    importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
-    importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
-    importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
-    importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
-    importer._subelement_of = BmadLatticeImporter._subelement_of.__get__(importer)
+    _bind_importer_methods(importer)
     return importer
 
 
@@ -566,11 +562,7 @@ def test_bmad_non_positive_n_cell_fills_the_element_with_cells():
         functional_definitions={},
         super_lord_children={},
     )
-    importer._physical_common = BmadLatticeImporter._physical_common.__get__(importer)
-    importer._symbol = BmadLatticeImporter._symbol.__get__(importer)
-    importer._store_marker = BmadLatticeImporter._store_marker.__get__(importer)
-    importer._wake_field = BmadLatticeImporter._wake_field.__get__(importer)
-    importer._subelement_of = BmadLatticeImporter._subelement_of.__get__(importer)
+    _bind_importer_methods(importer)
 
     elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
         "LINE_1"
@@ -757,11 +749,7 @@ def test_bmad_collective_and_radiation_settings_reach_the_elements():
         functional_definitions={},
         super_lord_children={},
     )
-    for method in ("_physical_common", "_symbol", "_store_marker", "_wake_field",
-                   "_subelement_of"):
-        setattr(
-            importer, method, getattr(BmadLatticeImporter, method).__get__(importer)
-        )
+    _bind_importer_methods(importer)
 
     elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
         "LINE_1"
@@ -826,11 +814,7 @@ def test_bmad_fringe_model_is_kept_only_when_it_is_not_the_default():
         functional_definitions={},
         super_lord_children={},
     )
-    for method in ("_physical_common", "_symbol", "_store_marker", "_wake_field",
-                   "_subelement_of"):
-        setattr(
-            importer, method, getattr(BmadLatticeImporter, method).__get__(importer)
-        )
+    _bind_importer_methods(importer)
 
     elements = BmadLatticeImporter.create_laura_element_dictionary(importer, 1)[
         "LINE_1"

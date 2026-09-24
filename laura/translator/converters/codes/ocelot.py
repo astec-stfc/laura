@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
-from typing import Any, Dict, TYPE_CHECKING, Optional, Union
+from pydantic import ConfigDict
+from typing import Any, Dict, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
 import laura.models.element as laura_elems
-from laura.models.element_list import SectionLattice, MachineLayout, ElementList
 from . import magnetic_orders
 from .. import keyword_conversion_rules_ocelot as keyword_conversion_rules
 from ...utils.functions import introspect_model_defaults, number_repeated_names
-from ....exporters.yaml_exporter import export_machine_combined_file, PositionMode
+from .importer import LatticeImporter
 from warnings import warn
 from math import isfinite
 
@@ -54,7 +53,7 @@ ocelot_unsupported = [
 ]
 
 
-class OcelotLatticeImporter(BaseModel):
+class OcelotLatticeImporter(LatticeImporter):
     model_config = ConfigDict(
         extra="allow",
         arbitrary_types_allowed=True,
@@ -76,6 +75,9 @@ class OcelotLatticeImporter(BaseModel):
 
     def _default_name(self) -> str:
         return self.name
+
+    def _element_map(self) -> Dict:
+        return self.laura_elements
 
     def create_element_dictionary(self):
         return self.create_laura_element_dictionary()
@@ -283,55 +285,6 @@ class OcelotLatticeImporter(BaseModel):
                 {numbered_id: getattr(laura_elems, newobj["hardware_type"])(**newobj)}
             )
         return self.laura_elements
-
-    def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:
-        if not self.laura_elements:
-            self.create_laura_element_dictionary()
-        if section is None:
-            names = list(self.laura_elements)
-            if not names:
-                raise ValueError("No elements were imported; cannot build a section.")
-            section = {self._default_name(): [names[0], names[-1]]}
-        if len(section) != 1:
-            raise ValueError("A section definition must contain exactly one section.")
-        secname, bounds = next(iter(section.items()))
-        if len(bounds) != 2:
-            raise ValueError("A section definition must contain first and last elements.")
-        names = list(self.laura_elements)
-        try:
-            first, last = names.index(bounds[0]), names.index(bounds[1])
-        except ValueError as exc:
-            missing = bounds[0] if bounds[0] not in self.laura_elements else bounds[1]
-            raise KeyError(f"element {missing} not found in lattice") from exc
-        if first > last:
-            raise ValueError("The first section element must precede the last.")
-        elems = dict(list(self.laura_elements.items())[first : last + 1])
-        seclat = SectionLattice(
-            order=list(elems), elements=ElementList(elements=elems), name=secname
-        )
-        seclat.resolve_positions(self.laura_elements)
-        return {secname: seclat}
-
-    def create_layout(
-        self, name: Optional[str] = None, sections: Optional[Dict] = None
-    ) -> MachineLayout:
-        if sections is None:
-            layout_sections = self.create_section()
-        else:
-            layout_sections = {}
-            for secname, bounds in sections.items():
-                layout_sections.update(self.create_section({secname: bounds}))
-        return MachineLayout(
-            name=name or self._default_name(), sections=layout_sections
-        )
-
-    def export_yaml(
-        self,
-        path: str,
-        source: Union[SectionLattice, MachineLayout],
-        position_mode: PositionMode = "s",
-    ) -> None:
-        export_machine_combined_file(path, source, position_mode=position_mode)
 
 
 from laura._compat import deprecated_aliases  # noqa: E402

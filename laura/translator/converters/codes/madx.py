@@ -1,19 +1,14 @@
 import os
 import re
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 from warnings import warn
 
 import numpy as np
-from pydantic import BaseModel, PrivateAttr, model_validator
+from pydantic import PrivateAttr, model_validator
 
 import laura.models.element as laura_elements
-from laura.models.element_list import (
-    SectionLattice,
-    MachineLayout,
-    MachineModel,
-    ElementList,
-)
+from laura.models.element_list import MachineModel
 from ...utils.functions import (
     introspect_model_defaults,
     merge_layout_elements,
@@ -22,32 +17,13 @@ from ...utils.functions import (
 from ...utils.madx.TFSFile import TFSFile
 from . import magnetic_orders
 from .. import type_conversion_rules_madx, keyword_conversion_rules_madx
-from ....exporters.yaml_exporter import export_machine_combined_file, PositionMode
+from .importer import LatticeImporter, read_with_calls
 
 _RAW_KEYS = ("k0", "k1", "k2", "k3", "angle", "l", "kick", "hkick", "vkick", "ks")
 
 _ORDER_TYPES = {order: name for name, order in magnetic_orders.items()}
 
-
-def _read_lattice_text(path: Path, _seen: Optional[set] = None) -> str:
-    """Read a MAD-X source file, inlining any ``call, file=...;`` statements
-    it contains (recursively), so text-based scans (e.g. for declared
-    constant names) see included files too.
-    """
-    seen = _seen if _seen is not None else set()
-    path = path.resolve()
-    if path in seen:
-        return ""
-    seen.add(path)
-    text = re.sub(r"!.*", "", path.read_text())
-
-    def _inline(match: "re.Match") -> str:
-        called = (path.parent / match.group(1).strip().strip("'\"")).resolve()
-        if not called.is_file():
-            return match.group(0)
-        return _read_lattice_text(called, seen)
-
-    return re.sub(r"(?i)\bcall\s*,\s*file\s*=\s*([^;]+);", _inline, text)
+_CALL_RE = re.compile(r"(?i)\bcall\s*,\s*file\s*=\s*([^;]+);")
 
 
 def _switch_dict() -> Dict[str, str]:
@@ -83,7 +59,7 @@ def _switch_off(element, flags) -> None:
             setattr(simulation, flag, False)
 
 
-class MadxLatticeImporter(BaseModel):
+class MadxLatticeImporter(LatticeImporter):
 
     machine_area: str = "Lattice"
 
@@ -109,8 +85,6 @@ class MadxLatticeImporter(BaseModel):
     elements: Dict = {}
     """Dictionary containing converted
     :class:`~laura.models.element.Element` objects"""
-
-    functional_definitions: Dict[str, Union[int, float]] = {}
 
     lattice_name: Optional[str] = None
     """Best-effort lattice name, parsed from the TWISS file's own
@@ -185,7 +159,7 @@ class MadxLatticeImporter(BaseModel):
         declared = set(
             re.findall(
                 r"(?im)^\s*([A-Za-z_][\w.]*)\s*(?::=|=)",
-                _read_lattice_text(Path(self.source_file)),
+                read_with_calls(Path(self.source_file), _CALL_RE),
             )
         )
         native_elements = list(madx.sequence[sequence].elements)
@@ -546,72 +520,6 @@ class MadxLatticeImporter(BaseModel):
             self.elements.update({k: element})
         return self.elements
 
-    def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:
-        """Build a named :class:`SectionLattice` from imported elements.
-
-        Parameters
-        ----------
-        section: dict, optional
-            ``{section_name: [first_element_name, last_element_name]}``. When
-            omitted, a single section spanning the *entire* imported lattice
-            (its first through last element, in beamline order) is derived
-            automatically. The name defaults to :meth:`_default_name`.
-        """
-        if not self.elements:
-            self.create_laura_element_dictionary()
-        if section is None:
-            names = list(self.elements)
-            if not names:
-                raise ValueError("No elements were imported; cannot build a section.")
-            section = {self._default_name(): [names[0], names[-1]]}
-        if len(section) != 1:
-            raise ValueError("A section definition must contain exactly one section.")
-        secname, bounds = next(iter(section.items()))
-        if len(bounds) != 2:
-            raise ValueError("A section definition must contain first and last elements.")
-        names = list(self.elements)
-        try:
-            first, last = names.index(bounds[0]), names.index(bounds[1])
-        except ValueError as exc:
-            missing = bounds[0] if bounds[0] not in self.elements else bounds[1]
-            raise KeyError(f"element {missing} not found in lattice") from exc
-        if first > last:
-            raise ValueError("The first section element must precede the last.")
-        elems = dict(list(self.elements.items())[first : last + 1])
-        seclat = SectionLattice(
-            order=list(elems), elements=ElementList(elements=elems), name=secname,
-            functional_definitions=self.functional_definitions,
-        )
-        seclat.resolve_positions(self.elements)
-        return {secname: seclat}
-
-    def create_layout(
-        self, name: Optional[str] = None, sections: Optional[Dict] = None
-    ) -> MachineLayout:
-        """Build a :class:`MachineLayout` from one or more sections.
-
-        Parameters
-        ----------
-        name: str, optional
-            Layout name. Defaults to :meth:`_default_name` when omitted.
-        sections: dict, optional
-            ``{section_name: [first_element_name, last_element_name]}`` for
-            each section. When omitted, a single auto-derived section
-            spanning the whole imported lattice is used (see
-            :meth:`create_section`).
-        """
-        if sections is None:
-            layout_sections = self.create_section()
-        else:
-            layout_sections = {}
-            for secname, secpos in sections.items():
-                layout_sections.update(self.create_section({secname: secpos}))
-        return MachineLayout(
-            name=name or self._default_name(),
-            sections=layout_sections,
-            functional_definitions=self.functional_definitions,
-        )
-
     def create_machine_model(
         self, min_section_length: int = 5, sections: Optional[Dict] = None
     ) -> MachineModel:
@@ -638,24 +546,7 @@ class MadxLatticeImporter(BaseModel):
             )
 
         if not self.source_file:
-            layout = self.create_layout(sections=sections)
-            return MachineModel(
-                elements={
-                    element.name: element
-                    for section in layout.sections.values()
-                    for element in section.elements.list()
-                },
-                section={
-                    "sections": {
-                        name: section.order for name, section in layout.sections.items()
-                    }
-                },
-                layout={
-                    "layouts": {layout.name: list(layout.sections)},
-                    "default_layout": layout.name,
-                },
-                functional_definitions=self.functional_definitions,
-            )
+            return self._single_layout_model(sections)
 
         madx = self._load_madx()
         sequences = list(madx.sequence.keys())
@@ -727,27 +618,3 @@ class MadxLatticeImporter(BaseModel):
             master_lattice=str(Path(self.source_file).resolve().parent),
             functional_definitions=all_functional_definitions,
         )
-
-    def export_yaml(
-        self,
-        path: str,
-        source: Union[SectionLattice, MachineLayout],
-        position_mode: PositionMode = "s",
-    ) -> None:
-        """Export this importer's resolved lattice to a combined LAURA YAML file.
-
-        Defaults to ``position_mode="s"`` (arc-length positioning).
-
-        Parameters
-        ----------
-        path: str
-            Directory in which to write ``summary.yaml``.
-        source: SectionLattice | MachineLayout
-            The section (from :meth:`create_section`) or layout (from
-            :meth:`create_layout`) to export.
-        position_mode: "global" | "s" | "reference"
-            Position representation forwarded to
-            :func:`~laura.Exporters.YAML.export_machine_combined_file`; see
-            there for the meaning of each mode.
-        """
-        export_machine_combined_file(path, source, position_mode=position_mode)

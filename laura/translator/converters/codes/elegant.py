@@ -3,26 +3,24 @@ import re
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 from warnings import warn
 
 import numpy as np
-from pydantic import BaseModel, PrivateAttr, model_validator
+from pydantic import PrivateAttr, model_validator
 
 import laura.models.element as laura_elements
 from laura.models.element_list import (
-    ElementList,
-    MachineLayout,
     MachineModel,
     SectionLattice,
 )
 
-from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
 from ...utils.elegant import sdds_file
 from ...utils.elegant.sdds_classes_aps import SddsParams
 from ...utils.fields import FieldMap
 from ...utils.functions import merge_layout_elements, number_repeated_names
 from .. import keyword_conversion_rules_elegant
+from .importer import LatticeImporter
 
 elegant_unsupported = [
     "Plasma",
@@ -78,7 +76,7 @@ def _expand_line_member(member: str, lookup: Dict[str, tuple]) -> list:
     return result * count
 
 
-class ElegantLatticeImporter(BaseModel):
+class ElegantLatticeImporter(LatticeImporter):
     machine_area: str = "Lattice"
 
     params_file: Optional[str] = None
@@ -96,8 +94,6 @@ class ElegantLatticeImporter(BaseModel):
     elements: Dict = {}
     """Dictionary containing converted
     :class:`~laura.models.element.Element` objects"""
-
-    functional_definitions: Dict[str, Union[int, float]] = {}
 
     lattice_name: Optional[str] = None
     """Best-effort lattice name, parsed from ``source_file``'s own top-level
@@ -432,84 +428,15 @@ class ElegantLatticeImporter(BaseModel):
             self.elements.update({k: cls(**v)})
         return self.elements
 
-    def create_section(
-        self, section: Optional[Dict] = None
-    ) -> Dict[str, SectionLattice]:
-        """Build a named :class:`SectionLattice` from imported elements.
-
-        Parameters
-        ----------
-        section: dict, optional
-            ``{section_name: [first_element_name, last_element_name]}``. When
-            omitted, a single section spanning the *entire* imported lattice
-            (its first through last element, in beamline order) is derived
-            automatically -- the natural default; if not, set to
-            :meth:`_default_name`.
-        """
-        if not self.elements:
-            self.create_laura_element_dictionary()
-        if section is None:
-            names = list(self.elements)
-            if not names:
-                raise ValueError("No elements were imported; cannot build a section.")
-            section = {self._default_name(): [names[0], names[-1]]}
-        if len(section) != 1:
-            raise ValueError("A section definition must contain exactly one section.")
-        secname, bounds = next(iter(section.items()))
-        if len(bounds) != 2:
-            raise ValueError(
-                "A section definition must contain first and last elements."
-            )
-        names = list(self.elements)
-        try:
-            first, last = names.index(bounds[0]), names.index(bounds[1])
-        except ValueError as exc:
-            missing = bounds[0] if bounds[0] not in self.elements else bounds[1]
-            raise KeyError(f"element {missing} not found in lattice") from exc
-        if first > last:
-            raise ValueError("The first section element must precede the last.")
-        elems = dict(list(self.elements.items())[first : last + 1])
-        seclat = SectionLattice(
-            order=list(elems),
-            elements=ElementList(elements=elems),
-            name=secname,
-            functional_definitions=self.functional_definitions,
-        )
-        seclat.resolve_positions(self.elements)
-        return {secname: seclat}
-
-    def create_layout(
-        self, name: Optional[str] = None, sections: Optional[Dict] = None
-    ) -> MachineLayout:
-        """Build a :class:`MachineLayout` from one or more sections.
-
-        Parameters
-        ----------
-        name: str, optional
-            Layout name. Defaults to :meth:`_default_name` when omitted.
-        sections: dict, optional
-            ``{section_name: [first_element_name, last_element_name]}`` for
-            each section. When omitted, a single auto-derived section
-            spanning the whole imported lattice is used (see
-            :meth:`create_section`).
-        """
-        if self.source_file and sections is None:
-            self._prepare_source()
-            layout_sections = {
-                beamline: self._source_section(beamline)
-                for beamline in self._source_sections
-            }
-        elif sections is None:
-            layout_sections = self.create_section()
-        else:
-            layout_sections = {}
-            for secname, secpos in sections.items():
-                layout_sections.update(self.create_section({secname: secpos}))
-        return MachineLayout(
-            name=name or self._default_name(),
-            sections=layout_sections,
-            functional_definitions=self.functional_definitions,
-        )
+    def _default_sections(self) -> Dict[str, SectionLattice]:
+        """One section per top-level ``LINE`` of ``source_file``, if given."""
+        if not self.source_file:
+            return self.create_section()
+        self._prepare_source()
+        return {
+            beamline: self._source_section(beamline)
+            for beamline in self._source_sections
+        }
 
     def _source_section_blocks(
         self, root: str, min_section_length: int
@@ -580,24 +507,7 @@ class ElegantLatticeImporter(BaseModel):
             raise ValueError("min_section_length must be at least 1.")
 
         if not self.source_file:
-            layout = self.create_layout()
-            return MachineModel(
-                elements={
-                    element.name: element
-                    for section in layout.sections.values()
-                    for element in section.elements.list()
-                },
-                section={
-                    "sections": {
-                        name: section.order for name, section in layout.sections.items()
-                    }
-                },
-                layout={
-                    "layouts": {layout.name: list(layout.sections)},
-                    "default_layout": layout.name,
-                },
-                functional_definitions=self.functional_definitions,
-            )
+            return self._single_layout_model()
 
         self._prepare_source()
         elements = {}
@@ -656,31 +566,6 @@ class ElegantLatticeImporter(BaseModel):
             master_lattice=str(Path(self.source_file).resolve().parent),
             functional_definitions=self.functional_definitions,
         )
-
-    def export_yaml(
-        self,
-        path: str,
-        source: Union[SectionLattice, MachineLayout, MachineModel],
-        position_mode: PositionMode = "s",
-    ) -> None:
-        """Export this importer's resolved lattice to a combined LAURA YAML file.
-
-        Defaults to ``position_mode="s"`` (arc-length positioning). Call
-        :meth:`~laura.models.elementList.SectionLattice.resolve_positions` on
-        ``source`` first so every element's ``s`` value is populated.
-
-        Parameters
-        ----------
-        path: str
-            Directory in which to write ``summary.yaml``.
-        source: SectionLattice | MachineLayout | MachineModel
-            The section, layout, or complete model to export.
-        position_mode: "global" | "s" | "reference"
-            Position representation forwarded to
-            :func:`~laura.Exporters.YAML.export_machine_combined_file`; see
-            there for the meaning of each mode.
-        """
-        export_machine_combined_file(path, source, position_mode=position_mode)
 
     def _rpn_symbol(self, value, length=0.0) -> str | None:
         if not isinstance(value, str):

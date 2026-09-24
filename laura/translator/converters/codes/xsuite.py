@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 from warnings import warn
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, PrivateAttr, model_validator
+from pydantic import ConfigDict, PrivateAttr, model_validator
 
 import laura.models.element as laura_elements
-from laura.models.element_list import ElementList, MachineLayout, SectionLattice
+from laura.models.element_list import MachineLayout, SectionLattice
 
-from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
+from .importer import LatticeImporter
 
 xsuite_unsupported = [
     "Laser",
@@ -96,7 +96,7 @@ _LOSSY_CONVERSIONS = {
 }
 
 
-class XsuiteLatticeImporter(BaseModel):
+class XsuiteLatticeImporter(LatticeImporter):
     """Import an Xtrack line into LAURA's common lattice lifecycle."""
 
     model_config = ConfigDict(
@@ -125,7 +125,6 @@ class XsuiteLatticeImporter(BaseModel):
     """Import a sliced line's slices rather than the thick elements they came
     from. Off by default -- see :meth:`_unsliced`."""
 
-    functional_definitions: Dict[str, Union[int, float]] = {}
 
     elements: Dict = {}
     sections: Dict = {}
@@ -713,78 +712,34 @@ class XsuiteLatticeImporter(BaseModel):
             self.elements[element_name] = laura_type(**data)
         return self.elements
 
-    def create_section(
-        self, section: Optional[Dict] = None
-    ) -> Dict[str, SectionLattice]:
-        if not self.elements:
-            self.create_laura_element_dictionary()
-        if section is None:
-            names = list(self.elements)
-            if not names:
-                raise ValueError("No elements were imported; cannot build a section.")
-            section = {self.name: [names[0], names[-1]]}
-        if len(section) != 1:
-            raise ValueError("A section definition must contain exactly one section.")
-        section_name, bounds = next(iter(section.items()))
-        if len(bounds) != 2:
-            raise ValueError(
-                "A section definition must contain first and last elements."
-            )
-        names = list(self.elements)
-        try:
-            first, last = names.index(bounds[0]), names.index(bounds[1])
-        except ValueError as exc:
-            missing = bounds[0] if bounds[0] not in self.elements else bounds[1]
-            raise KeyError(f"element {missing} not found in lattice") from exc
-        if first > last:
-            raise ValueError("The first section element must precede the last.")
+    def _default_name(self) -> str:
+        return self.name
 
-        elements = dict(list(self.elements.items())[first : last + 1])
-        lattice = SectionLattice(
-            order=list(elements),
-            elements=ElementList(elements=elements),
-            name=section_name,
-            functional_definitions=self.functional_definitions,
-        )
-        lattice.resolve_positions(self.elements)
-        self.sections[section_name] = lattice
-        return {section_name: lattice}
+    def _default_sections(self) -> Dict[str, SectionLattice]:
+        """One section per line of ``source_file``, if it has several."""
+        if not self._source_lines:
+            return self.create_section()
+        sections = {}
+        for line_name, line in self._source_lines.items():
+            object.__setattr__(self, "line", line)
+            self._read_functional_definitions()
+            self.elements = {}
+            self.create_laura_element_dictionary()
+            names = list(self.elements)
+            sections.update(self.create_section({line_name: [names[0], names[-1]]}))
+        return sections
+
+    def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:
+        built = super().create_section(section)
+        self.sections.update(built)
+        return built
 
     def create_layout(
         self, name: Optional[str] = None, sections: Optional[Dict] = None
     ) -> MachineLayout:
-        if self._source_lines and sections is None:
-            layout_sections = {}
-            for line_name, line in self._source_lines.items():
-                object.__setattr__(self, "line", line)
-                self._read_functional_definitions()
-                self.elements = {}
-                self.create_laura_element_dictionary()
-                names = list(self.elements)
-                layout_sections.update(
-                    self.create_section({line_name: [names[0], names[-1]]})
-                )
-        elif sections is None:
-            layout_sections = self.create_section()
-        else:
-            layout_sections = {}
-            for section_name, bounds in sections.items():
-                layout_sections.update(self.create_section({section_name: bounds}))
-        layout = MachineLayout(
-            name=name or self.name,
-            sections=layout_sections,
-            functional_definitions=self.functional_definitions,
-        )
+        layout = super().create_layout(name, sections)
         self.layouts[layout.name] = layout
         return layout
-
-    def export_yaml(
-        self,
-        path: str,
-        source: Union[SectionLattice, MachineLayout],
-        position_mode: PositionMode = "s",
-    ) -> None:
-        export_machine_combined_file(path, source, position_mode=position_mode)
 
 
 XsuiteLatticeConverter = XsuiteLatticeImporter

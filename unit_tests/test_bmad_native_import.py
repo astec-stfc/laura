@@ -371,8 +371,8 @@ def test_bmad_bend_geometry_is_the_negation_of_its_magnetic_angle():
     ``_physical_angle`` prefers an explicitly-set value over re-deriving one
     from the magnetic model; ``codes/elegant.py`` relies on the same thing.
 
-    A ``ref_tilt`` of half a turn flips the geometry back the other way, and is
-    recorded as that sign rather than as a roll -- see
+    A ``ref_tilt`` of half a turn keeps that sign too: it is carried by
+    ``magnetic.tilt``, which the layout rolls the bend plane by -- see
     :func:`test_bmad_ref_tilt_is_imported_and_turns_the_bend_the_other_way`.
     """
     importer = BmadLatticeImporter(
@@ -393,10 +393,8 @@ def test_bmad_bend_geometry_is_the_negation_of_its_magnetic_angle():
     for bend in bends:
         angle = bend.magnetic.KnL(0)
         assert angle  # a zero angle would make the assertion below vacuous
-        half_turn = abs(math.remainder(bend.magnetic.tilt or 0.0, 2 * math.pi)) > 1e-12
-        rolled += half_turn
-        expected = angle if half_turn else -angle
-        assert bend.physical._physical_angle == pytest.approx(expected)
+        rolled += abs(math.remainder(bend.magnetic.tilt or 0.0, 2 * math.pi)) > 1e-12
+        assert bend.physical._physical_angle == pytest.approx(-angle)
     assert rolled, "bates has ref_tilt = pi bends; the half-turn branch is untested"
 
 
