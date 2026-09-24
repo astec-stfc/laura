@@ -328,8 +328,8 @@ class ReferencePlacement(_ReferencePlacementBase):
 
     @model_validator(mode="after")
     def _check_offset_exclusivity(
-        self,
-    ) -> "ReferencePlacement":  # noqa: N804 (pydantic after-validator takes self)
+        self,  # noqa: N804 (pydantic after-validator takes self)
+    ) -> "ReferencePlacement":
         n = sum(
             [
                 self.offset is not None,
@@ -374,8 +374,8 @@ class PhysicalElement(_PhysicalElementBase):
 
     @model_validator(mode="after")
     def _check_placement_exclusivity(
-        self,
-    ) -> "PhysicalElement":  # noqa: N804 (pydantic after-validator takes self)
+        self,  # noqa: N804 (pydantic after-validator takes self)
+    ) -> "PhysicalElement":
         # Pydantic v2 re-runs model validators on every field assignment when
         # validate_assignment=True.  After construction the lattice assembly
         # legitimately sets both middle AND s on the same element, so we only

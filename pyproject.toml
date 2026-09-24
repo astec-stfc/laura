@@ -68,6 +68,7 @@ madx = [
 ]
 
 gpt = [
+    "easygdf",
 ]
 
 # Full install of all supported simulation codes for conversion
