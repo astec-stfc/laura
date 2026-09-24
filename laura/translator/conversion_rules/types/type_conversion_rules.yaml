@@ -1,6 +1,6 @@
 elegant:
   Dipole: csrcsbend
-  Quadrupole: quad
+  Quadrupole: kquad
   Sextupole: ksext
   Octupole: koct
   Decapole: mult

@@ -110,7 +110,7 @@ classes:
       integration_order:
         range: integer
         description: Order of the symplectic integrator.
-        ifabsent: int(4)
+        ifabsent: int(6)
       nonlinear:
         range: boolean
         description: Include higher-order (sextupole+) field components.

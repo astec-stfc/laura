@@ -13,6 +13,7 @@ elegant_unsupported = [
     "CrabCavity",
 ]
 
+
 class ElegantLatticeImporter(BaseModel):
     params_file: str
     """Name of ELEGANT parameters file"""
