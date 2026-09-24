@@ -286,6 +286,9 @@ class RFCavityTranslator(BaseElementTranslator):
                 if key == "wakefile":
                     value = value
 
+                if key == "body_focus_model" and self.structure_type == "TravellingWave":
+                    value = "TW1"
+
                 # In CAVITY NKICK = n_cells
                 if (
                     key == "n_kicks"
@@ -404,9 +407,11 @@ class RFCavityTranslator(BaseElementTranslator):
                     setattr(
                         obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
-        # Pinned to "standing_wave" so Cheetah stays consistent with other codes.
         if hasattr(obj, "cavity_type"):
-            obj.cavity_type = "standing_wave"
+            if self.cavity.structure_type == "TravellingWave":
+                obj.cavity_type = "traveling_wave"
+            else:
+                obj.cavity_type = "standing_wave"
         self._cheetah_float64(obj)
         return obj
 
@@ -574,8 +579,9 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_madx(self.hardware_type)
-        if self.structure_type == "TravellingWave" and etype == "rfcavity":
-            etype = "twcavity"
+        # "twcavity" in MAD-X does not accelerate, and so this does not work as intended!
+        # if self.structure_type == "TravellingWave" and etype == "rfcavity":
+        #     etype = "twcavity"
         string = sanitize_string(self.name) + ": " + etype
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (
