@@ -3,6 +3,7 @@ Section/layout/model assembly shared by the importers that build one flat,
 ordered ``{name: element}`` dict (MAD-X, ELEGANT, Xsuite, Ocelot).
 """
 
+import os
 import re
 from pathlib import Path
 from typing import Dict, Optional, Union
@@ -23,7 +24,8 @@ def read_with_calls(path: Path, call: "re.Pattern", _seen: Optional[set] = None)
     """Read a ``!``-commented lattice file, inlining the files ``call`` matches.
 
     ``call``'s first group is the called filename, resolved relative to the
-    file containing the call as MAD-X and Bmad both do. A missing file is
+    file containing the call as MAD-X and Bmad both do, after expanding any
+    environment variables in it (``$LCLS_LATTICE/...``). A missing file is
     left as written, and a file already inlined is not inlined again.
     """
     seen = _seen if _seen is not None else set()
@@ -34,7 +36,8 @@ def read_with_calls(path: Path, call: "re.Pattern", _seen: Optional[set] = None)
     text = re.sub(r"!.*", "", path.read_text())
 
     def _inline(match: "re.Match") -> str:
-        called = (path.parent / match.group(1).strip().strip("'\"")).resolve()
+        called = os.path.expandvars(match.group(1).strip().strip("'\""))
+        called = (path.parent / called).resolve()
         if not called.is_file():
             return match.group(0)
         return read_with_calls(called, call, seen)

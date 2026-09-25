@@ -40,6 +40,7 @@ cheetah_conversion_rules = {
     "Beam_Arrival_Monitor": Screen,
     "Bunch_Length_Monitor": Screen,
     "Screen": Screen,
+    "WireScanner": Screen,
     "RCollimator": Aperture,
     "Collimator": Aperture,
     "Monitor": Screen,

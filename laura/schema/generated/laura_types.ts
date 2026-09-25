@@ -36,6 +36,7 @@ export type BeamArrivalMonitorName = string;
 export type BunchLengthMonitorName = string;
 export type CameraName = string;
 export type ScreenName = string;
+export type WireScannerName = string;
 export type ChargeDiagnosticName = string;
 export type WallCurrentMonitorName = string;
 export type FaradayCupMonitorName = string;
@@ -1527,6 +1528,13 @@ export interface Camera extends Diagnostic {
 export interface Screen extends Diagnostic {
     /** Instrument-specific diagnostic parameters. */
     diagnostic?: ScreenDiagnosticElement,
+}
+
+
+/**
+ * Wire scanner: thin wires stepped through the beam to measure its transverse profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation element.
+ */
+export interface WireScanner extends Diagnostic {
 }
 
 

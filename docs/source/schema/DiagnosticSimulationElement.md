@@ -126,6 +126,7 @@ URI: [laura:DiagnosticSimulationElement](https://w3id.org/laura/DiagnosticSimula
 | [BunchLengthMonitor](BunchLengthMonitor.md) | [simulation](simulation.md) | range | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) |
 | [Camera](Camera.md) | [simulation](simulation.md) | range | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) |
 | [Screen](Screen.md) | [simulation](simulation.md) | range | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) |
+| [WireScanner](WireScanner.md) | [simulation](simulation.md) | range | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [simulation](simulation.md) | range | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [simulation](simulation.md) | range | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [simulation](simulation.md) | range | [DiagnosticSimulationElement](DiagnosticSimulationElement.md) |

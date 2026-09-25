@@ -173,6 +173,7 @@ URI: [laura:PhysicalElement](https://w3id.org/laura/PhysicalElement)
 | [BunchLengthMonitor](BunchLengthMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Camera](Camera.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [Screen](Screen.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
+| [WireScanner](WireScanner.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [physical](physical.md) | range | [PhysicalElement](PhysicalElement.md) |

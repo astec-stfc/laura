@@ -19265,6 +19265,207 @@
       "title": "Wire",
       "type": "object"
     },
+    "WireScanner": {
+      "additionalProperties": false,
+      "description": "Wire scanner: thin wires stepped through the beam to measure its transverse profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation element.",
+      "properties": {
+        "alias": {
+          "description": "Human-readable aliases for the element. Populated from ``name_alias`` in YAML. Accepts a single string or a list of strings.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "aperture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApertureElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Aperture of the element."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlsInformation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Control-system process-variable definitions."
+        },
+        "diagnostic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DiagnosticElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Instrument-specific diagnostic parameters."
+        },
+        "downstream": {
+          "description": "Names of elements this one feeds; the inverse of ``upstream``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "electrical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectricalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Power-supply electrical limits."
+        },
+        "hardware_class": {
+          "$ref": "#/$defs/HardwareClassEnum",
+          "description": "Functional category (e.g., ``Magnet``, ``Diagnostic``)."
+        },
+        "hardware_model": {
+          "description": "Model or variant name within the hardware type (e.g., ``Generic``, ``TESLA``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_type": {
+          "const": "WireScanner",
+          "description": "Python class name used for ELEMENT_REGISTRY dispatch.  Identifies the concrete subclass to instantiate when loading from YAML.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inherits_from": {
+          "description": "If set, this element's definition is merged on top of the named element's at load time, so it need only state what differs. Populated from ``inherit`` in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``, which is a physical part-of relationship rather than a definitional one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inputs": {
+          "description": "Signal types this element consumes (e.g. ``[current, voltage]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "machine_area": {
+          "description": "Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ManufacturerElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer and serial-number data."
+        },
+        "name": {
+          "description": "Unique element name within the machine.",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Signal types this element produces (e.g. ``[power, phase]``).",
+          "items": {
+            "$ref": "#/$defs/IOTypeEnum"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "physical": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhysicalElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Position, rotation, and length data."
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Links to design drawings and files."
+        },
+        "simulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DiagnosticSimulationElement"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Simulation / tracking attributes."
+        },
+        "subelement": {
+          "description": "If set, this element is a logical sub-component of the named parent element.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upstream": {
+          "description": "Names of elements feeding this one, whose ``outputs`` supply its ``inputs``.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "virtual_name": {
+          "description": "Alternative internal name used by the control system when the physical name is inaccessible.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "hardware_class"
+      ],
+      "title": "WireScanner",
+      "type": "object"
+    },
     "WireSimulationElement": {
       "additionalProperties": false,
       "description": "Simulation attributes for a compensating wire.",

@@ -1,4 +1,5 @@
 import math
+import os
 import re
 import tempfile
 from itertools import permutations
@@ -348,6 +349,34 @@ def _an_bn_multipoles(parameters: Dict[str, Any]) -> Dict[int, Dict[str, float]]
         if normal or skew:
             components[order] = {"normal": normal, "skew": skew}
     return components
+
+
+_MULTIPOLE_DEFINITION = re.compile(r"(?i)^\s*([\w.#\\]+)\s*:\s*multipole\s*,(.*)$")
+# ``kNl`` gives an order; a bare ``tN`` is Bmad's default skew angle for it.
+_MULTIPOLE_TERM = re.compile(r"(?i)\b(?:k(\d+)l\b|t(\d+)\b(?!\s*=))")
+
+
+def _declared_multipole_terms(text: str) -> Dict[str, Dict[int, bool]]:
+    """``name -> {order: skew}`` for every multipole term the source writes.
+
+    Bmad keeps no record of a multipole whose every term is zero -- Tao reports
+    it with no ``_MULTIPOLES`` rows at all -- so a zero-strength corrector
+    (``cq01: multipole, k1l = 0``) says nothing about its order once loaded.
+    The source still does. Only the definition line is read, and only a bare
+    ``tN`` counts as skew; an explicit ``tN = angle`` is not imported, which
+    at zero strength changes nothing.
+    """
+    text = re.sub(r"[&,]\s*\n", lambda m: m.group(0)[0] + " ", text)
+    terms: Dict[str, Dict[int, bool]] = {}
+    for line in text.splitlines():
+        definition = _MULTIPOLE_DEFINITION.match(line)
+        if not definition:
+            continue
+        orders = terms.setdefault(definition.group(1).lower(), {})
+        for k, t in _MULTIPOLE_TERM.findall(definition.group(2)):
+            order = int(k or t)
+            orders[order] = orders.get(order, False) or bool(t)
+    return {name: orders for name, orders in terms.items() if orders}
 
 
 def _native_keyword(hardware_type: str, laura_field: str) -> str:
@@ -776,6 +805,9 @@ class BmadLatticeImporter(BaseModel):
     a branch with no Bmad multipass in it, which is one section and one pass."""
 
     _generated_tao_init: Any = PrivateAttr(default=None)
+    _declared_poles: Optional[Dict[str, Dict[int, Dict[str, Any]]]] = PrivateAttr(
+        default=None
+    )
 
     @model_validator(mode="after")
     def _check_input(self):  # noqa: N804
@@ -795,6 +827,35 @@ class BmadLatticeImporter(BaseModel):
                 lattice_file=str(Path(self.lattice_file).resolve()), lines=self.lines
             ).write(path)
         )
+
+    def _source_text(self) -> str:
+        """The lattice source with every ``call`` inlined: ``lattice_file``, or
+        the design lattices a ``tao_init`` names. Empty if none can be found."""
+        lattice_file = getattr(self, "lattice_file", None)
+        tao_init = getattr(self, "tao_init", None)
+        if lattice_file:
+            files = [Path(lattice_file)]
+        elif not tao_init:
+            return ""
+        else:
+            init = Path(tao_init)
+            files = [
+                init.parent / os.path.expandvars(filename.strip())
+                for filename in re.findall(
+                    r"design_lattice\(\d+\)%file\s*=\s*['\"]([^'\"]+)['\"]",
+                    init.read_text(),
+                    re.I,
+                )
+            ]
+        return "\n".join(
+            read_with_calls(path, _CALL_RE) for path in files if path.is_file()
+        )
+
+    def _declared_multipoles(self) -> Dict[str, Dict[int, Dict[str, Any]]]:
+        """:func:`_declared_multipole_terms` of the source, read once."""
+        if getattr(self, "_declared_poles", None) is None:
+            self._declared_poles = _declared_multipole_terms(self._source_text())
+        return self._declared_poles
 
     def _read_functional_definitions(self) -> None:
         if not self.lattice_file:
@@ -1604,6 +1665,9 @@ class BmadLatticeImporter(BaseModel):
                     "skew": skew * scale,
                 }
         if not poles:
+            declared = self._declared_multipoles().get(e.name.split(".", 1)[0].lower())
+            if declared:
+                return self._zero_strength_multipole(e, declared)
             warn(
                 f"Bmad {e.etype} {e.name!r} has no multipole content; "
                 "imported as a Marker, since there is no order to "
@@ -1624,6 +1688,39 @@ class BmadLatticeImporter(BaseModel):
             "hardware_type": _ORDER_TYPES.get(highest, "Magnet"),
             "magnetic": {"order": highest, "length": e.length, "multipoles": poles},
         }
+
+    def _zero_strength_multipole(
+        self, e: "_NativeElement", declared: Dict[int, Dict[str, Any]]
+    ) -> dict:
+        """A multipole Bmad holds at zero strength, typed by the highest order its
+        source writes, so a switched-off corrector keeps its identity."""
+        highest = max(declared)
+        term = declared[highest]
+        hardware_type = _ORDER_TYPES.get(highest, "Magnet")
+        magnetic: Dict[str, Any] = {
+            "order": highest,
+            "length": e.length,
+            "multipoles": {
+                f"K{highest}L": {"order": highest, "normal": 0.0, "skew": 0.0}
+            },
+        }
+        if term["skew"]:
+            magnetic["skew"] = True
+        elif "tilt" in term:
+            magnetic["tilt"] = term["tilt"]
+        warn(
+            f"Bmad {e.etype} {e.name!r} has zero strength, so Tao reports no "
+            f"multipole content; its source writes order {highest}, so it is "
+            f"imported as a zero-strength {'skew ' if term['skew'] else ''}"
+            f"{hardware_type}."
+            + (
+                f" Its t{highest} = {term['unresolved']} could not be "
+                "evaluated, so its orientation was not imported."
+                if "unresolved" in term
+                else ""
+            )
+        )
+        return {"hardware_type": hardware_type, "magnetic": magnetic}
 
     def _build_ac_kicker(self, e: "_NativeElement") -> dict:
         hkick = e.parameters.get("HKICK", 0.0) or 0.0

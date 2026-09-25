@@ -1580,3 +1580,48 @@ def test_native_rolled_bend_exports_as_ref_tilt_without_patches(
 
     assert "ref_tilt = 0.1" in written
     assert "patch" not in written.lower()
+
+
+def test_zero_strength_multipoles_keep_their_declared_order_and_skew(tmp_path):
+    # LCLS's CQ01/SQ01: quadrupole correctors declared as multipoles with no
+    # strength yet. Tao reports no poles for them, so the order and the skew
+    # tilt come from the lattice source; without it they would be Markers.
+    lattice = tmp_path / "zero.bmad"
+    lattice.write_text(
+        "parameter[particle] = electron\n"
+        "parameter[p0c] = 10e6\n"
+        "cq: multipole, k1l = 0\n"
+        "sq: multipole, k1l = 0, t1\n"
+        "d: drift, l = 1\n"
+        "lat: line = (d, cq, sq, d)\n"
+        "use, lat\n"
+    )
+    importer = BmadLatticeImporter(lattice_file=str(lattice), libtao=str(LIBTAO))
+    branch = next(iter(importer.names_numbered[1]))
+    elements = importer.create_laura_element_dictionary(1)[branch]
+
+    assert elements["CQ"].hardware_type == "Quadrupole"
+    assert not elements["CQ"].magnetic.skew
+    assert elements["CQ"].magnetic.KnL(1) == 0
+    assert elements["SQ"].hardware_type == "Quadrupole"
+    assert elements["SQ"].magnetic.skew
+
+
+def test_lattice_source_follows_calls_through_environment_variables(
+    tmp_path, monkeypatch
+):
+    from laura.translator.converters.codes.bmad import (
+        _CALL_RE,
+        _declared_multipole_terms,
+    )
+    from laura.translator.converters.codes.importer import read_with_calls
+
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "mags.bmad").write_text("sq: multipole, k1l = 0, t1 ! skew\n")
+    main = tmp_path / "main.bmad"
+    main.write_text("call, file = $ZERO_ROOT/sub/mags.bmad\n")
+    monkeypatch.setenv("ZERO_ROOT", str(tmp_path))
+
+    text = read_with_calls(main, _CALL_RE)
+    assert "sq: multipole" in text
+    assert _declared_multipole_terms(text) == {"sq": {1: {"skew": True}}}

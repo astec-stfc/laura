@@ -1416,6 +1416,42 @@ def test_bmad_survey_frame_neutralises_only_a_roll_that_is_really_there():
     )
 
 
+def test_bmad_rolled_bend_in_a_rolled_line_bends_in_its_own_plane():
+    """The LCLS dump line is rolled by a patch before its ``ref_tilt = pi/2``
+    bends, so the importer's placed roll is the line's roll *plus* the tilt,
+    equal to neither. The tilt is already in it and must not be applied again,
+    or the bend is laid out a quarter turn away and every Bmad export gets a
+    patch per bend that steers the beam into the dump collimator.
+    """
+    line_roll, tilt, angle = 0.1745, np.pi / 2, 0.0224
+    bend = Dipole(
+        name="B-R",
+        machine_area="S",
+        magnetic={"magnetic_length": 1.45, "angle": angle, "tilt": tilt},
+        physical=PhysicalElement(
+            length=1.45,
+            middle=Position(z=1.0),
+            global_rotation=Rotation(theta=0.0, phi=0.0, psi=line_roll + tilt),
+        ),
+    )
+    ry_neg = np.array(
+        [
+            [np.cos(angle), 0, np.sin(angle)],
+            [0, 1, 0],
+            [-np.sin(angle), 0, np.cos(angle)],
+        ]
+    )
+    physical = bend.physical
+    assert np.allclose(physical.end_rotation_matrix, physical.rotation_matrix @ ry_neg)
+    # Bmad's survey frame at the exit is the entrance frame turned by the bend
+    # alone: only the line's roll is left, as Tao reports it.
+    relative = bmad_survey_frame(bend, "start").T @ bmad_survey_frame(bend, "end")
+    rz = np.array(
+        [[np.cos(tilt), -np.sin(tilt), 0], [np.sin(tilt), np.cos(tilt), 0], [0, 0, 1]]
+    )
+    assert np.allclose(relative, rz @ ry_neg @ rz.T)
+
+
 def test_bmad_skew_magnet_writes_its_strength_into_bmads_skew_slot():
     """``magnetic.skew`` says the magnet is rolled to produce a skew field, and
     ``KnL()`` reads the skew slot when it is set -- so the strength landed in

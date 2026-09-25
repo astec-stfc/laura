@@ -5409,6 +5409,96 @@ class ScreenDownstream(Base):
     
 
 
+class WireScannerAlias(Base):
+    """
+    None
+    """
+    __tablename__ = 'WireScanner_alias'
+
+    WireScanner_name = Column(Text(), ForeignKey('WireScanner.name'), primary_key=True)
+    alias = Column(Text(), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WireScanner_alias(WireScanner_name={self.WireScanner_name},alias={self.alias},)"
+
+
+
+    
+
+
+class WireScannerInputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'WireScanner_inputs'
+
+    WireScanner_name = Column(Text(), ForeignKey('WireScanner.name'), primary_key=True)
+    inputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WireScanner_inputs(WireScanner_name={self.WireScanner_name},inputs={self.inputs},)"
+
+
+
+    
+
+
+class WireScannerOutputs(Base):
+    """
+    None
+    """
+    __tablename__ = 'WireScanner_outputs'
+
+    WireScanner_name = Column(Text(), ForeignKey('WireScanner.name'), primary_key=True)
+    outputs = Column(Enum('current', 'voltage', 'phase', 'setpoint', 'on_off_state', 'open_closed_state', 'position', 'rotation', 'power', 'pressure', 'charge', 'absolute_time', 'relative_time', 'shot_number', 'value', 'waveform', 'magnetic_field', name='IOTypeEnum'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WireScanner_outputs(WireScanner_name={self.WireScanner_name},outputs={self.outputs},)"
+
+
+
+    
+
+
+class WireScannerUpstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'WireScanner_upstream'
+
+    WireScanner_name = Column(Text(), ForeignKey('WireScanner.name'), primary_key=True)
+    upstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WireScanner_upstream(WireScanner_name={self.WireScanner_name},upstream_name={self.upstream_name},)"
+
+
+
+    
+
+
+class WireScannerDownstream(Base):
+    """
+    None
+    """
+    __tablename__ = 'WireScanner_downstream'
+
+    WireScanner_name = Column(Text(), ForeignKey('WireScanner.name'), primary_key=True)
+    downstream_name = Column(Text(), ForeignKey('AcceleratorElement.name'), primary_key=True)
+    
+
+    def __repr__(self):
+        return f"WireScanner_downstream(WireScanner_name={self.WireScanner_name},downstream_name={self.downstream_name},)"
+
+
+
+    
+
+
 class ChargeDiagnosticAlias(Base):
     """
     None
@@ -11559,6 +11649,74 @@ class Screen(Diagnostic):
 
     def __repr__(self):
         return f"Screen(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
+
+
+
+    
+    # Using concrete inheritance: see https://docs.sqlalchemy.org/en/14/orm/inheritance.html
+    __mapper_args__ = {
+        'concrete': True
+    }
+    
+
+
+class WireScanner(Diagnostic):
+    """
+    Wire scanner: thin wires stepped through the beam to measure its transverse profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation element.
+    """
+    __tablename__ = 'WireScanner'
+
+    name = Column(Text(), primary_key=True, nullable=False )
+    hardware_class = Column(Enum('Magnet', 'Diagnostic', 'RF', 'Vacuum', 'Laser', 'Plasma', 'Feedback', 'Marker', 'Aperture', 'Stage', 'Lighting', 'Shutter', 'Wakefield', 'TwissMatch', 'Drift', 'Generic', 'Monitor', 'Simulation', 'ElectrostaticSeparator', 'ACDipole', 'Wire', 'BeamBeam', 'RFMultipole', name='HardwareClassEnum'), nullable=False )
+    hardware_type = Column(Text())
+    hardware_model = Column(Text())
+    machine_area = Column(Text())
+    virtual_name = Column(Text())
+    subelement = Column(Text())
+    inherits_from = Column(Text())
+    diagnostic_id = Column(Integer(), ForeignKey('DiagnosticElement.id'))
+    diagnostic = relationship("DiagnosticElement", uselist=False, foreign_keys=[diagnostic_id])
+    physical_id = Column(Integer(), ForeignKey('PhysicalElement.id'))
+    physical = relationship("PhysicalElement", uselist=False, foreign_keys=[physical_id])
+    aperture_id = Column(Integer(), ForeignKey('ApertureElement.id'))
+    aperture = relationship("ApertureElement", uselist=False, foreign_keys=[aperture_id])
+    simulation_id = Column(Integer(), ForeignKey('DiagnosticSimulationElement.id'))
+    simulation = relationship("DiagnosticSimulationElement", uselist=False, foreign_keys=[simulation_id])
+    electrical_id = Column(Integer(), ForeignKey('ElectricalElement.id'))
+    electrical = relationship("ElectricalElement", uselist=False, foreign_keys=[electrical_id])
+    manufacturer_id = Column(Integer(), ForeignKey('ManufacturerElement.id'))
+    manufacturer = relationship("ManufacturerElement", uselist=False, foreign_keys=[manufacturer_id])
+    controls_id = Column(Integer(), ForeignKey('ControlsInformation.id'))
+    controls = relationship("ControlsInformation", uselist=False, foreign_keys=[controls_id])
+    reference_id = Column(Integer(), ForeignKey('ReferenceElement.id'))
+    reference = relationship("ReferenceElement", uselist=False, foreign_keys=[reference_id])
+    
+    
+    alias_rel = relationship( "WireScannerAlias" )
+    alias = association_proxy("alias_rel", "alias",
+                                  creator=lambda x_: WireScannerAlias(alias=x_))
+    
+    
+    inputs_rel = relationship( "WireScannerInputs" )
+    inputs = association_proxy("inputs_rel", "inputs",
+                                  creator=lambda x_: WireScannerInputs(inputs=x_))
+    
+    
+    outputs_rel = relationship( "WireScannerOutputs" )
+    outputs = association_proxy("outputs_rel", "outputs",
+                                  creator=lambda x_: WireScannerOutputs(outputs=x_))
+    
+    
+    # ManyToMany
+    upstream = relationship( "AcceleratorElement", secondary="WireScanner_upstream")
+    
+    
+    # ManyToMany
+    downstream = relationship( "AcceleratorElement", secondary="WireScanner_downstream")
+    
+
+    def __repr__(self):
+        return f"WireScanner(name={self.name},hardware_class={self.hardware_class},hardware_type={self.hardware_type},hardware_model={self.hardware_model},machine_area={self.machine_area},virtual_name={self.virtual_name},subelement={self.subelement},inherits_from={self.inherits_from},diagnostic_id={self.diagnostic_id},physical_id={self.physical_id},aperture_id={self.aperture_id},simulation_id={self.simulation_id},electrical_id={self.electrical_id},manufacturer_id={self.manufacturer_id},controls_id={self.controls_id},reference_id={self.reference_id},)"
 
 
 

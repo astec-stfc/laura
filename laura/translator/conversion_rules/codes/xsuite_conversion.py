@@ -72,6 +72,7 @@ xsuite_conversion_rules = {
     "Screen": ParticlesMonitor_xs,
     "Marker": Marker_xs,
     "Diagnostic": Marker_xs,
+    "WireScanner": Marker_xs,
     "Rcollimator": Drift_xs,
     "Collimator": Drift_xs,
     "Monitor": Marker_xs,

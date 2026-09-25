@@ -92,6 +92,7 @@ URI: [laura:ManufacturerElement](https://w3id.org/laura/ManufacturerElement)
 | [BunchLengthMonitor](BunchLengthMonitor.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [Camera](Camera.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [Screen](Screen.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
+| [WireScanner](WireScanner.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [manufacturer](manufacturer.md) | range | [ManufacturerElement](ManufacturerElement.md) |

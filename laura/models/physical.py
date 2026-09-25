@@ -633,7 +633,7 @@ class PhysicalElement(_PhysicalElementBase):
         if not isinstance(tilt, (int, float)) or not tilt:
             return 0.0
         placed = getattr(self.global_rotation, "psi", 0.0) or 0.0
-        return 0.0 if abs(placed - float(tilt)) < 1e-9 else float(tilt)
+        return 0.0 if abs(placed) > 1e-12 else float(tilt)
 
     @property
     def _layout_matrix(self) -> np.ndarray:

@@ -2249,6 +2249,31 @@ type Wire
     simulation: WireSimulationElement
   }
 
+type WireScanner
+  {
+    name: String!
+    hardwareClass: HardwareClassEnum!
+    hardwareModel: String
+    machineArea: String
+    virtualName: String
+    alias: [String]
+    subelement: String
+    inheritsFrom: String
+    inputs: [IOTypeEnum]
+    outputs: [IOTypeEnum]
+    upstream: [AcceleratorElement]
+    downstream: [AcceleratorElement]
+    electrical: ElectricalElement
+    manufacturer: ManufacturerElement
+    controls: ControlsInformation
+    reference: ReferenceElement
+    physical: PhysicalElement
+    aperture: ApertureElement
+    diagnostic: DiagnosticElement
+    simulation: DiagnosticSimulationElement
+    hardwareType: String
+  }
+
 type WireSimulationElement
   {
     nKicks: Int

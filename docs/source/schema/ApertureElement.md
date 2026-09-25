@@ -107,6 +107,7 @@ URI: [laura:ApertureElement](https://w3id.org/laura/ApertureElement)
 | [BunchLengthMonitor](BunchLengthMonitor.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
 | [Camera](Camera.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
 | [Screen](Screen.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
+| [WireScanner](WireScanner.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [aperture](aperture.md) | range | [ApertureElement](ApertureElement.md) |

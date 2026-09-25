@@ -573,3 +573,40 @@ class TestElementListDirectoryScan:
 
         assert {"Q1", "Q2", "Q3"}.issubset(set(machine.elements))
         assert len([k for k in machine.elements if k.startswith("summary")]) == 0
+
+
+# ---------------------------------------------------------------------------
+# controls schemas referenced from a combined file at the root of a tree
+# ---------------------------------------------------------------------------
+
+class TestControlsSchemaDirectory:
+    """A combined summary at the root of a per-element tree names schemas
+    that sit beside the elements, in ``<hardware_class>/<hardware_type>/``."""
+
+    @staticmethod
+    def _raw_quad():
+        return {
+            "name": "Q1",
+            "hardware_class": "Magnet",
+            "hardware_type": "Quadrupole",
+            "machine_area": "SEC",
+            "controls": {"identifier_pattern": "QUAD:SEC:1", "schema": "Quadrupole_schema.yaml"},
+        }
+
+    @staticmethod
+    def _write_schema(directory):
+        directory.mkdir(parents=True, exist_ok=True)
+        schema = {"variables": {"bact": {"identifier": "{name}:BACT", "dtype": "float",
+                                         "protocol": "CA", "type": "scalar"}}}
+        (directory / "Quadrupole_schema.yaml").write_text(yaml.safe_dump(schema))
+
+    def test_schema_in_the_type_directory_is_found(self, tmp_path):
+        self._write_schema(tmp_path / "Magnet" / "Quadrupole")
+        elem = interpret_yaml_element(self._raw_quad(), base_dir=str(tmp_path), strict=True)
+        assert "bact" in elem.controls.variables
+
+    def test_schema_beside_the_file_takes_precedence(self, tmp_path):
+        self._write_schema(tmp_path)
+        (tmp_path / "Magnet" / "Quadrupole").mkdir(parents=True)
+        elem = interpret_yaml_element(self._raw_quad(), base_dir=str(tmp_path), strict=True)
+        assert "bact" in elem.controls.variables

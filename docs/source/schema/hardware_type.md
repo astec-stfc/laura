@@ -60,6 +60,7 @@ URI: [laura:hardware_type](https://w3id.org/laura/hardware_type)
 | [BunchLengthMonitor](BunchLengthMonitor.md) | Bunch-length monitor (BLM / CDR detector) |  yes  |
 | [Camera](Camera.md) | Camera-based beam-profile monitor |  yes  |
 | [Screen](Screen.md) | Scintillator or OTR screen with an associated camera |  yes  |
+| [WireScanner](WireScanner.md) | Wire scanner: thin wires stepped through the beam to measure its transverse p... |  yes  |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | Base class for charge-measurement diagnostics |  yes  |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | Wall-current monitor (WCM) for non-destructive charge measurement |  yes  |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | Faraday cup for destructive charge measurement |  yes  |

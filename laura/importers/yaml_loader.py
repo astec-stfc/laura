@@ -889,6 +889,19 @@ def resolve_inheritance(
     return merged
 
 
+def _schema_dir(base_dir: str | None, schema_ref: str, elem: dict) -> str | None:
+    """``base_dir``, or the element's ``<hardware_class>/<hardware_type>``
+    directory under it when the schema sits there instead -- where it does
+    when a combined file is read from the root of a per-element tree, as the
+    exporter's ``_schema_base_dirs`` already allows for."""
+    if not base_dir or os.path.exists(os.path.join(base_dir, schema_ref)):
+        return base_dir
+    nested = os.path.join(
+        base_dir, str(elem.get("hardware_class", "")), str(elem.get("hardware_type", ""))
+    )
+    return nested if os.path.exists(os.path.join(nested, schema_ref)) else base_dir
+
+
 def interpret_yaml_element(
     elem: dict,
     exclude_set=None,
@@ -942,7 +955,10 @@ def interpret_yaml_element(
         elem = {
             **elem,
             "controls": resolve_controls_schema(
-                controls, elem.get("name", ""), base_dir, schema_map
+                controls,
+                elem.get("name", ""),
+                _schema_dir(base_dir, controls["schema"], elem),
+                schema_map,
             ),
         }
 

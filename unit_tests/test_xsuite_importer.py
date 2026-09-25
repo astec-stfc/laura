@@ -494,6 +494,8 @@ def test_integrated_strength_variable_is_left_alone():
 
     assert element.magnetic.multipoles.K1L.normal == "quad_k1l"
     assert importer.functional_definitions["quad_k1l"] == pytest.approx(0.3)
+    # Registered when the layout is built, as in the per-metre test above.
+    importer.create_layout()
     assert element.magnetic.KnL(1) == pytest.approx(0.3)
 
 

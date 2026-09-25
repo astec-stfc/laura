@@ -14,6 +14,7 @@ from laura.models.element import (  # noqa: E402
     HorizontalACDipole,
     VerticalACDipole,
     Wire,
+    WireScanner,
     BeamBeam,
     RFMultipole,
     MatrixTransform,
@@ -164,6 +165,31 @@ class TestRevolutionFrequencyCascade:
         # Should not raise.
         line = SectionLatticeTranslator.from_section(section).to_xsuite(beam_length=1, save=False)
         assert line["hac1"].plane == "h"
+
+
+class TestWireScanner:
+    """``WireScanner`` is a profile diagnostic, unrelated to the beam-beam ``Wire``."""
+
+    def test_is_a_diagnostic_and_registered(self):
+        from laura.models.element import Diagnostic, ELEMENT_REGISTRY
+
+        ws = WireScanner(name="ws1", machine_area="S")
+        assert isinstance(ws, Diagnostic)
+        assert not isinstance(ws, Wire)
+        assert ws.hardware_type == "WireScanner"
+        assert ELEMENT_REGISTRY["WireScanner"] is WireScanner
+
+    @pytest.mark.parametrize(
+        "method, expected",
+        [
+            ("to_elegant", "ws1: watch"),
+            ("to_bmad", "ws1: instrument"),
+            ("to_madx", "ws1: instrument"),
+        ],
+    )
+    def test_exports_as_a_passive_diagnostic(self, method, expected):
+        ws = WireScanner(name="ws1", machine_area="S")
+        assert getattr(translate_elements([ws])["ws1"], method)().startswith(expected)
 
 
 class TestWire:

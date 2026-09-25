@@ -98,6 +98,7 @@ URI: [laura:ControlsInformation](https://w3id.org/laura/ControlsInformation)
 | [BunchLengthMonitor](BunchLengthMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Camera](Camera.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [Screen](Screen.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
+| [WireScanner](WireScanner.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [controls](controls.md) | range | [ControlsInformation](ControlsInformation.md) |

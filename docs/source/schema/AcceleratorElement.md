@@ -220,6 +220,8 @@ URI: [laura:AcceleratorElement](https://w3id.org/laura/AcceleratorElement)
 | [Camera](Camera.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Screen](Screen.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [Screen](Screen.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [WireScanner](WireScanner.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
+| [WireScanner](WireScanner.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [downstream](downstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [upstream](upstream.md) | range | [AcceleratorElement](AcceleratorElement.md) |

@@ -27,6 +27,7 @@ from ._generated import (
     _BunchLengthMonitorBase,
     _CameraBase,
     _ScreenBase,
+    _WireScannerBase,
     _ChargeDiagnosticBase,
     _WallCurrentMonitorBase,
     _FaradayCupMonitorBase,
@@ -820,6 +821,20 @@ class Screen(Diagnostic, _ScreenBase):
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
         _ensure_nested_default(self, "diagnostic", ScreenDiagnostic)
+
+
+class WireScanner(Diagnostic, _WireScannerBase):
+    """
+    Wire scanner element: thin wires stepped through the beam to measure its
+    transverse profile. Unrelated to :class:`Wire`, the beam-beam compensating
+    wire.
+
+    Attributes:
+        hardware_type (str): The hardware type of the diagnostic.
+    """
+
+    hardware_type: str = Field(default="WireScanner", frozen=True)
+    """Wire scanner hardware type."""
 
 
 class ChargeDiagnostic(Diagnostic, _ChargeDiagnosticBase):

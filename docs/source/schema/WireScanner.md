@@ -1,7 +1,7 @@
-# Class: Diagnostic 
+# Class: WireScanner 
 
 
-_Base class for all beam-diagnostic instruments._
+_Wire scanner: thin wires stepped through the beam to measure its transverse profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation element._
 
 
 
@@ -9,7 +9,7 @@ _Base class for all beam-diagnostic instruments._
 
 
 
-URI: [laura:Diagnostic](https://w3id.org/laura/Diagnostic)
+URI: [laura:WireScanner](https://w3id.org/laura/WireScanner)
 
 
 
@@ -17,188 +17,169 @@ URI: [laura:Diagnostic](https://w3id.org/laura/Diagnostic)
 
 ```mermaid
  classDiagram
-    class Diagnostic
-    click Diagnostic href "../Diagnostic/"
-      PhysicalAcceleratorElement <|-- Diagnostic
-        click PhysicalAcceleratorElement href "../PhysicalAcceleratorElement/"
-      
-
-      Diagnostic <|-- BeamPositionMonitor
-        click BeamPositionMonitor href "../BeamPositionMonitor/"
-      Diagnostic <|-- BeamArrivalMonitor
-        click BeamArrivalMonitor href "../BeamArrivalMonitor/"
-      Diagnostic <|-- BunchLengthMonitor
-        click BunchLengthMonitor href "../BunchLengthMonitor/"
-      Diagnostic <|-- Camera
-        click Camera href "../Camera/"
-      Diagnostic <|-- Screen
-        click Screen href "../Screen/"
+    class WireScanner
+    click WireScanner href "../WireScanner/"
       Diagnostic <|-- WireScanner
-        click WireScanner href "../WireScanner/"
-      Diagnostic <|-- ChargeDiagnostic
-        click ChargeDiagnostic href "../ChargeDiagnostic/"
-      Diagnostic <|-- PhotonMonitor
-        click PhotonMonitor href "../PhotonMonitor/"
+        click Diagnostic href "../Diagnostic/"
       
-
-      Diagnostic : alias
+      WireScanner : alias
         
-      Diagnostic : aperture
+      WireScanner : aperture
         
           
     
         
         
-        Diagnostic --> "0..1" ApertureElement : aperture
+        WireScanner --> "0..1" ApertureElement : aperture
         click ApertureElement href "../ApertureElement/"
     
 
         
-      Diagnostic : controls
+      WireScanner : controls
         
           
     
         
         
-        Diagnostic --> "0..1" ControlsInformation : controls
+        WireScanner --> "0..1" ControlsInformation : controls
         click ControlsInformation href "../ControlsInformation/"
     
 
         
-      Diagnostic : diagnostic
+      WireScanner : diagnostic
         
           
     
         
         
-        Diagnostic --> "0..1" DiagnosticElement : diagnostic
+        WireScanner --> "0..1" DiagnosticElement : diagnostic
         click DiagnosticElement href "../DiagnosticElement/"
     
 
         
-      Diagnostic : downstream
+      WireScanner : downstream
         
           
     
         
         
-        Diagnostic --> "*" AcceleratorElement : downstream
+        WireScanner --> "*" AcceleratorElement : downstream
         click AcceleratorElement href "../AcceleratorElement/"
     
 
         
-      Diagnostic : electrical
+      WireScanner : electrical
         
           
     
         
         
-        Diagnostic --> "0..1" ElectricalElement : electrical
+        WireScanner --> "0..1" ElectricalElement : electrical
         click ElectricalElement href "../ElectricalElement/"
     
 
         
-      Diagnostic : hardware_class
+      WireScanner : hardware_class
         
           
     
         
         
-        Diagnostic --> "1" HardwareClassEnum : hardware_class
+        WireScanner --> "1" HardwareClassEnum : hardware_class
         click HardwareClassEnum href "../HardwareClassEnum/"
     
 
         
-      Diagnostic : hardware_model
+      WireScanner : hardware_model
         
-      Diagnostic : hardware_type
+      WireScanner : hardware_type
         
-      Diagnostic : inherits_from
+      WireScanner : inherits_from
         
-      Diagnostic : inputs
+      WireScanner : inputs
         
           
     
         
         
-        Diagnostic --> "*" IOTypeEnum : inputs
+        WireScanner --> "*" IOTypeEnum : inputs
         click IOTypeEnum href "../IOTypeEnum/"
     
 
         
-      Diagnostic : machine_area
+      WireScanner : machine_area
         
-      Diagnostic : manufacturer
+      WireScanner : manufacturer
         
           
     
         
         
-        Diagnostic --> "0..1" ManufacturerElement : manufacturer
+        WireScanner --> "0..1" ManufacturerElement : manufacturer
         click ManufacturerElement href "../ManufacturerElement/"
     
 
         
-      Diagnostic : name
+      WireScanner : name
         
-      Diagnostic : outputs
+      WireScanner : outputs
         
           
     
         
         
-        Diagnostic --> "*" IOTypeEnum : outputs
+        WireScanner --> "*" IOTypeEnum : outputs
         click IOTypeEnum href "../IOTypeEnum/"
     
 
         
-      Diagnostic : physical
+      WireScanner : physical
         
           
     
         
         
-        Diagnostic --> "0..1" PhysicalElement : physical
+        WireScanner --> "0..1" PhysicalElement : physical
         click PhysicalElement href "../PhysicalElement/"
     
 
         
-      Diagnostic : reference
+      WireScanner : reference
         
           
     
         
         
-        Diagnostic --> "0..1" ReferenceElement : reference
+        WireScanner --> "0..1" ReferenceElement : reference
         click ReferenceElement href "../ReferenceElement/"
     
 
         
-      Diagnostic : simulation
+      WireScanner : simulation
         
           
     
         
         
-        Diagnostic --> "0..1" DiagnosticSimulationElement : simulation
+        WireScanner --> "0..1" DiagnosticSimulationElement : simulation
         click DiagnosticSimulationElement href "../DiagnosticSimulationElement/"
     
 
         
-      Diagnostic : subelement
+      WireScanner : subelement
         
-      Diagnostic : upstream
+      WireScanner : upstream
         
           
     
         
         
-        Diagnostic --> "*" AcceleratorElement : upstream
+        WireScanner --> "*" AcceleratorElement : upstream
         click AcceleratorElement href "../AcceleratorElement/"
     
 
         
-      Diagnostic : virtual_name
+      WireScanner : virtual_name
         
       
 ```
@@ -212,29 +193,22 @@ URI: [laura:Diagnostic](https://w3id.org/laura/Diagnostic)
     * [StandardElement](StandardElement.md)
         * [Element](Element.md)
             * [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md)
-                * **Diagnostic**
-                    * [BeamPositionMonitor](BeamPositionMonitor.md)
-                    * [BeamArrivalMonitor](BeamArrivalMonitor.md)
-                    * [BunchLengthMonitor](BunchLengthMonitor.md)
-                    * [Camera](Camera.md)
-                    * [Screen](Screen.md)
-                    * [WireScanner](WireScanner.md)
-                    * [ChargeDiagnostic](ChargeDiagnostic.md)
-                    * [PhotonMonitor](PhotonMonitor.md)
+                * [Diagnostic](Diagnostic.md)
+                    * **WireScanner**
 
 
 ## Class Properties
 
 | Property | Value |
 | --- | --- |
-| Class URI | [laura:Diagnostic](https://w3id.org/laura/Diagnostic) |
+| Class URI | [laura:WireScanner](https://w3id.org/laura/WireScanner) |
 
 
 ## Slots
 
 | Name | Cardinality and Range | Description | Inheritance |
 | ---  | --- | --- | --- |
-| [diagnostic](diagnostic.md) | 0..1 <br/> [DiagnosticElement](DiagnosticElement.md) | Instrument-specific diagnostic parameters | direct |
+| [diagnostic](diagnostic.md) | 0..1 <br/> [DiagnosticElement](DiagnosticElement.md) | Instrument-specific diagnostic parameters | [Diagnostic](Diagnostic.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [DiagnosticSimulationElement](DiagnosticSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
@@ -288,8 +262,8 @@ URI: [laura:Diagnostic](https://w3id.org/laura/Diagnostic)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:Diagnostic |
-| native | laura:Diagnostic |
+| self | laura:WireScanner |
+| native | laura:WireScanner |
 
 
 
@@ -304,33 +278,17 @@ URI: [laura:Diagnostic](https://w3id.org/laura/Diagnostic)
 
 <details>
 ```yaml
-name: Diagnostic
-description: Base class for all beam-diagnostic instruments.
+name: WireScanner
+description: 'Wire scanner: thin wires stepped through the beam to measure its transverse
+  profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation
+  element.'
 from_schema: https://w3id.org/laura/schema
-is_a: PhysicalAcceleratorElement
+is_a: Diagnostic
 slot_usage:
-  simulation:
-    name: simulation
-    range: DiagnosticSimulationElement
-attributes:
-  diagnostic:
-    name: diagnostic
-    description: Instrument-specific diagnostic parameters.
-    in_subset:
-    - diagnostic_properties
-    from_schema: https://w3id.org/laura/schema/diagnostics
-    rank: 1000
-    domain_of:
-    - Diagnostic
-    - BeamPositionMonitor
-    - BeamArrivalMonitor
-    - BunchLengthMonitor
-    - Camera
-    - Screen
-    - ChargeDiagnostic
-    - PhotonMonitor
-    range: DiagnosticElement
-class_uri: laura:Diagnostic
+  hardware_type:
+    name: hardware_type
+    equals_string: WireScanner
+class_uri: laura:WireScanner
 
 ```
 </details>
@@ -339,14 +297,16 @@ class_uri: laura:Diagnostic
 
 <details>
 ```yaml
-name: Diagnostic
-description: Base class for all beam-diagnostic instruments.
+name: WireScanner
+description: 'Wire scanner: thin wires stepped through the beam to measure its transverse
+  profile. Not to be confused with ``Wire``, the current-carrying beam-beam compensation
+  element.'
 from_schema: https://w3id.org/laura/schema
-is_a: PhysicalAcceleratorElement
+is_a: Diagnostic
 slot_usage:
-  simulation:
-    name: simulation
-    range: DiagnosticSimulationElement
+  hardware_type:
+    name: hardware_type
+    equals_string: WireScanner
 attributes:
   diagnostic:
     name: diagnostic
@@ -355,7 +315,7 @@ attributes:
     - diagnostic_properties
     from_schema: https://w3id.org/laura/schema/diagnostics
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - Diagnostic
     - BeamPositionMonitor
@@ -373,7 +333,7 @@ attributes:
     - physical_properties
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
@@ -382,7 +342,7 @@ attributes:
     description: Aperture of the element.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - PhysicalAcceleratorElement
     - Aperture
@@ -393,7 +353,7 @@ attributes:
     description: Simulation / tracking attributes.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - StandardElement
     range: DiagnosticSimulationElement
@@ -402,7 +362,7 @@ attributes:
     description: Power-supply electrical limits.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - StandardElement
     range: ElectricalElement
@@ -410,7 +370,7 @@ attributes:
     name: manufacturer
     description: Manufacturer and serial-number data.
     from_schema: https://w3id.org/laura/schema
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - ManufacturerElement
     - StandardElement
@@ -420,7 +380,7 @@ attributes:
     description: Control-system process-variable definitions.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - StandardElement
     range: ControlsInformation
@@ -429,7 +389,7 @@ attributes:
     description: Links to design drawings and files.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - StandardElement
     range: ReferenceElement
@@ -439,7 +399,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     identifier: true
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     - SectionLattice
@@ -451,7 +411,7 @@ attributes:
     description: Functional category (e.g., ``Magnet``, ``Diagnostic``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: HardwareClassEnum
@@ -463,10 +423,11 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string(Generic)
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: string
+    equals_string: WireScanner
   hardware_model:
     name: hardware_model
     description: Model or variant name within the hardware type (e.g., ``Generic``,
@@ -474,7 +435,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string(Generic)
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: string
@@ -483,7 +444,7 @@ attributes:
     description: Machine area label grouping related elements (e.g., ``LINAC``, ``BA1``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: string
@@ -494,7 +455,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema
     rank: 1000
     ifabsent: string()
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: string
@@ -506,7 +467,7 @@ attributes:
     aliases:
     - name_alias
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: string
@@ -517,7 +478,7 @@ attributes:
       element.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: string
@@ -531,7 +492,7 @@ attributes:
     aliases:
     - inherit
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: string
@@ -540,7 +501,7 @@ attributes:
     description: Signal types this element consumes (e.g. ``[current, voltage]``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: IOTypeEnum
@@ -550,7 +511,7 @@ attributes:
     description: Signal types this element produces (e.g. ``[power, phase]``).
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: IOTypeEnum
@@ -561,7 +522,7 @@ attributes:
       ``inputs``.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: AcceleratorElement
@@ -571,12 +532,12 @@ attributes:
     description: Names of elements this one feeds; the inverse of ``upstream``.
     from_schema: https://w3id.org/laura/schema
     rank: 1000
-    owner: Diagnostic
+    owner: WireScanner
     domain_of:
     - AcceleratorElement
     range: AcceleratorElement
     multivalued: true
-class_uri: laura:Diagnostic
+class_uri: laura:WireScanner
 
 ```
 </details></div>
