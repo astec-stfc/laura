@@ -27,6 +27,8 @@ from ..utils.functions import _rotation_matrix, chop, expand_substitution
 from .base import BaseElementTranslator
 from .codes.gpt import GptCcs
 
+GPT_HARD_EDGE_B1 = 300.0
+
 
 def add(x, y):
     return x + y
@@ -238,9 +240,11 @@ class MagnetTranslator(BaseElementTranslator):
                 and self.is_functional(strength)
                 and self.magnetic.length
             )
-            else self.resolve(strength) / self.magnetic.length
-            if self.magnetic.length
-            else self.resolve(strength)
+            else (
+                self.resolve(strength) / self.magnetic.length
+                if self.magnetic.length
+                else self.resolve(strength)
+            )
         )
         return self._format_bmad(parameters=parameters)
 
@@ -437,7 +441,11 @@ class MagnetTranslator(BaseElementTranslator):
         """
         z1 = self.physical.start.z
         z2 = self.physical.end.z
-        s_comment = f"! quad{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
+        s_comment = (
+            f"! quad{n} s={self.physical.s:.6f}\n"
+            if self.physical.s is not None
+            else ""
+        )
         return (
             s_comment
             + """quadrupole{\nposition{rho="""
@@ -474,13 +482,16 @@ class MagnetTranslator(BaseElementTranslator):
         self.start_write()
         if "corrector" in self.hardware_type.lower():
             return ""
+        rotation = list(self.ccs.rotation)
+        rotation[2] += getattr(self.magnetic, "tilt", 0.0) or 0.0
         ccs_label, value_text = self.ccs.ccs_text(
             list(self.physical.middle.model_dump().values()),
-            list(self.physical.rotation.model_dump().values()),
+            rotation,
         )
-        knl = self.magnetic.KnL()
+        length = self.magnetic.length
+        kn = self.magnetic.KnL() / length if length else self.magnetic.KnL()
         if self.hardware_type.lower() == "sextupole":
-            knl = knl / 2
+            kn = kn / 2
         output = (
             str(self.hardware_type.lower())
             + '("'
@@ -490,9 +501,9 @@ class MagnetTranslator(BaseElementTranslator):
             + ", "
             + value_text
             + ", "
-            + str(self.magnetic.length)
+            + str(length)
             + ", "
-            + str(charge_sign * Brho * knl)
+            + str(charge_sign * Brho * kn)
             + ");\n"
         )
         return output
@@ -889,27 +900,20 @@ class DipoleTranslator(BaseElementTranslator):
                 list(self.physical.start.model_dump().values()),
                 list(self.physical.global_rotation.model_dump().values()),
             )
+            relpos = [relpos[0], relpos[1], relpos[2] + abs(self.intersect)]
             coord = self.ccs.gpt_coordinates(
                 relpos, angle=self.magnetic.KnL(0), tilt=self.magnetic.tilt
             )
             new_ccs = self.new_ccs(self.ccs)
             fint = self._fringe_integrals()[0]
-            if fint is None:
-                b1 = 0.0
+            if not fint or not self.magnetic.half_gap:
+                b1 = GPT_HARD_EDGE_B1
             else:
-                b1 = np.round(
-                    (
-                        1.0 / (2 * self.magnetic.half_gap * fint)
-                        if self.magnetic.half_gap > 0
-                        else 10000
-                    ),
-                    2,
-                )
+                b1 = float(np.round(1.0 / (2 * self.magnetic.half_gap * fint), 2))
             dl = self.simulation.deltaL
-            # Use the resolved edge angles (handles "angle"/"angle/2" and
-            # functional definitions) rather than the raw stored values.
-            e1 = self.e1
-            e2 = self.e2
+            face_sign = -1.0 if self.magnetic.KnL(0) < 0 else 1.0
+            e1 = face_sign * self.e1
+            e2 = face_sign * self.e2
             # print(self.objectname, ' - deltaL = ', dl)
             # b1 = 0.
             """
@@ -953,8 +957,6 @@ class DipoleTranslator(BaseElementTranslator):
         """
         Create a new GPT co-ordinate system based on the angle of the magnet.
 
-        # TODO we set intersect=0 for new CCS -- is this accurate?
-
         Parameters
         ----------
         ccs: :class:`~laura.translator.converters.codes.gpt.GptCcs`
@@ -969,15 +971,14 @@ class DipoleTranslator(BaseElementTranslator):
             # print('Creating new CCS')
             number = str(int(ccs.name.split("_")[1]) + 1) if ccs.name != "wcs" else "1"
             name = "ccs_" + number if ccs.name != "wcs" else "ccs_1"
-            # print('middle position = ', self.start, self.middle)
             return GptCcs(
                 name=name,
-                position=list(self.physical.middle.model_dump().values()),
+                position=list(self.physical.end.model_dump().values()),
                 rotation=list(
                     list(self.physical.global_rotation.model_dump().values())
                     + np.array([0, 0, -self.magnetic.KnL(0)])
                 ),
-                intersect=0 * abs(self.intersect),
+                intersect=abs(self.intersect),
             )
         else:
             return ccs

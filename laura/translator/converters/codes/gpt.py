@@ -1,7 +1,10 @@
-from laura._compat import DeprecatedMethodAliases
-from pydantic import BaseModel, ConfigDict, computed_field
 from typing import List
+
 import numpy as np
+from pydantic import BaseModel, ConfigDict, computed_field
+
+from laura._compat import DeprecatedMethodAliases
+
 from ...utils.classes import get_grid_size
 from ...utils.functions import chop
 
@@ -17,7 +20,8 @@ gpt_unsupported = [
     "CrabCavity",
 ]
 
-def orthonormalize(M): # noqa N806
+
+def orthonormalize(M):  # noqa N806
     """
     Enforce orthonormal rotation matrix using Gram-Schmidt.
     """
@@ -35,17 +39,17 @@ def orthonormalize(M): # noqa N806
     return np.column_stack((x, y, z))
 
 
-def Rx(a): # noqa N806
+def Rx(a):  # noqa N806
     c, s = np.cos(a), np.sin(a)
     return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
 
 
-def Ry(a): # noqa N806
+def Ry(a):  # noqa N806
     c, s = np.cos(a), np.sin(a)
     return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
 
 
-def Rz(a): # noqa N806
+def Rz(a):  # noqa N806
     c, s = np.cos(a), np.sin(a)
     return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
 
@@ -58,7 +62,7 @@ def euler_to_matrix(psi, phi, theta):
     return Rz(theta) @ Ry(phi) @ Rx(psi)
 
 
-def matrix_to_euler(M): # noqa N806
+def matrix_to_euler(M):  # noqa N806
     """
     Inverse of:
     M = Rz(theta) @ Ry(phi) @ Rx(psi)
@@ -214,6 +218,7 @@ class GptCcs(DeprecatedMethodAliases, BaseModel):
         output = ""
         for c in [-x, y, z]:
             output += str(c) + ", "
+        angle = -angle
         if np.isclose(tilt, np.pi / 2):
             output += f"0, cos({angle}), -sin({angle}), -sin({tilt}), cos({tilt}) ,0"
         else:
@@ -521,7 +526,11 @@ class GptSpaceCharge(GptElement):
         if mode is None or mode is False:
             return False
         if isinstance(mode, str) and mode.strip().lower() in (
-            "", "none", "false", "off", "0",
+            "",
+            "none",
+            "false",
+            "off",
+            "0",
         ):
             return False
         return True
@@ -595,8 +604,15 @@ class GptCsr1D(GptElement):
     objecttype: str = "gpt_csr1d"
     """Type of object"""
 
+    options: list = []
+    """Flat sequence of ``csr1d`` name/value pairs, e.g.
+    ``["MinCurvature", 2.0, "Points", 400]``."""
+
     def write_gpt(self, *args, **kwargs) -> str:
-        output = str(self.objectname) + "();\n"
+        args_text = ", ".join(
+            f'"{o}"' if isinstance(o, str) else repr(o) for o in self.options
+        )
+        output = str(self.objectname) + "(" + args_text + ");\n"
         return output
 
 

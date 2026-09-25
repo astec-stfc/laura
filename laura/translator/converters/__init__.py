@@ -1,10 +1,23 @@
 import os
+
 import yaml
 
 try:
     _FastLoader = yaml.CSafeLoader
 except AttributeError:
     _FastLoader = yaml.SafeLoader
+
+GPT_FIXES = frozenset(
+    {
+        "magnet_strength",
+        "dipole_b1",
+        "face_sign",
+        "ccs_placement",
+        "handedness",
+        "end_screen",
+        "csr1d_options",
+    }
+)
 
 
 class LazyDict(dict):
