@@ -44,6 +44,7 @@ URI: [laura:beta_y](https://w3id.org/laura/beta_y)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(1.0)` |
 | Owner | [TwissMatchSimulationElement](TwissMatchSimulationElement.md) |
 
 
@@ -89,6 +90,7 @@ name: beta_y
 description: Vertical beta.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(1.0)
 owner: TwissMatchSimulationElement
 domain_of:
 - TwissMatchSimulationElement

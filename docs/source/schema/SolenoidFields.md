@@ -89,6 +89,7 @@ URI: [laura:SolenoidFields](https://w3id.org/laura/SolenoidFields)
 | [SolenoidMagnet](SolenoidMagnet.md) | [fields](fields.md) | range | [SolenoidFields](SolenoidFields.md) |
 | [SolenoidMagnet](SolenoidMagnet.md) | [systematic_fields](systematic_fields.md) | range | [SolenoidFields](SolenoidFields.md) |
 | [SolenoidMagnet](SolenoidMagnet.md) | [random_fields](random_fields.md) | range | [SolenoidFields](SolenoidFields.md) |
+| [CombinedSolenoidQuadrupoleMagnet](CombinedSolenoidQuadrupoleMagnet.md) | [solenoid_fields](solenoid_fields.md) | range | [SolenoidFields](SolenoidFields.md) |
 
 
 

@@ -207,13 +207,13 @@ class TestDipoleExitFrame:
 
     def _make_dipole(self, theta, rho=1.0):
         """Dipole with bend angle theta, radius rho, placed with entry along Z."""
-        L = rho * theta
+        length = rho * theta
         # For entry along global Z, rotation.theta = 0 (canonical orientation)
         return Dipole(
             name="D1",
             machine_area="S1",
-            magnetic={"length": L, "k0l": theta},
-            physical={"length": L, "middle": [0, 0, 0]},
+            magnetic={"length": length, "k0l": theta},
+            physical={"length": length, "middle": [0, 0, 0]},
         )
 
     def test_end_rotation_matrix_exit_beam(self):
@@ -221,9 +221,9 @@ class TestDipoleExitFrame:
         theta = math.pi / 6  # 30-degree bend
         rho = 1.0
         d = self._make_dipole(theta, rho)
-        R_exit = d.physical.end_rotation_matrix
+        r_exit = d.physical.end_rotation_matrix
         # Exit beam direction (canonical): [sin(theta), 0, cos(theta)]
-        exit_beam = R_exit @ np.array([0, 0, 1])
+        exit_beam = r_exit @ np.array([0, 0, 1])
         expected = np.array([math.sin(theta), 0, math.cos(theta)])
         np.testing.assert_array_almost_equal(exit_beam, expected, decimal=10)
 
@@ -231,17 +231,17 @@ class TestDipoleExitFrame:
         """Quad placed 0.5 m downstream of dipole exit should be at correct world position."""
         theta = math.pi / 4  # 45-degree bend
         rho = 1.0
-        L_dip = rho * theta
-        L_quad = 0.3
+        l_dip = rho * theta
+        l_quad = 0.3
         offset_z = 0.5
 
         dipole = self._make_dipole(theta, rho)
         quad = Quadrupole(
             name="Q1",
             machine_area="S1",
-            magnetic={"length": L_quad, "k1l": 1.0},
+            magnetic={"length": l_quad, "k1l": 1.0},
             physical={
-                "length": L_quad,
+                "length": l_quad,
                 "reference_placement": {
                     "element": "D1",
                     "offset": [0, 0, offset_z],
@@ -310,12 +310,12 @@ class TestDipoleExitFrame:
 
         # Composed R = R_exit @ Ry(extra_yaw)  (LAURA Ry convention)
         from laura.utils.rotation_matrix import euler_angles_to_rotation_matrix
-        R_exit = dipole.physical.end_rotation_matrix
-        R_extra = euler_angles_to_rotation_matrix(extra_yaw, 0.0, 0.0)
-        expected_R = R_exit @ R_extra
+        r_exit = dipole.physical.end_rotation_matrix
+        r_extra = euler_angles_to_rotation_matrix(extra_yaw, 0.0, 0.0)
+        expected_r = r_exit @ r_extra
 
         np.testing.assert_array_almost_equal(
-            quad.physical.rotation_matrix, expected_R, decimal=10
+            quad.physical.rotation_matrix, expected_r, decimal=10
         )
 
 

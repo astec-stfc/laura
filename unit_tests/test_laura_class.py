@@ -190,28 +190,34 @@ class TestLAURAGetters:
         assert "D1" in dips
         assert "Q1" not in dips
 
-    def test_get_sextupoles(self, rich_machine):
-        sexts = rich_machine.get_sextupoles()
-        assert "SX1" in sexts
-
-    def test_get_solenoids(self, rich_machine):
-        sols = rich_machine.get_solenoids()
-        assert "SOL1" in sols
-
-    def test_get_diagnostics(self, rich_machine):
-        diag = rich_machine.get_diagnostics()
-        assert "BPM1" in diag
-
-    def test_get_beam_position_monitors(self, rich_machine):
-        bpms = rich_machine.get_beam_position_monitors()
-        assert "BPM1" in bpms
-
 
 # ---------------------------------------------------------------------------
-# all_* properties
+# get_* / all_* pairs
 # ---------------------------------------------------------------------------
 
 class TestLAURAAllProperties:
+    """Every category is reachable two ways: ``get_X()`` walks the machine's
+    layouts and ``all_X`` is the set over the whole element list. Checking them
+    together is what makes the pair meaningful -- a category wired into one and
+    not the other used to pass on both halves separately."""
+
+    @pytest.mark.parametrize(
+        "category, member",
+        [
+            ("quadrupoles", "Q1"),
+            ("dipoles", "D1"),
+            ("sextupoles", "SX1"),
+            ("solenoids", "SOL1"),
+            ("diagnostics", "BPM1"),
+            ("beam_position_monitors", "BPM1"),
+        ],
+    )
+    def test_get_and_all_find_the_same_elements(self, rich_machine, category, member):
+        got = getattr(rich_machine, f"get_{category}")()
+        every = getattr(rich_machine, f"all_{category}")
+        assert member in got
+        assert set(got) == set(every)
+
     def test_all_elements(self, rich_machine):
         all_elems = rich_machine.all_elements
         assert isinstance(all_elems, set)
@@ -224,24 +230,6 @@ class TestLAURAAllProperties:
         assert "Q1" in all_mags
         assert "D1" in all_mags
         assert "BPM1" not in all_mags
-
-    def test_all_quadrupoles(self, rich_machine):
-        assert "Q1" in rich_machine.all_quadrupoles
-
-    def test_all_dipoles(self, rich_machine):
-        assert "D1" in rich_machine.all_dipoles
-
-    def test_all_sextupoles(self, rich_machine):
-        assert "SX1" in rich_machine.all_sextupoles
-
-    def test_all_solenoids(self, rich_machine):
-        assert "SOL1" in rich_machine.all_solenoids
-
-    def test_all_diagnostics(self, rich_machine):
-        assert "BPM1" in rich_machine.all_diagnostics
-
-    def test_all_beam_position_monitors(self, rich_machine):
-        assert "BPM1" in rich_machine.all_beam_position_monitors
 
 
 # ---------------------------------------------------------------------------

@@ -1,9 +1,10 @@
+import math
 import os
-from typing import Any, ClassVar, Dict
+from typing import Any, ClassVar, Dict, Tuple
 from warnings import warn
 
 import numpy as np
-from pydantic import Field, computed_field
+from pydantic import Field, PrivateAttr, computed_field
 
 from laura.models.base_models import IgnoreExtra
 from laura.models.element import PhysicalBaseElement
@@ -11,10 +12,12 @@ from laura.models.physical import PhysicalElement, Position  # noqa E402
 from laura.utils import flatten_dict
 
 from ..converters import (
+    elements_bmad,
     elements_elegant,
     elements_genesis,
     elements_madx,
     elements_opal,
+    keyword_conversion_rules_bmad,
     keyword_conversion_rules_cheetah,
     keyword_conversion_rules_elegant,
     keyword_conversion_rules_genesis,
@@ -24,14 +27,32 @@ from ..converters import (
     keyword_conversion_rules_wake_t,
     keyword_conversion_rules_xsuite,
     type_conversion_rules,
+    type_conversion_rules_bmad,
     type_conversion_rules_elegant,
     type_conversion_rules_genesis,
     type_conversion_rules_madx,
     type_conversion_rules_opal,
 )
 from ..converters.codes.gpt import GptCcs
+from ..utils.bmad import bmad_misalignment
 from ..utils.fields import FieldMap
 from ..utils.functions import check_value, expand_substitution, sanitize_string
+
+_ASTRA_ROTATION_SIGN = {"x": -1.0, "y": -1.0, "z": 1.0}
+"""Sign taking a LAURA ``Rotation`` component into ASTRA's ``*_xrot`` family."""
+
+_BMAD_MAIN_MULTIPOLE_ORDERS = {
+    "sbend": (0, 1),
+    "rbend": (0, 1),
+    "quadrupole": (1,),
+    "sextupole": (2,),
+    "octupole": (3,),
+    "decapole": (4,),
+}
+"""Multipole orders a Bmad element definition already expresses on its own."""
+
+_BMAD_NO_APERTURE = ("match", "fixer", "ecollimator", "rcollimator")
+"""Bmad classes that get no aperture limits written onto them."""
 
 
 class BaseElementTranslator(PhysicalBaseElement):
@@ -41,6 +62,7 @@ class BaseElementTranslator(PhysicalBaseElement):
     """
 
     _DEPRECATED_METHOD_ALIASES = {
+        "_convertKeyword_Bmad": "_convert_keyword_bmad",
         "_convertKeyword_Cheetah": "_convert_keyword_cheetah",
         "_convertKeyword_Elegant": "_convert_keyword_elegant",
         "_convertKeyword_Genesis": "_convert_keyword_genesis",
@@ -49,6 +71,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         "_convertKeyword_Opal": "_convert_keyword_opal",
         "_convertKeyword_WakeT": "_convert_keyword_wake_t",
         "_convertKeyword_Xsuite": "_convert_keyword_xsuite",
+        "_convertType_Bmad": "_convert_type_bmad",
         "_convertType_Cheetah": "_convert_type_cheetah",
         "_convertType_Elegant": "_convert_type_elegant",
         "_convertType_Genesis": "_convert_type_genesis",
@@ -84,6 +107,10 @@ class BaseElementTranslator(PhysicalBaseElement):
     directory: str = "./"
     """Directory to which lattice/element files will be written."""
 
+    _bmad_written: Dict[str, Any] = PrivateAttr(default_factory=dict)
+    """Attributes the last :meth:`to_bmad` actually wrote; see
+    :meth:`bmad_attributes`."""
+
     ccs: GptCcs | None = None
     """Co-ordinate system for GPT elements."""
 
@@ -103,6 +130,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             "wake_t": keyword_conversion_rules_wake_t,
             "genesis": keyword_conversion_rules_genesis,
             "opal": keyword_conversion_rules_opal,
+            "bmad": keyword_conversion_rules_bmad,
         }
         for code, rules in rules_by_code.items():
             self.conversion_rules[code] = (
@@ -186,12 +214,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         ``k = KnL(order) / length`` when that strength is defined symbolically;
         return None otherwise.
 
-        ELEGANT and Xsuite require the normalized k-value, whereas the functional
-        definition is stored on the multipole as the integrated kl-value, so the
-        division by length is folded into the symbolic expression (rpn for
-        ELEGANT, an infix string for Xsuite). For zero-length magnets the
-        normalized strength equals the integrated value (mirroring the numeric
-        ``KnL / length`` fall-back).
+        For zero-length magnets the normalized strength equals the integrated
+        value (mirroring the numeric ``KnL / length`` fall-back).
         """
         raw = self._raw_multipole_strength(order)
         if raw is None:
@@ -215,13 +239,7 @@ class BaseElementTranslator(PhysicalBaseElement):
 
         * a plain number -- returns None (nothing symbolic to do).
         * an expression referencing the reserved ``angle`` token (e.g.
-          ``"angle"``/``"angle/2"``, see :attr:`DipoleTranslator.angle
-          <laura.translator.converters.magnet.DipoleTranslator.angle>`) -- if
-          the bend angle itself is defined functionally, the token is
-          substituted with that functional name, producing a valid expression
-          (rpn for ELEGANT, infix for other codes, e.g. ``"bend1 / 2"``);
-          otherwise returns None (the bend angle is a plain number, so the
-          edge angle should be resolved numerically as usual).
+          ``"angle"``/``"angle/2"``).
         * the name of a functional definition -- returned as a bare reference
           (rpn-quoted for ELEGANT).
         """
@@ -279,6 +297,11 @@ class BaseElementTranslator(PhysicalBaseElement):
         self.start_write()
         wholestring = ""
         etype = self._convert_type_elegant(self.hardware_type)
+        if etype == "drift" and self.hardware_type.lower() != "drift":
+            warn(
+                f"Elegant does not support {self.hardware_type!r}; "
+                f"{self.name!r} was exported as a drift."
+            )
         string = self.name + ": " + etype
         keys = []
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
@@ -295,12 +318,22 @@ class BaseElementTranslator(PhysicalBaseElement):
                             None
                             if self._resolve_functional
                             else self._raw_edge_angle(
-                                "entrance_edge_angle" if key == "e1" else "exit_edge_angle",
+                                (
+                                    "entrance_edge_angle"
+                                    if key == "e1"
+                                    else "exit_edge_angle"
+                                ),
                                 "elegant",
                             )
                         )
-                        value = raw if raw is not None else (
-                            self.magnetic.KnL(0) if value == "angle" else self.magnetic.KnL(0) / 2
+                        value = (
+                            raw
+                            if raw is not None
+                            else (
+                                self.magnetic.KnL(0)
+                                if value == "angle"
+                                else self.magnetic.KnL(0) / 2
+                            )
                         )
                     elif value == "angle":
                         value = self.magnetic.KnL(0)
@@ -321,6 +354,8 @@ class BaseElementTranslator(PhysicalBaseElement):
                         )
                         if raw is not None:
                             value = raw
+                    elif key == "yaw" and isinstance(value, (int, float)):
+                        value = -value
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
@@ -345,7 +380,8 @@ class BaseElementTranslator(PhysicalBaseElement):
         object
             An Ocelot object representing the element, initialized with its properties.
         """
-        from ocelot.cpbd.elements import Marker, Aperture
+        from ocelot.cpbd.elements import Aperture, Marker
+
         from ..conversion_rules.codes import ocelot_conversion
 
         type_conversion_rules_ocelot = ocelot_conversion.ocelot_conversion_rules
@@ -368,6 +404,18 @@ class BaseElementTranslator(PhysicalBaseElement):
                     setattr(obj, self._convert_keyword_ocelot(key), value)
         return obj
 
+    @staticmethod
+    def _cheetah_float64(obj: object) -> object:
+        """
+        Promotes every floating-point buffer on a Cheetah element to float64.
+        """
+        from torch import float64
+
+        for bufname, buf in obj._buffers.items():
+            if buf is not None and buf.is_floating_point() and buf.dtype != float64:
+                obj._buffers[bufname] = buf.to(float64)
+        return obj
+
     def to_cheetah(self) -> object:
         """
         Generates a Cheetah object based on the element's properties and type.
@@ -378,10 +426,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             A Cheetah object representing the element, initialized with its properties.
         """
         from cheetah.accelerator import Aperture as Aperture_Cheetah
-        from cheetah.accelerator import Screen as Screen_Cheetah
         from cheetah.accelerator import Drift as Drift_Cheetah
+        from cheetah.accelerator import Screen as Screen_Cheetah
+        from torch import float64, tensor
+
         from ..conversion_rules.codes import cheetah_conversion
-        from torch import tensor, float64
 
         type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
@@ -405,7 +454,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                         sanitize_name=True,
                     )
                     obj.is_active = True
-                    return obj
+                    return self._cheetah_float64(obj)
             else:
                 raise NotImplementedError(
                     f"Cheetah element {self.hardware_type} not implemented, {e}"
@@ -433,12 +482,16 @@ class BaseElementTranslator(PhysicalBaseElement):
                     setattr(
                         obj, self._convert_keyword_cheetah(key), tensor(value, dtype=dt)
                     )
+                if key == "fringe_integral" and "fringe_integral_exit" in buffers:
+                    setattr(
+                        obj,
+                        "fringe_integral_exit",
+                        tensor(self.magnetic.exit_fringe_integral, dtype=float64),
+                    )
                     # else:
                     #     from torch import get_default_dtype
                     #     dt = get_default_dtype()
-        for bufname, buf in obj._buffers.items():
-            if buf is not None and buf.is_floating_point() and buf.dtype != float64:
-                obj._buffers[bufname] = buf.to(float64)
+        self._cheetah_float64(obj)
         if isinstance(obj, Screen_Cheetah):
             obj.is_active = True
         return obj
@@ -488,7 +541,11 @@ class BaseElementTranslator(PhysicalBaseElement):
             if (key not in ["name", "type", "commandtype"]) and (
                 xkey in list(obj.__dict__.keys())
             ):
-                if key in ["k1", "k2", "k3", "k4", "k5", "k6"] and not self._resolve_functional:
+                key = self._convert_keyword_xsuite(key)
+                if (
+                    key in ["k1", "k2", "k3", "k4", "k5", "k6"]
+                    and not self._resolve_functional
+                ):
                     expr = self._functional_strength_expr(int(key[1]), "xsuite")
                     if expr is not None:
                         value = expr
@@ -515,9 +572,15 @@ class BaseElementTranslator(PhysicalBaseElement):
                     elif value == "angle/2":
                         value = self.magnetic.KnL(0) / 2
                 if value is not None:
-                    # the gate above tests the *converted* name, so the converted
-                    # name is what xsuite has to be handed as well
                     properties.update({xkey: value})
+        if self.hardware_type.lower() == "dipole":
+            edges = {
+                "edge_entry_fint": self.magnetic.edge_field_integral_entrance,
+                "edge_exit_fint": self.magnetic.edge_field_integral_exit,
+                "edge_entry_hgap": self.magnetic.half_gap,
+                "edge_exit_hgap": self.magnetic.exit_half_gap,
+            }
+            properties.update({k: v for k, v in edges.items() if v is not None})
         return self.name, obj, properties
 
     def to_genesis(self, index: int) -> str:
@@ -546,8 +609,6 @@ class BaseElementTranslator(PhysicalBaseElement):
             ):
                 if value is not None:
                     key = self._convert_keyword_genesis(key)
-                    if key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                        value = getattr(self, f"{key}l")
                     value = 1 if value is True else value
                     value = 0 if value is False else value
                     if key not in keys:
@@ -617,8 +678,8 @@ class BaseElementTranslator(PhysicalBaseElement):
             appending.
         """
         from ..conversion_rules.codes.rftrack_conversion import (
-            rftrack_conversion_rules,
             build_drift,
+            rftrack_conversion_rules,
         )
 
         self.start_write()
@@ -667,8 +728,8 @@ class BaseElementTranslator(PhysicalBaseElement):
             ``SectionLatticeTranslator._save_rftrack_py_file``).
         """
         from ..conversion_rules.codes.rftrack_conversion import (
-            rftrack_repr_rules,
             repr_drift,
+            rftrack_repr_rules,
         )
 
         self.start_write()
@@ -823,8 +884,17 @@ class BaseElementTranslator(PhysicalBaseElement):
         wholestring += f", ELEMEDGE = {sval};\n"
         return wholestring
 
-    _KEYWORD_STRIP_PREFIXES: ClassVar[list] = ["", "simulation_", "cavity_", "magnetic_", "aperture_"]
-    _KEYWORD_STRIP_PREFIXES_WAKE_T: ClassVar[list] = _KEYWORD_STRIP_PREFIXES + ["plasma_", "laser_"]
+    _KEYWORD_STRIP_PREFIXES: ClassVar[list] = [
+        "",
+        "simulation_",
+        "cavity_",
+        "magnetic_",
+        "aperture_",
+    ]
+    _KEYWORD_STRIP_PREFIXES_WAKE_T: ClassVar[list] = _KEYWORD_STRIP_PREFIXES + [
+        "plasma_",
+        "laser_",
+    ]
 
     @staticmethod
     def _convert_type(etype: str, rules: dict, default):
@@ -844,7 +914,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         one of its keys directly. Falls back to the original keyword.
         """
         for strip in strip_prefixes:
-            stripped = keyword.replace(strip, "")
+            stripped = keyword.removeprefix(strip)
             if stripped in conversion_rules:
                 return conversion_rules[stripped]
             elif element is not None and stripped in element.keys():
@@ -880,6 +950,7 @@ class BaseElementTranslator(PhysicalBaseElement):
         etype = self._convert_type_madx(self.hardware_type)
         string = sanitize_string(self.name) + ": " + etype
         keys = []
+        fringe = self._madx_fringe(etype)
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             if (
                 not key == "name"
@@ -889,13 +960,21 @@ class BaseElementTranslator(PhysicalBaseElement):
             ):
                 if value is not None:
                     key = self._convert_keyword_madx(key)
+                    if fringe and key in ("fint", "fintx", "hgap"):
+                        if key not in fringe:
+                            continue  # folded onto the face that is kept
+                        value = fringe[key]
                     deferred = False
                     if value in ("angle", "angle/2") and key in ("e1", "e2"):
                         raw = (
                             None
                             if self._resolve_functional
                             else self._raw_edge_angle(
-                                "entrance_edge_angle" if key == "e1" else "exit_edge_angle",
+                                (
+                                    "entrance_edge_angle"
+                                    if key == "e1"
+                                    else "exit_edge_angle"
+                                ),
                                 "madx",
                             )
                         )
@@ -903,7 +982,11 @@ class BaseElementTranslator(PhysicalBaseElement):
                             value = raw
                             deferred = True
                         else:
-                            value = self.magnetic.KnL(0) if value == "angle" else self.magnetic.KnL(0) / 2
+                            value = (
+                                self.magnetic.KnL(0)
+                                if value == "angle"
+                                else self.magnetic.KnL(0) / 2
+                            )
                     elif value == "angle":
                         value = self.magnetic.KnL(0)
                     elif value == "angle/2":
@@ -936,13 +1019,59 @@ class BaseElementTranslator(PhysicalBaseElement):
                         op = ":=" if deferred else "="
                         string += f", {key} {op} {value}"
                     keys.append(key)
+        for key, value in fringe.items():
+            if key not in keys and key in elements_madx[etype]:
+                string += f", {key} = {value}"
+                keys.append(key)
         if at is not None:
             string += f", at = {at}"
         return string + ";\n"
 
+    def _fringe_integrals(self) -> Tuple[Any, Any]:
+        """The entrance and exit fringe-field integrals to export."""
+        override = getattr(
+            getattr(self, "simulation", None), "edge_field_integral", None
+        )
+        if override is not None:
+            return override, override
+        return (
+            self.magnetic.edge_field_integral_entrance,
+            self.magnetic.exit_fringe_integral,
+        )
+
+    def _madx_fringe(self, etype: str) -> Dict[str, float]:
+        """Return a bend's MAD-X fringe attributes, folded onto one half gap.
+
+        MAD-X carries `fint` and `fintx` but only a single `hgap` for both
+        faces, where Bmad has `hgap` and `hgapx`.
+
+        `fintx` is written only when it differs from `fint`.
+        """
+        magnetic = getattr(self, "magnetic", None)
+        if etype not in ("sbend", "rbend") or magnetic is None:
+            return {}
+        faces = self._fringe_integrals() + (
+            magnetic.half_gap,
+            magnetic.exit_half_gap,
+        )
+        if not all(isinstance(value, (int, float)) for value in faces):
+            return {}  # a functional parameter; leave it to the normal path
+        entry_fint, exit_fint, entry_hgap, exit_hgap = faces
+        hgap = entry_hgap or exit_hgap
+        if not hgap:
+            return {"fint": 0.0, "hgap": 0.0}
+        fringe = {"fint": entry_fint * entry_hgap / hgap, "hgap": hgap}
+        scaled_exit = exit_fint * exit_hgap / hgap
+        if scaled_exit != fringe["fint"]:
+            fringe["fintx"] = scaled_exit
+        return fringe
+
     def _convert_type_elegant(self, etype: str) -> str:
         """Converts the element type to the corresponding Elegant type using predefined rules."""
-        return self._convert_type(etype, type_conversion_rules_elegant, etype)
+        converted = self._convert_type(etype, type_conversion_rules_elegant, etype)
+        if converted.lower() not in elements_elegant:
+            return "drift"
+        return converted
 
     def _convert_keyword_elegant(self, keyword: str, updated_type: str = "") -> str:
         """Converts a keyword to its corresponding Elegant keyword using predefined rules."""
@@ -987,8 +1116,9 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _convert_type_ocelot(self, etype: str) -> object:
         """Converts the element type to the corresponding Ocelot type using predefined rules."""
-        from ..conversion_rules.codes import ocelot_conversion
         from ocelot.cpbd.elements.drift import Drift as Drift_Oce
+
+        from ..conversion_rules.codes import ocelot_conversion
 
         return self._convert_type(
             etype, ocelot_conversion.ocelot_conversion_rules, Drift_Oce
@@ -1000,8 +1130,9 @@ class BaseElementTranslator(PhysicalBaseElement):
 
     def _convert_type_cheetah(self, etype: str) -> object:
         """Converts the element type to the corresponding Cheetah type using predefined rules."""
-        from ..conversion_rules.codes import cheetah_conversion
         from cheetah.accelerator import Drift as Drift_Che
+
+        from ..conversion_rules.codes import cheetah_conversion
 
         return self._convert_type(
             etype, cheetah_conversion.cheetah_conversion_rules, Drift_Che
@@ -1073,7 +1204,6 @@ class BaseElementTranslator(PhysicalBaseElement):
         -------
         str
             The converted keyword for MAD-X, or the original keyword if no conversion rule exists.
-
         """
         if updated_type.lower() in keyword_conversion_rules_madx:
             conversion_rules = (
@@ -1091,6 +1221,284 @@ class BaseElementTranslator(PhysicalBaseElement):
             elif stripped in element.keys():
                 return stripped
         return keyword
+
+    def _convert_type_bmad(self, etype: str) -> str:
+        """
+        Converts the element type to the corresponding Bmad type using predefined rules.
+
+        Parameters
+        ----------
+        etype: str
+            The type of the element to be converted.
+
+        Returns
+        -------
+        str
+            The converted type of the element, or the original type if no conversion rule exists.
+        """
+        converted = self._convert_type(etype, type_conversion_rules_bmad, etype)
+        return converted if converted.lower() in elements_bmad else "drift"
+
+    def _convert_keyword_bmad(self, keyword: str, updated_type: str = "") -> str:
+        """
+        Converts a keyword to its corresponding Bmad keyword using predefined rules.
+
+        Parameters
+        ----------
+        keyword: str:
+            The keyword to be converted.
+        updated_type: str
+            Optional override for type name
+
+        Returns
+        -------
+        str
+            The converted keyword for Bmad, or the original keyword if no conversion rule exists.
+        """
+        hardware_type = updated_type or self.hardware_type
+        key = hardware_type.lower()
+        conversion_rules = (
+            keyword_conversion_rules_bmad[key]
+            | keyword_conversion_rules_bmad["general"]
+            if key in keyword_conversion_rules_bmad
+            else self.conversion_rules["bmad"]
+        )
+        element = (
+            elements_bmad[self._convert_type_bmad(hardware_type).lower()]
+            | elements_bmad["common"]
+        )
+        return self._convert_keyword(
+            keyword,
+            conversion_rules,
+            element,
+            strip_prefixes=(
+                "",
+                "simulation_",
+                "cavity_",
+                "magnetic_",
+                "aperture_",
+                "physical_",
+            ),
+        )
+
+    def _bmad_parameters(self, etype: str | None = None) -> Dict[str, Any]:
+        """
+        Return the native Bmad attributes represented by this element.
+
+        Parameters
+        ----------
+        etype: str | None
+            Element type
+
+        Returns
+        -------
+        dict
+            Dictionary of Bmad parameters associated with the element
+        """
+        etype = etype or self._convert_type_bmad(self.hardware_type)
+        common = elements_bmad["common"]
+        element = elements_bmad[etype] | common
+        explicit = self.simulation.model_fields_set
+        parameters = {}
+        for source_key, value in self.full_dump(
+            resolve=self._resolve_functional
+        ).items():
+            key = self._convert_keyword_bmad(source_key)
+            if value is None or key not in element:
+                continue
+            source_field = source_key.removeprefix("simulation_")
+            if source_field not in explicit and (
+                key in common
+                or source_field in {"horizontal_offset", "vertical_offset", "n_kicks"}
+            ):
+                continue
+            if key == "n_rf_steps" and not (isinstance(value, int) and value >= 1):
+                continue
+            if value in ("angle", "angle/2") and key in ("e1", "e2"):
+                raw = (
+                    None
+                    if self._resolve_functional
+                    else self._raw_edge_angle(
+                        "entrance_edge_angle" if key == "e1" else "exit_edge_angle",
+                        "bmad",
+                    )
+                )
+                value = (
+                    raw
+                    if raw is not None
+                    else (
+                        self.magnetic.KnL(0)
+                        if value == "angle"
+                        else self.magnetic.KnL(0) / 2
+                    )
+                )
+            elif key in ("k1", "k2", "k3", "k4"):
+                expression = (
+                    None
+                    if self._resolve_functional
+                    else self._functional_strength_expr(int(key[1]), "bmad")
+                )
+                value = expression if expression is not None else getattr(self, key)
+            elif key == "angle":
+                raw = (
+                    None
+                    if self._resolve_functional
+                    else self._raw_multipole_strength(0)
+                )
+                value = raw if raw is not None else self.magnetic.KnL(0)
+            parameters.setdefault(key, value)
+        length = self.length
+        cavity = getattr(self, "cavity", None)
+        if not length and cavity is not None:
+            length = cavity.cell_length * (cavity.n_cells or 1)
+        if "l" in element:
+            parameters["l"] = length
+        if etype in ("sbend", "rbend"):
+            entry_fint, exit_fint = self._fringe_integrals()
+            parameters["hgap"] = self.magnetic.half_gap
+            parameters["fint"] = entry_fint
+            exit_hgap = self.magnetic.exit_half_gap
+            if exit_hgap != parameters["hgap"] or exit_fint != parameters["fint"]:
+                parameters["hgapx"] = exit_hgap
+                parameters["fintx"] = exit_fint
+        self._add_bmad_aperture(parameters, element, etype)
+        self._add_bmad_multipoles(parameters, etype)
+        return parameters
+
+    def _add_bmad_aperture(
+        self, parameters: Dict[str, Any], element: Dict[str, Any], etype: str
+    ) -> None:
+        """
+        Write the element's own aperture as Bmad's four limits."""
+        aperture = getattr(self, "aperture", None)
+        if aperture is None or etype in _BMAD_NO_APERTURE:
+            return
+        if "x1_limit" not in element:
+            return
+        horizontal = aperture.radius or (aperture.horizontal_size or 0.0) / 2
+        vertical = aperture.radius or (aperture.vertical_size or 0.0) / 2
+        if not horizontal and not vertical:
+            return
+        parameters["x1_limit"] = parameters["x2_limit"] = horizontal
+        parameters["y1_limit"] = parameters["y2_limit"] = vertical
+        shape = getattr(aperture.shape, "value", aperture.shape)
+        if shape in ("elliptical", "circular"):
+            parameters["aperture_type"] = "elliptical"
+
+    def _add_bmad_multipoles(self, parameters: Dict[str, Any], etype: str) -> None:
+        """
+        Write the multipole content that Bmad's main attributes cannot hold.
+        """
+        main_orders = _BMAD_MAIN_MULTIPOLE_ORDERS.get(etype)
+        if main_orders is None:
+            return
+        magnetic = getattr(self, "magnetic", None)
+        multipoles = getattr(magnetic, "multipoles", None) if magnetic else None
+        if multipoles is None:
+            return
+        skewed = bool(getattr(magnetic, "skew", False))
+        length = getattr(magnetic, "length", 0) or 0
+
+        def _resolved(raw, divisor=1):
+            """A stored strength as Bmad wants it, symbolic form preserved."""
+            if not self._resolve_functional and self.is_functional(raw):
+                return raw if divisor == 1 else f"{raw} / {divisor}"
+            value = self.resolve(raw)
+            return value / divisor if divisor != 1 else value
+
+        moved = set()
+        if skewed:
+            for order in main_orders:
+                if f"k{order}" in parameters:
+                    parameters[f"k{order}"] = _resolved(
+                        multipoles.normal(order), length or 1
+                    )
+                    moved.add(order)
+
+        extra: Dict[str, Any] = {}
+        for order in range(5):
+            carried = "skew" if (skewed and order not in moved) else "normal"
+            scale = math.factorial(order)
+            for component, prefix in (("normal", "b"), ("skew", "a")):
+                if order in main_orders and component == carried:
+                    continue
+                value = _resolved(getattr(multipoles, component)(order), scale)
+                if not value:
+                    continue
+                extra[f"{prefix}{order}"] = value
+        if extra:
+            parameters.update(extra)
+            parameters["scale_multipoles"] = False
+
+    def _bmad_common_parameters(self) -> Dict[str, Any]:
+        """Return common Bmad attributes represented by this element."""
+        return {
+            key: value
+            for key, value in self._bmad_parameters().items()
+            if key in elements_bmad["common"]
+        }
+
+    def _format_bmad(
+        self,
+        etype: str | None = None,
+        parameters: Dict[str, Any] | None = None,
+    ) -> str:
+        """
+        Format one Bmad lattice element definition.
+
+        Parameters
+        ----------
+        etype: str | None
+            Element type
+        parameters: Dict[str, Any] | None
+            Element parameters
+
+        Returns
+        -------
+        str
+            Formatted string for Bmad output
+        """
+        self.start_write()
+        etype = etype or self._convert_type_bmad(self.hardware_type)
+        element = elements_bmad[etype] | elements_bmad["common"]
+        if parameters is None:
+            parameters = self._bmad_parameters(etype)
+        else:
+            parameters = self._bmad_common_parameters() | parameters
+        parameters.update(bmad_misalignment(self, etype, parameters))
+        self._bmad_written = dict(parameters)
+
+        def render(key, value):
+            if value is True:
+                return "T"
+            if value is False:
+                return "F"
+            if element.get(key) == "integer":
+                return str(int(value))
+            return str(value)
+
+        attributes = "".join(
+            f", {key} = {render(key, value)}" for key, value in parameters.items()
+        )
+        return f"{sanitize_string(self.name)}: {etype}{attributes}\n"
+
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad lattice element string.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        return self._format_bmad()
+
+    def bmad_attributes(self) -> Dict[str, Any]:
+        """
+        The attributes the last :meth:`to_bmad` call wrote, so that two exports
+        of one element can be compared on the values that reached the file.
+        """
+        return dict((self.__pydantic_private__ or {}).get("_bmad_written", {}))
 
     def _write_astra_dictionary(self, d: dict, n: int | None = 1) -> str:
         """
@@ -1196,32 +1604,43 @@ class BaseElementTranslator(PhysicalBaseElement):
     @computed_field
     @property
     def x_rot(self) -> float:
+        """Design rotation in the x-plane, i.e. about the **y** axis [rad]."""
         return self.physical.rotation.theta
 
     @computed_field
     @property
     def y_rot(self) -> float:
+        """Design rotation in the y-plane, i.e. about the **x** axis [rad]."""
         return self.physical.rotation.phi
 
     @computed_field
     @property
     def z_rot(self) -> float:
+        """Design roll, about the longitudinal (z) axis [rad]."""
         return self.physical.rotation.psi
 
     @computed_field
     @property
     def dx_rot(self) -> float:
+        """Alignment error in the x-plane, i.e. about the **y** axis [rad]."""
         return self.physical.error.rotation.theta
 
     @computed_field
     @property
     def dy_rot(self) -> float:
+        """Alignment error in the y-plane, i.e. about the **x** axis [rad]."""
         return self.physical.error.rotation.phi
 
     @computed_field
     @property
     def dz_rot(self) -> float:
+        """Roll error, about the longitudinal (z) axis [rad]."""
         return self.physical.error.rotation.psi
+
+    def _astra_rotation(self, plane: str) -> float:
+        """The total design-plus-error rotation for one plane, in ASTRA's sense."""
+        sign = _ASTRA_ROTATION_SIGN[plane]
+        return sign * (getattr(self, f"{plane}_rot") + getattr(self, f"d{plane}_rot"))
 
     def get_field_reference_position(self, if_none: str = "start") -> np.ndarray:
         """
@@ -1330,7 +1749,60 @@ class BaseElementTranslator(PhysicalBaseElement):
                         ),
                     )
 
-    def generate_field_file_name(self, param: FieldMap, code: str) -> str | None:
+    def _wakefield_active(self) -> bool:
+        """
+        Whether this element should be written with its wakefield applied.
+
+        False if wakefields have been switched off for the element, if no
+        wakefield definition is set, or if the definition carries no usable
+        data.
+
+        Returns
+        -------
+        bool
+            True if a usable wakefield is defined and enabled
+        """
+        if not getattr(self.simulation, "wakefield_enable", True):
+            return False
+        wake = getattr(self.simulation, "wakefield_definition", None)
+        if wake is None or wake == "":
+            return False
+        if not isinstance(wake, str):
+            # a field object: only usable if it has a longitudinal coordinate
+            try:
+                wake.z_values
+            except Exception:
+                return False
+        return True
+
+    def _bmad_sr_wake(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Add this element's short-range wake to its Bmad parameters, if it has one. Bmad
+        takes a tabulated wake by ``call::`` and not inline.
+
+        Parameters
+        ----------
+        parameters: Dict[str, Any]
+            Bmad parameters for the element, modified in place
+
+        Returns
+        -------
+        Dict[str, Any]
+            The same parameters
+        """
+        if self._wakefield_active():
+            wake = self.generate_field_file_name(
+                self.simulation.wakefield_definition,
+                code="bmad",
+                verbose=getattr(self, "verbose", True),
+            )
+            if wake:
+                parameters["sr_wake"] = f"call::{wake}"
+        return parameters
+
+    def generate_field_file_name(
+        self, param: FieldMap, code: str, **kwargs
+    ) -> str | None:
         """
         Generates a field file name based on the provided frameworkElement and tracking code.
 
@@ -1356,9 +1828,10 @@ class BaseElementTranslator(PhysicalBaseElement):
                     self.directory.replace("\\", "/"), basename.replace("\\", "/")
                 )
             )
-            return os.path.basename(
-                param.write_field_file(code=code, location=efield_basename)
+            filename = param.write_field_file(
+                code=code, location=efield_basename, **kwargs
             )
+            return os.path.basename(filename) if filename else None
         else:
             if param:
                 warn(

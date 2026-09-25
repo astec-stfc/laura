@@ -2390,3 +2390,9 @@ ztransverse:
   bunched_beam_mode: long
   allow_long_beam: long
   group: string
+beambeam:
+  charge: double
+  xcenter: double
+  ycenter: double
+  xsize: double
+  ysize: double

@@ -9,15 +9,15 @@ version: "0.1.0"
 license: Apache Software License 2.0
 
 prefixes:
-  linkml:  https://w3id.org/linkml/
-  laura:   https://w3id.org/laura/
-  qudt:    http://qudt.org/schema/qudt/
-  unit:    http://qudt.org/vocab/unit/
-  schema:  http://schema.org/
-  skos:    http://www.w3.org/2004/02/skos/core#
+  linkml: https://w3id.org/linkml/
+  laura: https://w3id.org/laura/
+  qudt: http://qudt.org/schema/qudt/
+  unit: http://qudt.org/vocab/unit/
+  schema: http://schema.org/
+  skos: http://www.w3.org/2004/02/skos/core#
   dcterms: http://purl.org/dc/terms/
-  obo:     http://purl.obolibrary.org/obo/
-  xsd:     http://www.w3.org/2001/XMLSchema#
+  obo: http://purl.obolibrary.org/obo/
+  xsd: http://www.w3.org/2001/XMLSchema#
 
 default_prefix: laura
 default_range: string
@@ -111,21 +111,31 @@ enums:
         description: Beam monitor element.
       Simulation:
         description: Simulation element.
+      ElectrostaticSeparator:
+        description: Electrostatic deflecting separator.
+      ACDipole:
+        description: AC dipole / tune exciter.
+      Wire:
+        description: Current-carrying wire for beam-beam compensation.
+      BeamBeam:
+        description: Weak-strong beam-beam interaction.
+      RFMultipole:
+        description: RF-driven multipole kick.
 
   LaserPolarizationEnum:
     description: Polarization state of a laser beam.
     permissible_values:
-      linear:     {}
-      circular:   {}
-      elliptical: {}
+      linear: { }
+      circular: { }
+      elliptical: { }
 
   LaserProfileTypeEnum:
     description: Transverse intensity profile model for a laser beam.
     permissible_values:
-      gaussian:           {}
-      laguerre-gaussian:  {}
-      flattened-gaussian: {}
-      file:               {}
+      gaussian: { }
+      laguerre-gaussian: { }
+      flattened-gaussian: { }
+      file: { }
 
 # --- Reusable Slots ----------------------------------------------------------
 
@@ -206,7 +216,6 @@ slots:
     range: integer
     description: Mode fraction denominator.
 
-  # Shared wake-file column labels
   t_column:
     range: string
     description: Time column in the wake file.
@@ -235,6 +244,87 @@ slots:
   lsc_bins:
     range: integer
     description: Number of bins used in longitudinal space-charge calculations.
+
+  csr_enable:
+    range: boolean
+    description: Whether coherent synchrotron radiation effects are enabled.
+    ifabsent: "true"
+
+  lsc_enable:
+    range: boolean
+    description: Whether longitudinal space-charge effects are enabled.
+    ifabsent: "true"
+
+  tracking_method:
+    range: string
+    description: Phase-space tracking algorithm requested from the target code.
+
+  mat6_calc_method:
+    range: string
+    description: Method used to calculate the element's 6x6 transfer matrix.
+
+  spin_tracking_method:
+    range: string
+    description: Spin-tracking algorithm requested from the target code.
+
+  integration_order:
+    aliases:
+      - integrator_order
+    range: integer
+    minimum_value: 1
+    description: Order of the target code's integration formula.
+
+  num_steps:
+    range: integer
+    minimum_value: 1
+    description: Number of integration steps through the element.
+
+  deltaL:
+    aliases:
+      - ds_step
+    range: float
+    minimum_value: 0
+    description: Longitudinal integration step size [m].
+    unit:
+      ucum_code: m
+
+  csr_method:
+    range: string
+    description: Coherent-synchrotron-radiation tracking method.
+
+  space_charge_method:
+    range: string
+    description: Space-charge tracking method.
+
+  csrdz:
+    aliases:
+      - csr_ds_step
+    range: float
+    minimum_value: 0
+    description: Longitudinal step size between CSR kicks [m].
+    unit:
+      ucum_code: m
+
+  smooth:
+    range: float
+    any_of:
+      - range: integer
+      - range: float
+    description: Smoothing control for field or wake interpolation.
+
+  horizontal_offset:
+    range: float
+    description: Horizontal simulation offset from the reference orbit [m].
+    ifabsent: float(0.0)
+    unit:
+      ucum_code: m
+
+  vertical_offset:
+    range: float
+    description: Vertical simulation offset from the reference orbit [m].
+    ifabsent: float(0.0)
+    unit:
+      ucum_code: m
 
   field_amplitude:
     range: float
@@ -311,9 +401,9 @@ classes:
         range: string
         description: Design-file paths or URIs.
 
-# ===============================================================================
-# Element class hierarchy
-# ===============================================================================
+  # ===============================================================================
+  # Element class hierarchy
+  # ===============================================================================
 
   # -- Root base element ------------------------------------------------------
 
@@ -371,12 +461,17 @@ classes:
         description: >-
           If set, this element is a logical sub-component of the named
           parent element.
-      # These four describe the control/signal graph, which is separate from
-      # beam-path ordering (that comes from the layout and s-position). The
-      # graph is directed, may contain feedback cycles, and its two directions
-      # are stored rather than derived -- symmetry is a convention, not a
-      # constraint. See examples/testing/sample_rf_control_elements.yaml for a
-      # worked example and signal_graph_example.py for traversal code.
+      inherits_from:
+        range: string
+        description: >-
+          If set, this element's definition is merged on top of the named
+          element's at load time, so it need only state what differs.
+          Populated from ``inherit`` in YAML (see
+          ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``,
+          which is a physical part-of relationship rather than a
+          definitional one.
+        aliases:
+          - inherit
       inputs:
         range: IOTypeEnum
         description: >-
@@ -445,3 +540,8 @@ classes:
         description: Position, rotation, and length data.
         in_subset:
           - physical_properties
+      aperture:
+        range: ApertureElement
+        required: false
+        description: >-
+          Aperture of the element.

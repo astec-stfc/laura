@@ -16,6 +16,7 @@ from laura.models.physical import (
 # Position
 # ---------------------------------------------------------------------------
 
+
 class TestPositionExtended:
     def test_from_list(self):
         p = Position.from_list([1.0, 2.0, 3.0])
@@ -97,6 +98,7 @@ class TestPositionExtended:
 # Rotation
 # ---------------------------------------------------------------------------
 
+
 class TestRotationExtended:
     def test_from_list(self):
         r = Rotation.from_list([0.1, 0.2, 0.3])
@@ -154,6 +156,7 @@ class TestRotationExtended:
 # ElementError
 # ---------------------------------------------------------------------------
 
+
 class TestElementError:
     def test_from_lists(self):
         err = ElementError(position=[1, 2, 3], rotation=[0.1, 0.2, 0.3])
@@ -188,6 +191,7 @@ class TestElementSurvey:
 # ---------------------------------------------------------------------------
 # PhysicalElement
 # ---------------------------------------------------------------------------
+
 
 class TestPhysicalElementExtended:
     def test_validate_middle_from_float(self):
@@ -244,10 +248,10 @@ class TestPhysicalElementExtended:
 
     def test_rotation_matrix_with_yaw(self):
         pe = PhysicalElement(rotation=Rotation(theta=np.pi / 2))
-        R = pe.rotation_matrix
+        r = pe.rotation_matrix
         # For yaw=pi/2: [cos, 0, -sin; 0, 1, 0; sin, 0, cos]
-        expected_Ry = np.array([[0, 0, -1], [0, 1, 0], [1, 0, 0]])
-        np.testing.assert_array_almost_equal(R, expected_Ry)
+        expected_ry = np.array([[0, 0, -1], [0, 1, 0], [1, 0, 0]])
+        np.testing.assert_array_almost_equal(r, expected_ry)
 
     def test_rotated_position(self):
         pe = PhysicalElement()
@@ -269,3 +273,51 @@ class TestPhysicalElementExtended:
     def test_datum_from_int(self):
         pe = PhysicalElement(datum=0)
         assert pe.datum == Position(x=0, y=0, z=0)
+
+
+class TestRotationMatrixFollowsRotation:
+    """The matrix is memoised on the angles it was built from, not on first access.
+
+    It used to be written once and never invalidated, so re-orienting an
+    element after anything had read the matrix silently kept the old geometry
+    -- the element still reported its previous ``start``/``end``.
+    """
+
+    @staticmethod
+    def _drift():
+        from laura.models.element import Drift
+
+        return Drift(
+            name="D",
+            hardware_class="Drift",
+            machine_area="S",
+            physical={"length": 1.0},
+        ).physical
+
+    def test_a_whole_object_assignment_is_picked_up(self):
+        from laura.models.physical import Rotation
+
+        phys = self._drift()
+        assert phys.end.z == pytest.approx(0.5)  # reads, and memoises, the matrix
+        phys.rotation = Rotation(theta=1.0)
+        assert phys.end.z == pytest.approx(0.5 * np.cos(1.0))
+
+    def test_an_in_place_mutation_is_picked_up(self):
+        # an invalidation hook on __setattr__ would miss this one
+        phys = self._drift()
+        assert phys.end.z == pytest.approx(0.5)
+        phys.rotation.theta = 1.0
+        assert phys.end.z == pytest.approx(0.5 * np.cos(1.0))
+
+    def test_global_rotation_counts_too(self):
+        from laura.models.physical import Rotation
+
+        phys = self._drift()
+        assert phys.end.z == pytest.approx(0.5)
+        phys.global_rotation = Rotation(theta=1.0)
+        assert phys.end.z == pytest.approx(0.5 * np.cos(1.0))
+
+    def test_an_unchanged_rotation_returns_the_same_object(self):
+        # the memo still has to memoise
+        phys = self._drift()
+        assert phys.rotation_matrix is phys.rotation_matrix

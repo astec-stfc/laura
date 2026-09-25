@@ -1,22 +1,23 @@
+from typing import Any, Dict, List, Literal, Optional, Union
+
 import numpy as np
 from pydantic import (
-    field_validator,
-    model_validator,
+    Field,
     PrivateAttr,
     computed_field,
+    field_validator,
     model_serializer,
-    Field,
+    model_validator,
 )
-from typing import List, Literal, Optional, Union, Dict, Any
 
+from ..utils.rotation_matrix import euler_angles_to_rotation_matrix
 from ._generated import (
-    _PositionBase,
-    _RotationBase,
     _ElementPositionErrorBase,
     _PhysicalElementBase,
+    _PositionBase,
     _ReferencePlacementBase,
+    _RotationBase,
 )
-from ..utils.rotation_matrix import euler_angles_to_rotation_matrix
 from .trajectory import Trajectory
 
 
@@ -326,7 +327,9 @@ class ReferencePlacement(_ReferencePlacementBase):
         raise ValueError("offset must be a list of 3 floats or {x, y, z} dict")
 
     @model_validator(mode="after")
-    def _check_offset_exclusivity(self) -> "ReferencePlacement": # noqa: N804 (pydantic after-validator takes self)
+    def _check_offset_exclusivity(
+        self,  # noqa: N804 (pydantic after-validator takes self)
+    ) -> "ReferencePlacement":
         n = sum(
             [
                 self.offset is not None,
@@ -365,9 +368,14 @@ class PhysicalElement(_PhysicalElementBase):
 
     _parent: Any = PrivateAttr(default=None)
     _trajectory: Optional[Trajectory] = PrivateAttr(default=None)
+    # Whether ``physical_angle`` was supplied explicitly at construction, as
+    # opposed to being left to derive from the magnetic model.
+    _explicit_angle: bool = PrivateAttr(default=False)
 
     @model_validator(mode="after")
-    def _check_placement_exclusivity(self) -> "PhysicalElement": # noqa: N804 (pydantic after-validator takes self)
+    def _check_placement_exclusivity(
+        self,  # noqa: N804 (pydantic after-validator takes self)
+    ) -> "PhysicalElement":
         # Pydantic v2 re-runs model validators on every field assignment when
         # validate_assignment=True.  After construction the lattice assembly
         # legitimately sets both middle AND s on the same element, so we only
@@ -390,6 +398,16 @@ class PhysicalElement(_PhysicalElementBase):
         return self
 
     def model_post_init(self, __context) -> None:
+        object.__setattr__(
+            self,
+            "_position_stated",
+            self.reference_placement is not None
+            or self.middle is not None
+            or self.s is not None,
+        )
+        object.__setattr__(
+            self, "_explicit_angle", "physical_angle" in self.model_fields_set
+        )
         # Skip the middle default when another positioning mode handles placement.
         if self.reference_placement is None and self.middle is None and self.s is None:
             self.middle = Position()
@@ -479,14 +497,14 @@ class PhysicalElement(_PhysicalElementBase):
     @computed_field
     @property
     def _physical_angle(self) -> float:
+        # An explicit ``physical_angle`` wins.
+        if self._explicit_angle:
+            return float(self.physical_angle)
         if self._physical_angle_override is not None:
             self.physical_angle = self._physical_angle_override
             return self._physical_angle_override
         if self._parent is not None:
             magnetic = getattr(self._parent, "magnetic", None)
-            # Only dipoles expose an `angle`; use the resolved bend angle
-            # (KnL(0), always numeric) and degrade to 0 if a functional
-            # definition is not yet available.
             if magnetic is not None and hasattr(type(magnetic), "angle"):
                 try:
                     angle = magnetic.KnL(0)
@@ -564,6 +582,7 @@ class PhysicalElement(_PhysicalElementBase):
         raise ValueError("rotation should be a number or a list of floats")
 
     _rotation_matrix_cache = None
+    _rotation_matrix_key = None
 
     _physical_angle_override = None
     """Set via :func:`set_physical_angle` to pin the layout angle; ``None`` tracks the
@@ -571,16 +590,16 @@ class PhysicalElement(_PhysicalElementBase):
 
     @property
     def rotation_matrix(self) -> np.ndarray:
-        # if self._rotation_matrix_cache is not None:
-        #     return self._rotation_matrix_cache
-        
-        # Combined rotations using utility function
+        """The element's orientation as a 3x3 matrix."""
         # Apply yaw (Y), pitch (X), roll (Z) in that order
-        yaw = self.rotation.theta + self.global_rotation.theta
-        pitch = self.rotation.phi + self.global_rotation.phi
-        roll = self.rotation.psi + self.global_rotation.psi
-
-        self._rotation_matrix_cache = euler_angles_to_rotation_matrix(yaw, pitch, roll)
+        key = (
+            self.rotation.theta + self.global_rotation.theta,
+            self.rotation.phi + self.global_rotation.phi,
+            self.rotation.psi + self.global_rotation.psi,
+        )
+        if self._rotation_matrix_cache is None or self._rotation_matrix_key != key:
+            self._rotation_matrix_cache = euler_angles_to_rotation_matrix(*key)
+            self._rotation_matrix_key = key
         return self._rotation_matrix_cache
 
     def rotated_position(self, vec: List[Union[int, float]] = [0, 0, 0]) -> np.ndarray:
@@ -600,6 +619,34 @@ class PhysicalElement(_PhysicalElementBase):
         return self.rotation_matrix @ np.array(vec)
 
     @property
+    def _physical_tilt(self) -> float:
+        """Roll of the layout plane about the beam axis [rad].
+
+        :attr:`start`, :attr:`end` and :attr:`end_rotation_matrix` all lay the
+        bend out in the ``y = 0`` plane of :attr:`rotation_matrix`.  A magnet
+        rolled about the beam axis bends in a different plane,
+        so the layout has to be rolled with it.
+        Read off the magnet rather than folded into :attr:`rotation`.
+        """
+        magnetic = getattr(self._parent, "magnetic", None)
+        tilt = getattr(magnetic, "tilt", None) if magnetic is not None else None
+        if not isinstance(tilt, (int, float)) or not tilt:
+            return 0.0
+        placed = getattr(self.global_rotation, "psi", 0.0) or 0.0
+        return 0.0 if abs(placed) > 1e-12 else float(tilt)
+
+    @property
+    def _layout_matrix(self) -> np.ndarray:
+        """:attr:`rotation_matrix`, rolled into the plane the magnet bends in."""
+        tilt = self._physical_tilt
+        if not tilt:
+            return self.rotation_matrix
+        cz, sz = np.cos(tilt), np.sin(tilt)
+        return self.rotation_matrix @ np.array(
+            [[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]]
+        )
+
+    @property
     def end_rotation_matrix(self) -> np.ndarray:
         """Rotation matrix at the element exit, accounting for bending angle.
 
@@ -612,6 +659,7 @@ class PhysicalElement(_PhysicalElementBase):
         ``rotation_matrix`` gives the actual exit direction, which equals
         ``rotation_matrix @ Ry(-θ)`` where Ry uses LAURA's convention
         ``Ry(α) = [[cos α, 0, −sin α], [0,1,0], [sin α, 0, cos α]]``.
+
         """
         theta = self._physical_angle
         if abs(theta) < 1e-9:
@@ -619,7 +667,12 @@ class PhysicalElement(_PhysicalElementBase):
         ct, st = np.cos(theta), np.sin(theta)
         # Ry(-theta) in LAURA's convention
         ry_neg = np.array([[ct, 0, st], [0, 1, 0], [-st, 0, ct]])
-        return self.rotation_matrix @ ry_neg
+        tilt = self._physical_tilt
+        if not tilt:
+            return self.rotation_matrix @ ry_neg
+        cz, sz = np.cos(tilt), np.sin(tilt)
+        rz = np.array([[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]])
+        return self.rotation_matrix @ rz @ ry_neg @ rz.T
 
     @property
     def start(self) -> Position:
@@ -632,22 +685,17 @@ class PhysicalElement(_PhysicalElementBase):
         middle = np.array(self.middle.array)
 
         if abs(self._physical_angle) > 1e-9:
-            # Bent element
-            sx = (
-                -self.length
-                * (1 - np.cos(self._physical_angle))
-                / (2 * self._physical_angle)
-            )
+            theta = self._physical_angle
+            half = theta / 2.0
+            rho = self.length / theta
+            sx = -rho * (1 - np.cos(half))
             sy = 0
-            sz = (
-                -self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
-            )
+            sz = -rho * np.sin(half)
         else:
             # Straight element
             sx, sy, sz = 0, 0, -self.length / 2.0
 
-        vec = [sx, sy, sz]
-        start = middle + self.rotated_position(vec)
+        start = middle + self._layout_matrix @ np.array([sx, sy, sz])
         return Position.from_list(start)
 
     @property
@@ -661,16 +709,14 @@ class PhysicalElement(_PhysicalElementBase):
         middle = np.array(self.middle.array)
 
         if abs(self._physical_angle) > 1e-9:
-            ex = (
-                self.length
-                * (1 - np.cos(self._physical_angle))
-                / (2 * self._physical_angle)
-            )
+            theta = self._physical_angle
+            half = theta / 2.0
+            rho = self.length / theta
+            ex = rho * (np.cos(half) - np.cos(theta))
             ey = 0
-            ez = self.length * np.sin(self._physical_angle) / (2 * self._physical_angle)
+            ez = rho * (np.sin(theta) - np.sin(half))
         else:
             ex, ey, ez = 0, 0, self.length / 2.0
 
-        vec = [ex, ey, ez]
-        end = middle + self.rotated_position(vec)
+        end = middle + self._layout_matrix @ np.array([ex, ey, ez])
         return Position.from_list(end)

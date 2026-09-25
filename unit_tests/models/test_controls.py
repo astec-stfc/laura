@@ -458,6 +458,12 @@ class TestControlsInformation(unittest.TestCase):
         self.assertEqual(controls_info.variables["var1"].dtype, float)
         self.assertEqual(controls_info.variables["var2"].dtype, int)
 
+    def test_controls_information_without_variables(self):
+        # The exporter prunes an empty variables map, so an alias-only block
+        # must reload without one.
+        controls_info = ControlsInformation(identifier_pattern="QUAD:LI21:201")
+        self.assertEqual(controls_info.variables, {})
+
     def test_controls_information_with_mixed_types(self):
         controls_info = ControlsInformation(
             variables={

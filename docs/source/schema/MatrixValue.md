@@ -50,6 +50,8 @@ URI: [linkml:Any](https://w3id.org/linkml/Any)
 | [MatrixTransformSimulationElement](MatrixTransformSimulationElement.md) | [c_matrix](c_matrix.md) | range | [MatrixValue](MatrixValue.md) |
 | [MatrixTransformSimulationElement](MatrixTransformSimulationElement.md) | [r_matrix](r_matrix.md) | range | [MatrixValue](MatrixValue.md) |
 | [MatrixTransformSimulationElement](MatrixTransformSimulationElement.md) | [t_matrix](t_matrix.md) | range | [MatrixValue](MatrixValue.md) |
+| [MatrixTransformSimulationElement](MatrixTransformSimulationElement.md) | [u_matrix](u_matrix.md) | range | [MatrixValue](MatrixValue.md) |
+| [MatrixTransformSimulationElement](MatrixTransformSimulationElement.md) | [spin_taylor](spin_taylor.md) | range | [MatrixValue](MatrixValue.md) |
 
 
 

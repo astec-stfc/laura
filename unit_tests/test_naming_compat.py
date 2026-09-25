@@ -260,6 +260,52 @@ class TestConverterAliases:
             and "renamed" in str(w.message)
         ]
 
+    def test_namelist_keyword_maps_still_name_real_fields(self):
+        """
+        ASTRA's ``astradict`` and OPAL's ``opaldict`` map a model field name to
+        its native attribute name. A key left behind by a field rename does not
+        raise -- the writer just falls through and emits the *python* name,
+        which ASTRA and OPAL both reject, killing the whole deck. That is how
+        ``space_charge_2D`` survived long enough to break &CHARGE.
+        """
+        import ast
+        import inspect
+        import textwrap
+        from laura.translator.converters.codes import astra, opal
+
+        def subclasses(cls):
+            for sub in cls.__subclasses__():
+                yield sub
+                yield from subclasses(sub)
+
+        def mapped_keys(cls, attr):
+            """Keys of the ``self.<attr> = {...}`` literal in model_post_init.
+
+            Read from source rather than an instance: several of these
+            post-inits go on to size a mesh from fields a bare instance has
+            not got.
+            """
+            src = textwrap.dedent(inspect.getsource(cls.model_post_init))
+            return [
+                key.value
+                for node in ast.walk(ast.parse(src))
+                if isinstance(node, ast.Assign) and isinstance(node.value, ast.Dict)
+                for target in node.targets
+                if isinstance(target, ast.Attribute) and target.attr == attr
+                for key in node.value.keys
+            ]
+
+        checked = 0
+        for base, attr in ((astra.AstraHeader, "astradict"),
+                           (opal.OpalHeader, "opaldict")):
+            for cls in [base, *subclasses(base)]:
+                if attr not in inspect.getsource(cls.model_post_init):
+                    continue
+                stale = sorted(set(mapped_keys(cls, attr)) - set(cls.model_fields))
+                assert not stale, f"{cls.__name__}.{attr} names missing fields: {stale}"
+                checked += 1
+        assert checked > 4, f"only {checked} namelist maps found -- did they move?"
+
     def test_notation_arguments_were_not_renamed(self):
         """
         Brho and P_Q are notation *and* public keyword arguments. Renaming them
@@ -360,3 +406,70 @@ class TestLegacyModulePaths:
 
         with pytest.raises(ModuleNotFoundError):
             importlib.import_module("laura.models.NotARealModule")
+
+
+class TestLauraDoesNotUseItsOwnLegacyNames:
+    """
+    The aliases exist for *downstream* callers. laura calling them itself is a
+    bug: a legacy module path warns on every import, and a legacy method name
+    only fails when that branch is finally exercised (an unexercised
+    `self._write_CSRTrack_quadrupole` call survived a merge undetected).
+    """
+
+    def test_no_module_imports_a_legacy_path(self):
+        import importlib
+        import pkgutil
+        import warnings
+
+        import laura
+
+        offenders = []
+        for mod in pkgutil.walk_packages(laura.__path__, "laura."):
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", FutureWarning)
+                try:
+                    importlib.import_module(mod.name)
+                except Exception:
+                    continue  # optional simulation-code dependency
+            offenders += [
+                f"{w.filename}:{w.lineno}: {w.message}"
+                for w in caught
+                if issubclass(w.category, FutureWarning)
+            ]
+        assert not offenders, "laura imports its own legacy paths:\n" + "\n".join(offenders)
+
+    def test_no_source_file_calls_a_legacy_method(self):
+        import importlib
+        import pathlib
+        import re
+
+        from laura._compat import DeprecatedMethodAliases
+
+        for mod in ("aperture", "cavity", "diagnostic", "drift", "laser",
+                    "magnet", "plasma", "twiss", "wake"):
+            importlib.import_module(f"laura.translator.converters.{mod}")
+
+        def _subclasses(cls):
+            for sub in cls.__subclasses__():
+                yield sub
+                yield from _subclasses(sub)
+
+        legacy = set()
+        for cls in [DeprecatedMethodAliases, *_subclasses(DeprecatedMethodAliases)]:
+            legacy |= set(vars(cls).get("_DEPRECATED_METHOD_ALIASES", {}))
+        assert legacy, "no method aliases registered"
+
+        import laura
+
+        pattern = re.compile(r"self\.(" + "|".join(sorted(map(re.escape, legacy))) + r")\b")
+        root = pathlib.Path(laura.__path__[0])
+        offenders = []
+        for path in sorted(root.rglob("*.py")):
+            for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                for match in pattern.finditer(line):
+                    offenders.append(f"{path.relative_to(root)}:{i}: self.{match.group(1)}")
+        assert not offenders, (
+            "laura calls its own renamed methods (these resolve via __getattr__ "
+            "only if the alias target exists, and warn every call):\n"
+            + "\n".join(offenders)
+        )

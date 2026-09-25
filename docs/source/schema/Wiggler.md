@@ -24,6 +24,17 @@ URI: [laura:Wiggler](https://w3id.org/laura/Wiggler)
       
       Wiggler : alias
         
+      Wiggler : aperture
+        
+          
+    
+        
+        
+        Wiggler --> "0..1" ApertureElement : aperture
+        click ApertureElement href "../ApertureElement/"
+    
+
+        
       Wiggler : controls
         
           
@@ -82,6 +93,8 @@ URI: [laura:Wiggler](https://w3id.org/laura/Wiggler)
       Wiggler : hardware_model
         
       Wiggler : hardware_type
+        
+      Wiggler : inherits_from
         
       Wiggler : inputs
         
@@ -221,6 +234,7 @@ URI: [laura:Wiggler](https://w3id.org/laura/Wiggler)
 | [magnetic](magnetic.md) | 0..1 <br/> [WigglerMagnet](WigglerMagnet.md) | Magnetic field parameters | [Magnet](Magnet.md) |
 | [degauss](degauss.md) | 0..1 <br/> [DegaussableElement](DegaussableElement.md) | Degaussing-cycle parameters | [Magnet](Magnet.md) |
 | [physical](physical.md) | 0..1 <br/> [PhysicalElement](PhysicalElement.md) | Position, rotation, and length data | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
+| [aperture](aperture.md) | 0..1 <br/> [ApertureElement](ApertureElement.md) | Aperture of the element | [PhysicalAcceleratorElement](PhysicalAcceleratorElement.md) |
 | [simulation](simulation.md) | 0..1 <br/> [MagnetSimulationElement](MagnetSimulationElement.md) | Simulation / tracking attributes | [StandardElement](StandardElement.md) |
 | [electrical](electrical.md) | 0..1 <br/> [ElectricalElement](ElectricalElement.md) | Power-supply electrical limits | [StandardElement](StandardElement.md) |
 | [manufacturer](manufacturer.md) | 0..1 <br/> [ManufacturerElement](ManufacturerElement.md) | Manufacturer and serial-number data | [StandardElement](StandardElement.md) |
@@ -234,6 +248,7 @@ URI: [laura:Wiggler](https://w3id.org/laura/Wiggler)
 | [virtual_name](virtual_name.md) | 0..1 <br/> [String](String.md) | Alternative internal name used by the control system when the physical name i... | [AcceleratorElement](AcceleratorElement.md) |
 | [alias](alias.md) | * <br/> [String](String.md) | Human-readable aliases for the element | [AcceleratorElement](AcceleratorElement.md) |
 | [subelement](subelement.md) | 0..1 <br/> [String](String.md) | If set, this element is a logical sub-component of the named parent element | [AcceleratorElement](AcceleratorElement.md) |
+| [inherits_from](inherits_from.md) | 0..1 <br/> [String](String.md) | If set, this element's definition is merged on top of the named element's at ... | [AcceleratorElement](AcceleratorElement.md) |
 | [inputs](inputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element consumes (e | [AcceleratorElement](AcceleratorElement.md) |
 | [outputs](outputs.md) | * <br/> [IOTypeEnum](IOTypeEnum.md) | Signal types this element produces (e | [AcceleratorElement](AcceleratorElement.md) |
 | [upstream](upstream.md) | * <br/> [AcceleratorElement](AcceleratorElement.md) | Names of elements feeding this one, whose ``outputs`` supply its ``inputs`` | [AcceleratorElement](AcceleratorElement.md) |
@@ -378,6 +393,17 @@ attributes:
     domain_of:
     - PhysicalAcceleratorElement
     range: PhysicalElement
+  aperture:
+    name: aperture
+    description: Aperture of the element.
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Wiggler
+    domain_of:
+    - PhysicalAcceleratorElement
+    - Aperture
+    range: ApertureElement
+    required: false
   simulation:
     name: simulation
     description: Simulation / tracking attributes.
@@ -507,6 +533,20 @@ attributes:
     description: If set, this element is a logical sub-component of the named parent
       element.
     from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    owner: Wiggler
+    domain_of:
+    - AcceleratorElement
+    range: string
+  inherits_from:
+    name: inherits_from
+    description: If set, this element's definition is merged on top of the named element's
+      at load time, so it need only state what differs. Populated from ``inherit``
+      in YAML (see ``YAML_Loader.resolve_inheritance``). Unrelated to ``subelement``,
+      which is a physical part-of relationship rather than a definitional one.
+    from_schema: https://w3id.org/laura/schema
+    aliases:
+    - inherit
     rank: 1000
     owner: Wiggler
     domain_of:

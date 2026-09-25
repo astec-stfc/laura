@@ -8,6 +8,34 @@ from .base import BaseElementTranslator
 class ApertureTranslator(BaseElementTranslator):
     aperture: ApertureElement
 
+    def to_bmad(self) -> str:
+        """
+        Generate a native Bmad collimator with symmetric aperture limits.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        shape = getattr(self.aperture.shape, "value", self.aperture.shape)
+        etype = "ecollimator" if shape in ("elliptical", "circular") else "rcollimator"
+        horizontal = self.aperture.radius or (self.aperture.horizontal_size or 0.0) / 2
+        vertical = (
+            self.aperture.radius
+            or (self.aperture.vertical_size or 0.0) / 2
+            or horizontal
+        )
+        return self._format_bmad(
+            etype,
+            {
+                "l": self.length,
+                "x1_limit": horizontal,
+                "x2_limit": horizontal,
+                "y1_limit": vertical,
+                "y2_limit": vertical,
+            },
+        )
+
     def to_madx(self, at: float = None) -> str:
         """
         Generates a string representation of the object's properties in the MAD-X
@@ -84,17 +112,17 @@ class ApertureTranslator(BaseElementTranslator):
             )
             dic["Ap_Z2"] = {"value": end, "default": 0}
         dic["A_xrot"] = {
-            "value": self.x_rot + self.dx_rot,
+            "value": self._astra_rotation("x"),
             "default": 0,
             "type": "not_zero",
         }
         dic["A_yrot"] = {
-            "value": self.y_rot + self.dy_rot,
+            "value": self._astra_rotation("y"),
             "default": 0,
             "type": "not_zero",
         }
         dic["A_zrot"] = {
-            "value": self.z_rot + self.dz_rot,
+            "value": self._astra_rotation("z"),
             "default": 0,
             "type": "not_zero",
         }
@@ -247,6 +275,7 @@ class ApertureTranslator(BaseElementTranslator):
                 not key == "name"
                 and not key == "type"
                 and not key == "commandtype"
+                and value is not None
                 and self._convert_keyword_elegant(key) in elements_elegant[etype]
             ):
                 if value is not None:

@@ -1,7 +1,7 @@
 # Slot: element_dtype 
 
 
-_Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container: ``dtype: float`` does not say ``float32`` or ``float64``. ``shape`` is what makes a variable an array, not this._
+_Numeric type of the value, or of one element of the array for ``control_type: waveform``. Distinct from ``dtype``, which names the Python container._
 
 
 
@@ -87,9 +87,7 @@ URI: [laura:element_dtype](https://w3id.org/laura/element_dtype)
 ```yaml
 name: element_dtype
 description: 'Numeric type of the value, or of one element of the array for ``control_type:
-  waveform``. Distinct from ``dtype``, which names the Python container: ``dtype:
-  float`` does not say ``float32`` or ``float64``. ``shape`` is what makes a variable
-  an array, not this.'
+  waveform``. Distinct from ``dtype``, which names the Python container.'
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 owner: ControlVariable

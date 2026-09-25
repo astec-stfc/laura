@@ -176,10 +176,9 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0
   order:
@@ -190,7 +189,6 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
   fields:
@@ -266,10 +264,9 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0
   order:
@@ -281,7 +278,6 @@ attributes:
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
   fields:

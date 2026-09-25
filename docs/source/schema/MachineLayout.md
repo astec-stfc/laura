@@ -23,6 +23,19 @@ URI: [laura:MachineLayout](https://w3id.org/laura/MachineLayout)
         
       MachineLayout : name
         
+      MachineLayout : particle
+        
+      MachineLayout : passes
+        
+          
+    
+        
+        
+        MachineLayout --> "*" LayoutPass : passes
+        click LayoutPass href "../LayoutPass/"
+    
+
+        
       MachineLayout : sections
         
       
@@ -46,7 +59,9 @@ URI: [laura:MachineLayout](https://w3id.org/laura/MachineLayout)
 | ---  | --- | --- | --- |
 | [name](name.md) | 1 <br/> [String](String.md) | Unique layout name | direct |
 | [master_lattice](master_lattice.md) | 0..1 <br/> [String](String.md) | Name of the master lattice this layout belongs to | direct |
+| [particle](particle.md) | 0..1 <br/> [String](String.md) | Design particle species for this layout, overriding the machine-wide value | direct |
 | [sections](sections.md) | * <br/> [String](String.md) | Ordered list of section names | direct |
+| [passes](passes.md) | * <br/> [LayoutPass](LayoutPass.md) | The beam order, one entry per section traversal | direct |
 
 
 
@@ -126,6 +141,18 @@ attributes:
     - SectionLattice
     - MachineLayout
     range: string
+  particle:
+    name: particle
+    description: Design particle species for this layout, overriding the machine-wide
+      value. Free text rather than an enum because the accepted set includes arbitrary
+      ions (e.g. ``#12C+3``) alongside the fundamental particles.
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    domain_of:
+    - MachineLayout
+    - MachineModel
+    range: string
+    required: false
   sections:
     name: sections
     description: Ordered list of section names.
@@ -135,6 +162,16 @@ attributes:
     - MachineLayout
     - MachineModel
     range: string
+    multivalued: true
+  passes:
+    name: passes
+    description: The beam order, one entry per section traversal. Distinct from sections,
+      which is keyed by name and so cannot express a section entered twice.
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    domain_of:
+    - MachineLayout
+    range: LayoutPass
     multivalued: true
 class_uri: laura:MachineLayout
 
@@ -171,6 +208,19 @@ attributes:
     - SectionLattice
     - MachineLayout
     range: string
+  particle:
+    name: particle
+    description: Design particle species for this layout, overriding the machine-wide
+      value. Free text rather than an enum because the accepted set includes arbitrary
+      ions (e.g. ``#12C+3``) alongside the fundamental particles.
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    owner: MachineLayout
+    domain_of:
+    - MachineLayout
+    - MachineModel
+    range: string
+    required: false
   sections:
     name: sections
     description: Ordered list of section names.
@@ -181,6 +231,17 @@ attributes:
     - MachineLayout
     - MachineModel
     range: string
+    multivalued: true
+  passes:
+    name: passes
+    description: The beam order, one entry per section traversal. Distinct from sections,
+      which is keyed by name and so cannot express a section entered twice.
+    from_schema: https://w3id.org/laura/schema/machine
+    rank: 1000
+    owner: MachineLayout
+    domain_of:
+    - MachineLayout
+    range: LayoutPass
     multivalued: true
 class_uri: laura:MachineLayout
 

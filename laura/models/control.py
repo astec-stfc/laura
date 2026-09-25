@@ -1,24 +1,26 @@
 import builtins
 import math
-import re
-from pydantic import (
-    ValidationError,
-    field_validator,
-    model_serializer,
-    ConfigDict,
-    Field,
-)
-from pydantic import ValidationInfo
-from typing import Any, Callable, Dict, Mapping, Type
 import operator
+import re
 from dataclasses import fields, is_dataclass
-from laura.utils.dynamics import resolve_response, response_path
-from laura.utils.signals import resolve_signal, signal_path
+from typing import Any, Callable, Dict, Mapping, Type
 from warnings import warn
 
+from pydantic import (
+    ConfigDict,
+    Field,
+    ValidationError,
+    ValidationInfo,
+    field_validator,
+    model_serializer,
+)
+
+from laura.utils.dynamics import resolve_response, response_path
+from laura.utils.signals import resolve_signal, signal_path
+
 from ._generated import (
-    _ControlVariableBase,
     _ControlsInformationBase,
+    _ControlVariableBase,
 )
 
 OPS = {
@@ -116,12 +118,6 @@ def validate_callable_spec(
         warn(f"Cannot resolve `{field}` for {who}: {exc}")
         return None
 
-    # Construct the class to validate the supplied arguments: a kw_only dataclass
-    # rejects unknown keys, missing required ones, and -- for the built-ins,
-    # which are `type_checked` -- wrong types. Reproducing those checks here
-    # would only duplicate what the constructor already enforces. Fields with
-    # init=False (runtime state) are likewise rejected, since they are not
-    # constructor arguments.
     kwargs = {k: val for k, val in v.items() if k != key}
     try:
         obj_cls(**kwargs)
@@ -166,13 +162,6 @@ class ControlVariable(_ControlVariableBase):
         controls_info.apply(element)
         print(element.magnetic.k1l)  # Should reflect the updated value based on the control variable
     """
-
-    # Slots below override `_ControlVariableBase` where the Python type is
-    # richer than the LinkML range can express, or where the schema's
-    # cardinality is looser than this model wants. Everything else --
-    # `units`, `description`, `read_only`, `control_type`, `target`,
-    # `readback`, `setpoint`, `element_dtype`, `shape` -- is inherited from
-    # the generated base, including the `type` alias on `control_type`.
 
     identifier: str
     """Unique identifier for the control variable."""
@@ -342,7 +331,9 @@ class ControlVariable(_ControlVariableBase):
         if not self.shape:
             raise ValueError(f"{self} has no shape to resolve")
         return tuple(
-            math.prod(self._resolve_dimension(owner, term) for term in shape_terms(entry))
+            math.prod(
+                self._resolve_dimension(owner, term) for term in shape_terms(entry)
+            )
             for entry in self.shape
         )
 
@@ -354,7 +345,9 @@ class ControlVariable(_ControlVariableBase):
         value = owner
         for attr in term.split("."):
             try:
-                value = value[attr] if isinstance(value, Mapping) else getattr(value, attr)
+                value = (
+                    value[attr] if isinstance(value, Mapping) else getattr(value, attr)
+                )
             except (KeyError, AttributeError):
                 raise ValueError(
                     f"shape of {self} refers to '{term}', which does not resolve "
@@ -434,7 +427,7 @@ class ControlsInformation(_ControlsInformationBase):
 
     # Narrowed from the generated base's `_ControlVariableBase` values so the
     # validators and helpers on `ControlVariable` are available.
-    variables: Dict[str, ControlVariable]
+    variables: Dict[str, ControlVariable] = Field(default_factory=dict)
     """Dictionary mapping variable names to `~laura.models.control.ControlVariable` instances."""
 
     schema_: str | None = Field(default=None, alias="schema")
@@ -510,14 +503,6 @@ class ControlsInformation(_ControlsInformationBase):
             if hasattr(element, param):
                 ctx.update({param: getattr(element, param)})
         return ctx
-
-    # @staticmethod
-    # def build_context(element):
-    #     return {
-    #         **{k: v.value for k, v in element.controls.variables.items()},
-    #         "magnetic": element.magnetic,
-    #         "physical": element.physical,
-    #     }
 
     def apply(self, element):
         ctx = self.build_context(element)

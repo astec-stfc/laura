@@ -294,6 +294,10 @@ def _parse_schema_info(
         with open(path, encoding="utf-8") as fh:
             schema = yaml.safe_load(fh) or {}
 
+        for slot_name, slot_def in (schema.get("slots") or {}).items():
+            if slot_def and (slot_aliases := slot_def.get("aliases")):
+                global_aliases.setdefault(slot_name, list(slot_aliases))
+
         for class_name, class_def in (schema.get("classes") or {}).items():
             for slot_name, slot_def in (class_def.get("attributes") or {}).items():
                 if not slot_def:
@@ -359,13 +363,6 @@ def _apply_schema_fixes(content: str, schema_path: str) -> str:
 
     needs_alias_choices = False
 
-    # Track the current schema class being processed so we can look up
-    # per-class aliases (e.g. for the ``type`` slot that appears in every
-    # diagnostic sub-class with a different alias).
-    # The class headers produced by _rename_classes look like:
-    #   class _BPMDiagnosticElementBase(_DiagnosticElementBase):
-    # We strip the leading ``_`` and trailing ``Base`` to recover the
-    # original schema class name used as a key in class_aliases.
     _class_header_re = re.compile(r"^class _?(\w+?)(?:Base)?\(")
     current_class_orig: str | None = None
 
@@ -567,14 +564,10 @@ def _add_attribute_docstrings(content: str) -> str:
 #: subclass property shadowing an inherited field makes the property object
 #: itself the field default, which then fails validation.
 _PYDANTIC_EXCLUDED_SLOTS: dict[str, frozenset[str]] = {
-    # MagneticElement.angle is derived from multipoles.K0L so that a symbolic
-    # (functional) bend angle survives round-tripping and reads follow the
-    # global resolution mode. The Dipole/Quadrupole magnet bases repeat the slot
-    # and are excluded too, so the property stays usable if a wrapper is ever
-    # pointed at them.
     "_MagneticElementBase": frozenset({"angle"}),
     "_DipoleMagnetBase": frozenset({"angle"}),
     "_QuadrupoleMagnetBase": frozenset({"angle"}),
+    "_CorrectorMagnetBase": frozenset({"angle", "horizontal_kick", "vertical_kick"}),
 }
 
 

@@ -41,11 +41,6 @@ class RFCavityElement(_RFCavityElementBase, FunctionalMixin):
     RF Cavity model.
     """
 
-    structure_type: str = "StandingWave"
-    """Type of RF structure
-    #TODO make this literal.
-    """
-
     attenuation_constant: float = 0
     """Attenuation constant associated with the cavity."""
 

@@ -1,18 +1,34 @@
-from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict
+from typing import Iterator, List, Optional, Tuple
+from warnings import warn
 
 from laura.models.element_list import MachineModel
 
-from ..utils.functions import elegant_functional_definitions, sanitize_string
-from .converter import translate_elements
+from .fanout import ContainerTranslator, wrap_lattice_line
 from .layout import MachineLayoutTranslator
 
-if TYPE_CHECKING:
-    from ocelot.cpbd.magnetic_lattice import MagneticLattice
-    from cheetah import Segment
+
+def _layout_line_name(name: str, sections: List[str]) -> Optional[str]:
+    """Name for a layout's ``LINE`` of section lines, or ``None`` to omit it."""
+    if sections == [name]:
+        return None
+    if name not in sections:
+        return name
+    warn(
+        f"Layout {name!r} contains a section of the same name; its line is "
+        f"written as {name}_LAYOUT to keep the two distinct."
+    )
+    return f"{name}_LAYOUT"
 
 
-class MachineModelTranslator(MachineModel):
+class MachineModelTranslator(ContainerTranslator, MachineModel):
+    """
+    Translator for a :class:`~laura.models.elementList.MachineModel`.
+
+    Its children are its layouts, so every ``to_CODE`` method inherited from
+    :class:`~laura.translator.converters.fanout.ContainerTranslator` returns
+    ``{layout_name: {section_name: result}}``.
+    """
+
     directory: str = "."
 
     @classmethod
@@ -28,164 +44,50 @@ class MachineModelTranslator(MachineModel):
                 "functional_definitions": machine.functional_definitions,
                 "resolve_functional": machine.resolve_functional,
                 "revolution_frequency": machine.revolution_frequency,
+                "particle": machine.particle,
             }
         )
 
     def _layout_translator(self, layout) -> MachineLayoutTranslator:
         """
-        Build a :class:`MachineLayoutTranslator` for ``layout``, falling back
-        to this machine's own ``revolution_frequency`` if the layout does not
-        define its own.
+        Build a :class:`MachineLayoutTranslator` for ``layout``, handing it this
+        machine's output ``directory`` and falling back to this machine's own
+        ``revolution_frequency`` if the layout does not define its own.
         """
         translator = MachineLayoutTranslator.from_layout(layout)
+        translator.directory = self.directory
         if translator.revolution_frequency is None:
             translator.revolution_frequency = self.revolution_frequency
         return translator
 
-    def to_astra(self) -> Dict[str, Dict[str, str]]:
-        model = {}
+    def _children(self) -> Iterator[Tuple[str, MachineLayoutTranslator]]:
         for name, latt in self.lattices.items():
-            model.update({name: self._layout_translator(latt).to_astra()})
-        return model
+            yield name, self._layout_translator(latt)
 
-    def to_rftrack(
-        self, P_Q: float = float("nan"), save: bool = False
-    ) -> Dict[str, Dict[str, object]]:
-        """
-        Create one RF-Track ``Lattice`` per section, grouped by layout.
-
-        Parameters
-        ----------
-        P_Q: float
-            Beam reference momentum-over-charge [MV/c], forwarded to every
-            layout's ``to_rftrack(P_Q=...)``.
-        save: bool
-            Forwarded to every layout's ``to_rftrack(save=...)``; see
-            ``SectionLatticeTranslator.to_rftrack``.
-
-        Returns
-        -------
-        Dict[str, Dict[str, object]]
-            ``{layout_name: {section_name: RF_Track.Lattice, ...}, ...}``
-        """
-        model = {}
-        for name, latt in self.lattices.items():
-            model.update(
-                {
-                    name: MachineLayoutTranslator.from_layout(latt).to_rftrack(
-                        P_Q=P_Q, save=save
-                    )
-                }
-            )
-        return model
-
-    def format_string(self, string: str):
-        fulltext = ""
-        for s in string.split(", "):
-            if len((fulltext + s).splitlines()[-1]) > 60:
-                fulltext += "&\n"
-            fulltext += s + ", "
-        return fulltext
-
-    def to_elegant(self, string: str = "", charge: float = None) -> str:
-        for latt in self.lattices.values():
-            for section in latt.sections.values():
-                section_with_drifts = section.create_drifts()
-                elem_dict = translate_elements(
-                    section_with_drifts.values(),
-                    master_lattice=self.master_lattice,
-                    directory=self.directory,
-                )
-                if charge:
-                    string += f"{section.name}_Q: CHARGE, TOTAL = {charge};\n"
-
-                for d in elem_dict.values():
-                    string += self.format_string(d.to_elegant())
-
-                string += f"\n{section.name}: LINE = ("
-                if charge:
-                    string += f"{section.name}_Q, "
-                for elem in section_with_drifts.keys():
-                    string += f"{elem}, "
-                string = f"{string[:-2]})" + "\n\n\n"
+    def _elegant_body(self, charge: float | None = None) -> Tuple[str, str]:
+        definitions = ""
+        lines = ""
+        for _, layout in self._children():
+            layout_definitions, layout_lines = layout._elegant_body(charge=charge)
+            definitions += layout_definitions
+            lines += layout_lines
 
         for name, latt in self.lattices.items():
-            lstring = f"{name}: LINE = ("
-            for l in list(latt.keys()):
-                lstring += f"{l}, "
-            lstring = f"{lstring[:-2]})" + "\n\n"
-        lstring = "&\n".join(
-            wrap(lstring, 80, break_long_words=False, break_on_hyphens=False)
-        )
-        return (
-            elegant_functional_definitions(self.functional_definitions)
-            + string
-            + lstring
-        )
+            line_name = _layout_line_name(name, list(latt.keys()))
+            if line_name is None:
+                continue
+            line = f"{line_name}: LINE = (" + ", ".join(latt.keys()) + ")"
+            lines += wrap_lattice_line(line) + "\n\n"
+        return definitions, lines
 
-    def to_genesis(self, string: str = "") -> str:
-        for latt in self.lattices.values():
-            for section in latt.sections.values():
-                section_with_drifts = section.create_drifts()
-                elem_dict = translate_elements(
-                    section_with_drifts.values(),
-                    master_lattice=self.master_lattice,
-                    directory=self.directory,
-                )
-
-                for d in elem_dict.values():
-                    string += d.to_genesis()
-
-                string += f"\n{section.name}: LINE = " + "{"
-                for elem in section_with_drifts.keys():
-                    string += f"{elem}, "
-                string = f"{string[:-2]}" + "}\n\n\n"
+    def _genesis_body(self) -> str:
+        body = ""
+        for _, layout in self._children():
+            body += layout._genesis_body()
 
         for name, latt in self.lattices.items():
-            string += f"{name}: LINE = " + "{"
-            for l in list(latt.keys()):
-                string += f"{l}, "
-            string = f"{string[:-2]}" + "};\n\n"
-        return string
-
-    def to_ocelot(self, save=False) -> Dict[str, Dict[str, "MagneticLattice"]]:
-        model = {}
-        for name, latt in self.lattices.items():
-            model.update(
-                {name: self._layout_translator(latt).to_ocelot(save=save)}
-            )
-        return model
-
-    def to_cheetah(self, save=False) -> Dict[str, Dict[str, "Segment"]]:
-        model = {}
-        for name, latt in self.lattices.items():
-            model.update(
-                {name: self._layout_translator(latt).to_cheetah(save=save)}
-            )
-        return model
-
-    def to_xsuite(
-        self, beam_length: int, env: Any = None, particle_ref: Any = None, save=False
-    ) -> Dict[str, Dict[str, object]]:
-        model = {}
-        for name, latt in self.lattices.items():
-            model.update(
-                {
-                    name: self._layout_translator(latt).to_xsuite(
-                        beam_length=beam_length,
-                        env=env,
-                        particle_ref=particle_ref,
-                        save=save,
-                    )
-                }
-            )
-        return model
-
-    def to_madx(
-        self, beam: Dict[str, Dict[str, Dict[str, Any]]]
-    ) -> Dict[str, Dict[str, str]]:
-        model = {}
-        for name, latt in self.lattices.items():
-            b = beam.get(name, None)
-            model.update({sanitize_string(name): self._layout_translator(latt).to_madx(beam=b)})
-        return model
+            line_name = _layout_line_name(name, list(latt.keys()))
+            if line_name is None:
+                continue
+            body += f"{line_name}: LINE = " + "{" + ", ".join(latt.keys()) + "};\n\n"
+        return body

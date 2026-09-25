@@ -111,6 +111,17 @@ classes:
         in_subset:
           - diagnostic_properties
 
+  WireScanner:
+    is_a: Diagnostic
+    description: >-
+      Wire scanner: thin wires stepped through the beam to measure its
+      transverse profile. Not to be confused with ``Wire``, the current-carrying
+      beam-beam compensation element.
+    class_uri: laura:WireScanner
+    slot_usage:
+      hardware_type:
+        equals_string: WireScanner
+
   ChargeDiagnostic:
     is_a: Diagnostic
     description: Base class for charge-measurement diagnostics.

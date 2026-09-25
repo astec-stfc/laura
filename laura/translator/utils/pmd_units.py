@@ -3,19 +3,10 @@ Simple units functionality for the openPMD beamphysics records.
 
 For more advanced units, use a package like Pint:
     https://pint.readthedocs.io/
-
-
 """
 
-# import scipy.constants
-
-m_e = 510998.94999999995
-m_p = 938272088.16
 c_light = 299792458
 e_charge = 1.602176634e-19
-mu_0 = 1.25663706212e-06
-
-
 import numpy as np
 
 
@@ -204,41 +195,6 @@ DIMENSION = {
     "energy": (2, 1, -2, 0, 0, 0, 0),
     "momentum": (1, 1, -1, 0, 0, 0, 0),
 }
-# Inverse
-DIMENSION_NAME = {v: k for k, v in DIMENSION.items()}
-
-
-def dimension(name):
-    if name in DIMENSION:
-        return DIMENSION[name]
-    else:
-        return None
-
-
-def dimension_name(dim_array):
-    return DIMENSION_NAME[tuple(dim_array)]
-
-
-SI_symbol = {
-    "1": "1",
-    "length": "m",
-    "mass": "kg",
-    "time": "s",
-    "current": "A",
-    "temperture": "K",
-    "mol": "mol",
-    "luminous": "cd",
-    "charge": "C",
-    "electric_field": "V/m",
-    "electric_potential": "V",
-    "velocity": "m/s",
-    "energy": "J",
-    "momentum": "kg*m/s",
-    "magnetic_field": "T",
-}
-# Inverse
-SI_name = {v: k for k, v in SI_symbol.items()}
-
 
 known_unit = {
     "1": pmd_unit("", 1, "1"),

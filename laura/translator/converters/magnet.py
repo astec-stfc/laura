@@ -1,11 +1,13 @@
 from copy import deepcopy
-from typing import Union
+from typing import Optional, Union
 from warnings import warn
 
 import numpy as np
-from pydantic import computed_field
+from pydantic import computed_field, field_validator, model_validator
 
 from laura.models.magnetic import (
+    CombinedCorrectorMagnet,
+    CombinedSolenoidQuadrupoleMagnet,
     CorrectorMagnet,
     DipoleMagnet,
     MagneticElement,
@@ -19,10 +21,13 @@ from laura.translator.utils.fields import FieldMap
 from ..converters import (
     elements_genesis,
     elements_opal,
+    keyword_conversion_rules_elegant,
 )
 from ..utils.functions import _rotation_matrix, chop, expand_substitution
 from .base import BaseElementTranslator
 from .codes.gpt import GptCcs
+
+GPT_HARD_EDGE_B1 = 300.0
 
 
 def add(x, y):
@@ -42,6 +47,18 @@ class MagnetTranslator(BaseElementTranslator):
 
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def preserve_combined_solenoid_quadrupole(cls, data):
+        if (
+            isinstance(data, dict)
+            and data.get("hardware_type") == "CombinedSolenoidQuadrupole"
+            and isinstance(data.get("magnetic"), dict)
+        ):
+            data = dict(data)
+            data["magnetic"] = CombinedSolenoidQuadrupoleMagnet(**data["magnetic"])
+        return data
 
     @computed_field
     @property
@@ -190,6 +207,72 @@ class MagnetTranslator(BaseElementTranslator):
         """
         return 0.0
 
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad magnet element.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        if self.hardware_type != "CombinedSolenoidQuadrupole":
+            parameters = self._bmad_parameters()
+            if self.hardware_type == "Quadrupole":
+                self._add_bmad_magnetic_field(
+                    parameters,
+                    field_scale=self.magnetic.gradient,
+                    kind="a" if self.magnetic.skew else "b",
+                    n=2,
+                    strength_key="k1",
+                )
+            return self._format_bmad(parameters=parameters)
+        parameters = self._bmad_parameters()
+        strength = self.magnetic.ks
+        # `ks` and not `bs_field`: LAURA's is the integrated *normalised*
+        # strength, so dividing the length out gives Bmad's normalised `ks`
+        # [1/m]. `bs_field` is tesla, and the two differ by the rigidity.
+        parameters["ks"] = (
+            f"{strength} / {self.magnetic.length}"
+            if (
+                not self._resolve_functional
+                and self.is_functional(strength)
+                and self.magnetic.length
+            )
+            else (
+                self.resolve(strength) / self.magnetic.length
+                if self.magnetic.length
+                else self.resolve(strength)
+            )
+        )
+        return self._format_bmad(parameters=parameters)
+
+    def _add_bmad_magnetic_field(
+        self,
+        parameters: dict,
+        *,
+        field_scale,
+        kind: str,
+        n: int,
+        strength_key: str,
+    ) -> None:
+        definition = getattr(self.simulation, "field_definition", None)
+        if not isinstance(definition, FieldMap):
+            return
+        filename = self.generate_field_file_name(
+            definition,
+            code="bmad",
+            field_scale=field_scale,
+            kind=kind,
+            n=n,
+            verbose=getattr(self, "verbose", True),
+        )
+        if filename:
+            parameters.pop(strength_key, None)
+            parameters["field_calc"] = "fieldmap"
+            parameters["gen_gradients"] = f"call::{filename}"
+
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the quadrupole element string for ASTRA;
@@ -273,7 +356,7 @@ class MagnetTranslator(BaseElementTranslator):
                 [
                     "Q_xrot",
                     {
-                        "value": -1 * self.x_rot + self.dx_rot,
+                        "value": self._astra_rotation("x"),
                         "default": None,
                         "type": "not_zero",
                     },
@@ -281,7 +364,7 @@ class MagnetTranslator(BaseElementTranslator):
                 [
                     "Q_yrot",
                     {
-                        "value": -1 * self.y_rot + self.dy_rot,
+                        "value": self._astra_rotation("y"),
                         "default": None,
                         "type": "not_zero",
                     },
@@ -289,7 +372,7 @@ class MagnetTranslator(BaseElementTranslator):
                 [
                     "Q_zrot",
                     {
-                        "value": -1 * self.z_rot + self.dz_rot,
+                        "value": self._astra_rotation("z"),
                         "default": None,
                         "type": "not_zero",
                     },
@@ -358,7 +441,11 @@ class MagnetTranslator(BaseElementTranslator):
         """
         z1 = self.physical.start.z
         z2 = self.physical.end.z
-        s_comment = f"! quad{n} s={self.physical.s:.6f}\n" if self.physical.s is not None else ""
+        s_comment = (
+            f"! quad{n} s={self.physical.s:.6f}\n"
+            if self.physical.s is not None
+            else ""
+        )
         return (
             s_comment
             + """quadrupole{\nposition{rho="""
@@ -395,13 +482,16 @@ class MagnetTranslator(BaseElementTranslator):
         self.start_write()
         if "corrector" in self.hardware_type.lower():
             return ""
+        rotation = list(self.ccs.rotation)
+        rotation[2] += getattr(self.magnetic, "tilt", 0.0) or 0.0
         ccs_label, value_text = self.ccs.ccs_text(
             list(self.physical.middle.model_dump().values()),
-            list(self.physical.rotation.model_dump().values()),
+            rotation,
         )
-        knl = self.magnetic.KnL()
+        length = self.magnetic.length
+        kn = self.magnetic.KnL() / length if length else self.magnetic.KnL()
         if self.hardware_type.lower() == "sextupole":
-            knl = knl / 2
+            kn = kn / 2
         output = (
             str(self.hardware_type.lower())
             + '("'
@@ -411,9 +501,9 @@ class MagnetTranslator(BaseElementTranslator):
             + ", "
             + value_text
             + ", "
-            + str(self.magnetic.length)
+            + str(length)
             + ", "
-            + str(charge_sign * Brho * knl)
+            + str(charge_sign * Brho * kn)
             + ");\n"
         )
         return output
@@ -619,7 +709,7 @@ class DipoleTranslator(BaseElementTranslator):
                     ["D3", {"type": "array", "value": [corners[2][0], corners[2][2]]}],
                     ["D4", {"type": "array", "value": [corners[1][0], corners[1][2]]}],
                     ["D2", {"type": "array", "value": [corners[0][0], corners[0][2]]}],
-                    ["D_zrot", {"value": self.z_rot + self.dz_rot, "default": 0}],
+                    ["D_zrot", {"value": self._astra_rotation("z"), "default": 0}],
                 ]
             )
             if field_strength > 0 or not abs(self.magnetic.rho) > 0:
@@ -810,27 +900,20 @@ class DipoleTranslator(BaseElementTranslator):
                 list(self.physical.start.model_dump().values()),
                 list(self.physical.global_rotation.model_dump().values()),
             )
+            relpos = [relpos[0], relpos[1], relpos[2] + abs(self.intersect)]
             coord = self.ccs.gpt_coordinates(
                 relpos, angle=self.magnetic.KnL(0), tilt=self.magnetic.tilt
             )
             new_ccs = self.new_ccs(self.ccs)
-            if self.magnetic.edge_field_integral is None:
-                b1 = 0.0
+            fint = self._fringe_integrals()[0]
+            if not fint or not self.magnetic.half_gap:
+                b1 = GPT_HARD_EDGE_B1
             else:
-                b1 = np.round(
-                    (
-                        1.0
-                        / (2 * self.magnetic.half_gap * self.magnetic.edge_field_integral)
-                        if self.magnetic.half_gap > 0
-                        else 10000
-                    ),
-                    2,
-                )
+                b1 = float(np.round(1.0 / (2 * self.magnetic.half_gap * fint), 2))
             dl = self.simulation.deltaL
-            # Use the resolved edge angles (handles "angle"/"angle/2" and
-            # functional definitions) rather than the raw stored values.
-            e1 = self.e1
-            e2 = self.e2
+            face_sign = -1.0 if self.magnetic.KnL(0) < 0 else 1.0
+            e1 = face_sign * self.e1
+            e2 = face_sign * self.e2
             # print(self.objectname, ' - deltaL = ', dl)
             # b1 = 0.
             """
@@ -874,8 +957,6 @@ class DipoleTranslator(BaseElementTranslator):
         """
         Create a new GPT co-ordinate system based on the angle of the magnet.
 
-        # TODO we set intersect=0 for new CCS -- is this accurate?
-
         Parameters
         ----------
         ccs: :class:`~laura.translator.converters.codes.gpt.GptCcs`
@@ -890,15 +971,14 @@ class DipoleTranslator(BaseElementTranslator):
             # print('Creating new CCS')
             number = str(int(ccs.name.split("_")[1]) + 1) if ccs.name != "wcs" else "1"
             name = "ccs_" + number if ccs.name != "wcs" else "ccs_1"
-            # print('middle position = ', self.start, self.middle)
             return GptCcs(
                 name=name,
-                position=list(self.physical.middle.model_dump().values()),
+                position=list(self.physical.end.model_dump().values()),
                 rotation=list(
                     list(self.physical.global_rotation.model_dump().values())
                     + np.array([0, 0, -self.magnetic.KnL(0)])
                 ),
-                intersect=0 * abs(self.intersect),
+                intersect=abs(self.intersect),
             )
         else:
             return ccs
@@ -960,25 +1040,6 @@ class DipoleTranslator(BaseElementTranslator):
         wholestring += f', FMAPFN = "1DPROFILE1-DEFAULT";\n'
         return wholestring
 
-    #
-    # @computed_field
-    # @property
-    # def entrance_edge_angle(self) -> float:
-    #     if self.magnetic.entrance_edge_angle == "angle":
-    #         return self.magnetic.angle
-    #     elif self.magnetic.entrance_edge_angle == "angle/2":
-    #         return self.magnetic.angle / 2.0
-    #     return self.magnetic.entrance_edge_angle
-    #
-    # @computed_field
-    # @property
-    # def exit_edge_angle(self) -> float:
-    #     if self.magnetic.exit_edge_angle == "angle":
-    #         return self.magnetic.angle
-    #     elif self.magnetic.exit_edge_angle == "angle/2":
-    #         return self.magnetic.angle / 2.0
-    #     return self.magnetic.exit_edge_angle
-
 
 class SolenoidTranslator(BaseElementTranslator):
     """
@@ -996,6 +1057,37 @@ class SolenoidTranslator(BaseElementTranslator):
     @property
     def ks(self) -> Union[float, str]:
         return self.magnetic.ks
+
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad solenoid element.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        parameters = self._bmad_parameters()
+        strength = self.magnetic.ks
+        # `ks` and not `bs_field` -- see the note in `SolenoidTranslator`.
+        if self.magnetic.length:
+            parameters["ks"] = (
+                f"{strength} / {self.magnetic.length}"
+                if not self._resolve_functional and self.is_functional(strength)
+                else self.resolve(strength) / self.magnetic.length
+            )
+        else:
+            parameters["ks"] = self.resolve(strength)
+        MagnetTranslator._add_bmad_magnetic_field(
+            self,
+            parameters,
+            field_scale=parameters["ks"],
+            kind="bs",
+            n=0,
+            strength_key="ks",
+        )
+        return self._format_bmad(parameters=parameters)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
@@ -1059,8 +1151,8 @@ class SolenoidTranslator(BaseElementTranslator):
                     ["S_smooth", {"value": self.simulation.smooth, "default": 10}],
                     ["S_xoff", {"value": field_ref_pos[0] + self.dx, "default": 0}],
                     ["S_yoff", {"value": field_ref_pos[1] + self.dy, "default": 0}],
-                    ["S_xrot", {"value": self.x_rot + self.dx_rot, "default": 0}],
-                    ["S_yrot", {"value": self.y_rot + self.dy_rot, "default": 0}],
+                    ["S_xrot", {"value": self._astra_rotation("x"), "default": 0}],
+                    ["S_yrot", {"value": self._astra_rotation("y"), "default": 0}],
                 ]
             ),
             n,
@@ -1264,6 +1356,46 @@ class WigglerTranslator(BaseElementTranslator):
     simulation: MagnetSimulationElement
     """Wiggler simulation element."""
 
+    @computed_field
+    @property
+    def poles(self) -> int:
+        """Number of poles, for elegant's planar ``WIGGLER``."""
+        return 2 * self.magnetic.num_periods
+
+    @computed_field
+    @property
+    def sinusoidal(self) -> int:
+        """``CWIGGLER`` needs this, or a field map file, to have any field."""
+        return 1
+
+    @computed_field
+    @property
+    def bx_max(self) -> Optional[float]:
+        """A helical ``CWIGGLER`` needs the horizontal field too: given only
+        ``BY_MAX`` elegant reports ``BMAX=0 and BXMAX=0`` and the optics blow up.
+        """
+        if not self.magnetic.helical:
+            return None
+        return self.magnetic.peak_magnetic_field
+
+    def to_elegant(self) -> str:
+        """Elegant string. Helical wigglers go to ``CWIGGLER`` -- elegant's
+        plain ``WIGGLER`` is a vertical field only.
+        """
+        self.start_write()
+        if not self.magnetic.peak_magnetic_field and self.magnetic.period:
+            self.magnetic.peak_magnetic_field = self.magnetic.resolved("strength") / (
+                93.3728962 * self.magnetic.period
+            )
+        if self.magnetic.helical:
+            self.hardware_type = "cwiggler"
+            # conversion_rules were frozen from the original type at init
+            self.conversion_rules["elegant"] = (
+                keyword_conversion_rules_elegant["cwiggler"]
+                | keyword_conversion_rules_elegant["general"]
+            )
+        return super().to_elegant()
+
     def to_genesis(self, index: int) -> str:
         """
         Generates a string representation of the object's properties in the Genesis format.
@@ -1307,23 +1439,26 @@ class CorrectorTranslator(BaseElementTranslator):
     :class:`~laura.models.element.CombinedCorrector` element instance into a string or
     object that can be understood by various simulation codes.
 
-    Correctors use :class:`~laura.models.magnetic.CorrectorMagnet`, which stores
-    the horizontal and vertical kick angles as two independent, explicitly-named
-    fields (unlike :class:`DipoleMagnet`, whose multipole ``normal``/``skew``
-    components denote field orientation, not beam plane) -- so this does *not*
-    subclass :class:`MagnetTranslator`, whose ``k1``/``k2``/``k3`` etc. and
-    ASTRA/CSRTrack/GPT writers assume a multipole-based magnetic model.
     A :class:`~laura.models.element.HorizontalCorrector`/
     :class:`~laura.models.element.VerticalCorrector` is expected to populate only
     its own plane; a :class:`~laura.models.element.CombinedCorrector` can carry
     both simultaneously.
     """
 
-    magnetic: CorrectorMagnet
-    """Corrector magnetic element."""
+    magnetic: CorrectorMagnet | CombinedCorrectorMagnet
+    """Corrector magnetic element. A ``CombinedCorrector`` carries the
+    per-plane pair (``horizontal``/``vertical``)."""
 
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
+
+    @field_validator("magnetic", mode="before")
+    @classmethod
+    def _select_magnetic_shape(cls, v):
+        """Pick the pair model when the payload carries per-plane magnets."""
+        if isinstance(v, dict) and {"horizontal", "vertical"} & v.keys():
+            return CombinedCorrectorMagnet(**v)
+        return v
 
     @computed_field
     @property
@@ -1343,12 +1478,8 @@ class CorrectorTranslator(BaseElementTranslator):
         a pair of objects) for the corrector.
 
         Ocelot's ``Hcor``/``Vcor`` are single-plane elements with no combined
-        horizontal+vertical equivalent, so a `Combined_Corrector` is represented
-        as an ``Hcor`` immediately followed by a ``Vcor``, each given half this
-        element's length -- so the pair has the same total length as the
-        original single element -- and its own plane's kick. Ocelot has no
-        symbolic/deferred-expression support, so a functional kick is resolved
-        to a number here regardless of the global resolution mode.
+        horizontal+vertical equivalent, so a `CombinedCorrector` splits this into
+        an ``Hcor`` and a ``Vcor``.
 
         Returns
         -------
@@ -1385,10 +1516,7 @@ class CorrectorTranslator(BaseElementTranslator):
         combined-plane element and must be split -- see :meth:`to_ocelot`).
 
         Xtrack's normal-multipole convention deflects toward *negative* x for a
-        positive ``knl`` -- the opposite of the "positive kick deflects toward
-        positive x/y" convention used by MAD-X/Ocelot/Cheetah (verified against
-        each by direct particle tracking) -- so ``knl[0]`` is the *negated*
-        horizontal kick; the skew component (``ksl[0]``) needs no such negation.
+        positive ``knl``.
 
         Returns
         -------

@@ -15,10 +15,24 @@ class DiagnosticTranslator(BaseElementTranslator):
     directory: str = ""
     """Directory to which files will be written."""
 
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad lattice element string.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        etype = self._convert_type_bmad(self.hardware_type)
+        return self._format_bmad(
+            etype, self._bmad_sr_wake(self._bmad_parameters(etype))
+        )
+
     def to_elegant(self) -> str:
         """
         Generates a string representation of the object's properties in the Elegant format.
-        The `element.simulation.output_filename` parameter will be updated to include an `.SDDS` suffix.
 
         Returns
         -------
@@ -26,7 +40,10 @@ class DiagnosticTranslator(BaseElementTranslator):
             A formatted string representing the object's properties in Elegant format.
         """
         self.start_write()
-        if not self.simulation.output_filename:
+        if (
+            self._convert_type_elegant(self.hardware_type) == "watch"
+            and not self.simulation.output_filename
+        ):
             self.simulation.output_filename = f'"./{self.name}.SDDS"'
             # self.simulation.output_filename = f'"{self.directory}/{self.name}.SDDS"'
         return super().to_elegant()

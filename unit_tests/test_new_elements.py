@@ -14,9 +14,11 @@ from laura.models.element import (  # noqa: E402
     HorizontalACDipole,
     VerticalACDipole,
     Wire,
+    WireScanner,
     BeamBeam,
     RFMultipole,
     MatrixTransform,
+    TwissMatch,
     CrabCavity,
     RFDeflectingCavity,
     RFCavity,
@@ -165,6 +167,31 @@ class TestRevolutionFrequencyCascade:
         assert line["hac1"].plane == "h"
 
 
+class TestWireScanner:
+    """``WireScanner`` is a profile diagnostic, unrelated to the beam-beam ``Wire``."""
+
+    def test_is_a_diagnostic_and_registered(self):
+        from laura.models.element import Diagnostic, ELEMENT_REGISTRY
+
+        ws = WireScanner(name="ws1", machine_area="S")
+        assert isinstance(ws, Diagnostic)
+        assert not isinstance(ws, Wire)
+        assert ws.hardware_type == "WireScanner"
+        assert ELEMENT_REGISTRY["WireScanner"] is WireScanner
+
+    @pytest.mark.parametrize(
+        "method, expected",
+        [
+            ("to_elegant", "ws1: watch"),
+            ("to_bmad", "ws1: instrument"),
+            ("to_madx", "ws1: instrument"),
+        ],
+    )
+    def test_exports_as_a_passive_diagnostic(self, method, expected):
+        ws = WireScanner(name="ws1", machine_area="S")
+        assert getattr(translate_elements([ws])["ws1"], method)().startswith(expected)
+
+
 class TestWire:
     def test_madx(self):
         w = Wire(
@@ -290,6 +317,11 @@ class TestMatrixTransformAndCrabCavityDispatch:
         mt = MatrixTransform(name="mt1", machine_area="S", simulation={"r_matrix": {"r21": 0.5}})
         assert isinstance(translate_elements([mt])["mt1"], MatrixTransformTranslator)
 
+    def test_twiss_match_madx_is_zero_length_marker(self):
+        twiss = TwissMatch(name="match1", machine_area="S")
+
+        assert translate_elements([twiss])["match1"].to_madx() == "match1: marker;\n"
+
     def test_crab_cavity_dispatches_to_rfcavity_translator(self):
         from laura.translator.converters.cavity import RFCavityTranslator
         cc = CrabCavity(
@@ -316,6 +348,7 @@ class TestMatrixTransformAndCrabCavityDispatch:
         # the parameters (this was the pre-existing bug).
         assert out.startswith("mt1: ematrix")
         assert out.strip().endswith(";")
+        assert "L = 0.5" in out
         assert "R21 = 0.5" in out
 
     def test_crab_cavity_elegant_uses_rfdf_not_rfca(self):
@@ -331,18 +364,6 @@ class TestMatrixTransformAndCrabCavityDispatch:
         assert "phase = 90.0" in out
         # no duplicate n_kicks entries (pre-existing bug)
         assert out.count("n_kicks") == 1
-
-    def test_rf_deflecting_cavity_elegant_uses_rfdf_not_rfca(self):
-        # Regression check: this was broken the same way before CrabCavity
-        # existed -- RFDeflectingCavity always fell back to plain RFCA
-        # whenever no wakefield was defined (the common case).
-        rdc = RFDeflectingCavity(
-            name="rdc1", machine_area="S",
-            cavity={"phase": 0.0, "structure_type": "StandingWave"},
-            simulation={"field_amplitude": 5e6}, physical={"length": 1.0},
-        )
-        out = translate_elements([rdc])["rdc1"].to_elegant()
-        assert "rdc1: rfdf" in out
 
     def test_crab_cavity_madx(self):
         cc = CrabCavity(

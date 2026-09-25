@@ -1,0 +1,172 @@
+# One beam path that enters the same linac twice.
+#
+# ``multipass: N`` says this entry is the Nth traversal of hardware an earlier
+# entry has already been through. It is an opt-in, and it is required, because
+# a section listed twice is otherwise read as something else entirely:
+#
+#   repetition   N identical devices at N positions.   The default.
+#   multipass    one device at one position, entered N times.
+#
+# Both are written by listing a section twice, and LAURA cannot tell them
+# apart from the shape alone, so it does not guess. Without ``multipass:``,
+#
+#   ERL:
+#     - INJECTOR
+#     - LINAC
+#     - ARC
+#     - LINAC
+#     - DUMP
+#
+# is a machine with *two linacs* -- LINAC.1 and LINAC.2, each with its own
+# deep-copied cavities at its own positions, which is exactly what a section
+# order does with ``MAIN: [CELL, CELL]`` one level down. Perfectly valid, and
+# not an ERL. Setting LINAC.1's gradient would not touch LINAC.2's, because
+# they are two machines' worth of hardware.
+#
+# With ``multipass:``, both entries name the same section and the same cavity
+# objects, and the numbering is checked: every occurrence must carry it (it is
+# a claim about the hardware, so it holds for all of them or none), and the
+# numbers must be exactly 1..N in beam order.
+#
+# ------------------------------------------------------------------------
+# Addressing a pass
+# ------------------------------------------------------------------------
+# Once a name is on the path twice, every name -> position lookup is
+# ambiguous. On a multipass path, and only there, the ambiguous names take
+# PALS's ``NAME#N`` selector:
+#
+#     layout.arc_lengths()      # {'INJ_Q': 0.0, ..., 'CAV_01#1': 1.2,
+#                               #  ..., 'CAV_01#2': 7.1, ..., 'DMP_Q': 11.3}
+#
+#     layout.elements_between(start="CAV_01#2", end="DMP_Q")
+#         -> ['CAV_01#2', 'DRIFT_LIN.2#2', 'LIN_Q#2', 'DRIFT_LIN.3#2',
+#             'CAV_02#2', 'DRIFT_LIN.4#2', 'DRIFT_DUMP', 'DMP_Q']
+#
+# ``DRIFT_LIN.2#2`` shows the two numbering schemes side by side, and they are
+# orthogonal. ``.2`` is *repetition within a section*: LINAC lists DRIFT_LIN
+# four times, so the section holds four separate drifts (.1 to .4), exactly as
+# any section order does with a repeated name. ``#2`` is *multipass*: the
+# second traversal of all of them. Four drifts, two passes each.
+#
+# (``elements_between``'s first positional parameter is ``end``, not ``start``
+# -- pass them by keyword.) Asking for a bare ``CAV_01`` raises rather than
+# quietly taking the first pass, and the message names both addresses.
+#
+# A name entered once stays bare, so nothing that is not ambiguous is
+# qualified. ``get_element("CAV_01#1")`` and ``get_element("CAV_01#2")`` both
+# return the same object -- one cavity -- which is the whole point.
+#
+# ------------------------------------------------------------------------
+# What differs between the passes
+# ------------------------------------------------------------------------
+# If nothing differed there would be no reason to track the passes
+# separately -- you would want a turn count instead, which is a *tracking*
+# setting (elegant ``n_passes``, Xsuite ``num_turns``) and never appears in a
+# lattice. A storage ring's turns are strict repeats and need none of this.
+#
+# What differs in an ERL is the RF phase: the return bunch arrives half an RF
+# period late and decelerates, giving its energy back to the field. One cavity
+# cannot store two phases, so the second pass's value lives on the pass:
+#
+#     overrides: {ELEMENT_NAME: {attribute.path: value}}
+#
+# The element name is required. ``cavity`` is a sub-model *on* an element, so
+# ``cavity.phase`` on its own names a path but no element, and this linac has
+# two cavities.
+#
+# Overrides are checked at load: an element the section does not contain, or
+# an attribute path that does not resolve on it, is refused rather than
+# silently doing nothing. They are also refused on any entry not marked
+# ``multipass``, because every other traversal has an element of its own to
+# write the value on -- a single pass has the element itself, and repetition
+# has its own deep copy.
+#
+# Note the return pass is NOT ``direction: -1``. The bunch comes back round
+# the arc and through the linac the same way it went in; what makes it
+# decelerate is the phase, not the direction of travel.
+#
+# ------------------------------------------------------------------------
+# Strengths, which the passes also disagree about
+# ------------------------------------------------------------------------
+# ``momentum`` is the beam's reference momentum on that pass, in eV/c. It is
+# needed because LAURA stores *normalised* strengths: ``k = qG/p``, so a
+# stored ``k1l`` means one field at one energy only. LIN_Q is one quadrupole
+# at one current -- what it holds across the passes is its **field** -- so its
+# ``k`` is necessarily different on a 100 MeV/c pass and a 200 MeV/c one.
+#
+#     layout.pass_strengths(1)   # {'LIN_Q': 0.5}   the stored value
+#     layout.pass_strengths(2)   # {'LIN_Q': 0.25}  half, at twice the energy
+#
+# One magnet at one current holds one field, so that is what gets resolved
+# and held fixed:
+#
+#     field  = get_gradient(momentum of pass 1)
+#     KnL(N) = field * length / Brho(momentum of pass N)
+#
+# ``get_gradient`` returns an authored ``gradient`` untouched and otherwise
+# derives the field from the stored strength, so stating a field and stating
+# a strength are one path, not two. Substituting the second gives
+# ``KnL(N) = KnL(1)*Brho(1)/Brho(N)``, which is why pass 1 is the reference:
+# it is simply the pass the stored ``k1l`` describes.
+#
+# Stating a ``gradient`` on the magnet is the more direct thing to author for
+# shared hardware, since it is the quantity that does not vary -- but it is
+# not a different mechanism, and this file gets the same answer storing k1l.
+#
+# A **booster** is the mirror image of this and needs none of it: its magnets
+# ramp so that B and p rise together, holding k constant, which is exactly
+# what LAURA already stores. Same hardware, different energy, opposite answer.
+#
+# One momentum per pass is a reference value, not a profile. The beam really
+# accelerates *through* the linac, so a quadrupole near its exit sees a
+# different energy from one near its entrance; state the momentum that makes
+# the section's optics meaningful.
+#
+# ARC gets no momentum here, and needs none: this is a *single-turn* ERL, so
+# the beam goes round the arc exactly once, at one energy, and the arc's
+# stored strengths are already right for it. Being next to a multipass section
+# changes nothing -- what matters is how many times the beam enters *this*
+# section.
+#
+# A MULTI-TURN ERL is the case where that stops being true. Accelerate twice
+# and decelerate twice and the beam returns through the same arc at a
+# different energy every turn, so the arc is shared hardware exactly as the
+# linac is:
+#
+#   - LINAC: {multipass: 1, momentum: 100.0e+6}
+#   - ARC:   {multipass: 1, momentum: 100.0e+6}
+#   - LINAC: {multipass: 2, momentum: 200.0e+6}
+#   - ARC:   {multipass: 2, momentum: 200.0e+6}
+#   - LINAC: {multipass: 3, momentum: 100.0e+6}
+#
+# Each section is numbered and referenced independently: ARC pass 2 scales
+# against ARC pass 1, never against the linac's. Once two sections both have a
+# pass 2, the number alone no longer says which traversal you mean, so name
+# the section: ``pass_strengths(2, "ARC")``. The bare form is refused rather
+# than answered for whichever section came first -- the same rule a bare
+# element name follows on a multipass path.
+
+default_layout: ERL
+
+layouts:
+  ERL:
+    - INJECTOR
+
+    # Pass 1: accelerating, on crest, 100 MeV/c.
+    - LINAC:
+        multipass: 1
+        momentum: 100.0e6
+
+    # Recirculation: entered once, so nothing here is multipass.
+    - ARC
+
+    # Pass 2: the same two cavities, half an RF period later, and the same
+    # quadrupole at twice the energy -- so half the normalised strength.
+    - LINAC:
+        multipass: 2
+        momentum: 200.0e6
+        overrides:
+          CAV_01: {cavity.phase: 180.0}
+          CAV_02: {cavity.phase: 180.0}
+
+    - DUMP

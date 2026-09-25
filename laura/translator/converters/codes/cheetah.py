@@ -2,7 +2,7 @@ cheetah_unsupported = [
     "Octupole",
     "TwissMatch",
     "Laser",
-    "Plasma"
+    "Plasma",
     "Wakefield",
     "Decapole",
     "ActivePlasmaLens",

@@ -1,10 +1,26 @@
+import os
+import re
+import subprocess
+import tempfile
+from pathlib import Path
+from typing import Dict, Optional
+from warnings import warn
+
 import numpy as np
-from pydantic import BaseModel
-from typing import Dict
-from ...utils.elegant import sdds_file
+from pydantic import PrivateAttr, model_validator
+
 import laura.models.element as laura_elements
-from laura.models.element_list import SectionLattice, MachineLayout, ElementList
-from ...utils.elegant.sdds_classes_aps import SddsFloor, SddsParams
+from laura.models.element_list import (
+    MachineModel,
+    SectionLattice,
+)
+
+from ...utils.elegant import sdds_file
+from ...utils.elegant.sdds_classes_aps import SddsParams
+from ...utils.fields import FieldMap
+from ...utils.functions import merge_layout_elements, number_repeated_names
+from .. import keyword_conversion_rules_elegant
+from .importer import LatticeImporter
 
 elegant_unsupported = [
     "Plasma",
@@ -13,185 +29,646 @@ elegant_unsupported = [
     "CrabCavity",
 ]
 
-class ElegantLatticeImporter(BaseModel):
-    params_file: str
+
+# Strengths ELEGANT states per metre and LAURA stores integrated.
+_PER_METRE_STRENGTHS = frozenset({"k1", "k2", "k3"})
+
+_LINE_MEMBER_RE = re.compile(r"^\s*(-)?\s*(?:(\d+)\s*\*\s*)?(-)?\s*(.+?)\s*$")
+_INCLUDE_RE = re.compile(
+    r'(?im)^[ \t]*#include[ \t]+(?:"([^"]+)"|<([^>]+)>|([^\s]+))[ \t]*$'
+)
+
+
+def _read_lattice_text(path: Path, stack: Optional[set] = None) -> str:
+    # Inline nested includes so source metadata sees the same lattice as ELEGANT.
+    path = path.resolve()
+    active = set() if stack is None else stack
+    if path in active:
+        raise ValueError(f"Circular ELEGANT #include involving {path}")
+    active.add(path)
+
+    def inline(match: "re.Match") -> str:
+        included = path.parent / next(group for group in match.groups() if group)
+        if not included.is_file():
+            raise FileNotFoundError(f"ELEGANT #include file not found: {included}")
+        return _read_lattice_text(included, active)
+
+    try:
+        return _INCLUDE_RE.sub(inline, path.read_text())
+    finally:
+        active.remove(path)
+
+
+def _expand_line_member(member: str, lookup: Dict[str, tuple]) -> list:
+    """Recursively expand one ``LINE`` member."""
+    lead_neg, count_str, mid_neg, base = _LINE_MEMBER_RE.match(member.strip()).groups()
+    base = base.strip('"')
+    reverse = bool(lead_neg) or bool(mid_neg)
+    count = int(count_str) if count_str else 1
+    found = lookup.get(base.lower())
+    if not found:
+        result = [base]
+    else:
+        result = [
+            element
+            for sub_member in found[1].split(",")
+            for element in _expand_line_member(sub_member, lookup)
+        ]
+    if reverse:
+        result = list(reversed(result))
+    return result * count
+
+
+class ElegantLatticeImporter(LatticeImporter):
+    machine_area: str = "Lattice"
+
+    params_file: Optional[str] = None
     """Name of ELEGANT parameters file"""
 
-    floor_file: str
-    """Name of ELEGANT floor file"""
+    source_file: Optional[str] = None
+    """Original ELEGANT lattice file, used instead of SDDS output files."""
+
+    beamline: Optional[str] = None
+    """Optional beamline selector for source import."""
 
     elegant_data: Dict = {}
     """Dictionary containing data about the ELEGANT lattice"""
 
-    floor_data: Dict = {}
-    """Dictionary containing floor positions for the ELEGANT lattice"""
-
     elements: Dict = {}
-    """Dictionary containing converted 
+    """Dictionary containing converted
     :class:`~laura.models.element.Element` objects"""
 
-    def create_element_dictionary(self):
-        params = SddsParams(self.params_file)
-        self.elegant_data, filenames = params.create_element_dictionary()
-        return self.elegant_data, filenames
+    lattice_name: Optional[str] = None
+    """Best-effort lattice name, parsed from ``source_file``'s own top-level
+    ``LINE`` nesting structure when possible (see :meth:`_prepare_source`).
+    Used as the default section/layout name in
+    :meth:`create_section`/:meth:`create_layout` when not given explicitly."""
 
-    def update_floor_coordinates(self):
-        flr = SddsFloor()
-        flr.import_sdds_floor_file(self.floor_file)
-        self.floor_data = flr.data
+    _source_outputs: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _source_tmp: object = PrivateAttr(default=None)
+    _source_expressions: Dict[str, Dict[str, str]] = PrivateAttr(default_factory=dict)
+    _unscaled_definitions: Dict[str, float] = PrivateAttr(default_factory=dict)
+    _source_lines: Dict[str, list[str]] = PrivateAttr(default_factory=dict)
+    _source_roots: list[str] = PrivateAttr(default_factory=list)
+    _source_sections: list[str] = PrivateAttr(default_factory=list)
 
-        i = 0
-        for k, v in self.floor_data.items():
-            if i == 0:
-                pass
-            else:
-                prevind = list(self.floor_data.keys()).index(k) - 1
-                thisind = list(self.floor_data.keys()).index(k)
-                self.floor_data[k].update(
-                    {
-                        "start": list(self.floor_data.values())[prevind]["end"],
-                        "start_rotation": list(self.floor_data.values())[prevind][
-                            "end_rotation"
-                        ],
-                        "end": list(self.floor_data.values())[thisind]["end"],
-                        "end_rotation": list(self.floor_data.values())[thisind][
-                            "end_rotation"
-                        ],
-                    }
+    @staticmethod
+    def _saved_lattice_params(filename: str) -> Dict[str, Dict[str, list]]:
+        """Read Elegant's evaluated ``save_lattice, output_seq=2`` output."""
+        text = Path(filename).read_text().replace("&\n", " ")
+        lines = dict(
+            (name1 or name2, body)
+            for name1, name2, body in re.findall(
+                r'(?im)^\s*(?:"([^"]+)"|([^\s:]+))\s*:\s*line\s*=\s*\(([^)]*)\)',
+                text,
+            )
+        )
+        definitions = {}
+        for name1, name2, element_type, parameters in re.findall(
+            r'(?im)^\s*(?:"([^"]+)"|([^\s:]+))\s*:\s*([^,\s]+)\s*(?:,(.*))?$',
+            text,
+        ):
+            name = name1 or name2
+            if element_type.lower() == "line":
+                continue
+            parsed = re.findall(r'(\w+)\s*=\s*("[^"]*"|[^,]+)', parameters or "")
+            values, strings = [], []
+            for _, value in parsed:
+                if value.startswith('"'):
+                    values.append(0.0)
+                    strings.append(value[1:-1])
+                else:
+                    try:
+                        values.append(float(value))
+                        strings.append("")
+                    except ValueError:
+                        values.append(0.0)
+                        strings.append(value.strip())
+            definitions[name.lower()] = {
+                "ElementType": [element_type],
+                "ElementParameter": [parameter for parameter, _ in parsed],
+                "ParameterValue": values,
+                "ParameterValueString": strings,
+            }
+
+        use = re.search(r'(?im)^\s*use\s*,\s*"?([^"\s]+)"?', text)
+        root = use.group(1) if use else next(reversed(lines))
+        lookup = {name.lower(): (name, body) for name, body in lines.items()}
+
+        sequence = _expand_line_member(root, lookup)
+        result = {}
+        for name, output_name in zip(sequence, number_repeated_names(sequence)):
+            key = name.lower()
+            if key in definitions:
+                result[output_name] = definitions[key]
+        return result
+
+    @model_validator(mode="after")
+    def _check_input(self):  # noqa: N804
+        if (self.params_file is not None) == (self.source_file is not None):
+            raise ValueError("Give either source_file or params_file.")
+        return self
+
+    def _default_name(self) -> str:
+        """Best-effort name for an auto-derived section/layout.
+
+        Prefers the lattice name parsed from ``source_file``'s LINE
+        structure (e.g. ``"Linac"``); falls back to the params file's
+        basename.
+        """
+        if self.lattice_name:
+            return self.lattice_name
+        return os.path.splitext(os.path.basename(self.params_file or self.source_file))[
+            0
+        ]
+
+    def _prepare_source(self) -> None:
+        if self._source_outputs:
+            return
+        text = _read_lattice_text(Path(self.source_file))
+        text = re.sub(r"!.*", "", text).replace("&\n", " ")
+        self.functional_definitions = {
+            name: float(value)
+            for value, name in re.findall(
+                r"(?im)^\s*%\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][-+]?\d+)?)\s+sto\s+(\S+)",
+                text,
+            )
+        }
+        self._unscaled_definitions = dict(self.functional_definitions)
+        for element, parameters in re.findall(
+            r"(?im)^\s*([^\s:%]+)\s*:\s*[^,\n]+,(.*)$", text
+        ):
+            expressions = {
+                name.lower(): value
+                for name, value in re.findall(r'(\w+)\s*=\s*"([^"]+)"', parameters)
+                if any(
+                    definition in value.split()
+                    for definition in self.functional_definitions
                 )
-            i += 1
+            }
+            if expressions:
+                self._source_expressions[element.strip('"').lower()] = expressions
+        line_bodies = dict(
+            re.findall(r'(?im)^\s*"?([^\s:"]+)"?\s*:\s*line\s*=\s*\(([^)]*)\)', text)
+        )
+        self._source_lines = {
+            name: [member.strip() for member in body.split(",") if member.strip()]
+            for name, body in line_bodies.items()
+        }
+        beamlines = list(line_bodies)
+        if self.beamline:
+            matches = [
+                name for name in beamlines if name.lower() == self.beamline.lower()
+            ]
+            if not matches:
+                raise KeyError(f"ELEGANT beamline {self.beamline!r} was not found.")
+            beamlines = matches
+            self.lattice_name = self.beamline
+        else:
+            referenced = {
+                re.sub(r"^(?:\d+\*)?-?", "", member.strip()).strip().strip('"').lower()
+                for body in line_bodies.values()
+                for member in body.split(",")
+            }
+            roots = [name for name in beamlines if name.lower() not in referenced]
+            beamlines = roots or beamlines
+        self._source_roots = beamlines.copy()
+        if len(beamlines) == 1:
+            raw_members = [
+                member.strip() for member in line_bodies[beamlines[0]].split(",")
+            ]
+            members = [
+                re.sub(r"^(?:\d+\*)?-?", "", member).strip().strip('"')
+                for member in raw_members
+            ]
+            lookup = {name.lower(): name for name in line_bodies}
+            undecorated = not any(
+                re.match(r"^\d+\s*\*|^-", member) for member in raw_members
+            )
+            if (
+                undecorated
+                and members
+                and all(member.lower() in lookup for member in members)
+            ):
+                self.lattice_name = beamlines[0]
+                beamlines = list(
+                    dict.fromkeys(lookup[member.lower()] for member in members)
+                )
+        self._source_sections = beamlines
+        if not beamlines:
+            raise ValueError("No ELEGANT LINE definitions were found in source_file.")
+
+        self._source_tmp = tempfile.TemporaryDirectory(prefix="laura-elegant-")
+        directory = Path(self._source_tmp.name)
+        for name in dict.fromkeys(self._source_roots + self._source_sections):
+            root = directory / name
+            command = directory / f"{name}.ele"
+            saved = directory / f"{name}.lte"
+
+            def _write_command(output_seq: int) -> None:
+                command.write_text(
+                    "&run_setup\n"
+                    f' lattice = "{Path(self.source_file).resolve()}",\n'
+                    f' use_beamline = "{name}",\n'
+                    f' rootname = "{root}",\n'
+                    " p_central_mev = 100,\n"
+                    "&end\n"
+                    "&save_lattice\n"
+                    f' filename = "{saved}",\n'
+                    f" output_seq = {output_seq},\n"
+                    " suppress_defaults = 0,\n"
+                    "&end\n"
+                )
+
+            _write_command(2)
+            try:
+                subprocess.run(
+                    ["elegant", str(command)],
+                    cwd=Path(self.source_file).resolve().parent,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+            except FileNotFoundError as exc:
+                raise ImportError(
+                    "The elegant executable is required for ELEGANT source import."
+                ) from exc
+            except subprocess.CalledProcessError as exc:
+                _write_command(0)
+                try:
+                    subprocess.run(
+                        ["elegant", str(command)],
+                        cwd=Path(self.source_file).resolve().parent,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                except subprocess.CalledProcessError as exc2:
+                    raise ValueError(
+                        f"ELEGANT could not load beamline {name!r}: "
+                        f"{exc2.stderr or exc2.stdout}"
+                    ) from exc2
+            self._source_outputs[name] = str(saved)
+
+    def _select_source_output(self, name: str) -> None:
+        self.params_file = self._source_outputs[name]
+        self.elegant_data = {}
+        self.elements = {}
+
+    def _source_section(self, name: str) -> SectionLattice:
+        self._select_source_output(name)
+        self.create_laura_element_dictionary()
+        bounds = [next(iter(self.elements)), next(reversed(self.elements))]
+        return next(iter(self.create_section({name: bounds}).values()))
+
+    def create_element_dictionary(self):
+        if self.source_file and not self.params_file:
+            self._prepare_source()
+            self._select_source_output(next(iter(self._source_outputs)))
+        params = SddsParams(self.params_file)
+        if self.source_file:
+            params.elegant_params = self._saved_lattice_params(self.params_file)
+        self.elegant_data, filenames = params.create_element_dictionary(
+            self.machine_area
+        )
+        unscalable = self._rescale_strength_symbols()
+        for name, data in self.elegant_data.items():
+            expressions = self._expressions_for(name)
+            length = self._length_of(data)
+            for parameter in ("k0", "k1", "k2", "k3", "angle"):
+                expression = expressions.get(parameter)
+                if (
+                    parameter in _PER_METRE_STRENGTHS
+                    and self._rpn_symbol(expression) in unscalable
+                ):
+                    continue
+                if expression and self._rpn_symbol(
+                    expression, 0.0 if parameter == "angle" else length
+                ):
+                    data[parameter] = expressions[parameter]
+            rules = keyword_conversion_rules_elegant["general"]
+            element_type = data["hardware_type"].lower()
+            if element_type in keyword_conversion_rules_elegant:
+                rules = keyword_conversion_rules_elegant[element_type] | rules
+            source_to_laura = {
+                source.lower(): target for target, source in rules.items()
+            }
+            for parameter, expression in expressions.items():
+                tokens = expression.strip('"').split()
+                supported = self._rpn_symbol(expression) or (
+                    len(tokens) == 3
+                    and tokens[0] == "90"
+                    and tokens[2] == "-"
+                    and self._rpn_symbol(tokens[1])
+                )
+                if not supported:
+                    continue
+                target = source_to_laura.get(parameter, parameter)
+                if target not in {"phase", "field_amplitude"}:
+                    continue
+                for nested in data.values():
+                    if isinstance(nested, dict) and target in nested:
+                        nested[target] = expression
+            wakefiles = filenames.get(name, {})
+            wakefile = wakefiles.get("wakefile")
+            zwakefile = wakefiles.get("zwakefile") or wakefile
+            trwakefile = wakefiles.get("trwakefile") or wakefile
+            if (zwakefile or trwakefile) and data["hardware_type"] == "RFCavity":
+                if zwakefile and trwakefile and zwakefile != trwakefile:
+                    warn(
+                        f"ELEGANT RFCavity {name!r} uses separate longitudinal and "
+                        "transverse wake files; LAURA stores one structured wake, so "
+                        "both native filenames were preserved instead."
+                    )
+                    continue
+                selected = zwakefile or trwakefile
+                wakepath = Path(selected)
+                if not wakepath.is_absolute():
+                    imported_from = self.source_file or self.params_file
+                    wakepath = Path(imported_from).resolve().parent / wakepath
+                simulation = data.setdefault("simulation", {})
+                wake = FieldMap(
+                    field_type=(
+                        "3DWake"
+                        if zwakefile and trwakefile
+                        else "LongitudinalWake" if zwakefile else "TransverseWake"
+                    )
+                )
+                wake.filename = str(wakepath.resolve())
+                simulation["wakefield_definition"] = wake
+                for raw_name in ("wakefile", "zwakefile", "trwakefile"):
+                    simulation.pop(raw_name, None)
+        return self.elegant_data, filenames
 
     def create_laura_element_dictionary(self):
         if not self.elegant_data:
             self.create_element_dictionary()
-        if not self.floor_data:
-            self.update_floor_coordinates()
         self.elements = {}
 
-        def calculate_middle_from_start(start_pos, end_pos):
-            """
-            Calculate middle position as midpoint between start and end positions.
-            """
-            start = np.array(start_pos)
-            end = np.array(end_pos)
-            return (start + end) / 2
-
+        cumulative_s = 0.0
         for k, v in self.elegant_data.items():
-            if k in self.floor_data:
-                vtype = v["hardware_type"]
-                if "drift" not in vtype.lower():
-                    if "l" in v and v["l"] > 0:
-                        # Get physical angle for bent elements
-                        physical_angle = 0.0
-                        if v["hardware_type"].lower() == "dipole" and "angle" in v:
-                            physical_angle = v["angle"]
+            vtype = v["hardware_type"]
+            if not vtype:
+                continue
+            elem_length = v.get("l", 0.0)
+            cumulative_s += elem_length
 
-                        # Calculate middle position properly
-                        centre = calculate_middle_from_start(
-                            start_pos=self.floor_data[k]["start"],
-                            end_pos=self.floor_data[k]["end"],
-                        )
-                    else:
-                        # Zero length element - middle is same as start
-                        centre = np.array(self.floor_data[k]["start"])
-                        physical_angle = 0.0
+            v = self._convert_k_to_kl(v)
+            v = self._convert_ele_phase_to_phase(v)
 
-                    v = self._convert_k_to_kl(v)
-                    v = self._convert_ele_phase_to_phase(v)
+            physical = {
+                "s": cumulative_s,
+                "s_point": "end",
+                "length": elem_length,
+            }
+            if "physical" in v:
+                v["physical"].update(physical)
+            else:
+                v["physical"] = physical
 
-                    rotation = self.floor_data[k]["end_rotation"]
-                    if "physical" in v:
-                        v["physical"].update(
-                            {
-                                "middle": {
-                                    p: c
-                                    for p, c in zip(["x", "y", "z"], centre.tolist())
-                                },
-                                "global_rotation": rotation,
-                            }
-                        )
-                    else:
-                        v["physical"] = {
-                            "middle": {
-                                p: c for p, c in zip(["x", "y", "z"], centre.tolist())
-                            },
-                            "global_rotation": rotation,
-                        }
-
-                    # Add physical_angle for bent elements
-                    if abs(physical_angle) > 1e-9:
-                        v["physical"]["physical_angle"] = physical_angle
-                    if "hardware_class" not in v:
-                        v["hardware_class"] = vtype
-
-                    self.elements.update({k: getattr(laura_elements, vtype)(**v)})
-
-    def create_section(self, section: Dict) -> Dict[str, SectionLattice]:
-        if not self.elements:
-            self.create_laura_element_dictionary()
-        secname = list(section.keys())
-        assert len(secname) == 1
-        secelements = list(section.values())[0]
-        assert len(secelements) >= 2
-        appending = False
-        order = []
-        elems = {}
-        for name, elem in self.elements.items():
-            if name == secelements[0]:
-                appending = True
-            elif name == secelements[1]:
-                appending = False
-            if appending:
-                order.append(name)
-                elems.update({name: elem})
-        if not order:
-            raise KeyError(
-                f"element {secelements[0]} not found in lattice; could not construct section"
+            cls = laura_elements.ELEMENT_REGISTRY.get(vtype) or getattr(
+                laura_elements, vtype
             )
-        seclat = SectionLattice(
-            order=order, elements=ElementList(elements=elems), name=secname[0]
-        )
-        return {secname[0]: seclat}
+            self.elements.update({k: cls(**v)})
+        return self.elements
 
-    def create_layout(self, name: str, sections: Dict) -> MachineLayout:
-        layout_sections = {}
-        for secname, secpos in sections.items():
-            layout_sections.update(self.create_section({secname: secpos}))
-        return MachineLayout(
-            name=name,
-            sections={
-                k: v
-                for k, v in zip(
-                    list(layout_sections.keys()), list(layout_sections.values())
+    def _default_sections(self) -> Dict[str, SectionLattice]:
+        """One section per top-level ``LINE`` of ``source_file``, if given."""
+        if not self.source_file:
+            return self.create_section()
+        self._prepare_source()
+        return {
+            beamline: self._source_section(beamline)
+            for beamline in self._source_sections
+        }
+
+    def _source_section_blocks(
+        self, root: str, min_section_length: int
+    ) -> list[tuple[str, int]]:
+        """Return section names and expanded element counts for one root line."""
+        lookup = {name.lower(): name for name in self._source_lines}
+
+        def member_name(member: str) -> tuple[str, int]:
+            value = member.strip()
+            match = re.match(r"^(\d+)\s*\*\s*(.*)$", value)
+            repeats, value = (
+                (int(match.group(1)), match.group(2)) if match else (1, value)
+            )
+            return value.lstrip("-").strip().strip('"'), repeats
+
+        def expanded_length(name: str, stack: tuple[str, ...] = ()) -> int:
+            key = lookup.get(name.lower())
+            if key is None:
+                return 1
+            if key.lower() in stack:
+                raise ValueError(
+                    f"Recursive ELEGANT LINE definition involving {key!r}."
                 )
+            return sum(
+                repeats * expanded_length(child, stack + (key.lower(),))
+                for child, repeats in map(member_name, self._source_lines[key])
+            )
+
+        raw: list[tuple[str | None, int]] = []
+        for member in self._source_lines[root]:
+            child, repeats = member_name(member)
+            line_name = lookup.get(child.lower())
+            for _ in range(repeats):
+                if line_name and expanded_length(line_name) >= min_section_length:
+                    raw.append((line_name, expanded_length(line_name)))
+                else:
+                    raw.append((None, expanded_length(child)))
+
+        if not any(name for name, _ in raw):
+            return [(root, sum(count for _, count in raw))]
+
+        blocks: list[tuple[str, int]] = []
+        leading = 0
+        occurrences: dict[str, int] = {}
+        for name, count in raw:
+            if name is None:
+                if blocks:
+                    previous, previous_count = blocks[-1]
+                    blocks[-1] = (previous, previous_count + count)
+                else:
+                    leading += count
+                continue
+            occurrences[name] = occurrences.get(name, 0) + 1
+            suffix = f"_{occurrences[name]}" if occurrences[name] > 1 else ""
+            blocks.append((name + suffix, count + leading))
+            leading = 0
+        return blocks
+
+    def create_machine_model(self, min_section_length: int = 5) -> MachineModel:
+        """Build a complete model from all top-level ELEGANT ``LINE`` objects.
+
+        Independent top-level lines become layouts. Nested lines whose expanded
+        length is at least ``min_section_length`` become sections; shorter lines
+        are folded into an adjacent section without dropping elements. If a
+        layout has no qualifying nested line, the whole layout becomes one section.
+        """
+        if min_section_length < 1:
+            raise ValueError("min_section_length must be at least 1.")
+
+        if not self.source_file:
+            return self._single_layout_model()
+
+        self._prepare_source()
+        elements = {}
+        section_definitions = {}
+        layout_definitions = {}
+        skipped_layouts = []
+
+        for root in self._source_roots:
+            full_section = self._source_section(root)
+            if len(full_section.order) < min_section_length:
+                skipped_layouts.append(root)
+                continue
+            blocks = self._source_section_blocks(root, min_section_length)
+            if sum(count for _, count in blocks) != len(full_section.order):
+                blocks = [(root, len(full_section.order))]
+
+            layout_sections = []
+            offset = 0
+            for source_section_name, count in blocks:
+                section_name = source_section_name
+                if section_name in section_definitions:
+                    section_name = f"{root}_{section_name}"
+                members = [
+                    (element.name, element)
+                    for element in full_section.elements.list()[offset : offset + count]
+                ]
+                offset += count
+                merge_layout_elements(
+                    elements,
+                    section_definitions,
+                    section_name,
+                    members,
+                    [name for name, _ in members],
+                    root,
+                )
+                layout_sections.append(section_name)
+            layout_definitions[root] = layout_sections
+
+        if skipped_layouts:
+            warn(
+                "Skipped ELEGANT layouts shorter than min_section_length="
+                f"{min_section_length}: {', '.join(skipped_layouts)}"
+            )
+        if not layout_definitions:
+            raise ValueError(
+                f"No ELEGANT layouts meet min_section_length={min_section_length}."
+            )
+        default_layout = next(iter(layout_definitions))
+        return MachineModel(
+            elements=elements,
+            section={"sections": section_definitions},
+            layout={
+                "layouts": layout_definitions,
+                "default_layout": default_layout,
             },
+            master_lattice=str(Path(self.source_file).resolve().parent),
+            functional_definitions=self.functional_definitions,
         )
+
+    def _expressions_for(self, name: str) -> Dict[str, str]:
+        source_name = name.lower()
+        expressions = self._source_expressions.get(source_name, {})
+        if not expressions and source_name.rpartition(".")[2].isdigit():
+            expressions = self._source_expressions.get(source_name.rpartition(".")[0], {})
+        return expressions
 
     @staticmethod
-    def _convert_k_to_kl(v) -> dict:
+    def _length_of(data: dict) -> float:
+        return data.get("magnetic", {}).get(
+            "length", data.get("physical", {}).get("length", data.get("l", 0.0))
+        )
+
+    def _rescale_strength_symbols(self) -> set:
+        """Integrate symbols a bare per-metre strength (``k1="kx"``) names.
+
+        LAURA's ``KnL`` is integrated, so ``kx`` becomes ``kx * L``. Returns
+        the symbols that stay unscaled -- used any other way, or needing two
+        values -- whose bare strengths must import numerically.
+        """
+        unscaled = self._unscaled_definitions or self.functional_definitions
+        scaled, unscalable = {}, set()
+        for name, data in self.elegant_data.items():
+            length = float(self._length_of(data) or 0.0)
+            for parameter, expression in self._expressions_for(name).items():
+                symbol = self._rpn_symbol(expression)
+                if symbol and parameter in _PER_METRE_STRENGTHS and length:
+                    value = unscaled[symbol] * length
+                    if symbol in scaled and not np.isclose(scaled[symbol], value):
+                        unscalable.add(symbol)
+                    scaled[symbol] = value
+                else:
+                    unscalable.update(
+                        token for token in expression.split() if token in unscaled
+                    )
+        self.functional_definitions.update(
+            {name: value for name, value in scaled.items() if name not in unscalable}
+        )
+        return unscalable
+
+    def _rpn_symbol(self, value, length=0.0) -> str | None:
+        if not isinstance(value, str):
+            return None
+        tokens = value.strip('"').split()
+        for name in self.functional_definitions:
+            if tokens == [name]:
+                return name
+            if length and len(tokens) == 3 and tokens[0] == name and tokens[2] == "/":
+                try:
+                    if np.isclose(float(tokens[1]), length):
+                        return name
+                except ValueError:
+                    pass
+        return None
+
+    def _convert_k_to_kl(self, v) -> dict:
         multi = {}
-        if "angle" in v:
-            v["k0"] = v["angle"] / float(v["magnetic"]["length"])
-            v["physical"]["physical_angle"] = -v["angle"]
+        if "angle" in v and "magnetic" in v:
+            symbol = self._rpn_symbol(v["angle"])
+            if symbol:
+                v["k0"] = symbol
+            else:
+                v["k0"] = v["angle"] / float(v["magnetic"]["length"])
+                v["physical"]["physical_angle"] = -v["angle"]
         for n in range(0, 9):
             if f"k{n}" in v and (
                 "length" in v["magnetic"] or "length" in v["physical"]
             ):
                 try:
-                    knl = float(v[f"k{n}"]) * float(v["magnetic"]["length"])
+                    length = float(v["magnetic"]["length"])
                 except KeyError:
-                    knl = float(v[f"k{n}"]) * float(v["physical"]["length"])
+                    length = float(v["physical"]["length"])
+                symbol = self._rpn_symbol(v[f"k{n}"], length)
+                knl = symbol or float(v[f"k{n}"]) * length
                 multi.update({f"K{n}L": {"order": n, "normal": knl}})
                 del v[f"k{n}"]
         if "magnetic" in v:
             v["magnetic"].update({"multipoles": multi})
         return v
 
-    @staticmethod
-    def _convert_ele_phase_to_phase(v) -> dict:
+    def _convert_ele_phase_to_phase(self, v) -> dict:
         if "cavity" in v:
             if "phase" in v["cavity"]:
-                v["cavity"]["phase"] = 90 - v["cavity"]["phase"]
+                value = v["cavity"]["phase"]
+                tokens = value.strip('"').split() if isinstance(value, str) else []
+                if len(tokens) == 3 and tokens[0] == "90" and tokens[2] == "-":
+                    symbol = self._rpn_symbol(tokens[1])
+                    v["cavity"]["phase"] = symbol or value
+                else:
+                    symbol = self._rpn_symbol(value)
+                    if symbol:
+                        converted = f"{symbol}_laura_phase"
+                        self.functional_definitions[converted] = (
+                            90 - self.functional_definitions[symbol]
+                        )
+                        v["cavity"]["phase"] = converted
+                    else:
+                        v["cavity"]["phase"] = 90 - value
         return v
 
     @staticmethod

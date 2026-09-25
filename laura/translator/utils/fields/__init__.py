@@ -25,6 +25,7 @@ from pydantic import (
 )
 from typing import Literal, List
 from . import astra  # noqa E402
+from . import bmad  # noqa E402
 from . import gdf  # noqa E402
 from . import hdf5  # noqa E402
 from . import sdds  # noqa E402
@@ -203,12 +204,17 @@ class FieldMap(BaseModel):
             **kwargs,
         )
         if filename is not None:
+            reader_options = {
+                name: value
+                for name, value in kwargs.items()
+                if name == "column_map" or name.lower().endswith("_column")
+            }
             self.read_field_file(
                 filename,
                 field_type=field_type,
                 frequency=frequency,
                 cavity_type=cavity_type,
-                **kwargs,
+                **reader_options,
             )
 
     @model_validator(mode="before")
@@ -300,6 +306,14 @@ class FieldMap(BaseModel):
             The frequency of the field, if applicable.
         normalize_b: bool
             Normalize Bx and By with respect to Bz (True by default)
+        **kwargs
+            Format-specific reader options. For SDDS files, columns matching
+            LAURA field names are loaded automatically. Use
+            ``column_map={"Wz": "W"}`` or per-field overrides such as
+            ``wz_column="W"`` and ``t_column="T"`` for non-standard names.
+            SDDS supports coordinates, electric and magnetic components,
+            wake components, and gradient; see
+            :func:`~laura.translator.utils.fields.sdds.read_SDDS_field_file`.
         Returns
         -------
         None:
@@ -320,7 +334,7 @@ class FieldMap(BaseModel):
                 )
             elif fext.lower() in [".sdds"]:
                 # print('Field: read_field_file: SDDS', filename, fext.lower())
-                sdds.read_sdds_field_file(self, filename, field_type=field_type)
+                sdds.read_sdds_field_file(self, filename, field_type=field_type, **kwargs)
             elif fext.lower() in [".gdf"]:
                 # print('Field: read_field_file: GPT', filename, fext.lower())
                 gdf.read_gdf_field_file(
@@ -373,7 +387,11 @@ class FieldMap(BaseModel):
                 _output_location = self._output_location
         basefilename = os.path.basename(self.filename)
         pre, _ = os.path.splitext(basefilename)
-        return os.path.relpath(os.path.join(_output_location, pre + extension))
+        path = os.path.join(_output_location, pre + extension)
+        try:
+            return os.path.relpath(path)
+        except ValueError:  # Windows: path and cwd on different drives
+            return os.path.abspath(path)
 
     def get_field_data(self, code: str) -> np.ndarray | None:
         """
@@ -402,7 +420,9 @@ class FieldMap(BaseModel):
             return astra.generate_astra_field_data(self)
         return None
 
-    def write_field_file(self, code: str, location: str | None = None) -> str | None:
+    def write_field_file(
+        self, code: str, location: str | None = None, **kwargs
+    ) -> str | None:
         """
         Write the field data to a file in the format required by the specified code.
         This method supports writing field data for ASTRA, SDDS, GDF, and OPAL.
@@ -448,6 +468,8 @@ class FieldMap(BaseModel):
             )
         elif code.lower() == "hdf5":
             return hdf5.write_hdf5_field_file(self)
+        elif code.lower() == "bmad":
+            return bmad.write_bmad_field_file(self, **kwargs)
 
 
 from laura._compat import deprecated_aliases  # noqa: E402

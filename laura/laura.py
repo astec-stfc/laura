@@ -12,28 +12,37 @@ from itertools import chain
 from math import copysign
 from typing import Any, Dict, List
 
-import numpy as np
-from pydantic import field_validator, model_validator
+from pydantic import PrivateAttr, field_validator, model_validator
 from yaml.constructor import Constructor
 
 _log = logging.getLogger("laura.machine")
 
-from ._compat import DeprecatedMethodAliases
-from .models.physical import PhysicalElement, Position
-from .models.element_list import MachineModel, BaseElement, dot, chunks
-from .models.element import Drift
+import time
+
+import numpy as np
+
 from .importers.yaml_loader import (
+    ElementLoadError,
+    LazyElementDict,
+    RawFileNamespace,
+    collect_template_filenames,
+    collect_unique_by_name,
+    collect_unique_filenames,
     read_yaml_combined_file,
     read_yaml_element_file,
-    LazyElementDict,
     fast_get_element_metadata,
 )
+from ._compat import DeprecatedMethodAliases
+from .models.element import Drift, BaseElement
+from .models.element_list import MachineModel, chunks, dot
+from .models.physical import PhysicalElement, Position
+
 
 NON_ELEMENT_FILENAMES = {"summary.yaml", "summary.yml"}
 """Files to ignore when scanning an ``element_list`` directory. ``summary.yaml`` is an
 aggregate of every element in the machine, not a single-element file, so treating it as
 one invents a bogus element -- and it cannot be recognised by content, because
-:func:`~laura.Importers.YAML_Loader.fast_get_element_metadata` reads only the first 2000
+:func:`~laura.importers.yaml_loader.fast_get_element_metadata` reads only the first 2000
 characters and most real element files declare ``name:`` after that (falling back to the
 filename), so a summary would simply be named after its file."""
 
@@ -90,6 +99,21 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
 
     eager_mode: bool = False
     """Whether to load all elements into memory immediately (True) or use lazy loading (False, default)"""
+
+    strict: bool = False
+    """Whether an element that fails to load raises
+    :class:`~laura.Importers.YAML_Loader.ElementLoadError` (True) or is skipped
+    (False, default). Errors can be inspected via :attr:`load_errors`."""
+
+    _load_errors: List[ElementLoadError] = PrivateAttr(default_factory=list)
+
+    @property
+    def load_errors(self) -> List[ElementLoadError]:
+        """
+        Elements the files describe that are not in this machine, as
+        :class:`~laura.Importers.YAML_Loader.ElementLoadError` records.
+        """
+        return self._load_errors
 
     @model_validator(mode="before")
     @classmethod
@@ -163,37 +187,57 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
 
         if isinstance(el_list, str):
             if os.path.isfile(el_list):
-                elems = read_yaml_combined_file(el_list)
-                values = {y.name: y for y in elems if hasattr(y, "name")}
+                elems = read_yaml_combined_file(
+                    el_list, strict=self.strict, errors=self._load_errors
+                )
+                values = collect_unique_by_name(
+                    ((y.name, el_list, y) for y in elems if hasattr(y, "name")),
+                    errors=self._load_errors,
+                    strict=self.strict,
+                )
                 self.elements.update(values)
             elif os.path.isdir(el_list):
                 files = glob.glob(
                     os.path.abspath(el_list + "/**/*.yaml"), recursive=True
                 )
-                files = [
-                    f
-                    for f in files
-                    if os.path.basename(f).lower() not in NON_ELEMENT_FILENAMES
-                ]
-                filenames = {}
-                for fn in files:
-                    meta = fast_get_element_metadata(fn)
-                    filenames[meta["name"]] = fn
+                auxiliary = [f for f in files if os.path.basename(f).startswith("_")]
+                files = [f for f in files if not os.path.basename(f).startswith("_") and os.path.basename(f).lower() not in NON_ELEMENT_FILENAMES]
+                filenames = collect_unique_filenames(
+                    files, errors=self._load_errors, strict=self.strict
+                )
+                templates = collect_template_filenames(auxiliary)
                 # Create lazy dict instead of loading all!
                 if not self.eager_mode:
                     self.elements = LazyElementDict(
-                        filenames, exclude_keys=self.exclude_keys
+                        filenames,
+                        exclude_keys=self.exclude_keys,
+                        strict=self.strict,
+                        errors=self._load_errors,
+                        templates=templates,
                     )
                 else:
+                    namespace = RawFileNamespace({**templates, **filenames})
+                    memo: Dict = {}
                     elems = [
-                        read_yaml_element_file(fn, exclude_keys=self.exclude_keys)
+                        read_yaml_element_file(
+                            fn,
+                            exclude_keys=self.exclude_keys,
+                            strict=self.strict,
+                            errors=self._load_errors,
+                            namespace=namespace,
+                            memo=memo,
+                        )
                         for fn in files
                     ]
                     self.elements.update(
                         {y.name: y for y in elems if isinstance(y, BaseElement)}
                     )
         elif el_list:
-            values = {y.name: y for y in el_list if hasattr(y, "name")}
+            values = collect_unique_by_name(
+                ((y.name, None, y) for y in el_list if hasattr(y, "name")),
+                errors=self._load_errors,
+                strict=self.strict,
+            )
             self.elements.update(values)
 
         super().model_post_init(__context)

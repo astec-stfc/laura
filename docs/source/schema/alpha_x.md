@@ -44,6 +44,7 @@ URI: [laura:alpha_x](https://w3id.org/laura/alpha_x)
 
 | Property | Value |
 | --- | --- |
+| If Absent | `float(0.0)` |
 | Owner | [TwissMatchSimulationElement](TwissMatchSimulationElement.md) |
 
 
@@ -89,6 +90,7 @@ name: alpha_x
 description: Horizontal alpha.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
+ifabsent: float(0.0)
 owner: TwissMatchSimulationElement
 domain_of:
 - TwissMatchSimulationElement

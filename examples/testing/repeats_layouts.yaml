@@ -1,0 +1,4 @@
+default_layout: fodo_lattice
+layouts:
+  fodo_lattice:
+    - fodo_channel
