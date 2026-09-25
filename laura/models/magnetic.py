@@ -364,9 +364,10 @@ class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
                 + (18 * f * a**2 * i0)
                 + (27 * f**2 * (a * i0**2 + d - abs_str))
             ) / (27 * f**3)
-            r = sqrt((p / 3) ** 3)
+            # Trigonometric cubic: p < 0 here, so -(p/3)**3 > 0 and r is real.
+            r = sqrt(-((p / 3) ** 3))
             theta = np.arccos(-q / (2 * r))
-            r_cbrt = -(r ** (1 / 3))
+            r_cbrt = r ** (1 / 3)
             t3 = 2 * r_cbrt * np.cos((theta / 3) + 4 * Pi / 3)
             return t3 - a / (3 * f)
 

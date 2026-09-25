@@ -30,6 +30,9 @@ elegant_unsupported = [
 ]
 
 
+# Strengths ELEGANT states per metre and LAURA stores integrated.
+_PER_METRE_STRENGTHS = frozenset({"k1", "k2", "k3"})
+
 _LINE_MEMBER_RE = re.compile(r"^\s*(-)?\s*(?:(\d+)\s*\*\s*)?(-)?\s*(.+?)\s*$")
 _INCLUDE_RE = re.compile(
     r'(?im)^[ \t]*#include[ \t]+(?:"([^"]+)"|<([^>]+)>|([^\s]+))[ \t]*$'
@@ -104,6 +107,7 @@ class ElegantLatticeImporter(LatticeImporter):
     _source_outputs: Dict[str, str] = PrivateAttr(default_factory=dict)
     _source_tmp: object = PrivateAttr(default=None)
     _source_expressions: Dict[str, Dict[str, str]] = PrivateAttr(default_factory=dict)
+    _unscaled_definitions: Dict[str, float] = PrivateAttr(default_factory=dict)
     _source_lines: Dict[str, list[str]] = PrivateAttr(default_factory=dict)
     _source_roots: list[str] = PrivateAttr(default_factory=list)
     _source_sections: list[str] = PrivateAttr(default_factory=list)
@@ -190,6 +194,7 @@ class ElegantLatticeImporter(LatticeImporter):
                 text,
             )
         }
+        self._unscaled_definitions = dict(self.functional_definitions)
         for element, parameters in re.findall(
             r"(?im)^\s*([^\s:%]+)\s*:\s*[^,\n]+,(.*)$", text
         ):
@@ -326,18 +331,17 @@ class ElegantLatticeImporter(LatticeImporter):
         self.elegant_data, filenames = params.create_element_dictionary(
             self.machine_area
         )
+        unscalable = self._rescale_strength_symbols()
         for name, data in self.elegant_data.items():
-            source_name = name.lower()
-            expressions = self._source_expressions.get(source_name, {})
-            if not expressions and source_name.rpartition(".")[2].isdigit():
-                expressions = self._source_expressions.get(
-                    source_name.rpartition(".")[0], {}
-                )
-            length = data.get("magnetic", {}).get(
-                "length", data.get("physical", {}).get("length", data.get("l", 0.0))
-            )
+            expressions = self._expressions_for(name)
+            length = self._length_of(data)
             for parameter in ("k0", "k1", "k2", "k3", "angle"):
                 expression = expressions.get(parameter)
+                if (
+                    parameter in _PER_METRE_STRENGTHS
+                    and self._rpn_symbol(expression) in unscalable
+                ):
+                    continue
                 if expression and self._rpn_symbol(
                     expression, 0.0 if parameter == "angle" else length
                 ):
@@ -566,6 +570,46 @@ class ElegantLatticeImporter(LatticeImporter):
             master_lattice=str(Path(self.source_file).resolve().parent),
             functional_definitions=self.functional_definitions,
         )
+
+    def _expressions_for(self, name: str) -> Dict[str, str]:
+        source_name = name.lower()
+        expressions = self._source_expressions.get(source_name, {})
+        if not expressions and source_name.rpartition(".")[2].isdigit():
+            expressions = self._source_expressions.get(source_name.rpartition(".")[0], {})
+        return expressions
+
+    @staticmethod
+    def _length_of(data: dict) -> float:
+        return data.get("magnetic", {}).get(
+            "length", data.get("physical", {}).get("length", data.get("l", 0.0))
+        )
+
+    def _rescale_strength_symbols(self) -> set:
+        """Integrate symbols a bare per-metre strength (``k1="kx"``) names.
+
+        LAURA's ``KnL`` is integrated, so ``kx`` becomes ``kx * L``. Returns
+        the symbols that stay unscaled -- used any other way, or needing two
+        values -- whose bare strengths must import numerically.
+        """
+        unscaled = self._unscaled_definitions or self.functional_definitions
+        scaled, unscalable = {}, set()
+        for name, data in self.elegant_data.items():
+            length = float(self._length_of(data) or 0.0)
+            for parameter, expression in self._expressions_for(name).items():
+                symbol = self._rpn_symbol(expression)
+                if symbol and parameter in _PER_METRE_STRENGTHS and length:
+                    value = unscaled[symbol] * length
+                    if symbol in scaled and not np.isclose(scaled[symbol], value):
+                        unscalable.add(symbol)
+                    scaled[symbol] = value
+                else:
+                    unscalable.update(
+                        token for token in expression.split() if token in unscaled
+                    )
+        self.functional_definitions.update(
+            {name: value for name, value in scaled.items() if name not in unscalable}
+        )
+        return unscalable
 
     def _rpn_symbol(self, value, length=0.0) -> str | None:
         if not isinstance(value, str):

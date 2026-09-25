@@ -93,6 +93,9 @@ def _absorb_negative_drifts(names, types, lengths, spos, params, children):
 
 _CAVITY_TYPES = ("Lcavity", "RFCavity", "Crab_Cavity", "E_Gun")
 
+# Strengths Bmad states per metre and LAURA stores integrated.
+_PER_METRE_STRENGTHS = frozenset({"K1", "K2", "K3"})
+
 _COLLIMATOR_TYPES = ("ECollimator", "RCollimator")
 
 _COLLIMATOR_SHAPES = {"ECollimator": "elliptical", "RCollimator": "rectangular"}
@@ -275,18 +278,6 @@ def _misalignment(parameters: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
     :func:`~laura.utils.rotation_matrix.euler_angles_to_rotation_matrix`, where
     ``theta`` is the ``Ry`` factor, ``phi`` the ``Rx`` and ``psi`` the ``Rz``.
     So ``x_pitch`` pairs with ``theta`` and ``y_pitch`` with ``phi``.
-
-    Both cross over in sign, and that is not a guess: a ``patch, x_pitch = 0.05``
-    surveys to a Bmad floor ``theta`` of ``+0.05``, which
-    :func:`bmad_floor_angles_to_laura` -- the matrix conversion, which is the
-    definition of what these angles mean in LAURA -- turns into a LAURA ``theta``
-    of ``-0.05``; the same holds for ``y_pitch`` and ``phi``. LAURA's ``Ry``
-    factor carries the opposite sign to an ordinary right-handed ``Ry``, so a
-    Bmad pitch and a LAURA angle of the same number are opposite rotations. The
-    two were copied straight across until 2026-09-01, which left an imported
-    misalignment disagreeing in sign with the ``global_rotation`` of the very
-    same element, since that comes through the matrix conversion. A round trip
-    could not see it: the export made the same mistake and cancelled it.
 
     ``psi`` does not cross over -- the roll is the one angle LAURA and Bmad
     already agree on.
@@ -741,6 +732,9 @@ class BmadLatticeImporter(BaseModel):
 
     functional_definitions: Dict[str, Union[int, float]] = {}
 
+    _unscaled_definitions: Dict[str, float] = PrivateAttr(default_factory=dict)
+    _unscalable_symbols: set = PrivateAttr(default_factory=set)
+
     n_universes: int = 1
 
     names: Dict[int, Dict[str, List[str]]] = {}
@@ -818,6 +812,15 @@ class BmadLatticeImporter(BaseModel):
             if scalar:
                 values[scalar.group(1)] = float(scalar.group(2))
                 continue
+            # `q[k1] := x;` after the definition
+            update = re.fullmatch(
+                r"([A-Za-z_][\w.#]*)\s*\[\s*([A-Za-z_]\w*)\s*\]\s*:=\s*(.+)", statement
+            )
+            if update:
+                deferred.setdefault(update.group(1).lower(), {})[
+                    update.group(2).upper()
+                ] = update.group(3).strip()
+                continue
             element = re.match(r"([^:]+):\s*[^,]+,(.*)", statement, re.S)
             if not element:
                 continue
@@ -837,6 +840,49 @@ class BmadLatticeImporter(BaseModel):
         self.functional_definitions = {
             name: value for name, value in values.items() if name in used
         }
+        self._unscaled_definitions = dict(self.functional_definitions)
+
+    def _rescale_strength_symbols(self, universe: int) -> None:
+        """Integrate symbols a bare per-metre strength (``k1 := kx``) names.
+
+        LAURA's ``KnL`` is integrated, so ``kx`` becomes ``kx * L``; a symbol
+        also used any other way, or needing two values, stays numeric.
+        """
+        scaled, unscalable = {}, set(getattr(self, "_unscalable_symbols", ()))
+        lower = {name.lower(): name for name in self.functional_definitions}
+        for b, names in self.names_numbered[universe].items():
+            for i, nam in enumerate(names):
+                length = float(self.lengths[universe][b][i])
+                deferred = self.deferred_parameters.get(
+                    nam.split(".", 1)[0].lower(), {}
+                )
+                for attribute, expression in deferred.items():
+                    compact = (
+                        expression.lower()
+                        .replace(" ", "")
+                        .replace("(", "")
+                        .replace(")", "")
+                    )
+                    symbol = lower.get(compact)
+                    if symbol and attribute in _PER_METRE_STRENGTHS and length:
+                        unscaled = (
+                            getattr(self, "_unscaled_definitions", None)
+                            or self.functional_definitions
+                        )
+                        value = unscaled[symbol] * length
+                        if symbol in scaled and not math.isclose(scaled[symbol], value):
+                            unscalable.add(symbol)
+                        scaled[symbol] = value
+                    else:
+                        unscalable.update(
+                            lower[token]
+                            for token in re.findall(r"[a-z_][\w.]*", compact)
+                            if token in lower
+                        )
+        self._unscalable_symbols = unscalable
+        self.functional_definitions.update(
+            {name: value for name, value in scaled.items() if name not in unscalable}
+        )
 
     def _symbol(self, element: str, attribute: str, length=0.0) -> str | None:
         expression = self.deferred_parameters.get(element.lower(), {}).get(attribute)
@@ -845,6 +891,10 @@ class BmadLatticeImporter(BaseModel):
         compact = expression.lower().replace(" ", "").replace("(", "").replace(")", "")
         for name in self.functional_definitions:
             if compact == name.lower():
+                if attribute in _PER_METRE_STRENGTHS and name in getattr(
+                    self, "_unscalable_symbols", ()
+                ):
+                    return None
                 return name
             if length and compact.startswith(name.lower() + "/"):
                 try:
@@ -1289,6 +1339,7 @@ class BmadLatticeImporter(BaseModel):
         self, universe: int
     ) -> Dict[str, Dict[str, Element]]:
         switch_dict = _switch_dict()
+        self._rescale_strength_symbols(universe)
         for b, names in self.names_numbered[universe].items():
             for i, nam in enumerate(names):
                 etype = self.types[universe][b][i]

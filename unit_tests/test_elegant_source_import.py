@@ -394,3 +394,29 @@ def test_elegant_transverse_and_distinct_wakes_are_not_lost(tmp_path, monkeypatc
     assert wake.filename == str((tmp_path / "tr.sdds").resolve())
     assert converted["BOTH"]["simulation"]["zwakefile"] == "z.sdds"
     assert converted["BOTH"]["simulation"]["trwakefile"] == "tr.sdds"
+
+
+@pytest.mark.skipif(
+    os.environ.get("LAURA_RUN_ELEGANT_TESTS") != "1" or shutil.which("elegant") is None,
+    reason="set LAURA_RUN_ELEGANT_TESTS=1 to run external Elegant tests",
+)
+def test_bare_per_metre_strength_symbol_is_integrated(tmp_path):
+    """``k1="kx"`` is per metre; LAURA's K1L needs ``kx * L``, and a symbol
+    two lengths share cannot hold both, so it imports as numbers."""
+    source = tmp_path / "line.lte"
+    source.write_text(
+        "% 0.4 sto kx\n"
+        "% 0.2 sto kw\n"
+        'q1: kquad, l=0.5, k1="kx"\n'
+        'q4: kquad, l=0.5, k1="kw"\n'
+        'q5: kquad, l=0.25, k1="kw"\n'
+        "machine: line=(q1,q4,q5)\n"
+    )
+
+    importer = ElegantLatticeImporter(source_file=str(source))
+    elements = importer.create_section()["machine"].elements.elements
+
+    assert elements["Q1"].magnetic.multipoles.K1L.normal == "kx"
+    assert importer.functional_definitions["kx"] == pytest.approx(0.2)
+    assert elements["Q4"].magnetic.multipoles.K1L.normal == pytest.approx(0.1)
+    assert elements["Q5"].magnetic.multipoles.K1L.normal == pytest.approx(0.05)

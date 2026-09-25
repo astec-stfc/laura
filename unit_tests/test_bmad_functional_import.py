@@ -66,6 +66,41 @@ def test_bmad_parser_retains_only_deferred_assignments(tmp_path):
     assert BmadLatticeImporter._symbol(importer, "q_fixed", "K1", 0.5) is None
 
 
+def test_bmad_parser_retains_deferred_update_after_definition(tmp_path):
+    source = tmp_path / "line.bmad"
+    source.write_text(
+        "ky = 0.3\n"
+        "q: quadrupole, l = 0.5\n"
+        "ln: line = (q)\n"
+        "use, ln\n"
+        "q[k1] := ky\n"
+    )
+    importer = SimpleNamespace(
+        lattice_file=str(source), deferred_parameters={}, functional_definitions={}
+    )
+
+    BmadLatticeImporter._read_functional_definitions(importer)
+
+    assert importer.deferred_parameters == {"q": {"K1": "ky"}}
+    assert importer.functional_definitions == {"ky": pytest.approx(0.3)}
+
+
+def test_bmad_bare_per_metre_strength_symbol_is_integrated():
+    """``k1 := kx`` is per metre; a symbol two lengths share stays numeric."""
+    importer = SimpleNamespace(
+        functional_definitions={"kx": 0.4, "kw": 0.2},
+        deferred_parameters={"q1": {"K1": "kx"}, "q4": {"K1": "kw"}, "q5": {"K1": "kw"}},
+        names_numbered={1: {"b": ["Q1", "Q4", "Q5"]}},
+        lengths={1: {"b": [0.5, 0.5, 0.25]}},
+    )
+
+    BmadLatticeImporter._rescale_strength_symbols(importer, 1)
+
+    assert importer.functional_definitions == {"kx": pytest.approx(0.2), "kw": 0.2}
+    assert BmadLatticeImporter._symbol(importer, "Q1", "K1", 0.5) == "kx"
+    assert BmadLatticeImporter._symbol(importer, "Q4", "K1", 0.5) is None
+
+
 def test_bmad_parser_follows_call_file_statements(tmp_path):
     (tmp_path / "sub_files").mkdir()
     (tmp_path / "sub_files" / "definitions.bmad").write_text("quad_k1l = 0.3\n")

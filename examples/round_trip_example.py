@@ -13,7 +13,8 @@ export before handing it to the next:
       -> export MAD-X    -> import -> LAURA (final)
 
 then compares the final LAURA model against the original import: element
-names, order, lengths, positions, and magnet strengths. Differences are
+names, order, lengths, positions, magnet strengths, bend fringe fields and
+functional parameters (which must stay symbolic). Differences are
 reported per hop (as warnings raised during that hop's export/import) and
 overall (the final-vs-original comparison); not every code's converter
 has full element-type coverage, and this script finds the gaps.
@@ -173,6 +174,8 @@ def compare_layouts(original, final, tolerance: float = 1e-6) -> dict:
     def close(a: float, b: float) -> bool:
         return math.isclose(a, b, rel_tol=1e-6, abs_tol=tolerance)
 
+    from laura.translator.utils.functions import functional_fields
+
     mismatches = []
     for name, orig_el in orig.items():
         fin_el = fin.get(name)
@@ -183,6 +186,11 @@ def compare_layouts(original, final, tolerance: float = 1e-6) -> dict:
                 (name, "hardware_type", orig_el.hardware_type, fin_el.hardware_type)
             )
             continue
+        # Functional parameters must come back as the same symbol, not a number.
+        orig_fn, fin_fn = functional_fields(orig_el), functional_fields(fin_el)
+        for path in sorted(set(orig_fn) | set(fin_fn)):
+            if orig_fn.get(path) != fin_fn.get(path):
+                mismatches.append((name, path, orig_fn.get(path), fin_fn.get(path)))
         ol, fl = orig_el.physical.length or 0.0, fin_el.physical.length or 0.0
         if not close(ol, fl):
             mismatches.append((name, "length", ol, fl))
@@ -206,7 +214,13 @@ def compare_layouts(original, final, tolerance: float = 1e-6) -> dict:
                     continue
                 if not close(float(ok or 0.0), float(fk or 0.0)):
                     mismatches.append((name, order_name, ok, fk))
-            for field in ("horizontal_kick", "vertical_kick"):
+            for field in (
+                "horizontal_kick",
+                "vertical_kick",
+                "gap",
+                "edge_field_integral_entrance",
+                "edge_field_integral_exit",
+            ):
                 ov = getattr(orig_mag, field, None)
                 fv = getattr(fin_mag, field, None)
                 if ov is None and fv is None:
@@ -386,7 +400,7 @@ def main(argv=None) -> int:
         print(f"    {result['extra'][:15]}")
     print(f"  field mismatches: {len(result['mismatches'])}")
     for name, field, o, f in result["mismatches"][:30]:
-        print(f"    {name:<28}{field:<12}orig={o!r:<20}final={f!r}")
+        print(f"    {name:<28}{field:<32} orig={o!r:<20}final={f!r}")
     if len(result["mismatches"]) > 30:
         print(f"    ... and {len(result['mismatches']) - 30} more")
 

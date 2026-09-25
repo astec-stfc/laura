@@ -387,7 +387,11 @@ class FieldMap(BaseModel):
                 _output_location = self._output_location
         basefilename = os.path.basename(self.filename)
         pre, _ = os.path.splitext(basefilename)
-        return os.path.relpath(os.path.join(_output_location, pre + extension))
+        path = os.path.join(_output_location, pre + extension)
+        try:
+            return os.path.relpath(path)
+        except ValueError:  # Windows: path and cwd on different drives
+            return os.path.abspath(path)
 
     def get_field_data(self, code: str) -> np.ndarray | None:
         """

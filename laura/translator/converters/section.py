@@ -31,6 +31,7 @@ from ..utils.fields import FieldMap
 from ..utils.functions import (
     bmad_functional_definitions,
     elegant_functional_definitions,
+    functional_fields,
     madx_functional_definitions,
     sanitize_string,
     tw_cavity_energy_gain,
@@ -1003,9 +1004,12 @@ class SectionLatticeTranslator(SectionLattice):
         )
         elements = []
 
+        symbolic = not IgnoreExtra.resolve_functional
         for d in elem_dict.values():
             obj = d.to_ocelot()
             objs = list(obj) if isinstance(obj, (list, tuple)) else [obj]
+            if symbolic and objs:
+                objs[0].laura_functional_fields = functional_fields(d)
             elements.extend(objs)
             oce_len = sum(getattr(o, "l", 0.0) or 0.0 for o in objs)
             gap = d.physical.length - oce_len
@@ -1013,6 +1017,10 @@ class SectionLatticeTranslator(SectionLattice):
                 elements.append(OcelotDrift(l=gap, eid=f"{d.name}_len"))
 
         maglat = MagneticLattice(elements, method=method)
+        if symbolic:
+            maglat.laura_functional_definitions = dict(
+                self.functional_definitions or IgnoreExtra.functional_definitions
+            )
         if save:
             maglat.save_as_py_file(
                 f"{self.directory}/{self.name}.py", remove_rep_drifts=False

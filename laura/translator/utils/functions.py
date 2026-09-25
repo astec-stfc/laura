@@ -193,6 +193,36 @@ def bmad_functional_definitions(definitions: Dict | None = None) -> str:
     return "".join(f"{name} = {value}\n" for name, value in definitions.items())
 
 
+def functional_fields(element: BaseModel) -> Dict[str, str]:
+    """``{"magnetic.multipoles.K1L.normal": "kx", ...}`` for every field of
+    ``element`` naming a functional definition.
+
+    For codes with no expression system (Ocelot), so the symbols can ride on
+    the native object and :func:`apply_functional_fields` can restore them.
+    """
+    found = {}
+
+    def walk(value: Any, path: str) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                walk(item, f"{path}.{key}" if path else str(key))
+        elif isinstance(value, str) and value in IgnoreExtra.functional_definitions:
+            found[path] = value
+
+    walk(element.model_dump(), "")
+    return found
+
+
+def apply_functional_fields(data: Dict, fields: Dict[str, str]) -> None:
+    """Write :func:`functional_fields` output back into an element dict."""
+    for path, symbol in fields.items():
+        *parents, leaf = path.split(".")
+        target = data
+        for key in parents:
+            target = target.setdefault(key, {})
+        target[leaf] = symbol
+
+
 def sanitize_string(string: str) -> str:
     """
     Replaces hyphens in a string with underscores.

@@ -310,7 +310,7 @@ class TestCorrectorMagnetIsADipoleMagnet:
 # The CLARA magnet table is the source of truth for magnet calibration; these
 # tests pin corrector behaviour against it rather than against a hand-picked
 # expected number. pandas/openpyxl only ship with the [test] extra.
-_MAGNET_TABLE = "laura/Importers/CLARA Magnet Table v6.xlsx"
+_MAGNET_TABLE = "laura/importers/CLARA Magnet Table v6.xlsx"
 
 
 def _corrector_table_rows():

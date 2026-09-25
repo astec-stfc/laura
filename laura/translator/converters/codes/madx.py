@@ -9,14 +9,15 @@ from pydantic import PrivateAttr, model_validator
 
 import laura.models.element as laura_elements
 from laura.models.element_list import MachineModel
+
 from ...utils.functions import (
     introspect_model_defaults,
     merge_layout_elements,
     number_repeated_names,
 )
 from ...utils.madx.TFSFile import TFSFile
+from .. import keyword_conversion_rules_madx, type_conversion_rules_madx
 from . import magnetic_orders
-from .. import type_conversion_rules_madx, keyword_conversion_rules_madx
 from .importer import LatticeImporter, read_with_calls
 
 _RAW_KEYS = ("k0", "k1", "k2", "k3", "angle", "l", "kick", "hkick", "vkick", "ks")
@@ -104,10 +105,14 @@ class MadxLatticeImporter(LatticeImporter):
     def _default_name(self) -> str:
         if self.lattice_name:
             return self.lattice_name
-        return os.path.splitext(os.path.basename(self.twiss_file or self.source_file))[0]
+        return os.path.splitext(os.path.basename(self.twiss_file or self.source_file))[
+            0
+        ]
 
     @staticmethod
-    def _single_symbol(expression: str | None, definitions: Dict, length=0.0) -> str | None:
+    def _single_symbol(
+        expression: str | None, definitions: Dict, length=0.0
+    ) -> str | None:
         if not isinstance(expression, str) or not expression:
             return None
         compact = expression.lower().replace(" ", "").replace("(", "").replace(")", "")
@@ -178,8 +183,11 @@ class MadxLatticeImporter(LatticeImporter):
             for name, parameter in element.cmdpar.items():
                 if parameter.inform:
                     row[name] = parameter.value
-                if parameter.inform > 1 and isinstance(parameter.expr, str):
-                    self.deferred_parameters.setdefault(row["name"], {})[name] = parameter.expr
+                # inform is 2 for a definition, 1 for a later `elem, k1:=x;` update
+                if parameter.inform and isinstance(parameter.expr, str):
+                    self.deferred_parameters.setdefault(row["name"], {})[
+                        name
+                    ] = parameter.expr
                     used.update(re.findall(r"[A-Za-z_][\w.]*", parameter.expr))
             rows.append(row)
         self._source_functional_definitions = {
@@ -217,16 +225,14 @@ class MadxLatticeImporter(LatticeImporter):
             edge_parameter = None
             if index + 1 < len(rows):
                 candidate = rows[index + 1]
-                if (
-                    str(candidate["keyword"]).lower() in bends
-                    and np.isclose(edge["s"], candidate["s"] - candidate["l"])
+                if str(candidate["keyword"]).lower() in bends and np.isclose(
+                    edge["s"], candidate["s"] - candidate["l"]
                 ):
                     target, edge_parameter = candidate, "e1"
             if target is None and index:
                 candidate = rows[index - 1]
-                if (
-                    str(candidate["keyword"]).lower() in bends
-                    and np.isclose(edge["s"], candidate["s"])
+                if str(candidate["keyword"]).lower() in bends and np.isclose(
+                    edge["s"], candidate["s"]
                 ):
                     target, edge_parameter = candidate, "e2"
             if target is None:
@@ -275,12 +281,25 @@ class MadxLatticeImporter(LatticeImporter):
         conflicting_definitions = set()
         for row in rows:
             length = row.get("l", 0.0)
-            for param, expression in self.deferred_parameters.get(str(row["name"]), {}).items():
+            for param, expression in self.deferred_parameters.get(
+                str(row["name"]), {}
+            ).items():
                 symbol = self._single_symbol(expression, source_definitions, length)
-                compact = expression.lower().replace(" ", "").replace("(", "").replace(")", "")
-                if symbol and param in {"k0", "k1", "k2", "k3", "ks"} and compact == symbol.lower():
+                compact = (
+                    expression.lower()
+                    .replace(" ", "")
+                    .replace("(", "")
+                    .replace(")", "")
+                )
+                if (
+                    symbol
+                    and param in {"k0", "k1", "k2", "k3", "ks"}
+                    and compact == symbol.lower()
+                ):
                     value = source_definitions[symbol] * length
-                    if symbol in scaled_definitions and not np.isclose(scaled_definitions[symbol], value):
+                    if symbol in scaled_definitions and not np.isclose(
+                        scaled_definitions[symbol], value
+                    ):
                         conflicting_definitions.add(symbol)
                     scaled_definitions[symbol] = value
         self.functional_definitions.update(
@@ -298,6 +317,10 @@ class MadxLatticeImporter(LatticeImporter):
         for row in rows:
             name = str(row["name"])
             elemtype = str(row["keyword"]).lower()
+            if elemtype in ("sbend", "rbend"):
+                if "hgap" not in row and "gap" not in row:  # a folded dipedge sets gap
+                    row["hgap"] = 0.0
+                row.setdefault("fint", 0.0)
             if name.lower() in start_names and elemtype == "marker" and "betx" in row:
                 self.madx_data[name] = {
                     "hardware_type": "TwissMatch",
@@ -348,12 +371,15 @@ class MadxLatticeImporter(LatticeImporter):
                 }
                 continue
             if elemtype not in switch_dict:
-                warn(f"Could not parse MAD-X element type {elemtype!r} for {name!r}; skipping.")
+                warn(
+                    f"Could not parse MAD-X element type {elemtype!r} for {name!r}; skipping."
+                )
                 continue
             sftype = switch_dict[elemtype]
             try:
                 model_fields = introspect_model_defaults(
-                    getattr(laura_elements, sftype), resolve_optional=True,
+                    getattr(laura_elements, sftype),
+                    resolve_optional=True,
                 )
             except AttributeError:
                 warn(
@@ -371,7 +397,14 @@ class MadxLatticeImporter(LatticeImporter):
             }
             if sftype == "Drift":
                 entry["hardware_class"] = "Drift"
-            for subk in ("magnetic", "cavity", "simulation", "diagnostic", "physical", "aperture"):
+            for subk in (
+                "magnetic",
+                "cavity",
+                "simulation",
+                "diagnostic",
+                "physical",
+                "aperture",
+            ):
                 if subk in model_fields:
                     entry[subk] = {}
 
@@ -404,8 +437,10 @@ class MadxLatticeImporter(LatticeImporter):
                     if matched and val:
                         order = int(matched.group(1))
                         if order > 4:
-                            warn(f"Dropping order-{order} strength {param} of {name!r}; "
-                                 "LAURA models multipoles up to K4L.")
+                            warn(
+                                f"Dropping order-{order} strength {param} of {name!r}; "
+                                "LAURA models multipoles up to K4L."
+                            )
                             continue
                         pole = multipoles.setdefault(f"K{order}L", {"order": order})
                         pole["skew" if matched.group(2) else "normal"] = float(val)
@@ -604,8 +639,7 @@ class MadxLatticeImporter(LatticeImporter):
             )
         if not layout_definitions:
             raise ValueError(
-                "No MAD-X sequences meet min_section_length="
-                f"{min_section_length}."
+                "No MAD-X sequences meet min_section_length=" f"{min_section_length}."
             )
 
         return MachineModel(

@@ -216,3 +216,27 @@ def test_initial_twiss_is_imported_as_twiss_match():
     assert marker.simulation.eta_yp == pytest.approx(0.02)
     assert marker.simulation.from_beam is False
     assert list(elements)[1] == "Q1"
+
+
+def test_functional_parameters_survive_a_laura_ocelot_round_trip(tmp_path):
+    """Ocelot has no expressions; LAURA's own export carries the symbols."""
+    pytest.importorskip("cpymad")
+    from laura.translator.converters.codes.madx import MadxLatticeImporter
+    from laura.translator.converters.layout import MachineLayoutTranslator
+
+    source = tmp_path / "line.madx"
+    source.write_text(
+        "beam, particle=electron, energy=1;\n"
+        "quad_k1 = 0.4;\n"
+        "q: quadrupole, l=0.5, k1 := quad_k1;\n"
+        "line: sequence, l=1; q, at=0.5; endsequence;\n"
+    )
+    layout = MadxLatticeImporter(source_file=str(source)).create_layout()
+    maglat = next(
+        iter(MachineLayoutTranslator.from_layout(layout).to_ocelot(save=False).values())
+    )
+    importer = OcelotLatticeImporter(magnetic_lattice=maglat, name="line")
+    elements = importer.create_laura_element_dictionary()
+
+    assert elements["q"].magnetic.multipoles.K1L.normal == "quad_k1"
+    assert importer.functional_definitions["quad_k1"] == pytest.approx(0.2)

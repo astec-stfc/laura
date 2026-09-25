@@ -465,7 +465,7 @@ class TestLauraDoesNotUseItsOwnLegacyNames:
         root = pathlib.Path(laura.__path__[0])
         offenders = []
         for path in sorted(root.rglob("*.py")):
-            for i, line in enumerate(path.read_text().splitlines(), 1):
+            for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
                 for match in pattern.finditer(line):
                     offenders.append(f"{path.relative_to(root)}:{i}: self.{match.group(1)}")
         assert not offenders, (

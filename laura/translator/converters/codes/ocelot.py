@@ -1,17 +1,24 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, Dict, Optional
+
 from pydantic import ConfigDict
-from typing import Any, Dict, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ocelot.cpbd.magnetic_lattice import MagneticLattice
-import laura.models.element as laura_elems
-from . import magnetic_orders
-from .. import keyword_conversion_rules_ocelot as keyword_conversion_rules
-from ...utils.functions import introspect_model_defaults, number_repeated_names
-from .importer import LatticeImporter
-from warnings import warn
 from math import isfinite
+from warnings import warn
+
+import laura.models.element as laura_elems
+
+from ...utils.functions import (
+    apply_functional_fields,
+    introspect_model_defaults,
+    number_repeated_names,
+)
+from .. import keyword_conversion_rules_ocelot as keyword_conversion_rules
+from . import magnetic_orders
+from .importer import LatticeImporter
 
 
 def _switch_dict(type_rules: Dict[str, type]) -> Dict[str, str]:
@@ -36,6 +43,7 @@ def _switch_dict(type_rules: Dict[str, type]) -> Dict[str, str]:
         }
     )
     return switch
+
 
 ocelot_unsupported = [
     "Cleaner",
@@ -89,6 +97,11 @@ class OcelotLatticeImporter(LatticeImporter):
 
         self.laura_elements = {}
         switch_dict = _switch_dict(ocelot_conversion_rules)
+        definitions = getattr(
+            self.magnetic_lattice, "laura_functional_definitions", None
+        )
+        if definitions:
+            self.functional_definitions = {**self.functional_definitions, **definitions}
 
         if self.initial_twiss is not None:
             twiss_name = getattr(self.initial_twiss, "id", "") or "initial_twiss"
@@ -156,7 +169,9 @@ class OcelotLatticeImporter(LatticeImporter):
                 )
                 newobj["hardware_type"] = classname
             except AttributeError:
-                warn(f"Ocelot type {sftype!r} for {numbered_id!r} not recognized; skipping.")
+                warn(
+                    f"Ocelot type {sftype!r} for {numbered_id!r} not recognized; skipping."
+                )
                 continue
             for subk in [
                 "magnetic",
@@ -261,9 +276,7 @@ class OcelotLatticeImporter(LatticeImporter):
                 newobj["cavity"].update(
                     {"phase": float(elem.phi), "frequency": float(elem.freq)}
                 )
-                newobj["simulation"].update(
-                    {"field_amplitude": float(elem.v) * 1e9}
-                )
+                newobj["simulation"].update({"field_amplitude": float(elem.v) * 1e9})
             elif typeconv == "aperture":
                 xmax, ymax = float(elem.xmax), float(elem.ymax)
                 newobj["aperture"].update(
@@ -281,6 +294,10 @@ class OcelotLatticeImporter(LatticeImporter):
                     newobj["physical"]["error"] = {
                         "position": {"x": elem.dx, "y": elem.dy, "z": 0.0}
                     }
+            if definitions:
+                apply_functional_fields(
+                    newobj, getattr(elem, "laura_functional_fields", {})
+                )
             self.laura_elements.update(
                 {numbered_id: getattr(laura_elems, newobj["hardware_type"])(**newobj)}
             )

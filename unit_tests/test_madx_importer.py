@@ -139,6 +139,45 @@ def test_source_import_numbers_occurrences_and_integrates_direct_strength(tmp_pa
     assert importer.functional_definitions == {"quad_k1": pytest.approx(0.2)}
 
 
+def test_source_import_retains_strength_deferred_after_definition(tmp_path):
+    """``q, k1 := x;`` after the definition (cpymad inform 1, not 2)."""
+    pytest.importorskip("cpymad")
+    source = tmp_path / "update.madx"
+    source.write_text(
+        "beam, particle=electron, energy=1;\n"
+        "q: quadrupole, l=0.5, k1=0;\n"
+        "line: line = (q);\n"
+        "use, period=line;\n"
+        "quad_k1 = 0.4;\n"
+        "q, k1 := quad_k1;\n"
+    )
+
+    importer = MadxLatticeImporter(source_file=str(source))
+    elements = importer.create_laura_element_dictionary()
+
+    assert elements["q"].magnetic.multipoles.K1L.normal == "quad_k1"
+    assert importer.functional_definitions == {"quad_k1": pytest.approx(0.2)}
+
+
+def test_bend_states_madx_fringe_defaults(tmp_path):
+    """Unset hgap/fint are MAD-X's 0, not LAURA's gap or another code's fint."""
+    pytest.importorskip("cpymad")
+    source = tmp_path / "bends.madx"
+    source.write_text(
+        "beam, particle=electron, energy=1;\n"
+        "b0: sbend, l=0.5, angle=0.02;\n"
+        "b1: sbend, l=0.5, angle=0.02, hgap=0.01, fint=0.4;\n"
+        "line: sequence, l=2; b0, at=0.5; b1, at=1.5; endsequence;\n"
+    )
+
+    elements = MadxLatticeImporter(source_file=str(source)).create_laura_element_dictionary()
+
+    assert elements["b0"].magnetic.gap == 0.0
+    assert elements["b0"].magnetic.edge_field_integral == 0.0
+    assert elements["b1"].magnetic.gap == pytest.approx(0.02)
+    assert elements["b1"].magnetic.edge_field_integral == pytest.approx(0.4)
+
+
 def test_source_import_follows_call_statements(tmp_path):
     pytest.importorskip("cpymad")
     (tmp_path / "sub").mkdir()
