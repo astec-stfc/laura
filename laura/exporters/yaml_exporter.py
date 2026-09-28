@@ -21,9 +21,15 @@ from ..importers.yaml_loader import (
     resolve_inheritance,
 )
 from ..models.element import PhysicalElement
-from ..models.element_list import MachineModel, SectionLattice, expand_section_order
+from ..models.element_list import (
+    _SECTION_METADATA,
+    MachineModel,
+    SectionLattice,
+    expand_section_order,
+)
 from ..models.magnetic import MagneticElement
 from ..translator.utils.fields import FieldMap
+from .yaml_tidy import externalise_shared_fields, family_templates, rounded
 
 _log = logging.getLogger("laura.exporter.yaml")
 
@@ -663,6 +669,11 @@ def export_machine_sections(
             if section.space_charge is not None
             else {}
         )
+        | {
+            key: getattr(value, "value", value)  # an enum is written as its value
+            for key in _SECTION_METADATA
+            if (value := getattr(section, key, None)) is not None
+        }
         for name, section in _machine_view(machine)[0].items()
     }
     with open(os.path.join(path, filename), "w") as handle:
@@ -684,6 +695,7 @@ def export_as_yaml(
     collapse_inheritance: bool = False,
     template_root: Union[str, None] = None,
     namespace=None,
+    round_floats: bool = False,
 ) -> Union[dict, None]:
     """Export a single element as YAML.
 
@@ -744,10 +756,16 @@ def export_as_yaml(
     namespace:
         An already-built ``name -> raw element dict`` namespace to use in
         place of reading `template_root`.
+    round_floats:
+        If True, take the floating-point noise out of every float (see
+        `laura.exporters.yaml_tidy.rounded`): positions and lengths to
+        0.1 nm, everything else to 12 significant figures.
     """
     if field_directory is None and filename is not None:
         field_directory = os.path.dirname(os.path.abspath(filename))
     ele = _externalise_fields(ele, field_directory)
+    if round_floats:
+        ele = rounded(ele)
     try:
         dump = ele.base_model_dump(exclude_defaults=True)
     except Exception:
@@ -915,6 +933,10 @@ def export_machine(
     template_root: Union[str, None] = None,
     copy_templates: bool = True,
     write_sections: bool = True,
+    round_floats: bool = False,
+    field_directory: Optional[str] = None,
+    field_reference: Optional[str] = None,
+    auto_templates: bool = False,
 ) -> None:
     """Export each element to its own YAML file.
 
@@ -953,6 +975,23 @@ def export_machine(
         In `"sequential"` position mode, also write the section orders to
         `_sections.yaml` (see `export_machine_sections`), without which the
         export carries no positions at all. Ignored in the other modes.
+    round_floats:
+        As `export_as_yaml`.
+    field_directory:
+        If given, write every field an element holds as samples to this
+        directory as HDF5, once per distinct field, and have the elements name
+        the file instead (see
+        `laura.exporters.yaml_tidy.externalise_shared_fields`). Without it,
+        samples are written into the element files.
+    field_reference:
+        What the elements call `field_directory`, e.g.
+        ``"$master_lattice$Data_Files/"``; defaults to its absolute path.
+    auto_templates:
+        If True, give each family of identical devices (same type, model and
+        length) a ``_<name>.yaml`` template in `path` and write its members as
+        ``inherits_from`` it plus what differs (see
+        `laura.exporters.yaml_tidy.family_templates`). Elements that already
+        inherit from something are left to `collapse_inheritance`.
     """
     os.makedirs(path, exist_ok=True)
     if (
@@ -971,6 +1010,48 @@ def export_machine(
     aliases = _repeat_aliases(machine, position_mode)
     copied_schemas = set()
     copied_templates = {name: None for name in _machine_view(machine)[1]}
+
+    field_names = {}
+    if field_directory is not None:
+        field_names = externalise_shared_fields(
+            (elem for _, elem, _, _ in _iter_section_order(machine, aliases)),
+            field_directory,
+            field_reference,
+        )
+
+    def prepared(elem):
+        names = field_names.get(elem.name)
+        if not names:
+            return elem
+        return elem.model_copy(
+            update={"simulation": elem.simulation.model_copy(update=names)}
+        )
+
+    template_of: dict = {}
+    if auto_templates:
+        dumps = {
+            name: (
+                elem,
+                export_as_yaml(
+                    None,
+                    prepared(elem),
+                    position_mode,
+                    prev_name=prev_name,
+                    prev_ele=prev_elem,
+                    round_floats=round_floats,
+                ),
+            )
+            for name, elem, prev_name, prev_elem in _iter_section_order(
+                machine, aliases
+            )
+        }
+        templates, template_of = family_templates(dumps)
+        for template_name, raw in templates.items():
+            with open(os.path.join(path, f"_{template_name}.yaml"), "w") as handle:
+                yaml.dump(raw, handle)
+            copied_templates[template_name] = raw
+        namespace = _TemplateOverlay(templates, namespace)
+
     for name, elem, prev_name, prev_elem in _iter_section_order(machine, aliases):
         directory = os.path.join(path, elem.subdirectory)
         os.makedirs(directory, exist_ok=True)
@@ -978,17 +1059,21 @@ def export_machine(
         if overwrite or not os.path.isfile(filename):
             if verbose:
                 _log.debug("Exporting element '%s' to file '%s'", name, filename)
+            out = prepared(elem)
+            if name in template_of:
+                out = out.model_copy(update={"inherits_from": template_of[name]})
             dump = export_as_yaml(
                 None,
-                elem,
+                out,
                 position_mode,
                 prev_name=prev_name,
                 prev_ele=prev_elem,
                 collapse_schema=collapse_schema,
                 schema_root=schema_root,
-                collapse_inheritance=collapse_inheritance,
+                collapse_inheritance=collapse_inheritance or name in template_of,
                 template_root=template_root,
                 namespace=namespace,
+                round_floats=round_floats,
             )
             if name != elem.name:  # a collapsed repeat, written under the original name
                 dump["name"] = name
@@ -1000,6 +1085,21 @@ def export_machine(
                 _copy_templates(dump, namespace, path, copied_templates)
     if position_mode == "sequential" and write_sections:
         export_machine_sections(path, machine, aliases=aliases)
+
+
+class _TemplateOverlay:
+    """Templates made during export, in front of those the machine came with."""
+
+    def __init__(self, templates: dict, underlying=None):
+        self._templates = templates
+        self._underlying = underlying
+
+    def get(self, name, default=None):
+        if name in self._templates:
+            return self._templates[name]
+        if self._underlying is None:
+            return default
+        return self._underlying.get(name, default)
 
 
 def export_elements(

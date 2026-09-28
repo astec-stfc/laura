@@ -1042,8 +1042,10 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
                                                     'space-charge bins.',
                                      'ifabsent': 'int(100)',
                                      'name': 'lsc_bins'},
-                        'n_kicks': {'description': 'Number of cavity kicks to apply.',
-                                    'ifabsent': 'int(0)',
+                        'n_kicks': {'description': 'Number of cavity kicks to apply. '
+                                                   'Unset leaves it to the code; 0 is '
+                                                   "Bmad's `n_rf_steps = 0`, its older "
+                                                   'lcavity model.',
                                     'name': 'n_kicks'},
                         'smooth': {'description': 'Cavity smoothing parameter.',
                                    'name': 'smooth',
@@ -1090,8 +1092,8 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
                        'RFMultipoleSimulationElement'],
          'in_subset': ['functional_parameters']} })
     """Cavity field amplitude."""
-    n_kicks: Optional[int] = Field(default=0, description="""Number of cavity kicks to apply.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'int(0)'} })
-    """Number of cavity kicks to apply."""
+    n_kicks: Optional[int] = Field(default=None, description="""Number of cavity kicks to apply. Unset leaves it to the code; 0 is Bmad's `n_rf_steps = 0`, its older lcavity model.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
+    """Number of cavity kicks to apply. Unset leaves it to the code; 0 is Bmad's `n_rf_steps = 0`, its older lcavity model."""
     lsc_bins: Optional[int] = Field(default=100, description="""Number of longitudinal space-charge bins.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'int(100)'} })
     """Number of longitudinal space-charge bins."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })

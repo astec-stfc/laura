@@ -1312,7 +1312,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                 or source_field in {"horizontal_offset", "vertical_offset", "n_kicks"}
             ):
                 continue
-            if key == "n_rf_steps" and not (isinstance(value, int) and value >= 1):
+            if key == "n_rf_steps" and not (isinstance(value, int) and value >= 0):
                 continue
             if value in ("angle", "angle/2") and key in ("e1", "e2"):
                 raw = (
@@ -1355,12 +1355,12 @@ class BaseElementTranslator(PhysicalBaseElement):
             parameters["l"] = length
         if etype in ("sbend", "rbend"):
             entry_fint, exit_fint = self._fringe_integrals()
-            parameters["hgap"] = self.magnetic.half_gap
-            parameters["fint"] = entry_fint
+            entry_hgap = self.magnetic.half_gap
             exit_hgap = self.magnetic.exit_half_gap
-            if exit_hgap != parameters["hgap"] or exit_fint != parameters["fint"]:
-                parameters["hgapx"] = exit_hgap
-                parameters["fintx"] = exit_fint
+            fringe = {"hgap": entry_hgap, "fint": entry_fint}
+            if exit_hgap != entry_hgap or exit_fint != entry_fint:
+                fringe |= {"hgapx": exit_hgap, "fintx": exit_fint}
+            parameters.update({k: v for k, v in fringe.items() if v is not None})
         self._add_bmad_aperture(parameters, element, etype)
         self._add_bmad_multipoles(parameters, etype)
         return parameters

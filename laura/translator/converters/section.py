@@ -314,7 +314,9 @@ class SectionLatticeTranslator(SectionLattice):
                     header += f"beginning[{attribute}] = {value}\n"
         return header
 
-    def _bmad_body(self, geometry: str, *, multipass: bool = False) -> BmadBody:
+    def _bmad_body(
+        self, geometry: str, *, multipass: bool = False, starts_lattice: bool = True
+    ) -> BmadBody:
         """
         This section's Bmad element definitions and its one ``line``, split from
         the header so a parent can put several sections in one file.
@@ -326,13 +328,19 @@ class SectionLatticeTranslator(SectionLattice):
         multipass: bool
             Write ``line[multipass]``, so Bmad makes a lord and one slave per
             traversal rather than repeating the elements.
+        starts_lattice: bool
+            Whether this section starts the lattice, so that a leading
+            `TwissMatch` gives its beginning Twiss rather than being an element
+            of the line.
         """
         self._check_elements_supported("bmad")
         all_elements = list(self.elements.elements.values())
         ordered_elements = self._get_all_elements()
 
         has_origin = bool(
-            ordered_elements and ordered_elements[0].hardware_type == "TwissMatch"
+            starts_lattice
+            and ordered_elements
+            and ordered_elements[0].hardware_type == "TwissMatch"
         )
         origin = None
         if has_origin:

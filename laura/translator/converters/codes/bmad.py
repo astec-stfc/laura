@@ -268,6 +268,21 @@ def _floor_to_physical(
     }
 
 
+def _thin_bend(parameters: Dict[str, Any]) -> tuple:
+    """``(angle, roll)`` of a Bmad ``multipole`` whose ``K0L`` bends the
+    reference orbit (``K0L_status = bends_reference``), else ``(None, 0.0)``.
+
+    Bmad turns the floor frame through such a ``K0L`` just as through a bend's
+    ``ANGLE``, in the plane its ``T0`` rolls to, as a bend's ``REF_TILT`` does.
+    """
+    if str(parameters.get("K0L_STATUS", "")).lower() != "bends_reference":
+        return None, 0.0
+    for row in parameters.get("_MULTIPOLES", {}).get("data", []):
+        if int(row["index"]) == 0 and row.get("KnL"):
+            return float(row["KnL"]), float(row.get("Tn") or 0.0)
+    return None, 0.0
+
+
 def _misalignment(parameters: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
     """
     Convert an element's Bmad misalignment attributes to LAURA's
@@ -405,7 +420,9 @@ def _bmad_cavity_cells(
     """
     if cell_length <= 0.0:
         return int(n_cell) if n_cell and n_cell >= 1 else 1
-    fits = int(length // cell_length)
+    # Not `length // cell_length`: that floors the exact binary values, and a
+    # cavity written as `9*lambda/2` is a hair shorter than 9 float cells.
+    fits = int(length / cell_length + 1e-9)
     if n_cell and n_cell >= 1:
         wanted = int(n_cell)
     elif l_active and float(l_active) <= length + cell_length:
@@ -805,9 +822,7 @@ class BmadLatticeImporter(BaseModel):
     a branch with no Bmad multipass in it, which is one section and one pass."""
 
     _generated_tao_init: Any = PrivateAttr(default=None)
-    _declared_poles: Optional[Dict[str, Dict[int, Dict[str, Any]]]] = PrivateAttr(
-        default=None
-    )
+    _declared_poles: Optional[Dict[str, Dict[int, bool]]] = PrivateAttr(default=None)
 
     @model_validator(mode="after")
     def _check_input(self):  # noqa: N804
@@ -831,14 +846,12 @@ class BmadLatticeImporter(BaseModel):
     def _source_text(self) -> str:
         """The lattice source with every ``call`` inlined: ``lattice_file``, or
         the design lattices a ``tao_init`` names. Empty if none can be found."""
-        lattice_file = getattr(self, "lattice_file", None)
-        tao_init = getattr(self, "tao_init", None)
-        if lattice_file:
-            files = [Path(lattice_file)]
-        elif not tao_init:
+        if self.lattice_file:
+            files = [Path(self.lattice_file)]
+        elif not self.tao_init:
             return ""
         else:
-            init = Path(tao_init)
+            init = Path(self.tao_init)
             files = [
                 init.parent / os.path.expandvars(filename.strip())
                 for filename in re.findall(
@@ -851,9 +864,9 @@ class BmadLatticeImporter(BaseModel):
             read_with_calls(path, _CALL_RE) for path in files if path.is_file()
         )
 
-    def _declared_multipoles(self) -> Dict[str, Dict[int, Dict[str, Any]]]:
+    def _declared_multipoles(self) -> Dict[str, Dict[int, bool]]:
         """:func:`_declared_multipole_terms` of the source, read once."""
-        if getattr(self, "_declared_poles", None) is None:
+        if self._declared_poles is None:
             self._declared_poles = _declared_multipole_terms(self._source_text())
         return self._declared_poles
 
@@ -1280,10 +1293,13 @@ class BmadLatticeImporter(BaseModel):
             **_misalignment(parameters),
         }
         angle = parameters.get("ANGLE")
+        ref_tilt = parameters.get("REF_TILT")
+        if not angle:
+            angle, ref_tilt = _thin_bend(parameters)
         roll = 0.0
         if angle:
             common["physical_angle"] = -float(angle)
-            roll = float(parameters.get("REF_TILT") or 0.0)
+            roll = float(ref_tilt or 0.0)
             if is_flat_roll(roll):
                 roll = 0.0  # the layout rolls a flat bend by ``magnetic.tilt``
         if self.position_mode == "floor":
@@ -1549,7 +1565,8 @@ class BmadLatticeImporter(BaseModel):
             cell_length,
         )
         simulation = {"field_amplitude": parameters[e.keyword("field_amplitude")]}
-        if parameters.get("N_RF_STEPS"):
+        # An explicit 0 is kept: it is Bmad's older lcavity model, not "unset".
+        if parameters.get("N_RF_STEPS") is not None:
             simulation["n_kicks"] = int(parameters["N_RF_STEPS"])
         return {
             "hardware_type": e.hardware_type,
@@ -1684,18 +1701,28 @@ class BmadLatticeImporter(BaseModel):
             )
             return None
         highest = max(int(k[1:-1]) for k in poles)
+        magnetic = {"order": highest, "length": e.length, "multipoles": poles}
+        angle, roll = _thin_bend(e.parameters)
+        if angle:
+            # A thin bend (DIAG0's DYQDG001): held as a bend is, its K0L the
+            # angle and T0 the roll of its plane, so that the layout turns with it.
+            poles["K0L"] = {"order": 0, "normal": angle, "skew": 0.0}
+            magnetic["order"] = 0
+            if roll:
+                magnetic["tilt"] = roll
+            return {"hardware_type": "Dipole", "magnetic": magnetic}
         return {
             "hardware_type": _ORDER_TYPES.get(highest, "Magnet"),
-            "magnetic": {"order": highest, "length": e.length, "multipoles": poles},
+            "magnetic": magnetic,
         }
 
     def _zero_strength_multipole(
-        self, e: "_NativeElement", declared: Dict[int, Dict[str, Any]]
+        self, e: "_NativeElement", declared: Dict[int, bool]
     ) -> dict:
         """A multipole Bmad holds at zero strength, typed by the highest order its
         source writes, so a switched-off corrector keeps its identity."""
         highest = max(declared)
-        term = declared[highest]
+        skew = declared[highest]
         hardware_type = _ORDER_TYPES.get(highest, "Magnet")
         magnetic: Dict[str, Any] = {
             "order": highest,
@@ -1704,21 +1731,13 @@ class BmadLatticeImporter(BaseModel):
                 f"K{highest}L": {"order": highest, "normal": 0.0, "skew": 0.0}
             },
         }
-        if term["skew"]:
+        if skew:
             magnetic["skew"] = True
-        elif "tilt" in term:
-            magnetic["tilt"] = term["tilt"]
         warn(
             f"Bmad {e.etype} {e.name!r} has zero strength, so Tao reports no "
             f"multipole content; its source writes order {highest}, so it is "
-            f"imported as a zero-strength {'skew ' if term['skew'] else ''}"
+            f"imported as a zero-strength {'skew ' if skew else ''}"
             f"{hardware_type}."
-            + (
-                f" Its t{highest} = {term['unresolved']} could not be "
-                "evaluated, so its orientation was not imported."
-                if "unresolved" in term
-                else ""
-            )
         )
         return {"hardware_type": hardware_type, "magnetic": magnetic}
 
@@ -2116,7 +2135,6 @@ class BmadLatticeImporter(BaseModel):
         elements = {}
         section_definitions = {}
         layout_definitions = {}
-        section_metadata = {}
         layout_particles = {}
         skipped_sections = []
 
@@ -2146,17 +2164,19 @@ class BmadLatticeImporter(BaseModel):
                     section.order,
                     layout_name,
                 )
-                if section.space_charge is not None:
-                    section_definitions[section_name] = {
-                        "elements": section_definitions[section_name],
-                        "space_charge": section.space_charge.model_dump(
-                            exclude_none=True
-                        ),
-                    }
-                section_metadata[section_name] = (
-                    section.geometry,
-                    section.reference_energy,
-                )
+                definition = {
+                    "elements": section_definitions[section_name],
+                    "geometry": section.geometry,
+                    "reference_energy": section.reference_energy,
+                    "space_charge": (
+                        section.space_charge.model_dump(exclude_none=True)
+                        if section.space_charge is not None
+                        else None
+                    ),
+                }
+                section_definitions[section_name] = {
+                    key: value for key, value in definition.items() if value is not None
+                }
                 layout_sections.append(section_name)
             if layout_sections:
                 layout_definitions[layout_name] = _layout_entries(
@@ -2182,20 +2202,16 @@ class BmadLatticeImporter(BaseModel):
             layout={
                 "layouts": layout_definitions,
                 "default_layout": next(iter(layout_definitions)),
+                "layout_metadata": {
+                    name: {"particle": particle}
+                    for name, particle in layout_particles.items()
+                    if particle
+                },
             },
             master_lattice=str(Path(source).resolve().parent),
             functional_definitions=self.functional_definitions,
             particle=particles.pop() if len(particles) == 1 else None,
         )
-        for section_name, metadata in section_metadata.items():
-            section = model.sections.get(section_name)
-            if section is None:
-                continue
-            section.geometry, section.reference_energy = metadata
-        for layout_name, particle in layout_particles.items():
-            layout = model.lattices.get(layout_name)
-            if layout is not None:
-                layout.particle = particle
         return model
 
     def export_yaml(

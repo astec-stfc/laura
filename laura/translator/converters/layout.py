@@ -61,7 +61,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             every other backend needs one section per occurrence.
         """
         if multipass:
-            sections = dict(layout.model_copy().sections)
+            sections = cls._with_settings(layout, dict(layout.model_copy().sections))
         elif getattr(layout, "passes", None):
             sections = cls._flattened_passes(layout)
         else:
@@ -73,6 +73,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
                 sections[name] = reverse_section(
                     section, section.elements.elements, name=section.name
                 )
+            sections = cls._with_settings(layout, sections)
         return cls.model_validate(
             {
                 "name": layout.model_copy().name,
@@ -95,8 +96,9 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         of them sees it. Each pass gets its own deep copy, suffixed ``.N`` on
         the section and on every element in it.
 
-        Per pass, in order: reverse if the pass is backwards, resolve the
-        strengths that pass sees, then apply the author's ``overrides`` last.
+        Per pass, in order: reverse if the pass is backwards, apply the path's
+        ``settings``, resolve the strengths that pass sees, then apply the
+        author's ``overrides`` last.
 
         A single-pass or repetition layout arrives here with ``number`` unset
         and comes out unchanged but for reversal.
@@ -116,9 +118,31 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             for base in layout.sections[entry.section].order:
                 element = registry.get(renamed.get(base, base))
                 if element is not None:
+                    layout.apply_settings(element, base)
                     layout.apply_pass_values(element, entry, base)
             sections[section.name] = section
         return sections
+
+    @staticmethod
+    def _with_settings(
+        layout: MachineLayout, sections: Dict[str, SectionLattice]
+    ) -> Dict[str, SectionLattice]:
+        """
+        ``sections``, each one ``layout``'s ``settings`` reach replaced by a copy
+        carrying them. The stored sections are shared with other beam paths
+        and are left as they are."""
+        settings = getattr(layout, "settings", None) or {}
+        if not settings:
+            return sections
+        result = dict(sections)
+        for name, section in sections.items():
+            if not settings.keys() & section.elements.elements.keys():
+                continue
+            section = MachineLayoutTranslator._numbered_copy(section, {})
+            for element_name, element in section.elements.elements.items():
+                layout.apply_settings(element, element_name)
+            result[name] = section
+        return result
 
     @staticmethod
     def _pass_names(section: SectionLattice, number: int | None) -> Dict[str, str]:
@@ -131,9 +155,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         if number is None:
             return {}
 
-        names = {
-            name: flatten_occurrence(name, number) for name in section.order
-        }
+        names = {name: flatten_occurrence(name, number) for name in section.order}
         names[section.name] = flatten_occurrence(section.name, number)
         return names
 
@@ -268,7 +290,11 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         first = translators[entries[0].section]
         geometry = getattr(first.geometry, "value", first.geometry) or "open"
         bodies = {
-            name: translator._bmad_body(geometry, multipass=name in shared)
+            name: translator._bmad_body(
+                geometry,
+                multipass=name in shared,
+                starts_lattice=name == entries[0].section,
+            )
             for name, translator in translators.items()
         }
 

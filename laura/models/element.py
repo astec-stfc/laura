@@ -4,138 +4,142 @@ LAURA Element Module
 The main class for representing accelerator elements in LAURA.
 """
 
-from typing import ClassVar, Optional, Type, List, Union, Dict, Any
-from laura._compat import DeprecatedMethodAliases
+import copy
 import os
-from pydantic import field_validator, Field
-from .control import (
-    ControlsInformation,
-    ScreenControlsInformation,
-    MirrorControlsInformation,
-    ShutterControlsInformation,
-)
-from .base_models import IgnoreExtra
+from typing import Any, ClassVar, Dict, List, Optional, Type, Union
+
+from pydantic import Field, field_validator
+
+from laura._compat import DeprecatedMethodAliases
+
+from ..utils import CascadingAccessMixin, FlowList, StringWithQuotes, flatten_dict
 from ._generated import (
     _AcceleratorElementBase,
-    _ElementBase,
-    _PhysicalAcceleratorElementBase,
-    _MagnetBase,
-    _TwissMatchBase,
-    _DiagnosticBase,
-    _BeamPositionMonitorBase,
+    _ACDipoleBase,
+    _ApertureBase,
     _BeamArrivalMonitorBase,
+    _BeamBeamBase,
+    _BeamPositionMonitorBase,
     _BunchLengthMonitorBase,
     _CameraBase,
-    _ScreenBase,
-    _WireScannerBase,
     _ChargeDiagnosticBase,
-    _WallCurrentMonitorBase,
+    _CollimatorBase,
+    _CombinedCorrectorBase,
+    _CombinedSolenoidQuadrupoleBase,
+    _CrabCavityBase,
+    _DiagnosticBase,
+    _DipoleBase,
+    _DriftBase,
+    _ElectrostaticSeparatorBase,
+    _ElementBase,
     _FaradayCupMonitorBase,
+    _HorizontalACDipoleBase,
+    _HorizontalCorrectorBase,
     _IntegratedCurrentTransformerBase,
-    _StageBase,
-    _VacuumGaugeBase,
+    _LaserAttenuatorBase,
     _LaserBase,
     _LaserEnergyMeterBase,
     _LaserHalfWavePlateBase,
     _LaserMirrorBase,
-    _LaserAttenuatorBase,
-    _PlasmaBase,
     _LightingBase,
-    _PIDBase,
     _LowLevelRFBase,
-    _RFCavityBase,
-    _CrabCavityBase,
-    _WakefieldBase,
-    _RFDeflectingCavityBase,
-    _RFModulatorBase,
-    _RFProtectionBase,
-    _RFHeartbeatBase,
-    _ShutterBase,
-    _ValveBase,
+    _MagnetBase,
     _MarkerBase,
-    _ApertureBase,
-    _CollimatorBase,
-    _DriftBase,
     _MatrixTransformBase,
-    _ElectrostaticSeparatorBase,
-    _ACDipoleBase,
-    _HorizontalACDipoleBase,
-    _VerticalACDipoleBase,
-    _WireBase,
-    _BeamBeamBase,
-    _RFMultipoleBase,
-    _DipoleBase,
-    _QuadrupoleBase,
-    _SextupoleBase,
-    _OctupoleBase,
-    _SolenoidBase,
-    _CombinedSolenoidQuadrupoleBase,
     _NonLinearLensBase,
-    _WigglerBase,
-    _HorizontalCorrectorBase,
+    _OctupoleBase,
+    _PhysicalAcceleratorElementBase,
+    _PIDBase,
+    _PlasmaBase,
+    _QuadrupoleBase,
+    _RFCavityBase,
+    _RFDeflectingCavityBase,
+    _RFHeartbeatBase,
+    _RFModulatorBase,
+    _RFMultipoleBase,
+    _RFProtectionBase,
+    _ScreenBase,
+    _SextupoleBase,
+    _ShutterBase,
+    _SolenoidBase,
+    _StageBase,
+    _TwissMatchBase,
+    _VacuumGaugeBase,
+    _ValveBase,
+    _VerticalACDipoleBase,
     _VerticalCorrectorBase,
-    _CombinedCorrectorBase,
+    _WakefieldBase,
+    _WallCurrentMonitorBase,
+    _WigglerBase,
+    _WireBase,
+    _WireScannerBase,
 )
-from ..utils import CascadingAccessMixin, flatten_dict, StringWithQuotes, FlowList
-from .manufacturer import ManufacturerElement
-from .electrical import ElectricalElement
-from .physical import PhysicalElement, Rotation
-from .magnetic import (
-    MagneticElement,
-    DipoleMagnet,
-    QuadrupoleMagnet,
-    SextupoleMagnet,
-    OctupoleMagnet,
-    SolenoidMagnet,
-    CombinedSolenoidQuadrupoleMagnet,
-    NonLinearLensMagnet,
-    WigglerMagnet,
-    CorrectorMagnet,
-    CombinedCorrectorMagnet
+from .base_models import IgnoreExtra
+from .control import (
+    ControlsInformation,
+    MirrorControlsInformation,
+    ScreenControlsInformation,
+    ShutterControlsInformation,
 )
-from .plasma import PlasmaElement
 from .diagnostic import (
-    BeamPositionMonitorDiagnostic,
     BeamArrivalMonitorDiagnostic,
+    BeamPositionMonitorDiagnostic,
     BunchLengthMonitorDiagnostic,
     CameraDiagnostic,
-    ScreenDiagnostic,
     ChargeDiagnosticElement,
     PhotonIntensityMonitorDiagnostic,
+    ScreenDiagnostic,
 )
+from .electrical import ElectricalElement
 from .laser import (
     LaserElement,
     LaserEnergyMeterElement,
     LaserHalfWavePlateElement,
 )
 from .lighting import LightingElement
+from .magnetic import (
+    CombinedCorrectorMagnet,
+    CombinedSolenoidQuadrupoleMagnet,
+    CorrectorMagnet,
+    DipoleMagnet,
+    MagneticElement,
+    NonLinearLensMagnet,
+    OctupoleMagnet,
+    QuadrupoleMagnet,
+    SextupoleMagnet,
+    SolenoidMagnet,
+    WigglerMagnet,
+)
+from .manufacturer import ManufacturerElement
+from .physical import PhysicalElement, Rotation
+from .plasma import PlasmaElement
 from .rf import (
-    PIDElement,
     LowLevelRFElement,
-    RFModulatorElement,
-    RFProtectionElement,
-    RFHeartbeatElement,
+    PIDElement,
     RFCavityElement,
     RFDeflectingCavityElement,
+    RFHeartbeatElement,
+    RFModulatorElement,
+    RFProtectionElement,
     WakefieldElement,
 )
 from .shutter import ShutterElement, ValveElement
 from .simulation import (
+    ACDipoleSimulationElement,
     ApertureElement,
-    RFCavitySimulationElement,
-    WakefieldSimulationElement,
-    MagnetSimulationElement,
-    DriftSimulationElement,
+    BeamBeamSimulationElement,
     DiagnosticSimulationElement,
+    DriftSimulationElement,
+    ElectrostaticSeparatorSimulationElement,
+    MagnetSimulationElement,
     MatrixTransformSimulationElement,
     PlasmaSimulationElement,
+    RFCavitySimulationElement,
+    RFMultipoleSimulationElement,
     SimulationElement,
     TwissMatchSimulationElement,
-    ElectrostaticSeparatorSimulationElement,
-    ACDipoleSimulationElement,
+    WakefieldSimulationElement,
     WireSimulationElement,
-    BeamBeamSimulationElement,
-    RFMultipoleSimulationElement,
 )
 
 # Re-export from utils for backwards compatibility
@@ -294,6 +298,64 @@ class Element(BaseElement, _ElementBase):
             pass
         _ensure_nested_default(self, "electrical", ElectricalElement)
         _ensure_nested_default(self, "manufacturer", ManufacturerElement)
+
+    _RETYPE_KEEPS: ClassVar[tuple] = (
+        "name",
+        "alias",
+        "machine_area",
+        "subelement",
+        "controls",
+        "physical",
+    )
+
+    def retype(self, hardware_type: Union[str, type], like=None, **fields) -> "Element":
+        """This element as another type, in the same place under the same name.
+
+        For when a second source knows better what a device is. Parameters like
+        ``name``, ``aliases``, ``area``, ``controls``, ``physical``
+        are kept; anything particular to the old type is not.
+
+        Parameters
+        ----------
+        hardware_type:
+            The new type: a class, or a name from ``ELEMENT_REGISTRY``.
+        like:
+            An element of the new type to take simulation settings from.
+        **fields:
+            Anything else to set on the new element.
+
+        Returns
+        -------
+        The new element. This one is left as it was.
+        """
+        cls = (
+            ELEMENT_REGISTRY[hardware_type]
+            if isinstance(hardware_type, str)
+            else hardware_type
+        )
+        data = {
+            key: copy.deepcopy(getattr(self, key))
+            for key in self._RETYPE_KEEPS
+            if key in cls.model_fields and getattr(self, key, None) is not None
+        }
+        data.update(fields)
+        old_simulation = getattr(self, "simulation", None)
+        simulation_type = cls.model_fields["simulation"].annotation
+        if old_simulation is not None and isinstance(
+            old_simulation, getattr(simulation_type, "__args__", (simulation_type,))
+        ):
+            data.setdefault("simulation", old_simulation.model_copy(deep=True))
+            return cls(**data)
+        new = cls(**data)
+        if new.simulation is not None and "simulation" not in fields:
+            if like is not None and isinstance(like.simulation, type(new.simulation)):
+                new.simulation = like.simulation.model_copy(deep=True)
+            if old_simulation is not None:
+                shared = old_simulation.model_dump(
+                    include=set(type(new.simulation).model_fields)
+                )
+                new.simulation = new.simulation.model_copy(update=shared)
+        return new
 
 
 class PhysicalBaseElement(Element, _PhysicalAcceleratorElementBase):
@@ -509,9 +571,7 @@ class CombinedCorrector(Dipole, _CombinedCorrectorBase):
     hardware_type: str = Field(default="Combined_Corrector", frozen=True)
     """Combined corrector hardware type."""
 
-    magnetic: CombinedCorrectorMagnet = Field(
-        default_factory=CombinedCorrectorMagnet
-    )
+    magnetic: CombinedCorrectorMagnet = Field(default_factory=CombinedCorrectorMagnet)
     """Per-plane corrector magnetic attributes."""
 
     Horizontal_Corrector: str | None = Field(default=None, frozen=True)  # noqa: N815
@@ -544,7 +604,7 @@ class CombinedSolenoidQuadrupole(Magnet, _CombinedSolenoidQuadrupoleBase):
     Attributes:
         hardware_type (str): The hardware type of the solenoid.
         magnetic (:class:`~laura.models.magnetic.Solenoid_Magnet`): The magnetic attributes of the solenoid.
-        """
+    """
 
     hardware_type: str = Field(default="CombinedSolenoidQuadrupole", frozen=True)
     """Sol-quad hardware type."""
@@ -1517,7 +1577,9 @@ class ElectrostaticSeparator(PhysicalBaseElement, _ElectrostaticSeparatorBase):
 
     def model_post_init(self, __context: Any) -> None:
         super().model_post_init(__context)
-        _ensure_nested_default(self, "simulation", ElectrostaticSeparatorSimulationElement)
+        _ensure_nested_default(
+            self, "simulation", ElectrostaticSeparatorSimulationElement
+        )
 
 
 class ACDipole(PhysicalBaseElement, _ACDipoleBase):

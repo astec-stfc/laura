@@ -382,6 +382,7 @@ def test_bmad_fixers_and_empty_multipoles_are_kept_as_markers():
         deferred_parameters={},
         functional_definitions={},
         super_lord_children={},
+        _declared_poles={},  # no lattice source, so no declared orders
     )
     _bind_importer_methods(importer)
 

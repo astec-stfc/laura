@@ -649,6 +649,44 @@ class DipoleTranslator(BaseElementTranslator):
     def dk3(self) -> float:
         return 0.0
 
+    def to_bmad(self) -> str:
+        """
+        Generate a Bmad dipole element.
+
+        A zero-length dipole that bends is a thin bend: Bmad refuses a
+        zero-length ``sbend`` that bends, so it is written as a ``multipole``
+        whose ``k0l`` bends the reference orbit, which moves the floor frame.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        if self.length:
+            return super().to_bmad()
+        multipoles = self.magnetic.multipoles
+        roll = self.resolve(self.magnetic.tilt or 0.0) or 0.0
+        parameters = {}
+        for order in range(5):
+            normal = self.resolve(multipoles.normal(order)) or 0.0
+            skew = self.resolve(multipoles.skew(order)) or 0.0
+            if not skew:
+                strength, tilt = normal, 0.0
+            elif not normal:
+                strength, tilt = -skew, np.pi / (2 * (order + 1))
+            else:
+                strength = float(np.hypot(normal, skew))
+                tilt = -float(np.arctan2(skew, normal)) / (order + 1)
+            tilt += roll
+            if strength:
+                parameters[f"k{order}l"] = strength
+                if tilt:
+                    parameters[f"t{order}"] = tilt
+        if "k0l" not in parameters:
+            return super().to_bmad()
+        parameters["k0l_status"] = "bends_reference"
+        return self._format_bmad("multipole", parameters)
+
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
         Writes the dipole element string for ASTRA;

@@ -685,6 +685,53 @@ element queries can be restricted with ``section_type``:
 
 See :ref:`example-lattice-types` for a complete worked example.
 
+Beam metadata
+~~~~~~~~~~~~~
+
+What a tracking code needs to know about the beam goes in the same files. A section
+mapping can give its ``geometry`` (``open`` or ``closed``) and ``reference_energy``
+(total energy of the design particle, in eV); ``layout_metadata`` can give a layout
+its ``particle``, and a top-level ``particle`` in ``layouts.yaml`` sets the machine-wide
+one. All are optional, and
+:py:func:`export_machine_sections <laura.exporters.yaml_exporter.export_machine_sections>`
+writes the section keys back out.
+
+.. code-block:: yaml
+
+    # in sections.yaml
+    sections:
+      INJ:
+        elements: [GUN, SOL-01, BPM-01]
+        geometry: open
+        reference_energy: 6.0e6
+
+    # in layouts.yaml
+    layouts:
+      main_beam: [INJ, LINAC]
+    layout_metadata:
+      main_beam: {type: beam, particle: Electron}
+    particle: Electron
+    default_layout: main_beam
+
+Layout settings
+~~~~~~~~~~~~~~~
+
+Two beam paths often share hardware but run it differently: an undulator hall fed by two
+injectors, say, whose quadrupoles are matched for each beam. The element holds one value, and
+each path that differs gives its own under ``settings`` in ``layout_metadata``, either as a
+mapping ``{element: {attribute path: value}}`` or as the name of a YAML file holding one:
+
+.. code-block:: yaml
+
+    layout_metadata:
+      cu_hxr: {settings: {Q5: {magnetic.k1l: 0.0764}}}
+      sc_hxr: {settings: settings/sc_hxr.yaml}
+
+Settings are applied to copies, whenever a path is exported and by
+:py:meth:`element_on_pass <laura.models.element_list.MachineLayout.element_on_pass>`, and never
+to the shared element. A multipass pass's ``overrides`` are applied after them. Every target
+must be an element on that path and an attribute it has.
+
 .. _functional-definitions:
 
 Functional Definitions

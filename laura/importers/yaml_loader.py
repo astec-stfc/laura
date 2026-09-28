@@ -25,6 +25,7 @@ _TEMPLATE_NAME_RE = re.compile(r"^name:[ \t]*(.*)$", re.MULTILINE)
 _HARDWARE_TYPE_RE = re.compile(r"^hardware_type:", re.MULTILINE)
 _COMMENT_RE = re.compile(r"(?:(?<=\s)|^)#")
 
+
 def _yaml_scalar(raw: str) -> str:
     """Unquote a plain YAML scalar and drop any trailing comment."""
     raw = raw.strip()
@@ -897,7 +898,9 @@ def _schema_dir(base_dir: str | None, schema_ref: str, elem: dict) -> str | None
     if not base_dir or os.path.exists(os.path.join(base_dir, schema_ref)):
         return base_dir
     nested = os.path.join(
-        base_dir, str(elem.get("hardware_class", "")), str(elem.get("hardware_type", ""))
+        base_dir,
+        str(elem.get("hardware_class", "")),
+        str(elem.get("hardware_type", "")),
     )
     return nested if os.path.exists(os.path.join(nested, schema_ref)) else base_dir
 
@@ -951,6 +954,9 @@ def interpret_yaml_element(
         return None
 
     controls = elem.get("controls")
+    if isinstance(controls, dict) and "schema_" in controls:
+        controls = {("schema" if k == "schema_" else k): v for k, v in controls.items()}
+        elem = {**elem, "controls": controls}
     if isinstance(controls, dict) and controls.get("schema"):
         elem = {
             **elem,

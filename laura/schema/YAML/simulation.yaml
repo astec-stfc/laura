@@ -165,8 +165,8 @@ classes:
       - wz_column
     slot_usage:
       n_kicks:
-        description: Number of cavity kicks to apply.
-        ifabsent: int(0)
+        description: >-
+          Number of cavity kicks to apply. Unset leaves it to the code.
       lsc_bins:
         description: Number of longitudinal space-charge bins.
         ifabsent: int(100)

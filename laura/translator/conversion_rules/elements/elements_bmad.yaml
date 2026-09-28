@@ -59,6 +59,9 @@ decapole:
   l: double
   k4: double
   tilt: double
+multipole:
+  tilt: double
+  k0l_status: string
 hkicker:
   l: double
   kick: double

@@ -1607,6 +1607,43 @@ def test_zero_strength_multipoles_keep_their_declared_order_and_skew(tmp_path):
     assert elements["SQ"].magnetic.skew
 
 
+def test_a_multipole_that_bends_the_reference_is_a_thin_bend(tmp_path):
+    # LCLS DIAG0's DYQDG001: a vertical thin bend. Held as a skew K0L it did
+    # not turn LAURA's layout, so the export patched the frame instead, and
+    # the kick itself was lost.
+    from laura.translator.utils.bmad.geometry import bmad_survey_frame
+
+    lattice = tmp_path / "thin.bmad"
+    lattice.write_text(
+        "parameter[particle] = electron\n"
+        "parameter[p0c] = 10e6\n"
+        "parameter[geometry] = open\n"
+        "dy: multipole, k0l = -0.01, t0, k0l_status = bends_reference\n"
+        "m: marker\n"
+        "d: drift, l = 1\n"
+        "lat: line = (d, dy, d, m)\n"
+        "use, lat\n"
+    )
+    importer = BmadLatticeImporter(
+        lattice_file=str(lattice), libtao=str(LIBTAO), position_mode="floor"
+    )
+    branch = next(iter(importer.names_numbered[1]))
+    elements = importer.create_laura_element_dictionary(1)[branch]
+
+    bend = elements["DY"]
+    assert bend.hardware_type == "Dipole"
+    assert bend.magnetic.KnL(0) == pytest.approx(-0.01)
+    assert bend.magnetic.tilt == pytest.approx(math.pi / 2)
+    # The layout turns through the bend as Bmad's survey does; the bend's own
+    # frame carries the roll of its plane, as a rolled sbend's does.
+    np.testing.assert_allclose(
+        bmad_survey_frame(bend, "end"),
+        elements["M"].physical.rotation_matrix,
+        atol=1e-12,
+    )
+    assert elements["M"].physical.middle.y == pytest.approx(0.01, rel=1e-4)
+
+
 def test_lattice_source_follows_calls_through_environment_variables(
     tmp_path, monkeypatch
 ):
@@ -1624,4 +1661,25 @@ def test_lattice_source_follows_calls_through_environment_variables(
 
     text = read_with_calls(main, _CALL_RE)
     assert "sq: multipole" in text
-    assert _declared_multipole_terms(text) == {"sq": {1: {"skew": True}}}
+    assert _declared_multipole_terms(text) == {"sq": {1: True}}
+
+
+@pytest.mark.parametrize(
+    "frequency, length",
+    # The lengths LCLS-II's 1.3 and 3.9 GHz cavities import with.
+    [(1.3e9, 1.0377431238461539), (3.9e9, 0.3459143746153846)],
+)
+def test_a_cavity_a_whole_number_of_cells_long_keeps_every_cell(frequency, length):
+    """LCLS-II writes its cavities as ``l = 9*lambda/2``, which in floats is a
+    hair shorter than nine float cells, so flooring lost one: Bmad then put
+    the field in 8 cells and the rest was drift."""
+    from scipy.constants import speed_of_light
+
+    from laura.translator.converters.codes.bmad import _bmad_cavity_cells
+
+    cell = speed_of_light / (2 * frequency)
+    assert length // cell == 8  # the trap
+    assert _bmad_cavity_cells(-1, length, length, cell) == 9
+    assert _bmad_cavity_cells(0, None, length, cell) == 9
+    # A cavity that really is short of a cell still loses it.
+    assert _bmad_cavity_cells(0, None, length - 1e-6, cell) == 8

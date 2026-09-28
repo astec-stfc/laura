@@ -52,6 +52,9 @@ _log = logging.getLogger("laura.model")
 LatticeType = Literal["beam", "rf", "laser"]
 ALLOWED_LATTICE_TYPES = {"beam", "rf", "laser"}
 
+_SECTION_METADATA = ("geometry", "reference_energy")
+"""Optional section keys in a sections file, each a `SectionLattice` field."""
+
 OCCURRENCE_SEPARATOR = "#"
 """Selects one traversal of an element on a multipass path, PALS spelling:
 ``LIN_C#2`` is the second time the beam enters ``LIN_C``."""
@@ -1232,6 +1235,27 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
     """Design particle species for this layout, overriding the machine-wide
     value."""
 
+    settings: Dict[str, Dict[str, Any]] = {}
+    """Values this beam path runs its devices at, where they differ from the
+    stored element: ``{element_name: {attribute_path: value}}``.
+
+    For a device shared by several beam paths that each run it differently,
+    such as an undulator-hall quadrupole matched one way for one injector and
+    another way for another. The element keeps one value, and each path states
+    its own::
+
+        layout_metadata:
+          sc_hxr: {settings: {Q5: {magnetic.multipoles.K1L.normal: 0.051}}}
+
+    Unlike a pass's ``overrides``, which say what differs between traversals
+    of one path, these hold for the whole path. They are applied to copies
+    whenever the path is exported (see
+    :meth:`~laura.translator.converters.layout.MachineLayoutTranslator.from_layout`)
+    or read one element at a time (:meth:`element_on_pass`), and never to the
+    shared element itself. A change made to that element therefore does not
+    reach a path that sets the same value here.
+    """
+
     _basename: str = "sections"
 
     _direction: Dict[str, int] = PrivateAttr(default_factory=dict)
@@ -1473,6 +1497,12 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
         for path, value in entry.overrides.get(base, {}).items():
             set_attr_by_path(element, path, value)
 
+    def apply_settings(self, element, base: str) -> None:
+        """Set on ``element`` the :attr:`settings` this path gives ``base``,
+        in place."""
+        for path, value in self.settings.get(base, {}).items():
+            set_attr_by_path(element, path, value)
+
     def pass_momentum(self, name: str) -> float | None:
         """The momentum stated for the pass ``NAME#N`` addresses, in eV/c.
 
@@ -1491,9 +1521,13 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
         ``get_element`` deliberately returns the shared device for any
         selector. This makes a copy for a single pass,
         named as a flattened export names it (:func:`flatten_occurrence`),
-        carrying that pass's strengths and overrides.
+        carrying this path's :attr:`settings`, then that pass's strengths and
+        overrides.
 
-        Returns ``None`` for an unqualified name, an unknown pass, or an
+        An unqualified ``NAME`` that this path has :attr:`settings` for gives
+        a copy carrying them.
+
+        Returns ``None`` for any other unqualified name, an unknown pass, or an
         element no pass of that number reaches, so a caller can fall back to
         the shared device.
 
@@ -1505,7 +1539,21 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
         """
         base, number = split_occurrence(name)
         if number is None:
-            return None
+            if base not in self.settings:
+                return None
+            source = next(
+                (
+                    section.elements.elements[base]
+                    for section in self.sections.values()
+                    if base in section.elements.elements
+                ),
+                None,
+            )
+            if source is None:
+                return None
+            element = source.model_copy(deep=True)
+            self.apply_settings(element, base)
+            return element
         entry = self._pass_entry(base, number)
         if entry is None:
             return None
@@ -1514,6 +1562,7 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
             return None
         element = source.model_copy(deep=True)
         element.name = flatten_occurrence(name)
+        self.apply_settings(element, base)
         self.apply_pass_values(element, entry, base)
         return element
 
@@ -1989,6 +2038,7 @@ class MachineModel(ModelBase, _MachineModelBase):
 
         for section_name, section_data in sections.items():
             space_charge = None
+            metadata = {}
             if isinstance(section_data, list):
                 elements = section_data
                 section_type = "beam"
@@ -2003,6 +2053,11 @@ class MachineModel(ModelBase, _MachineModelBase):
                     context=f"section '{section_name}'",
                 )
                 space_charge = section_data.get("space_charge")
+                metadata = {
+                    key: section_data[key]
+                    for key in _SECTION_METADATA
+                    if section_data.get(key) is not None
+                }
             else:
                 raise TypeError(f"Section '{section_name}' must be a list or dict")
 
@@ -2012,7 +2067,7 @@ class MachineModel(ModelBase, _MachineModelBase):
             normalised_sections[section_name] = {
                 "elements": elements,
                 "type": section_type,
-            }
+            } | metadata
             if space_charge is not None:
                 normalised_sections[section_name]["space_charge"] = space_charge
 
@@ -2177,16 +2232,22 @@ class MachineModel(ModelBase, _MachineModelBase):
     @staticmethod
     def _normalise_layout_metadata(
         layout_metadata: Dict[str, Any] | None,
+        directory: str | None = None,
     ) -> Dict[str, Dict[str, LatticeType]]:
+        """Normalise ``layout_metadata``; a relative ``settings`` file name is
+        taken beside the layouts file, in *directory*, when it is there."""
         if not layout_metadata:
             return {}
 
         normalised = {}
         for layout_name, metadata in layout_metadata.items():
+            particle = settings = None
             if isinstance(metadata, str):
                 layout_type = metadata
             elif isinstance(metadata, dict):
                 layout_type = metadata.get("type")
+                particle = metadata.get("particle")
+                settings = metadata.get("settings")
             else:
                 raise TypeError(
                     f"layout_metadata['{layout_name}'] must be a string or dict"
@@ -2198,6 +2259,14 @@ class MachineModel(ModelBase, _MachineModelBase):
                     context=f"layout '{layout_name}'",
                 )
             }
+            if particle is not None:
+                normalised[layout_name]["particle"] = particle
+            if isinstance(settings, str) and directory and not os.path.isabs(settings):
+                beside = os.path.join(directory, settings)
+                if os.path.exists(beside):
+                    settings = beside
+            if settings is not None:
+                normalised[layout_name]["settings"] = settings
 
         return normalised
 
@@ -2285,8 +2354,11 @@ class MachineModel(ModelBase, _MachineModelBase):
                 self._normalise_layouts(config.layouts)
             )
             self._layout_metadata = self._normalise_layout_metadata(
-                getattr(config, "layout_metadata", {})
+                getattr(config, "layout_metadata", {}),
+                directory=os.path.dirname(os.path.abspath(layout_file)),
             )
+            if self.particle is None:
+                self.particle = getattr(config, "particle", None)
             try:
                 self._default_path = config.default_layout
             except AttributeError:
@@ -2309,6 +2381,8 @@ class MachineModel(ModelBase, _MachineModelBase):
             self._layout_metadata = self._normalise_layout_metadata(
                 self.layout.get("layout_metadata", {})
             )
+            if self.particle is None:
+                self.particle = self.layout.get("particle")
             if "default_layout" in self.layout:
                 self._default_path = self.layout["default_layout"]
         if isinstance(self.section, str):
@@ -2516,6 +2590,8 @@ class MachineModel(ModelBase, _MachineModelBase):
                     order=elem_names,
                     section_type=section_type,
                     space_charge=section_definition.get("space_charge"),
+                    geometry=section_definition.get("geometry"),
+                    reference_energy=section_definition.get("reference_energy"),
                     master_lattice=self.master_lattice,
                     functional_definitions=self.functional_definitions,
                     resolve_functional=self.resolve_functional,
@@ -2544,6 +2620,10 @@ class MachineModel(ModelBase, _MachineModelBase):
                             section_type=section_type,
                             space_charge=self._section_definitions[area].get(
                                 "space_charge"
+                            ),
+                            geometry=self._section_definitions[area].get("geometry"),
+                            reference_energy=self._section_definitions[area].get(
+                                "reference_energy"
                             ),
                             master_lattice=self.master_lattice,
                             functional_definitions=self.functional_definitions,
@@ -2781,21 +2861,66 @@ class MachineModel(ModelBase, _MachineModelBase):
                         f"'{entry.section}' contains no such element. It "
                         f"contains: {sorted(set(section.order))}"
                     )
-                element = self.elements.get(element_name)
-                if element is None:
-                    continue
-                for attribute_path in values:
-                    obj = element
-                    try:
-                        for attribute in attribute_path.split("."):
-                            obj = getattr(obj, attribute)
-                    except AttributeError as missing:
-                        raise ValueError(
-                            f"Layout '{path}' overrides "
-                            f"'{attribute_path}' on '{element_name}', but a "
-                            f"{type(element).__name__} has no such attribute: "
-                            f"{missing}"
-                        ) from missing
+                self._check_attribute_paths(
+                    path, "overrides", element_name, values
+                )
+
+    def _check_attribute_paths(
+        self, path: str, what: str, element_name: str, values: dict
+    ) -> None:
+        """Refuse a value for an attribute ``element_name`` does not have."""
+        element = self.elements.get(element_name)
+        if element is None:
+            return
+        for attribute_path in values:
+            obj = element
+            try:
+                for attribute in attribute_path.split("."):
+                    obj = getattr(obj, attribute)
+            except AttributeError as missing:
+                raise ValueError(
+                    f"Layout '{path}' {what} "
+                    f"'{attribute_path}' on '{element_name}', but a "
+                    f"{type(element).__name__} has no such attribute: "
+                    f"{missing}"
+                ) from missing
+
+    def _layout_settings(self, path: str, areas: list) -> Dict[str, Dict[str, Any]]:
+        """The ``settings`` ``layout_metadata`` gives ``path``, checked.
+
+        Either a mapping or the name of a YAML file holding one, found beside
+        the layouts file, then as the layouts file is: as given, then under
+        ``master_lattice``.
+        """
+        settings = self._layout_metadata.get(path, {}).get("settings") or {}
+        if isinstance(settings, str):
+            filename = settings
+            if not os.path.exists(filename) and self.master_lattice:
+                filename = os.path.join(self.master_lattice, filename)
+            with open(filename) as handle:
+                settings = safe_load(handle) or {}
+        where = f"'settings' for layout '{path}'"
+        if not isinstance(settings, dict) or not all(
+            isinstance(values, dict) for values in settings.values()
+        ):
+            raise TypeError(
+                f"{where} must map an element name to the values it takes on "
+                f"this path, e.g. {{Q5: {{magnetic.k1l: 0.05}}}}; got {settings!r}"
+            )
+        members = {
+            name
+            for area in areas
+            if area in self.sections
+            for name in self.sections[area].elements.elements
+        }
+        for element_name, values in settings.items():
+            if element_name not in members:
+                raise ValueError(
+                    f"{where} name '{element_name}', which is in none of its "
+                    f"sections ({', '.join(areas)})."
+                )
+            self._check_attribute_paths(path, "sets", element_name, values)
+        return {str(name): dict(values) for name, values in settings.items()}
 
     def _build_layout_objects(self):
         """Create MachineLayout objects from already-resolved sections.
@@ -2808,7 +2933,7 @@ class MachineModel(ModelBase, _MachineModelBase):
         for path, areas in self._layouts.items():
             if path not in self.lattices:
                 self._check_pass_overrides(path)
-                layout_type = self._layout_metadata.get(path, {}).get("type", "beam")
+                metadata = self._layout_metadata.get(path, {})
                 self.lattices[path] = MachineLayout(
                     name=path,
                     sections={
@@ -2821,7 +2946,9 @@ class MachineModel(ModelBase, _MachineModelBase):
                         for entry in self._layout_passes.get(path, [])
                         if entry.section in self.sections
                     ],
-                    layout_type=layout_type,
+                    layout_type=metadata.get("type", "beam"),
+                    particle=metadata.get("particle"),
+                    settings=self._layout_settings(path, areas),
                     master_lattice=self.master_lattice,
                     functional_definitions=self.functional_definitions,
                     resolve_functional=self.resolve_functional,

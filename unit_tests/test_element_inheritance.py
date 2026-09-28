@@ -437,6 +437,42 @@ def test_a_template_key_defines_without_becoming_an_element(tmp_path):
     assert loaded[0].physical.length == 0.3
 
 
+def test_an_inheriting_element_keeps_its_controls_schema(tmp_path):
+    """Resolving inheritance spells keys by field name, ``schema_``; the loader
+    looked only for ``schema``, so every templated element (LCLS's QCM13)
+    loaded with its PV but none of its variables."""
+    (tmp_path / "Quadrupole_schema.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "variables": {
+                    "bact": {
+                        "identifier": "{name}:BACT",
+                        "protocol": "CA",
+                        "type": "scalar",
+                        "dtype": "float",
+                    }
+                }
+            }
+        )
+    )
+    document = {
+        COMBINED_TEMPLATES_KEY: {"TPL": {**PARENT, "name": "TPL"}},
+        "Q2": _child(
+            inherits_from="TPL",
+            controls={
+                "identifier_pattern": "QUAD:X:1",
+                "schema": "Quadrupole_schema.yaml",
+            },
+        ),
+    }
+    path = tmp_path / "m.yaml"
+    path.write_text(yaml.safe_dump(document))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        (loaded,) = [e for e in read_YAML_Combined_File(str(path)) if e]
+    assert loaded.controls.variables["bact"].identifier == "QUAD:X:1:BACT"
+
+
 def test_validate_true_accepts_a_file_that_declares_a_parent(tmp_path):
     path = tmp_path / "m.yaml"
     path.write_text(yaml.safe_dump({"Q1": PARENT, "Q2": _child()}))

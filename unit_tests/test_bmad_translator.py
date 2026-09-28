@@ -659,11 +659,14 @@ def test_bmad_cavity_carries_its_rf_step_count():
     )
     assert "n_rf_steps = 1000" in _bmad(cavity)
 
-    # Bmad counts RF steps from one, so LAURA's zero default is "unset" rather
-    # than a cavity to be stepped no times at all.
-    unstepped = cavity.model_copy(deep=True)
-    unstepped.simulation.n_kicks = 0
-    assert "n_rf_steps" not in _bmad(unstepped)
+    # `n_rf_steps = 0` is Bmad's older lcavity model (LCLS's sc_sfts), so it
+    # is written; left unset, Bmad chooses its own.
+    old_model = cavity.model_copy(deep=True)
+    old_model.simulation.n_kicks = 0
+    assert "n_rf_steps = 0" in _bmad(old_model)
+    unset = cavity.model_copy(deep=True)
+    unset.simulation = type(cavity.simulation)(field_amplitude=2e6)
+    assert "n_rf_steps" not in _bmad(unset)
 
 
 def test_bmad_fringe_model_reaches_bmad_and_nowhere_it_would_be_misread():
@@ -1254,6 +1257,57 @@ def test_bmad_bend_writes_fintx_only_when_the_exit_face_differs():
     assert "hgap = 0" in bend
     assert "fintx = 0.45" in bend
     assert "hgapx = 0.015" in bend
+
+
+def test_bmad_bend_leaves_an_unset_fringe_integral_to_bmad():
+    """A gap with no fringe integral writes ``hgap`` alone; ``fint = None``
+    stops Bmad's parser."""
+    bend = _bmad(
+        Dipole(
+            name="B-GAP",
+            machine_area="S",
+            magnetic={"magnetic_length": 1.0, "k0l": 0.2, "gap": 0.032},
+        )
+    )
+    assert "hgap = 0.016" in bend
+    assert "fint" not in bend
+    assert "None" not in bend
+
+
+@pytest.mark.parametrize(
+    "k0l, tilt, written",
+    [
+        ({"normal": 0.02}, 0.0, "k0l = 0.02, k0l_status = bends_reference"),
+        # As imported: the angle, and the roll of its plane.
+        (
+            {"normal": -0.01},
+            np.pi / 2,
+            f"k0l = -0.01, t0 = {np.pi / 2}, k0l_status = bends_reference",
+        ),
+        # normal + i skew = k0l exp(-i t0): a skew bend is -k0l at t0 = pi/2.
+        (
+            {"skew": 0.01},
+            0.0,
+            f"k0l = -0.01, t0 = {np.pi / 2}, k0l_status = bends_reference",
+        ),
+    ],
+)
+def test_bmad_thin_dipole_is_a_multipole_that_bends_the_reference(k0l, tilt, written):
+    """A zero-length Dipole bends the reference orbit, as Bmad's ``multipole,
+    k0l, K0L_status = bends_reference`` does (DIAG0's DYQDG001).
+
+    Bmad refuses a zero-length ``sbend`` that bends, and one that does not
+    loses the floor frame the thin bend turns and the dispersion it gives."""
+    thin = Dipole(
+        name="DY-THIN",
+        machine_area="S",
+        magnetic={"order": 0, "multipoles": {"K0L": k0l}, "tilt": tilt},
+        physical={"length": 0.0, "global_rotation": {"theta": 0.1, "psi": 0.001}},
+    )
+    text = _bmad(thin)
+    assert text.startswith("DY_THIN: multipole, ")
+    assert written in text
+    assert "angle" not in text and "a0" not in text
 
 
 def test_bmad_writes_the_multipole_content_the_main_attributes_cannot_hold():

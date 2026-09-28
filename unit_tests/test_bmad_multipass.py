@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-from laura.models.element import Quadrupole, RFCavity
+from laura.models.element import Quadrupole, RFCavity, TwissMatch
 from laura.models.elementList import MachineModel
 from laura.translator.converters.layout import MachineLayoutTranslator
 
@@ -162,6 +162,32 @@ def test_a_lord_only_attribute_is_dropped_with_a_warning():
     with pytest.warns(UserWarning, match="k1.*multipass lord"):
         lattice = translator(changed).to_bmad_multipass("electron")
     assert "LIN_Q\\2[" not in lattice
+
+
+def test_a_fixer_that_starts_a_later_section_stays_in_the_line():
+    # Only the path's first section gives the beginning Twiss. A fixer heading
+    # a section further on is where that path declares its design optics.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        model = MachineModel(
+            elements=elements()
+            | {
+                "FIX": TwissMatch(
+                    name="FIX", machine_area="A", simulation={"beta_x": 2, "beta_y": 3}
+                )
+            },
+            section={"sections": SECTIONS | {"OPTICS": ["FIX"]}},
+            layout={
+                "layouts": {"P": ["INJECTOR", "OPTICS", "ARC"]},
+                "default_layout": "P",
+            },
+        )
+        lattice = MachineLayoutTranslator.from_layout(
+            model.lattices["P"], multipass=True
+        ).to_bmad_multipass("electron")
+    assert "OPTICS: line = (FIX)\n" in lattice
+    assert "FIX: fixer, beta_a_stored = 2.0, beta_b_stored = 3.0" in lattice
+    assert "beginning[beta_a]" not in lattice
 
 
 # --- what it refuses -----------------------------------------------------
