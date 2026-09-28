@@ -312,6 +312,31 @@ def _strip_inherited(dump: dict, parent: dict, excluded) -> None:
             dump.pop(key)
 
 
+def _restore_overrides(dump: dict, full: dict, parent: dict, excluded) -> None:
+    """Put back into *dump* each value left out as a schema default that
+    *parent* would replace with a different one on reload.
+
+    *full* is the element's dump with its defaults. ``controls`` is left to
+    the schema collapse.
+    """
+    for key, parent_value in parent.items():
+        if key not in full or key in INHERIT_KEYS or key == "controls":
+            continue
+        rule = excluded.get(key, _INHERITABLE)
+        if rule is None:
+            continue
+        value = full[key]
+        if isinstance(value, dict) and isinstance(parent_value, dict):
+            nested = {} if rule is _INHERITABLE else {name: None for name in rule}
+            child = dump.get(key)
+            child = child if isinstance(child, dict) else {}
+            _restore_overrides(child, value, parent_value, nested)
+            if child:
+                dump[key] = child
+        elif key not in dump and value != parent_value:
+            dump[key] = value
+
+
 def _collapse_dump_inheritance(dump: dict, ele, namespace) -> Optional[str]:
     """Write the element as ``inherits_from`` plus only what differs.
 
@@ -344,6 +369,7 @@ def _collapse_dump_inheritance(dump: dict, ele, namespace) -> Optional[str]:
         return None
 
     _strip_inherited(dump, parent, NON_INHERITED_FIELDS)
+    _restore_overrides(dump, ele.base_model_dump(), parent, NON_INHERITED_FIELDS)
     dump["inherits_from"] = parent_name
     return parent_name
 
@@ -532,7 +558,7 @@ def _apply_position_mode(
 
 def _repeat_signature(elem) -> dict:
     """What has to match for two occurrences of a repeated name to collapse."""
-    return _strip_non_inherited(elem.model_dump(exclude_defaults=True))
+    return _strip_non_inherited(elem.base_model_dump(exclude_defaults=True))
 
 
 def _machine_view(machine) -> tuple:

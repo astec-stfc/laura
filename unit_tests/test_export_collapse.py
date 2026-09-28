@@ -10,6 +10,7 @@ and compares.
 import os
 import warnings
 
+import numpy as np
 import pytest
 import yaml
 
@@ -21,7 +22,7 @@ from laura.Exporters.YAML import (
     export_machine_combined_file,
     export_machine_sections,
 )
-from laura.models.element import Drift, Marker, Quadrupole
+from laura.models.element import Drift, Marker, MatrixTransform, Quadrupole
 
 
 # ---------------------------------------------------------------------------
@@ -285,6 +286,27 @@ class TestPruneEmpty:
         assert dump["physical"]["middle"]["z"] == 4.0
         assert dump["physical"]["length"] == pytest.approx(0.3)
 
+    def test_array_fields_do_not_disable_pruning(self):
+        """Pydantic compares an array with its default using ``==``, which
+        raised and sent every MatrixTransform down a full-dump fallback: all
+        its defaults and zero matrices written out."""
+        r_matrix = np.eye(6)
+        r_matrix[0, 1] = 0.3
+        matrix = MatrixTransform(
+            name="M1", machine_area="SEC",
+            physical={"length": 0.3, "middle": {"z": 1.0}},
+            simulation={"r_matrix": r_matrix},
+        )
+        dump = export_as_yaml(None, matrix)
+        for key in ("manufacturer", "electrical"):
+            assert key not in dump
+        assert "error" not in dump["physical"]
+        for key in ("c_matrix", "t_matrix", "u_matrix"):
+            assert key not in dump["simulation"]
+        reloaded = MatrixTransform(**dump)
+        assert np.array_equal(reloaded.simulation.r_matrix, r_matrix)
+        assert np.array_equal(reloaded.simulation.t_matrix, np.zeros((6, 6, 6)))
+
     def _origin_machine(self):
         """A globally-positioned section whose first element sits at s = 0."""
         marker = Marker(
@@ -385,6 +407,27 @@ class TestCollapseInheritanceDump:
             None, machine["Q1"], collapse_inheritance=True, template_root=elements
         )
         assert dump["physical"]["middle"]["z"] == 1.0
+
+    def test_an_override_back_to_the_default_is_kept(self, tmp_path):
+        """A child resetting a template's value to the schema default must say
+        so, or the reload takes the template's value."""
+        source = tmp_path / "src"
+        source.mkdir()
+        template = dict(QUAD_TEMPLATE, simulation={"csr_enable": False})
+        raw = {
+            "_templates": {"QUAD_TYPE_A": template},
+            "Q1": {
+                "name": "Q1",
+                "inherits_from": "QUAD_TYPE_A",
+                "simulation": {"csr_enable": True},
+            },
+        }
+        elements = _write(source / "elements.yaml", raw)
+        machine = _load(elements, None, SEQUENTIAL_LAYOUTS)
+        dump = export_as_yaml(
+            None, machine["Q1"], collapse_inheritance=True, template_root=elements
+        )
+        assert dump["simulation"] == {"csr_enable": True}
 
     def test_missing_parent_leaves_the_dump_expanded(self, sequential_source, tmp_path):
         machine, _, _ = sequential_source

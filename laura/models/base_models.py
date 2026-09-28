@@ -229,9 +229,42 @@ class ModelBase(BaseModel):
         return id(self)
 
     def base_model_dump(self, exclude_defaults: bool = False) -> dict:
-        return convert_numpy_types(
-            self.model_dump(exclude_none=True, exclude_defaults=exclude_defaults)
-        )
+        return convert_numpy_types(_dump(self, exclude_defaults))
+
+
+def _same(value, default) -> bool:
+    try:
+        return bool(value == default)
+    except ValueError:
+        return np.array_equal(value, default)
+
+
+def _dump(model: BaseModel, exclude_defaults: bool) -> dict:
+    """``model_dump(exclude_none=True)``, without defaults if asked.
+
+    Pydantic compares a value with its default using ``==``, so a numpy-array
+    field makes a whole ``exclude_defaults`` dump raise. Fall back to comparing
+    field by field.
+    """
+    try:
+        return model.model_dump(exclude_none=True, exclude_defaults=exclude_defaults)
+    except ValueError:
+        if not exclude_defaults:
+            raise
+    out = {}
+    for name, field in type(model).model_fields.items():
+        value = getattr(model, name)
+        if value is None or _same(value, field.get_default(call_default_factory=True)):
+            continue
+        if isinstance(value, BaseModel):
+            out[name] = _dump(value, True)
+        else:
+            out[name] = model.model_dump(include={name}, exclude_none=True)[name]
+    for name in type(model).model_computed_fields:
+        value = model.model_dump(include={name}, exclude_none=True).get(name)
+        if value is not None:
+            out[name] = value
+    return out
 
 
 class FunctionalMixin:
