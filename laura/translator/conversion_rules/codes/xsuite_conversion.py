@@ -17,8 +17,6 @@ try:
     from xtrack.beam_elements import CrabCavity as CrabCavity_xs
     from xtrack.monitors import ParticlesMonitor as ParticlesMonitor_xs
     from xtrack.monitors import BeamPositionMonitor as BeamPositionMonitor_xs
-    from xtrack.beam_elements import SecondOrderTaylorMap as SecondOrderTaylorMap_xs
-    from xtrack.beam_elements import CrabCavity as CrabCavity_xs
     _XSUITE_AVAILABLE = True
 except ImportError as _err:
     raise ImportError(

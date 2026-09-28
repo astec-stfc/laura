@@ -137,7 +137,7 @@ def translate_elements(
             if simulation is not None:
                 payload["simulation"] = simulation.model_dump(by_alias=False, exclude_unset=True)
             elem_dict.update({elem.name: translator.model_validate(payload)})
-        except Exception as exc:
+        except Exception:
             raise Exception(
                 f"Element {elem.name} failed validation: {elem.model_dump().keys()}"
             )

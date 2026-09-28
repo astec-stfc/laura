@@ -271,7 +271,6 @@ class XsuiteLatticeImporter(LatticeImporter):
         for line in lines:
             for element_name in line.element_names:
                 native = line.element_dict[element_name]
-                native_type = type(native).__name__
                 length = float(getattr(native, "length", 0.0) or 0.0)
                 if not length:
                     continue

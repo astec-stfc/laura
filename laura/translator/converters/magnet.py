@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Optional, Union
+from typing import ClassVar, Optional, Union
 from warnings import warn
 
 import numpy as np
@@ -34,7 +34,89 @@ def add(x, y):
     return x + y
 
 
-class MagnetTranslator(BaseElementTranslator):
+_ORDINALS = {1: "First", 2: "Second", 3: "Third"}
+
+
+def _k_field(order: int):
+    """The normalised strength ``k<order>`` as a computed field."""
+
+    def k(self) -> float:
+        return self._normalised_strength(order)
+
+    k.__doc__ = f"""
+        {_ORDINALS[order]}-order magnetic strength `element.KnL({order}) / element.magnetic.length`
+
+        Returns
+        -------
+        float:
+            k{order}
+        """
+    return computed_field(property(k))
+
+
+def _kl_property(order: int) -> property:
+    """The integrated strength ``k<order>l``, settable onto the normal multipole."""
+
+    def kl(self) -> float:
+        return self.magnetic.KnL(order)
+
+    def set_kl(self, value: float) -> None:
+        getattr(self.magnetic.multipoles, f"K{order}L").normal = value
+
+    kl.__doc__ = f"""
+        {_ORDINALS[order]}-order normalized magnetic strength `element.KnL({order})`
+
+        Returns
+        -------
+        float:
+            k{order}l
+        """
+    return property(kl, set_kl)
+
+
+def _dk_field(order: int):
+    """The strength error ``dk<order>``; currently always zero."""
+
+    def dk(self) -> float:
+        return 0.0
+
+    dk.__doc__ = f"""
+        Error in {_ORDINALS[order].lower()}-order magnetic strength
+
+        Currently returns zero...
+        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
+
+        Returns
+        -------
+        float:
+            dk{order}
+        """
+    return computed_field(property(dk))
+
+
+class MultipoleStrengthTranslator(BaseElementTranslator):
+    """
+    Base translator for magnets exposing the normalised (``k1``-``k3``),
+    integrated (``k1l``-``k3l``) and error (``dk1``-``dk3``) strengths.
+
+    Subclasses declare the fields themselves, so that they keep their place
+    among the subclass's own computed fields in :meth:`full_dump`.
+    """
+
+    _warn_zero_length: ClassVar[bool] = False
+    """Warn when a zero-length magnet falls back to ``k<n> = k<n>l``."""
+
+    def _normalised_strength(self, order: int) -> float:
+        """``KnL(order) / length``, or ``KnL(order)`` for a zero-length magnet."""
+        try:
+            return self.magnetic.KnL(order) / self.magnetic.length
+        except ZeroDivisionError:
+            if self._warn_zero_length:
+                warn(f"Magnet has zero length; returning k{order} = k{order}l")
+            return self.magnetic.KnL(order)
+
+
+class MagnetTranslator(MultipoleStrengthTranslator):
     """
     Base translator class for converting a :class:`~laura.models.element.Magnet` element instance into a string or
     object that can be understood by various simulation codes.
@@ -60,152 +142,15 @@ class MagnetTranslator(BaseElementTranslator):
             data["magnetic"] = CombinedSolenoidQuadrupoleMagnet(**data["magnetic"])
         return data
 
-    @computed_field
-    @property
-    def k1(self) -> float:
-        """
-        First-order magnetic strength
-
-        Returns
-        -------
-        float:
-            k1
-        """
-        try:
-            return self.magnetic.KnL(1) / self.magnetic.length
-        except ZeroDivisionError:
-            # warn(f"Magnet {self.name} has zero length; returning k1 = k1l")
-            return self.magnetic.KnL(1)
-
-    @computed_field
-    @property
-    def k2(self) -> float:
-        """
-        Second-order magnetic strength
-
-        Returns
-        -------
-        float:
-            k2
-        """
-        try:
-            return self.magnetic.KnL(2) / self.magnetic.length
-        except ZeroDivisionError:
-            # warn(f"Magnet {self.name} has zero length; returning k2 = k2l")
-            return self.magnetic.KnL(2)
-
-    @computed_field
-    @property
-    def k3(self) -> float:
-        """
-        Third-order magnetic strength
-
-        Returns
-        -------
-        float:
-            k3
-        """
-        try:
-            return self.magnetic.KnL(3) / self.magnetic.length
-        except ZeroDivisionError:
-            # warn(f"Magnet {self.name} has zero length; returning k3 = k3l")
-            return self.magnetic.KnL(3)
-
-    @property
-    def k1l(self) -> float:
-        """
-        First-order normalized magnetic strength
-
-        Returns
-        -------
-        float:
-            k1l
-        """
-        return self.magnetic.KnL(1)
-
-    @k1l.setter
-    def k1l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K1L"), "normal", value)
-
-    @property
-    def k2l(self) -> float:
-        """
-        Second-order normalized magnetic
-
-        Returns
-        -------
-        float:
-            k2l
-        """
-        return self.magnetic.KnL(2)
-
-    @k2l.setter
-    def k2l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K2L"), "normal", value)
-
-    @property
-    def k3l(self) -> float:
-        """
-        Third-order normalized magnetic strength
-
-        Returns
-        -------
-        float:
-            k3l
-        """
-        return self.magnetic.KnL(3)
-
-    @k3l.setter
-    def k3l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K3L"), "normal", value)
-
-    @computed_field
-    @property
-    def dk1(self) -> float:
-        """
-        Error in first-order magnetic strength
-
-        Currently returns zero...
-        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
-
-        Returns
-        -------
-        float:
-            dk1
-        """
-        return 0.0
-
-    @computed_field
-    @property
-    def dk2(self) -> float:
-        """
-        Error in second-order magnetic strength
-
-        Currently returns zero...
-        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
-
-        Returns
-        -------
-        float:
-            dk2
-        """
-        return 0.0
-
-    @computed_field
-    @property
-    def dk3(self) -> float:
-        """
-        Error in third-order magnetic strength
-
-        Currently returns zero...
-        # TODO relate these to ``systematic_multipoles`` and ``random_multipoles``
-
-        Returns
-        -------
-        float:
-            dk3
-        """
-        return 0.0
+    k1 = _k_field(1)
+    k2 = _k_field(2)
+    k3 = _k_field(3)
+    k1l = _kl_property(1)
+    k2l = _kl_property(2)
+    k3l = _kl_property(3)
+    dk1 = _dk_field(1)
+    dk2 = _dk_field(2)
+    dk3 = _dk_field(3)
 
     def to_bmad(self) -> str:
         """
@@ -509,7 +454,7 @@ class MagnetTranslator(BaseElementTranslator):
         return output
 
 
-class DipoleTranslator(BaseElementTranslator):
+class DipoleTranslator(MultipoleStrengthTranslator):
     """
     Translator class for converting a :class:`~laura.models.element.Dipole` element instance into a string or
     object that can be understood by various simulation codes.
@@ -517,6 +462,8 @@ class DipoleTranslator(BaseElementTranslator):
 
     magnetic: DipoleMagnet
     """Dipole element class."""
+
+    _warn_zero_length: ClassVar[bool] = True
 
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
@@ -534,120 +481,15 @@ class DipoleTranslator(BaseElementTranslator):
         """
         return self.magnetic.KnL(0)
 
-    @computed_field
-    @property
-    def k1(self) -> float:
-        """
-        First-order magnetic strength `element.KnL(1) / element.magnetic.length`
-
-        Returns
-        -------
-        float
-            Dipole k1
-        """
-        try:
-            return self.magnetic.KnL(1) / self.magnetic.length
-        except ZeroDivisionError:
-            warn("Magnet has zero length; returning k1 = k1l")
-            return self.magnetic.KnL(1)
-
-    @computed_field
-    @property
-    def k2(self) -> float:
-        """
-        Second-order magnetic strength `element.KnL(1) / element.magnetic.length`
-
-        Returns
-        -------
-        float
-            Dipole k2
-        """
-        try:
-            return self.magnetic.KnL(2) / self.magnetic.length
-        except ZeroDivisionError:
-            warn("Magnet has zero length; returning k2 = k2l")
-            return self.magnetic.KnL(2)
-
-    @computed_field
-    @property
-    def k3(self) -> float:
-        """
-        Third-order magnetic strength `element.KnL(1) / element.magnetic.length`
-
-        Returns
-        -------
-        float
-            Dipole k3
-        """
-        try:
-            return self.magnetic.KnL(3) / self.magnetic.length
-        except ZeroDivisionError:
-            warn("Magnet has zero length; returning k3 = k3l")
-            return self.magnetic.KnL(3)
-
-    @property
-    def k1l(self) -> float:
-        """
-        First-order normalized magnetic strength `element.KnL(1)`
-
-        Returns
-        -------
-        float
-            Dipole k1l
-        """
-        return self.magnetic.KnL(1)
-
-    @k1l.setter
-    def k1l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K1L"), "normal", value)
-
-    @property
-    def k2l(self) -> float:
-        """
-        Second-order normalized magnetic strength `element.KnL(2)`
-
-        Returns
-        -------
-        float
-            Dipole k2l
-        """
-        return self.magnetic.KnL(2)
-
-    @k2l.setter
-    def k2l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K2L"), "normal", value)
-
-    @property
-    def k3l(self) -> float:
-        """
-        Third-order normalized magnetic strength `element.KnL(3)`
-
-        Returns
-        -------
-        float
-            Dipole k3l
-        """
-        return self.magnetic.KnL(3)
-
-    @k3l.setter
-    def k3l(self, value: float) -> None:
-        setattr(getattr(self.magnetic.multipoles, "K3L"), "normal", value)
-
-    # TODO relate these to systematic_multipoles and random_multipoles
-    @computed_field
-    @property
-    def dk1(self) -> float:
-        return 0.0
-
-    @computed_field
-    @property
-    def dk2(self) -> float:
-        return 0.0
-
-    @computed_field
-    @property
-    def dk3(self) -> float:
-        return 0.0
+    k1 = _k_field(1)
+    k2 = _k_field(2)
+    k3 = _k_field(3)
+    k1l = _kl_property(1)
+    k2l = _kl_property(2)
+    k3l = _kl_property(3)
+    dk1 = _dk_field(1)
+    dk2 = _dk_field(2)
+    dk3 = _dk_field(3)
 
     def to_bmad(self) -> str:
         """
@@ -952,8 +794,6 @@ class DipoleTranslator(BaseElementTranslator):
             face_sign = -1.0 if self.magnetic.KnL(0) < 0 else 1.0
             e1 = face_sign * self.e1
             e2 = face_sign * self.e2
-            # print(self.objectname, ' - deltaL = ', dl)
-            # b1 = 0.
             """
             ccs( "wcs", 0, 0, startofdipole +  intersect1, Cos(theta), 0, -Sin(theta), 0, 1, 0, "bend1" ) ;
             sectormagnet( "wcs", "bend1", rho, field, e1, e2, 0., 100., 0 ) ;
@@ -1006,7 +846,6 @@ class DipoleTranslator(BaseElementTranslator):
             New GPT co-ordinate system.
         """
         if abs(self.magnetic.KnL(0)) > 0 and abs(self.magnetic.rho) < 100:
-            # print('Creating new CCS')
             number = str(int(ccs.name.split("_")[1]) + 1) if ccs.name != "wcs" else "1"
             name = "ccs_" + number if ccs.name != "wcs" else "ccs_1"
             return GptCcs(
@@ -1037,7 +876,6 @@ class DipoleTranslator(BaseElementTranslator):
         str
             A formatted string representing the object's properties in OPAL format.
         """
-        # wholestring = ""
         self.start_write()
         etype = self._convert_type_opal(self.hardware_type)
         if self.e1 == self.e2:
@@ -1049,28 +887,12 @@ class DipoleTranslator(BaseElementTranslator):
             or self.magnetic.KnL(0) == 0
         ):
             return ""
-        keys = []
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_opal(key) in elements_opal[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_opal(key)
-                    if value == "angle":
-                        value = self.magnetic.KnL(0)
-                    elif value == "angle/2":
-                        value = self.magnetic.KnL(0) / 2
-                    elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                        value = getattr(self, f"{key}l")
-                    val = 1 if value is True else value
-                    val = 0 if value is False else val
-                    tmpstring = ", " + key + " = " + str(val)
-                    if key not in keys:
-                        wholestring += tmpstring
-                        keys.append(key)
+        for key, value in self._dump_items(
+            self._convert_keyword_opal, elements_opal[etype]
+        ):
+            if key in ("k1", "k2", "k3", "k4", "k5", "k6"):
+                value = getattr(self, f"{key}l")
+            wholestring += f", {key} = {self._flag(self._angle_token(value))}"
         if etype == "monitor":
             wholestring += f', OUTFN = "{self.name}_opal"'
         wholestring += f", DESIGNENERGY = {designenergy}"
@@ -1349,27 +1171,12 @@ class SolenoidTranslator(BaseElementTranslator):
         self.start_write()
         etype = self._convert_type_opal(self.hardware_type)
         wholestring = self.name.replace("-", "_") + ": " + etype
-        field_file_name = self.generate_field_file_name(
-            self.simulation.field_definition, code="opal"
-        )
-        keys = []
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_opal(key) in elements_opal[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_opal(key)
-                    val = 1 if value is True else value
-                    val = 0 if value is False else val
-                    if key == "ks":
-                        val = self.opal_ks(designenergy)
-                    if val is not None and key not in keys:
-                        tmpstring = ", " + key + " = " + str(val)
-                        wholestring += tmpstring
-                        keys.append(key)
+        for key, value in self._dump_items(
+            self._convert_keyword_opal, elements_opal[etype]
+        ):
+            value = self.opal_ks(designenergy) if key == "ks" else self._flag(value)
+            if value is not None:
+                wholestring += f", {key} = {value}"
         if isinstance(self.simulation.field_definition, FieldMap):
             wholestring += (
                 ', fmapfn = "'
@@ -1444,30 +1251,17 @@ class WigglerTranslator(BaseElementTranslator):
             A formatted string representing the object's properties in Elegant format.
         """
         self.start_write()
-        wholestring = ""
         etype = self._convert_type_genesis(self.hardware_type)
         if "mark" in etype.lower():
             return f"{index}{self.name}: {etype} = " + "{};\n"
-        string = f"{index}{self.name}: {etype} = " + "{"
-        keys = []
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_genesis(key) in elements_genesis[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_genesis(key)
-                    if key == "aw" and not self.magnetic.helical:
-                        value /= np.sqrt(2)
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    if key not in keys:
-                        string += key + " = " + str(value) + ", "
-                    keys.append(key)
-        wholestring += string[:-2] + "};\n"
-        return wholestring
+        terms = []
+        for key, value in self._dump_items(
+            self._convert_keyword_genesis, elements_genesis[etype]
+        ):
+            if key == "aw" and not self.magnetic.helical:
+                value /= np.sqrt(2)
+            terms.append(f"{key} = {self._flag(value)}")
+        return f"{index}{self.name}: {etype} = " + "{" + ", ".join(terms) + "};\n"
 
 
 class CorrectorTranslator(BaseElementTranslator):

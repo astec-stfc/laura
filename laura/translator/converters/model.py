@@ -33,14 +33,15 @@ class MachineModelTranslator(ContainerTranslator, MachineModel):
 
     @classmethod
     def from_machine(cls, machine: MachineModel) -> "MachineModelTranslator":
+        copy = machine.model_copy()
         return cls.model_validate(
             {
-                "layout": machine.model_copy().layout,
-                "section": machine.model_copy().section,
-                "elements": machine.model_copy().elements,
-                "sections": machine.model_copy().sections,
-                "lattices": machine.model_copy().lattices,
-                "master_lattice": machine.model_copy().master_lattice,
+                "layout": copy.layout,
+                "section": copy.section,
+                "elements": copy.elements,
+                "sections": copy.sections,
+                "lattices": copy.lattices,
+                "master_lattice": copy.master_lattice,
                 "functional_definitions": machine.functional_definitions,
                 "resolve_functional": machine.resolve_functional,
                 "revolution_frequency": machine.revolution_frequency,

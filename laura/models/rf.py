@@ -1,8 +1,8 @@
 from pydantic import Field, field_validator, create_model
-from typing import List, Type, Union
+from typing import List, Union
 
 from laura._compat import DeprecatedMethodAliases
-from .base_models import IgnoreExtra, T, ModelBase, FunctionalMixin
+from .base_models import IgnoreExtra, ModelBase, FunctionalMixin
 from ._generated import (
     _RFCavityElementBase,
     _WakefieldElementBase,

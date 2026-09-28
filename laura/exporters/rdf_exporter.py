@@ -10,7 +10,6 @@ Requires the optional ``rdf`` dependency group::
 
 from __future__ import annotations
 
-import pathlib
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -79,7 +78,7 @@ def build_rdf_graph(
     -------
     rdflib.Graph
     """
-    rdflib = _require_rdflib()
+    _require_rdflib()
     from rdflib import Graph, Literal, Namespace, RDF, URIRef, XSD  # noqa: PLC0415
 
     LAURA = Namespace(_LAURA_NS) # noqa N806

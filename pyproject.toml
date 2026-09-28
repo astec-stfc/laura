@@ -27,6 +27,7 @@ dependencies = [
     "pydantic-core>=2.41.5",
     "easygdf",
     "h5py",
+    "openpmd-beamphysics>=0.14.1",
 ]
 
 requires-python = ">= 3.10"
@@ -150,7 +151,6 @@ select = ["N"]  # pep8-naming only
 ignore = ["I001"]
 
 [tool.ruff.lint.per-file-ignores]
-"laura/translator/utils/pmd_units.py" = ["N801", "N802", "N815"]
 "laura/_compat.py" = ["N801", "N802", "N803", "N806", "N807", "N815", "N816"]
 "laura/**/_compat*.py" = ["N801", "N802", "N803", "N806", "N807", "N815", "N816"]
 "unit_tests/test_rftrack_translator.py" = ["N802", "N803", "N806"]

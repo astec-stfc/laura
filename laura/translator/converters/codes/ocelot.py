@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 from pydantic import ConfigDict
 
 if TYPE_CHECKING:
-    from ocelot.cpbd.magnetic_lattice import MagneticLattice
+    pass
 from math import isfinite
 from warnings import warn
 

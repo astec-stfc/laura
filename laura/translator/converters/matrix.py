@@ -1,8 +1,4 @@
 from itertools import combinations_with_replacement, permutations
-from .base import BaseElementTranslator
-from laura.models.simulation import MatrixTransformSimulationElement
-from torch import tensor, float64
-import numpy as np
 from warnings import warn
 
 import numpy as np
@@ -11,7 +7,7 @@ from torch import float64, tensor
 from laura.models.simulation import MatrixTransformSimulationElement
 
 from ..utils.functions import sanitize_string
-from .base import BaseElementTranslator
+from .base import BaseElementTranslator, elegant_line
 
 
 class MatrixTransformTranslator(BaseElementTranslator):
@@ -33,41 +29,24 @@ class MatrixTransformTranslator(BaseElementTranslator):
             A formatted string representing the object's properties in Elegant format.
         """
         self.start_write()
-        wholestring = ""
         etype = self._convert_type_elegant(self.hardware_type)
-        string = self.name + ": " + etype
-
-        def split_lines(fullstr: str, string: str, linestr: str) -> tuple:
-            if len(string + linestr) > 76:
-                fullstr += string + ",&\n"
-                string = linestr[2::]
-            else:
-                string += linestr
-            return fullstr, string
-
-        if self.length:
-            wholestring, string = split_lines(
-                wholestring, string, f", L = {self.length}"
-            )
+        terms = [f"L = {self.length}"] if self.length else []
         if not np.array_equal(self.simulation.c_matrix, np.zeros(6)):
             for i, val in enumerate(self.simulation.c_matrix):
                 if val != 0:
-                    wholestring, string = split_lines(wholestring, string, f", C{i + 1} = {val}")
+                    terms.append(f"C{i + 1} = {val}")
         if not np.array_equal(self.simulation.r_matrix, np.eye(6)):
             for i, row in enumerate(self.simulation.r_matrix):
                 for j, val in enumerate(row):
                     if val != (1.0 if i == j else 0.0):
-                        wholestring, string = split_lines(wholestring, string, f", R{i + 1}{j + 1} = {val}")
+                        terms.append(f"R{i + 1}{j + 1} = {val}")
         if not np.array_equal(self.simulation.t_matrix, np.zeros((6, 6, 6))):
             for i, plane in enumerate(self.simulation.t_matrix):
                 for j, row in enumerate(plane):
                     for k, val in enumerate(row):
                         if val != 0:
-                            wholestring, string = split_lines(
-                                wholestring, string, f", T{i + 1}{j + 1}{k + 1} = {val}"
-                            )
-        wholestring += string + ";\n"
-        return wholestring
+                            terms.append(f"T{i + 1}{j + 1}{k + 1} = {val}")
+        return elegant_line(self.name + ": " + etype, terms)
 
     def to_bmad(self) -> str:
         """

@@ -3,8 +3,8 @@ from pydantic import (
     Field,
     field_validator,
 )
-from typing import List, Type, Union
-from .base_models import IgnoreExtra, T, DeviceList
+from typing import List, Union
+from .base_models import IgnoreExtra, DeviceList
 from ._generated import (
     _DiagnosticElementBase,
     _BPMDiagnosticElementBase,

@@ -9,7 +9,6 @@ import logging
 import os
 import types
 from itertools import chain
-from math import copysign
 from typing import Any, Dict, List
 
 from pydantic import PrivateAttr, field_validator, model_validator
@@ -17,7 +16,6 @@ from yaml.constructor import Constructor
 
 _log = logging.getLogger("laura.machine")
 
-import time
 
 import numpy as np
 
@@ -30,12 +28,10 @@ from .importers.yaml_loader import (
     collect_unique_filenames,
     read_yaml_combined_file,
     read_yaml_element_file,
-    fast_get_element_metadata,
 )
 from ._compat import DeprecatedMethodAliases
-from .models.element import Drift, BaseElement
-from .models.element_list import MachineModel, chunks, dot
-from .models.physical import PhysicalElement, Position
+from .models.element import BaseElement
+from .models.element_list import MachineModel, insert_drifts
 
 
 NON_ELEMENT_FILENAMES = {"summary.yaml", "summary.yml"}
@@ -51,6 +47,74 @@ filename), so a summary would simply be named after its file."""
 def flatten(xss):
     """Flatten a list of lists."""
     return list(chain.from_iterable(xss))
+
+
+_CORRECTOR_TYPES = ["combined_corrector", "horizontal_corrector", "vertical_corrector"]
+
+
+def _getter(
+    what: str,
+    element_class: str | None = None,
+    element_type: str | list | None = None,
+    then=None,
+    returns: str | None = None,
+):
+    """
+    Build a ``get_<family>(end, start, path)`` method, listing the names of the
+    elements of ``element_class``/``element_type`` along a path, optionally
+    post-processed by ``then(machine, names)``.
+    """
+
+    def get(self, end: str = None, start: str = None, path: str = None) -> list[str]:
+        names = self.elements_between(
+            start=start,
+            end=end,
+            element_class=element_class,
+            element_type=element_type,
+            path=path,
+        )
+        return then(self, names) if then else names
+
+    get.__doc__ = f"""
+        Get all {what} between start and end
+
+        :param end: Name of the last element in the sequence
+        :param start: Name of the first element in the sequence
+        :param path: Name of the lattice path to use
+        :return: {returns or f"List of the names of the {what}"}
+        """
+    return get
+
+
+def _union(machine, getter) -> set:
+    """The union of ``getter`` over every lattice path of ``machine``."""
+    return set(chain.from_iterable(getter(machine, path=path) for path in machine.lattices))
+
+
+def _all_paths(getter, what: str) -> property:
+    """Build an ``all_<family>`` property: ``getter`` over the whole machine."""
+    return property(
+        lambda self: _union(self, getter),
+        doc=f"""
+        Get all {what} in the machine
+        :return: Set of the names of all {what}
+        """,
+    )
+
+
+def _split_correctors(machine, names: list[str]) -> list[str]:
+    """``names``, with each combined corrector split into its sub-correctors."""
+    return flatten(machine._sub_correctors(name) for name in names)
+
+
+def _sub_corrector(attr: str):
+    """Replace each combined corrector by its ``attr`` sub-corrector, if any."""
+
+    def pick(machine, names: list[str]) -> list[str]:
+        subs = (getattr(machine[name], attr, None) for name in names)
+        return [name if sub is None else sub for name, sub in zip(names, subs)]
+
+    return pick
 
 
 def add_bool(self, node):
@@ -253,74 +317,13 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
         :param path: Name of the lattice path to use
         :return: Dictionary of elements with drifts inserted
         """
-        positions = []
-        originalelements = dict()
-        elementno = 0
-        newelements = dict()
-
-        elements = self.elements_between(
+        elements = {}
+        for name in self.elements_between(
             start=start, end=end, element_class=None, path=path
-        )
-
-        for name in elements:
-            elem = self.elements[name]
-            if elem.is_subelement():
-                continue
-            originalelements[name] = elem
-            pos = elem.physical.start.array
-            positions.append(pos)
-            positions.append(elem.physical.end.array)
-        positions = positions[1:]
-        positions.append(positions[-1])
-        driftdata = list(
-            zip(iter(list(originalelements.items())), list(chunks(positions, 2)))
-        )
-
-        for e, d in driftdata:
-            newelements[e[0]] = e[1]
-            if len(d) > 1:
-                x1, y1, z1 = d[0]
-                x2, y2, z2 = d[1]
-                try:
-                    length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
-                    vector = dot((d[1] - d[0]), [0, 0, 1])
-                except Exception as exc:
-                    _log.error(
-                        "Drift calculation error near element '%s': %s", e[0], exc
-                    )
-                    _log.debug("Position data: %s", d)
-                    raise exc
-                if round(length, 6) > 0:
-                    elementno += 1
-                    name = "drift" + str(elementno)
-                    x, y, z = [(a + b) / 2.0 for a, b in zip(d[0], d[1])]
-                    newdrift = Drift(
-                        name=name,
-                        machine_area=newelements[e[0]].machine_area,
-                        hardware_class="Drift",
-                        physical=PhysicalElement(
-                            length=abs(round(copysign(length, vector), 6)),
-                            middle=Position(x=x, y=y, z=z),
-                            datum=Position(x=x, y=y, z=z),
-                        ),
-                    )
-                    newelements[name] = newdrift
-        return newelements
-
-    def get_elements(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all elements between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of element names
-        """
-        return self.elements_between(
-            start=start, end=end, element_class=None, path=path
-        )
+        ):
+            if not self.elements[name].is_subelement():
+                elements[name] = self.elements[name]
+        return insert_drifts(elements, "drift", digits=6)
 
     def _drift_length(self, start: list[float], end: list[float]):
         return np.linalg.norm(end - start)
@@ -354,517 +357,101 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
                         elem_s[sub_name] = elem_s[elem]
         return elem_s
 
-    def get_rf_cavities(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all RF cavities between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of RF cavity names
-        """
-        return self.elements_between(
-            start=start, end=end, element_class="rf", path=path
-        )
-
-    def get_diagnostics(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all diagnostic devices between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of diagnostic devices names
-        """
-        return self.elements_between(
-            start=start, end=end, element_class="diagnostic", path=path
-        )
-
-    def get_charge_diagnostics(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all charge diagnostic devices between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of charge diagnostic devices names
-        """
-        return self.elements_between(
-            start=start,
-            end=end,
-            element_class="diagnostic",
-            element_type=["FCM", "WCM", "ICT"],
-            path=path,
-        )
-
-    def get_beam_position_monitors(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all BPM devices between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of BPM devices names
-        """
-        return self.elements_between(
-            start=start,
-            end=end,
-            element_class="diagnostic",
-            element_type="BPM",
-            path=path,
-        )
-
-    def get_position_diagnostics(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all position diagnostic devices between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of position diagnostic devices names
-        """
-        return self.elements_between(
-            start=start,
-            end=end,
-            element_class="diagnostic",
-            element_type=["Screen", "BPM"],
-            path=path,
-        )
-
-    def get_cameras(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all camera devices between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of camera devices names
-        """
-        return [
-            self[scr].diagnostic.camera_name
-            for scr in self.elements_between(
-                start=start,
-                end=end,
-                element_class="diagnostic",
-                element_type="Screen",
-                path=path,
-            )
-        ]
-
-    def get_screens_and_cameras(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> Dict[str, str]:
-        """
-        Get all screen devices with their associated cameras between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: Dict of screens with camera names
-        """
-        return {
-            scr: self[scr].diagnostic
-            for scr in self.elements_between(
-                start=start,
-                end=end,
-                element_class="diagnostic",
-                element_type="Screen",
-                path=path,
-            )
-        }
-
-    def get_magnets(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all magnets between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of magnet names
-        """
-        return self.elements_between(
-            start=start, end=end, element_class="magnet", path=path
-        )
-
-    def get_separate_magnets(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all magnet between start and end and separate combined correctors into their sub-correctors
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of magnet names
-        """
-        magnets = self.get_magnets(end=end, start=start, path=path)
-        return list(
-            flatten(
-                [(self.__get_combined_corrector_sub_correctors(c)) for c in magnets]
-            )
-        )
-
-    def get_quadrupoles(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all quadrupole magnets between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of quadrupole magnet names
-        """
-        return self.elements_between(
-            start=start,
-            end=end,
-            element_class="magnet",
-            element_type="quadrupole",
-            path=path,
-        )
-
-    def get_dipoles(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all dipole magnets between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of dipole magnet names
-        """
-        return self.elements_between(
-            start=start,
-            end=end,
-            element_class="magnet",
-            element_type="dipole",
-            path=path,
-        )
-
-    def __get_combined_corrector_sub_correctors(self, elem: str) -> list[str]:
+    def _sub_correctors(self, elem: str) -> list[str]:
         """
         Split a Combined_Corrector into its sub-correctors
 
         :param elem: Name of the combined corrector element
         :return: Names of sub-corrector elements (if they exist) or the original element name
         """
-        if (
-            hasattr(self[elem], "Horizontal_Corrector")
-            and self[elem].Horizontal_Corrector is not None
-        ):
-            if (
-                hasattr(self[elem], "Vertical_Corrector")
-                and self[elem].Vertical_Corrector is not None
-            ):
-                return [self[elem].Horizontal_Corrector, self[elem].Vertical_Corrector]
-            else:
-                return [self[elem].Horizontal_Corrector]
-        elif (
-            hasattr(self[elem], "Vertical_Corrector")
-            and self[elem].Vertical_Corrector is not None
-        ):
-            return [self[elem].Vertical_Corrector]
-        else:
-            return [elem]
-
-    def get_correctors(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all corrector magnets between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of corrector magnet names
-        """
-        correctors = self.elements_between(
-            start=start,
-            end=end,
-            element_class="magnet",
-            element_type=[
-                "combined_corrector",
-                "horizontal_corrector",
-                "vertical_corrector",
-            ],
-            path=path,
-        )
-        return list(
-            flatten(
-                [(self.__get_combined_corrector_sub_correctors(c)) for c in correctors]
-            )
-        )
-
-    def get_horizontal_correctors(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all horizontal corrector magnets between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of horizontal corrector magnet names
-        """
-        horizontal_correctors = self.elements_between(
-            start=start,
-            end=end,
-            element_class="magnet",
-            element_type=["combined_corrector", "horizontal_corrector"],
-            path=path,
-        )
-        return [
-            (
-                self[c].Horizontal_Corrector
-                if hasattr(self[c], "Horizontal_Corrector")
-                and self[c].Horizontal_Corrector is not None
-                else c
-            )
-            for c in horizontal_correctors
+        subs = [
+            getattr(self[elem], attr, None)
+            for attr in ("Horizontal_Corrector", "Vertical_Corrector")
         ]
+        return [sub for sub in subs if sub is not None] or [elem]
 
-    def get_vertical_correctors(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all vertical corrector magnets between start and end
+    get_elements = _getter("elements")
+    get_rf_cavities = _getter("RF cavities", "rf")
+    get_diagnostics = _getter("diagnostic devices", "diagnostic")
+    get_charge_diagnostics = _getter(
+        "charge diagnostic devices", "diagnostic", ["FCM", "WCM", "ICT"]
+    )
+    get_beam_position_monitors = _getter("BPM devices", "diagnostic", "BPM")
+    get_position_diagnostics = _getter(
+        "position diagnostic devices", "diagnostic", ["Screen", "BPM"]
+    )
+    get_cameras = _getter(
+        "camera devices",
+        "diagnostic",
+        "Screen",
+        then=lambda self, screens: [self[s].diagnostic.camera_name for s in screens],
+    )
+    get_screens_and_cameras = _getter(
+        "screen devices with their associated cameras",
+        "diagnostic",
+        "Screen",
+        then=lambda self, screens: {s: self[s].diagnostic for s in screens},
+        returns="Dict of screens with camera names",
+    )
+    get_magnets = _getter("magnets", "magnet")
+    get_separate_magnets = _getter(
+        "magnets, with combined correctors separated into their sub-correctors,",
+        "magnet",
+        then=_split_correctors,
+        returns="List of magnet names",
+    )
+    get_quadrupoles = _getter("quadrupole magnets", "magnet", "quadrupole")
+    get_dipoles = _getter("dipole magnets", "magnet", "dipole")
+    get_correctors = _getter(
+        "corrector magnets", "magnet", _CORRECTOR_TYPES, then=_split_correctors
+    )
+    get_horizontal_correctors = _getter(
+        "horizontal corrector magnets",
+        "magnet",
+        ["combined_corrector", "horizontal_corrector"],
+        then=_sub_corrector("Horizontal_Corrector"),
+    )
+    get_vertical_correctors = _getter(
+        "vertical corrector magnets",
+        "magnet",
+        ["combined_corrector", "Vertical_Corrector"],
+        then=_sub_corrector("Vertical_Corrector"),
+    )
+    get_lattice_correctors = _getter("corrector magnets", "magnet", _CORRECTOR_TYPES)
+    get_combined_correctors = _getter(
+        "combined corrector magnets", "magnet", ["combined_corrector"]
+    )
+    get_sextupoles = _getter("sextupole magnets", "magnet", "sextupole")
+    get_solenoids = _getter("solenoid magnets", "magnet", "solenoid")
+    get_vacuum_components = _getter("vacuum components", "vacuum")
+    get_shutters = _getter("shutter devices", "vacuum", "shutter")
 
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of vertical corrector magnet names
-        """
-        vertical_correctors = self.elements_between(
-            start=start,
-            end=end,
-            element_class="magnet",
-            element_type=["combined_corrector", "Vertical_Corrector"],
-            path=path,
-        )
-        return [
-            (
-                self[c].Vertical_Corrector
-                if hasattr(self[c], "Vertical_Corrector")
-                and self[c].Vertical_Corrector is not None
-                else c
-            )
-            for c in vertical_correctors
-        ]
-
-    def get_lattice_correctors(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all corrector magnets between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of corrector magnet names
-        """
-        return self.elements_between(
-            start=start,
-            end=end,
-            element_class="magnet",
-            element_type=[
-                "combined_corrector",
-                "horizontal_corrector",
-                "vertical_corrector",
-            ],
-            path=path,
-        )
-
-    def get_combined_correctors(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all combined corrector magnets between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of combined corrector magnet names
-        """
-        return self.elements_between(
-            start=start,
-            end=end,
-            element_class="magnet",
-            element_type=["combined_corrector"],
-            path=path,
-        )
-
-    def get_sextupoles(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all sectupole magnets between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of sectupole magnet names
-        """
-        return self.elements_between(
-            start=start,
-            end=end,
-            element_class="magnet",
-            element_type="sextupole",
-            path=path,
-        )
-
-    def get_solenoids(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all solenoid magnets between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of solenoid magnet names
-        """
-        return self.elements_between(
-            start=start,
-            end=end,
-            element_class="magnet",
-            element_type="solenoid",
-            path=path,
-        )
-
-    def get_vacuum_components(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all vacuum components between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of vacuum component names
-        """
-        return self.elements_between(
-            start=start, end=end, element_class="vacuum", path=path
-        )
-
-    def get_shutters(
-        self, end: str = None, start: str = None, path: str = None
-    ) -> list[str]:
-        """
-        Get all shutter devices between start and end
-
-        :param end: Name of the last element in the sequence
-        :param start: Name of the first element in the sequence
-        :param path: Name of the lattice path to use
-        :return: List of shutter devices names
-        """
-        return self.elements_between(
-            start=start,
-            end=end,
-            element_class="vacuum",
-            element_type="shutter",
-            path=path,
-        )
-
-    def __all_elements(
-        self,
-        element_class: str | list | None = None,
-        element_type: str | list | None = None,
-    ) -> set:
-        """
-        Get a set of all elements of a given class and/or type
-
-        :param element_class: Class of the element (e.g., 'magnet', 'rf', 'diagnostic')
-        :param element_type: Type of the element (e.g., 'quadrupole', 'dipole', 'BPM')
-        :return: Set of element names
-        """
-        return set(
-            [
-                elem
-                for pathelems in [
-                    self.elements_between(
-                        start=None,
-                        end=None,
-                        element_class=element_class,
-                        element_type=element_type,
-                        path=path,
-                    )
-                    for path in self.lattices.keys()
-                ]
-                for elem in pathelems
-            ]
-        )
-
-    @property
-    def all_elements(self) -> set:
-        """
-        Get all elements in the machine
-        :return: Set of all element names
-        """
-        return self.__all_elements()
-
-    @property
-    def all_rf_cavities(self) -> set:
-        """
-        Get all rf cavities in the machine
-        :return: Set of all cavity names
-        """
-        return self.__all_elements(element_class="rf")
-
-    @property
-    def all_diagnostics(self) -> set:
-        """
-        Get all diagnostic devices in the machine
-        :return: Set of all diagnostic device names
-        """
-        return self.__all_elements(element_class="diagnostic")
-
-    @property
-    def all_charge_diagnostics(self) -> set:
-        """
-        Get all charge diagnostics in the machine
-        :return: Set of all charge diagnostic names
-        """
-        return self.__all_elements(
-            element_class="diagnostic",
-            element_type=["FCM", "WCM", "ICT"],
-        )
-
-    @property
-    def all_beam_position_monitors(self) -> set:
-        """
-        Get all BPM devices in the machine
-        :return: Set of all BPM names
-        """
-        return self.__all_elements(
-            element_class="diagnostic",
-            element_type="BPM",
-        )
-
-    @property
-    def all_position_diagnostics(self) -> set:
-        """
-        Get all position diagnostic devices in the machine
-        :return: Set of all position diagnostic device names
-        """
-        return self.__all_elements(
-            element_class="diagnostic",
-            element_type=["Screen", "BPM"],
-        )
+    all_elements = _all_paths(get_elements, "elements")
+    all_rf_cavities = _all_paths(get_rf_cavities, "RF cavities")
+    all_diagnostics = _all_paths(get_diagnostics, "diagnostic devices")
+    all_charge_diagnostics = _all_paths(get_charge_diagnostics, "charge diagnostics")
+    all_beam_position_monitors = _all_paths(get_beam_position_monitors, "BPM devices")
+    all_position_diagnostics = _all_paths(
+        get_position_diagnostics, "position diagnostic devices"
+    )
+    all_magnets = _all_paths(get_magnets, "magnets")
+    all_quadrupoles = _all_paths(get_quadrupoles, "quadrupole magnets")
+    all_dipoles = _all_paths(get_dipoles, "dipole magnets")
+    all_combined_correctors = _all_paths(
+        get_combined_correctors, "combined corrector magnets"
+    )
+    all_separate_magnets = _all_paths(get_separate_magnets, "separate magnets")
+    all_correctors = _all_paths(get_correctors, "corrector magnets")
+    all_horizontal_correctors = _all_paths(
+        get_horizontal_correctors, "horizontal corrector magnets"
+    )
+    all_vertical_correctors = _all_paths(
+        get_vertical_correctors, "vertical corrector magnets"
+    )
+    all_sextupoles = _all_paths(get_sextupoles, "sextupole magnets")
+    all_solenoids = _all_paths(get_solenoids, "solenoid magnets")
+    all_vacuum_components = _all_paths(get_vacuum_components, "vacuum components")
+    all_shutters = _all_paths(get_shutters, "shutter elements")
 
     @property
     def all_cameras(self) -> list:
@@ -874,10 +461,7 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
         """
         return [
             self[scr].diagnostic.camera_name
-            for scr in self.__all_elements(
-                element_class="diagnostic",
-                element_type="Screen",
-            )
+            for scr in _union(self, _getter("screens", "diagnostic", "Screen"))
         ]
 
     @property
@@ -888,170 +472,11 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
         """
         return {
             scr: self[scr].diagnostic.camera_name
-            for scr in self.__all_elements(
-                element_class="diagnostic",
-                element_type="Screen",
-            )
+            for scr in _union(self, _getter("screens", "diagnostic", "Screen"))
         }
 
-    @property
-    def all_magnets(self) -> set:
-        """
-        Get all magnets in the machine
-        :return: Set of all magnet names
-        """
-        return self.__all_elements(element_class="magnet")
 
-    @property
-    def all_quadrupoles(self) -> set:
-        """
-        Get all quadrupole magnets in the machine
-        :return: Set of all quadrupole magnet names
-        """
-        return self.__all_elements(
-            element_class="magnet",
-            element_type="quadrupole",
-        )
-
-    @property
-    def all_dipoles(self) -> set:
-        """
-        Get all dipole magnets in the machine
-        :return: Set of all dipole magnet names
-        """
-        return self.__all_elements(
-            element_class="magnet",
-            element_type="dipole",
-        )
-
-    @property
-    def all_combined_correctors(self) -> set:
-        """
-        Get all combined corrector magnets in the machine
-        :return: Set of all combined corrector magnet names
-        """
-        return self.__all_elements(
-            element_class="magnet",
-            element_type="combined_corrector",
-        )
-
-    @property
-    def all_separate_magnets(self) -> set:
-        """
-        Get all separate magnets in the machine
-        :return: Set of all separate magnet names
-        """
-        return set(
-            [
-                elem
-                for pathelems in [
-                    self.get_separate_magnets(start=None, end=None, path=path)
-                    for path in self.lattices.keys()
-                ]
-                for elem in pathelems
-            ]
-        )
-
-    @property
-    def all_correctors(self) -> set:
-        """
-        Get all corrector magnets in the machine
-        :return: Set of all corrector magnet names
-        """
-        return set(
-            [
-                elem
-                for pathelems in [
-                    self.get_correctors(
-                        start=None,
-                        end=None,
-                        path=path,
-                    )
-                    for path in self.lattices.keys()
-                ]
-                for elem in pathelems
-            ]
-        )
-
-    @property
-    def all_horizontal_correctors(self) -> set:
-        """
-        Get all horizontal corrector magnets in the machine
-        :return: Set of all horizontal corrector magnet names
-        """
-        return set(
-            [
-                elem
-                for pathelems in [
-                    self.get_horizontal_correctors(
-                        start=None,
-                        end=None,
-                        path=path,
-                    )
-                    for path in self.lattices.keys()
-                ]
-                for elem in pathelems
-            ]
-        )
-
-    @property
-    def all_vertical_correctors(self) -> set:
-        """
-        Get all vertical corrector magnets in the machine
-        :return: Set of all vertical corrector magnet names
-        """
-        return set(
-            [
-                elem
-                for pathelems in [
-                    self.get_vertical_correctors(
-                        start=None,
-                        end=None,
-                        path=path,
-                    )
-                    for path in self.lattices.keys()
-                ]
-                for elem in pathelems
-            ]
-        )
-
-    @property
-    def all_sextupoles(self) -> set:
-        """
-        Get all sextupole magnets in the machine
-        :return: Set of all sextupole magnet names
-        """
-        return self.__all_elements(
-            element_class="magnet",
-            element_type="sextupole",
-        )
-
-    @property
-    def all_solenoids(self) -> set:
-        """
-        Get all solenoid magnets in the machine
-        :return: Set of all solenoid magnet names
-        """
-        return self.__all_elements(
-            element_class="magnet",
-            element_type="solenoid",
-        )
-
-    @property
-    def all_vacuum_components(self) -> set:
-        """
-        Get all vacuum components in the machine
-        :return: Set of all vacuum component names
-        """
-        return self.__all_elements(element_class="vacuum")
-
-    @property
-    def all_shutters(self) -> set:
-        """
-        Get all shutter elements in the machine
-        :return: Set of all shutter element names
-        """
-        return self.__all_elements(
-            element_class="vacuum",
-            element_type="shutter",
-        )
+for _name, _attr in vars(LAURA).items():
+    if _name.startswith("get_") and getattr(_attr, "__name__", None) == "get":
+        _attr.__name__, _attr.__qualname__ = _name, f"LAURA.{_name}"
+del _name, _attr

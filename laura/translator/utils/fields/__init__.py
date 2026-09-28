@@ -188,10 +188,6 @@ class FieldMap(BaseModel):
         *args,
         **kwargs,
     ):
-        FieldMap.filename = filename
-        FieldMap.field_type = (field_type,)
-        FieldMap.frequency = (frequency,)
-        FieldMap.cavity_type = (cavity_type,)
         super(
             FieldMap,
             self,
@@ -220,9 +216,6 @@ class FieldMap(BaseModel):
     @model_validator(mode="before")
     def validate_fields(cls, values):
         return values
-
-    # def model_dump(self):
-    #     return self.filename
 
     def reset_dicts(self) -> None:
         """
@@ -324,7 +317,6 @@ class FieldMap(BaseModel):
             hdf5.read_hdf5_field_file(self, filename)
         else:
             if fext.lower() in [".astra", ".dat"]:
-                # print('Field: read_field_file: astra', filename, fext.lower())
                 astra.read_astra_field_file(
                     self,
                     filename,
@@ -333,10 +325,8 @@ class FieldMap(BaseModel):
                     frequency=frequency,
                 )
             elif fext.lower() in [".sdds"]:
-                # print('Field: read_field_file: SDDS', filename, fext.lower())
                 sdds.read_sdds_field_file(self, filename, field_type=field_type, **kwargs)
             elif fext.lower() in [".gdf"]:
-                # print('Field: read_field_file: GPT', filename, fext.lower())
                 gdf.read_gdf_field_file(
                     self,
                     filename,
@@ -346,7 +336,6 @@ class FieldMap(BaseModel):
                     normalize_b=normalize_b,
                 )
             elif fext.lower() in [".opal"]:
-                # print('Field: read_field_file: opal', filename, fext.lower())
                 opal.read_opal_field_file(
                     self,
                     filename,

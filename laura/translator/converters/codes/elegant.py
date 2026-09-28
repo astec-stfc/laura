@@ -293,7 +293,7 @@ class ElegantLatticeImporter(LatticeImporter):
                 raise ImportError(
                     "The elegant executable is required for ELEGANT source import."
                 ) from exc
-            except subprocess.CalledProcessError as exc:
+            except subprocess.CalledProcessError:
                 _write_command(0)
                 try:
                     subprocess.run(

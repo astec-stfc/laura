@@ -186,12 +186,6 @@ class RFCavityTranslator(BaseElementTranslator):
         etype = self._convert_type_elegant(self.hardware_type)
         if self.hardware_type == "RFCavity" and not self._wakefield_active():
             etype = "rfca"
-            # if self.simulation.field_definition is not None:
-            # etype = "rftmez0"
-            # if ".sdds" not in self.simulation.field_definition:
-            #     field_file_name = self.generate_field_file_name(
-            #     self.simulation.field_definition, code="elegant"
-            # )
         elif self._wakefield_active():
             wakefield_file_name = self.generate_field_file_name(
                 self.simulation.wakefield_definition, code="elegant"
@@ -219,9 +213,7 @@ class RFCavityTranslator(BaseElementTranslator):
         for source_key, value in self.full_dump(
             resolve=self._resolve_functional
         ).items():
-            converted_key = self._convert_keyword_elegant(
-                source_key, updated_type=self.hardware_type
-            ).lower()
+            converted_key = self._convert_keyword_elegant(source_key).lower()
             if preferred.get(converted_key, source_key) != source_key:
                 continue
             if converted_key in emitted:
@@ -583,47 +575,30 @@ class RFCavityTranslator(BaseElementTranslator):
         # if self.structure_type == "TravellingWave" and etype == "rfcavity":
         #     etype = "twcavity"
         string = sanitize_string(self.name) + ": " + etype
-        for key, value in self.full_dump(resolve=self._resolve_functional).items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_madx(key, updated_type=self.hardware_type)
-                in elements_madx[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_madx(
-                        key, updated_type=self.hardware_type
+        for key, value in self._dump_items(
+            self._convert_keyword_madx,
+            elements_madx[etype],
+            resolve=self._resolve_functional,
+            unique=False,
+        ):
+            functional = self.is_functional(value) and not self._resolve_functional
+            if key == "lag":
+                value = f"(90 - ({value})) / 360" if functional else (90 - value) / 360.0
+            if key == "volt":
+                if self.structure_type == "TravellingWave":
+                    factor = abs(
+                        (self.get_cells() + 3.8)
+                        * self.cavity.cell_length
+                        * (1 / np.sqrt(2))
                     )
-                    functional = (
-                        self.is_functional(value) and not self._resolve_functional
-                    )
-                    deferred = functional
-                    if key == "lag":
-                        value = (
-                            f"(90 - ({value})) / 360"
-                            if functional
-                            else (90 - value) / 360.0
-                        )
-                    if key == "volt":
-                        if self.structure_type == "TravellingWave":
-                            factor = abs(
-                                (self.get_cells() + 3.8)
-                                * self.cavity.cell_length
-                                * (1 / np.sqrt(2))
-                            )
-                        else:
-                            factor = 1.0
-                        value = (
-                            f"({value}) * {factor / 1e6}"
-                            if functional
-                            else factor * value / 1e6
-                        )
-                    if key == "freq" and not functional:
-                        value = value / 1e6
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    string += f", {key} {':=' if deferred else '='} {value}"
+                else:
+                    factor = 1.0
+                value = (
+                    f"({value}) * {factor / 1e6}" if functional else factor * value / 1e6
+                )
+            if key == "freq" and not functional:
+                value = value / 1e6
+            string += f", {key} {':=' if functional else '='} {self._flag(value)}"
         if at is not None:
             string += f", at = {at}"
         return string + ";\n"
@@ -649,31 +624,16 @@ class RFCavityTranslator(BaseElementTranslator):
         if self.structure_type == "TravellingWave":
             etype = "travelingwave"
         wholestring = self.name.replace("-", "_") + ": " + etype
-        field_file_name = self.generate_field_file_name(
-            self.simulation.field_definition, code="opal"
-        )
         if etype.lower() == "drift" or self.simulation.field_definition is None:
             return ""
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_opal(key) in elements_opal[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_opal(key)
-                    if key == "lag":
-                        value = -value * np.pi / 180
-                    if key == "freq":
-                        value = value / 1e6
-                    if key == "volt":
-                        value = value / 1e6
-                    val = 1 if value is True else value
-                    val = 0 if value is False else val
-                    if val is not None:
-                        tmpstring = ", " + key + " = " + str(val)
-                        wholestring += tmpstring
+        for key, value in self._dump_items(
+            self._convert_keyword_opal, elements_opal[etype], unique=False
+        ):
+            if key == "lag":
+                value = -value * np.pi / 180
+            if key in ("freq", "volt"):
+                value = value / 1e6
+            wholestring += f", {key} = {self._flag(value)}"
         if isinstance(self.simulation.field_definition, FieldMap):
             wholestring += (
                 ', fmapfn = "'
@@ -779,16 +739,6 @@ class RFCavityTranslator(BaseElementTranslator):
             else:
                 output += "ffac" + subname + " = " + str(self.field_amplitude) + ";\n"
 
-            # if False and self.Structure_Type == 'TravellingWave' and hasattr(self, 'attenuation_constant') and hasattr(self, 'shunt_impedance') and hasattr(self, 'design_power') and hasattr(self, 'design_gamma'):
-            #     '''
-            #     trwlinac(ECS,ao,Rs,Po,P,Go,thetao,phi,w,L)
-            #     '''
-            #     relpos, relrot = ccs.relative_position(self.middle, self.global_rotation)
-            #     power = float(self.field_amplitude) / 25e6 * float(self.design_power)
-            #     output += 'trwlinac' + '( ' + ccs.name + ', "z", '+ str(relpos[2]+self.coupling_cell_length) + ', ' + str(self.attenuation_constant / self.length) + ', ' + str(float(self.shunt_impedance) / self.length)\
-            #             + ', ' + str(float(self.design_power) / self.length) + ', ' + str(power / self.length) + ', ' + str(1000/0.511) + ', ' + str(self.crest)\
-            #             + ', '+str(self.phase)+', w'+subname+', ' + str(self.length) + ');\n'
-            # else:
             output += (
                 "map1D_TM"
                 + '("'

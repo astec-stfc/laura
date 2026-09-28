@@ -1,6 +1,6 @@
 from copy import deepcopy
 from textwrap import wrap
-from typing import TYPE_CHECKING, Any, Dict, NamedTuple, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 from warnings import warn
 
 import numpy as np
@@ -178,6 +178,29 @@ class SectionLatticeTranslator(SectionLattice):
         """
         explicit = getattr(self, flag)
         return self._collective_default(flag) if explicit is None else explicit
+
+    def _translate(self, elements=None) -> dict:
+        """
+        Translate ``elements`` (by default this section's own elements, without
+        drifts) with :func:`~laura.translator.converters.converter.translate_elements`.
+        """
+        if elements is None:
+            elements = list(self.elements.elements.values())
+        return translate_elements(
+            elements, master_lattice=self.master_lattice, directory=self.directory
+        )
+
+    @staticmethod
+    def _end_screen(lastelem, output_filename: str, physical) -> DiagnosticTranslator:
+        """A screen named ``end_screen`` placed at ``physical``, after ``lastelem``."""
+        return DiagnosticTranslator(
+            name="end_screen",
+            hardware_class="Diagnostic",
+            hardware_type="Diagnostic",
+            machine_area=lastelem.machine_area,
+            simulation=DiagnosticSimulationElement(output_filename=output_filename),
+            physical=physical,
+        )
 
     def _check_elements_supported(self, code):
         hw_types = set([e.hardware_type for e in list(self.elements.elements.values())])
@@ -428,13 +451,11 @@ class SectionLatticeTranslator(SectionLattice):
         superimposed = [
             element for element in all_elements if element.name in superimposed_names
         ]
-        elements = translate_elements(
+        elements = self._translate(
             [
                 *(element for key, element in section.items() if key not in superseded),
                 *superimposed,
-            ],
-            master_lattice=self.master_lattice,
-            directory=self.directory,
+            ]
         )
         target_types = {
             element.name: elements[element.name]
@@ -537,11 +558,7 @@ class SectionLatticeTranslator(SectionLattice):
         counter = {k: 1 for k in headers}
         written = []
         element_headers = {h: "" for h in headers}
-        elem_dict = translate_elements(
-            list(self.elements.elements.values()),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate()
         astrastr = ""
         for h in self.astra_headers.values():
             astrastr += h.write_astra()
@@ -586,12 +603,6 @@ class SectionLatticeTranslator(SectionLattice):
                             written.append("&WAKE")
                         element_headers["&WAKE"] += w.to_astra(n=counter["&WAKE"])
                         counter["&WAKE"] += e.cavity.n_cells
-                else:
-                    cond = (
-                        "&"
-                        + e.hardware_type.upper().replace("RF", "").replace("FIELD", "")
-                        in headers
-                    )
         for k, v in element_headers.items():
             astrastr += k + "\n"
             astrastr += v + "\n"
@@ -635,11 +646,7 @@ class SectionLatticeTranslator(SectionLattice):
         fulltext = ""
         for header in self.gpt_headers.values():
             fulltext += header.write_gpt()
-        elem_dict = translate_elements(
-            list(self.elements.elements.values()),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate()
         self._apply_wakefield_enable(elem_dict)
         kwargs = {"charge_sign": charge_sign}
         for i, element in enumerate(list(elem_dict.values())):
@@ -682,7 +689,6 @@ class SectionLatticeTranslator(SectionLattice):
                 )
             else:
                 relpos = list(element.physical.middle.model_dump().values())
-            screen0pos = 0
             ccs = deepcopy(new_ccs)
             if (
                 element.hardware_class.lower() == "diagnostic"
@@ -691,15 +697,8 @@ class SectionLatticeTranslator(SectionLattice):
                 fulltext += f'screen({ccs.name_as_str}, "I", {str(relpos[2] + 0.001)}, {ccs.name_as_str});\n'
                 # if self.gpt_headers["setfile"].particle_definition == "laser":
         lastelem = list(elem_dict.values())[-1]
-        lastscreen = DiagnosticTranslator(
-            name="end_screen",
-            hardware_class="Diagnostic",
-            hardware_type="Diagnostic",
-            machine_area=lastelem.machine_area,
-            simulation=DiagnosticSimulationElement(
-                output_filename=f"{self.name}_out.gdf"
-            ),
-            physical=lastelem.physical,
+        lastscreen = self._end_screen(
+            lastelem, f"{self.name}_out.gdf", lastelem.physical
         )
         fulltext += lastscreen.to_gpt(Brho, output_ccs="wcs")
         relpos, relrot = ccs.relative_position(
@@ -759,11 +758,7 @@ class SectionLatticeTranslator(SectionLattice):
         fulltext += self.opal_headers["option"].write_opal()
         fulltext += f"{breakstr}\n// LATTICE\n"
         zstops = []
-        elem_dict = translate_elements(
-            list(self.elements.elements.values()),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate()
         written = []
         svals = self.get_resolved_s_values(as_dict=True, at_entrance=True)
         for d in elem_dict.values():
@@ -852,11 +847,7 @@ class SectionLatticeTranslator(SectionLattice):
             lsc_enable=self.lsc_enable,
             lsc_bins=self.lsc_bins,
         )
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(section_with_drifts.values())
         self._apply_wakefield_enable(elem_dict)
         string = ""
         if charge:
@@ -902,12 +893,7 @@ class SectionLatticeTranslator(SectionLattice):
             A Genesis-compatible lattice file (v4).
         """
         self._check_elements_supported("genesis")
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         string = ""
         starts = []
         ends = []
@@ -1009,12 +995,7 @@ class SectionLatticeTranslator(SectionLattice):
         self._check_elements_supported("ocelot")
 
         method = {"global": SecondTM, Octupole: KickTM, Undulator: RungeKuttaTM}
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         elements = []
 
         symbolic = not IgnoreExtra.resolve_functional
@@ -1079,12 +1060,7 @@ class SectionLatticeTranslator(SectionLattice):
         from ..conversion_rules.codes.rftrack_conversion import get_rftrack
 
         rft = get_rftrack()
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         lattice = rft.Lattice()
         for d in elem_dict.values():
             elem = d.to_rftrack(P_Q=P_Q)
@@ -1190,12 +1166,7 @@ class SectionLatticeTranslator(SectionLattice):
 
         self._check_elements_supported("cheetah")
 
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         segment = []
         segments = False
         for element in elem_dict.values():
@@ -1254,12 +1225,7 @@ class SectionLatticeTranslator(SectionLattice):
                 self.functional_definitions or IgnoreExtra.functional_definitions
             ).items():
                 env[name] = value
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
 
         def _is_symbolic(val: Any) -> bool:
             if isinstance(val, str):
@@ -1312,34 +1278,20 @@ class SectionLatticeTranslator(SectionLattice):
         self._check_elements_supported("csrtrack")
         headers = ["dipole", "quadrupole", "screen"]
         counter = {k: 1 for k in headers}
-        elem_dict = translate_elements(
-            list(self.elements.elements.values()),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate()
         csrtrackstr = "io_path{logfile = log.txt}\nlattice{\n"
         for e in elem_dict.values():
-            for key, count in counter.items():
-                if e.hardware_type.lower() == key:
-                    csrtrackstr += e.to_csrtrack(n=count)
-                    counter[key] += 1
-                else:
-                    if not e.hardware_class == "Diagnostic":
-                        warn(
-                            f"Element of type {e.hardware_type} not supported for CSRTrack"
-                        )
+            key = e.hardware_type.lower()
+            if key in counter:
+                csrtrackstr += e.to_csrtrack(n=counter[key])
+                counter[key] += 1
+            elif e.hardware_class != "Diagnostic":
+                warn(f"Element of type {e.hardware_type} not supported for CSRTrack")
         lastelem = list(elem_dict.values())[-1]
-        lastscreen = DiagnosticTranslator(
-            name="end_screen",
-            hardware_class="Diagnostic",
-            hardware_type="Diagnostic",
-            machine_area=lastelem.machine_area,
-            simulation=DiagnosticSimulationElement(
-                output_filename="end_screen.csrtrack"
-            ),
-            physical=lastelem.physical.model_copy(
-                update={"middle": lastelem.physical.end}
-            ),
+        lastscreen = self._end_screen(
+            lastelem,
+            "end_screen.csrtrack",
+            lastelem.physical.model_copy(update={"middle": lastelem.physical.end}),
         )
         csrtrackstr += lastscreen.to_csrtrack(n=counter["screen"])
         csrtrackstr += "}\n"
@@ -1369,12 +1321,7 @@ class SectionLatticeTranslator(SectionLattice):
         str
             A MAD-X-compatible ``SEQUENCE`` definition.
         """
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         svals = self.get_s_values(as_dict=True, at_entrance=True)
         exit_svals = self.get_s_values(as_dict=True, at_entrance=False)
         length = max(exit_svals.values()) if exit_svals else 0.0
@@ -1417,18 +1364,10 @@ class SectionLatticeTranslator(SectionLattice):
 
         self._check_elements_supported("wake_t")
 
-        section_with_drifts = self.create_drifts()
-        elem_dict = translate_elements(
-            section_with_drifts.values(),
-            master_lattice=self.master_lattice,
-            directory=self.directory,
-        )
+        elem_dict = self._translate(self.create_drifts().values())
         beamline = []
         for element in elem_dict.values():
             if not element.subelement:
-                # try:
                 if element.length > 0:
                     beamline.append(element.to_wake_t())
-                # except Exception as e:
-                #     print('Wake-T writeElements error:', element.name, e)
         return Beamline(beamline)

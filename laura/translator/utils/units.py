@@ -1,103 +1,12 @@
+"""
+Unit-carrying numpy arrays for field maps.
+
+Unit symbols, dimensions and SI prefixes come from
+`openPMD-beamphysics <https://github.com/ChristopherMayes/openPMD-beamphysics>`_,
+imported lazily as it pulls in matplotlib.
+"""
+
 import numpy as np
-
-from .pmd_units import unit
-
-try:
-    np.warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
-except:
-    pass
-
-# Dicts for prefixes
-PREFIX_FACTOR = {
-    "yocto-": 1e-24,
-    "zepto-": 1e-21,
-    "atto-": 1e-18,
-    "femto-": 1e-15,
-    "pico-": 1e-12,
-    "nano-": 1e-9,
-    "micro-": 1e-6,
-    "milli-": 1e-3,
-    "centi-": 1e-2,
-    "deci-": 1e-1,
-    "deca-": 1e1,
-    "hecto-": 1e2,
-    "kilo-": 1e3,
-    "mega-": 1e6,
-    "giga-": 1e9,
-    "tera-": 1e12,
-    "peta-": 1e15,
-    "exa-": 1e18,
-    "zetta-": 1e21,
-    "yotta-": 1e24,
-}
-
-SHORT_PREFIX_FACTOR = {
-    "y": 1e-24,
-    "z": 1e-21,
-    "a": 1e-18,
-    "f": 1e-15,
-    "p": 1e-12,
-    "n": 1e-9,
-    "µ": 1e-6,
-    "m": 1e-3,
-    "c": 1e-2,
-    "d": 1e-1,
-    "": 1,
-    "da": 1e1,
-    "h": 1e2,
-    "k": 1e3,
-    "M": 1e6,
-    "G": 1e9,
-    "T": 1e12,
-    "P": 1e15,
-    "E": 1e18,
-    "Z": 1e21,
-    "Y": 1e24,
-}
-# Inverse
-SHORT_PREFIX = dict((v, k) for k, v in SHORT_PREFIX_FACTOR.items())
-
-RF_BANDS = {
-    "HF": [3e6, 3e7],
-    "VHF": [3e7, 3e8],
-    "UHF": [3e8, 1e9],
-    "LBand": [1e9, 2e9],
-    "SBand": [2e9, 4e9],
-    "CBand": [4e9, 8e9],
-    "XBand": [8e9, 12e9],
-    "KuBand": [12e9, 18e9],
-    "KBand": [18e9, 27e9],
-    "KaBand": [27e9, 40e9],
-    "VBand": [40e9, 75e9],
-    "WBand": [75e9, 110e9],
-}
-
-
-def nice_scale_prefix(scale):
-    """
-    Returns a nice factor and a SI prefix string
-
-    Example:
-        scale = 2e-10
-
-        f, u = nice_scale_prefix(scale)
-
-
-    """
-
-    if scale == 0:
-        return 1, ""
-
-    p10 = np.log10(abs(scale))
-
-    if p10 < -2 or p10 > 2:
-        f = 10 ** (p10 // 3 * 3)
-    else:
-        f = 1
-
-    if f in SHORT_PREFIX:
-        return f, SHORT_PREFIX[f]
-    return 1, ""
 
 
 def unit_power(string, power_factor=1):
@@ -229,9 +138,6 @@ def expand_units(unit_list, power_factor=1):
     """Takes a list of units (normally numerator or denominator) and collects units and powers
     Returns units ('a^x') and unitnames (('a',x))"""
 
-    # if isinstance(unit_list[0], (list, tuple)):
-    #     return [expand_units(ul) for ul in unit_list]
-
     unitnames = [unit_power(u, power_factor=power_factor) for u in unit_list]
     unique_units = list(set([u[0] for u in unitnames]))
     units = []
@@ -265,7 +171,6 @@ def collect_units(unit_powers):
 
 def unit_powers(string, power_factor=1):
     num, denom = unit_fraction(string)
-    # print(expand_units(num), expand_units(denom))
     return expand_units(
         expand_units(num, power_factor=power_factor)
         + expand_units(denom, power_factor=(-1 * power_factor))
@@ -283,7 +188,6 @@ def unit_multiply(string1, string2=False, divide=False):
         up2 = expand_units(unit_powers(string2, power_factor=pf[1]))
     else:
         up2 = []
-    # print(expand_units(up1 + up2))
     return collect_units(expand_units(up1 + up2))
 
 
@@ -296,11 +200,11 @@ def unit_to_the_power(string1, power=1):
 def get_base_units(string):
     if isinstance(string, (UnitValue)):
         string = string.units
-    # if string is None:
-    #     return np.array((0,0,0,0,0,0,0))
+    from beamphysics.units import pmd_unit
+
     units_powers = unit_powers(string)
     return np.sum(
-        [np.array(unit(u[0]).unitDimension) * u[1] for u in units_powers], axis=0
+        [np.array(pmd_unit(u[0]).unitDimension) * u[1] for u in units_powers], axis=0
     )
 
 
@@ -337,26 +241,12 @@ class UnitValue(np.ndarray):
         self.units = state[-1]
         super().__setstate__(state[:-1])
 
-    # def __array_wrap__(self, obj, context=None):
-    #     result = obj.view(type(self))
-    #     # try:
-    #     #     print(context[0].__name__)
-    #     # except:
-    #     #     print(context)
-    #     if context is not None:
-    #         if context[0].__name__ == 'sqrt':
-    #             result.units = unit_to_the_power(obj.units, 0.5)
-    #         if context[0].__name__ == 'square':
-    #             result.units = unit_to_the_power(obj.units, 2)
-    #     return result
-
     def __array_ufunc__(
         self, ufunc, method, *inputs, **kwargs
     ):  # this method is called whenever you use a ufunc
         """this implementation of __array_ufunc__ makes sure that all custom attributes are maintained when a ufunc operation is performed on our class."""
 
         # convert inputs and outputs of class ArraySubclass to np.ndarray to prevent infinite recursion
-        # print(ufunc)
         args = ((i.view(np.ndarray) if isinstance(i, UnitValue) else i) for i in inputs)
         outputs = kwargs.pop("out", None)
         if outputs:
@@ -367,7 +257,6 @@ class UnitValue(np.ndarray):
             outputs = (None,) * ufunc.nout
         # call numpys implementation of __array_ufunc__
         results = super().__array_ufunc__(ufunc, method, *args, **kwargs)  # pylint: disable=no-member
-        # print(results)
         if results is NotImplemented:
             return NotImplemented
         if method == "at":
@@ -416,6 +305,8 @@ class UnitValue(np.ndarray):
         return "float" in str(self.val.dtype)
 
     def __repr__(self):
+        from beamphysics.units import nice_scale_prefix
+
         if self.val.shape == ():
             if self._isint or self._isfloat:
                 f, prefix = nice_scale_prefix(self.val)
@@ -468,7 +359,6 @@ class UnitValue(np.ndarray):
             if are_units_equal(m.units, self.units):
                 return UnitValue(newval, self.units)
             else:
-                # print('Incompatible Units - ignoring units', m.units, self.units)
                 return UnitValue(newval, "")
         else:
             return UnitValue(newval, self.units)
@@ -520,10 +410,14 @@ class UnitValue(np.ndarray):
 
     @property
     def nice(self):
+        from beamphysics.units import nice_scale_prefix
+
         f, prefix = nice_scale_prefix(self.val)
         return self.val / f, prefix
 
     def in_units_of(self, prefix):
+        from beamphysics.units import PREFIX_FACTOR, SHORT_PREFIX_FACTOR
+
         prefix = prefix + "-" if prefix[-1] != "-" else prefix
         f = 1
         if prefix in SHORT_PREFIX_FACTOR:

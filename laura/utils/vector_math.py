@@ -5,10 +5,10 @@ Provides vector operations, geometric calculations, and angle computations.
 """
 
 import numpy as np
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..models.physical import Position, Rotation
+    pass
 
 
 def vector_length(x: float, y: float, z: float = 0.0) -> float:

@@ -2,7 +2,6 @@ from typing import Any, ClassVar, Dict, List, Union
 
 import numpy as np
 from pydantic import (
-    BaseModel,
     ConfigDict,
     Field,
     NonNegativeFloat,
@@ -432,25 +431,15 @@ class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalM
         )
         if self.multipoles is None and needs_multipoles:
             object.__setattr__(self, "multipoles", Multipoles())
-        if data.get("kl") is not None:
-            self.kl = data["kl"]
-        if data.get("angle") is not None and self.order == 0:
-            self.kl = data["angle"]
+        raw_kl = data["kl"] if data.get("kl") is not None else data.get("angle")
         if self.multipoles is not None:
-            if data.get("kl") is not None or data.get("angle") is not None:
-                raw_kl = data["kl"] if data.get("kl") is not None else data["angle"]
-                if self.skew:
-                    setattr(
-                        self.multipoles,
-                        "K" + str(self.order) + "L",
-                        Multipole(skew=raw_kl, order=self.order),
-                    )
-                else:
-                    setattr(
-                        self.multipoles,
-                        "K" + str(self.order) + "L",
-                        Multipole(normal=raw_kl, order=self.order),
-                    )
+            if raw_kl is not None:
+                side = "skew" if self.skew else "normal"
+                setattr(
+                    self.multipoles,
+                    f"K{self.order}L",
+                    Multipole(order=self.order, **{side: raw_kl}),
+                )
             for i in range(0, 5):
                 if data.get(f"k{i}l") is not None:
                     setattr(
@@ -458,8 +447,6 @@ class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalM
                         f"K{i}L",
                         Multipole(normal=data[f"k{i}l"], order=i),
                     )
-        if self.order == 0:
-            pass  # angle is derived from K0L; nothing to mirror.
 
     @field_validator("plane", mode="before")
     @classmethod
@@ -925,9 +912,6 @@ class NonLinearLensMagnet(_NonLinearLensMagnetBase, IgnoreExtra):
     """Dimensional parameter of NLL. Stored verbatim: a number or a string naming
     a functional definition (resolve via ``resolved("dimensional_parameter")``)."""
 
-    def __init__(self, /, **data: Any) -> None:
-        super().__init__(**data)
-
 
 class CorrectorMagnet(DipoleMagnet, _CorrectorMagnetBase):
     """
@@ -1235,9 +1219,6 @@ class WigglerMagnet(_WigglerMagnetBase, IgnoreExtra):
 
     transverse_gradient_y: float = Field(default=0.0, alias="grady")
     """Vertical transverse gradient."""
-
-    def __init__(self, /, **data: Any) -> None:
-        super().__init__(**data)
 
     @property
     def normalized_strength(self) -> float:

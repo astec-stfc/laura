@@ -67,11 +67,40 @@ def _externalise_fields(ele, directory: str | None):
     return ele.model_copy(update={"simulation": simulation.model_copy(update=written)})
 
 
-def _schema_base_dirs(schema_root: Union[str, None], ele: PhysicalElement):
-    """Try flat schema roots before the legacy per-element directory layout."""
-    if schema_root is None:
-        return (None,)
-    return (schema_root, os.path.join(schema_root, ele.subdirectory))
+def _find_schema(lookup, schema_ref: str, schema_root: Union[str, None], ele):
+    """``lookup(schema_ref, base_dir)``, trying the flat schema root before the
+    legacy per-element directory layout; raises the last `FileNotFoundError`."""
+    base_dirs = (
+        (None,)
+        if schema_root is None
+        else (schema_root, os.path.join(schema_root, ele.subdirectory))
+    )
+    for base_dir in base_dirs:
+        try:
+            return lookup(schema_ref, base_dir)
+        except FileNotFoundError as exc:
+            error = exc
+    raise error
+
+
+def _export_roots(
+    machine,
+    collapse_schema: bool,
+    schema_root: Union[str, None],
+    collapse_inheritance: bool,
+    template_root: Union[str, None],
+) -> tuple:
+    """`schema_root` and `template_root`, each defaulting to
+    `machine.element_list` when that is a path and the matching collapse is
+    on, and the template namespace (or ``None``)."""
+    element_list = getattr(machine, "element_list", None)
+    if isinstance(element_list, str):
+        if collapse_schema and schema_root is None:
+            schema_root = element_list
+        if collapse_inheritance and template_root is None:
+            template_root = element_list
+    namespace = _template_namespace(template_root) if collapse_inheritance else None
+    return schema_root, template_root, namespace
 
 
 def represent_tuple(dumper, data):
@@ -173,7 +202,10 @@ def _prune_empty(data: dict, path: str = "") -> dict:
 
 
 def _collapse_dump_controls(
-    dump: dict, ele: PhysicalElement, schema_root: Union[str, None]
+    dump: dict,
+    ele: PhysicalElement,
+    schema_root: Union[str, None],
+    embedded: Optional[dict] = None,
 ) -> None:
     """
     If ``dump['controls']`` names a ``schema`` and that schema can be found,
@@ -184,21 +216,28 @@ def _collapse_dump_controls(
     `schema`/`identifier_pattern` reference is dropped instead of left in
     place -- otherwise reloading the export would try (and fail) to resolve
     it again despite `variables` already being complete.
+
+    With ``embedded`` each schema is looked up once and kept there under its
+    path relative to a combined file, and the collapsed ``controls`` name that
+    key.
     """
     controls = dump.get("controls")
     if not isinstance(controls, dict) or not controls.get("schema"):
         return
-    error = None
-    for base_dir in _schema_base_dirs(schema_root, ele):
-        try:
-            schema_variables = get_controls_schema_variables(
-                controls["schema"], base_dir
-            )
-            break
-        except FileNotFoundError as exc:
-            error = exc
+    schema_ref = controls["schema"]
+    if embedded is None:
+        embedded, key = {}, schema_ref
     else:
-        warn(f"Cannot collapse controls schema for {ele.name}: {error}")
+        key = os.path.join(ele.subdirectory, schema_ref)
+    if key not in embedded:
+        try:
+            embedded[key] = _find_schema(
+                get_controls_schema_variables, schema_ref, schema_root, ele
+            )
+        except FileNotFoundError as error:
+            warn(f"Cannot collapse controls schema for {ele.name}: {error}")
+            embedded[key] = None
+    if embedded[key] is None:
         dump["controls"] = {
             k: v
             for k, v in controls.items()
@@ -207,7 +246,10 @@ def _collapse_dump_controls(
         return
     live_variables = ele.controls.variables if ele.controls is not None else None
     dump["controls"] = collapse_controls_schema(
-        controls, ele.name, schema_variables, live_variables=live_variables
+        {**controls, "schema": key},
+        ele.name,
+        embedded[key],
+        live_variables=live_variables,
     )
 
 
@@ -341,14 +383,11 @@ def _copy_controls_schema(
     if dest_path in copied:
         return
     copied.add(dest_path)
-    error = None
-    for base_dir in _schema_base_dirs(schema_root, ele):
-        try:
-            src_path = resolve_controls_schema_path(schema_ref, base_dir)
-            break
-        except FileNotFoundError as exc:
-            error = exc
-    else:
+    try:
+        src_path = _find_schema(
+            resolve_controls_schema_path, schema_ref, schema_root, ele
+        )
+    except FileNotFoundError as error:
         warn(f"Cannot copy controls schema for {ele.name}: {error}")
         return
     if os.path.abspath(src_path) == os.path.abspath(dest_path):
@@ -836,19 +875,9 @@ def export_machine_combined_file(
     """
     filename = os.path.join(path, "summary.yaml")
     os.makedirs(path, exist_ok=True)
-    if (
-        collapse_schema
-        and schema_root is None
-        and isinstance(getattr(machine, "element_list", None), str)
-    ):
-        schema_root = machine.element_list
-    if (
-        collapse_inheritance
-        and template_root is None
-        and isinstance(getattr(machine, "element_list", None), str)
-    ):
-        template_root = machine.element_list
-    namespace = _template_namespace(template_root) if collapse_inheritance else None
+    schema_root, template_root, namespace = _export_roots(
+        machine, collapse_schema, schema_root, collapse_inheritance, template_root
+    )
 
     aliases = _repeat_aliases(machine, position_mode)
 
@@ -862,39 +891,7 @@ def export_machine_combined_file(
         if name != elem.name:  # a collapsed repeat, written under the original name
             dump["name"] = name
         if collapse_schema:
-            controls = dump.get("controls")
-            if isinstance(controls, dict) and controls.get("schema"):
-                schema_ref = controls["schema"]
-                combined_key = os.path.join(elem.subdirectory, schema_ref)
-                if combined_key not in embedded_schemas:
-                    error = None
-                    for base_dir in _schema_base_dirs(schema_root, elem):
-                        try:
-                            embedded_schemas[combined_key] = (
-                                get_controls_schema_variables(schema_ref, base_dir)
-                            )
-                            break
-                        except FileNotFoundError as exc:
-                            error = exc
-                    else:
-                        warn(f"Cannot embed controls schema for {elem.name}: {error}")
-                        embedded_schemas[combined_key] = None
-                if embedded_schemas.get(combined_key) is not None:
-                    live_variables = (
-                        elem.controls.variables if elem.controls is not None else None
-                    )
-                    dump["controls"] = collapse_controls_schema(
-                        {**controls, "schema": combined_key},
-                        elem.name,
-                        embedded_schemas[combined_key],
-                        live_variables=live_variables,
-                    )
-                else:
-                    dump["controls"] = {
-                        k: v
-                        for k, v in controls.items()
-                        if k not in ("schema", "identifier_pattern")
-                    }
+            _collapse_dump_controls(dump, elem, schema_root, embedded_schemas)
         if collapse_inheritance:
             _gather_template_chain(
                 _collapse_dump_inheritance(dump, elem, namespace),
@@ -994,19 +991,9 @@ def export_machine(
         inherit from something are left to `collapse_inheritance`.
     """
     os.makedirs(path, exist_ok=True)
-    if (
-        collapse_schema
-        and schema_root is None
-        and isinstance(getattr(machine, "element_list", None), str)
-    ):
-        schema_root = machine.element_list
-    if (
-        collapse_inheritance
-        and template_root is None
-        and isinstance(getattr(machine, "element_list", None), str)
-    ):
-        template_root = machine.element_list
-    namespace = _template_namespace(template_root) if collapse_inheritance else None
+    schema_root, template_root, namespace = _export_roots(
+        machine, collapse_schema, schema_root, collapse_inheritance, template_root
+    )
     aliases = _repeat_aliases(machine, position_mode)
     copied_schemas = set()
     copied_templates = {name: None for name in _machine_view(machine)[1]}

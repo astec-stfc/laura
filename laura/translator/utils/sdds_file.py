@@ -480,7 +480,6 @@ class SDDSFile(object):
             )
             self._sddsObject.setParameterValueList(param.name, param.data)
         for name, column in self._columns.items():
-            # print(len([list(column.data)][0]))
             self._sddsObject.defineColumn(
                 column.name,
                 column.symbol,
@@ -515,9 +514,7 @@ class SDDSFile(object):
                 fieldlength=fieldlength,
                 description=description,
             )
-        # sddsobject.SDDSparameterNames = list()
         for param in range(len(sddsref.parameterName)):
-            name = sddsref.parameterName[param]
             symbol, unit, description, formatstring, type, fieldlength = (
                 sddsref.parameterDefinition[param]
             )

@@ -55,6 +55,21 @@ _BMAD_NO_APERTURE = ("match", "fixer", "ecollimator", "rcollimator")
 """Bmad classes that get no aperture limits written onto them."""
 
 
+def elegant_line(head: str, terms) -> str:
+    """
+    Join ``head`` and ``terms`` into one ELEGANT statement, continuing onto a
+    new line with ``&`` whenever a line would exceed 76 characters.
+    """
+    lines = ""
+    for term in terms:
+        if len(head) + len(term) + 2 > 76:
+            lines += head + ",&\n"
+            head = term
+        else:
+            head += ", " + term
+    return lines + head + ";\n"
+
+
 class BaseElementTranslator(PhysicalBaseElement):
     """
     Translator class for converting a :class:`~laura.models.element.Element` instance into a string or
@@ -131,18 +146,13 @@ class BaseElementTranslator(PhysicalBaseElement):
             "genesis": keyword_conversion_rules_genesis,
             "opal": keyword_conversion_rules_opal,
             "bmad": keyword_conversion_rules_bmad,
+            "madx": keyword_conversion_rules_madx,
         }
         for code, rules in rules_by_code.items():
             self.conversion_rules[code] = (
                 rules[hardware_type] | rules["general"]
                 if hardware_type in rules
                 else rules["general"]
-            )
-        self.conversion_rules["madx"] = keyword_conversion_rules_madx["general"]
-        if self.hardware_type.lower() in keyword_conversion_rules_madx:
-            self.conversion_rules["madx"] = (
-                keyword_conversion_rules_madx[self.hardware_type.lower()]
-                | keyword_conversion_rules_madx["general"]
             )
         self.ccs = GptCcs(name="wcs", position=[0, 0, 0], rotation=[0, 0, 0])
         super().model_post_init(__context)
@@ -279,6 +289,63 @@ class BaseElementTranslator(PhysicalBaseElement):
         """
         return '"' + " ".join(str(token) for token in tokens) + '"'
 
+    @staticmethod
+    def _flag(value: Any) -> Any:
+        """Write booleans as ``1``/``0``; anything else is returned unchanged."""
+        return 1 if value is True else 0 if value is False else value
+
+    def _angle_token(self, value: Any) -> Any:
+        """Replace the reserved ``"angle"``/``"angle/2"`` tokens by the bend angle."""
+        if value == "angle":
+            return self.magnetic.KnL(0)
+        if value == "angle/2":
+            return self.magnetic.KnL(0) / 2
+        return value
+
+    def _magnet_value(self, key: str, value: Any, code: str) -> Tuple[Any, bool]:
+        """
+        Resolve the magnet-derived value of the ``code`` keyword ``key``: the
+        ``"angle"`` tokens, the normalised ``k<n>`` strengths and the bend
+        ``angle``.
+
+        Returns
+        -------
+        Tuple[Any, bool]
+            The value, and whether it was kept as a functional expression
+            (never when :attr:`_resolve_functional` is set).
+        """
+        symbolic = not self._resolve_functional
+        if value in ("angle", "angle/2"):
+            if symbolic and key in ("e1", "e2"):
+                which = "entrance_edge_angle" if key == "e1" else "exit_edge_angle"
+                raw = self._raw_edge_angle(which, code)
+                if raw is not None:
+                    return raw, True
+            return self._angle_token(value), False
+        if key in ("k1", "k2", "k3", "k4", "k5", "k6"):
+            expr = self._functional_strength_expr(int(key[1]), code) if symbolic else None
+            return (expr, True) if expr is not None else (getattr(self, key), False)
+        if key == "angle" and symbolic:
+            raw = self._raw_multipole_strength(0)
+            if raw is not None:
+                return raw, True
+        return value, False
+
+    def _dump_items(self, convert, allowed, resolve: bool = True, unique: bool = True):
+        """
+        Yield ``(keyword, value)`` for each non-None field of :meth:`full_dump`
+        whose keyword, after ``convert``, is in ``allowed``. With ``unique``,
+        only the first field mapping onto each keyword is yielded.
+        """
+        seen = set()
+        for key, value in self.full_dump(resolve=resolve).items():
+            if value is None or key in ("name", "type", "commandtype"):
+                continue
+            keyword = convert(key)
+            if keyword in allowed and not (unique and keyword in seen):
+                seen.add(keyword)
+                yield keyword, value
+
     def start_write(self) -> None:
         """
         Begin the element writing process; calls :func:`~update_field_definition`.
@@ -295,81 +362,23 @@ class BaseElementTranslator(PhysicalBaseElement):
             A formatted string representing the object's properties in Elegant format.
         """
         self.start_write()
-        wholestring = ""
         etype = self._convert_type_elegant(self.hardware_type)
         if etype == "drift" and self.hardware_type.lower() != "drift":
             warn(
                 f"Elegant does not support {self.hardware_type!r}; "
                 f"{self.name!r} was exported as a drift."
             )
-        string = self.name + ": " + etype
-        keys = []
-        for key, value in self.full_dump(resolve=self._resolve_functional).items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_elegant(key) in elements_elegant[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_elegant(key)
-                    if value in ("angle", "angle/2") and key in ("e1", "e2"):
-                        raw = (
-                            None
-                            if self._resolve_functional
-                            else self._raw_edge_angle(
-                                (
-                                    "entrance_edge_angle"
-                                    if key == "e1"
-                                    else "exit_edge_angle"
-                                ),
-                                "elegant",
-                            )
-                        )
-                        value = (
-                            raw
-                            if raw is not None
-                            else (
-                                self.magnetic.KnL(0)
-                                if value == "angle"
-                                else self.magnetic.KnL(0) / 2
-                            )
-                        )
-                    elif value == "angle":
-                        value = self.magnetic.KnL(0)
-                    elif value == "angle/2":
-                        value = self.magnetic.KnL(0) / 2
-                    elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                        expr = (
-                            None
-                            if self._resolve_functional
-                            else self._functional_strength_expr(int(key[1]), "elegant")
-                        )
-                        value = expr if expr is not None else getattr(self, f"{key}")
-                    elif key == "angle":
-                        raw = (
-                            None
-                            if self._resolve_functional
-                            else self._raw_multipole_strength(0)
-                        )
-                        if raw is not None:
-                            value = raw
-                    elif key == "yaw" and isinstance(value, (int, float)):
-                        value = -value
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    if key not in keys:
-                        value = self._elegant_value(value)
-                        tmpstring = ", " + key + " = " + str(value)
-                        if len(string + tmpstring) > 76:
-                            wholestring += string + ",&\n"
-                            string = ""
-                            string += tmpstring[2::]
-                        else:
-                            string += tmpstring
-                    keys.append(key)
-        wholestring += string + ";\n"
-        return wholestring
+        terms = []
+        for key, value in self._dump_items(
+            self._convert_keyword_elegant,
+            elements_elegant[etype],
+            resolve=self._resolve_functional,
+        ):
+            value, _ = self._magnet_value(key, value, "elegant")
+            if key == "yaw" and isinstance(value, (int, float)):
+                value = -value
+            terms.append(f"{key} = {self._elegant_value(self._flag(value))}")
+        return elegant_line(self.name + ": " + etype, terms)
 
     def to_ocelot(self) -> object:
         """
@@ -488,9 +497,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                         "fringe_integral_exit",
                         tensor(self.magnetic.exit_fringe_integral, dtype=float64),
                     )
-                    # else:
-                    #     from torch import get_default_dtype
-                    #     dt = get_default_dtype()
         self._cheetah_float64(obj)
         if isinstance(obj, Screen_Cheetah):
             obj.is_active = True
@@ -530,7 +536,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                 "num_particles": beam_length,
                 "start_at_turn": 0,
                 "stop_at_turn": 1,
-                # "store_particles": True,
             }
             return self.name, obj, properties
         if self.hardware_type.lower() == "dipole":
@@ -593,29 +598,17 @@ class BaseElementTranslator(PhysicalBaseElement):
             A formatted string representing the object's properties in Elegant format.
         """
         self.start_write()
-        wholestring = ""
         etype = self._convert_type_genesis(self.hardware_type)
         if "mark" in etype.lower():
             fld = ", dumpfield = 1" if "photon" in self.hardware_type.lower() else ""
             return f"{index}{self.name}: {etype} = " + "{dumpbeam = 1" + fld + "};\n"
-        string = f"{index}{self.name}: {etype} = " + "{"
-        keys = []
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_genesis(key) in elements_genesis[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_genesis(key)
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    if key not in keys:
-                        string += key + " = " + str(value) + ", "
-                    keys.append(key)
-        wholestring += string[:-2] + "};\n"
-        return wholestring
+        terms = [
+            f"{key} = {self._flag(value)}"
+            for key, value in self._dump_items(
+                self._convert_keyword_genesis, elements_genesis[etype]
+            )
+        ]
+        return f"{index}{self.name}: {etype} = " + "{" + ", ".join(terms) + "};\n"
 
     def to_csrtrack(self, n: int = 0, **kwargs) -> str:
         """
@@ -851,34 +844,15 @@ class BaseElementTranslator(PhysicalBaseElement):
         str
             A formatted string representing the object's properties in OPAL format.
         """
-        # wholestring = ""
         self.start_write()
         etype = self._convert_type_opal(self.hardware_type)
-        wholestring = self.name.replace("-", "_") + ": " + etype
         if etype.lower() == "drift":
             return ""
-        keys = []
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_opal(key) in elements_opal[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_opal(key)
-                    if value == "angle":
-                        value = self.magnetic.KnL(0)
-                    elif value == "angle/2":
-                        value = self.magnetic.KnL(0) / 2
-                    # elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                    #     value = getattr(self, f"{key}l")
-                    val = 1 if value is True else value
-                    val = 0 if value is False else val
-                    tmpstring = ", " + key + " = " + str(val)
-                    if key not in keys:
-                        wholestring += tmpstring
-                        keys.append(key)
+        wholestring = self.name.replace("-", "_") + ": " + etype
+        for key, value in self._dump_items(
+            self._convert_keyword_opal, elements_opal[etype]
+        ):
+            wholestring += f", {key} = {self._flag(self._angle_token(value))}"
         if etype == "monitor":
             wholestring += f', OUTFN = "{self.name}_opal"'
         wholestring += f", ELEMEDGE = {sval};\n"
@@ -949,80 +923,26 @@ class BaseElementTranslator(PhysicalBaseElement):
         self.start_write()
         etype = self._convert_type_madx(self.hardware_type)
         string = sanitize_string(self.name) + ": " + etype
-        keys = []
         fringe = self._madx_fringe(etype)
-        for key, value in self.full_dump(resolve=self._resolve_functional).items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_madx(key) in elements_madx[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_madx(key)
-                    if fringe and key in ("fint", "fintx", "hgap"):
-                        if key not in fringe:
-                            continue  # folded onto the face that is kept
-                        value = fringe[key]
-                    deferred = False
-                    if value in ("angle", "angle/2") and key in ("e1", "e2"):
-                        raw = (
-                            None
-                            if self._resolve_functional
-                            else self._raw_edge_angle(
-                                (
-                                    "entrance_edge_angle"
-                                    if key == "e1"
-                                    else "exit_edge_angle"
-                                ),
-                                "madx",
-                            )
-                        )
-                        if raw is not None:
-                            value = raw
-                            deferred = True
-                        else:
-                            value = (
-                                self.magnetic.KnL(0)
-                                if value == "angle"
-                                else self.magnetic.KnL(0) / 2
-                            )
-                    elif value == "angle":
-                        value = self.magnetic.KnL(0)
-                    elif value == "angle/2":
-                        value = self.magnetic.KnL(0) / 2
-                    elif key in ["k1", "k2", "k3", "k4", "k5", "k6"]:
-                        expr = (
-                            None
-                            if self._resolve_functional
-                            else self._functional_strength_expr(int(key[1]), "madx")
-                        )
-                        if expr is not None:
-                            value = expr
-                            deferred = True
-                        else:
-                            value = getattr(self, key)
-                    elif key == "angle":
-                        raw = (
-                            None
-                            if self._resolve_functional
-                            else self._raw_multipole_strength(0)
-                        )
-                        if raw is not None:
-                            value = raw
-                            deferred = True
-                    elif not self._resolve_functional and self.is_functional(value):
-                        deferred = True
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    if key not in keys:
-                        op = ":=" if deferred else "="
-                        string += f", {key} {op} {value}"
-                    keys.append(key)
+        written = set()
+        for key, value in self._dump_items(
+            self._convert_keyword_madx,
+            elements_madx[etype],
+            resolve=self._resolve_functional,
+        ):
+            if fringe and key in ("fint", "fintx", "hgap"):
+                if key not in fringe:
+                    continue  # folded onto the face that is kept
+                value = fringe[key]
+            value, deferred = self._magnet_value(key, value, "madx")
+            deferred = deferred or (
+                not self._resolve_functional and self.is_functional(value)
+            )
+            string += f", {key} {':=' if deferred else '='} {self._flag(value)}"
+            written.add(key)
         for key, value in fringe.items():
-            if key not in keys and key in elements_madx[etype]:
+            if key not in written and key in elements_madx[etype]:
                 string += f", {key} = {value}"
-                keys.append(key)
         if at is not None:
             string += f", at = {at}"
         return string + ";\n"
@@ -1073,46 +993,24 @@ class BaseElementTranslator(PhysicalBaseElement):
             return "drift"
         return converted
 
-    def _convert_keyword_elegant(self, keyword: str, updated_type: str = "") -> str:
+    def _convert_keyword_elegant(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Elegant keyword using predefined rules."""
-        if updated_type.lower() in keyword_conversion_rules_elegant:
-            conversion_rules = (
-                keyword_conversion_rules_elegant[updated_type.lower()]
-                | keyword_conversion_rules_elegant["general"]
-            )
-            element = elements_elegant.get(
-                self._convert_type_elegant(updated_type).lower(),
-                elements_elegant["drift"],
-            )
-        else:
-            conversion_rules = self.conversion_rules["elegant"]
-            element = elements_elegant.get(
-                self._convert_type_elegant(self.hardware_type).lower(),
-                elements_elegant["drift"],
-            )
-        return self._convert_keyword(keyword, conversion_rules, element)
+        element = elements_elegant.get(
+            self._convert_type_elegant(self.hardware_type).lower(),
+            elements_elegant["drift"],
+        )
+        return self._convert_keyword(keyword, self.conversion_rules["elegant"], element)
 
     def _convert_type_genesis(self, etype: str) -> str:
         """Converts the element type to the corresponding Genesis type using predefined rules."""
         return self._convert_type(etype, type_conversion_rules_genesis, etype)
 
-    def _convert_keyword_genesis(self, keyword: str, updated_type: str = "") -> str:
+    def _convert_keyword_genesis(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Genesis keyword using predefined rules."""
-        if updated_type.lower() in keyword_conversion_rules_genesis:
-            conversion_rules = (
-                keyword_conversion_rules_genesis[updated_type.lower()]
-                | keyword_conversion_rules_genesis["general"]
-            )
-            element = elements_genesis.get(
-                self._convert_type_genesis(updated_type), elements_genesis["drift"]
-            )
-        else:
-            conversion_rules = self.conversion_rules["genesis"]
-            element = elements_genesis.get(
-                self._convert_type_genesis(self.hardware_type),
-                elements_genesis["drift"],
-            )
-        return self._convert_keyword(keyword, conversion_rules, element)
+        element = elements_genesis.get(
+            self._convert_type_genesis(self.hardware_type), elements_genesis["drift"]
+        )
+        return self._convert_keyword(keyword, self.conversion_rules["genesis"], element)
 
     def _convert_type_ocelot(self, etype: str) -> object:
         """Converts the element type to the corresponding Ocelot type using predefined rules."""
@@ -1124,7 +1022,7 @@ class BaseElementTranslator(PhysicalBaseElement):
             etype, ocelot_conversion.ocelot_conversion_rules, Drift_Oce
         )
 
-    def _convert_keyword_ocelot(self, keyword: str, updated_type: str = "") -> str:
+    def _convert_keyword_ocelot(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Ocelot keyword using predefined rules."""
         return self._convert_keyword(keyword, self.conversion_rules["ocelot"])
 
@@ -1158,69 +1056,19 @@ class BaseElementTranslator(PhysicalBaseElement):
         """Converts the element type to the corresponding Opal type using predefined rules."""
         return self._convert_type(etype, type_conversion_rules_opal, etype)
 
-    def _convert_keyword_opal(self, keyword: str, updated_type: str = "") -> str:
+    def _convert_keyword_opal(self, keyword: str) -> str:
         """Converts a keyword to its corresponding Opal keyword using predefined rules."""
-        if updated_type.lower() in keyword_conversion_rules_opal:
-            conversion_rules = (
-                keyword_conversion_rules_opal[updated_type.lower()]
-                | keyword_conversion_rules_opal["general"]
-            )
-            element = elements_opal[self._convert_type_opal(updated_type)]
-        else:
-            conversion_rules = self.conversion_rules["opal"]
-            element = elements_opal[self._convert_type_opal(self.hardware_type)]
-        return self._convert_keyword(keyword, conversion_rules, element)
+        element = elements_opal[self._convert_type_opal(self.hardware_type)]
+        return self._convert_keyword(keyword, self.conversion_rules["opal"], element)
 
     def _convert_type_madx(self, etype: str) -> str:
-        """
-        Converts the element type to the corresponding MAD-X type using predefined rules.
+        """Converts the element type to the corresponding MAD-X type using predefined rules."""
+        return self._convert_type(etype, type_conversion_rules_madx, etype)
 
-        Parameters
-        ----------
-        etype: str
-            The type of the element to be converted.
-
-        Returns
-        -------
-        str
-            The converted type of the element, or the original type if no conversion rule exists.
-        """
-        return (
-            type_conversion_rules_madx[etype]
-            if etype in type_conversion_rules_madx
-            else etype
-        )
-
-    def _convert_keyword_madx(self, keyword: str, updated_type: str = "") -> str:
-        """
-        Converts a keyword to its corresponding MAD-X keyword using predefined rules.
-
-        Parameters
-        ----------
-        keyword: str:
-            The keyword to be converted.
-
-        Returns
-        -------
-        str
-            The converted keyword for MAD-X, or the original keyword if no conversion rule exists.
-        """
-        if updated_type.lower() in keyword_conversion_rules_madx:
-            conversion_rules = (
-                keyword_conversion_rules_madx[updated_type.lower()]
-                | keyword_conversion_rules_madx["general"]
-            )
-            element = elements_madx[self._convert_type_madx(updated_type).lower()]
-        else:
-            conversion_rules = self.conversion_rules["madx"]
-            element = elements_madx[self._convert_type_madx(self.hardware_type).lower()]
-        for strip in ["", "simulation_", "cavity_", "magnetic_", "aperture_"]:
-            stripped = keyword.replace(strip, "")
-            if stripped in conversion_rules:
-                return conversion_rules[stripped]
-            elif stripped in element.keys():
-                return stripped
-        return keyword
+    def _convert_keyword_madx(self, keyword: str) -> str:
+        """Converts a keyword to its corresponding MAD-X keyword using predefined rules."""
+        element = elements_madx[self._convert_type_madx(self.hardware_type).lower()]
+        return self._convert_keyword(keyword, self.conversion_rules["madx"], element)
 
     def _convert_type_bmad(self, etype: str) -> str:
         """
@@ -1239,46 +1087,17 @@ class BaseElementTranslator(PhysicalBaseElement):
         converted = self._convert_type(etype, type_conversion_rules_bmad, etype)
         return converted if converted.lower() in elements_bmad else "drift"
 
-    def _convert_keyword_bmad(self, keyword: str, updated_type: str = "") -> str:
-        """
-        Converts a keyword to its corresponding Bmad keyword using predefined rules.
-
-        Parameters
-        ----------
-        keyword: str:
-            The keyword to be converted.
-        updated_type: str
-            Optional override for type name
-
-        Returns
-        -------
-        str
-            The converted keyword for Bmad, or the original keyword if no conversion rule exists.
-        """
-        hardware_type = updated_type or self.hardware_type
-        key = hardware_type.lower()
-        conversion_rules = (
-            keyword_conversion_rules_bmad[key]
-            | keyword_conversion_rules_bmad["general"]
-            if key in keyword_conversion_rules_bmad
-            else self.conversion_rules["bmad"]
-        )
+    def _convert_keyword_bmad(self, keyword: str) -> str:
+        """Converts a keyword to its corresponding Bmad keyword using predefined rules."""
         element = (
-            elements_bmad[self._convert_type_bmad(hardware_type).lower()]
+            elements_bmad[self._convert_type_bmad(self.hardware_type).lower()]
             | elements_bmad["common"]
         )
         return self._convert_keyword(
             keyword,
-            conversion_rules,
+            self.conversion_rules["bmad"],
             element,
-            strip_prefixes=(
-                "",
-                "simulation_",
-                "cavity_",
-                "magnetic_",
-                "aperture_",
-                "physical_",
-            ),
+            strip_prefixes=self._KEYWORD_STRIP_PREFIXES + ["physical_"],
         )
 
     def _bmad_parameters(self, etype: str | None = None) -> Dict[str, Any]:
@@ -1700,7 +1519,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                         self.simulation.field_definition,
                         self.master_lattice,
                     ),
-                    # "field_type": self.field_type,
                 }
                 if "cavity" in self.hardware_type.lower():
                     field_kwargs.update(
@@ -1712,7 +1530,7 @@ class BaseElementTranslator(PhysicalBaseElement):
                     )
                 try:
                     self.simulation.field_definition = FieldMap(**field_kwargs)
-                except Exception as exc:
+                except Exception:
                     raise Exception(
                         f"Setting field definition on {self.name} failed: {field_kwargs}"
                     )
@@ -1729,14 +1547,12 @@ class BaseElementTranslator(PhysicalBaseElement):
                         additional.update(
                             {"structure_Type": self.cavity.structure_type}
                         )
-                        cavity_type = (self.cavity.structure_type,)
                     self.simulation.wakefield_definition = FieldMap(
                         filename=expand_substitution(
                             self,
                             self.simulation.wakefield_definition,
                             self.master_lattice,
                         ),
-                        # field_type=self.field_type,
                         n_cells=self.cavity.n_cells,
                         **additional,
                     )

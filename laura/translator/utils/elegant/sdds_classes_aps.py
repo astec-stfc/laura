@@ -51,7 +51,6 @@ class SddsParams:
         if not self.elegant_params:
             self.join_params()
         sfconvert = {}
-        # disallowed = ["bore", "zwakefile"]
         filenames = {}
         sfconvert = {}
         for k, v in self.elegant_params.items():

@@ -224,7 +224,6 @@ class ControlVariable(_ControlVariableBase):
     model_config = ConfigDict(
         arbitrary_types_allowed=False,
         extra="allow",
-        # frozen=True,
     )
 
     def __init__(self, **data):

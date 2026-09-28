@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from laura.models.element import (
+    PhotonMonitor,
     BaseElement,
     PhysicalBaseElement,
     Magnet,
@@ -143,7 +144,7 @@ class TestMagnetAngles:
 
 class TestElementSubclassNestedDefaults:
     """These subclasses are otherwise never constructed anywhere in the suite;
-    each just wires a nested-default in model_post_init via _ensure_nested_default."""
+    each just declares a nested default in ``_NESTED_DEFAULTS``."""
 
     @pytest.mark.parametrize(
         "cls,attr",
@@ -169,6 +170,15 @@ class TestElementSubclassNestedDefaults:
     def test_nested_default_created(self, cls, attr):
         instance = cls(name="X1", machine_area="MA")
         assert getattr(instance, attr) is not None
+
+    def test_photon_monitor_diagnostic_round_trips(self):
+        """``diagnostic`` was typed as the fieldless base, so its data was
+        silently dropped on load and dump."""
+        pm = PhotonMonitor(
+            name="PM1", machine_area="MA", diagnostic={"type": "Diode", "intensity": 3.0}
+        )
+        assert pm.model_dump()["diagnostic"] == {"type": "Diode", "intensity": 3.0}
+        assert PhotonMonitor(name="PM1", machine_area="MA").diagnostic.type == "I0"
 
     def test_wakefield_creates_both_defaults(self):
         w = Wakefield(name="W1", machine_area="MA")

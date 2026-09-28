@@ -4,7 +4,6 @@ from warnings import warn
 from collections import Counter
 from .field_parameter import FieldParameter
 from ..units import UnitValue
-import re
 
 d = ",!?/&-:;@'\n \t"
 

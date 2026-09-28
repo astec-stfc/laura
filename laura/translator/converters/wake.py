@@ -63,7 +63,6 @@ class WakefieldTranslator(BaseElementTranslator):
         str
             String representation of the element for ASTRA
         """
-        field_ref_pos = self.get_field_reference_position()
         field_file_name = self.generate_field_file_name(
             self.simulation.wakefield_definition, code="astra"
         )

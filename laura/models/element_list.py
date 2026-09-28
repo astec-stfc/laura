@@ -2,6 +2,7 @@ import logging
 import math
 import os
 import warnings
+from copy import deepcopy
 from functools import cmp_to_key
 from typing import Any, Dict, List, Literal, Optional, Union
 from warnings import warn
@@ -245,14 +246,106 @@ def load_functional_definitions(
     raise ValueError("functional_definitions must be a path, dict, or None")
 
 
-def dot(a, b) -> float:
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+def insert_drifts(
+    elements: Dict[str, Any],
+    prefix: str,
+    digits: int = 16,
+    min_length: float = 0.0,
+    **drift_fields,
+) -> Dict[str, Any]:
+    """
+    Return ``elements`` (name -> element, in beam order) with a :class:`Drift`
+    filling each gap between one element's end and the next one's start.
+
+    A gap gets a drift when its length, rounded to ``digits`` decimals, exceeds
+    ``min_length``. Drifts are named ``<prefix><n>`` and given a copy of
+    ``drift_fields``.
+    """
+    items = list(elements.items())
+    newelements = {}
+    count = 0
+    for (name, elem), (_, following) in zip(items, items[1:] + items[-1:]):
+        newelements[name] = elem
+        if following is elem:
+            continue
+        (x1, y1, z1), (x2, y2, z2) = elem.physical.end.array, following.physical.start.array
+        try:
+            length = round(np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2), digits)
+        except Exception as exc:
+            _log.error("Drift calculation error near element '%s': %s", name, exc)
+            raise
+        if length > min_length:
+            count += 1
+            middle = dict(x=(x1 + x2) / 2.0, y=(y1 + y2) / 2.0, z=(z1 + z2) / 2.0)
+            newelements[f"{prefix}{count}"] = Drift(
+                name=f"{prefix}{count}",
+                hardware_class="Drift",
+                machine_area=elem.machine_area,
+                physical=PhysicalElement(
+                    length=length,
+                    middle=Position(**middle),
+                    datum=Position(**middle),
+                ),
+                **deepcopy(drift_fields),
+            )
+    return newelements
 
 
-def chunks(li, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(li), n):
-        yield li[i : i + n]
+class _ElementQueries:
+    """Element queries shared by :class:`MachineLayout` and :class:`MachineModel`."""
+
+    @staticmethod
+    def _normalise_type_filter(
+        lattice_type: Union[str, list, None],
+        *,
+        context: str,
+    ) -> set[LatticeType] | None:
+        if lattice_type is None:
+            return None
+
+        if isinstance(lattice_type, str):
+            return {normalise_lattice_type(lattice_type, context=context)}
+
+        if isinstance(lattice_type, list):
+            return {
+                normalise_lattice_type(value, context=context) for value in lattice_type
+            }
+
+        raise TypeError(f"{context} filter must be a str or list[str]")
+
+    def get_all_elements(
+        self,
+        element_type: Union[str, list, None] = None,
+        element_model: Union[str, list, None] = None,
+        element_class: Union[str, list, None] = None,
+        section_type: Union[str, list, None] = None,
+    ) -> List[str]:
+        """
+        Get all elements in the lattice, or filter them by type/model/class
+        # TODO function name implies this returns elements rather than names; rename?
+
+        Parameters
+        ----------
+        element_type: str | list | None
+            Filter by element type; if list, gather multiple types; if None, gather all.
+        element_model: str | list | None
+            Filter by element model; if list, gather multiple models; if None, gather all.
+        element_class
+            Filter by element hardware class; if list, gather multiple classes; if None, gather all.
+
+        Returns
+        -------
+        List[str]
+            Filtered names of elements.
+        """
+        return self.elements_between(
+            end=None,
+            start=None,
+            element_type=element_type,
+            element_class=element_class,
+            element_model=element_model,
+            section_type=section_type,
+        )
 
 
 class BaseLatticeModel(ModelBase):
@@ -457,7 +550,6 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
         return self.elements.names
 
     def __str__(self):
-        # return str(getattr(self, self._basename).__str__())
         return str(self.names)
 
     def __getitem__(self, item: Union[str, int]) -> BaseModel:
@@ -503,67 +595,23 @@ class SectionLattice(DeprecatedMethodAliases, BaseLatticeModel, _SectionLatticeB
             csr_enable = self._collective_default("csr_enable")
         if lsc_enable is None:
             lsc_enable = self._collective_default("lsc_enable")
-        positions = []
-        originalelements = dict()
-        elementno = 0
-        newelements = dict()
-
-        elements = self._get_all_elements()
-
-        for elem in elements:
-            if not elem.subelement:
-                if isinstance(elem, Diagnostic) and not keep_diagnostic_length:
-                    elem = elem.model_copy(
-                        update={
-                            "physical": elem.physical.model_copy(update={"length": 0.0})
-                        }
-                    )
-                originalelements[elem.name] = elem
-                start = elem.physical.start.array
-                end = elem.physical.end.array
-                positions.append(start)
-                positions.append(end)
-        positions = positions[1:]
-        positions.append(positions[-1])
-        driftdata = list(
-            zip(iter(list(originalelements.items())), list(chunks(positions, 2)))
+        elements = {}
+        for elem in self._get_all_elements():
+            if elem.subelement:
+                continue
+            if isinstance(elem, Diagnostic) and not keep_diagnostic_length:
+                elem = elem.model_copy(
+                    update={"physical": elem.physical.model_copy(update={"length": 0.0})}
+                )
+            elements[elem.name] = elem
+        return insert_drifts(
+            elements,
+            self.name + "_drift_",
+            min_length=1e-12,
+            simulation=DriftSimulationElement(
+                csr_enable=csr_enable, lsc_enable=lsc_enable, lsc_bins=lsc_bins
+            ),
         )
-
-        for e, d in driftdata:
-            newelements[e[0]] = e[1]
-            if len(d) > 1:
-                x1, y1, z1 = d[0]
-                x2, y2, z2 = d[1]
-                try:
-                    length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
-                    vector = dot((d[1] - d[0]), [0, 0, 1])
-                except Exception as exc:
-                    _log.error(
-                        "Drift calculation error near element '%s': %s", e[0], exc
-                    )
-                    _log.debug("Position data: %s", d)
-                    raise exc
-                if length > 1e-12:
-                    elementno += 1
-                    name = self.name + "_drift_" + str(elementno)
-                    x, y, z = [(a + b) / 2.0 for a, b in zip(d[0], d[1])]
-                    newdrift = Drift(
-                        name=name,
-                        hardware_class="Drift",
-                        machine_area=newelements[e[0]].machine_area,
-                        physical=PhysicalElement(
-                            length=abs(round(np.copysign(length, vector), 16)),
-                            middle=Position(x=x, y=y, z=z),
-                            datum=Position(x=x, y=y, z=z),
-                        ),
-                        simulation=DriftSimulationElement(
-                            csr_enable=csr_enable,
-                            lsc_enable=lsc_enable,
-                            lsc_bins=lsc_bins,
-                        ),
-                    )
-                    newelements[name] = newdrift
-        return newelements
 
     def get_s_values(
         self, as_dict: bool = False, at_entrance: bool = False, starting_s: float = 0
@@ -1210,7 +1258,7 @@ class LayoutPass(BaseModel):
         return f"<LayoutPass {self.section}{pass_number}{arrow}>"
 
 
-class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
+class MachineLayout(_ElementQueries, BaseLatticeModel, _MachineLayoutBase):
     """
     A machine layout, consisting of a dictionary of lattice sections.
     This class could represent a full beam path, for example.
@@ -1267,25 +1315,6 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
     @classmethod
     def validate_layout_type(cls, value: str | None) -> LatticeType:
         return normalise_lattice_type(value, context="layout")
-
-    @staticmethod
-    def _normalise_type_filter(
-        lattice_type: Union[str, list, None],
-        *,
-        context: str,
-    ) -> set[LatticeType] | None:
-        if lattice_type is None:
-            return None
-
-        if isinstance(lattice_type, str):
-            return {normalise_lattice_type(lattice_type, context=context)}
-
-        if isinstance(lattice_type, list):
-            return {
-                normalise_lattice_type(value, context=context) for value in lattice_type
-            }
-
-        raise TypeError(f"{context} filter must be a str or list[str]")
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -1737,15 +1766,6 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
             message = "Element %s does not exist along the beam path" % name
             raise LatticeError(message)
 
-    def _get_element_names(self, lattice: list) -> list:
-        """
-        Return the name for each LatticeElement object in a list defining a lattice
-
-        :param str lattice: List of LatticeElement objects representing machine hardware
-        :returns: List of strings defining the names of the machine elements
-        """
-        return [ele.name for ele in lattice]
-
     def _lookup_index(self, name: str) -> int:
         """
         Look up the index of an element in a given lattice
@@ -1804,17 +1824,12 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
         """
         return self._occurrence_keys()
 
-    def _filter_element_list(self, result, filt, attrib):
-        return [
-            result[i]
-            for i in self._filter_indices(result, range(len(result)), filt, attrib)
-        ]
-
     def _filter_indices(self, elements, indices, filt, attrib):
-        """:meth:`_filter_element_list` over positions rather than objects.
+        """Positions among ``indices`` whose ``attrib`` matches ``filt``.
 
-        Two passes of a multipass element are the same object, so a caller that
-        needs to keep them apart has to carry the position.
+        Works on positions rather than objects: two passes of a multipass
+        element are the same object, so a caller that needs to keep them apart
+        has to carry the position.
         """
         if not isinstance(filt, (str, list)):
             return list(indices)
@@ -1845,40 +1860,6 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
             if field_info.alias.lower() in filter_list:
                 return True
         return False
-
-    def get_all_elements(
-        self,
-        element_type: Union[str, list, None] = None,
-        element_model: Union[str, list, None] = None,
-        element_class: Union[str, list, None] = None,
-        section_type: Union[str, list, None] = None,
-    ) -> List[str]:
-        """
-        Get all elements in the lattice, or filter them by type/model/class
-        # TODO function name implies this returns elements rather than names; rename?
-
-        Parameters
-        ----------
-        element_type: str | list | None
-            Filter by element type; if list, gather multiple types; if None, gather all.
-        element_model: str | list | None
-            Filter by element model; if list, gather multiple models; if None, gather all.
-        element_class
-            Filter by element hardware class; if list, gather multiple classes; if None, gather all.
-
-        Returns
-        -------
-        List[str]
-            Filtered names of elements.
-        """
-        return self.elements_between(
-            end=None,
-            start=None,
-            element_type=element_type,
-            element_class=element_class,
-            element_model=element_model,
-            section_type=section_type,
-        )
 
     def elements_between(
         self,
@@ -1953,7 +1934,7 @@ class MachineLayout(BaseLatticeModel, _MachineLayoutBase):
         return [keys[i] for i in indices]
 
 
-class MachineModel(ModelBase, _MachineModelBase):
+class MachineModel(_ElementQueries, ModelBase, _MachineModelBase):
     """
     The full model of the accelerator. It describes all :class:`~laura.models.elementList.MachineLayout` and
     :class:`~laura.models.elementList.SectionLattice` that particles can follow.
@@ -2010,25 +1991,6 @@ class MachineModel(ModelBase, _MachineModelBase):
     _layout_passes: Dict[str, list] = {}
 
     _default_path: str = None
-
-    @staticmethod
-    def _normalise_type_filter(
-        lattice_type: Union[str, list, None],
-        *,
-        context: str,
-    ) -> set[LatticeType] | None:
-        if lattice_type is None:
-            return None
-
-        if isinstance(lattice_type, str):
-            return {normalise_lattice_type(lattice_type, context=context)}
-
-        if isinstance(lattice_type, list):
-            return {
-                normalise_lattice_type(value, context=context) for value in lattice_type
-            }
-
-        raise TypeError(f"{context} filter must be a str or list[str]")
 
     @staticmethod
     def _normalise_section_definitions(
@@ -2959,11 +2921,6 @@ class MachineModel(ModelBase, _MachineModelBase):
         if len(self.lattices) == 1 and self._default_path is None:
             self._default_path = next(iter(self.lattices))
 
-    def _resolve_all_reference_placements(self) -> None:
-        """Resolve reference_placement specs across all sections."""
-        for section in self.sections.values():
-            section.resolve_reference_placements(self.elements)
-
     def _resolve_all_positions(self) -> None:
         """Resolve all positioning modes (reference_placement, s, global) for every section."""
         self._number_sequential_repeats()
@@ -3081,40 +3038,6 @@ class MachineModel(ModelBase, _MachineModelBase):
                 "Element %s does not exist anywhere in the accelerator lattice" % name
             )
             raise LatticeError(message)
-
-    def get_all_elements(
-        self,
-        element_type: Union[str, list, None] = None,
-        element_model: Union[str, list, None] = None,
-        element_class: Union[str, list, None] = None,
-        section_type: Union[str, list, None] = None,
-    ) -> List[str]:
-        """
-        Get all elements in the lattice, or filter them by type/model/class
-        # TODO function name implies this returns elements rather than names; rename?
-
-        Parameters
-        ----------
-        element_type: str | list | None
-            Filter by element type; if list, gather multiple types; if None, gather all.
-        element_model: str | list | None
-            Filter by element model; if list, gather multiple models; if None, gather all.
-        element_class
-            Filter by element hardware class; if list, gather multiple classes; if None, gather all.
-
-        Returns
-        -------
-        List[str]
-            Filtered names of elements.
-        """
-        return self.elements_between(
-            end=None,
-            start=None,
-            element_type=element_type,
-            element_class=element_class,
-            element_model=element_model,
-            section_type=section_type,
-        )
 
     def get_sections_by_type(
         self,

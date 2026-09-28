@@ -2,7 +2,7 @@ from laura.models.simulation import ApertureElement
 
 from ..converters import elements_elegant, elements_madx
 from ..utils.functions import sanitize_string
-from .base import BaseElementTranslator
+from .base import BaseElementTranslator, elegant_line
 
 
 class ApertureTranslator(BaseElementTranslator):
@@ -61,23 +61,13 @@ class ApertureTranslator(BaseElementTranslator):
         if self.aperture.shape in ["elliptical", "circular"] and etype == "rcollimator":
             etype = "ecollimator"
         string = sanitize_string(self.name) + ": " + etype
-        keys = []
-        for key, value in self.full_dump(resolve=self._resolve_functional).items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and self._convert_keyword_madx(key) in elements_madx[etype]
-                and value is not None
-            ):
-                key = self._convert_keyword_madx(key)
-                deferred = not self._resolve_functional and self.is_functional(value)
-                value = 1 if value is True else value
-                value = 0 if value is False else value
-                if key not in keys:
-                    op = ":=" if deferred else "="
-                    string += f", {key} {op} {value}"
-                keys.append(key)
+        for key, value in self._dump_items(
+            self._convert_keyword_madx,
+            elements_madx[etype],
+            resolve=self._resolve_functional,
+        ):
+            deferred = not self._resolve_functional and self.is_functional(value)
+            string += f", {key} {':=' if deferred else '='} {self._flag(value)}"
         if at is not None:
             string += f", at = {at}"
         return string + ";\n"
@@ -266,34 +256,11 @@ class ApertureTranslator(BaseElementTranslator):
             A formatted string representing the object's properties in Elegant format.
         """
         self.start_write()
-        wholestring = ""
         etype = self._convert_type_elegant(self.hardware_type)
-        string = self.name + ": " + etype
-        keys = []
-        for key, value in self.full_dump().items():
-            if (
-                not key == "name"
-                and not key == "type"
-                and not key == "commandtype"
-                and value is not None
-                and self._convert_keyword_elegant(key) in elements_elegant[etype]
-            ):
-                if value is not None:
-                    key = self._convert_keyword_elegant(key)
-                    # if key == "dx":
-                    #     value = self.physical.middle.x
-                    # elif key == "dy":
-                    #     value = self.physical.middle.y
-                    value = 1 if value is True else value
-                    value = 0 if value is False else value
-                    if key not in keys:
-                        tmpstring = ", " + key + " = " + str(value)
-                        if len(string + tmpstring) > 76:
-                            wholestring += string + ",&\n"
-                            string = ""
-                            string += tmpstring[2::]
-                        else:
-                            string += tmpstring
-                    keys.append(key)
-        wholestring += string + ";\n"
-        return wholestring
+        terms = [
+            f"{key} = {self._flag(value)}"
+            for key, value in self._dump_items(
+                self._convert_keyword_elegant, elements_elegant[etype]
+            )
+        ]
+        return elegant_line(self.name + ": " + etype, terms)

@@ -3,7 +3,7 @@
 ``RFDeflectingCavity`` and ``CrabCavity`` subclass ``RFCavity``, so
 ``RFCavity.model_post_init`` runs first through ``super()``. It used to fill
 ``cavity`` with a hardcoded ``RFCavityElement``, and the subclass's own
-``_ensure_nested_default`` then found the slot occupied and did nothing. That
+nested default then found the slot occupied and did nothing. That
 broke both subclasses, differently:
 
 * ``RFDeflectingCavity`` silently carried an ``RFCavityElement`` -- including a

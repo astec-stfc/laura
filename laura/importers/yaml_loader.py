@@ -363,17 +363,6 @@ def get_all_subclasses(cls):
     return subclasses
 
 
-_MODEL_REGISTRY = None
-
-
-def get_model_registry():
-    global _MODEL_REGISTRY
-    if _MODEL_REGISTRY is None:
-        all_models = get_all_subclasses(BaseModel)
-        _MODEL_REGISTRY = {cls.__name__: cls for cls in all_models}
-    return _MODEL_REGISTRY
-
-
 class LazyAdapterDict(dict):
     def get(self, key, default=None):
         if key not in self:
@@ -894,7 +883,7 @@ def _schema_dir(base_dir: str | None, schema_ref: str, elem: dict) -> str | None
     """``base_dir``, or the element's ``<hardware_class>/<hardware_type>``
     directory under it when the schema sits there instead -- where it does
     when a combined file is read from the root of a per-element tree, as the
-    exporter's ``_schema_base_dirs`` already allows for."""
+    exporter's ``_find_schema`` already allows for."""
     if not base_dir or os.path.exists(os.path.join(base_dir, schema_ref)):
         return base_dir
     nested = os.path.join(

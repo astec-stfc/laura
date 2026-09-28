@@ -243,8 +243,6 @@ class AstraOutput(AstraHeader):
     offset: list | np.ndarray = [0, 0, 0]
     """Beam offset from nominal axis [x,y,z]"""
 
-    # starting_offset: float = None
-
     zstart: float = None
 
     zstop: float = None
@@ -257,8 +255,6 @@ class AstraOutput(AstraHeader):
         validate_assignment=True,
         populate_by_name=True,
     )
-
-    # section: SectionLatticeTranslator
 
     def model_post_init(self, context: Any, /) -> None:
         # No astradict: &OUTPUT has none of &NEWRUN's renamed fields.
