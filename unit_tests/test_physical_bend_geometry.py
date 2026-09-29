@@ -124,3 +124,28 @@ def test_the_old_half_chord_formula_would_fail_these(angle):
     assert _norm(phys.start) == pytest.approx(exact, rel=1e-12)
     assert superseded < exact  # the old formula always under-read
     assert exact - superseded > 1e-5 * angle / 0.05  # and by a growing margin
+
+
+def test_a_pinned_layout_angle_outranks_an_authored_one():
+    """``set_physical_angle`` is called after construction, by whoever is moving the
+    magnet -- a chicane changing its angle -- so it is the newer statement of intent
+    than the ``physical_angle`` the lattice file was authored with."""
+    bend = Dipole(
+        name="B1",
+        hardware_class="Magnet",
+        machine_area="S",
+        magnetic={"k0l": 0.1, "length": 1.0},
+        physical={
+            "length": 1.0,
+            "middle": {"x": 0.0, "y": 0.0, "z": 0.0},
+            "physical_angle": 0.13,
+        },
+    )
+    assert bend.physical._physical_angle == pytest.approx(0.13)
+
+    bend.physical.set_physical_angle(0.1)
+    assert bend.physical._physical_angle == pytest.approx(0.1)
+    # and the faces move with it, rather than staying where the file put them
+    assert bend.physical.end.x == pytest.approx(
+        (1.0 / 0.1) * (np.cos(0.05) - np.cos(0.1))
+    )

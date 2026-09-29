@@ -494,26 +494,32 @@ class PhysicalElement(_PhysicalElementBase):
         """
         self._physical_angle_override = angle
 
+    @property
+    def magnet_angle(self) -> Optional[float]:
+        """The bend angle the magnetic model asks for [rad].
+
+        ``None`` where the element has no magnet that can bend, which is not the
+        same as a magnet set to bend by zero.
+        """
+        magnetic = getattr(self._parent, "magnetic", None)
+        if magnetic is None or not hasattr(type(magnetic), "angle"):
+            return None
+        try:
+            return float(magnetic.KnL(0))
+        except KeyError:
+            return 0.0
+
     @computed_field
     @property
     def _physical_angle(self) -> float:
-        # An explicit ``physical_angle`` wins.
-        if self._explicit_angle:
-            return float(self.physical_angle)
         if self._physical_angle_override is not None:
             self.physical_angle = self._physical_angle_override
             return self._physical_angle_override
-        if self._parent is not None:
-            magnetic = getattr(self._parent, "magnetic", None)
-            if magnetic is not None and hasattr(type(magnetic), "angle"):
-                try:
-                    angle = magnetic.KnL(0)
-                except KeyError:
-                    angle = 0.0
-                self.physical_angle = angle
-                return angle
-        self.physical_angle = 0.0
-        return 0.0
+        if self._explicit_angle:
+            return float(self.physical_angle)
+        angle = self.magnet_angle
+        self.physical_angle = 0.0 if angle is None else angle
+        return self.physical_angle
 
     @field_validator("middle", mode="before")
     @classmethod
@@ -674,49 +680,47 @@ class PhysicalElement(_PhysicalElementBase):
         rz = np.array([[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]])
         return self.rotation_matrix @ rz @ ry_neg @ rz.T
 
-    @property
-    def start(self) -> Position:
+    def offset_from_middle(self, face: Literal["start", "end"]) -> np.ndarray:
+        """The vector from :attr:`middle` to one face of the element [m].
+
+        The one home for the layout geometry: :attr:`start` and :attr:`end` are
+        this offset applied to :attr:`middle`.
+
+        The faces sit on the arc, half the bend either side of the middle, in the
+        plane the magnet bends in (:attr:`_layout_matrix`).
+        """
+        theta = self._physical_angle
+        if abs(theta) > 1e-9:
+            half = theta / 2.0
+            rho = self.length / theta
+            if face == "end":
+                local = [
+                    rho * (np.cos(half) - np.cos(theta)),
+                    0,
+                    rho * (np.sin(theta) - np.sin(half)),
+                ]
+            else:
+                local = [-rho * (1 - np.cos(half)), 0, -rho * np.sin(half)]
+        else:
+            # Straight element
+            local = [0, 0, (self.length / 2.0) * (1 if face == "end" else -1)]
+        return self._layout_matrix @ np.array(local)
+
+    def _face(self, face: Literal["start", "end"]) -> Position:
         if self.middle is None:
             raise RuntimeError(
-                "Cannot compute 'start': element has an unresolved position "
+                f"Cannot compute '{face}': element has an unresolved position "
                 "(reference_placement or s-coordinate pending). "
                 "Call resolve_positions() on the containing lattice first."
             )
-        middle = np.array(self.middle.array)
+        return Position.from_list(
+            np.array(self.middle.array) + self.offset_from_middle(face)
+        )
 
-        if abs(self._physical_angle) > 1e-9:
-            theta = self._physical_angle
-            half = theta / 2.0
-            rho = self.length / theta
-            sx = -rho * (1 - np.cos(half))
-            sy = 0
-            sz = -rho * np.sin(half)
-        else:
-            # Straight element
-            sx, sy, sz = 0, 0, -self.length / 2.0
-
-        start = middle + self._layout_matrix @ np.array([sx, sy, sz])
-        return Position.from_list(start)
+    @property
+    def start(self) -> Position:
+        return self._face("start")
 
     @property
     def end(self) -> Position:
-        if self.middle is None:
-            raise RuntimeError(
-                "Cannot compute 'end': element has an unresolved position "
-                "(reference_placement or s-coordinate pending). "
-                "Call resolve_positions() on the containing lattice first."
-            )
-        middle = np.array(self.middle.array)
-
-        if abs(self._physical_angle) > 1e-9:
-            theta = self._physical_angle
-            half = theta / 2.0
-            rho = self.length / theta
-            ex = rho * (np.cos(half) - np.cos(theta))
-            ey = 0
-            ez = rho * (np.sin(theta) - np.sin(half))
-        else:
-            ex, ey, ez = 0, 0, self.length / 2.0
-
-        end = middle + self._layout_matrix @ np.array([ex, ey, ez])
-        return Position.from_list(end)
+        return self._face("end")
