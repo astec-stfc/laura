@@ -1,5 +1,6 @@
 from typing import Dict, List
 
+from laura.models._generated import HardwareClassEnum
 from laura.models.element import (
     ACDipole,
     Aperture,
@@ -127,14 +128,27 @@ def translate_elements(
             translator = RFMultipoleTranslator
         else:
             translator = BaseElementTranslator
+        dump = elem.model_dump(by_alias=False)
+        if dump.get("hardware_class") not in set(HardwareClassEnum):
+            # Legacy/incorrectly-authored lattice data (seen in FERMI/ISIS/
+            # UKXFEL, not CLARA): hardware_class was set to the specific
+            # hardware_type instead of its coarse category (e.g. "RFCavity"
+            # instead of "RF"), which fails the stricter Translator schema's
+            # enum below even though the looser Element model accepted it at
+            # load time (hardware_class is a plain, unconstrained `str`
+            # there -- `frozen=True` on some subclasses only blocks a LATER
+            # reassignment, not an explicit constructor override, which is
+            # how the bad value got in to begin with). The owning Element
+            # subclass's own declared default is the correct category
+            # regardless of what literal value the YAML explicitly overrode
+            # it with.
+            dump["hardware_class"] = type(elem).model_fields["hardware_class"].default
         try:
-            elem_dict.update(
-                {elem.name: translator.model_validate(elem.model_dump(by_alias=False))}
-            )
+            elem_dict.update({elem.name: translator.model_validate(dump)})
         except Exception as exc:
             raise Exception(
-                f"Element {elem.name} failed validation: {elem.model_dump().keys()}"
-            )
+                f"Element {elem.name} failed validation: {dump.keys()}"
+            ) from exc
         elem_dict[elem.name].master_lattice = master_lattice
         elem_dict[elem.name].directory = directory
     return elem_dict

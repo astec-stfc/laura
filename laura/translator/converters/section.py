@@ -36,9 +36,11 @@ from .codes import (
     gpt_unsupported,
     ocelot_unsupported,
     opal_unsupported,
+    slipstream_unsupported,
     wake_t_unsupported,
     xsuite_unsupported,
 )
+from .codes.slipstream import SlipstreamElement
 from .codes.gpt import GptCcs, GptDtMinT, GptZMinMax
 from .converter import translate_elements
 from .diagnostic import DiagnosticTranslator
@@ -53,6 +55,7 @@ unsupported_elements = {
     "gpt": gpt_unsupported,
     "ocelot": ocelot_unsupported,
     "opal": opal_unsupported,
+    "slipstream": slipstream_unsupported,
     "wake_t": wake_t_unsupported,
     "xsuite": xsuite_unsupported,
 }
@@ -234,6 +237,32 @@ class SectionLatticeTranslator(SectionLattice):
             astrastr += v + "\n"
             astrastr += "/ \n"
         return astrastr
+
+    def to_slipstream(self) -> list:
+        """
+        Create a list of :class:`~laura.translator.converters.codes.slipstream.
+        SlipstreamElement` records for the ``slipstream`` accelerator-tracking
+        package, in section order -- see ``plans/LAURA_INTERFACE_PLAN.md`` in
+        the ``slipstream`` repo for the full design and the consuming
+        ``slipstream.tracking.native.laura_import.parse_laura_lattice``.
+
+        Same shape as :meth:`to_ocelot`/:meth:`to_cheetah`: a direct Python
+        object, not a text lattice file.
+
+        Returns
+        -------
+        list[SlipstreamElement]
+        """
+        self._check_elements_supported("slipstream")
+        section_with_drifts = self.create_drifts(
+            csr_enable=False, lsc_enable=False,
+        )
+        elem_dict = translate_elements(
+            section_with_drifts.values(),
+            master_lattice=self.master_lattice,
+            directory=self.directory,
+        )
+        return [d.to_slipstream() for d in elem_dict.values()]
 
     def to_gpt(
         self,

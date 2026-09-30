@@ -3,10 +3,35 @@ from laura.models.simulation import ApertureElement
 from ..converters import elements_elegant, elements_madx
 from ..utils.functions import sanitize_string
 from .base import BaseElementTranslator
+from .codes.slipstream import SlipstreamElement
 
 
 class ApertureTranslator(BaseElementTranslator):
     aperture: ApertureElement
+
+    def to_slipstream(self) -> SlipstreamElement:
+        """
+        ``slipstream`` record: mirrors ``to_astra()``'s own shape dispatch
+        (``circular``/``elliptical`` -> one ``RAD``-kind aperture,
+        ``planar``/``rectangular``/``scraper`` -> up to two, X and Y) --
+        carries the raw shape/size here, the slipstream-side adapter (not
+        LAURA) decides how many ``Injector.Aperture`` objects that becomes,
+        since ``SlipstreamElement`` is one-record-per-LAURA-element.
+
+        Returns
+        -------
+        SlipstreamElement
+        """
+        return SlipstreamElement(
+            name=self.name,
+            hardware_type=self.hardware_type,
+            length=self.physical.length,
+            z_m=self.physical.start.z,
+            aperture_shape=self.aperture.shape,
+            aperture_radius_m=self.aperture.radius or 0.0,
+            aperture_horizontal_m=self.aperture.horizontal_size or 0.0,
+            aperture_vertical_m=self.aperture.vertical_size or 0.0,
+        )
 
     def to_madx(self, at: float = None) -> str:
         """

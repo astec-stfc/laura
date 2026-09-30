@@ -23,6 +23,7 @@ from ..converters import (
 from ..utils.functions import _rotation_matrix, chop, expand_substitution
 from .base import BaseElementTranslator
 from .codes.gpt import GptCcs
+from .codes.slipstream import SlipstreamElement
 
 
 def add(x, y):
@@ -418,6 +419,43 @@ class MagnetTranslator(BaseElementTranslator):
         )
         return output
 
+    def to_slipstream(self) -> SlipstreamElement:
+        """
+        ``slipstream`` record: ``k1``/``k2`` from this element's own already-
+        computed ``computed_field`` properties -- the same numbers
+        ``to_astra()``/``to_elegant()`` use, just not stringified.
+        ``grad_T_per_m`` is ``magnetic.gradient``, a real field-gradient value
+        -- only meaningfully set for a *profile*-type quadrupole (ASTRA's
+        ``Q_type=...data...``, see ``_write_astra_quadrupole``); a "standard"
+        quad's real gradient needs a reference momentum to derive from
+        ``k1`` (``grad = k1 * Brho``), which isn't known at lattice-
+        construction time -- ``Injector.from_astra`` itself has the identical
+        limitation (warns and skips ``Q_K`` given without ``Q_grad``), not a
+        gap specific to this exporter.
+
+        ``z_m`` uses ``get_field_reference_position(if_none="middle")`` --
+        the *center*, matching ``_write_astra_quadrupole``'s own default and
+        ``Injector.Quadrupole.z_m``'s own documented contract ("the magnet's
+        own center, not its start") -- not exercised by CLARA's real
+        injector (no quadrupoles there) but kept consistent with
+        ``SolenoidTranslator``/``RFCavityTranslator.to_slipstream()``'s
+        identical fix rather than left as the wrong default untested.
+
+        Returns
+        -------
+        SlipstreamElement
+        """
+        field_ref_pos = self.get_field_reference_position(if_none="middle")
+        return SlipstreamElement(
+            name=self.name,
+            hardware_type=self.hardware_type,
+            length=self.physical.length,
+            z_m=float(field_ref_pos[2]) + self.dz,
+            k1=self.k1,
+            k2=self.k2,
+            grad_T_per_m=self.magnetic.gradient if self.magnetic.gradient is not None else 0.0,
+        )
+
 
 class DipoleTranslator(BaseElementTranslator):
     """
@@ -747,6 +785,29 @@ class DipoleTranslator(BaseElementTranslator):
         angle = self.magnetic.KnL(0)
         return self.magnetic.length * np.tan(0.5 * angle) / angle
 
+    def to_slipstream(self) -> SlipstreamElement:
+        """
+        ``slipstream`` record: ``angle``/``e1``/``e2`` from this element's own
+        already-computed ``computed_field`` properties. LAURA has no
+        equivalent of elegant's ``CSRCSBEND``-vs-plain-``CSBEND`` distinction
+        (both are ASTRA-side/optics-only quantities) -- the CSR flag is left
+        for the slipstream-side adapter to decide (see
+        ``plans/LAURA_INTERFACE_PLAN.md``'s "Open items", ``slipstream`` repo).
+
+        Returns
+        -------
+        SlipstreamElement
+        """
+        return SlipstreamElement(
+            name=self.name,
+            hardware_type=self.hardware_type,
+            length=self.physical.length,
+            z_m=self.physical.start.z,
+            angle=self.angle,
+            e1=self.e1,
+            e2=self.e2,
+        )
+
     def to_csrtrack(self, n: int = 0, **kwargs) -> str:
         """
         Writes the dipole element string for CSRTrack.
@@ -1064,6 +1125,42 @@ class SolenoidTranslator(BaseElementTranslator):
                 ]
             ),
             n,
+        )
+
+    def to_slipstream(self) -> SlipstreamElement:
+        """
+        ``slipstream`` record: ``field_map_hdf5_path`` is the *raw* resolved
+        HDF5 source path (``start_write()`` -> ``update_field_definition()``
+        turns the raw ``$master_lattice$...`` string into a real ``FieldMap``
+        with an absolute ``.filename``, same resolution ``to_astra()`` uses
+        internally) -- slipstream reads this file directly with its own
+        ``laura`` dependency, no ASTRA-format regeneration involved.
+        ``b_max_t`` is ``magnetic.field_amplitude``, the exact quantity
+        ``_write_astra_solenoid`` writes as ASTRA's ``MaxB``. ``z_m`` is
+        ``get_field_reference_position()[2] + self.dz`` -- the *exact* same
+        computation ``_write_astra_solenoid`` uses for ASTRA's own
+        ``S_pos`` (not simply ``physical.start.z``, which can differ by a
+        few mm for an element whose own ``field_reference_position`` isn't
+        ``"start"`` -- found directly via ``Injector.from_laura``'s real
+        CLARA cross-check, see ``plans/LAURA_INTERFACE_PLAN.md``).
+
+        Returns
+        -------
+        SlipstreamElement
+        """
+        self.start_write()
+        field_definition = self.simulation.field_definition
+        field_map_hdf5_path = getattr(field_definition, "filename", None)
+        field_ref_pos = self.get_field_reference_position()
+        return SlipstreamElement(
+            name=self.name,
+            hardware_type=self.hardware_type,
+            length=self.physical.length,
+            z_m=float(field_ref_pos[2]) + self.dz,
+            field_map_hdf5_path=field_map_hdf5_path,
+            b_max_t=self.magnetic.field_amplitude,
+            dx=self.dx,
+            dy=self.dy,
         )
 
     def to_gpt(self, Brho: float = 0.0, *args, **kwargs) -> str:
