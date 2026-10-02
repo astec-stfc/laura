@@ -619,6 +619,21 @@ def _ac_kicker_data(tao, element_id: str) -> Dict[str, list]:
     return result
 
 
+def _roll_matrix(tilt: float) -> np.ndarray:
+    """The 6x6 map of a reference frame rolled by ``tilt`` about the beam axis.
+
+    The frame turns one way so the coordinates measured in it turn the other,
+    which is why the sines are the way round they are. Matches Bmad's own
+    ``mat6`` for a tilt-only patch exactly.
+    """
+    cos, sin = np.cos(tilt), np.sin(tilt)
+    matrix = np.eye(6)
+    matrix[0, 0] = matrix[1, 1] = matrix[2, 2] = matrix[3, 3] = cos
+    matrix[0, 2] = matrix[1, 3] = sin
+    matrix[2, 0] = matrix[3, 1] = -sin
+    return matrix
+
+
 def _taylor_matrices(taylor: Dict[str, Any]):
     """Convert a Bmad orbital Taylor map of order <= 3 to C/R/T/U arrays."""
     c_matrix = np.zeros(6)
@@ -1557,28 +1572,49 @@ class BmadLatticeImporter(BaseModel):
     def _build_cavity(self, e: "_NativeElement") -> dict:
         parameters = e.parameters
         frequency = parameters[e.keyword("frequency")]
-        cell_length = speed_of_light / (2.0 * frequency) if frequency else 0.0
+        structure_type = str(
+            parameters.get(e.keyword("structure_type"), "Standing_Wave")
+        ).replace("_", "")
+        # Bmad says whether a structure is standing or travelling but never
+        # which mode it runs in, and LAURA needs one: a standing-wave cavity is
+        # taken as pi mode and a travelling-wave one as 2pi/3, which is what an
+        # S-band linac is built from. The cell is then lambda/2 or lambda/3.
+        numerator, denominator = (
+            (1, 3) if structure_type.lower().startswith("travel") else (1, 2)
+        )
+        cell_length = (
+            speed_of_light * numerator / (denominator * frequency) if frequency else 0.0
+        )
         n_cells = _bmad_cavity_cells(
             parameters.get(e.keyword("n_cells"), 1),
             parameters.get("L_ACTIVE"),
             e.length,
             cell_length,
         )
-        simulation = {"field_amplitude": parameters[e.keyword("field_amplitude")]}
-        # An explicit 0 is kept: it is Bmad's older lcavity model, not "unset".
+        cell_length = cell_length or e.length / n_cells
+        amplitude = parameters[e.keyword("field_amplitude")]
+        if denominator == 3 and cell_length:
+            amplitude = amplitude / abs(
+                (n_cells + 3.8) * cell_length * (1 / np.sqrt(2))
+            )
+        simulation = {"field_amplitude": amplitude}
         if parameters.get("N_RF_STEPS") is not None:
             simulation["n_kicks"] = int(parameters["N_RF_STEPS"])
+        cavity = {
+            "phase": -360.0 * parameters.get(e.keyword("phase"), 0.0),
+            "frequency": frequency,
+            "n_cells": n_cells,
+            "cell_length": cell_length,
+            "structure_type": structure_type,
+        }
+        if denominator == 3:
+            cavity["mode_numerator"], cavity["mode_denominator"] = (
+                numerator,
+                denominator,
+            )
         return {
             "hardware_type": e.hardware_type,
-            "cavity": {
-                "phase": -360.0 * parameters.get(e.keyword("phase"), 0.0),
-                "frequency": frequency,
-                "n_cells": n_cells,
-                "cell_length": cell_length or e.length / n_cells,
-                "structure_type": str(
-                    parameters.get(e.keyword("structure_type"), "Standing_Wave")
-                ).replace("_", ""),
-            },
+            "cavity": cavity,
             "simulation": simulation,
         }
 
@@ -1820,13 +1856,30 @@ class BmadLatticeImporter(BaseModel):
                 e.universe, e.branch, e.name, physical, e.parameters
             )
 
-    def _build_patch(self, e: "_NativeElement") -> None:
-        """Warn about what LAURA loses from a patch; nothing is stored."""
+    def _build_patch(self, e: "_NativeElement") -> Optional[dict]:
+        """Keep the part of a patch LAURA can hold; warn about the rest.
+
+        A patch that does nothing but roll the reference frame about the beam
+        axis is a linear map and nothing else, so it comes through as a
+        zero-length matrix and every code downstream gets it.
+
+        A patch that moves the frame sideways or changes the reference energy
+        is still dropped: ``position_mode='s'`` has nowhere to put the one and
+        LAURA has no element for the other.
+        """
         transform = {
             key: e.parameters[key]
             for key in _PATCH_TRANSFORM_ATTRIBUTES
             if abs(e.parameters.get(key) or 0.0) > _PATCH_TRANSFORM_TOLERANCE
         }
+        if set(transform) == {"TILT"}:
+            return {
+                "hardware_type": "MatrixTransform",
+                "simulation": {
+                    "apply": True,
+                    "r_matrix": _roll_matrix(transform["TILT"]),
+                },
+            }
 
         def described(keys) -> str:
             return ", ".join(

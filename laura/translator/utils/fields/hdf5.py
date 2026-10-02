@@ -1,9 +1,10 @@
 import os
-import h5py
-from .field_parameter import FieldParameter
-from ..units import UnitValue
 from warnings import warn
 
+import h5py
+
+from ..units import UnitValue
+from .field_parameter import FieldParameter
 
 allowed_cavities = [
     "StandingWave",
@@ -77,6 +78,8 @@ def read_hdf5_field_file(self, filename: str) -> str:
                         )
                     else:
                         setattr(self, param, h5file.attrs[param])
+        if "length" in h5file.attrs:
+            self.reference_length = float(h5file.attrs["length"])
         length_set = (
             False if self.field_type != "2DElectroDynamic" else h5file.attrs["length"]
         )

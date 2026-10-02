@@ -351,6 +351,36 @@ class TestMatrixTransformAndCrabCavityDispatch:
         assert "L = 0.5" in out
         assert "R21 = 0.5" in out
 
+    def test_matrix_transform_elegant_writes_the_diagonal_out(self):
+        """elegant's EMATRIX starts from the zero matrix, not the identity one.
+
+        MAD-X's `matrix` defaults to the identity and the two were written the
+        same way, so a diagonal 1.0 was left out as "the default" -- and elegant
+        read it as a 0, flattening that plane of the beam onto a point.  This is
+        what killed the LCLS beam in the undulator hall, where the segments are
+        matrices that are the identity in y.
+        """
+        mt = MatrixTransform(
+            name="mt1", machine_area="S",
+            simulation={"r_matrix": {"r12": 1.677, "r34": 1.677}},
+            physical={"length": 1.677},
+        )
+        out = translate_elements([mt])["mt1"].to_elegant()
+        for i in range(1, 7):
+            assert f"R{i}{i} = 1.0" in out
+        assert "R12 = 1.677" in out
+        assert "R34 = 1.677" in out
+        # The zeros are still the default, and there are 30 of them.
+        assert out.count("R") == 8
+
+    def test_matrix_transform_elegant_writes_an_identity_matrix(self):
+        """A drift-equivalent matrix has to be written too: with nothing but the
+        length, elegant builds the zero matrix and the beam is gone."""
+        mt = MatrixTransform(name="mt1", machine_area="S", physical={"length": 0.5})
+        out = translate_elements([mt])["mt1"].to_elegant()
+        for i in range(1, 7):
+            assert f"R{i}{i} = 1.0" in out
+
     def test_crab_cavity_elegant_uses_rfdf_not_rfca(self):
         cc = CrabCavity(
             name="cc1", machine_area="S",

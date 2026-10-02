@@ -12,7 +12,9 @@ from pydantic import (
     model_serializer,
     model_validator,
 )
+
 from laura._compat import DeprecatedMethodAliases
+
 from ._generated import (
     _CombinedCorrectorMagnetBase,
     _CombinedSolenoidQuadrupoleMagnetBase,
@@ -295,7 +297,7 @@ class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
         else:
             return {"gradient": gradient, "int_strength": int_strength}
 
-    def kl_to_current(self, KL: float | dict, momentum: float) -> float: # noqa N806
+    def kl_to_current(self, KL: float | dict, momentum: float) -> float:  # noqa N806
         """
         Convert the normalized strength (K value) of the magnetic field to the corresponding current.
 
@@ -315,13 +317,13 @@ class LinearSaturationFit(DeprecatedMethodAliases, _LinearSaturationFitBase):
         m, i_max, f, a, i0, d, l = list(self.coefficients)
         if isinstance(KL, dict):
             if "KL" in KL:
-                KL = KL["KL"] # noqa N806
+                KL = KL["KL"]  # noqa N806
             elif "K" in KL:
                 KL = KL["K"] * l / 1000  # noqa N806
         k = KL / (l / 1000) if l != 0 else 0.0
         return self.k_to_current(k, momentum)
 
-    def k_to_current(self, K: float | dict, momentum: float) -> float: # noqa N806
+    def k_to_current(self, K: float | dict, momentum: float) -> float:  # noqa N806
         """
         Convert the normalized strength (K value) of the magnetic field to the corresponding current.
         This method calculates the current required to produce a given normalized strength (K value)
@@ -456,7 +458,9 @@ class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalM
         return v
 
     @model_validator(mode="after")
-    def resolve_edge_field_integrals(self) -> "MagneticElement":  # noqa: N804 (pydantic after-validator takes self)
+    def resolve_edge_field_integrals(
+        self,
+    ) -> "MagneticElement":  # noqa: N804 (pydantic after-validator takes self)
         """
         Reconciles ``edge_field_integral`` (the single combined value read by
         codes that only expose one edge-focussing keyword, e.g. ELEGANT/OPAL's
@@ -481,9 +485,13 @@ class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalM
         """
         if self.edge_field_integral is not None:
             if self.edge_field_integral_entrance is None:
-                object.__setattr__(self, "edge_field_integral_entrance", self.edge_field_integral)
+                object.__setattr__(
+                    self, "edge_field_integral_entrance", self.edge_field_integral
+                )
             if self.edge_field_integral_exit is None:
-                object.__setattr__(self, "edge_field_integral_exit", self.edge_field_integral)
+                object.__setattr__(
+                    self, "edge_field_integral_exit", self.edge_field_integral
+                )
         return self
 
     @field_validator("field_integral_coefficients", mode="before")
@@ -850,7 +858,7 @@ class SolenoidMagnet(_SolenoidMagnetBase, IgnoreExtra):
         if "ks" in data:
             self.ks = data["ks"]
         elif "field_amplitude" in data:
-            self.ks = data["field_amplitude"] / self.length
+            self.field_amplitude = data["field_amplitude"]
 
     @field_validator("field_integral_coefficients", mode="before")
     @classmethod
@@ -1153,7 +1161,9 @@ class CombinedCorrectorMagnet(_CombinedCorrectorMagnetBase, IgnoreExtra):
             self.vertical.resolved_kicks()[1],
         )
 
-    def current_to_angle(self, current: float, momentum: float, skew: bool = False) -> float:
+    def current_to_angle(
+        self, current: float, momentum: float, skew: bool = False
+    ) -> float:
         """
         Convert a magnet current to a kick angle using the calibration of the
         requested plane.
@@ -1170,7 +1180,9 @@ class CombinedCorrectorMagnet(_CombinedCorrectorMagnetBase, IgnoreExtra):
         plane = self.vertical if skew else self.horizontal
         return plane.current_to_angle(current, momentum)
 
-    def angle_to_current(self, angle: float, momentum: float, skew: bool = False) -> float:
+    def angle_to_current(
+        self, angle: float, momentum: float, skew: bool = False
+    ) -> float:
         """Inverse of :meth:`current_to_angle`, using the same plane selection."""
         plane = self.vertical if skew else self.horizontal
         return plane.angle_to_current(angle, momentum)

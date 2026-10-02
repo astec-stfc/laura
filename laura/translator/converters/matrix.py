@@ -35,11 +35,10 @@ class MatrixTransformTranslator(BaseElementTranslator):
             for i, val in enumerate(self.simulation.c_matrix):
                 if val != 0:
                     terms.append(f"C{i + 1} = {val}")
-        if not np.array_equal(self.simulation.r_matrix, np.eye(6)):
-            for i, row in enumerate(self.simulation.r_matrix):
-                for j, val in enumerate(row):
-                    if val != (1.0 if i == j else 0.0):
-                        terms.append(f"R{i + 1}{j + 1} = {val}")
+        for i, row in enumerate(self.simulation.r_matrix):
+            for j, val in enumerate(row):
+                if val != 0.0:
+                    terms.append(f"R{i + 1}{j + 1} = {val}")
         if not np.array_equal(self.simulation.t_matrix, np.zeros((6, 6, 6))):
             for i, plane in enumerate(self.simulation.t_matrix):
                 for j, row in enumerate(plane):
@@ -76,8 +75,7 @@ class MatrixTransformTranslator(BaseElementTranslator):
             for output in range(6):
                 for indices in combinations_with_replacement(range(6), degree):
                     coefficient = sum(
-                        matrix[(output, *order)]
-                        for order in set(permutations(indices))
+                        matrix[(output, *order)] for order in set(permutations(indices))
                     )
                     if coefficient:
                         suffix = "".join(str(index + 1) for index in indices)
@@ -85,12 +83,9 @@ class MatrixTransformTranslator(BaseElementTranslator):
         components = ("S1", "Sx", "Sy", "Sz")
         for term in self.simulation.spin_taylor:
             suffix = "".join(
-                str(index) * int(term[f"exp{index}"])
-                for index in range(1, 7)
+                str(index) * int(term[f"exp{index}"]) for index in range(1, 7)
             )
-            terms.append(
-                f"{{{components[term['index']]}: {term['coef']} |{suffix}}}"
-            )
+            terms.append(f"{{{components[term['index']]}: {term['coef']} |{suffix}}}")
         return f"{sanitize_string(self.name)}: taylor, " + ", ".join(terms) + "\n"
 
     def to_madx(self, at: float = None) -> str:
@@ -195,7 +190,9 @@ class MatrixTransformTranslator(BaseElementTranslator):
 
         type_conversion_rules_cheetah = cheetah_conversion.cheetah_conversion_rules
         self.start_write()
-        warn(f"WARNING! Only 1st-order transfer maps implemented for cheetah, {self.name}")
+        warn(
+            f"WARNING! Only 1st-order transfer maps implemented for cheetah, {self.name}"
+        )
         obj = type_conversion_rules_cheetah[self.hardware_type](
             name=self.name,
             length=tensor(self.physical.length, dtype=float64),

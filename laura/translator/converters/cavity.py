@@ -70,7 +70,16 @@ class RFCavityTranslator(BaseElementTranslator):
     @computed_field
     @property
     def structure_type(self) -> str:
-        return getattr(self.cavity, "structure_type", "StandingWave")
+        """
+        The structure type, spelled the one way the rest of this class tests for.
+        Works for US and British spelling (Travelling/Traveling wave)
+        """
+        value = str(getattr(self.cavity, "structure_type", "StandingWave"))
+        return {
+            "travellingwave": "TravellingWave",
+            "travelingwave": "TravellingWave",
+            "standingwave": "StandingWave",
+        }.get(value.replace("_", "").lower(), value)
 
     @property
     def phase(self) -> float:
@@ -238,16 +247,12 @@ class RFCavityTranslator(BaseElementTranslator):
                         if etype == "rftmez0":
                             # If using rftmez0 or similar
                             if functional:
-                                value = self._rpn(
-                                    value, 360.0, "/", 2 * 3.14159, "*"
-                                )
+                                value = self._rpn(value, 360.0, "/", 2 * 3.14159, "*")
                             else:
                                 value = (value / 360.0) * (2 * 3.14159)
                         else:
                             value = (
-                                self._rpn(90, value, "-")
-                                if functional
-                                else 90 - value
+                                self._rpn(90, value, "-") if functional else 90 - value
                             )
 
                 # In ELEGANT the voltages need to be compensated
@@ -278,7 +283,10 @@ class RFCavityTranslator(BaseElementTranslator):
                 if key == "wakefile":
                     value = value
 
-                if key == "body_focus_model" and self.structure_type == "TravellingWave":
+                if (
+                    key == "body_focus_model"
+                    and self.structure_type == "TravellingWave"
+                ):
                     value = "TW1"
 
                 # In CAVITY NKICK = n_cells
@@ -571,9 +579,6 @@ class RFCavityTranslator(BaseElementTranslator):
         """
         self.start_write()
         etype = self._convert_type_madx(self.hardware_type)
-        # "twcavity" in MAD-X does not accelerate, and so this does not work as intended!
-        # if self.structure_type == "TravellingWave" and etype == "rfcavity":
-        #     etype = "twcavity"
         string = sanitize_string(self.name) + ": " + etype
         for key, value in self._dump_items(
             self._convert_keyword_madx,
@@ -583,7 +588,9 @@ class RFCavityTranslator(BaseElementTranslator):
         ):
             functional = self.is_functional(value) and not self._resolve_functional
             if key == "lag":
-                value = f"(90 - ({value})) / 360" if functional else (90 - value) / 360.0
+                value = (
+                    f"(90 - ({value})) / 360" if functional else (90 - value) / 360.0
+                )
             if key == "volt":
                 if self.structure_type == "TravellingWave":
                     factor = abs(
@@ -594,7 +601,9 @@ class RFCavityTranslator(BaseElementTranslator):
                 else:
                     factor = 1.0
                 value = (
-                    f"({value}) * {factor / 1e6}" if functional else factor * value / 1e6
+                    f"({value}) * {factor / 1e6}"
+                    if functional
+                    else factor * value / 1e6
                 )
             if key == "freq" and not functional:
                 value = value / 1e6
@@ -760,4 +769,3 @@ class RFCavityTranslator(BaseElementTranslator):
         else:
             output = ""
         return output
-

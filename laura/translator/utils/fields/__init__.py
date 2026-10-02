@@ -141,7 +141,12 @@ class FieldMap(BaseModel):
     """Flag indicating whether the field file has been read."""
 
     length: int | float | np.float64 | None = None
-    """Length of the field, if applicable."""
+    """Length of the field, if applicable. Note that the HDF5 reader only keeps
+    a physical length here for a 2DElectroDynamic map; for every other field it
+    overwrites this with the number of samples."""
+
+    reference_length: float | None = None
+    """Length of machine the field describes [m], where the file says so."""
 
     frequency: float | np.int64 | np.float64 | None = None
     """Frequency of the field, if applicable."""

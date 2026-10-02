@@ -330,9 +330,15 @@ class TestSolenoidFieldsDunders:
 
 class TestSolenoidMagnetFieldAmplitude:
     def test_field_amplitude_kwarg_sets_ks(self):
-        # __init__ sets ks = field_amplitude / length: 2.0 / 0.5 = 4.0
+        # `ks`/`S0L` is the integrated field, so __init__ multiplies by the
+        # length just as the setter below does: 2.0 * 0.5 = 1.0. It used to
+        # divide, which sent the round trip out by a factor length**2.
         sol = SolenoidMagnet(field_amplitude=2.0, length=0.5)
-        assert sol.ks == pytest.approx(4.0)
+        assert sol.ks == pytest.approx(1.0)
+
+    def test_field_amplitude_kwarg_round_trips(self):
+        sol = SolenoidMagnet(field_amplitude=2.0, length=0.5)
+        assert sol.field_amplitude == pytest.approx(2.0)
 
     def test_field_amplitude_setter(self):
         sol = SolenoidMagnet(length=0.5)

@@ -1683,3 +1683,102 @@ def test_a_cavity_a_whole_number_of_cells_long_keeps_every_cell(frequency, lengt
     assert _bmad_cavity_cells(0, None, length, cell) == 9
     # A cavity that really is short of a cell still loses it.
     assert _bmad_cavity_cells(0, None, length - 1e-6, cell) == 8
+
+
+def test_a_travelling_wave_cavity_keeps_its_voltage_round_trip(tmp_path):
+    """`to_bmad` turns LAURA's peak field into Bmad's voltage by multiplying by
+    the effective length over root two. The import used to take the voltage
+    straight back as the peak field, so a lattice imported from Bmad and sent
+    back came out a factor of two or so high -- which is how every LCLS S-band
+    structure ended up holding a voltage where a gradient belonged."""
+    import re
+
+    from scipy.constants import speed_of_light
+
+    lattice = tmp_path / "tws.bmad"
+    lattice.write_text(
+        "parameter[particle] = electron\n"
+        "parameter[p0c] = 135e6\n"
+        "parameter[geometry] = open\n"
+        "c: lcavity, l = 2.8692, rf_frequency = 2856e6, voltage = 46.2080928e6, "
+        "cavity_type = traveling_wave, phi0 = -0.0597222222\n"
+        "lat: line = (c)\n"
+        "use, lat\n"
+    )
+    importer = BmadLatticeImporter(lattice_file=str(lattice), libtao=str(LIBTAO))
+    branch = next(iter(importer.names_numbered[1]))
+    cavity = importer.create_laura_element_dictionary(1)[branch]["C"]
+
+    # 2pi/3 geometry: the cell is lambda/3, and 82 of them span the 2.8692 m.
+    # Bmad calls one of them coupler rather than active, so 81 are imported --
+    # which is the whole number of field periods the voltage is worked out over
+    # anyway.
+    assert cavity.cavity.mode_denominator == 3
+    assert cavity.cavity.cell_length == pytest.approx(
+        speed_of_light / (3 * 2856e6)
+    )
+    assert cavity.cavity.n_cells == 81
+    # A peak field, not the 46.2 MV the deck states.
+    assert cavity.simulation.field_amplitude == pytest.approx(21.9e6, rel=0.05)
+
+    from laura.translator.converters.cavity import RFCavityTranslator
+
+    written = RFCavityTranslator(**cavity.model_dump()).to_bmad()
+    volt = float(re.search(r"voltage\s*=\s*([-0-9.eE+]+)", written).group(1))
+    assert volt == pytest.approx(46.2080928e6, rel=1e-9)
+
+
+def test_a_tilt_only_patch_is_imported_as_a_roll_matrix(tmp_path):
+    """A patch that only rolls the frame is a linear map, so LAURA can hold it.
+
+    The LCLS hard X-ray dump line uses two of them, +-10 degrees either side
+    of the BYD bends, to put those bends in the plane they are built in.  They
+    used to be dropped with a warning, which left the beam reaching the dump
+    face with no horizontal dispersion and beta_y 40% high.
+    """
+    import numpy as np
+
+    tilt = 0.174519678252
+    lattice = tmp_path / "patch.bmad"
+    lattice.write_text(
+        "parameter[particle] = electron\n"
+        "parameter[p0c] = 8e9\n"
+        "parameter[geometry] = open\n"
+        "d: drift, l = 0.1\n"
+        f"p: patch, tilt = {tilt}\n"
+        "lat: line = (d, p, d)\n"
+        "use, lat\n"
+    )
+    importer = BmadLatticeImporter(lattice_file=str(lattice), libtao=str(LIBTAO))
+    branch = next(iter(importer.names_numbered[1]))
+    patch = importer.create_laura_element_dictionary(1)[branch]["P"]
+
+    assert patch.hardware_type == "MatrixTransform"
+    assert patch.physical.length == 0.0
+    cos, sin = np.cos(tilt), np.sin(tilt)
+    expected = np.eye(6)
+    expected[0, 0] = expected[1, 1] = expected[2, 2] = expected[3, 3] = cos
+    expected[0, 2] = expected[1, 3] = sin
+    expected[2, 0] = expected[3, 1] = -sin
+    assert np.allclose(patch.simulation.r_matrix, expected)
+
+
+def test_a_patch_that_moves_the_frame_is_still_dropped(tmp_path):
+    """Only the roll is representable; an offset still has nowhere to go."""
+    lattice = tmp_path / "offset_patch.bmad"
+    lattice.write_text(
+        "parameter[particle] = electron\n"
+        "parameter[p0c] = 8e9\n"
+        "parameter[geometry] = open\n"
+        "d: drift, l = 0.1\n"
+        "p: patch, x_offset = 0.01\n"
+        "lat: line = (d, p, d)\n"
+        "use, lat\n"
+    )
+    importer = BmadLatticeImporter(
+        lattice_file=str(lattice), libtao=str(LIBTAO), position_mode="s"
+    )
+    branch = next(iter(importer.names_numbered[1]))
+    with pytest.warns(UserWarning, match="moves the reference frame"):
+        elements = importer.create_laura_element_dictionary(1)[branch]
+    assert "P" not in elements
