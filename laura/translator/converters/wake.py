@@ -1,4 +1,5 @@
 from laura.models.rf import WakefieldElement
+from laura.models.simulation import WakefieldSimulationElement
 
 from .base import BaseElementTranslator
 
@@ -11,6 +12,22 @@ class WakefieldTranslator(BaseElementTranslator):
 
     cavity: WakefieldElement
     """Wakefield element."""
+
+    simulation: WakefieldSimulationElement
+    """Wakefield simulation attributes."""
+
+    def to_bmad(self) -> str:
+        """
+        Generate a drift carrying a short-range wake for Bmad.
+
+        Returns
+        -------
+        str
+            String representation of the element for Bmad
+        """
+        self.start_write()
+        parameters = self._bmad_sr_wake(self._bmad_parameters("drift"))
+        return self._format_bmad("drift", parameters)
 
     def to_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
@@ -32,21 +49,42 @@ class WakefieldTranslator(BaseElementTranslator):
         self.start_write()
         return self._write_astra(n=n)
 
+    @property
+    def astra_wake_spacing(self) -> tuple[float, int]:
+        """
+        How far apart to place the ``&WAKE`` entries, and how many to write.
+
+        ASTRA applies a wake file in full at every position it is placed, so the
+        number of copies has to match the length the wake was tabulated over.
+
+        Returns
+        -------
+        tuple[float, int]
+            Spacing between consecutive wakes [m], and the number to write.
+        """
+        wake_length = getattr(
+            self.simulation.wakefield_definition, "reference_length", None
+        )
+        if not wake_length:
+            return self.cavity.cell_length, int(self.cavity.n_cells)
+        return wake_length, max(1, round(self.physical.length / wake_length))
+
     def _write_astra(self, n: int = 0, **kwargs: dict) -> str:
         """
-        Writes the wakefield element string for ASTRA. Each cell in a cavity gets its own &WAKE element.
+        Writes the wakefield element string for ASTRA, one &WAKE element per
+        length of structure the wake file covers; see
+        :func:`~astra_wake_spacing`.
 
         Parameters
         ----------
         n: int
-            Wake index
+            Index of this cavity's first wake among all the wakes in the deck
 
         Returns
         -------
         str
             String representation of the element for ASTRA
         """
-        field_ref_pos = self.get_field_reference_position()
         field_file_name = self.generate_field_file_name(
             self.simulation.wakefield_definition, code="astra"
         )
@@ -66,7 +104,8 @@ class WakefieldTranslator(BaseElementTranslator):
         if self.simulation.scale_kick > 0 and getattr(
             self.simulation, "wakefield_enable", True
         ):
-            for n in range(n, n + int(self.cavity.n_cells)):
+            spacing, n_wakes = self.astra_wake_spacing
+            for i in range(n_wakes):
                 output += self._write_astra_dictionary(
                     dict(
                         [
@@ -82,10 +121,7 @@ class WakefieldTranslator(BaseElementTranslator):
                             ["Wk_y", {"value": self.dx, "default": 0}],
                             [
                                 "Wk_z",
-                                {
-                                    "value": self.physical.start.z
-                                    + (0.5 + n - 1) * self.cavity.cell_length
-                                },
+                                {"value": self.physical.start.z + (0.5 + i) * spacing},
                             ],
                             [
                                 "Wk_ex",
@@ -137,7 +173,7 @@ class WakefieldTranslator(BaseElementTranslator):
                             ],
                         ]
                     ),
-                    n,
+                    n + i,
                 )
                 output += "\n"
             output += "\n"

@@ -1,7 +1,7 @@
 """Tests for laura.models.baseModels helpers and base classes not already
 exercised by unit_tests/test_base_models.py: functional_annotations'
 bend-angle marker, functional_references, ModelBase's numpy-safe __eq__
-fallback, IgnoreExtra field helpers, and NumpyModel/NumpyVectorModel."""
+fallback, and NumpyModel/NumpyVectorModel."""
 
 import numpy as np
 from pydantic import PrivateAttr
@@ -27,9 +27,6 @@ class TestFunctionalAnnotationsBendAngle:
         assert meta == {"functional": True, "reserved_contains": "angle"}
 
     def test_bend_angle_marker_derived_from_in_subset(self):
-        # The LinkML-generated base instead expresses this via subset
-        # membership (in_subset: [functional_parameters, bend_angle_reference]),
-        # exercising the subset-parsing branch of functional_annotations.
         field_info = _MagneticElementBase.model_fields["entrance_edge_angle"]
         meta = functional_annotations(field_info)
         assert meta == {"functional": True, "reserved_contains": "angle"}

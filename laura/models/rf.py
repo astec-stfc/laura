@@ -1,8 +1,8 @@
 from pydantic import Field, field_validator, create_model
-from typing import List, Type, Union
+from typing import List, Union
 
 from laura._compat import DeprecatedMethodAliases
-from .base_models import IgnoreExtra, T, ModelBase, FunctionalMixin
+from .base_models import IgnoreExtra, ModelBase, FunctionalMixin
 from ._generated import (
     _RFCavityElementBase,
     _WakefieldElementBase,
@@ -39,11 +39,6 @@ def _coerce_pid_range(v: Union[str, List, None], range_type):
 class RFCavityElement(_RFCavityElementBase, FunctionalMixin):
     """
     RF Cavity model.
-    """
-
-    structure_type: str = "StandingWave"
-    """Type of RF structure
-    #TODO make this literal.
     """
 
     attenuation_constant: float = 0

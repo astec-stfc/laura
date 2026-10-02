@@ -1,6 +1,7 @@
-from pydantic import BaseModel, model_serializer, ConfigDict
-from typing import TypeVar, Any, Type, List, Union, Dict, ClassVar
+from typing import Any, ClassVar, Dict, List, Type, TypeVar, Union
+
 import numpy as np
+from pydantic import BaseModel, ConfigDict, model_serializer
 from pydantic_core.core_schema import SerializationInfo
 
 from ..utils.dict_utils import (
@@ -130,9 +131,6 @@ def functional_references(model: Any) -> set:
             continue
         meta = functional_annotations(field_info)
         if meta.get("functional") and isinstance(value, str):
-            # A field may reserve some literal string values that are not
-            # functional-definition names (e.g. edge angles use "angle"/"angle/2"
-            # to reference the bend angle); those are skipped.
             reserved = meta.get("reserved_contains")
             if not (reserved and reserved in value):
                 refs.add(value)
@@ -208,6 +206,8 @@ def convert_numpy_types(v: Any) -> Any:
     """
     if isinstance(v, (dict)):
         return {k: convert_numpy_types(l) for k, l in v.items()}
+    if isinstance(v, np.ndarray) and v.ndim == 0:
+        return numpy_scalar_to_python(v.item())
     if isinstance(v, (np.ndarray, list, tuple)):
         return FlowList([convert_numpy_types(arr) for arr in v])
     return numpy_scalar_to_python(v)
@@ -221,8 +221,6 @@ class ModelBase(BaseModel):
         try:
             return super().__eq__(other)
         except (ValueError, TypeError):
-            # Fallback: compare serialised forms when private-attribute
-            # comparison fails (e.g. numpy arrays).
             if not isinstance(other, BaseModel):
                 return NotImplemented
             return self.model_dump() == other.model_dump()
@@ -231,9 +229,42 @@ class ModelBase(BaseModel):
         return id(self)
 
     def base_model_dump(self, exclude_defaults: bool = False) -> dict:
-        return convert_numpy_types(
-            self.model_dump(exclude_none=True, exclude_defaults=exclude_defaults)
-        )
+        return convert_numpy_types(_dump(self, exclude_defaults))
+
+
+def _same(value, default) -> bool:
+    try:
+        return bool(value == default)
+    except ValueError:
+        return np.array_equal(value, default)
+
+
+def _dump(model: BaseModel, exclude_defaults: bool) -> dict:
+    """``model_dump(exclude_none=True)``, without defaults if asked.
+
+    Pydantic compares a value with its default using ``==``, so a numpy-array
+    field makes a whole ``exclude_defaults`` dump raise. Fall back to comparing
+    field by field.
+    """
+    try:
+        return model.model_dump(exclude_none=True, exclude_defaults=exclude_defaults)
+    except ValueError:
+        if not exclude_defaults:
+            raise
+    out = {}
+    for name, field in type(model).model_fields.items():
+        value = getattr(model, name)
+        if value is None or _same(value, field.get_default(call_default_factory=True)):
+            continue
+        if isinstance(value, BaseModel):
+            out[name] = _dump(value, True)
+        else:
+            out[name] = model.model_dump(include={name}, exclude_none=True)[name]
+    for name in type(model).model_computed_fields:
+        value = model.model_dump(include={name}, exclude_none=True).get(name)
+        if value is not None:
+            out[name] = value
+    return out
 
 
 class FunctionalMixin:

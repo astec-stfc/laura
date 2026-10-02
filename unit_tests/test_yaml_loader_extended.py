@@ -108,6 +108,46 @@ class TestFastGetElementMetadata:
         meta = fast_get_element_metadata("/no/such/file/element.yaml")
         assert meta["name"] == "element"
 
+    def test_keeps_a_hash_inside_a_name(self, tmp_path):
+        """``#`` only starts a comment after whitespace, so it stays in a name.
+
+        Bmad names the pieces of an element that something is superimposed on
+        ``Q#1``, ``Q#2``; truncating at the ``#`` gave both pieces the same key
+        and silently merged them, so the second one was never loaded.
+        """
+        q = _make_quad(name="QM01#1", machine_area="LI21")
+        fpath = _write_element_yaml(str(tmp_path), q)
+        meta = fast_get_element_metadata(fpath)
+        assert meta["name"] == "QM01#1"
+
+    def test_two_hashed_names_stay_distinct_in_a_lattice(self, tmp_path):
+        """Both halves of a split element survive a directory load."""
+        for name in ("QM01#1", "QM01#2"):
+            _write_element_yaml(str(tmp_path), _make_quad(name=name, machine_area="LI21"))
+        machine = LAURA(
+            element_list=str(tmp_path),
+            section={"sections": {"LI21": ["QM01#1", "QM01#2"]}},
+            layout={"layouts": {"line": ["LI21"]}, "default_layout": "line"},
+        )
+        assert set(machine.elements) == {"QM01#1", "QM01#2"}
+
+    def test_strips_a_real_trailing_comment(self, tmp_path):
+        """A ``#`` that does follow whitespace is still a comment."""
+        fpath = str(tmp_path / "commented.yaml")
+        with open(fpath, "w") as fh:
+            fh.write("name: QX  # the horizontal one\nmachine_area: S01  # injector\n")
+        meta = fast_get_element_metadata(fpath)
+        assert meta["name"] == "QX"
+        assert meta["machine_area"] == "S01"
+
+    def test_unquotes_a_quoted_name(self, tmp_path):
+        fpath = str(tmp_path / "quoted.yaml")
+        with open(fpath, "w") as fh:
+            fh.write('name: "Q#1"\nmachine_area: \'S01\'\n')
+        meta = fast_get_element_metadata(fpath)
+        assert meta["name"] == "Q#1"
+        assert meta["machine_area"] == "S01"
+
 
 # ---------------------------------------------------------------------------
 # LazyElementDict
@@ -533,3 +573,40 @@ class TestElementListDirectoryScan:
 
         assert {"Q1", "Q2", "Q3"}.issubset(set(machine.elements))
         assert len([k for k in machine.elements if k.startswith("summary")]) == 0
+
+
+# ---------------------------------------------------------------------------
+# controls schemas referenced from a combined file at the root of a tree
+# ---------------------------------------------------------------------------
+
+class TestControlsSchemaDirectory:
+    """A combined summary at the root of a per-element tree names schemas
+    that sit beside the elements, in ``<hardware_class>/<hardware_type>/``."""
+
+    @staticmethod
+    def _raw_quad():
+        return {
+            "name": "Q1",
+            "hardware_class": "Magnet",
+            "hardware_type": "Quadrupole",
+            "machine_area": "SEC",
+            "controls": {"identifier_pattern": "QUAD:SEC:1", "schema": "Quadrupole_schema.yaml"},
+        }
+
+    @staticmethod
+    def _write_schema(directory):
+        directory.mkdir(parents=True, exist_ok=True)
+        schema = {"variables": {"bact": {"identifier": "{name}:BACT", "dtype": "float",
+                                         "protocol": "CA", "type": "scalar"}}}
+        (directory / "Quadrupole_schema.yaml").write_text(yaml.safe_dump(schema))
+
+    def test_schema_in_the_type_directory_is_found(self, tmp_path):
+        self._write_schema(tmp_path / "Magnet" / "Quadrupole")
+        elem = interpret_yaml_element(self._raw_quad(), base_dir=str(tmp_path), strict=True)
+        assert "bact" in elem.controls.variables
+
+    def test_schema_beside_the_file_takes_precedence(self, tmp_path):
+        self._write_schema(tmp_path)
+        (tmp_path / "Magnet" / "Quadrupole").mkdir(parents=True)
+        elem = interpret_yaml_element(self._raw_quad(), base_dir=str(tmp_path), strict=True)
+        assert "bact" in elem.controls.variables

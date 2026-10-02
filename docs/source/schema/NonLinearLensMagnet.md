@@ -9,7 +9,7 @@ _Integrable-optics non-linear lens field.  See the MAD-X manual and Danilov/Naga
 
 
 
-URI: [laura:NonLinearLens_Magnet](https://w3id.org/laura/NonLinearLens_Magnet)
+URI: [laura:NonLinearLensMagnet](https://w3id.org/laura/NonLinearLensMagnet)
 
 
 
@@ -37,7 +37,7 @@ URI: [laura:NonLinearLens_Magnet](https://w3id.org/laura/NonLinearLens_Magnet)
 
 | Property | Value |
 | --- | --- |
-| Class URI | [laura:NonLinearLens_Magnet](https://w3id.org/laura/NonLinearLens_Magnet) |
+| Class URI | [laura:NonLinearLensMagnet](https://w3id.org/laura/NonLinearLensMagnet) |
 
 
 ## Slots
@@ -87,7 +87,7 @@ URI: [laura:NonLinearLens_Magnet](https://w3id.org/laura/NonLinearLens_Magnet)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:NonLinearLens_Magnet |
+| self | laura:NonLinearLensMagnet |
 | native | laura:NonLinearLensMagnet |
 
 
@@ -103,7 +103,7 @@ URI: [laura:NonLinearLens_Magnet](https://w3id.org/laura/NonLinearLens_Magnet)
 
 <details>
 ```yaml
-name: NonLinearLens_Magnet
+name: NonLinearLensMagnet
 description: Integrable-optics non-linear lens field.  See the MAD-X manual and Danilov/Nagaitsev,
   PAC2011 WEP070.
 from_schema: https://w3id.org/laura/schema
@@ -116,10 +116,9 @@ attributes:
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0
   integrated_strength:
@@ -129,7 +128,7 @@ attributes:
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0
   dimensional_parameter:
@@ -140,9 +139,9 @@ attributes:
     rank: 1000
     ifabsent: float(0.0)
     domain_of:
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
-class_uri: laura:NonLinearLens_Magnet
+class_uri: laura:NonLinearLensMagnet
 
 ```
 </details>
@@ -151,7 +150,7 @@ class_uri: laura:NonLinearLens_Magnet
 
 <details>
 ```yaml
-name: NonLinearLens_Magnet
+name: NonLinearLensMagnet
 description: Integrable-optics non-linear lens field.  See the MAD-X manual and Danilov/Nagaitsev,
   PAC2011 WEP070.
 from_schema: https://w3id.org/laura/schema
@@ -161,14 +160,13 @@ attributes:
     description: Magnetic length [m].
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.0)
-    owner: NonLinearLens_Magnet
+    owner: NonLinearLensMagnet
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0
   integrated_strength:
@@ -177,9 +175,9 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.0)
-    owner: NonLinearLens_Magnet
+    owner: NonLinearLensMagnet
     domain_of:
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0
   dimensional_parameter:
@@ -189,11 +187,11 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.0)
-    owner: NonLinearLens_Magnet
+    owner: NonLinearLensMagnet
     domain_of:
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
-class_uri: laura:NonLinearLens_Magnet
+class_uri: laura:NonLinearLensMagnet
 
 ```
 </details></div>

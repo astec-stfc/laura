@@ -1,7 +1,7 @@
 # python
 import pytest
 from laura.models.element import (
-    BaseElement,
+    baseElement,
     PhysicalBaseElement,
     Element,
     Sextupole,
@@ -9,9 +9,9 @@ from laura.models.element import (
     Solenoid,
     Wiggler,
     NonLinearLens,
-    HorizontalCorrector,
-    VerticalCorrector,
-    CombinedCorrector,
+    Horizontal_Corrector,
+    Vertical_Corrector,
+    Combined_Corrector,
 )
 from laura.models._generated import (
     _SextupoleBase,
@@ -30,8 +30,8 @@ from laura.models.simulation import SimulationElement
 
 
 @pytest.fixture
-def base_element() -> BaseElement:
-    return BaseElement(
+def base_element() -> baseElement:
+    return baseElement(
         name="Base1",
         hardware_class="Generic",
         hardware_type="HT",
@@ -89,9 +89,9 @@ def test_element_initialization():
         (Solenoid, _SolenoidBase),
         (Wiggler, _WigglerBase),
         (NonLinearLens, _NonLinearLensBase),
-        (HorizontalCorrector, _HorizontalCorrectorBase),
-        (VerticalCorrector, _VerticalCorrectorBase),
-        (CombinedCorrector, _CombinedCorrectorBase),
+        (Horizontal_Corrector, _HorizontalCorrectorBase),
+        (Vertical_Corrector, _VerticalCorrectorBase),
+        (Combined_Corrector, _CombinedCorrectorBase),
     ],
 )
 def test_magnet_elements_inherit_generated_base(cls, base):
@@ -106,7 +106,7 @@ def test_magnet_elements_still_construct_and_round_trip():
         assert el.hardware_type == cls.__name__
         assert el.model_dump()["hardware_type"] == cls.__name__
 
-    combined = CombinedCorrector(
+    combined = Combined_Corrector(
         name="COMBINED1",
         machine_area="MA",
         Horizontal_Corrector="HCORR1",

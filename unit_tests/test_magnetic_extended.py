@@ -5,6 +5,7 @@ import numpy as np
 
 from laura.models.magnetic import (
     MagneticElement,
+    CombinedSolenoidQuadrupoleMagnet,
     DipoleMagnet,
     QuadrupoleMagnet,
     SextupoleMagnet,
@@ -82,8 +83,8 @@ class TestLinearSaturationFit:
 
     def test_k_to_current(self, lsf):
         k_result = lsf.current_to_k(50.0, momentum=1e9)
-        K = k_result["K"]
-        current = lsf.k_to_current(K, momentum=1e9)
+        k = k_result["K"]
+        current = lsf.k_to_current(k, momentum=1e9)
         assert current == pytest.approx(50.0, rel=0.01)
 
     def test_from_string(self):
@@ -124,6 +125,34 @@ class TestMagneticElement:
         me = MagneticElement(gap=0.04)
         # half_gap is a computed field: gap / 2
         assert me.half_gap == pytest.approx(0.02)
+
+    def test_exit_face_defaults_to_the_entrance(self):
+        me = MagneticElement(gap=0.04, edge_field_integral=0.3)
+        assert me.exit_gap is None
+        assert me.edge_field_integral_entrance == pytest.approx(0.3)
+        assert me.edge_field_integral_exit == pytest.approx(0.3)
+        assert me.exit_half_gap == pytest.approx(0.02)
+        assert me.exit_fringe_integral == pytest.approx(0.3)
+
+    def test_exit_face_is_used_when_it_is_given(self):
+        me = MagneticElement(
+            gap=0.0, edge_field_integral=0.0, exit_gap=0.03,
+            edge_field_integral_exit=0.45,
+        )
+        assert me.half_gap == 0.0
+        assert me.edge_field_integral == 0.0
+        assert me.exit_half_gap == pytest.approx(0.015)
+        assert me.exit_fringe_integral == pytest.approx(0.45)
+
+    def test_the_resolved_faces_are_serialised_but_the_read_helpers_are_not(self):
+        dumped = MagneticElement(gap=0.04, edge_field_integral=0.3).model_dump(
+            exclude_defaults=True
+        )
+        assert dumped["edge_field_integral_entrance"] == pytest.approx(0.3)
+        assert dumped["edge_field_integral_exit"] == pytest.approx(0.3)
+        assert "exit_half_gap" not in dumped
+        assert "exit_fringe_integral" not in dumped
+        assert "exit_gap" not in dumped
 
 
 # ---------------------------------------------------------------------------
@@ -194,6 +223,33 @@ class TestSolenoidMagnet:
         sol = SolenoidMagnet()
         sol.ks = 2.0
         assert sol.ks == pytest.approx(2.0)
+
+
+# ---------------------------------------------------------------------------
+# CombinedSolenoidQuadrupole
+# ---------------------------------------------------------------------------
+
+class TestCombinedSolenoidQuadrupoleMagnet:
+    def test_default(self):
+        sq = CombinedSolenoidQuadrupoleMagnet()
+        assert sq.order == 1
+        assert sq.KnL(1) == 0.0
+        assert sq.ks == 0.0
+
+    def test_ks_property(self):
+        sq = CombinedSolenoidQuadrupoleMagnet(ks=1.5)
+        assert sq.ks == pytest.approx(1.5)
+
+    def test_ks_setter(self):
+        sq = CombinedSolenoidQuadrupoleMagnet()
+        sq.ks = 2.0
+        assert sq.ks == pytest.approx(2.0)
+
+    def test_quad_strength_and_ks_together(self):
+        sq = CombinedSolenoidQuadrupoleMagnet(length=2.0, k1l=0.6, ks=0.8)
+        assert sq.KnL(1) == pytest.approx(0.6)
+        assert sq.ks == pytest.approx(0.8)
+        assert sq.solenoid_fields.S0L == pytest.approx(0.8)
 
 
 # ---------------------------------------------------------------------------

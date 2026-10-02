@@ -20,7 +20,7 @@ section_header_text_astra = {
 }
 
 astra_unsupported = [
-    "TwissMatch"
+    "TwissMatch",
     "MatrixTransform",
     "Laser",
     "Plasma",
@@ -243,8 +243,6 @@ class AstraOutput(AstraHeader):
     offset: list | np.ndarray = [0, 0, 0]
     """Beam offset from nominal axis [x,y,z]"""
 
-    # starting_offset: float = None
-
     zstart: float = None
 
     zstop: float = None
@@ -258,21 +256,11 @@ class AstraOutput(AstraHeader):
         populate_by_name=True,
     )
 
-    # section: SectionLatticeTranslator
-
     def model_post_init(self, context: Any, /) -> None:
-        self.astradict = {
-            "input_particle_definition": "Distribution",
-            "sample_interval": "n_red",
-            "toffset": "Toff",
-        }
+        # No astradict: &OUTPUT has none of &NEWRUN's renamed fields.
         self.exclude.extend(
             ["screens", "section", "end_element", "start_element"]
         )  # , "starting_offset"])
-        # self.zstart = list(self.section.elements.elements.values())[0].physical.start.z
-        # self.zstop = list(self.section.elements.elements.values())[-1].physical.end.z
-        # self.zemit = int((self.zstop - self.zstart) / 0.01)
-        # self.screens = [e for e in self.section.elements.elements.values() if e.hardware_class == "Diagnostic"]
 
     def write_astra(self) -> str:
         """

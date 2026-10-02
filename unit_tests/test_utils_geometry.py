@@ -23,8 +23,8 @@ from laura.models.physical import Position, Rotation
 
 class TestEulerRoundtrip:
     def test_identity(self):
-        R = euler_angles_to_rotation_matrix(0.0, 0.0, 0.0)
-        np.testing.assert_array_almost_equal(R, np.eye(3))
+        r = euler_angles_to_rotation_matrix(0.0, 0.0, 0.0)
+        np.testing.assert_array_almost_equal(r, np.eye(3))
 
     @pytest.mark.parametrize("yaw,pitch,roll", [
         (0.1, 0.2, 0.3),
@@ -34,15 +34,15 @@ class TestEulerRoundtrip:
         (0.0, 0.0, 1.0),
     ])
     def test_roundtrip(self, yaw, pitch, roll):
-        R = euler_angles_to_rotation_matrix(yaw, pitch, roll)
-        y2, p2, r2 = rotation_matrix_to_euler(R)
+        r = euler_angles_to_rotation_matrix(yaw, pitch, roll)
+        y2, p2, r2 = rotation_matrix_to_euler(r)
         assert y2 == pytest.approx(yaw, abs=1e-9)
         assert p2 == pytest.approx(pitch, abs=1e-9)
         assert r2 == pytest.approx(roll, abs=1e-9)
 
     def test_gimbal_lock(self):
-        R = euler_angles_to_rotation_matrix(0.3, np.pi / 2, 0.4)
-        yaw, pitch, roll = rotation_matrix_to_euler(R)
+        r = euler_angles_to_rotation_matrix(0.3, np.pi / 2, 0.4)
+        yaw, pitch, roll = rotation_matrix_to_euler(r)
         assert pitch == pytest.approx(np.pi / 2, abs=1e-6)
         assert roll == 0.0
 

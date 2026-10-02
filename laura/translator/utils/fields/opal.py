@@ -4,7 +4,6 @@ from warnings import warn
 from collections import Counter
 from .field_parameter import FieldParameter
 from ..units import UnitValue
-import re
 
 d = ",!?/&-:;@'\n \t"
 
@@ -25,7 +24,7 @@ def write_opal_field_file(
     This is then written to a text file.
     The `field_type` parameter determines the format of the file.
 
-    A warning is raised if the field type is not supported (perhaps elevate to a `NotImplementedError`?
+    A warning is raised if the field type is not supported (perhaps elevate to a `NotImplementedError`?)
 
     .. _OPAL manual: https://amas.web.psi.ch/opal/Documentation/master/OPAL_Manual.html
 

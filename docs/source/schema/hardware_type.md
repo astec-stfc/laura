@@ -60,6 +60,7 @@ URI: [laura:hardware_type](https://w3id.org/laura/hardware_type)
 | [BunchLengthMonitor](BunchLengthMonitor.md) | Bunch-length monitor (BLM / CDR detector) |  yes  |
 | [Camera](Camera.md) | Camera-based beam-profile monitor |  yes  |
 | [Screen](Screen.md) | Scintillator or OTR screen with an associated camera |  yes  |
+| [WireScanner](WireScanner.md) | Wire scanner: thin wires stepped through the beam to measure its transverse p... |  yes  |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | Base class for charge-measurement diagnostics |  yes  |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | Wall-current monitor (WCM) for non-destructive charge measurement |  yes  |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | Faraday cup for destructive charge measurement |  yes  |
@@ -78,6 +79,7 @@ URI: [laura:hardware_type](https://w3id.org/laura/hardware_type)
 | [VerticalCorrector](VerticalCorrector.md) | Vertical steering corrector |  yes  |
 | [CombinedCorrector](CombinedCorrector.md) | Combined horizontal/vertical steering corrector, naming the two single-plane ... |  yes  |
 | [Solenoid](Solenoid.md) | Solenoid focusing magnet |  yes  |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | Magnet combining coaxial solenoid and quadrupole fields |  yes  |
 | [Wiggler](Wiggler.md) | Wiggler / undulator insertion device |  yes  |
 | [NonLinearLens](NonLinearLens.md) | Non-linear integrable-optics lens |  yes  |
 

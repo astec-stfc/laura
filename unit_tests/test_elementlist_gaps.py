@@ -1,5 +1,5 @@
 """Additional tests for laura.models.elementList helpers not exercised by
-test_element_list_extended.py / models/test_elementList.py / test_laura_class.py:
+test_element_list_extended.py / test_laura_class.py:
 normalise_lattice_type's type guard, load_functional_definitions' file-resolution
 branches, and ElementList's dict-attribute-gathering fallback in __getattr__."""
 

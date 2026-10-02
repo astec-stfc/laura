@@ -65,7 +65,7 @@ class BeamBeamTranslator(BaseElementTranslator):
             ELEGANT format.
         """
         self.start_write()
-        etype = self._convertType_Elegant(self.hardware_type)
+        etype = self._convert_type_elegant(self.hardware_type)
         string = self.name + ": " + etype
         total_charge = self.simulation.n_particles * self.simulation.charge * elementary_charge
         if total_charge:

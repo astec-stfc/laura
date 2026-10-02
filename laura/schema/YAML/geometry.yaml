@@ -59,6 +59,11 @@ classes:
     description: >-
       Euler-angle rotation relative to the global coordinate system.
       All angles are in radians, bounded to [-pi, pi].
+      The composition is Rz(psi) . Rx(phi) . Ry(theta), as implemented by
+      laura.utils.rotation_matrix.euler_angles_to_rotation_matrix; each angle
+      below names the axis that factor turns about. psi and theta were
+      described the other way round until 2026-09-01, which is how the Bmad
+      importer came to read x_pitch (a rotation about y) into psi.
     class_uri: laura:Rotation
     in_subset:
       - physical_properties
@@ -74,7 +79,7 @@ classes:
       psi:
         range: float
         ifabsent: float(0)
-        description: Rotation about the vertical (y) axis [rad].
+        description: Rotation about the longitudinal (z) axis [rad].
         minimum_value: -3.141592653589793
         maximum_value:  3.141592653589793
         unit:
@@ -82,7 +87,7 @@ classes:
       theta:
         range: float
         ifabsent: float(0)
-        description: Rotation about the longitudinal (z) axis [rad].
+        description: Rotation about the vertical (y) axis [rad].
         minimum_value: -3.141592653589793
         maximum_value:  3.141592653589793
         unit:

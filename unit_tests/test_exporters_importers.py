@@ -1,4 +1,4 @@
-"""Tests for laura.exporters.YAML and laura.importers.YAML_Loader."""
+"""Tests for laura.exporters.yaml_exporter and laura.importers.yaml_loader."""
 
 import pytest
 import os
@@ -141,7 +141,7 @@ class TestExportMachine:
 
 
 # ---------------------------------------------------------------------------
-# Importers: interpret_YAML_Element
+# Importers: interpret_yaml_element
 # ---------------------------------------------------------------------------
 
 class TestInterpretYAMLElement:
@@ -194,7 +194,7 @@ class TestInterpretYAMLElement:
 
 
 # ---------------------------------------------------------------------------
-# Importers: read_YAML_Element_File / read_YAML_Combined_File
+# Importers: read_yaml_element_file / read_yaml_combined_file
 # ---------------------------------------------------------------------------
 
 class TestReadYAMLFiles:

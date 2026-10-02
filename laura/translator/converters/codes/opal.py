@@ -455,7 +455,6 @@ class OpalFieldSolver(OpalHeader):
     (P3M + GREENSF=STANDARD only)."""
 
     def model_post_init(self, context: Any, /) -> None:
-        self.opaldict = {"input_particle_definition": "FNAME"}
         self.exclude.extend(
             ["npart", "space_charge_mode", "grids", "sample_interval",
              "grid_size_override", "MIN_PARTICLES_PER_CELL"]
@@ -477,21 +476,16 @@ class OpalFieldSolver(OpalHeader):
         An explicitly disabled mode selects ``FSTYPE = NONE``.
         """
         mode = str(self.space_charge_mode or "").strip().lower()
-        if mode in ("false", "off", "0", "no", "none_"):
+        if not self.space_charge or mode in ("false", "off", "0", "no", "none_"):
             self.FSTYPE = "NONE"
-        elif mode == "2d":
+            return
+        if mode == "2d":
             warn(
                 "OPAL has no 2D/cylindrical space-charge solver; the 2D request "
                 "is being run with the 3D FFT solver, which will not reproduce "
                 "a 2D code (e.g. ASTRA) exactly."
             )
-            self.FSTYPE = "FFT"
-        elif mode == "3d":
-            self.FSTYPE = "FFT"
-        if self.space_charge:
-            self.FSTYPE = "FFT"
-        else:
-            self.FSTYPE = "NONE"
+        self.FSTYPE = "FFT"
 
     def write_opal(self) -> str:
         if not self.npart:

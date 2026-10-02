@@ -95,6 +95,7 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
 | [BunchLengthMonitor](BunchLengthMonitor.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Camera](Camera.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Screen](Screen.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [WireScanner](WireScanner.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [ChargeDiagnostic](ChargeDiagnostic.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [WallCurrentMonitor](WallCurrentMonitor.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [FaradayCupMonitor](FaradayCupMonitor.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
@@ -113,6 +114,7 @@ URI: [laura:ElectricalElement](https://w3id.org/laura/ElectricalElement)
 | [VerticalCorrector](VerticalCorrector.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [CombinedCorrector](CombinedCorrector.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Solenoid](Solenoid.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
+| [CombinedSolenoidQuadrupole](CombinedSolenoidQuadrupole.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [Wiggler](Wiggler.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 | [NonLinearLens](NonLinearLens.md) | [electrical](electrical.md) | range | [ElectricalElement](ElectricalElement.md) |
 

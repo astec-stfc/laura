@@ -1,7 +1,7 @@
 # Slot: theta 
 
 
-_Rotation about the longitudinal (z) axis [rad]._
+_Rotation about the vertical (y) axis [rad]._
 
 
 
@@ -105,7 +105,7 @@ URI: [laura:theta](https://w3id.org/laura/theta)
 <details>
 ```yaml
 name: theta
-description: Rotation about the longitudinal (z) axis [rad].
+description: Rotation about the vertical (y) axis [rad].
 from_schema: https://w3id.org/laura/schema
 rank: 1000
 ifabsent: float(0)

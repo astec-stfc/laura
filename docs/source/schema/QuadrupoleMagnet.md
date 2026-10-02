@@ -31,6 +31,8 @@ URI: [laura:QuadrupoleMagnet](https://w3id.org/laura/QuadrupoleMagnet)
         
       QuadrupoleMagnet : exit_edge_angle
         
+      QuadrupoleMagnet : exit_gap
+        
       QuadrupoleMagnet : field_integral_coefficients
         
           
@@ -150,6 +152,7 @@ URI: [laura:QuadrupoleMagnet](https://w3id.org/laura/QuadrupoleMagnet)
 | [edge_field_integral](edge_field_integral.md) | 0..1 <br/> [Float](Float.md) | Enge fringe-field integral parameter (dimensionless), used as the single comb... | [MagneticElement](MagneticElement.md) |
 | [edge_field_integral_entrance](edge_field_integral_entrance.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for entrance-edge focussing | [MagneticElement](MagneticElement.md) |
 | [edge_field_integral_exit](edge_field_integral_exit.md) | 0..1 <br/> [Float](Float.md) | Fringe-field integral for exit-edge focussing | [MagneticElement](MagneticElement.md) |
+| [exit_gap](exit_gap.md) | 0..1 <br/> [Float](Float.md) | Full gap between pole faces at the exit face [m] | [MagneticElement](MagneticElement.md) |
 | [fringe_field_coefficient](fringe_field_coefficient.md) | 0..1 <br/> [Float](Float.md) | Coefficient controlling the fringe-field roll-off rate | [MagneticElement](MagneticElement.md) |
 | [gradient](gradient.md) | 0..1 <br/> [Float](Float.md) | Peak field gradient [T/m] (quads) or peak field [T] (dipoles) | [MagneticElement](MagneticElement.md) |
 | [angle](angle.md) | 0..1 <br/> [Float](Float.md) | Integrated bending angle [rad] | [MagneticElement](MagneticElement.md) |
@@ -209,13 +212,13 @@ URI: [laura:QuadrupoleMagnet](https://w3id.org/laura/QuadrupoleMagnet)
 
 <details>
 ```yaml
-name: Quadrupole_Magnet
+name: QuadrupoleMagnet
 from_schema: https://w3id.org/laura/schema
 is_a: MagneticElement
 slot_usage:
   order:
     name: order
-    ifabsent: '1'
+    ifabsent: int(1)
     equals_number: 1
 
 ```
@@ -225,25 +228,24 @@ slot_usage:
 
 <details>
 ```yaml
-name: Quadrupole_Magnet
+name: QuadrupoleMagnet
 from_schema: https://w3id.org/laura/schema
 is_a: MagneticElement
 slot_usage:
   order:
     name: order
-    ifabsent: '1'
+    ifabsent: int(1)
     equals_number: 1
 attributes:
   order:
     name: order
     description: Principal multipole order (0 = dipole, 1 = quad, ?).
     from_schema: https://w3id.org/laura/schema/magnetic
-    ifabsent: '1'
-    owner: Quadrupole_Magnet
+    ifabsent: int(1)
+    owner: QuadrupoleMagnet
     domain_of:
     - Multipole
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     range: integer
     minimum_value: -1
@@ -253,7 +255,7 @@ attributes:
     description: Whether the magnet is rotated 45? to produce a skew field component.
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: 'False'
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - Multipole
     - MagneticElement
@@ -265,14 +267,13 @@ attributes:
     aliases:
     - magnetic_length
     ifabsent: float(0)
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - PhysicalElement
     - MagneticElement
-    - Corrector_Magnet
     - Solenoid_Magnet
     - Wiggler_Magnet
-    - NonLinearLens_Magnet
+    - NonLinearLensMagnet
     range: float
     minimum_value: 0.0
     unit:
@@ -282,7 +283,7 @@ attributes:
     description: Integrated multipole field components.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: Multipoles
@@ -291,7 +292,7 @@ attributes:
     description: Systematic (design) multipole errors at the reference radius.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: Multipoles
@@ -300,7 +301,7 @@ attributes:
     description: Random multipole errors at the reference radius.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: Multipoles
@@ -309,7 +310,7 @@ attributes:
     description: Polynomial calibration of integrated field vs. current.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
@@ -319,7 +320,7 @@ attributes:
     description: Bi-linear saturation calibration.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
@@ -329,7 +330,7 @@ attributes:
     description: Power-supply settle time after a change [s].
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     - Solenoid_Magnet
@@ -344,7 +345,7 @@ attributes:
     - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: string
@@ -361,7 +362,7 @@ attributes:
     - bend_angle_reference
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: string
@@ -376,7 +377,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.032)
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -389,7 +390,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.037)
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -403,7 +404,7 @@ attributes:
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: string(Horizontal)
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: BendingPlaneEnum
@@ -412,7 +413,7 @@ attributes:
     description: Physical width of the magnet in the bending plane [m].
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.2)
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - BeamBeamSimulationElement
     - MagneticElement
@@ -424,11 +425,10 @@ attributes:
     description: Global tilt about the beam axis [rad].
     from_schema: https://w3id.org/laura/schema/magnetic
     ifabsent: float(0.0)
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - ElectrostaticSeparatorSimulationElement
     - MagneticElement
-    - Corrector_Magnet
     range: float
     unit:
       ucum_code: rad
@@ -436,15 +436,12 @@ attributes:
     name: edge_field_integral
     description: Enge fringe-field integral parameter (dimensionless), used as the
       single combined value by codes that only support one edge focussing keyword.
-      Unset (None) by default -- rather than forcing a laura default into every output,
-      an unset value is simply omitted from the written file so the target code's
-      own built-in default applies. If given, it also becomes the default for any
-      of edge_field_integral_entrance/edge_field_integral_exit that are themselves
-      not given (see MagneticElement.resolve_edge_field_integrals).
+      Unset (None) by default. If given, it also becomes the default for any of edge_field_integral_entrance/edge_field_integral_exit
+      that are themselves not given (see MagneticElement.resolve_edge_field_integrals).
     from_schema: https://w3id.org/laura/schema/magnetic
-    rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
+    - MagnetSimulationElement
     - MagneticElement
     range: float
     required: false
@@ -455,7 +452,7 @@ attributes:
       when set explicitly.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -467,18 +464,32 @@ attributes:
       set explicitly.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
     required: false
+  exit_gap:
+    name: exit_gap
+    description: Full gap between pole faces at the exit face [m]. Absent means the
+      same as ``gap``. See ``edge_field_integral_exit``.
+    from_schema: https://w3id.org/laura/schema/magnetic
+    rank: 1000
+    owner: QuadrupoleMagnet
+    domain_of:
+    - MagneticElement
+    range: float
+    required: false
+    minimum_value: 0.0
+    unit:
+      ucum_code: m
   fringe_field_coefficient:
     name: fringe_field_coefficient
     description: Coefficient controlling the fringe-field roll-off rate.
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
     ifabsent: float(0.0)
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -487,7 +498,7 @@ attributes:
     description: Peak field gradient [T/m] (quads) or peak field [T] (dipoles).
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float
@@ -504,7 +515,7 @@ attributes:
       property object as the field default.'
     from_schema: https://w3id.org/laura/schema/magnetic
     rank: 1000
-    owner: Quadrupole_Magnet
+    owner: QuadrupoleMagnet
     domain_of:
     - MagneticElement
     range: float

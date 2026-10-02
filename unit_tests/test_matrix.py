@@ -137,3 +137,30 @@ def test_t_matrix_invalid_index():
         MatrixTransformSimulationElement(
             t_matrix={"t771": 1.0}
         )
+
+
+def test_u_matrix_from_dict():
+    obj = MatrixTransformSimulationElement(u_matrix={"u1234": 2.5})
+
+    assert obj.u_matrix.shape == (6, 6, 6, 6)
+    assert obj.u_matrix[0, 1, 2, 3] == 2.5
+
+
+def test_u_matrix_invalid_shape():
+    with pytest.raises(ValueError, match="u_matrix must have shape"):
+        MatrixTransformSimulationElement(u_matrix=np.zeros((6, 6, 6)))
+
+
+def test_spin_taylor_terms():
+    term = {
+        "index": 2,
+        "coef": -0.5,
+        **{f"exp{i}": float(i == 1) for i in range(1, 7)},
+    }
+
+    assert MatrixTransformSimulationElement(spin_taylor=[term]).spin_taylor == [term]
+
+
+def test_spin_taylor_term_requires_all_exponents():
+    with pytest.raises(ValueError, match="exp6"):
+        MatrixTransformSimulationElement(spin_taylor=[{"index": 0, "coef": 1.0}])

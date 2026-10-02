@@ -3,7 +3,7 @@ from warnings import warn
 from .constants import pi, c, e, m_e, epsilon_0
 import numpy as np
 
-from .base_models import IgnoreExtra, T
+from .base_models import IgnoreExtra
 from ._generated import (
     _LaserElementBase,
     _LaserHalfWavePlateElementBase,

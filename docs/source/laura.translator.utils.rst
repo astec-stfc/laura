@@ -40,15 +40,6 @@ laura.translator.utils.functions module
    :show-inheritance:
    :undoc-members:
 
-laura.translator.utils.pmd\_units module
-----------------------------------------
-
-.. automodule:: laura.translator.utils.pmd_units
-   :members:
-   :private-members:
-   :show-inheritance:
-   :undoc-members:
-
 laura.translator.utils.units module
 -----------------------------------
 
