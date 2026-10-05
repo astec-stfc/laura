@@ -459,7 +459,7 @@ class MagneticElement(DeprecatedMethodAliases, _MagneticElementBase, FunctionalM
 
     @model_validator(mode="after")
     def resolve_edge_field_integrals(
-        self,
+        self, # noqa: N804 (pydantic after-validator takes self)
     ) -> "MagneticElement":  # noqa: N804 (pydantic after-validator takes self)
         """
         Reconciles ``edge_field_integral`` (the single combined value read by
