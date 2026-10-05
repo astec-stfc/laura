@@ -75,6 +75,15 @@ kicker:
   hkick: double
   vkick: double
   fringe_type: string
+ac_kicker:
+  l: double
+  bl_hkick: double
+  bl_vkick: double
+  t_offset: double
+  interpolation: string
+  amp_vs_time: string
+  frequencies: string
+  fringe_type: string
 rfcavity:
   l: double
   phi0: double
@@ -167,7 +176,7 @@ rcollimator:
   x2_limit: double
   y1_limit: double
   y2_limit: double
-marker: {}
+marker: { }
 monitor:
   l: double
 instrument:

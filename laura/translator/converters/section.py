@@ -827,7 +827,7 @@ class SectionLatticeTranslator(SectionLattice):
             if sim is not None and hasattr(sim, "wakefield_enable"):
                 sim.wakefield_enable = False
 
-    def to_elegant(self, charge: float | None = None) -> str:
+    def to_elegant(self, charge: float | None = None, Brho: float = 0.0) -> str:
         """
         Create an ELEGANT-compatible input file based on the lattice information.
 
@@ -835,6 +835,11 @@ class SectionLatticeTranslator(SectionLattice):
         ----------
         charge: float
             Bunch charge
+        Brho: float
+            Magnetic rigidity [T*m]. Only AC dipoles need it: ELEGANT states a
+            ``BUMPER``'s strength as an angle rather than as an integrated
+            field.
+            Mirrors ``to_gpt(Brho=...)``.
 
         Returns
         -------
@@ -854,7 +859,10 @@ class SectionLatticeTranslator(SectionLattice):
             string += f"{self.name}_Q: CHARGE, TOTAL = {charge};\n"
 
         for d in elem_dict.values():
-            string += self.format_string(d.to_elegant())
+            if isinstance(d, ACDipoleTranslator):
+                string += self.format_string(d.to_elegant(Brho=Brho))
+            else:
+                string += self.format_string(d.to_elegant())
 
         lstring = f"{self.name}: LINE = ("
         if charge:

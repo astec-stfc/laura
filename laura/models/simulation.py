@@ -2,10 +2,11 @@ import re
 from typing import Any, ClassVar, Dict, List, Union
 
 import numpy as np
-from pydantic import Field, computed_field, field_validator
+from pydantic import Field, computed_field, field_validator, model_validator
 
 from ..translator.utils.fields import FieldMap
 from ._generated import (
+    WaveformInterpolationEnum,
     _ACDipoleSimulationElementBase,
     _ApertureElementBase,
     _BeamBeamSimulationElementBase,
@@ -17,6 +18,7 @@ from ._generated import (
     _PlasmaSimulationElementBase,
     _RFCavitySimulationElementBase,
     _RFMultipoleSimulationElementBase,
+    _SampledWaveformBase,
     _SimulationElementBase,
     _TwissMatchSimulationElementBase,
     _WakefieldSimulationElementBase,
@@ -352,6 +354,39 @@ class ElectrostaticSeparatorSimulationElement(
     """Rotation of the separator about the beam axis [rad]."""
 
 
+class SampledWaveform(_SampledWaveformBase):
+    """
+    Sampled pulse shape of a device whose strength is a program over time.
+    """
+
+    time: List[float] = Field(default_factory=list)
+    """Sample times, measured from the moment the device fires [s]."""
+
+    factor: List[float] = Field(default_factory=list)
+    """Strength at each sample time, as a fraction of the element's nominal
+    strength."""
+
+    interpolation: WaveformInterpolationEnum = WaveformInterpolationEnum.linear
+    """How the strength behaves between knots."""
+
+    @model_validator(mode="after")
+    def _check_knots(
+        self,  # noqa: N804 (pydantic after-validator takes self)
+    ) -> "SampledWaveform":
+        if len(self.time) != len(self.factor):
+            raise ValueError(
+                f"waveform has {len(self.time)} time(s) and "
+                f"{len(self.factor)} factor(s); they are the two columns of "
+                "one sampled trace and must be the same length."
+            )
+        if any(b < a for a, b in zip(self.time, self.time[1:])):
+            raise ValueError(
+                "waveform times must be non-decreasing; a trace that goes "
+                "backwards in time has no interpolation."
+            )
+        return self
+
+
 class ACDipoleSimulationElement(_ACDipoleSimulationElementBase):
     """
     AC dipole / tune-exciter simulation element model.
@@ -375,6 +410,11 @@ class ACDipoleSimulationElement(_ACDipoleSimulationElementBase):
     ramp: List[int] = Field(default_factory=lambda: [0, 0, 0, 0])
     """Turn numbers ``[ramp1, ramp2, ramp3, ramp4]`` defining the ramp-up start,
     flat-top start, flat-top end and ramp-down end."""
+
+    waveform: SampledWaveform | None = None
+    """Sampled pulse shape, for a kicker or septum whose strength is a program
+    rather than a sinusoid. Carried instead of
+    :attr:`~frequency`/:attr:`~phase`/:attr:`~ramp`, not alongside them."""
 
 
 class WireSimulationElement(_WireSimulationElementBase):

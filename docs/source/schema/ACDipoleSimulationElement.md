@@ -68,6 +68,15 @@ URI: [laura:ACDipoleSimulationElement](https://w3id.org/laura/ACDipoleSimulation
         
       ACDipoleSimulationElement : vertical_offset
         
+      ACDipoleSimulationElement : waveform
+        
+          
+    
+    
+    ACDipoleSimulationElement --> "0..1" SampledWaveform : waveform
+    click SampledWaveform href "../SampledWaveform/"
+
+        
       ACDipoleSimulationElement : wakefield_definition
         
       ACDipoleSimulationElement : wakefield_enable
@@ -99,6 +108,7 @@ URI: [laura:ACDipoleSimulationElement](https://w3id.org/laura/ACDipoleSimulation
 | [frequency](frequency.md) | 0..1 <br/> [Float](Float.md) | Drive frequency [Hz] | direct |
 | [phase](phase.md) | 0..1 <br/> [Float](Float.md)&nbsp;or&nbsp;<br />[String](String.md) | Phase lag [deg] | direct |
 | [ramp](ramp.md) | * <br/> [Integer](Integer.md) | Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp | direct |
+| [waveform](waveform.md) | 0..1 <br/> [SampledWaveform](SampledWaveform.md) | Sampled pulse shape, for a device whose strength is a program rather than a s... | direct |
 | [n_kicks](n_kicks.md) | 0..1 <br/> [Integer](Integer.md) | Number of integration kicks | [SimulationElement](SimulationElement.md) |
 | [lsc_bins](lsc_bins.md) | 0..1 <br/> [Integer](Integer.md) | Number of bins used in longitudinal space-charge calculations | [SimulationElement](SimulationElement.md) |
 | [csr_enable](csr_enable.md) | 0..1 <br/> [Boolean](Boolean.md) | Whether coherent synchrotron radiation effects are enabled | [SimulationElement](SimulationElement.md) |
@@ -209,6 +219,15 @@ attributes:
     - ACDipoleSimulationElement
     range: integer
     multivalued: true
+  waveform:
+    name: waveform
+    description: 'Sampled pulse shape, for a device whose strength is a program rather
+      than a sinusoid -- an injection kicker or an extraction septum. An alternative
+      to ``frequency``/``phase``/``ramp`` rather than an addition to them: a kicker
+      carries a waveform and no frequency, a tune exciter a frequency and no waveform.'
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    range: SampledWaveform
 class_uri: laura:ACDipoleSimulationElement
 
 ```
@@ -246,6 +265,19 @@ attributes:
     - ACDipoleSimulationElement
     range: integer
     multivalued: true
+  waveform:
+    name: waveform
+    description: 'Sampled pulse shape, for a device whose strength is a program rather
+      than a sinusoid -- an injection kicker or an extraction septum. An alternative
+      to ``frequency``/``phase``/``ramp`` rather than an addition to them: a kicker
+      carries a waveform and no frequency, a tune exciter a frequency and no waveform.'
+    from_schema: https://w3id.org/laura/schema
+    rank: 1000
+    alias: waveform
+    owner: ACDipoleSimulationElement
+    domain_of:
+    - ACDipoleSimulationElement
+    range: SampledWaveform
   field_amplitude:
     name: field_amplitude
     description: Peak kick voltage/amplitude of the exciter.

@@ -13,6 +13,15 @@ Subpackages
 Submodules
 ----------
 
+laura.translator.utils.ac_dipole module
+---------------------------------------
+
+.. automodule:: laura.translator.utils.ac_dipole
+   :members:
+   :private-members:
+   :show-inheritance:
+   :undoc-members:
+
 laura.translator.utils.sdds_file module
 ---------------------------------------
 

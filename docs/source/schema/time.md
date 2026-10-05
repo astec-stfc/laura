@@ -1,7 +1,7 @@
-# Slot: factor 
+# Slot: time 
 
 
-_Wake scaling factor._
+_Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as `factor`._
 
 
 
@@ -9,7 +9,7 @@ _Wake scaling factor._
 
 
 
-URI: [laura:factor](https://w3id.org/laura/factor)
+URI: [laura:time](https://w3id.org/laura/time)
 <!-- no inheritance hierarchy -->
 
 
@@ -21,7 +21,6 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [SampledWaveform](SampledWaveform.md) | A pulse shape sampled at a sparse set of points, for a device whose strength ... |  no  |
-| [WakefieldSimulationElement](WakefieldSimulationElement.md) | Simulation attributes for passive wakefield structures |  no  |
 
 
 
@@ -35,18 +34,19 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 | Property | Value |
 | --- | --- |
 | Range | [Float](Float.md) |
-| Domain Of | [SampledWaveform](SampledWaveform.md), [WakefieldSimulationElement](WakefieldSimulationElement.md) |
+| Domain Of | [SampledWaveform](SampledWaveform.md) |
 
 ### Cardinality and Requirements
 
 | Property | Value |
 | --- | --- |
+| Multivalued | Yes |
 ### Slot Characteristics
 
 | Property | Value |
 | --- | --- |
-| If Absent | `float(1)` |
-| Owner | [WakefieldSimulationElement](WakefieldSimulationElement.md) |
+| Unit | s |
+| Owner | [SampledWaveform](SampledWaveform.md) |
 
 
 
@@ -77,8 +77,8 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:factor |
-| native | laura:factor |
+| self | laura:time |
+| native | laura:time |
 
 
 
@@ -87,16 +87,18 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 
 <details>
 ```yaml
-name: factor
-description: Wake scaling factor.
+name: time
+description: Sample times, measured from the moment the device fires [s]. Must be
+  non-decreasing and the same length as ``factor``.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: float(1)
-owner: WakefieldSimulationElement
+unit:
+  ucum_code: s
+owner: SampledWaveform
 domain_of:
 - SampledWaveform
-- WakefieldSimulationElement
 range: float
+multivalued: true
 
 ```
 </details></div>

@@ -40,6 +40,8 @@ elegant:
   CrabCavity: rfdf
   MatrixTransform: ematrix
   BeamBeam: beambeam
+  Horizontal_AC_Dipole: bumper
+  Vertical_AC_Dipole: bumper
 genesis:
   Dipole: drift
   Quadrupole: quadrupole
@@ -199,6 +201,8 @@ bmad:
   MatrixTransform: taylor
   ElectrostaticSeparator: elseparator
   Wakefield: drift
+  Horizontal_AC_Dipole: ac_kicker
+  Vertical_AC_Dipole: ac_kicker
 name:
   dia-bpm: beam_position_monitor
   dia-bam: beam_arrival_monitor

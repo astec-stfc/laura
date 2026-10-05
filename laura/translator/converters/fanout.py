@@ -152,7 +152,9 @@ class ContainerTranslator:
             refer=refer,
         )
 
-    def _elegant_body(self, charge: float | None = None) -> Tuple[str, str]:
+    def _elegant_body(
+        self, charge: float | None = None, Brho: float = 0.0
+    ) -> Tuple[str, str]:
         """
         This container's elegant output as ``(definitions, lines)``, split so a
         parent can concatenate several containers' element definitions ahead of
@@ -164,7 +166,9 @@ class ContainerTranslator:
         """This container's Genesis element and ``LINE`` definitions."""
         raise NotImplementedError
 
-    def to_elegant(self, string: str = "", charge: float | None = None) -> str:
+    def to_elegant(
+        self, string: str = "", charge: float | None = None, Brho: float = 0.0
+    ) -> str:
         """
         Create an elegant-compatible lattice file.
 
@@ -174,13 +178,16 @@ class ContainerTranslator:
             Placed ahead of element definitions
         charge: float, optional
             Adds a ``CHARGE`` element at the head of each ``LINE``.
+        Brho: float
+            Magnetic rigidity [T*m]; see
+            :meth:`~laura.translator.converters.section.SectionLatticeTranslator.to_elegant`.
 
         Returns
         -------
         str
             String for the ELEGANT lattice file
         """
-        definitions, lines = self._elegant_body(charge=charge)
+        definitions, lines = self._elegant_body(charge=charge, Brho=Brho)
         return (
             elegant_functional_definitions(self.functional_definitions)
             + string

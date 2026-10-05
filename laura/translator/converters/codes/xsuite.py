@@ -11,6 +11,7 @@ from pydantic import ConfigDict, PrivateAttr, model_validator
 import laura.models.element as laura_elements
 from laura.models.element_list import MachineLayout, SectionLattice
 
+from ...utils.ac_dipole import MV_PER_VOLT
 from .importer import LatticeImporter
 
 xsuite_unsupported = [
@@ -124,7 +125,6 @@ class XsuiteLatticeImporter(LatticeImporter):
     use_sliced: bool = False
     """Import a sliced line's slices rather than the thick elements they came
     from. Off by default -- see :meth:`_unsliced`."""
-
 
     elements: Dict = {}
     sections: Dict = {}
@@ -328,6 +328,16 @@ class XsuiteLatticeImporter(LatticeImporter):
             self.functional_definitions[name] = float(np.degrees(phase) + lag)
             return name
         return float(np.degrees(phase) + lag)
+
+    def _rescaled(
+        self, element_name: str, field: str, value: float, factor: float
+    ) -> str | float:
+        """``value * factor``, keeping a functional attribute functional."""
+        if self._symbol(element_name, field):
+            name = f"{element_name}_laura_{field}"
+            self.functional_definitions[name] = value * factor
+            return name
+        return value * factor
 
     def _multipoles(
         self, element_name: str, native, length: float, native_type: str
@@ -540,12 +550,17 @@ class XsuiteLatticeImporter(LatticeImporter):
                 }
             }
         if native_type == "ACDipole":
+            # Xtrack's volt is in MV and its lag in units of 2*pi, the same
+            # two conventions MAD-X uses; LAURA holds V and degrees.
             return {
                 "simulation": {
-                    "field_amplitude": self._symbol(element_name, "volt")
-                    or float(native.volt),
+                    "field_amplitude": self._rescaled(
+                        element_name, "volt", float(native.volt), 1 / MV_PER_VOLT
+                    ),
                     "frequency": float(native.freq),
-                    "phase": self._symbol(element_name, "lag") or float(native.lag),
+                    "phase": self._rescaled(
+                        element_name, "lag", float(native.lag), 360.0
+                    ),
                     "ramp": [float(value) for value in native.ramp],
                 }
             }
@@ -728,7 +743,9 @@ class XsuiteLatticeImporter(LatticeImporter):
             sections.update(self.create_section({line_name: [names[0], names[-1]]}))
         return sections
 
-    def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:
+    def create_section(
+        self, section: Optional[Dict] = None
+    ) -> Dict[str, SectionLattice]:
         built = super().create_section(section)
         self.sections.update(built)
         return built

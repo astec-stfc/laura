@@ -10,6 +10,7 @@ from laura.models.element_list import (
 from laura.models.reversal import reverse_section
 
 from ..utils.functions import sanitize_string
+from .ac_dipole import ACDipoleTranslator
 from .converter import translate_elements
 from .fanout import ContainerTranslator, wrap_lattice_line
 from .section import SectionLatticeTranslator
@@ -220,7 +221,9 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             directory=self.directory,
         )
 
-    def _elegant_body(self, charge: float | None = None) -> Tuple[str, str]:
+    def _elegant_body(
+        self, charge: float | None = None, Brho: float = 0.0
+    ) -> Tuple[str, str]:
         definitions = ""
         lines = ""
         for section in self.sections.values():
@@ -228,7 +231,10 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
             if charge:
                 definitions += f"{section.name}_Q: CHARGE, TOTAL = {charge};\n"
             for d in elem_dict.values():
-                definitions += d.to_elegant()
+                if isinstance(d, ACDipoleTranslator):
+                    definitions += d.to_elegant(Brho=Brho)
+                else:
+                    definitions += d.to_elegant()
 
             line = f"{section.name}: LINE = ("
             if charge:

@@ -366,6 +366,24 @@ class LatticeGeometryEnum(str, Enum):
     """
 
 
+class WaveformInterpolationEnum(str, Enum):
+    """
+    How a sampled waveform behaves between the points it was sampled at.
+    """
+    linear = "linear"
+    """
+    Straight line between neighbouring knots. What every tracking code does by default.
+    """
+    hold = "hold"
+    """
+    Each knot's value holds until the next one, so the waveform is a staircase. No code offers this natively; a device that steps rather than slews has to say so here, or it will be read as a slew.
+    """
+    spline = "spline"
+    """
+    Cubic spline through the knots, for a measured trace sampled too coarsely for straight lines to be honest about it.
+    """
+
+
 class BendingPlaneEnum(str, Enum):
     """
     Bending plane enum.
@@ -856,6 +874,22 @@ class _MachineModelBase(ConfiguredBaseModel):
     """All named beamline layouts."""
 
 
+class _SampledWaveformBase(ConfiguredBaseModel):
+    """
+    A pulse shape sampled at a sparse set of points, for a device whose strength is a program rather than a constant: an injection kicker, an extraction septum, a tune exciter driven from a measured trace. Only the knots are stored, and the value between them follows ``interpolation``. That is the common denominator of what the tracking codes accept -- MAD-X ``ramp1``-``ramp4``, Bmad ``x_knot``/``y_knot`` on a ramper, elegant ``WAVEFORM`` (an SDDS file of ``(t, factor)``) and Xsuite ``FunctionPieceWiseLinear`` are each sparse knots plus a rule. The waveform is the device's own shape, held relative to the moment it fires and to its nominal strength. *When* it fires, and at what absolute strength, is a property of the study rather than of the machine, and is set in the tracking code's run settings instead.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'class_uri': 'laura:SampledWaveform',
+         'from_schema': 'https://w3id.org/laura/schema/simulation'})
+
+    time: list[float] = Field(default_factory=list, description="""Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as ``factor``.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SampledWaveform'], 'unit': {'ucum_code': 's'}} })
+    """Sample times, measured from the moment the device fires [s]. Must be non-decreasing and the same length as ``factor``."""
+    factor: list[float] = Field(default_factory=list, description="""Strength at each of the times in ``time``, as a fraction of the element's nominal strength; 1.0 is full strength. A pulse normally starts and ends at zero.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SampledWaveform', 'WakefieldSimulationElement']} })
+    """Strength at each of the times in ``time``, as a fraction of the element's nominal strength; 1.0 is full strength. A pulse normally starts and ends at zero."""
+    interpolation: Optional[WaveformInterpolationEnum] = Field(default=WaveformInterpolationEnum.linear, description="""How the strength behaves between the sampled knots.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SampledWaveform'],
+         'ifabsent': 'WaveformInterpolationEnum(linear)'} })
+    """How the strength behaves between the sampled knots."""
+
+
 class _SimulationElementBase(ConfiguredBaseModel):
     """
     Base simulation attributes: field-map files, reference positions, and optional tracking controls for simulation codes.
@@ -1173,7 +1207,8 @@ class _WakefieldSimulationElementBase(_SimulationElementBase):
     """Use bunched beam mode."""
     change_momentum: Optional[bool] = Field(default=True, description="""Allow wakefield to change bunch momentum.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'True'} })
     """Allow wakefield to change bunch momentum."""
-    factor: float = Field(default=1, description="""Wake scaling factor.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'float(1)'} })
+    factor: float = Field(default=1, description="""Wake scaling factor.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SampledWaveform', 'WakefieldSimulationElement'],
+         'ifabsent': 'float(1)'} })
     """Wake scaling factor."""
     interpolate: Optional[bool] = Field(default=True, description="""Interpolate points in wake file.""", json_schema_extra = { "linkml_meta": {'domain_of': ['WakefieldSimulationElement'], 'ifabsent': 'True'} })
     """Interpolate points in wake file."""
@@ -1749,6 +1784,8 @@ class _ACDipoleSimulationElementBase(_SimulationElementBase):
     """Phase lag [deg]."""
     ramp: list[int] = Field(default_factory=list, description="""Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ACDipoleSimulationElement']} })
     """Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp."""
+    waveform: Optional[_SampledWaveformBase] = Field(default=None, description="""Sampled pulse shape, for a device whose strength is a program rather than a sinusoid -- an injection kicker or an extraction septum. An alternative to ``frequency``/``phase``/``ramp`` rather than an addition to them: a kicker carries a waveform and no frequency, a tune exciter a frequency and no waveform.""", json_schema_extra = { "linkml_meta": {'domain_of': ['ACDipoleSimulationElement']} })
+    """Sampled pulse shape, for a device whose strength is a program rather than a sinusoid -- an injection kicker or an extraction septum. An alternative to ``frequency``/``phase``/``ramp`` rather than an addition to them: a kicker carries a waveform and no frequency, a tune exciter a frequency and no waveform."""
     n_kicks: Optional[int] = Field(default=None, description="""Number of integration kicks.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Number of integration kicks."""
     lsc_bins: Optional[int] = Field(default=None, description="""Number of bins used in longitudinal space-charge calculations.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -7216,6 +7253,7 @@ _SectionLatticeBase.model_rebuild()
 _LayoutPassBase.model_rebuild()
 _MachineLayoutBase.model_rebuild()
 _MachineModelBase.model_rebuild()
+_SampledWaveformBase.model_rebuild()
 _SimulationElementBase.model_rebuild()
 _MagnetSimulationElementBase.model_rebuild()
 _RFCavitySimulationElementBase.model_rebuild()

@@ -26,6 +26,7 @@ from laura.models.element_list import (
 )
 
 from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
+from ...utils.ac_dipole import MV_PER_VOLT, SINE_TO_COSINE_TURNS
 from ...utils.bmad import (
     BMAD_SR_WAKE_SAMPLES,
     bmad_floor_angles_to_laura,
@@ -144,8 +145,6 @@ they come back as. The inverse of
 :data:`~laura.translator.converters.layout.bmad_per_pass_attributes`."""
 
 bmad_unsupported = [
-    "Horizontal_AC_Dipole",
-    "Vertical_AC_Dipole",
     "Laser",
     "LaserAttenuator",
     "LaserEnergyMeter",
@@ -1778,10 +1777,10 @@ class BmadLatticeImporter(BaseModel):
         return {"hardware_type": hardware_type, "magnetic": magnetic}
 
     def _build_ac_kicker(self, e: "_NativeElement") -> dict:
-        hkick = e.parameters.get("HKICK", 0.0) or 0.0
-        vkick = e.parameters.get("VKICK", 0.0) or 0.0
+        hkick = e.parameters.get("BL_HKICK", 0.0) or 0.0
+        vkick = e.parameters.get("BL_VKICK", 0.0) or 0.0
         vertical = abs(vkick) > abs(hkick)
-        amplitude = vkick if vertical else hkick
+        amplitude = (vkick if vertical else hkick) / MV_PER_VOLT
         simulation = {"field_amplitude": amplitude}
         ac_data = e.parameters.get("_AC_KICKER", {})
         frequencies = ac_data.get("frequencies", [])
@@ -1791,7 +1790,7 @@ class BmadLatticeImporter(BaseModel):
                 {
                     "field_amplitude": amplitude * scale,
                     "frequency": frequency,
-                    "phase": phase * 360,
+                    "phase": (phase - SINE_TO_COSINE_TURNS) * 360,
                 }
             )
             if len(frequencies) > 1:
@@ -1801,14 +1800,27 @@ class BmadLatticeImporter(BaseModel):
                     "was imported."
                 )
         if ac_data.get("amp_vs_time"):
-            warn(
-                f"Bmad AC_Kicker {e.name!r} uses amp_vs_time; LAURA has no "
-                "equivalent sampled-time waveform, so it was not imported."
-            )
+            knots = sorted(ac_data["amp_vs_time"], key=lambda row: row[1])
+            interpolation = str(e.parameters.get("INTERPOLATION") or "cubic")
+            simulation["waveform"] = {
+                "time": [time for _, time in knots],
+                "factor": [amp for amp, _ in knots],
+                "interpolation": (
+                    "linear" if interpolation.lower() == "linear" else "spline"
+                ),
+            }
+            offset = e.parameters.get("T_OFFSET", 0.0) or 0.0
+            if offset:
+                warn(
+                    f"Bmad AC_Kicker {e.name!r} has t_offset={offset}; LAURA "
+                    "holds the shape of a waveform but not the moment the "
+                    "device fires, which is a property of the study rather "
+                    "than of the machine, so the offset was not imported."
+                )
         if hkick and vkick:
             warn(
                 f"Bmad AC_Kicker {e.name!r} kicks in both planes "
-                f"(hkick={hkick}, vkick={vkick}); LAURA models a single "
+                f"(bl_hkick={hkick}, bl_vkick={vkick}); LAURA models a single "
                 "plane per element, so only the larger kick is imported."
             )
         return {

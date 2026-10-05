@@ -1,7 +1,7 @@
-# Slot: factor 
+# Slot: interpolation 
 
 
-_Wake scaling factor._
+_How the strength behaves between the sampled knots._
 
 
 
@@ -9,7 +9,7 @@ _Wake scaling factor._
 
 
 
-URI: [laura:factor](https://w3id.org/laura/factor)
+URI: [laura:interpolation](https://w3id.org/laura/interpolation)
 <!-- no inheritance hierarchy -->
 
 
@@ -21,7 +21,6 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 | Name | Description | Modifies Slot |
 | --- | --- | --- |
 | [SampledWaveform](SampledWaveform.md) | A pulse shape sampled at a sparse set of points, for a device whose strength ... |  no  |
-| [WakefieldSimulationElement](WakefieldSimulationElement.md) | Simulation attributes for passive wakefield structures |  no  |
 
 
 
@@ -34,8 +33,8 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 
 | Property | Value |
 | --- | --- |
-| Range | [Float](Float.md) |
-| Domain Of | [SampledWaveform](SampledWaveform.md), [WakefieldSimulationElement](WakefieldSimulationElement.md) |
+| Range | [WaveformInterpolationEnum](WaveformInterpolationEnum.md) |
+| Domain Of | [SampledWaveform](SampledWaveform.md) |
 
 ### Cardinality and Requirements
 
@@ -45,8 +44,8 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 
 | Property | Value |
 | --- | --- |
-| If Absent | `float(1)` |
-| Owner | [WakefieldSimulationElement](WakefieldSimulationElement.md) |
+| If Absent | `WaveformInterpolationEnum(linear)` |
+| Owner | [SampledWaveform](SampledWaveform.md) |
 
 
 
@@ -77,8 +76,8 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 
 | Mapping Type | Mapped Value |
 | ---  | ---  |
-| self | laura:factor |
-| native | laura:factor |
+| self | laura:interpolation |
+| native | laura:interpolation |
 
 
 
@@ -87,16 +86,15 @@ URI: [laura:factor](https://w3id.org/laura/factor)
 
 <details>
 ```yaml
-name: factor
-description: Wake scaling factor.
+name: interpolation
+description: How the strength behaves between the sampled knots.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: float(1)
-owner: WakefieldSimulationElement
+ifabsent: WaveformInterpolationEnum(linear)
+owner: SampledWaveform
 domain_of:
 - SampledWaveform
-- WakefieldSimulationElement
-range: float
+range: WaveformInterpolationEnum
 
 ```
 </details></div>

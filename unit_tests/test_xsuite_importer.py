@@ -382,8 +382,9 @@ def test_specialised_element_types_are_imported():
             xt.RFMultipole(
                 voltage=1e6, frequency=3e8, lag=30, knl=[0.0, 0.5], ksl=[0.0, 0.1]
             ),
-            xt.ACDipole(volt=1e5, freq=0.31, lag=0.25, ramp=[0, 100, 200, 300], plane="v"),
-            xt.ACDipole(volt=2e5, freq=0.28, lag=0.5, ramp=[0, 50, 100, 150], plane="h"),
+            # volt is in MV and lag in units of 2*pi, Xtrack's own conventions.
+            xt.ACDipole(volt=0.1, freq=0.31, lag=0.25, ramp=[0, 100, 200, 300], plane="v"),
+            xt.ACDipole(volt=0.2, freq=0.28, lag=0.5, ramp=[0, 50, 100, 150], plane="h"),
         ],
         element_names=["taylor", "crab", "wire", "rfmult", "acd_v", "acd_h"],
     )
@@ -414,7 +415,11 @@ def test_specialised_element_types_are_imported():
     # ACDipole carries its plane as data, so the type is resolved per element.
     assert elements["acd_v"].hardware_type == "Vertical_AC_Dipole"
     assert elements["acd_h"].hardware_type == "Horizontal_AC_Dipole"
+    # LAURA holds the amplitude in V and the phase in degrees.
     assert elements["acd_v"].simulation.field_amplitude == pytest.approx(1e5)
+    assert elements["acd_v"].simulation.phase == pytest.approx(90.0)
+    assert elements["acd_h"].simulation.field_amplitude == pytest.approx(2e5)
+    assert elements["acd_h"].simulation.phase == pytest.approx(180.0)
     assert list(elements["acd_v"].simulation.ramp) == [0, 100, 200, 300]
 
 

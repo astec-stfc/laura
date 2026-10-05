@@ -24,6 +24,25 @@ default_range: string
 imports:
   - linkml:types
 
+enums:
+
+  WaveformInterpolationEnum:
+    description: >-
+      How a sampled waveform behaves between the points it was sampled at.
+    permissible_values:
+      linear:
+        description: >-
+          Straight line between neighbouring knots. What every tracking code
+          does by default.
+      hold:
+        description: >-
+          Each knot's value holds until the next one, so the waveform is a
+          staircase.
+      spline:
+        description: >-
+          Cubic spline through the knots, for a measured trace sampled too
+          coarsely for straight lines.
+
 classes:
 
   MatrixValue:
@@ -31,6 +50,35 @@ classes:
     description: >-
       An unconstrained serializable matrix value. The handwritten matrix model
       validates dense arrays and named coefficient mappings into NumPy arrays.
+
+  SampledWaveform:
+    description: >-
+      A pulse shape sampled at a sparse set of points, for a device whose
+      strength is a program rather than a constant: an injection kicker, an
+      extraction septum, a tune exciter driven from a measured trace.
+      Only the knots are stored, and the value between them follows
+      ``interpolation``.
+    class_uri: laura:SampledWaveform
+    attributes:
+      time:
+        range: float
+        multivalued: true
+        description: >-
+          Sample times, measured from the moment the device fires [s]. Must be
+          non-decreasing and the same length as ``factor``.
+        unit:
+          ucum_code: s
+      factor:
+        range: float
+        multivalued: true
+        description: >-
+          Strength at each of the times in ``time``, as a fraction of the
+          element's nominal strength; 1.0 is full strength.
+      interpolation:
+        range: WaveformInterpolationEnum
+        ifabsent: WaveformInterpolationEnum(linear)
+        description: >-
+          How the strength behaves between the sampled knots.
 
   SimulationElement:
     description: >-
@@ -530,6 +578,11 @@ classes:
         range: integer
         multivalued: true
         description: Turn numbers [ramp1, ramp2, ramp3, ramp4] defining the drive ramp.
+      waveform:
+        range: SampledWaveform
+        description: >-
+          Sampled pulse shape, for a device whose strength is a program rather
+          than a sinusoid -- an injection kicker or an extraction septum.
 
   WireSimulationElement:
     is_a: SimulationElement

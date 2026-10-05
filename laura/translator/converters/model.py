@@ -65,11 +65,15 @@ class MachineModelTranslator(ContainerTranslator, MachineModel):
         for name, latt in self.lattices.items():
             yield name, self._layout_translator(latt)
 
-    def _elegant_body(self, charge: float | None = None) -> Tuple[str, str]:
+    def _elegant_body(
+        self, charge: float | None = None, Brho: float = 0.0
+    ) -> Tuple[str, str]:
         definitions = ""
         lines = ""
         for _, layout in self._children():
-            layout_definitions, layout_lines = layout._elegant_body(charge=charge)
+            layout_definitions, layout_lines = layout._elegant_body(
+                charge=charge, Brho=Brho
+            )
             definitions += layout_definitions
             lines += layout_lines
 
