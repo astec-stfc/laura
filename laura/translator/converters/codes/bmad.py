@@ -39,7 +39,7 @@ from ...utils.functions import merge_layout_elements, number_repeated_names
 from ...utils.units import UnitValue
 from .. import keyword_conversion_rules_bmad, type_conversion_rules_bmad
 from . import magnetic_orders
-from .importer import read_with_calls
+from .importer import infer_geometry, read_with_calls
 
 _DRIFT_TYPES = ("Drift", "Pipe")
 """Bmad types with no physics of their own."""
@@ -603,6 +603,8 @@ def _fringe_model(
     default = _BMAD_FRINGE_DEFAULTS.get(etype.lower(), "none")
     if str(value).lower() == default:
         return {}
+    if str(value).lower() == "linear_edge":
+        return {"fringe_model": "linear_edge", "edge_order": 1}
     return {"fringe_model": str(value).lower()}
 
 
@@ -1984,6 +1986,7 @@ class BmadLatticeImporter(BaseModel):
             space_charge=self._space_charge_settings() or None,
         )
         seclat.resolve_positions(elems)
+        infer_geometry(seclat)
         if self.position_mode == "floor":
             self._restore_arc_length(universe, branch, elems)
         superimposed = self.super_lord_children.get(universe, {}).get(branch, {})

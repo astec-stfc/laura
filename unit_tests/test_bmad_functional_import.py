@@ -820,17 +820,18 @@ def test_bmad_fringe_model_is_kept_only_when_it_is_not_the_default():
     recording those back would put a fringe model on three thousand elements
     that never named one.
     """
-    names = ["b_full", "b_default", "q_default", "cav"]
+    names = ["b_full", "b_default", "b_linear", "q_default", "cav"]
     importer = SimpleNamespace(
         names_numbered={1: {"LINE_1": names}},
-        types={1: {"LINE_1": ["SBend", "SBend", "Quadrupole", "Lcavity"]}},
-        lengths={1: {"LINE_1": [0.2, 0.2, 0.5, 3.0441]}},
-        spos={1: {"LINE_1": [0.2, 0.4, 0.9, 3.9441]}},
+        types={1: {"LINE_1": ["SBend", "SBend", "SBend", "Quadrupole", "Lcavity"]}},
+        lengths={1: {"LINE_1": [0.2, 0.2, 0.2, 0.5, 3.0441]}},
+        spos={1: {"LINE_1": [0.2, 0.4, 0.6, 1.1, 4.1441]}},
         params={
             1: {
                 "LINE_1": [
                     {**_BEND, "FRINGE_TYPE": "Full"},
                     {**_BEND, "FRINGE_TYPE": "Basic_Bend"},
+                    {**_BEND, "FRINGE_TYPE": "Linear_Edge"},
                     {"K1": 0.5, "FRINGE_TYPE": "None", "_METHODS": {}},
                     {
                         "N_CELL": 1,
@@ -859,6 +860,10 @@ def test_bmad_fringe_model_is_kept_only_when_it_is_not_the_default():
     assert elements["b_full"].simulation.fringe_model == "full"
     assert elements["b_default"].simulation.fringe_model is None
     assert elements["q_default"].simulation.fringe_model is None
+    # first-order edges, carried as edge_order so the other codes follow
+    assert elements["b_linear"].simulation.fringe_model == "linear_edge"
+    assert elements["b_linear"].simulation.edge_order == 1
+    assert elements["b_default"].simulation.edge_order is None
 
     # Only magnets hold the field, and `Full` is Bmad's own cavity default
     # in any case.

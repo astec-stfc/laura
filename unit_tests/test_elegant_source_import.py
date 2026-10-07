@@ -48,6 +48,31 @@ def test_bend_fringe_integrals_resolve_from_fint_and_fint1_fint2(tmp_path):
     os.environ.get("LAURA_RUN_ELEGANT_TESTS") != "1" or shutil.which("elegant") is None,
     reason="set LAURA_RUN_ELEGANT_TESTS=1 to run external Elegant tests",
 )
+def test_edge_order_is_imported_only_when_the_lattice_sets_it(tmp_path):
+    """ELEGANT's parameter dump gives every bend its default EDGE_ORDER = 1;
+    importing that would pin first-order edges no other code shares."""
+    source = tmp_path / "bends.lte"
+    source.write_text(
+        "b1: csbend, l=0.5, angle=0.1\n"
+        "b2: csbend, l=0.5, angle=0.1, edge_order=1\n"
+        "machine: line=(b1,b2,b1)\n"
+    )
+
+    importer = ElegantLatticeImporter(source_file=str(source))
+    orders = {
+        element.name: element.simulation.edge_order
+        for section in importer.create_layout(name="machine").sections.values()
+        for element in section.elements.elements.values()
+        if element.hardware_type == "Dipole"
+    }
+
+    assert orders == {"B1.1": None, "B2": 1, "B1.2": None}
+
+
+@pytest.mark.skipif(
+    os.environ.get("LAURA_RUN_ELEGANT_TESTS") != "1" or shutil.which("elegant") is None,
+    reason="set LAURA_RUN_ELEGANT_TESTS=1 to run external Elegant tests",
+)
 def test_imported_hardware_type_is_the_registry_key_not_the_class_name(tmp_path):
     """`hardware_type` is the wire format; the PEP 8 round renamed the classes
     and left the keys alone."""

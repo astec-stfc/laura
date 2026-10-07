@@ -1006,8 +1006,8 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Include higher-order (sextupole+) field components."""
     smoothing_half_width: int = Field(default=1, description="""Half-width of the current-profile smoothing kernel.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(1)'} })
     """Half-width of the current-profile smoothing kernel."""
-    edge_order: int = Field(default=2, description="""Polynomial order of the edge-field expansion.""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'int(2)'} })
-    """Polynomial order of the edge-field expansion."""
+    edge_order: Optional[int] = Field(default=None, description="""Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-order terms). Unset means the source lattice did not say; every exporter then writes second order, the one treatment all codes share (MAD-X cannot drop it).""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement']} })
+    """Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the second-order terms). Unset means the source lattice did not say; every exporter then writes second order, the one treatment all codes share (MAD-X cannot drop it)."""
     smooth_points: float = Field(default=2, description="""Number of points used to smooth the field map [ASTRA].""", json_schema_extra = { "linkml_meta": {'domain_of': ['MagnetSimulationElement'], 'ifabsent': 'float(2)'} })
     """Number of points used to smooth the field map [ASTRA]."""
     n_kicks: Optional[int] = Field(default=4, description="""Number of integration kicks.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'int(4)'} })

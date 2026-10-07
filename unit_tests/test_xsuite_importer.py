@@ -1,5 +1,6 @@
 import warnings
 
+import numpy as np
 import pytest
 
 
@@ -30,7 +31,8 @@ def test_xsuite_importer_uses_common_s_lifecycle():
     assert list(elements) == ["drift", "quad", "bend", "cavity", "marker"]
     assert elements["quad"].magnetic.KnL(1) == pytest.approx(0.1)
     assert elements["bend"].magnetic.KnL(0) == pytest.approx(0.1)
-    assert elements["cavity"].cavity.phase == pytest.approx(30)
+    # xt.Cavity peaks at lag = 90 deg, LAURA at phase = 0
+    assert elements["cavity"].cavity.phase == pytest.approx(60)
     assert layout.sections["test"].order == list(elements)
     assert elements["quad"].physical.middle.z == pytest.approx(1.25)
 
@@ -642,3 +644,118 @@ def test_bpm_survives_a_round_trip_through_xtrack():
     assert native_type is xt.BeamPositionMonitor
     element = XsuiteLatticeImporter(line=line).create_element_dictionary()["BPM1"]
     assert element.hardware_type == "Beam_Position_Monitor"
+
+
+def test_cavity_phase_survives_a_round_trip_through_xtrack():
+    """LAURA's crest is phase 0; an `xt.Cavity` peaks at 90 deg. The importer
+    used to skip the ``90 -`` the exporter applies, so phases came back wrong."""
+    from laura.models.element import RFCavity
+    from laura.translator.converters.converter import translate_elements
+
+    for phase in (0.0, 20.0, 90.0):
+        cav = RFCavity(
+            name="C1", machine_area="A", physical={"length": 0.0},
+            cavity={"phase": phase, "frequency": 5e8, "structure_type": "StandingWave"},
+            simulation={"field_amplitude": 1e6},
+        )
+        _, native_type, properties = translate_elements([cav])["C1"].to_xsuite(beam_length=1)
+        line = xt.Line(elements=[native_type(**properties)], element_names=["C1"])
+        p = xt.Particles(p0c=3e9, zeta=0, mass0=xt.ELECTRON_MASS_EV)
+        line.track(p)
+        assert p.ptau[0] * 3e9 == pytest.approx(1e6 * np.cos(np.radians(phase)), abs=1.0)
+        element = XsuiteLatticeImporter(line=line).create_element_dictionary()["C1"]
+        assert element.cavity.phase == pytest.approx(phase)
+
+
+def test_symbolic_cavity_phase_survives_a_round_trip_through_xtrack(tmp_path):
+    """The exporter writes ``(90 - (X)) * pi/180``; reading back only the number
+    lost the link to X (CLIC DR's ``lag := lgrf``)."""
+    from laura.models.element import RFCavity
+
+    cavity = RFCavity(
+        name="C1", machine_area="test", physical={"s": 0.5, "length": 0.5},
+        cavity={"phase": "lgrf", "frequency": 5e8, "structure_type": "StandingWave"},
+        simulation={"field_amplitude": 1e6},
+    )
+    section = SectionLattice(
+        name="line", order=["C1"], elements=ElementList(elements={"C1": cavity}),
+        functional_definitions={"lgrf": -90.0},
+    )
+    section.resolve_positions({"C1": cavity})
+    translator = SectionLatticeTranslator.from_section(section)
+    translator.directory = str(tmp_path)
+    translator.to_xsuite(beam_length=1, save=True)
+
+    importer = XsuiteLatticeImporter(source_file=str(tmp_path / "line.json"))
+    element = importer.create_element_dictionary()["C1"]
+    assert element.cavity.phase == "lgrf"
+    assert importer.functional_definitions["lgrf"] == pytest.approx(-90.0)
+
+
+def test_dipole_kick_count_is_left_to_xtrack():
+    """LAURA's default ``n_kicks = 4`` is ELEGANT's 4th-order step count; as
+    Xtrack thin kicks it put a combined-function ring's tunes 0.4 out."""
+    from laura.models.element import Dipole
+    from laura.translator.converters.converter import translate_elements
+
+    bend = Dipole(
+        name="B1", machine_area="A", physical={"length": 1.3},
+        magnetic={"magnetic_length": 1.3, "k0l": 0.1, "k1l": -0.9},
+    )
+    _, _, properties = translate_elements([bend])["B1"].to_xsuite(beam_length=1)
+    assert "num_multipole_kicks" not in properties
+
+
+def test_sextupole_keeps_elegants_meaning_of_n_kicks():
+    """Xtrack's automatic count for a thick sextupole is one kick, which put
+    CLIC DR's corrected chromaticity 0.3-0.4 out; ``n_kicks`` steps of a
+    4th-order integrator, as in ELEGANT, are converged."""
+    from laura.models.element import Sextupole
+    from laura.translator.converters.converter import translate_elements
+
+    sextupole = Sextupole(
+        name="S1", machine_area="A", physical={"length": 0.15},
+        magnetic={"magnetic_length": 0.15, "k2l": 5.0},
+    )
+    _, native_type, properties = translate_elements([sextupole])["S1"].to_xsuite(beam_length=1)
+    assert properties["num_multipole_kicks"] == 4
+    assert native_type(**properties).integrator == "yoshida4"
+
+
+@pytest.mark.parametrize(
+    "cavity, simulation, kicks",
+    [
+        ({"n_cells": 9, "cell_length": 0.1}, {}, 27),  # 3 per cell
+        ({}, {"n_kicks": 5}, 5),  # an explicit count is honoured
+        ({"n_cells": 9, "cell_length": 0.1}, {"n_kicks": 5}, 5),  # ...even with cells
+        ({}, {}, None),  # neither: left to xtrack (a single kick)
+    ],
+)
+def test_cavity_kick_count(cavity, simulation, kicks):
+    """Unlike a magnet's, an `xt.Cavity`'s automatic kick count is just one."""
+    from laura.models.element import RFCavity
+    from laura.translator.converters.converter import translate_elements
+
+    cav = RFCavity(
+        name="C1", machine_area="A", physical={"length": 1.0},
+        cavity={"frequency": 3e9, "structure_type": "StandingWave", **cavity},
+        simulation={"field_amplitude": 1e6, **simulation},
+    )
+    _, native_type, properties = translate_elements([cav])["C1"].to_xsuite(beam_length=1)
+    assert properties.get("num_kicks") == kicks
+    native_type(**properties)  # and xtrack accepts what was written
+
+
+@pytest.mark.parametrize("angle, geometry", [(np.pi / 2, "closed"), (-np.pi / 2, "closed"), (0.1, None)])
+def test_bends_totalling_two_pi_make_a_closed_section(angle, geometry):
+    """Only Bmad states a geometry; for the rest a full turn of bending is a ring."""
+    line = xt.Line(
+        elements=[e for _ in range(4) for e in (xt.Bend(length=1.0, angle=angle), xt.Drift(length=1.0))],
+        element_names=[f"{n}{i}" for i in range(4) for n in ("b", "d")],
+    )
+    section = XsuiteLatticeImporter(line=line, name="ring").create_layout().sections["ring"]
+    assert section.geometry == geometry
+    # and it survives into the machine model SIMBA loads, which a bare list dropped
+    model = XsuiteLatticeImporter(line=line, name="ring")._single_layout_model()
+    entry = model.section["sections"]["ring"]
+    assert (entry.get("geometry") if isinstance(entry, dict) else None) == geometry

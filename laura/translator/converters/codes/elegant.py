@@ -20,7 +20,7 @@ from ...utils.elegant.sdds_classes_aps import SddsParams
 from ...utils.fields import FieldMap
 from ...utils.functions import merge_layout_elements, number_repeated_names
 from .. import keyword_conversion_rules_elegant
-from .importer import LatticeImporter
+from .importer import LatticeImporter, infer_geometry, section_entry
 
 elegant_unsupported = [
     "Plasma",
@@ -107,6 +107,9 @@ class ElegantLatticeImporter(LatticeImporter):
     _source_outputs: Dict[str, str] = PrivateAttr(default_factory=dict)
     _source_tmp: object = PrivateAttr(default=None)
     _source_expressions: Dict[str, Dict[str, str]] = PrivateAttr(default_factory=dict)
+    _source_parameters: Dict[str, set[str]] = PrivateAttr(default_factory=dict)
+    """Parameters each element actually sets in ``source_file``, where the
+    parameter dump also carries ELEGANT's defaults."""
     _unscaled_definitions: Dict[str, float] = PrivateAttr(default_factory=dict)
     _source_lines: Dict[str, list[str]] = PrivateAttr(default_factory=dict)
     _source_roots: list[str] = PrivateAttr(default_factory=list)
@@ -198,6 +201,9 @@ class ElegantLatticeImporter(LatticeImporter):
         for element, parameters in re.findall(
             r"(?im)^\s*([^\s:%]+)\s*:\s*[^,\n]+,(.*)$", text
         ):
+            self._source_parameters[element.strip('"').lower()] = {
+                name.lower() for name in re.findall(r"(\w+)\s*=", parameters)
+            }
             expressions = {
                 name.lower(): value
                 for name, value in re.findall(r'(\w+)\s*=\s*"([^"]+)"', parameters)
@@ -334,6 +340,10 @@ class ElegantLatticeImporter(LatticeImporter):
         unscalable = self._rescale_strength_symbols()
         for name, data in self.elegant_data.items():
             expressions = self._expressions_for(name)
+            if self.source_file and "edge_order" not in self._from_source(
+                self._source_parameters, name
+            ):
+                data.get("simulation", {}).pop("edge_order", None)
             length = self._length_of(data)
             for parameter in ("k0", "k1", "k2", "k3", "angle"):
                 expression = expressions.get(parameter)
@@ -516,6 +526,7 @@ class ElegantLatticeImporter(LatticeImporter):
         self._prepare_source()
         elements = {}
         section_definitions = {}
+        built_sections = {}
         layout_definitions = {}
         skipped_layouts = []
 
@@ -527,6 +538,8 @@ class ElegantLatticeImporter(LatticeImporter):
             blocks = self._source_section_blocks(root, min_section_length)
             if sum(count for _, count in blocks) != len(full_section.order):
                 blocks = [(root, len(full_section.order))]
+            if len(blocks) == 1:
+                infer_geometry(full_section)
 
             layout_sections = []
             offset = 0
@@ -547,6 +560,8 @@ class ElegantLatticeImporter(LatticeImporter):
                     [name for name, _ in members],
                     root,
                 )
+                if len(blocks) == 1:
+                    built_sections[section_name] = full_section
                 layout_sections.append(section_name)
             layout_definitions[root] = layout_sections
 
@@ -562,7 +577,12 @@ class ElegantLatticeImporter(LatticeImporter):
         default_layout = next(iter(layout_definitions))
         return MachineModel(
             elements=elements,
-            section={"sections": section_definitions},
+            section={
+                "sections": {
+                    name: section_entry(names, built_sections.get(name))
+                    for name, names in section_definitions.items()
+                }
+            },
             layout={
                 "layouts": layout_definitions,
                 "default_layout": default_layout,
@@ -571,12 +591,18 @@ class ElegantLatticeImporter(LatticeImporter):
             functional_definitions=self.functional_definitions,
         )
 
-    def _expressions_for(self, name: str) -> Dict[str, str]:
+    @staticmethod
+    def _from_source(table: dict, name: str):
+        """``table``'s entry for ``name``, or for its base name when ``name``
+        is a numbered repeat (``B1.3``)."""
         source_name = name.lower()
-        expressions = self._source_expressions.get(source_name, {})
-        if not expressions and source_name.rpartition(".")[2].isdigit():
-            expressions = self._source_expressions.get(source_name.rpartition(".")[0], {})
-        return expressions
+        found = table.get(source_name, {})
+        if not found and source_name.rpartition(".")[2].isdigit():
+            found = table.get(source_name.rpartition(".")[0], {})
+        return found
+
+    def _expressions_for(self, name: str) -> Dict[str, str]:
+        return self._from_source(self._source_expressions, name)
 
     @staticmethod
     def _length_of(data: dict) -> float:

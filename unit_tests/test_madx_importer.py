@@ -119,6 +119,23 @@ def test_source_import_retains_deferred_strength(tmp_path):
     assert layout.functional_definitions == {"quad_k1l": pytest.approx(0.3)}
 
 
+def test_cavity_given_by_harmonic_gets_its_frequency(tmp_path):
+    """MAD-X fills FREQ from HARMON only once it has twissed; CLIC DR's cavity
+    (h = 2852) came in at LAURA's 2998.5 MHz default instead of 2.0 GHz."""
+    pytest.importorskip("cpymad")
+    source = tmp_path / "ring.madx"
+    source.write_text(
+        "beam, particle=electron, energy=2.86;\n"
+        "rf: rfcavity, volt=4.5, harmon=2852, lag=0.5;\n"
+        "ring: sequence, l=427.5; rf, at=10; endsequence;\n"
+    )
+
+    cavity = MadxLatticeImporter(source_file=str(source)).create_laura_element_dictionary()["rf"]
+
+    beta = (1 - (0.51099895e-3 / 2.86) ** 2) ** 0.5
+    assert cavity.cavity.frequency == pytest.approx(2852 * beta * 299792458.0 / 427.5)
+
+
 def test_source_import_numbers_occurrences_and_integrates_direct_strength(tmp_path):
     pytest.importorskip("cpymad")
     source = tmp_path / "repeated.madx"
@@ -362,7 +379,9 @@ def test_twiss_import_leaves_collective_and_radiation_off(kwargs, csr, radiation
     model = MadxLatticeImporter(twiss_file=_TWISS, **kwargs).create_machine_model()
     lte = MachineModelTranslator.from_machine(model).to_elegant()
 
-    assert f"csr = {csr}" in lte
+    # CSR off writes a plain CSBEND, which has no CSR switch at all.
+    assert (": csrcsbend," in lte and "csr = 1" in lte) is (csr == "1")
+    assert (": csbend," in lte) is (csr == "0")
     assert f"synch_rad = {radiation}" in lte
     assert f"isr = {radiation}" in lte
     # elegant's CSRDRIFT has no LSC switch -- any nonzero LSC_BINS runs it.

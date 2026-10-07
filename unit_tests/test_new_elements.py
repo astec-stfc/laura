@@ -419,6 +419,20 @@ class TestMatrixTransformAndCrabCavityDispatch:
         assert translator.to_ocelot() is not None
         assert translator.to_cheetah() is not None
 
+    def test_thin_cavity_survives_ocelot(self):
+        """Ocelot divides by a cavity's length; CLIC DR's RF is thin."""
+        oc = pytest.importorskip("ocelot")
+        cav = RFCavity(
+            name="rf", machine_area="S", physical={"length": 0.0},
+            cavity={"phase": 0.0, "frequency": 3e9, "structure_type": "StandingWave"},
+            simulation={"field_amplitude": 4.5e6},
+        )
+        element = translate_elements([cav])["rf"].to_ocelot()
+        assert 0 < element.l < 1e-8
+        twiss = oc.Twiss()
+        twiss.E, twiss.beta_x, twiss.beta_y = 2.86, 1.0, 1.0
+        oc.twiss(oc.MagneticLattice([oc.Drift(l=1.0), element]), twiss)
+
 
 class TestMadxCavityAndAperture:
     def test_travelling_wave_cavity_uses_rfcavity(self):
@@ -491,3 +505,30 @@ class TestMadxCavityAndAperture:
         )
         out = translate_elements([col])["col1"].to_madx()
         assert "col1: rcollimator" in out
+
+
+@pytest.mark.parametrize("geometry, change_p0", [("closed", 0), ("open", 1), (None, 1)])
+def test_ring_cavity_leaves_the_reference_momentum_alone(geometry, change_p0):
+    """A ring's reference is its design momentum; CLIC DR, imported from MAD-X,
+    took LAURA's linac default and ELEGANT refused its closed optics."""
+    cavity = RFCavity(
+        name="rf", machine_area="S", physical={"length": 0.0},
+        cavity={"phase": 0.0, "frequency": 3e9, "structure_type": "StandingWave"},
+        simulation={"field_amplitude": 4.5e6},
+    )
+    section = SectionLattice(name="S", order=["rf"], elements=[cavity], geometry=geometry)
+    written = SectionLatticeTranslator.from_section(section).to_elegant()
+    assert f"change_p0 = {change_p0}" in written
+    assert cavity.simulation.change_p0 == 1  # the lattice keeps its own
+
+
+@pytest.mark.parametrize("length, written", [(0.0, False), (1.0, True)])
+def test_thin_cavity_has_no_body_focusing(length, written):
+    """ELEGANT's body focusing scales as 1/L: SRS on a thin RFCA sent every
+    particle of CLIC DR's bunch to x' = inf at the cavity."""
+    cavity = RFCavity(
+        name="rf", machine_area="S", physical={"length": length},
+        cavity={"phase": 0.0, "frequency": 2e9, "structure_type": "StandingWave"},
+        simulation={"field_amplitude": 4.5e6},
+    )
+    assert ("body_focus_model" in translate_elements([cavity])["rf"].to_elegant()) is written

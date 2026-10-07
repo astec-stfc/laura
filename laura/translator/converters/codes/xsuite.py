@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, Optional
 from warnings import warn
@@ -315,19 +316,34 @@ class XsuiteLatticeImporter(LatticeImporter):
             "length": length,
         }
 
-    def _rf_phase(self, element_name: str, native) -> str | float:
-        # Xtrack phase is radians; its legacy lag is degrees and remains additive.
+    def _rf_phase(
+        self, element_name: str, native, crest_at_90: bool = False
+    ) -> str | float:
         phase = float(getattr(native, "phase", 0.0))
         lag = float(getattr(native, "lag", 0.0))
+        value = np.degrees(phase) + lag
+        if crest_at_90:
+            value = 90 - value
+            written = re.fullmatch(
+                r"\(*\s*90(?:\.0*)?\s*-\s*\(*vars\['([^']+)'\]\)*\s*\)\s*\*\s*([\d.eE+-]+)\s*\)*",
+                self._expressions.get(f"element_refs['{element_name}'].phase", ""),
+            )
+            if (
+                written
+                and written[1] in self.functional_definitions
+                and np.isclose(float(written[2]), np.pi / 180)
+                and lag == 0.0
+            ):
+                return written[1]
         phase_symbol = self._symbol(element_name, "phase")
         lag_symbol = self._symbol(element_name, "lag")
-        if lag_symbol and not phase_symbol and phase == 0.0:
+        if lag_symbol and not phase_symbol and phase == 0.0 and not crest_at_90:
             return lag_symbol
         if phase_symbol or lag_symbol:
             name = f"{element_name}_laura_phase"
-            self.functional_definitions[name] = float(np.degrees(phase) + lag)
+            self.functional_definitions[name] = float(value)
             return name
-        return float(np.degrees(phase) + lag)
+        return float(value)
 
     def _rescaled(
         self, element_name: str, field: str, value: float, factor: float
@@ -488,7 +504,7 @@ class XsuiteLatticeImporter(LatticeImporter):
         if native_type == "Cavity":
             return {
                 "cavity": {
-                    "phase": self._rf_phase(element_name, native),
+                    "phase": self._rf_phase(element_name, native, crest_at_90=True),
                     "frequency": float(native.frequency),
                 },
                 "simulation": {

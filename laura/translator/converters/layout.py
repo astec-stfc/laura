@@ -13,7 +13,7 @@ from ..utils.functions import sanitize_string
 from .ac_dipole import ACDipoleTranslator
 from .converter import translate_elements
 from .fanout import ContainerTranslator, wrap_lattice_line
-from .section import SectionLatticeTranslator
+from .section import SectionLatticeTranslator, fix_ring_reference
 
 bmad_per_pass_attributes = {"phi0": "phi0_multipass"}
 """Attributes a Bmad multipass *slave* can hold on its own, and the name Bmad
@@ -228,6 +228,7 @@ class MachineLayoutTranslator(ContainerTranslator, MachineLayout):
         lines = ""
         for section in self.sections.values():
             elem_dict = self._translate_section(section)
+            fix_ring_reference(elem_dict, section.geometry)
             if charge:
                 definitions += f"{section.name}_Q: CHARGE, TOTAL = {charge};\n"
             for d in elem_dict.values():

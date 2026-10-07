@@ -468,6 +468,16 @@ class DipoleTranslator(MultipoleStrengthTranslator):
     simulation: MagnetSimulationElement
     """Magnet simulation class."""
 
+    k1 = _k_field(1)
+    k2 = _k_field(2)
+    k3 = _k_field(3)
+    k1l = _kl_property(1)
+    k2l = _kl_property(2)
+    k3l = _kl_property(3)
+    dk1 = _dk_field(1)
+    dk2 = _dk_field(2)
+    dk3 = _dk_field(3)
+
     @computed_field
     @property
     def angle(self) -> float:
@@ -481,15 +491,47 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         """
         return self.magnetic.KnL(0)
 
-    k1 = _k_field(1)
-    k2 = _k_field(2)
-    k3 = _k_field(3)
-    k1l = _kl_property(1)
-    k2l = _kl_property(2)
-    k3l = _kl_property(3)
-    dk1 = _dk_field(1)
-    dk2 = _dk_field(2)
-    dk3 = _dk_field(3)
+    def _convert_type_elegant(self, etype: str) -> str:
+        """``CSRCSBEND`` only when CSR is on, else ``CSBEND``, as
+        :meth:`~laura.translator.converters.drift.DriftTranslator.to_elegant`
+        chooses ``CSRDRIFT``."""
+        converted = super()._convert_type_elegant(etype)
+        if converted == "csrcsbend" and not self.simulation.csr_enable:
+            return "csbend"
+        return converted
+
+    @property
+    def fringe_order(self) -> int:
+        """``simulation.edge_order``, or 2 when the lattice left it unset."""
+        return self.simulation.edge_order or 2
+
+    def full_dump(self, resolve: bool = True) -> dict:
+        """Write :attr:`fringe_order` explicitly, so no code falls back on its
+        own default.."""
+        data = super().full_dump(resolve=resolve)
+        data["simulation_edge_order"] = self.fringe_order
+        if self.fringe_order == 2:
+            for face in ("simulation_edge1_effects", "simulation_edge2_effects"):
+                if data.get(face) is not False:  # an edge switched off stays off
+                    data[face] = 3
+        if self.fringe_order == 1 and not data.get("simulation_fringe_model"):
+            data["simulation_fringe_model"] = "linear_edge"
+        return data
+
+    def _warn_second_order_only(self, code: str) -> None:
+        if self.simulation.edge_order == 1:
+            warn(
+                f"{self.name}: edge_order = 1, but {code} always models the "
+                "second-order edge terms, so it will not match the other codes."
+            )
+
+    def to_madx(self, at: float | None = None) -> str:
+        self._warn_second_order_only("MAD-X")
+        return super().to_madx(at=at)
+
+    def to_ocelot(self) -> object:
+        self._warn_second_order_only("Ocelot (SecondTM)")
+        return super().to_ocelot()
 
     def to_bmad(self) -> str:
         """

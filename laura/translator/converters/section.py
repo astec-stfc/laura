@@ -83,6 +83,18 @@ _BMAD_SPACE_CHARGE_COM = {
 in the order the header states them."""
 
 
+def fix_ring_reference(translators: dict, geometry) -> None:
+    """In a closed section, write every cavity with ``change_p0 = 0``: a ring's
+    reference is its design momentum, which a cavity restores energy about
+    rather than carries."""
+    if getattr(geometry, "value", geometry) != "closed":
+        return
+    for translator in translators.values():
+        simulation = getattr(translator, "simulation", None)
+        if simulation is not None and "change_p0" in type(simulation).model_fields:
+            simulation.change_p0 = 0
+
+
 class SectionLatticeTranslator(SectionLattice):
     """
     Translator class for converting a :class:`~laura.models.elementList.SectionLattice` instance into a string or
@@ -854,6 +866,7 @@ class SectionLatticeTranslator(SectionLattice):
         )
         elem_dict = self._translate(section_with_drifts.values())
         self._apply_wakefield_enable(elem_dict)
+        fix_ring_reference(elem_dict, self.geometry)
         string = ""
         if charge:
             string += f"{self.name}_Q: CHARGE, TOTAL = {charge};\n"

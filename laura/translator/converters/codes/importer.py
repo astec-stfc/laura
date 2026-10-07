@@ -3,6 +3,7 @@ Section/layout/model assembly shared by the importers that build one flat,
 ordered ``{name: element}`` dict (MAD-X, ELEGANT, Xsuite, Ocelot).
 """
 
+import math
 import os
 import re
 from pathlib import Path
@@ -18,6 +19,35 @@ from laura.models.element_list import (
 )
 
 from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
+
+
+CLOSED_ANGLE_TOLERANCE = 1e-5
+"""How near 2*pi [rad] a section's total bend must be for :func:`infer_geometry`
+to call it closed."""
+
+
+def infer_geometry(section: SectionLattice) -> None:
+    """Mark ``section`` ``closed`` when its bends total 2*pi, unless the source
+    already said."""
+    if section.geometry is not None:
+        return
+    total = sum(
+        element.physical._physical_angle
+        for element in section.elements.elements.values()
+        if not element.is_subelement()
+    )
+    if abs(abs(total) - 2 * math.pi) < CLOSED_ANGLE_TOLERANCE:
+        section.geometry = "closed"
+
+
+def section_entry(elements: list, section: Optional[SectionLattice] = None):
+    """A :class:`MachineModel` section entry: the element names, plus the
+    section's geometry and reference energy where the import knows them."""
+    metadata = {
+        key: getattr(section, key, None) for key in ("geometry", "reference_energy")
+    }
+    metadata = {key: value for key, value in metadata.items() if value is not None}
+    return {"elements": elements, **metadata} if metadata else elements
 
 
 def read_with_calls(path: Path, call: "re.Pattern", _seen: Optional[set] = None) -> str:
@@ -121,6 +151,8 @@ class LatticeImporter(BaseModel):
             layout_sections = {}
             for section_name, bounds in sections.items():
                 layout_sections.update(self.create_section({section_name: bounds}))
+        for section in layout_sections.values():
+            infer_geometry(section)
         return MachineLayout(
             name=name or self._default_name(),
             sections=layout_sections,
@@ -138,7 +170,8 @@ class LatticeImporter(BaseModel):
             },
             section={
                 "sections": {
-                    name: section.order for name, section in layout.sections.items()
+                    name: section_entry(section.order, section)
+                    for name, section in layout.sections.items()
                 }
             },
             layout={

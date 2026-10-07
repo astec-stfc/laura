@@ -194,8 +194,9 @@ classes:
         ifabsent: int(1)
       edge_order:
         range: integer
-        description: Polynomial order of the edge-field expansion.
-        ifabsent: int(2)
+        description: >-
+          Order of a bend's hard-edge fringe map, 1 (linear) or 2 (adds the
+          second-order terms). Unset / default is second order.
       smooth_points:
         range: float
         description: Number of points used to smooth the field map [ASTRA].

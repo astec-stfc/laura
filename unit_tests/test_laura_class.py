@@ -261,6 +261,24 @@ class TestDriftsAndSPos:
         for i in range(1, len(values)):
             assert values[i] >= values[i - 1]
 
+    def test_drifts_keep_full_precision(self):
+        """Each drift used to be rounded to a micron: CLIC DR's ~4160 wiggler
+        gaps of 4.7357.. mm each gained 0.24 um, 1 mm a turn, and SIMBA's
+        pass length put the RF off its harmonic."""
+        gap, n = 0.0047357632, 400
+        markers = [
+            Marker(name=f"M{i}", machine_area="S", hardware_class="Marker",
+                   physical={"middle": {"x": 0.0, "y": 0.0, "z": i * gap}})
+            for i in range(n)
+        ]
+        machine = LAURA(
+            element_list=markers,
+            layout={"default_layout": "line", "layouts": {"line": ["S"]}},
+            section={"sections": {"S": [m.name for m in markers]}},
+        )
+        spos = machine.get_elements_s_pos()
+        assert spos[f"M{n - 1}"] == pytest.approx((n - 1) * gap, abs=2e-6)
+
 
 # ---------------------------------------------------------------------------
 # Export round-trip with YAML

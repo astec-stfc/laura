@@ -323,7 +323,7 @@ class LAURA(DeprecatedMethodAliases, MachineModel):
         ):
             if not self.elements[name].is_subelement():
                 elements[name] = self.elements[name]
-        return insert_drifts(elements, "drift", digits=6)
+        return insert_drifts(elements, "drift", min_length=1e-12)
 
     def _drift_length(self, start: list[float], end: list[float]):
         return np.linalg.norm(end - start)

@@ -28,6 +28,7 @@ from laura.models.element import (  # noqa: E402
     RFCavity,
     RFDeflectingCavity,
     Screen,
+    Sextupole,
     Solenoid,
     TwissMatch,
     Wakefield,
@@ -1272,6 +1273,60 @@ def test_bmad_bend_leaves_an_unset_fringe_integral_to_bmad():
     assert "hgap = 0.016" in bend
     assert "fint" not in bend
     assert "None" not in bend
+
+
+@pytest.mark.parametrize("geometry, etype, length", [("closed", "rfcavity", "l = 0.0"),
+                                                      ("open", "lcavity", "l = 0.0333")])
+def test_bmad_thin_cavity_stays_thin_where_bmad_allows(geometry, etype, length):
+    """Bmad refuses a zero-length lcavity, so a linac's gets its cells' length;
+    a ring's rfcavity may be thin, and lengthening it moved CLIC DR's tunes."""
+    cavity = RFCavity(
+        name="RF", machine_area="S", physical={"length": 0.0},
+        cavity={"phase": 0.0, "frequency": 3e9, "structure_type": "StandingWave"},
+        simulation={"field_amplitude": 4.5e6},
+    )
+    translator = next(iter(translate_elements([cavity]).values()))
+    translator.bmad_geometry = geometry
+    written = translator.to_bmad()
+    assert f"RF: {etype}" in written
+    assert length in written
+
+
+@pytest.mark.parametrize(
+    "simulation, written",
+    [
+        ({}, ["tracking_method = runge_kutta", "mat6_calc_method = tracking"]),
+        ({"tracking_method": "symp_lie_ptc"}, ["tracking_method = symp_lie_ptc"]),
+    ],
+)
+def test_bmad_bend_is_tracked_exactly_unless_the_lattice_chose(simulation, written):
+    """``bmad_standard`` is not converged on combined-function bends; the
+    matrix has to come from the same tracking, or Tao's optics disagree."""
+    bend = _bmad(
+        Dipole(
+            name="B1",
+            machine_area="S",
+            magnetic={"magnetic_length": 1.3, "k0l": 0.11, "k1l": -0.9},
+            simulation=simulation,
+        )
+    )
+    for term in written:
+        assert term in bend
+    if simulation:
+        assert "mat6_calc_method" not in bend
+
+
+def test_bmad_sextupole_is_tracked_exactly():
+    """``bmad_standard`` takes one step through a sextupole: CLIC DR's corrected
+    chromaticity came out -0.6/-0.7 rather than 0/0."""
+    sextupole = _bmad(
+        Sextupole(
+            name="S1", machine_area="S", physical={"length": 0.15},
+            magnetic={"magnetic_length": 0.15, "k2l": 5.0},
+        )
+    )
+    assert "tracking_method = runge_kutta" in sextupole
+    assert "mat6_calc_method = tracking" in sextupole
 
 
 @pytest.mark.parametrize(

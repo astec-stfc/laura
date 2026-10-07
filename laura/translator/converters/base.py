@@ -54,6 +54,12 @@ _BMAD_MAIN_MULTIPOLE_ORDERS = {
 _BMAD_NO_APERTURE = ("match", "fixer", "ecollimator", "rcollimator")
 """Bmad classes that get no aperture limits written onto them."""
 
+BMAD_EXACT_METHOD = "runge_kutta"
+"""Bmad tracking method for the thick :data:`BMAD_EXACT_TYPES` whose lattice chose
+none. Not symplectic; ``symp_lie_ptc`` is, and agreed as well, if long-term tracking drifts."""
+
+BMAD_EXACT_TYPES = ("sbend", "rbend", "sextupole", "octupole")
+
 
 def elegant_line(head: str, terms) -> str:
     """
@@ -538,9 +544,6 @@ class BaseElementTranslator(PhysicalBaseElement):
                 "stop_at_turn": 1,
             }
             return self.name, obj, properties
-        if self.hardware_type.lower() == "dipole":
-            # a default; an explicit n_kicks below overrides it
-            properties.update({"num_multipole_kicks": 10})
         for key, value in self.full_dump(resolve=self._resolve_functional).items():
             xkey = self._convert_keyword_xsuite(key)
             if (key not in ["name", "type", "commandtype"]) and (
@@ -579,13 +582,22 @@ class BaseElementTranslator(PhysicalBaseElement):
                 if value is not None:
                     properties.update({xkey: value})
         if self.hardware_type.lower() == "dipole":
+            model = "linear" if getattr(self, "fringe_order", 2) == 1 else "full"
             edges = {
                 "edge_entry_fint": self.magnetic.edge_field_integral_entrance,
                 "edge_exit_fint": self.magnetic.edge_field_integral_exit,
                 "edge_entry_hgap": self.magnetic.half_gap,
                 "edge_exit_hgap": self.magnetic.exit_half_gap,
+                "edge_entry_model": model,
+                "edge_exit_model": model,
             }
             properties.update({k: v for k, v in edges.items() if v is not None})
+        if "num_multipole_kicks" in properties and self.hardware_type.lower() in (
+            "sextupole",
+            "octupole",
+        ):
+            # n_kicks is ELEGANT's count of 4th-order steps; yoshida4 means the same
+            properties["integrator"] = "yoshida4"
         return self.name, obj, properties
 
     def to_genesis(self, index: int) -> str:
@@ -1168,10 +1180,17 @@ class BaseElementTranslator(PhysicalBaseElement):
             parameters.setdefault(key, value)
         length = self.length
         cavity = getattr(self, "cavity", None)
-        if not length and cavity is not None:
+        if not length and cavity is not None and etype == "lcavity":
             length = cavity.cell_length * (cavity.n_cells or 1)
         if "l" in element:
             parameters["l"] = length
+        if (
+            etype in BMAD_EXACT_TYPES
+            and length
+            and not {"tracking_method", "mat6_calc_method"} & explicit
+        ):
+            parameters["tracking_method"] = BMAD_EXACT_METHOD
+            parameters["mat6_calc_method"] = "tracking"
         if etype in ("sbend", "rbend"):
             entry_fint, exit_fint = self._fringe_integrals()
             entry_hgap = self.magnetic.half_gap

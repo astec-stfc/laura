@@ -283,6 +283,8 @@ class RFCavityTranslator(BaseElementTranslator):
                 if key == "wakefile":
                     value = value
 
+                if key == "body_focus_model" and not self.length:
+                    continue
                 if (
                     key == "body_focus_model"
                     and self.structure_type == "TravellingWave"
@@ -351,6 +353,8 @@ class RFCavityTranslator(BaseElementTranslator):
                         else:
                             value = value * 1e-9
                 setattr(obj, key, value)
+        if not obj.l:
+            obj.l = 1e-9
         return obj
 
     def to_cheetah(self) -> object:
@@ -535,8 +539,12 @@ class RFCavityTranslator(BaseElementTranslator):
             ):
                 key = self._convert_keyword_xsuite(key)
                 functional = self.is_functional(value)
-                if key == "phase" and not functional:
-                    value = np.radians(90 - value)
+                if key == "phase":
+                    value = (
+                        f"(90 - ({value})) * {np.pi / 180}"
+                        if functional
+                        else np.radians(90 - value)
+                    )
                 if key == "voltage" and not functional:
                     if self.structure_type == "TravellingWave":
                         value = value * abs(
@@ -546,9 +554,10 @@ class RFCavityTranslator(BaseElementTranslator):
                         )
                     else:
                         value = value
-                if key == "num_kicks" and self.get_cells() > 1:
+                if key == "num_kicks" and value is None and self.get_cells() > 1:
                     value = 3 * self.get_cells()
-                properties.update({key: value})
+                if value is not None:
+                    properties.update({key: value})
         return self.name, obj, properties
 
     def to_madx(self, at: float = None) -> str:

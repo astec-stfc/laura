@@ -18,7 +18,7 @@ from ...utils.functions import (
 from ...utils.madx.TFSFile import TFSFile
 from .. import keyword_conversion_rules_madx, type_conversion_rules_madx
 from . import magnetic_orders
-from .importer import LatticeImporter, read_with_calls
+from .importer import LatticeImporter, read_with_calls, section_entry
 
 _RAW_KEYS = ("k0", "k1", "k2", "k3", "angle", "l", "kick", "hkick", "vkick", "ks")
 
@@ -189,6 +189,15 @@ class MadxLatticeImporter(LatticeImporter):
                         name
                     ] = parameter.expr
                     used.update(re.findall(r"[A-Za-z_][\w.]*", parameter.expr))
+            if row["keyword"] == "rfcavity" and not row.get("freq") and row.get("harmon"):
+                native = madx.sequence[sequence]
+                try:
+                    beta = float(native.beam.beta)
+                except RuntimeError:
+                    beta = float(madx.beam.beta)
+                row["freq"] = (
+                    row["harmon"] * beta * 299792458.0 / float(native.length) / 1e6
+                )
             rows.append(row)
         self._source_functional_definitions = {
             name: float(madx.globals[name])
@@ -601,6 +610,7 @@ class MadxLatticeImporter(LatticeImporter):
 
         elements = {}
         section_definitions = {}
+        built_sections = {}
         layout_definitions = {}
         skipped_sections = []
         all_functional_definitions = {}
@@ -628,6 +638,7 @@ class MadxLatticeImporter(LatticeImporter):
                     section.order,
                     sequence,
                 )
+                built_sections[section_name] = section
                 layout_sections.append(section_name)
             if layout_sections:
                 layout_definitions[sequence] = layout_sections
@@ -644,7 +655,12 @@ class MadxLatticeImporter(LatticeImporter):
 
         return MachineModel(
             elements=elements,
-            section={"sections": section_definitions},
+            section={
+                "sections": {
+                    name: section_entry(names, built_sections.get(name))
+                    for name, names in section_definitions.items()
+                }
+            },
             layout={
                 "layouts": layout_definitions,
                 "default_layout": next(iter(layout_definitions)),
