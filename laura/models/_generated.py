@@ -903,8 +903,8 @@ class _SimulationElementBase(ConfiguredBaseModel):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1016,8 +1016,8 @@ class _MagnetSimulationElementBase(_SimulationElementBase):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1132,8 +1132,8 @@ class _RFCavitySimulationElementBase(_SimulationElementBase):
     """Number of longitudinal space-charge bins."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1238,8 +1238,8 @@ class _WakefieldSimulationElementBase(_SimulationElementBase):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1318,8 +1318,8 @@ class _DriftSimulationElementBase(_SimulationElementBase):
     """Number of bins for LSC calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1381,8 +1381,8 @@ class _DiagnosticSimulationElementBase(_SimulationElementBase):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1467,8 +1467,8 @@ class _PlasmaSimulationElementBase(_SimulationElementBase):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1545,8 +1545,8 @@ class _TwissMatchSimulationElementBase(_SimulationElementBase):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1617,8 +1617,8 @@ class _MatrixTransformSimulationElementBase(_SimulationElementBase):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1693,8 +1693,8 @@ class _ElectrostaticSeparatorSimulationElementBase(_SimulationElementBase):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1792,8 +1792,8 @@ class _ACDipoleSimulationElementBase(_SimulationElementBase):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1860,8 +1860,8 @@ class _WireSimulationElementBase(_SimulationElementBase):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -1936,8 +1936,8 @@ class _BeamBeamSimulationElementBase(_SimulationElementBase):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
@@ -2037,8 +2037,8 @@ class _RFMultipoleSimulationElementBase(_SimulationElementBase):
     """Number of bins used in longitudinal space-charge calculations."""
     csr_enable: Optional[bool] = Field(default=True, description="""Whether coherent synchrotron radiation effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
     """Whether coherent synchrotron radiation effects are enabled."""
-    lsc_enable: Optional[bool] = Field(default=True, description="""Whether longitudinal space-charge effects are enabled.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'true'} })
-    """Whether longitudinal space-charge effects are enabled."""
+    lsc_enable: Optional[bool] = Field(default=False, description="""Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement'], 'ifabsent': 'false'} })
+    """Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default."""
     tracking_method: Optional[str] = Field(default=None, description="""Phase-space tracking algorithm requested from the target code.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })
     """Phase-space tracking algorithm requested from the target code."""
     mat6_calc_method: Optional[str] = Field(default=None, description="""Method used to calculate the element's 6x6 transfer matrix.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SimulationElement']} })

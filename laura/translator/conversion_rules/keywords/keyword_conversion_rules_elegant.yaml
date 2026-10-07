@@ -43,6 +43,7 @@ quadrupole:
   dx_rot: yaw
   dy_rot: pitch
   dz_rot: tilt
+  order: multipole_order
 sextupole:
   isr_enable: isr
   sr_enable: synch_rad

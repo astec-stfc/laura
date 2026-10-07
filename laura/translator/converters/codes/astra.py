@@ -4,10 +4,13 @@ ASTRA namelist generator.
 .. _ASTRA manual: https://www.desy.de/~mpyflo/Astra_dokumentation/
 """
 
-from laura._compat import DeprecatedMethodAliases
-from pydantic import BaseModel, ConfigDict, Field
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
 import numpy as np
+from pydantic import BaseModel, ConfigDict, Field
+
+from laura._compat import DeprecatedMethodAliases
+
 from ...utils.classes import get_grid_size
 
 section_header_text_astra = {
@@ -119,7 +122,8 @@ class AstraNewRun(AstraHeader):
     header: str = "NEWRUN"
 
     sample_interval: int = 1
-    """Downsampling factor (as 2**(3 * sample_interval))"""
+    """Written as ASTRA's ``N_red``: read every ``N_red``-th particle of the
+    input."""
 
     run: int = 1
     """Run number"""
@@ -303,7 +307,8 @@ class AstraCharge(AstraHeader):
     """Number of particles"""
 
     sample_interval: int = 1
-    """Downsampling interval calculated as 2 ** (3 * sample_interval)"""
+    """Divides ``npart`` when sizing the space-charge grid. simba samples the
+    beam before ``npart`` is counted, and leaves this at 1."""
 
     space_charge_mode: str = "False"
     """Space charge mode"""

@@ -19,6 +19,7 @@ opal_unsupported = [
     "CrabCavity",
 ]
 
+
 class OpalHeader(DeprecatedMethodAliases, BaseModel):
     """
     Generic class for generating OPAL namelists
@@ -392,7 +393,7 @@ class OpalFieldSolver(OpalHeader):
     """Space charge mode"""
 
     sample_interval: int = 1
-    """Downsampling interval calculated as 2 ** (3 * sample_interval)"""
+    """Divides ``npart`` when sizing the space-charge grid. """
 
     MIN_PARTICLES_PER_CELL: int = 8
     """Fewest particles per space-charge cell the automatic mesh may produce.
@@ -456,8 +457,14 @@ class OpalFieldSolver(OpalHeader):
 
     def model_post_init(self, context: Any, /) -> None:
         self.exclude.extend(
-            ["npart", "space_charge_mode", "grids", "sample_interval",
-             "grid_size_override", "MIN_PARTICLES_PER_CELL"]
+            [
+                "npart",
+                "space_charge_mode",
+                "grids",
+                "sample_interval",
+                "grid_size_override",
+                "MIN_PARTICLES_PER_CELL",
+            ]
         )
         if isinstance(self.grid_size_override, (tuple, list)):
             self.MX, self.MY, self.MT = (int(v) for v in self.grid_size_override)
@@ -529,7 +536,7 @@ class OpalFieldSolver(OpalHeader):
             return int(self.grid_size_override)
         npart = self.npart / self.sample_interval
         grid = get_grid_size(npart)
-        while grid > 4 and grid ** 3 > npart / self.MIN_PARTICLES_PER_CELL:
+        while grid > 4 and grid**3 > npart / self.MIN_PARTICLES_PER_CELL:
             grid //= 2
         return grid
 

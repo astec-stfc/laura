@@ -1,7 +1,7 @@
 # Slot: lsc_enable 
 
 
-_Whether longitudinal space-charge effects are enabled._
+_Whether longitudinal space-charge effects are enabled. Off unless asked for, so that every code models the same physics by default._
 
 
 
@@ -57,7 +57,7 @@ URI: [laura:lsc_enable](https://w3id.org/laura/lsc_enable)
 
 | Property | Value |
 | --- | --- |
-| If Absent | `true` |
+| If Absent | `false` |
 
 
 
@@ -99,10 +99,11 @@ URI: [laura:lsc_enable](https://w3id.org/laura/lsc_enable)
 <details>
 ```yaml
 name: lsc_enable
-description: Whether longitudinal space-charge effects are enabled.
+description: Whether longitudinal space-charge effects are enabled. Off unless asked
+  for, so that every code models the same physics by default.
 from_schema: https://w3id.org/laura/schema
 rank: 1000
-ifabsent: 'true'
+ifabsent: 'false'
 domain_of:
 - SimulationElement
 range: boolean
