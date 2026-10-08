@@ -26,6 +26,10 @@ _ORDER_TYPES = {order: name for name, order in magnetic_orders.items()}
 
 _CALL_RE = re.compile(r"(?i)\bcall\s*,\s*file\s*=\s*([^;]+);")
 
+_BEAM_RE = re.compile(r"(?im)^\s*beam\s*,([^;]*);")
+
+_BEAM_SEQUENCE_RE = re.compile(r"(?i)\bsequence\s*=\s*([\w.]+)")
+
 
 def _switch_dict() -> Dict[str, str]:
     """MAD-X keyword -> LAURA type name, reversing ``type_conversion_rules_madx``.
@@ -61,7 +65,6 @@ def _switch_off(element, flags) -> None:
 
 
 class MadxLatticeImporter(LatticeImporter):
-
     machine_area: str = "Lattice"
 
     twiss_file: Optional[str] = None
@@ -95,6 +98,13 @@ class MadxLatticeImporter(LatticeImporter):
 
     deferred_parameters: Dict[str, Dict[str, str]] = {}
     _source_functional_definitions: Dict[str, float] = PrivateAttr(default_factory=dict)
+    _beam_energy: Optional[float] = PrivateAttr(default=None)
+    """The current sequence's ``BEAM`` energy [eV]; see :meth:`_reference_energy`."""
+
+    def _reference_energy(self) -> Optional[float]:
+        """The ``BEAM`` energy of the sequence being imported, or the TWISS
+        file's ``ENERGY`` header."""
+        return self._beam_energy
 
     @model_validator(mode="after")
     def _check_input(self):  # noqa: N804
@@ -153,10 +163,29 @@ class MadxLatticeImporter(LatticeImporter):
             madx.call(str(source))
         return madx
 
+    @staticmethod
+    def _sequence_beam_energy(madx, sequence: str, source: str) -> Optional[float]:
+        """
+        Total energy [eV] of the ``BEAM`` that applies to ``sequence``, or
+        None when the source gives it none.
+        """
+        applies = False
+        for arguments in _BEAM_RE.findall(source):
+            named = _BEAM_SEQUENCE_RE.search(arguments)
+            if named is None or named.group(1).lower() == sequence.lower():
+                applies = True
+        if not applies:
+            return None
+        madx.use(sequence=sequence)
+        return float(madx.sequence[sequence].beam.energy) * 1e9
+
     def _rows_for_sequence(self, madx, sequence: str) -> list:
         """Extract element rows for one already-loaded MAD-X sequence."""
         self.lattice_name = sequence
         madx.input(f"seqedit, sequence={sequence}; flatten; endedit;")
+        self._beam_energy = self._sequence_beam_energy(
+            madx, sequence, read_with_calls(Path(self.source_file), _CALL_RE)
+        )
 
         self.deferred_parameters = {}
         rows = []
@@ -185,11 +214,15 @@ class MadxLatticeImporter(LatticeImporter):
                     row[name] = parameter.value
                 # inform is 2 for a definition, 1 for a later `elem, k1:=x;` update
                 if parameter.inform and isinstance(parameter.expr, str):
-                    self.deferred_parameters.setdefault(row["name"], {})[
-                        name
-                    ] = parameter.expr
+                    self.deferred_parameters.setdefault(row["name"], {})[name] = (
+                        parameter.expr
+                    )
                     used.update(re.findall(r"[A-Za-z_][\w.]*", parameter.expr))
-            if row["keyword"] == "rfcavity" and not row.get("freq") and row.get("harmon"):
+            if (
+                row["keyword"] == "rfcavity"
+                and not row.get("freq")
+                and row.get("harmon")
+            ):
                 native = madx.sequence[sequence]
                 try:
                     beta = float(native.beam.beta)
@@ -279,6 +312,8 @@ class MadxLatticeImporter(LatticeImporter):
             tfs = TFSFile()
             tfs.read_file(self.twiss_file)
             self.lattice_name = tfs.headers.get("sequence")
+            energy = tfs.headers.get("energy")  # GeV
+            self._beam_energy = float(energy) * 1e9 if energy else None
             rows = tfs.rows()
             numbered = number_repeated_names([str(row["name"]) for row in rows])
             for row, name in zip(rows, numbered):
@@ -650,7 +685,7 @@ class MadxLatticeImporter(LatticeImporter):
             )
         if not layout_definitions:
             raise ValueError(
-                "No MAD-X sequences meet min_section_length=" f"{min_section_length}."
+                f"No MAD-X sequences meet min_section_length={min_section_length}."
             )
 
         return MachineModel(

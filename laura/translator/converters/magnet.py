@@ -29,6 +29,13 @@ from .codes.gpt import GptCcs
 
 GPT_HARD_EDGE_B1 = 300.0
 
+BEND_ANGLE_PER_KICK = 0.01
+"""Largest angle [rad] one integration step of a bend may turn through when
+``n_kicks`` is left unset. ELEGANT's 4th-order ``CSBEND`` misses its own
+reference by ~0.3 θ (θ/N)⁴ in angle; every bend errs the same way, so round a
+ring that is a momentum offset of ~0.3 (θ/N)⁴ whatever the bend count --
+3e-9 here, against 4.5e-4 for 45-degree bends at the default four."""
+
 
 def add(x, y):
     return x + y
@@ -505,14 +512,29 @@ class DipoleTranslator(MultipoleStrengthTranslator):
         """``simulation.edge_order``, or 2 when the lattice left it unset."""
         return self.simulation.edge_order or 2
 
+    @property
+    def kick_count(self) -> int:
+        """``simulation.n_kicks`` if the lattice set it; otherwise enough
+        steps that none turns through more than :data:`BEND_ANGLE_PER_KICK`,
+        and never fewer than the schema default."""
+        default = self.simulation.n_kicks
+        if "n_kicks" in self.simulation.model_fields_set:
+            return default
+        try:
+            angle = abs(float(self.resolve(self.angle)))
+        except (TypeError, ValueError):
+            return default
+        return max(default, int(np.ceil(angle / BEND_ANGLE_PER_KICK)))
+
     def full_dump(self, resolve: bool = True) -> dict:
-        """Write :attr:`fringe_order` explicitly, so no code falls back on its
-        own default.."""
+        """Write :attr:`fringe_order` and :attr:`kick_count` explicitly, so no
+        code falls back on its own default."""
         data = super().full_dump(resolve=resolve)
+        data["simulation_n_kicks"] = self.kick_count
         data["simulation_edge_order"] = self.fringe_order
         if self.fringe_order == 2:
             for face in ("simulation_edge1_effects", "simulation_edge2_effects"):
-                if data.get(face) is not False:  # an edge switched off stays off
+                if data.get(face) is not False:
                     data[face] = 3
         if self.fringe_order == 1 and not data.get("simulation_fringe_model"):
             data["simulation_fringe_model"] = "linear_edge"

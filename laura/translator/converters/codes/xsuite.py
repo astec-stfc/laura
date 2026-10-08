@@ -745,6 +745,13 @@ class XsuiteLatticeImporter(LatticeImporter):
     def _default_name(self) -> str:
         return self.name
 
+    def _reference_energy(self) -> Optional[float]:
+        """The current line's ``particle_ref`` total energy, if it has one."""
+        particle_ref = getattr(self.line, "particle_ref", None)
+        if particle_ref is None:
+            return None
+        return float(particle_ref.energy0[0])
+
     def _default_sections(self) -> Dict[str, SectionLattice]:
         """One section per line of ``source_file``, if it has several."""
         if not self._source_lines:

@@ -20,7 +20,6 @@ from laura.models.element_list import (
 
 from ....exporters.yaml_exporter import PositionMode, export_machine_combined_file
 
-
 CLOSED_ANGLE_TOLERANCE = 1e-5
 """How near 2*pi [rad] a section's total bend must be for :func:`infer_geometry`
 to call it closed."""
@@ -92,6 +91,11 @@ class LatticeImporter(BaseModel):
         """The sections :meth:`create_layout` uses when none are given."""
         return self.create_section()
 
+    def _reference_energy(self) -> Optional[float]:
+        """Total energy [eV] of the source's design particle, for the
+        section's ``reference_energy``; None where the format has none."""
+        return None
+
     def create_section(self, section: Optional[Dict] = None) -> Dict[str, SectionLattice]:
         """Build a named :class:`SectionLattice` from imported elements.
 
@@ -128,6 +132,7 @@ class LatticeImporter(BaseModel):
             elements=ElementList(elements=elements),
             name=name,
             functional_definitions=self.functional_definitions,
+            reference_energy=self._reference_energy(),
         )
         lattice.resolve_positions(imported)
         return {name: lattice}

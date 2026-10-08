@@ -552,3 +552,61 @@ def test_export_yaml_runs_for_every_source_and_mode(
     assert "DR1" in written
     if position_mode == "sequential":
         assert "DR1" in (out / "_sections.yaml").read_text()
+
+
+# --- the design energy, from BEAM ----------------------------------------
+
+_SEQUENCE = (
+    "qf: quadrupole, l=0.5, k1=0.3;\n"
+    "qd: quadrupole, l=0.5, k1=-0.3;\n"
+    "s: sequence, l=10; qf, at=1; qd, at=3; qf, at=5; qd, at=7; qf, at=9; endsequence;\n"
+)
+
+
+def _section_entry(tmp_path, text):
+    source = tmp_path / "ring.madx"
+    source.write_text(text)
+    model = MadxLatticeImporter(source_file=str(source)).create_machine_model()
+    entry = model.section["sections"]["s"]
+    return entry if isinstance(entry, dict) else {}
+
+
+@pytest.mark.parametrize("text, energy", [
+    ("beam, particle=electron, energy=2.86;\n" + _SEQUENCE, 2.86e9),
+    # a sequence's own beam, given after it, and by momentum: E from pc
+    (_SEQUENCE + "beam, sequence=s, particle=proton, pc=7000;\n",
+     math.hypot(7000e9, 938.27208816e6)),
+])
+def test_the_section_takes_its_reference_energy_from_beam(tmp_path, text, energy):
+    """SIMBA's rings take their reference momentum from here; without it
+    they used the bunch's mean, which absorbed any injection offset."""
+    pytest.importorskip("cpymad")
+    assert _section_entry(tmp_path, text)["reference_energy"] == pytest.approx(
+        energy, rel=1e-9
+    )
+
+
+@pytest.mark.parametrize("text", [
+    _SEQUENCE,
+    # a beam for some other sequence: USE on this one would stop MAD-X dead
+    _SEQUENCE + "beam, sequence=other, particle=proton, pc=7000;\n",
+])
+def test_no_beam_for_the_sequence_means_no_reference_energy(tmp_path, text):
+    """Not MAD-X's 1 GeV default, which cpymad reports as though it were set."""
+    pytest.importorskip("cpymad")
+    assert "reference_energy" not in _section_entry(tmp_path, text)
+
+
+def test_a_twiss_file_gives_its_energy_header(tmp_path):
+    twiss = tmp_path / "twiss.tfs"
+    twiss.write_text(
+        '@ SEQUENCE %s "SEQ"\n'
+        "@ ENERGY %le 2.86\n"
+        "* NAME KEYWORD S L K1\n"
+        "$ %s %s %le %le %le\n"
+        '"Q1" "QUADRUPOLE" 0.5 0.5 0.4\n'
+        '"Q2" "QUADRUPOLE" 1.0 0.5 -0.4\n'
+    )
+    importer = MadxLatticeImporter(twiss_file=str(twiss))
+    section = next(iter(importer.create_section().values()))
+    assert section.reference_energy == pytest.approx(2.86e9)

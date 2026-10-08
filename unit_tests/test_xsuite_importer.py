@@ -759,3 +759,20 @@ def test_bends_totalling_two_pi_make_a_closed_section(angle, geometry):
     model = XsuiteLatticeImporter(line=line, name="ring")._single_layout_model()
     entry = model.section["sections"]["ring"]
     assert (entry.get("geometry") if isinstance(entry, dict) else None) == geometry
+
+
+@pytest.mark.parametrize("p0c", [None, 2.86e9])
+def test_the_section_takes_its_reference_energy_from_particle_ref(p0c):
+    line = xt.Line(
+        elements=[xt.Drift(length=1.0), xt.Multipole(knl=[0, 0.1]), xt.Drift(length=1.0)],
+        element_names=["d1", "q", "d2"],
+    )
+    if p0c is not None:
+        line.particle_ref = xt.Particles(p0c=p0c, mass0=xt.ELECTRON_MASS_EV)
+    model = XsuiteLatticeImporter(line=line, name="ring")._single_layout_model()
+    entry = model.section["sections"]["ring"]
+    energy = entry.get("reference_energy") if isinstance(entry, dict) else None
+    if p0c is None:
+        assert energy is None
+    else:
+        assert energy == pytest.approx(np.hypot(p0c, xt.ELECTRON_MASS_EV))
